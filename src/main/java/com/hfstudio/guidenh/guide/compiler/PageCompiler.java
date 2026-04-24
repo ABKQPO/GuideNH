@@ -139,7 +139,7 @@ public final class PageCompiler {
         while ((n = in.read(chunk)) != -1) {
             buffer.write(chunk, 0, n);
         }
-        String pageContent = buffer.toString(StandardCharsets.UTF_8);
+        String pageContent = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
         return parse(sourcePack, language, id, pageContent);
     }
 
