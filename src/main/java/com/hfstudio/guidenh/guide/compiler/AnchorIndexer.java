@@ -1,0 +1,76 @@
+package com.hfstudio.guidenh.guide.compiler;
+
+import java.util.Locale;
+import java.util.Stack;
+
+import javax.annotation.Nullable;
+
+import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.document.block.LytDocument;
+import com.hfstudio.guidenh.guide.document.block.LytHeading;
+import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.guide.document.block.LytVisitor;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowAnchor;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+
+/**
+ * Indexes all anchors within a page to allow faster navigation to them.
+ */
+public final class AnchorIndexer {
+
+    private final LytDocument document;
+
+    public AnchorIndexer(LytDocument document) {
+        this.document = document;
+    }
+
+    public AnchorTarget get(String anchor) {
+        var visitor = new LytVisitor() {
+
+            final Stack<LytNode> nodeStack = new Stack<>();
+            AnchorTarget target;
+
+            @Override
+            public Result beforeNode(LytNode node) {
+                if (node instanceof LytHeading heading) {
+                    var headingAnchor = normalizeAnchor(heading.getTextContent());
+                    if (headingAnchor.equals(anchor)) {
+                        target = new AnchorTarget(node, null);
+                        return Result.STOP;
+                    }
+                }
+
+                nodeStack.push(node);
+                return Result.CONTINUE;
+            }
+
+            @Override
+            public Result afterNode(LytNode node) {
+                nodeStack.pop();
+                return Result.CONTINUE;
+            }
+
+            @Override
+            public Result beforeFlowContent(LytFlowContent content) {
+                if (content instanceof LytFlowAnchor flowAnchor) {
+                    if (anchor.equals(flowAnchor.getName())) {
+                        target = new AnchorTarget(nodeStack.peek(), content);
+                        return Result.STOP;
+                    }
+                }
+                return Result.CONTINUE;
+            }
+        };
+        document.visit(visitor);
+        return visitor.target;
+    }
+
+    private String normalizeAnchor(String anchor) {
+        return anchor.toLowerCase(Locale.ROOT)
+            .trim()
+            .replaceAll("\\s+", "-");
+    }
+
+    @Desugar
+    public record AnchorTarget(LytNode blockNode, @Nullable LytFlowContent flowContent) {}
+}

@@ -1,0 +1,21 @@
+{
+  "modListVersion": 2,
+  "modList": [
+    {
+      "modid": "${modId}",
+      "name": "${modName}",
+      "description": "GuideNH - A 1.7.10 Guide System",
+      "version": "${modVersion}",
+      "mcversion": "${minecraftVersion}",
+      "url": "",
+      "updateUrl": "",
+      "authorList": [
+        "HFstudio"
+      ],
+      "credits": "",
+      "logoFile": "assets/guidenh/icon.png",
+      "screenshots": [],
+      "parent": ""
+    }
+  ]
+}

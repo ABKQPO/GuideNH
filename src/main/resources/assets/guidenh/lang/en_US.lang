@@ -1,0 +1,74 @@
+# Configuration (mirrors guideme.configuration.* in upstream en_us.json)
+guideme.configuration.adaptiveScaling=Adaptive UI Scaling
+guideme.configuration.debug=Debug
+guideme.configuration.debug.tooltip=Advanced Debugging Settings for Guide development
+guideme.configuration.fullWidthLayout=Full Width Layout
+guideme.configuration.gui=User Interface
+guideme.configuration.guide=Guides
+guideme.configuration.ignoreTranslatedGuides=Ignore Guide Translations
+guideme.configuration.ignoreTranslatedGuides.tooltip=Always load the original version of GuideNH guides, regardless of the currently selected UI language
+guideme.configuration.showDebugGuiOverlays=Debug GUI Overlays
+guideme.configuration.title=GuideNH Configuration
+
+# Guidebook UI (queried via GuidebookText.getTranslationKey() -> "guideme.guidebook." + name())
+guideme.guidebook.Blasting=Blasting
+guideme.guidebook.Close=Close
+guideme.guidebook.CloseFullWidthView=Close Full Width View
+guideme.guidebook.CommandExportFailure=Export failed: %s
+guideme.guidebook.CommandExportStart=Exporting %s to %s...
+guideme.guidebook.CommandExportSuccess=Export complete: %s pages, %s failed, %s assets. Output: %s
+guideme.guidebook.CommandExportUsage=Usage: /guide export <guideId> <outDir>
+guideme.guidebook.CommandGuideNotFound=Guide not found: %s
+guideme.guidebook.CommandListEntry=  - %s
+guideme.guidebook.CommandListHeader=Registered guides:
+guideme.guidebook.CommandOnlyWorksInSinglePlayer=This command only works in single-player.
+guideme.guidebook.CommandOpenUsage=Usage: /guide open <guideId>
+guideme.guidebook.CommandReloadUnsupported=Direct reload is not available here. Use F3+T on the client to reload resources.
+guideme.guidebook.CommandReloaded=Guide resources reloaded.
+guideme.guidebook.CommandSearchFailure=Search failed: %s
+guideme.guidebook.CommandSearchNoResults=No pages matched '%s'.
+guideme.guidebook.CommandSearchResult=  - %s [%s / %s]
+guideme.guidebook.CommandSearchResults=Search results for '%s':
+guideme.guidebook.CommandSearchUsage=Usage: /guide search <query>
+guideme.guidebook.CommandUsage=/guide <list|open <guideId>|reload|search <query>|export <guideId> <outDir>>
+guideme.guidebook.ContentFrom=Content from
+guideme.guidebook.Crafting=Crafting
+guideme.guidebook.FullWidthView=Full Width View
+guideme.guidebook.HideAnnotations=Hide Annotations
+guideme.guidebook.HistoryGoBack=Go back one page
+guideme.guidebook.HistoryGoForward=Go forward one page
+guideme.guidebook.HoldToShow=Hold [%s] to open guide
+guideme.guidebook.ItemInvalidGuideId=Invalid guide id set: %s
+guideme.guidebook.ItemNoGuideId=No guide id set
+guideme.guidebook.PageNotFound=Page not found: %s
+guideme.guidebook.RegionWandAreaTooLarge=§c[RegionWand]§r Area too large (%s blocks > 4096). Please shrink the selection.
+guideme.guidebook.RegionWandChatPos=§b[RegionWand]§r Pos%s = %s, %s, %s
+guideme.guidebook.RegionWandCopied=§a[RegionWand]§r Copied to clipboard: %s\u00d7%s\u00d7%s, %s non-air blocks, %s with TileEntity NBT.
+guideme.guidebook.RegionWandCopyFailed=§c[RegionWand]§r Failed to copy to clipboard: %s
+guideme.guidebook.RegionWandNeedTwoCorners=§c[RegionWand]§r Select both corners first with left click and right click.
+guideme.guidebook.RegionWandTooltipExport=§7Sneak + right click: export GameScene to clipboard
+guideme.guidebook.RegionWandTooltipPos=§bPos%s§7 = %s, %s, %s
+guideme.guidebook.RegionWandTooltipSelect=§7Left click: set Pos1; right click: set Pos2
+guideme.guidebook.ResetView=Reset View
+guideme.guidebook.RunsCommand=Runs Command:
+guideme.guidebook.Search=Search
+guideme.guidebook.SearchNoQuery=Enter a Search Query
+guideme.guidebook.SearchNoResults=No Results
+guideme.guidebook.SearchPlaceholder=Type to search...
+guideme.guidebook.SearchNoMatch=(No matches)
+guideme.guidebook.ShapelessCrafting=Crafting (Shapeless)
+guideme.guidebook.ShowAnnotations=Show Annotations
+guideme.guidebook.Smelting=Smelting
+guideme.guidebook.ZoomIn=Zoom In
+guideme.guidebook.ZoomOut=Zoom Out
+
+# Vanilla item key (GuideItem.setUnlocalizedName("guide") -> item.guide.name)
+item.guide.name=Guide
+item.region_wand.name=Region Wand
+
+# 1.7.10 KeyBinding keys (category must be key.categories.<id>; binding key is custom)
+key.categories.guidenh=GuideNH
+key.guidenh.open_guide=Open Guide for Items
+
+# Guide name (shown in navigation root / used by manifest display name)
+guideme.guide_name=GuideNH Example Guide

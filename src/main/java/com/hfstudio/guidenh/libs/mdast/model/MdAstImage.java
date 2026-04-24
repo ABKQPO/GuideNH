@@ -1,0 +1,82 @@
+package com.hfstudio.guidenh.libs.mdast.model;
+
+import java.io.IOException;
+
+import javax.annotation.Nullable;
+
+import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonWriter;
+
+/**
+ * Image (Node) represents an image.
+ * Image can be used where phrasing content is expected. It has no content model, but is described by its alt field.
+ * Image includes the mixins Resource and Alternative.
+ * For example, the following markdown:
+ * ![alpha](https://example.com/favicon.ico "bravo")
+ * Yields:
+ * { type: 'image', url: 'https://example.com/favicon.ico', title: 'bravo', alt: 'alpha' }
+ */
+public class MdAstImage extends MdAstNode implements MdAstResource, MdAstAlternative, MdAstStaticPhrasingContent {
+
+    public static final String TYPE = "image";
+    public String alt;
+    public String url = "";
+    public String title;
+
+    public MdAstImage() {
+        super(TYPE);
+    }
+
+    @Override
+    public @Nullable String alt() {
+        return alt;
+    }
+
+    @Override
+    public String url() {
+        return url;
+    }
+
+    @Override
+    public @Nullable String title() {
+        return title;
+    }
+
+    public void setAlt(String alt) {
+        this.alt = alt;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    @Override
+    public void toText(StringBuilder buffer) {}
+
+    @Override
+    protected void writeJson(JsonWriter writer) throws IOException {
+        if (title != null) {
+            writer.name("title")
+                .value(title);
+        }
+        writer.name("url")
+            .value(url);
+        if (alt != null) {
+            writer.name("alt")
+                .value(alt);
+        }
+        super.writeJson(writer);
+    }
+
+    @Override
+    protected void readJson(JsonObject jsonObject) throws IOException {
+        super.readJson(jsonObject);
+        this.title = readJsonString(jsonObject, "title", null);
+        this.url = readJsonString(jsonObject, "url");
+        this.alt = readJsonString(jsonObject, "alt", null);
+    }
+}

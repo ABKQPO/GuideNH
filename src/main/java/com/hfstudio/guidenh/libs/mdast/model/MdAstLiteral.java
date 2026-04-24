@@ -1,0 +1,46 @@
+package com.hfstudio.guidenh.libs.mdast.model;
+
+import java.io.IOException;
+
+import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonWriter;
+import com.hfstudio.guidenh.libs.unist.UnistLiteral;
+
+/**
+ * Literal (UnistLiteral) represents an abstract public interface in mdast containing a value.
+ * Its value field is a string.
+ */
+public abstract class MdAstLiteral extends MdAstNode implements UnistLiteral {
+
+    public String value = "";
+
+    public MdAstLiteral(String type) {
+        super(type);
+    }
+
+    @Override
+    public void toText(StringBuilder buffer) {
+        buffer.append(value);
+    }
+
+    @Override
+    public String value() {
+        return this.value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    @Override
+    public void writeJson(JsonWriter writer) throws IOException {
+        writer.name("value")
+            .value(value);
+    }
+
+    @Override
+    protected void readJson(JsonObject jsonObject) throws IOException {
+        super.readJson(jsonObject);
+        this.value = readJsonString(jsonObject, "value");
+    }
+}

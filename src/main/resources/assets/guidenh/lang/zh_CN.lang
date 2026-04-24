@@ -1,0 +1,74 @@
+# Configuration
+guideme.configuration.adaptiveScaling=自适应界面缩放
+guideme.configuration.debug=调试
+guideme.configuration.debug.tooltip=指南开发相关的高级调试选项
+guideme.configuration.fullWidthLayout=全宽布局
+guideme.configuration.gui=用户界面
+guideme.configuration.guide=指南
+guideme.configuration.ignoreTranslatedGuides=忽略指南翻译
+guideme.configuration.ignoreTranslatedGuides.tooltip=无论当前界面语言为何，始终加载 GuideNH 指南的原始版本
+guideme.configuration.showDebugGuiOverlays=显示调试 GUI 覆盖层
+guideme.configuration.title=GuideNH 配置
+
+# Guidebook UI
+guideme.guidebook.Blasting=高炉熔炼
+guideme.guidebook.Close=关闭
+guideme.guidebook.CloseFullWidthView=关闭全宽视图
+guideme.guidebook.CommandExportFailure=导出失败：%s
+guideme.guidebook.CommandExportStart=正在导出 %s 到 %s...
+guideme.guidebook.CommandExportSuccess=导出完成：页面 %s，失败 %s，资源 %s。目录：%s
+guideme.guidebook.CommandExportUsage=用法: /guide export <guideId> <outDir>
+guideme.guidebook.CommandGuideNotFound=找不到指南：%s
+guideme.guidebook.CommandListEntry=  - %s
+guideme.guidebook.CommandListHeader=已注册的指南：
+guideme.guidebook.CommandOnlyWorksInSinglePlayer=该指令仅在单人模式下可用。
+guideme.guidebook.CommandOpenUsage=用法: /guide open <guideId>
+guideme.guidebook.CommandReloadUnsupported=当前端不支持直接重载，请在客户端使用 F3+T 重载资源。
+guideme.guidebook.CommandReloaded=指南资源已重载。
+guideme.guidebook.CommandSearchFailure=搜索失败：%s
+guideme.guidebook.CommandSearchNoResults=没有找到匹配“%s”的页面。
+guideme.guidebook.CommandSearchResult=  - %s [%s / %s]
+guideme.guidebook.CommandSearchResults=搜索“%s”结果：
+guideme.guidebook.CommandSearchUsage=用法: /guide search <query>
+guideme.guidebook.CommandUsage=/guide <list|open <guideId>|reload|search <query>|export <guideId> <outDir>>
+guideme.guidebook.ContentFrom=内容来自
+guideme.guidebook.Crafting=合成
+guideme.guidebook.FullWidthView=全宽视图
+guideme.guidebook.HideAnnotations=隐藏标注
+guideme.guidebook.HistoryGoBack=后退一页
+guideme.guidebook.HistoryGoForward=前进一页
+guideme.guidebook.HoldToShow=长按 [%s] 打开指南
+guideme.guidebook.ItemInvalidGuideId=指南 ID 无效：%s
+guideme.guidebook.ItemNoGuideId=未设置指南 ID
+guideme.guidebook.PageNotFound=页面不存在：%s
+guideme.guidebook.RegionWandAreaTooLarge=§c[RegionWand]§r 区域过大（%s 方块 > 4096），请缩小选区。
+guideme.guidebook.RegionWandChatPos=§b[RegionWand]§r Pos%s = %s, %s, %s
+guideme.guidebook.RegionWandCopied=§a[RegionWand]§r 已复制到剪贴板：%s\u00d7%s\u00d7%s，共 %s 个非空方块，其中 %s 个携带 TileEntity NBT。
+guideme.guidebook.RegionWandCopyFailed=§c[RegionWand]§r 复制剪贴板失败：%s
+guideme.guidebook.RegionWandNeedTwoCorners=§c[RegionWand]§r 请先用左键和右键分别选择两个角点。
+guideme.guidebook.RegionWandTooltipExport=§7潜行 + 右键：导出 GameScene 到剪贴板
+guideme.guidebook.RegionWandTooltipPos=§bPos%s§7 = %s, %s, %s
+guideme.guidebook.RegionWandTooltipSelect=§7左键：设置 Pos1；右键：设置 Pos2
+guideme.guidebook.ResetView=重置视图
+guideme.guidebook.RunsCommand=执行指令：
+guideme.guidebook.Search=搜索
+guideme.guidebook.SearchNoQuery=请输入搜索关键词
+guideme.guidebook.SearchNoResults=无结果
+guideme.guidebook.SearchPlaceholder=键入以搜索...
+guideme.guidebook.SearchNoMatch=（无匹配结果）
+guideme.guidebook.ShapelessCrafting=合成（无序）
+guideme.guidebook.ShowAnnotations=显示标注
+guideme.guidebook.Smelting=熔炼
+guideme.guidebook.ZoomIn=放大
+guideme.guidebook.ZoomOut=缩小
+
+# Items
+item.guide.name=指南
+item.region_wand.name=区域选择魔棒
+
+# Key bindings
+key.categories.guidenh=GuideNH
+key.guidenh.open_guide=打开物品对应的指南
+
+# Guide name (shown in navigation root)
+guideme.guide_name=GuideNH 示例指南

@@ -1,0 +1,151 @@
+package com.hfstudio.guidenh.libs.micromark.commonmark;
+
+import java.util.List;
+import java.util.Objects;
+
+import com.hfstudio.guidenh.libs.micromark.Assert;
+import com.hfstudio.guidenh.libs.micromark.CharUtil;
+import com.hfstudio.guidenh.libs.micromark.Construct;
+import com.hfstudio.guidenh.libs.micromark.ContentType;
+import com.hfstudio.guidenh.libs.micromark.State;
+import com.hfstudio.guidenh.libs.micromark.Token;
+import com.hfstudio.guidenh.libs.micromark.TokenizeContext;
+import com.hfstudio.guidenh.libs.micromark.Tokenizer;
+import com.hfstudio.guidenh.libs.micromark.Types;
+import com.hfstudio.guidenh.libs.micromark.factory.FactorySpace;
+import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
+import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
+
+public final class Content {
+
+    private Content() {}
+
+    public static final Construct content;
+    public static final Construct continuationConstruct;
+
+    static {
+        content = new Construct();
+        content.tokenize = (context, effects, ok, nok) -> new StateMachine(context, effects, ok, nok)::start;
+        content.resolve = Content::resolveContent;
+
+        continuationConstruct = new Construct();
+        continuationConstruct.tokenize = (context, effects, ok,
+            nok) -> new ContinuationStateMachine(context, effects, ok, nok)::startLookahead;
+        continuationConstruct.partial = true;
+    }
+
+    /**
+     * Content is transparent: it’s parsed right now. That way, definitions are also parsed right now: before text in
+     * paragraphs (specifically, media) are parsed.
+     */
+    private static List<Tokenizer.Event> resolveContent(List<Tokenizer.Event> events, TokenizeContext context) {
+        Subtokenize.subtokenize(events);
+        return events;
+    }
+
+    private static class StateMachine {
+
+        private final TokenizeContext context;
+        private final Tokenizer.Effects effects;
+        private final State ok;
+        private final State nok;
+        Token previous;
+
+        public StateMachine(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
+
+            this.context = context;
+            this.effects = effects;
+            this.ok = ok;
+            this.nok = nok;
+        }
+
+        private State start(int code) {
+            Assert.check(code != Codes.eof && !CharUtil.markdownLineEnding(code), "expected no eof or eol");
+
+            effects.enter(Types.content);
+            var tokenFields = new Token();
+            tokenFields.contentType = ContentType.CONTENT;
+            previous = effects.enter(Types.chunkContent, tokenFields);
+            return data(code);
+        }
+
+        private State data(int code) {
+            if (code == Codes.eof) {
+                return contentEnd(code);
+            }
+
+            if (CharUtil.markdownLineEnding(code)) {
+                return effects.check.hook(continuationConstruct, this::contentContinue, this::contentEnd)
+                    .step(code);
+            }
+
+            // Data.
+            effects.consume(code);
+            return this::data;
+        }
+
+        private State contentEnd(int code) {
+            effects.exit(Types.chunkContent);
+            effects.exit(Types.content);
+            return ok.step(code);
+        }
+
+        private State contentContinue(int code) {
+            Assert.check(CharUtil.markdownLineEnding(code), "expected eol");
+            effects.consume(code);
+            effects.exit(Types.chunkContent);
+
+            var tokenFields = new Token();
+            tokenFields.contentType = ContentType.CONTENT;
+            tokenFields.previous = previous;
+            previous.next = effects.enter(Types.chunkContent, tokenFields);
+            previous = previous.next;
+            return this::data;
+        }
+
+    }
+
+    private static class ContinuationStateMachine {
+
+        private final TokenizeContext context;
+        private final Tokenizer.Effects effects;
+        private final State ok;
+        private final State nok;
+
+        public ContinuationStateMachine(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
+
+            this.context = context;
+            this.effects = effects;
+            this.ok = ok;
+            this.nok = nok;
+        }
+
+        private State startLookahead(int code) {
+            Assert.check(CharUtil.markdownLineEnding(code), "expected a line ending");
+            effects.exit(Types.chunkContent);
+            effects.enter(Types.lineEnding);
+            effects.consume(code);
+            effects.exit(Types.lineEnding);
+            return FactorySpace.create(effects, this::prefixed, Types.linePrefix);
+        }
+
+        private State prefixed(int code) {
+            if (code == Codes.eof || CharUtil.markdownLineEnding(code)) {
+                return nok.step(code);
+            }
+
+            var tail = context.getLastEvent();
+
+            if (!context.getParser().constructs.nullDisable.contains("codeIndented") && tail != null
+                && Objects.equals(tail.token().type, Types.linePrefix)
+                && tail.context()
+                    .sliceSerialize(tail.token(), true)
+                    .length() >= Constants.tabSize) {
+                return ok.step(code);
+            }
+
+            return effects.interrupt.hook(context.getParser().constructs.flow, nok, ok)
+                .step(code);
+        }
+    }
+}

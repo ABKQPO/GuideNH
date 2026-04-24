@@ -1,0 +1,90 @@
+package com.hfstudio.guidenh.libs.mdast.model;
+
+import java.io.IOException;
+
+import javax.annotation.Nullable;
+
+import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonWriter;
+
+/**
+ * ImageReference (Node) represents an image through association, or its original source if there is no association.
+ * ImageReference can be used where phrasing content is expected. It has no content model, but is described by its alt
+ * field.
+ * ImageReference should be associated with a Definition.
+ * For example, the following markdown:
+ * ![alpha][bravo]
+ * Yields:
+ * 
+ * <pre>
+ * {
+ * type: 'imageReference',
+ * identifier: 'bravo',
+ * label: 'bravo',
+ * referenceType: 'full',
+ * alt: 'alpha'
+ * }
+ * </pre>
+ */
+public class MdAstImageReference extends MdAstNode
+    implements MdAstReference, MdAstAlternative, MdAstStaticPhrasingContent {
+
+    public static final String TYPE = "imageReference";
+    public String alt;
+    public String identifier;
+    public String label;
+    public MdAstReferenceType referenceType;
+
+    public MdAstImageReference() {
+        super(TYPE);
+    }
+
+    @Override
+    public @Nullable String alt() {
+        return alt;
+    }
+
+    @Override
+    public String identifier() {
+        return identifier;
+    }
+
+    @Override
+    public @Nullable String label() {
+        return label;
+    }
+
+    @Override
+    public void toText(StringBuilder buffer) {}
+
+    @Override
+    public MdAstReferenceType referenceType() {
+        return referenceType;
+    }
+
+    @Override
+    protected void writeJson(JsonWriter writer) throws IOException {
+        if (alt != null) {
+            writer.name("alt")
+                .value(alt);
+        }
+        writer.name("identifier")
+            .value(identifier);
+        writer.name("label")
+            .value(label);
+        writer.name("referenceType")
+            .value(referenceType.getSerializedName());
+
+        super.writeJson(writer);
+    }
+
+    @Override
+    protected void readJson(JsonObject jsonObject) throws IOException {
+        super.readJson(jsonObject);
+
+        this.alt = readJsonString(jsonObject, "alt", null);
+        this.identifier = readJsonString(jsonObject, "identifier");
+        this.label = readJsonString(jsonObject, "label");
+        this.referenceType = MdAstReferenceType.fromSerializedName(readJsonString(jsonObject, "referenceType"));
+    }
+}

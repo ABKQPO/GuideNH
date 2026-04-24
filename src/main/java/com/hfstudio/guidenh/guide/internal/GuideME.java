@@ -1,0 +1,34 @@
+package com.hfstudio.guidenh.guide.internal;
+
+import javax.annotation.Nullable;
+
+import net.minecraft.util.ResourceLocation;
+
+import com.hfstudio.guidenh.guide.internal.search.GuideSearch;
+
+public class GuideME {
+
+    public static final String MOD_ID = "guidenh";
+
+    static GuideMEProxy PROXY = new GuideMEServerProxy();
+
+    @Nullable
+    private static GuideSearch SEARCH = null;
+
+    private GuideME() {}
+
+    public static ResourceLocation makeId(String path) {
+        return new ResourceLocation(MOD_ID, path);
+    }
+
+    public static void initClientProxy() {
+        PROXY = new GuideMEClientProxy();
+    }
+
+    public static synchronized GuideSearch getSearch() {
+        if (SEARCH == null) {
+            SEARCH = new GuideSearch();
+        }
+        return SEARCH;
+    }
+}

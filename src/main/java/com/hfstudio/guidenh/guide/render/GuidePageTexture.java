@@ -1,0 +1,84 @@
+package com.hfstudio.guidenh.guide.render;
+
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.imageio.ImageIO;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.util.ResourceLocation;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.hfstudio.guidenh.guide.document.LytSize;
+
+public class GuidePageTexture {
+
+    private static final Logger LOG = LogManager.getLogger("GuideNH/GuidePageTexture");
+    private static final GuidePageTexture MISSING = new GuidePageTexture(null, 0, 0);
+
+    private static final Map<ResourceLocation, GuidePageTexture> CACHE = new HashMap<>();
+
+    private final ResourceLocation texture;
+    private final int width;
+    private final int height;
+
+    public GuidePageTexture(ResourceLocation texture, int width, int height) {
+        this.texture = texture;
+        this.width = width;
+        this.height = height;
+    }
+
+    public static GuidePageTexture missing() {
+        return MISSING;
+    }
+
+    public static GuidePageTexture of(ResourceLocation texture) {
+        return new GuidePageTexture(texture, 256, 256);
+    }
+
+    public static synchronized GuidePageTexture load(ResourceLocation id, byte[] imageData) {
+        var cached = CACHE.get(id);
+        if (cached != null) return cached;
+        if (imageData == null || imageData.length == 0) return missing();
+        try {
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageData));
+            if (img == null) {
+                LOG.warn("Failed to decode image {} (ImageIO returned null)", id);
+                return missing();
+            }
+            DynamicTexture tex = new DynamicTexture(img);
+            String name = "guidenh_page_" + sanitize(id.getResourceDomain() + "_" + id.getResourcePath());
+            ResourceLocation loc = Minecraft.getMinecraft()
+                .getTextureManager()
+                .getDynamicTextureLocation(name, tex);
+            var gpt = new GuidePageTexture(loc, img.getWidth(), img.getHeight());
+            CACHE.put(id, gpt);
+            return gpt;
+        } catch (Throwable t) {
+            LOG.error("Failed to load guide page texture {}", id, t);
+            return missing();
+        }
+    }
+
+    private static String sanitize(String raw) {
+        return raw.replaceAll("[^a-zA-Z0-9]", "_");
+    }
+
+    public ResourceLocation getTexture() {
+        return texture;
+    }
+
+    public boolean isMissing() {
+        return texture == null;
+    }
+
+    public LytSize getSize() {
+        if (width <= 0 || height <= 0) return new LytSize(256, 256);
+        return new LytSize(width, height);
+    }
+}

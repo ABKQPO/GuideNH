@@ -1,0 +1,33 @@
+package com.hfstudio.guidenh.guide.internal.search;
+
+import static org.apache.lucene.analysis.en.EnglishAnalyzer.getDefaultStopSet;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.LowerCaseFilter;
+import org.apache.lucene.analysis.StopFilter;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.en.EnglishPossessiveFilter;
+import org.apache.lucene.analysis.en.KStemFilter;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
+
+/**
+ * Custom version of the default english analyzer to enable the better {@link KStemFilter}.
+ */
+public final class EnglishAnalyzer extends Analyzer {
+
+    @Override
+    protected TokenStreamComponents createComponents(String fieldName) {
+        final Tokenizer source = new StandardTokenizer();
+        TokenStream result = new EnglishPossessiveFilter(source);
+        result = new LowerCaseFilter(result);
+        result = new StopFilter(result, getDefaultStopSet());
+        result = new KStemFilter(result);
+        return new TokenStreamComponents(source, result);
+    }
+
+    @Override
+    protected TokenStream normalize(String fieldName, TokenStream in) {
+        return new LowerCaseFilter(in);
+    }
+}
