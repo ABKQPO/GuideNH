@@ -6,19 +6,19 @@ GuideNH already ships a runtime example guide in `wiki/resourcepack/`. This page
 
 | Runtime file | What it demonstrates |
 | --- | --- |
-| `.../en_us/index.md` | frontmatter, item ids, recipes, item/block images, command links, tooltips, scenes, annotations |
-| `.../en_us/markdown.md` | plain markdown features and tables |
-| `.../en_us/rendering.md` | block-level rendering and layout behavior |
-| `.../en_us/structure.md` | `<Structure>` usage and coordinate format |
-| `.../en_us/japanese.md` | navigation child example |
-| `.../en_us/subpage.md` | navigation / linking example |
+| `.../_en_us/index.md` | frontmatter, item ids, recipes, item/block images, command links, tooltips, scenes, annotations |
+| `.../_en_us/markdown.md` | plain markdown features and tables |
+| `.../_en_us/rendering.md` | block-level rendering and layout behavior |
+| `.../_en_us/structure.md` | `<Structure>` usage and coordinate format |
+| `.../_en_us/japanese.md` | navigation child example |
+| `.../_en_us/subpage.md` | navigation / linking example |
 
 ## Asset Examples
 
 | Runtime file | Purpose |
 | --- | --- |
-| `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/test1.png` | page-local image example |
-| `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/assets/example_structure.snbt` | rooted shared structure asset for `<ImportStructure>` |
+| `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png` | page-local image example |
+| `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt` | rooted shared structure asset for `<ImportStructure>` |
 
 ## Example Snippets
 

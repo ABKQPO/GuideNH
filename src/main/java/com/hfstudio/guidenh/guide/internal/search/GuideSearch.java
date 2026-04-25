@@ -111,6 +111,19 @@ public class GuideSearch implements AutoCloseable {
     }
 
     public void indexAll() {
+        pendingTasks.clear();
+        indexedLanguages.clear();
+        warnedAboutLanguage.clear();
+
+        try {
+            indexWriter.deleteAll();
+            indexWriter.flush();
+            indexWriter.commit();
+            refreshIndexReader();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to reset the guide search index.", e);
+        }
+
         for (var guide : Guides.getAll()) {
             index(guide);
         }

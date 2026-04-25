@@ -7,33 +7,32 @@ GuideNH supports localized guide pages and localized guide assets.
 Runtime localization is folder-based:
 
 ```text
-wiki/resourcepack/assets/<namespace>/guides/<guide_namespace>/<guide_id>/
-├─ _manifest.json
-├─ en_us/
-│  └─ index.md
-└─ zh_cn/
-   └─ index.md
+wiki/resourcepack/assets/<modid>/guidenh/
+|-- _en_us/
+|   `-- index.md
+`-- _zh_cn/
+    `-- index.md
 ```
+
+Language folders are recognized only in the underscored form. Plain folders such as `en_us/` and `zh_cn/` are no longer treated as localization roots.
 
 ## Page Lookup Order
 
-For each manifest entry, GuideNH tries:
+For each requested page id, GuideNH tries:
 
-1. `<current language>/<page>`
-2. `<page>` without a language folder
-3. if the current language is not the guide default language, `<default language>/<page>`
-4. the language-neutral `<page>` path again as the final fallback
+1. `_<current language>/<page>`
+2. if the current language is not the guide default language, `_<default language>/<page>`
+3. `<page>` without a language folder
 
-In practice, you should keep page files in language folders and rely on the default language as the main fallback.
+In practice, you should keep page files in underscored language folders and rely on the default language as the main fallback.
 
 ## Asset Lookup Order
 
 Guide assets use a slightly richer fallback order:
 
-1. `<current language>/<path>`
-2. `_<current language>/<path>`
-3. `<default language>/<path>`
-4. `<path>`
+1. `_<current language>/<path>`
+2. if the current language is not the guide default language, `_<default language>/<path>`
+3. `<path>`
 
 This makes it possible to localize images or texture-like assets when needed.
 
@@ -49,16 +48,15 @@ GuideNH exposes a client configuration option named `Ignore Guide Translations`.
 
 - always keep one fully complete default language
 - translate pages first, then translate assets only when text is embedded in the asset
-- use the same manifest page list across languages
 - avoid language-specific asset filenames when a rooted shared asset would do
 
 ## Example
 
 ```text
-wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/index.md
-wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/zh_cn/index.md
-wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/test1.png
-wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/zh_cn/test1.png
+wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md
+wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/index.md
+wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png
+wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png
 ```
 
 ## Related Pages

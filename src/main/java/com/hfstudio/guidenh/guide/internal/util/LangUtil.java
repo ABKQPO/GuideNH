@@ -1,10 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.util;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -13,76 +10,56 @@ import net.minecraft.util.ResourceLocation;
 
 public final class LangUtil {
 
-    public static final Set<String> SUPPORTED_LANGUAGES = Collections
-        .unmodifiableSet(new HashSet<>(Arrays.asList("en_us", "zh_cn")));
+    private static final Pattern LANGUAGE_CODE_PATTERN = Pattern.compile("[a-z0-9][a-z0-9_\\-]*");
 
     private LangUtil() {}
 
-    public static Set<String> getValidLanguages() {
-        return SUPPORTED_LANGUAGES;
+    public static String normalizeLanguage(String language) {
+        return language.toLowerCase(Locale.ROOT);
+    }
+
+    public static boolean isLanguageCode(@Nullable String language) {
+        return language != null && LANGUAGE_CODE_PATTERN.matcher(normalizeLanguage(language))
+            .matches();
     }
 
     public static String getCurrentLanguage() {
         var client = Minecraft.getMinecraft();
         if (client != null && client.gameSettings != null) {
-            return client.gameSettings.language.toLowerCase(Locale.ROOT);
+            return normalizeLanguage(client.gameSettings.language);
         }
         return "en_us";
     }
 
     public static ResourceLocation getTranslatedAsset(ResourceLocation assetId, String language) {
-        return new ResourceLocation(assetId.getResourceDomain(), "_" + language + "/" + assetId.getResourcePath());
+        return new ResourceLocation(
+            assetId.getResourceDomain(),
+            "_" + normalizeLanguage(language) + "/" + assetId.getResourcePath());
     }
 
-    public static ResourceLocation stripLangFromPageId(ResourceLocation pageId, Set<String> supportedLanguages) {
+    public static ResourceLocation stripLangFromPageId(ResourceLocation pageId) {
         String path = pageId.getResourcePath();
-
-        int firstSep = path.indexOf("/");
-        if (firstSep == -1) {
-            return pageId; // No directory, bare filename
-        }
-
-        if (path.charAt(0) != '_') {
-            return pageId; // First folder doesn't start with "_"
-        }
-
-        // There has to be content after the slash since empty paths are not allowed
-        if (firstSep + 1 >= path.length()) {
+        var language = extractLangPrefix(path);
+        if (language == null) {
             return pageId;
         }
 
-        var potentialLanguage = path.substring(1, firstSep);
-        if (supportedLanguages.contains(potentialLanguage)) {
-            return new ResourceLocation(pageId.getResourceDomain(), path.substring(firstSep + 1));
-        }
-
-        return pageId;
+        return new ResourceLocation(pageId.getResourceDomain(), path.substring(language.length() + 2));
     }
 
     @Nullable
-    public static String getLangFromPageId(ResourceLocation pageId, Set<String> supportedLanguages) {
-        String path = pageId.getResourcePath();
+    public static String getLangFromPageId(ResourceLocation pageId) {
+        return extractLangPrefix(pageId.getResourcePath());
+    }
 
+    @Nullable
+    private static String extractLangPrefix(String path) {
         int firstSep = path.indexOf("/");
-        if (firstSep == -1) {
-            return null; // No directory, bare filename
-        }
-
-        if (path.charAt(0) != '_') {
-            return null; // First folder doesn't start with "_"
-        }
-
-        // There has to be content after the slash since empty paths are not allowed
-        if (firstSep + 1 >= path.length()) {
+        if (firstSep <= 1 || path.charAt(0) != '_' || firstSep + 1 >= path.length()) {
             return null;
         }
 
-        var potentialLanguage = path.substring(1, firstSep);
-        if (supportedLanguages.contains(potentialLanguage)) {
-            return potentialLanguage;
-        }
-
-        return null;
+        var potentialLanguage = normalizeLanguage(path.substring(1, firstSep));
+        return isLanguageCode(potentialLanguage) ? potentialLanguage : null;
     }
-
 }

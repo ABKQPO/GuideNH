@@ -43,6 +43,7 @@ guideme.guidebook.HistoryGoForward=前进一页
 guideme.guidebook.HoldToShow=长按 [%s] 打开指南
 guideme.guidebook.ItemInvalidGuideId=指南 ID 无效：%s
 guideme.guidebook.ItemNoGuideId=未设置指南 ID
+guideme.guidebook.ItemNoGuidePage=这个物品没有绑定指南页面
 guideme.guidebook.PageNotFound=页面不存在：%s
 guideme.guidebook.RegionWandAreaTooLarge=§c[RegionWand]§r 区域过大（%s 方块 > 4096），请缩小选区。
 guideme.guidebook.RegionWandChatPos=§b[RegionWand]§r Pos%s = %s, %s, %s

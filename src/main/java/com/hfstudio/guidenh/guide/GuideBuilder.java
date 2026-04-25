@@ -50,7 +50,7 @@ public class GuideBuilder {
     GuideBuilder(ResourceLocation id) {
         this.id = Objects.requireNonNull(id, "id");
         this.defaultNamespace = id.getResourceDomain();
-        this.folder = "guides/" + id.getResourceDomain() + "/" + id.getResourcePath();
+        this.folder = "guidenh";
         this.startPage = new ResourceLocation(defaultNamespace, "index.md");
 
         // Development sources folder
@@ -100,8 +100,8 @@ public class GuideBuilder {
      * name must be unique across all namespaces, since it would otherwise cause pages from guides added by other mods
      * to show up in yours.
      * <p/>
-     * This defaults to {@code guides/<namespace>/<path>} with namespace and path coming from the guide id, which should
-     * implicitly make it unique.
+     * This defaults to {@code guidenh}, which maps to {@code assets/<modid>/guidenh/_<lang>/...}. If you need more
+     * than one guide under the same namespace, override the folder explicitly.
      */
     public GuideBuilder folder(String folder) {
         if (!folder.matches("[a-z0-9_./-]+")) {
@@ -121,7 +121,7 @@ public class GuideBuilder {
      * not listed here will be indexed as English text.
      */
     public GuideBuilder defaultLanguage(String languageCode) {
-        this.defaultLanguage = languageCode;
+        this.defaultLanguage = languageCode.toLowerCase(Locale.ROOT);
         return this;
     }
 

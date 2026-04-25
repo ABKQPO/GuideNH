@@ -24,8 +24,8 @@ GuideNH is an in-game guide framework for GTNH-era Minecraft mods. This wiki doc
 | --- | --- |
 | `wiki/` | Human-facing GitHub Wiki pages such as this one |
 | `wiki/resourcepack/` | Runtime guide source tree used by the mod at build time |
-| `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/` | Example built-in guide pages and assets |
-| `src/main/resources/assets/guidenh/resourcepacks/` | Embedded resource-pack zip output included in the jar |
+| `wiki/resourcepack/assets/guidenh/guidenh/` | Example built-in guide pages and assets |
+| `build/resources/main/assets/` | Gradle output where the runtime guide assets are copied for development runs |
 
 ## Two Markdown Layers
 
@@ -38,9 +38,9 @@ The wiki explains the runtime syntax, but it does not use the runtime tags direc
 
 ## Quick Authoring Checklist
 
-1. Put runtime guide files under `wiki/resourcepack/assets/<namespace>/guides/<guide_namespace>/<guide_id>/`.
-2. Keep `pack.mcmeta`, `pack.png`, and `_manifest.json` present.
-3. Add language folders such as `en_us/` and `zh_cn/`.
+1. Put runtime guide files under `wiki/resourcepack/assets/<modid>/guidenh/`.
+2. Add language folders such as `_en_us/` and `_zh_cn/`.
+3. Put markdown pages inside those language folders.
 4. Declare navigation metadata in frontmatter when you want a page to appear in the sidebar.
 5. Use relative asset paths for page-local files and rooted `/...` paths for guide-root assets.
 
@@ -48,10 +48,10 @@ The wiki explains the runtime syntax, but it does not use the runtime tags direc
 
 The bundled example guide currently lives here:
 
-- `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/index.md`
-- `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/markdown.md`
-- `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/rendering.md`
-- `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/structure.md`
-- `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/assets/example_structure.snbt`
+- `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md`
+- `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md`
+- `wiki/resourcepack/assets/guidenh/guidenh/_en_us/rendering.md`
+- `wiki/resourcepack/assets/guidenh/guidenh/_en_us/structure.md`
+- `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt`
 
 Those files are the best place to inspect real, running examples while reading this wiki.

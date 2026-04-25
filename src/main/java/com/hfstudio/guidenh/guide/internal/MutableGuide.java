@@ -150,22 +150,15 @@ public final class MutableGuide implements Guide {
 
     @Override
     public byte[] loadAsset(ResourceLocation id) {
-        // Try loading the language specific version first.
         var language = LangUtil.getCurrentLanguage();
-        if (!Objects.equals(language, defaultLanguage)) {
-            var plainLang = new ResourceLocation(id.getResourceDomain(), language + "/" + id.getResourcePath());
-            var result = loadAssetInternal(plainLang);
-            if (result != null) return result;
+        var result = loadAssetInternal(LangUtil.getTranslatedAsset(id, language));
+        if (result != null) return result;
 
-            var underscoredLang = new ResourceLocation(
-                id.getResourceDomain(),
-                "_" + language + "/" + id.getResourcePath());
-            result = loadAssetInternal(underscoredLang);
+        if (!Objects.equals(language, defaultLanguage)) {
+            result = loadAssetInternal(LangUtil.getTranslatedAsset(id, defaultLanguage));
             if (result != null) return result;
         }
-        var defLangId = new ResourceLocation(id.getResourceDomain(), defaultLanguage + "/" + id.getResourcePath());
-        var result = loadAssetInternal(defLangId);
-        if (result != null) return result;
+
         return loadAssetInternal(id);
     }
 
@@ -376,13 +369,18 @@ public final class MutableGuide implements Guide {
         if (watcher != null) {
             watcher.clearChanges(); // Since we'll load them all now, ignore all changes up to now
 
-            for (var page : watcher.loadAll(defaultLanguage)) {
+            for (var page : watcher.loadAll()) {
                 developmentPages.put(page.getId(), page);
             }
         }
 
         rebuildIndices();
         navigationTree = buildNavigation();
+
+        var guideScreen = GuideScreen.current();
+        if (guideScreen != null && guideScreen.isShowingGuide(getId())) {
+            guideScreen.reloadPage();
+        }
     }
 
     public GuideItemSettings getItemSettings() {

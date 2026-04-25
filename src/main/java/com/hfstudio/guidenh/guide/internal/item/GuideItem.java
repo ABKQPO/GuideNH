@@ -6,11 +6,14 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
 import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.GuideMEProxy;
+import com.hfstudio.guidenh.guide.internal.GuideRegistry;
+import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
 public class GuideItem extends Item {
 
@@ -23,27 +26,15 @@ public class GuideItem extends Item {
     }
 
     @Override
-    public String getItemStackDisplayName(ItemStack stack) {
-        var guideId = getGuideId(stack);
-        if (guideId != null) {
-            var name = GuideMEProxy.instance()
-                .getGuideDisplayName(guideId);
-            if (name != null) {
-                return name;
-            }
-        }
-        return super.getItemStackDisplayName(stack);
-    }
-
-    @Override
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
-        var guideId = getGuideId(stack);
-        if (guideId == null) {
-            guideId = new ResourceLocation("guidenh", "guidenh");
-        }
+        var target = GuideItemTargetResolver.resolve(stack, GuideRegistry.getAll());
         if (world.isRemote) {
-            GuideMEProxy.instance()
-                .openGuide(player, guideId, null);
+            if (target != null) {
+                GuideMEProxy.instance()
+                    .openGuide(player, target.guideId(), target.anchor());
+            } else {
+                player.addChatMessage(new ChatComponentTranslation(GuidebookText.ItemNoGuidePage.getTranslationKey()));
+            }
         }
         return stack;
     }
@@ -52,7 +43,12 @@ public class GuideItem extends Item {
     public static ResourceLocation getGuideId(ItemStack stack) {
         if (stack == null || !stack.hasTagCompound()) return null;
         var nbt = stack.getTagCompound();
-        if (!nbt.hasKey("GuideId")) return null;
-        return new ResourceLocation(nbt.getString("GuideId"));
+        if (nbt.hasKey("GuideId")) {
+            return new ResourceLocation(nbt.getString("GuideId"));
+        }
+        if (nbt.hasKey("guideId")) {
+            return new ResourceLocation(nbt.getString("guideId"));
+        }
+        return null;
     }
 }

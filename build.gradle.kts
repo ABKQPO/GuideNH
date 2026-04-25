@@ -33,10 +33,9 @@ val packageGuideTutorialResourcePack = tasks.register<Zip>("packageGuideTutorial
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true
 
-    val manifestFile = tutorialGuideSourceDir.file("assets/guidenh/guides/guidenh/guidenh/_manifest.json")
     val packMetaFile = tutorialGuideSourceDir.file("pack.mcmeta")
     val packIconFile = tutorialGuideSourceDir.file("pack.png")
-    val guideRootDir = tutorialGuideSourceDir.dir("assets/guidenh/guides/guidenh/guidenh")
+    val guideRootDir = tutorialGuideSourceDir.dir("assets/guidenh/guidenh")
 
     doFirst {
         val missing = mutableListOf<File>()
@@ -45,9 +44,6 @@ val packageGuideTutorialResourcePack = tasks.register<Zip>("packageGuideTutorial
         }
         if (!packIconFile.asFile.isFile) {
             missing.add(packIconFile.asFile)
-        }
-        if (!manifestFile.asFile.isFile) {
-            missing.add(manifestFile.asFile)
         }
 
         check(missing.isEmpty()) {

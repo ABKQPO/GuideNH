@@ -20,6 +20,7 @@ public enum GuidebookText implements LocalizationEnum {
     SearchNoMatch,
     ContentFrom,
     ItemNoGuideId,
+    ItemNoGuidePage,
     ItemInvalidGuideId,
     CommandOnlyWorksInSinglePlayer,
     CommandUsage,

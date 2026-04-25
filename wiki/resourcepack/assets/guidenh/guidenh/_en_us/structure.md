@@ -1,20 +1,20 @@
-﻿---
-title: 多方块结构预览
+---
+title: Multiblock Structure Preview
 navigation:
   parent: index.md
-  title: 结构预览
+  title: Structure Preview
 item_ids:
   - minecraft:diamond_block
   - minecraft:cobblestone
 ---
 
-# 多方块结构预览（Phase 7）
+# Multiblock Structure Preview (Phase 7)
 
-`<Structure>` 标签可以在指南页面中嵌入一个 2.5D 等距视图，用于展示多方块结构的形状与方块组成。
+The `<Structure>` tag embeds a 2.5D isometric view of a multiblock structure inside a guide page, showing both shape and block composition.
 
-## 简单立方体
+## Simple cube
 
-下面是一个 2x2x2 的石头立方体：
+A 2x2x2 stone cube:
 
 <Structure width="220" height="160">
   0 0 0 minecraft:stone
@@ -27,12 +27,12 @@ item_ids:
   1 1 1 minecraft:stone
 </Structure>
 
-## 混合方块示例
+## Mixed blocks example
 
-下面演示带 metadata 的方块（橡木板 = `minecraft:planks:0`）：
+Demonstrates blocks with metadata (oak planks = `minecraft:planks:0`):
 
 <Structure width="240" height="180">
-  # 地基：3x1x3 圆石
+  # Foundation: 3x1x3 cobblestone
   0 0 0 minecraft:cobblestone
   1 0 0 minecraft:cobblestone
   2 0 0 minecraft:cobblestone
@@ -42,20 +42,20 @@ item_ids:
   0 0 2 minecraft:cobblestone
   1 0 2 minecraft:cobblestone
   2 0 2 minecraft:cobblestone
-  # 第二层：四角橡木板
+  # Second layer: oak planks at corners
   0 1 0 minecraft:planks:0
   2 1 0 minecraft:planks:0
   0 1 2 minecraft:planks:0
   2 1 2 minecraft:planks:0
-  # 顶层：中央钻石块
+  # Top: diamond block at center
   1 2 1 minecraft:diamond_block
 </Structure>
 
-## 语法说明
+## Syntax
 
-每行格式：`<x> <y> <z> <modid:name>[:meta]`
+Each entry: `<x> <y> <z> <modid:name>[:meta]`
 
-- 以 `#` 开头的行视为注释
-- 空行被忽略
-- `meta` 可选，默认为 `0`
-- 坐标为整数；`y` 为高度（向上为正）
+- Lines starting with `#` are comments
+- Blank lines are ignored
+- `meta` is optional and defaults to `0`
+- Coordinates are integers; `y` is height (up is positive)

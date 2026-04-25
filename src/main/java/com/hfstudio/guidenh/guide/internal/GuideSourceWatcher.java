@@ -10,13 +10,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -62,6 +62,9 @@ class GuideSourceWatcher implements AutoCloseable {
     @Desugar
     private record PageLangKey(String sourceLang, ResourceLocation pageId) {}
 
+    @Desugar
+    private record PageSource(String language, Path path) {}
+
     private final Map<PageLangKey, ParsedGuidePage> changedPages = new HashMap<>();
     private final Set<PageLangKey> deletedPages = new HashSet<>();
 
@@ -69,11 +72,8 @@ class GuideSourceWatcher implements AutoCloseable {
 
     public GuideSourceWatcher(String namespace, String defaultLanguage, Path sourceFolder) {
         this.namespace = namespace;
-        // The namespace does not necessarily *need* to be a mod id, but if it is, the source pack needs to
-        // follow the specific mod-id format. Otherwise we assume it's a resource pack where namespace == pack id,
-        // which is also not 100% correct.
-        this.sourcePackId = // dev mode check omitted
-            this.defaultLanguage = defaultLanguage;
+        this.sourcePackId = "development:" + namespace;
+        this.defaultLanguage = LangUtil.normalizeLanguage(defaultLanguage);
         this.sourceFolder = sourceFolder;
         if (!Files.isDirectory(sourceFolder)) {
             throw new RuntimeException("Cannot find the specified folder with guidebook sources: " + sourceFolder);
@@ -106,14 +106,12 @@ class GuideSourceWatcher implements AutoCloseable {
         }
     }
 
-    public List<ParsedGuidePage> loadAll(String defaultLanguage) {
+    public List<ParsedGuidePage> loadAll() {
         var stopwatch = Stopwatch.createStarted();
-
         var currentLanguage = LangUtil.getCurrentLanguage();
-        var validLanguages = LangUtil.getValidLanguages();
+        var pageSources = new HashMap<PageLangKey, Path>();
+        var pageIds = new LinkedHashSet<ResourceLocation>();
 
-        // Find all potential pages
-        var pagesToLoad = new HashMap<ResourceLocation, Path>();
         try {
             Files.walkFileTree(sourceFolder, new FileVisitor<>() {
 
@@ -124,9 +122,10 @@ class GuideSourceWatcher implements AutoCloseable {
 
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                    var pageId = getPageId(file);
-                    if (pageId != null) {
-                        pagesToLoad.put(pageId, file);
+                    var pageKey = getPageLangKey(file);
+                    if (pageKey != null) {
+                        pageSources.put(pageKey, file);
+                        pageIds.add(pageKey.pageId());
                     }
                     return FileVisitResult.CONTINUE;
                 }
@@ -149,38 +148,22 @@ class GuideSourceWatcher implements AutoCloseable {
             LOG.error("Failed to list all pages in {}", sourceFolder, e);
         }
 
-        LOG.info("Loading {} guidebook pages", pagesToLoad.size());
-        var loadedPages = pagesToLoad.entrySet()
-            .stream()
-            .map(entry -> {
-                var pageId = entry.getKey();
-                var path = entry.getValue();
+        LOG.info("Loading {} guidebook pages from {} localized variants", pageIds.size(), pageSources.size());
+        var loadedPages = new ArrayList<ParsedGuidePage>(pageIds.size());
+        for (var pageId : pageIds) {
+            var pageSource = resolvePageSource(pageSources, pageId, currentLanguage);
+            if (pageSource == null) {
+                continue;
+            }
 
-                if (LangUtil.getLangFromPageId(pageId, validLanguages) != null) {
-                    return null; // Skip translated pages
-                }
-                var translatedPage = pagesToLoad.get(LangUtil.getTranslatedAsset(pageId, currentLanguage));
-                String language;
-                if (translatedPage != null) {
-                    language = currentLanguage;
-                    path = translatedPage;
-                } else {
-                    language = defaultLanguage;
-                }
-
-                try (var in = Files.newInputStream(path)) {
-                    return PageCompiler.parse(sourcePackId, language, pageId, in);
-
-                } catch (Exception e) {
-                    LOG.error("Failed to reload guidebook page {}", path, e);
-                    return null;
-                }
-            })
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
+            try (var in = Files.newInputStream(pageSource.path())) {
+                loadedPages.add(PageCompiler.parse(sourcePackId, pageSource.language(), pageId, in));
+            } catch (Exception e) {
+                LOG.error("Failed to reload guidebook page {}", pageSource.path(), e);
+            }
+        }
 
         LOG.info("Loaded {} pages from {} in {}", loadedPages.size(), sourceFolder, stopwatch);
-
         return loadedPages;
     }
 
@@ -258,13 +241,13 @@ class GuideSourceWatcher implements AutoCloseable {
             return; // Probably not a page
         }
 
-        var language = (pageKey.sourceLang() != null ? (pageKey.sourceLang()) : (defaultLanguage));
+        var language = pageKey.sourceLang() != null ? pageKey.sourceLang() : defaultLanguage;
 
         // If it was previously deleted in the same change-set, undelete it
         deletedPages.remove(pageKey);
 
         try (var in = Files.newInputStream(path)) {
-            var page = PageCompiler.parse(sourcePackId, language, pageKey.pageId, in);
+            var page = PageCompiler.parse(sourcePackId, language, pageKey.pageId(), in);
             changedPages.put(pageKey, page);
         } catch (Exception e) {
             LOG.error("Failed to reload guidebook page {}", path, e);
@@ -278,19 +261,11 @@ class GuideSourceWatcher implements AutoCloseable {
             return; // Probably not a page
         }
 
-        // If a language specific page is deleted, make it fall back to the default language page instead
-        var defaultLangPath = sourceFolder.resolve(
-            pageKey.pageId()
-                .toString());
-        if (!defaultLangPath.equals(path)) {
-            try (var in = Files.newInputStream(defaultLangPath)) {
-                var page = PageCompiler.parse(sourcePackId, defaultLanguage, pageKey.pageId(), in);
-                changedPages.put(pageKey, page);
-                deletedPages.remove(pageKey);
-                return;
-            } catch (Exception e) {
-                LOG.error("Failed to load default language guidebook page {}", path, e);
-            }
+        var fallbackPage = loadFallbackPage(pageKey, path);
+        if (fallbackPage != null) {
+            changedPages.put(pageKey, fallbackPage);
+            deletedPages.remove(pageKey);
+            return;
         }
 
         // If it was previously changed in the same change-set, remove the change
@@ -318,11 +293,73 @@ class GuideSourceWatcher implements AutoCloseable {
         if (pageId == null) {
             return null;
         }
-        var languages = LangUtil.getValidLanguages();
-        var lang = LangUtil.getLangFromPageId(pageId, languages);
+
+        var lang = LangUtil.getLangFromPageId(pageId);
         if (lang != null) {
-            pageId = LangUtil.stripLangFromPageId(pageId, languages);
+            pageId = LangUtil.stripLangFromPageId(pageId);
         }
+
         return new PageLangKey(lang, pageId);
+    }
+
+    @Nullable
+    private PageSource resolvePageSource(Map<PageLangKey, Path> pageSources, ResourceLocation pageId,
+        String currentLanguage) {
+        var currentPath = pageSources.get(new PageLangKey(currentLanguage, pageId));
+        if (currentPath != null) {
+            return new PageSource(currentLanguage, currentPath);
+        }
+
+        if (!Objects.equals(currentLanguage, defaultLanguage)) {
+            var defaultPath = pageSources.get(new PageLangKey(defaultLanguage, pageId));
+            if (defaultPath != null) {
+                return new PageSource(defaultLanguage, defaultPath);
+            }
+        }
+
+        var neutralPath = pageSources.get(new PageLangKey(null, pageId));
+        if (neutralPath != null) {
+            return new PageSource(defaultLanguage, neutralPath);
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private ParsedGuidePage loadFallbackPage(PageLangKey pageKey, Path removedPath) {
+        var fallbackSource = resolveFallbackSource(pageKey, removedPath);
+        if (fallbackSource == null) {
+            return null;
+        }
+
+        try (var in = Files.newInputStream(fallbackSource.path())) {
+            return PageCompiler.parse(sourcePackId, fallbackSource.language(), pageKey.pageId(), in);
+        } catch (Exception e) {
+            LOG.error("Failed to load fallback guidebook page {}", fallbackSource.path(), e);
+            return null;
+        }
+    }
+
+    @Nullable
+    private PageSource resolveFallbackSource(PageLangKey pageKey, Path removedPath) {
+        var defaultPath = getLocalizedSourcePath(pageKey.pageId(), defaultLanguage);
+        if (!defaultPath.equals(removedPath) && Files.isRegularFile(defaultPath)) {
+            return new PageSource(defaultLanguage, defaultPath);
+        }
+
+        var neutralPath = getNeutralSourcePath(pageKey.pageId());
+        if (!neutralPath.equals(removedPath) && Files.isRegularFile(neutralPath)) {
+            return new PageSource(defaultLanguage, neutralPath);
+        }
+
+        return null;
+    }
+
+    private Path getLocalizedSourcePath(ResourceLocation pageId, String language) {
+        return sourceFolder.resolve("_" + LangUtil.normalizeLanguage(language) + "/" + pageId.getResourcePath());
+    }
+
+    private Path getNeutralSourcePath(ResourceLocation pageId) {
+        return sourceFolder.resolve(pageId.getResourcePath());
     }
 }

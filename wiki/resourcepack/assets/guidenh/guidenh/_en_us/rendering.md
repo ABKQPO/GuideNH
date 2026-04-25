@@ -1,4 +1,4 @@
-﻿---
+---
 title: "Rendering Demo"
 navigation:
   title: "Rendering Demo"

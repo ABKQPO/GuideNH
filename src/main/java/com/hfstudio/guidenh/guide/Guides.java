@@ -35,7 +35,7 @@ public final class Guides {
         var stack = new ItemStack(Items.book);
         if (guideId != null) {
             var tag = new NBTTagCompound();
-            tag.setString("guideId", guideId.toString());
+            tag.setString("GuideId", guideId.toString());
             stack.setTagCompound(tag);
         }
         return stack;

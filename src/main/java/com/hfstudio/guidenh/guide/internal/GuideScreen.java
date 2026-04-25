@@ -74,7 +74,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
     public static float BACKGROUND_ALPHA = 0.35f;
     public static int BACKGROUND_DIM_COLOR = 0xC0101018;
 
-    private final MutableGuide guide;
+    private MutableGuide guide;
     private PageAnchor currentAnchor;
     @Nullable
     private GuidePage currentPage;
@@ -236,7 +236,16 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         return currentAnchor.pageId();
     }
 
+    public boolean isShowingGuide(ResourceLocation guideId) {
+        return guide.getId()
+            .equals(guideId);
+    }
+
     public void reloadPage() {
+        var reloadedGuide = GuideRegistry.getById(guide.getId());
+        if (reloadedGuide != null) {
+            guide = reloadedGuide;
+        }
         clearInteractionState();
         currentPage = null;
         document = null;

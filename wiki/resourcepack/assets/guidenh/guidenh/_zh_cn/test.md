@@ -1,4 +1,4 @@
-﻿---
+---
 item_ids:
   - minecraft:stick
 ---

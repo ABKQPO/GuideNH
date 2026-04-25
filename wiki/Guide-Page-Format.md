@@ -22,7 +22,7 @@ GuideNH pages support the common markdown features used in the example guide:
 - fenced code blocks
 - GFM tables
 
-See `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/markdown.md` for a live sample page.
+See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` for a live sample page.
 
 ## Frontmatter
 

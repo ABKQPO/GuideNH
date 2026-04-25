@@ -79,8 +79,8 @@ These assets are loaded through the same guide asset pipeline but are consumed b
 
 ## Runtime Example Files
 
-- `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/test1.png`
-- `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/assets/example_structure.snbt`
+- `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png`
+- `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt`
 
 ## Related Pages
 

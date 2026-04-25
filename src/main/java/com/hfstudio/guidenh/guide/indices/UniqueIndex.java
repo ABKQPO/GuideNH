@@ -101,14 +101,16 @@ public class UniqueIndex<K, V> implements PageIndex {
         for (var entry : entryFunction.getEntry(page)) {
             var key = entry.getKey();
             var value = entry.getValue();
-            var previousPage = index.put(key, new Record<>(page.getId(), value));
+            var previousPage = index.putIfAbsent(key, new Record<>(page.getId(), value));
             if (previousPage != null) {
                 LOG.warn(
-                    "Key conflict in index {}: {} is used by pages {} and {}",
+                    "Key conflict in index {}: {} is used by pages {} and {}; keeping {} and ignoring {}",
                     name,
                     key,
+                    previousPage.pageId,
                     page,
-                    previousPage.pageId);
+                    previousPage.pageId,
+                    page.getId());
                 hadDuplicates = true;
             }
         }

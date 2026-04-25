@@ -6,36 +6,26 @@ This page shows the smallest useful GuideNH runtime guide layout and the first p
 
 ```text
 wiki/resourcepack/
-├─ pack.mcmeta
-├─ pack.png
-└─ assets/
-   └─ <namespace>/
-      └─ guides/
-         └─ <guide_namespace>/
-            └─ <guide_id>/
-               ├─ _manifest.json
-               └─ en_us/
-                  └─ index.md
+`-- assets/
+    `-- <modid>/
+        `-- guidenh/
+            |-- assets/
+            |   `-- example_structure.snbt
+            `-- _en_us/
+                `-- index.md
 ```
 
 For the built-in example guide in this repository, that resolves to:
 
 ```text
-wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/
+wiki/resourcepack/assets/guidenh/guidenh/
 ```
 
-## Minimum Manifest
+## Guide Discovery
 
-```json
-{
-  "namespace": "guidenh",
-  "pages": [
-    "index.md"
-  ]
-}
-```
-
-The `pages` array lists runtime page files relative to the language folder.
+GuideNH now discovers pages directly from the resource tree. Any markdown file under
+`assets/<modid>/guidenh/_<lang>/...` is part of the guide for `<modid>:guidenh`.
+`index.md` is still the conventional start page and the recommended place to begin.
 
 ## First Page
 
@@ -68,7 +58,7 @@ Without navigation frontmatter, the page can still exist and be linked to direct
 Place page-local assets next to the page file:
 
 ```text
-wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/test1.png
+wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png
 ```
 
 Reference them relatively from markdown:
@@ -80,7 +70,7 @@ Reference them relatively from markdown:
 Place shared guide assets under the guide's own `assets/` folder:
 
 ```text
-wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/assets/example_structure.snbt
+wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt
 ```
 
 Reference them with a rooted guide path:

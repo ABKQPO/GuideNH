@@ -22,8 +22,7 @@ public final class GuideResourceAccess {
                 return readFully(input);
             }
         } catch (IOException ignored) {}
-
-        return GuideEmbeddedPackResources.read(id);
+        return null;
     }
 
     public static @Nullable InputStream openStream(IResourceManager resourceManager, ResourceLocation id) {

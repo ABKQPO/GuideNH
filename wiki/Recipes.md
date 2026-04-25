@@ -123,4 +123,4 @@ If nothing matches:
 
 ## Live Runtime Example
 
-See `wiki/resourcepack/assets/guidenh/guides/guidenh/guidenh/en_us/index.md` for extensive recipe samples, including handler filters and wildcard/NBT item ids.
+See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md` for extensive recipe samples, including handler filters and wildcard/NBT item ids.

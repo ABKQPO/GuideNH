@@ -1,4 +1,4 @@
-﻿---
+---
 navigation:
   title: チャンネル
 ---
