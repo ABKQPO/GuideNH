@@ -1,0 +1,14 @@
+{
+  "namespace": "guidenh",
+  "pages": [
+    "index.md",
+    "rendering.md",
+    "structure.md",
+    "japanese.md",
+    "markdown.md",
+    "subpage.md",
+    "subpage2.md",
+    "test.md",
+    "debug.md"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  size: [5, 3, 5],
+  palette: [
+    {Name: "minecraft:cobblestone"},
+    {Name: "minecraft:oak_stairs"},
+    {Name: "minecraft:stone_slab"},
+    {Name: "minecraft:torch"},
+    {Name: "minecraft:chest"},
+    {Name: "minecraft:glowstone"}
+  ],
+  blocks: [
+    {pos: [0, 0, 0], state: 0}, {pos: [1, 0, 0], state: 0}, {pos: [2, 0, 0], state: 0}, {pos: [3, 0, 0], state: 0}, {pos: [4, 0, 0], state: 0},
+    {pos: [0, 0, 1], state: 0}, {pos: [1, 0, 1], state: 0}, {pos: [2, 0, 1], state: 0}, {pos: [3, 0, 1], state: 0}, {pos: [4, 0, 1], state: 0},
+    {pos: [0, 0, 2], state: 0}, {pos: [1, 0, 2], state: 0}, {pos: [2, 0, 2], state: 5}, {pos: [3, 0, 2], state: 0}, {pos: [4, 0, 2], state: 0},
+    {pos: [0, 0, 3], state: 0}, {pos: [1, 0, 3], state: 0}, {pos: [2, 0, 3], state: 0}, {pos: [3, 0, 3], state: 0}, {pos: [4, 0, 3], state: 0},
+    {pos: [0, 0, 4], state: 0}, {pos: [1, 0, 4], state: 0}, {pos: [2, 0, 4], state: 0}, {pos: [3, 0, 4], state: 0}, {pos: [4, 0, 4], state: 0},
+
+    {pos: [0, 1, 0], state: 1, meta: 2},
+    {pos: [4, 1, 0], state: 1, meta: 2},
+    {pos: [0, 1, 4], state: 1, meta: 3},
+    {pos: [4, 1, 4], state: 1, meta: 3},
+
+    {pos: [1, 1, 1], state: 2, meta: 0},
+    {pos: [3, 1, 1], state: 2, meta: 8},
+
+    {pos: [2, 1, 2], state: 4, meta: 3, nbt: {id: "Chest", Items: [
+      {Slot: 0b, id: "minecraft:diamond",     Count: 5b, Damage: 0s},
+      {Slot: 1b, id: "minecraft:iron_ingot",  Count: 32b, Damage: 0s},
+      {Slot: 2b, id: "minecraft:redstone",    Count: 16b, Damage: 0s},
+      {Slot: 9b, id: "minecraft:bread",       Count: 8b, Damage: 0s}
+    ]}},
+
+    {pos: [1, 1, 3], state: 3, meta: 5},
+    {pos: [3, 1, 3], state: 3, meta: 5}
+  ]
+}
