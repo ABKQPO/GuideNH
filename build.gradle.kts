@@ -1,3 +1,5 @@
+import java.io.File
+
 plugins {
     id("com.gtnewhorizons.gtnhconvention")
 }
@@ -12,6 +14,52 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+}
+
+val tutorialGuideSourceDir = layout.projectDirectory.dir("wiki/resourcepack")
+val tutorialGuidePackOutputDir = layout.projectDirectory.dir("src/main/resources/assets/guidenh/resourcepacks")
+
+val packageGuideTutorialResourcePack = tasks.register<Zip>("packageGuideTutorialResourcePack") {
+    group = "guidenh"
+    description = "Packages the built-in tutorial guide as a standard Minecraft resource pack zip."
+
+    archiveFileName.set("guidenh_tutorial_guide_resource_pack.zip")
+    destinationDirectory.set(tutorialGuidePackOutputDir)
+
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+
+    val manifestFile = tutorialGuideSourceDir.file("assets/guidenh/guides/guidenh/guidenh/_manifest.json")
+    val packMetaFile = tutorialGuideSourceDir.file("pack.mcmeta")
+    val packIconFile = tutorialGuideSourceDir.file("pack.png")
+    val guideRootDir = tutorialGuideSourceDir.dir("assets/guidenh/guides/guidenh/guidenh")
+
+    doFirst {
+        val missing = mutableListOf<File>()
+        if (!packMetaFile.asFile.isFile) {
+            missing.add(packMetaFile.asFile)
+        }
+        if (!packIconFile.asFile.isFile) {
+            missing.add(packIconFile.asFile)
+        }
+        if (!manifestFile.asFile.isFile) {
+            missing.add(manifestFile.asFile)
+        }
+
+        check(missing.isEmpty()) {
+            "Guide runtime resource pack is incomplete. Missing: " + missing.joinToString()
+        }
+
+        check(guideRootDir.asFile.walkTopDown().any { it.isFile }) {
+            "Guide runtime resource pack is empty: ${guideRootDir.asFile}"
+        }
+    }
+
+    from(tutorialGuideSourceDir)
+}
+
+tasks.named("processResources").configure {
+    dependsOn(packageGuideTutorialResourcePack)
 }
 
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {

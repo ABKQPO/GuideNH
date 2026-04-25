@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -30,6 +29,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
+import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 
@@ -174,12 +174,8 @@ public final class MutableGuide implements Guide {
         if (developmentSourceFolder != null && id.getResourceDomain()
             .equals(developmentSourceNamespace)) {
             var path = developmentSourceFolder.resolve(id.getResourcePath());
-            try (var in = Files.newInputStream(path)) {
-                var baos = new ByteArrayOutputStream();
-                var buf = new byte[8192];
-                int n;
-                while ((n = in.read(buf)) >= 0) baos.write(buf, 0, n);
-                return baos.toByteArray();
+            try {
+                return Files.readAllBytes(path);
             } catch (NoSuchFileException ignored) {} catch (IOException e) {
                 LOG.error("Failed to open guidebook asset {}", path);
                 return null;
@@ -189,21 +185,16 @@ public final class MutableGuide implements Guide {
         // Transform id such that the path is prefixed with the source folder for the guidebook assets
         id = new ResourceLocation(id.getResourceDomain(), folder + "/" + id.getResourcePath());
 
-        try {
-            var resource = Minecraft.getMinecraft()
-                .getResourceManager()
-                .getResource(id);
-            try (var input = resource.getInputStream()) {
-                var baos = new ByteArrayOutputStream();
-                var buf = new byte[8192];
-                int n;
-                while ((n = input.read(buf)) >= 0) baos.write(buf, 0, n);
-                return baos.toByteArray();
-            }
-        } catch (IOException e) {
-            LOG.error("Failed to open guidebook asset {}", id);
-            return null;
+        var bytes = GuideResourceAccess.readBytes(
+            Minecraft.getMinecraft()
+                .getResourceManager(),
+            id);
+        if (bytes != null) {
+            return bytes;
         }
+
+        LOG.error("Failed to open guidebook asset {}", id);
+        return null;
     }
 
     @Override

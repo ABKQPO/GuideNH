@@ -9,7 +9,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import net.minecraft.client.resources.IResource;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.IResourceManagerReloadListener;
 import net.minecraft.util.ResourceLocation;
@@ -23,6 +22,8 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.recipe.NeiAnimationTicker;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
+import com.hfstudio.guidenh.guide.internal.resource.GuideEmbeddedPackResources;
+import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 
 public class GuideReloadListener implements IResourceManagerReloadListener {
@@ -37,6 +38,7 @@ public class GuideReloadListener implements IResourceManagerReloadListener {
         // Drop cached NEI reflection data so freshly (re)registered handlers are picked up.
         RecipeCache.clear();
         NeiAnimationTicker.clear();
+        GuideEmbeddedPackResources.clear();
         var guidePages = new IdentityHashMap<ResourceLocation, Map<ResourceLocation, ParsedGuidePage>>();
 
         String language = LangUtil.getCurrentLanguage();
@@ -86,14 +88,8 @@ public class GuideReloadListener implements IResourceManagerReloadListener {
         }
 
         var manifestId = new ResourceLocation(namespace, folder + "/_manifest.json");
-        JsonObject manifest;
-        try {
-            IResource res = resourceManager.getResource(manifestId);
-            try (var reader = new InputStreamReader(res.getInputStream(), StandardCharsets.UTF_8)) {
-                manifest = GSON.fromJson(reader, JsonObject.class);
-            }
-        } catch (IOException ex) {
-            LOG.warn("No _manifest.json found for guide folder '{}' (looked at {}), skipping", folder, manifestId);
+        var manifest = loadManifest(resourceManager, manifestId);
+        if (manifest == null) {
             return pages;
         }
 
@@ -138,26 +134,40 @@ public class GuideReloadListener implements IResourceManagerReloadListener {
         var withLang = new ResourceLocation(namespace, folder + "/" + language + "/" + pagePath);
         var noLang = new ResourceLocation(namespace, folder + "/" + pagePath);
 
-        try {
-            IResource res = resourceManager.getResource(withLang);
-            try (var in = res.getInputStream()) {
-                return PageCompiler.parse(sourcePack, language, pageId, in);
-            }
-        } catch (IOException ignored) {} catch (Exception ex) {
-            LOG.error("Error parsing page {} from {}", pageId, withLang, ex);
-            return null;
+        var parsed = tryParsePage(resourceManager, sourcePack, language, pageId, withLang);
+        if (parsed != null) {
+            return parsed;
         }
 
-        try {
-            IResource res = resourceManager.getResource(noLang);
-            try (var in = res.getInputStream()) {
-                return PageCompiler.parse(sourcePack, language, pageId, in);
+        return tryParsePage(resourceManager, sourcePack, language, pageId, noLang);
+    }
+
+    private @Nullable JsonObject loadManifest(IResourceManager resourceManager, ResourceLocation manifestId) {
+        try (var stream = GuideResourceAccess.openStream(resourceManager, manifestId)) {
+            if (stream == null) {
+                LOG.warn("No _manifest.json found for guide folder '{}', skipping", manifestId);
+                return null;
             }
-        } catch (IOException ignored) {} catch (Exception ex) {
-            LOG.error("Error parsing page {} from {}", pageId, noLang, ex);
+
+            try (var reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+                return GSON.fromJson(reader, JsonObject.class);
+            }
+        } catch (IOException ex) {
+            LOG.warn("Failed to read guide manifest {}", manifestId, ex);
             return null;
         }
+    }
 
-        return null;
+    private @Nullable ParsedGuidePage tryParsePage(IResourceManager resourceManager, String sourcePack, String language,
+        ResourceLocation pageId, ResourceLocation sourceId) {
+        try (var stream = GuideResourceAccess.openStream(resourceManager, sourceId)) {
+            if (stream == null) {
+                return null;
+            }
+            return PageCompiler.parse(sourcePack, language, pageId, stream);
+        } catch (Exception ex) {
+            LOG.error("Error parsing page {} from {}", pageId, sourceId, ex);
+            return null;
+        }
     }
 }
