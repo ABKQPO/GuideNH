@@ -19,8 +19,7 @@ import org.slf4j.LoggerFactory;
 public final class GuideEmbeddedPackResources {
 
     private static final Logger LOG = LoggerFactory.getLogger(GuideEmbeddedPackResources.class);
-    private static final String PACK_RESOURCE_PATH =
-        "assets/guidenh/resourcepacks/guidenh_tutorial_guide_resource_pack.zip";
+    private static final String PACK_RESOURCE_PATH = "assets/guidenh/resourcepacks/guidenh_tutorial_guide_resource_pack.zip";
 
     private static volatile boolean loaded;
     private static volatile Map<String, byte[]> entries = Collections.emptyMap();
@@ -49,7 +48,8 @@ public final class GuideEmbeddedPackResources {
     private static Map<String, byte[]> loadEntries() {
         var loadedEntries = new HashMap<String, byte[]>();
 
-        try (var raw = GuideEmbeddedPackResources.class.getClassLoader().getResourceAsStream(PACK_RESOURCE_PATH)) {
+        try (var raw = GuideEmbeddedPackResources.class.getClassLoader()
+            .getResourceAsStream(PACK_RESOURCE_PATH)) {
             if (raw == null) {
                 LOG.warn("Embedded guide pack {} was not found on the classpath", PACK_RESOURCE_PATH);
                 return Collections.emptyMap();
