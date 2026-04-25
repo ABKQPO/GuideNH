@@ -56,10 +56,10 @@ public final class InWorldAnnotationRenderer {
             if (occluded && a.isAlwaysOnTop()) continue;
             if (a instanceof InWorldBoxAnnotation box) {
                 int color = resolve(box.color(), mode, a.isHovered(), occluded);
-                drawBoxEdges(box.min(), box.max(), color, Math.max(1f, box.thickness() * 64f));
+                drawBoxEdges(box.min(), box.max(), color, box.thickness());
             } else if (a instanceof InWorldLineAnnotation line) {
                 int color = resolve(line.color(), mode, a.isHovered(), occluded);
-                drawLine(line.from(), line.to(), color, Math.max(1f, line.thickness() * 64f));
+                drawLine(line.from(), line.to(), color, line.thickness());
             }
         }
     }
@@ -99,35 +99,184 @@ public final class InWorldAnnotationRenderer {
         GL11.glColor4f(r, g, b, a);
     }
 
-    private static void drawBoxEdges(Vector3f min, Vector3f max, int argb, float lineWidth) {
-        applyColor(argb);
-        GL11.glLineWidth(lineWidth);
-        GL11.glBegin(GL11.GL_LINES);
-        edge(min.x, min.y, min.z, max.x, min.y, min.z);
-        edge(max.x, min.y, min.z, max.x, min.y, max.z);
-        edge(max.x, min.y, max.z, min.x, min.y, max.z);
-        edge(min.x, min.y, max.z, min.x, min.y, min.z);
-        edge(min.x, max.y, min.z, max.x, max.y, min.z);
-        edge(max.x, max.y, min.z, max.x, max.y, max.z);
-        edge(max.x, max.y, max.z, min.x, max.y, max.z);
-        edge(min.x, max.y, max.z, min.x, max.y, min.z);
-        edge(min.x, min.y, min.z, min.x, max.y, min.z);
-        edge(max.x, min.y, min.z, max.x, max.y, min.z);
-        edge(max.x, min.y, max.z, max.x, max.y, max.z);
-        edge(min.x, min.y, max.z, min.x, max.y, max.z);
+    static int shadeFaceColor(int argb, float nx, float ny, float nz) {
+        return multiplyRgb(argb, faceShade(nx, ny, nz));
+    }
+
+    private static float faceShade(float nx, float ny, float nz) {
+        float ax = Math.abs(nx);
+        float ay = Math.abs(ny);
+        float az = Math.abs(nz);
+        if (ay >= ax && ay >= az) {
+            return ny >= 0f ? 1f : 0.5f;
+        }
+        return ax >= az ? 0.6f : 0.8f;
+    }
+
+    private static int multiplyRgb(int argb, float factor) {
+        int a = (argb >>> 24) & 0xFF;
+        int r = Math.min(255, Math.round(((argb >>> 16) & 0xFF) * factor));
+        int g = Math.min(255, Math.round(((argb >>> 8) & 0xFF) * factor));
+        int b = Math.min(255, Math.round((argb & 0xFF) * factor));
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
+    private static void drawBoxEdges(Vector3f min, Vector3f max, int argb, float thickness) {
+        // Render each edge as an extruded cuboid in world space. The cuboid is half-thickness on
+        // each side perpendicular to the edge axis, and extends an extra half-thickness past both
+        // corners along the edge axis. The three cuboids meeting at every box corner therefore
+        // overlap into a solid square corner instead of producing the concave notch that
+        // GL_LINES with cap stroking leaves at thick widths.
+        float t = Math.max(thickness / 32f, 1f / 256f) * 0.5f;
+        GL11.glBegin(GL11.GL_QUADS);
+        // 4 edges along X
+        fillCuboid(min.x - t, min.y - t, min.z - t, max.x + t, min.y + t, min.z + t, argb);
+        fillCuboid(min.x - t, min.y - t, max.z - t, max.x + t, min.y + t, max.z + t, argb);
+        fillCuboid(min.x - t, max.y - t, min.z - t, max.x + t, max.y + t, min.z + t, argb);
+        fillCuboid(min.x - t, max.y - t, max.z - t, max.x + t, max.y + t, max.z + t, argb);
+        // 4 edges along Y
+        fillCuboid(min.x - t, min.y - t, min.z - t, min.x + t, max.y + t, min.z + t, argb);
+        fillCuboid(max.x - t, min.y - t, min.z - t, max.x + t, max.y + t, min.z + t, argb);
+        fillCuboid(min.x - t, min.y - t, max.z - t, min.x + t, max.y + t, max.z + t, argb);
+        fillCuboid(max.x - t, min.y - t, max.z - t, max.x + t, max.y + t, max.z + t, argb);
+        // 4 edges along Z
+        fillCuboid(min.x - t, min.y - t, min.z - t, min.x + t, min.y + t, max.z + t, argb);
+        fillCuboid(max.x - t, min.y - t, min.z - t, max.x + t, min.y + t, max.z + t, argb);
+        fillCuboid(min.x - t, max.y - t, min.z - t, min.x + t, max.y + t, max.z + t, argb);
+        fillCuboid(max.x - t, max.y - t, min.z - t, max.x + t, max.y + t, max.z + t, argb);
         GL11.glEnd();
     }
 
-    private static void drawLine(Vector3f from, Vector3f to, int argb, float lineWidth) {
-        applyColor(argb);
-        GL11.glLineWidth(lineWidth);
-        GL11.glBegin(GL11.GL_LINES);
-        edge(from.x, from.y, from.z, to.x, to.y, to.z);
+    private static void drawLine(Vector3f from, Vector3f to, int argb, float thickness) {
+        // Extrude the segment into a 4-sided square prism with two end caps. Both ends are pushed
+        // outward by half-thickness along the segment direction so when several lines meet they
+        // overlap into a clean corner.
+        float t = Math.max(thickness / 32f, 1f / 256f) * 0.5f;
+        float dx = to.x - from.x;
+        float dy = to.y - from.y;
+        float dz = to.z - from.z;
+        float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len < 1e-6f) return;
+        float ix = dx / len, iy = dy / len, iz = dz / len;
+        // Pick a stable up vector that is not parallel to the line direction.
+        float ux, uy, uz;
+        if (Math.abs(iy) < 0.9f) {
+            ux = 0f;
+            uy = 1f;
+        } else {
+            ux = 1f;
+            uy = 0f;
+        }
+        uz = 0f;
+        // n1 = normalize(cross(i, up))
+        float n1x = iy * uz - iz * uy;
+        float n1y = iz * ux - ix * uz;
+        float n1z = ix * uy - iy * ux;
+        float n1l = (float) Math.sqrt(n1x * n1x + n1y * n1y + n1z * n1z);
+        n1x /= n1l;
+        n1y /= n1l;
+        n1z /= n1l;
+        // n2 = cross(i, n1)
+        float n2x = iy * n1z - iz * n1y;
+        float n2y = iz * n1x - ix * n1z;
+        float n2z = ix * n1y - iy * n1x;
+
+        float ax = from.x - ix * t;
+        float ay = from.y - iy * t;
+        float az = from.z - iz * t;
+        float bx = to.x + ix * t;
+        float by = to.y + iy * t;
+        float bz = to.z + iz * t;
+
+        float p1x = n1x * t, p1y = n1y * t, p1z = n1z * t;
+        float p2x = n2x * t, p2y = n2y * t, p2z = n2z * t;
+
+        GL11.glBegin(GL11.GL_QUADS);
+        // Side faces.
+        sideQuad(argb, ax, ay, az, bx, by, bz, -p1x - p2x, -p1y - p2y, -p1z - p2z, p1x - p2x, p1y - p2y, p1z - p2z);
+        sideQuad(argb, ax, ay, az, bx, by, bz, p1x - p2x, p1y - p2y, p1z - p2z, p1x + p2x, p1y + p2y, p1z + p2z);
+        sideQuad(argb, ax, ay, az, bx, by, bz, p1x + p2x, p1y + p2y, p1z + p2z, -p1x + p2x, -p1y + p2y, -p1z + p2z);
+        sideQuad(argb, ax, ay, az, bx, by, bz, -p1x + p2x, -p1y + p2y, -p1z + p2z, -p1x - p2x, -p1y - p2y, -p1z - p2z);
+        // End caps.
+        quad(
+            argb,
+            -ix,
+            -iy,
+            -iz,
+            ax - p1x - p2x,
+            ay - p1y - p2y,
+            az - p1z - p2z,
+            ax + p1x - p2x,
+            ay + p1y - p2y,
+            az + p1z - p2z,
+            ax + p1x + p2x,
+            ay + p1y + p2y,
+            az + p1z + p2z,
+            ax - p1x + p2x,
+            ay - p1y + p2y,
+            az - p1z + p2z);
+        quad(
+            argb,
+            ix,
+            iy,
+            iz,
+            bx - p1x - p2x,
+            by - p1y - p2y,
+            bz - p1z - p2z,
+            bx - p1x + p2x,
+            by - p1y + p2y,
+            bz - p1z + p2z,
+            bx + p1x + p2x,
+            by + p1y + p2y,
+            bz + p1z + p2z,
+            bx + p1x - p2x,
+            by + p1y - p2y,
+            bz + p1z - p2z);
         GL11.glEnd();
     }
 
-    private static void edge(float ax, float ay, float az, float bx, float by, float bz) {
-        GL11.glVertex3f(ax, ay, az);
-        GL11.glVertex3f(bx, by, bz);
+    private static void sideQuad(int argb, float ax, float ay, float az, float bx, float by, float bz, float o1x,
+        float o1y, float o1z, float o2x, float o2y, float o2z) {
+        quad(
+            argb,
+            o1x + o2x,
+            o1y + o2y,
+            o1z + o2z,
+            ax + o1x,
+            ay + o1y,
+            az + o1z,
+            bx + o1x,
+            by + o1y,
+            bz + o1z,
+            bx + o2x,
+            by + o2y,
+            bz + o2z,
+            ax + o2x,
+            ay + o2y,
+            az + o2z);
+    }
+
+    private static void fillCuboid(float x0, float y0, float z0, float x1, float y1, float z1, int argb) {
+        // -X
+        quad(argb, -1f, 0f, 0f, x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0);
+        // +X
+        quad(argb, 1f, 0f, 0f, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1);
+        // -Y
+        quad(argb, 0f, -1f, 0f, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1);
+        // +Y
+        quad(argb, 0f, 1f, 0f, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0);
+        // -Z
+        quad(argb, 0f, 0f, -1f, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0);
+        // +Z
+        quad(argb, 0f, 0f, 1f, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1);
+    }
+
+    private static void quad(int argb, float nx, float ny, float nz, float x1, float y1, float z1, float x2, float y2,
+        float z2, float x3, float y3, float z3, float x4, float y4, float z4) {
+        applyColor(shadeFaceColor(argb, nx, ny, nz));
+        GL11.glVertex3f(x1, y1, z1);
+        GL11.glVertex3f(x2, y2, z2);
+        GL11.glVertex3f(x3, y3, z3);
+        GL11.glVertex3f(x4, y4, z4);
     }
 }

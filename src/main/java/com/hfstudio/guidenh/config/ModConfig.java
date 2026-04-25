@@ -9,7 +9,7 @@ import com.gtnewhorizon.gtnhlib.config.ConfigurationManager;
 import com.hfstudio.guidenh.GuideNH;
 
 @Config(modid = GuideNH.MODID, filename = "guidenh", configSubDirectory = "guidenh")
-@Config.LangKeyPattern(pattern = "guidenh.gui.config.%cat.%field", fullyQualified = true)
+@Config.LangKeyPattern(pattern = "guideme.gui.config.%cat.%field", fullyQualified = true)
 @Comment("GuideNH configuration")
 public class ModConfig {
 
@@ -40,6 +40,12 @@ public class ModConfig {
             + "When false, scroll always goes to page scroll. Default: true.")
         @DefaultBoolean(true)
         public boolean sceneWheelZoom = true;
+
+        @Comment("Whether 3D scene preview swaps mouse drag buttons. "
+            + "When true, left drag rotates and right drag pans. "
+            + "When false, left drag pans and right drag rotates. Default: true.")
+        @DefaultBoolean(true)
+        public boolean sceneSwapMouseButtons = true;
     }
 
     public static void save() {

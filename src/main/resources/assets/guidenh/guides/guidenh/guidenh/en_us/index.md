@@ -541,4 +541,79 @@ Without `color`, the diamond should default to **bright green** (compare against
   </DiamondAnnotation>
 </GameScene>
 
+## 3D annotations: box / block / line
+
+All three annotation kinds live in world space, can be toggled with the scene's *Show/Hide annotations* button (when hidden they are neither drawn nor pickable for tooltips), and use their children as a rich-text hover tooltip.
+
+- `BoxAnnotation` accepts `min="x y z"` / `max="x y z"` (floats) for an arbitrary AABB.
+- `BlockAnnotation` accepts a single `pos="x y z"` (integers); shorthand for a 1×1×1 box.
+- `LineAnnotation` accepts `from="x y z"` / `to="x y z"` (floats) for a line segment.
+
+All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (default `1`), and `alwaysOnTop` to draw above other geometry.
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:iron_block" x="1" />
+  <Block id="minecraft:iron_block" x="2" />
+  <Block id="minecraft:gold_block" z="2" />
+  <Block id="minecraft:gold_block" x="2" z="2" />
+
+  <BoxAnnotation color="#ee3333" min="0 1 0" max="1 1.6 0.6" thickness="0.04">
+    **Box annotation** wraps half a block, thickness `0.04`. The tooltip is rich content:
+
+    <Row>
+      <ItemImage id="minecraft:iron_ingot" scale="2" />
+      Iron ingot — smelt iron ore in a furnace.
+    </Row>
+    <RecipeFor id="minecraft:iron_ingot" handlerId="smelting" />
+  </BoxAnnotation>
+
+  <BlockAnnotation color="#33ddee" pos="2 0 2" alwaysOnTop={true}>
+    **Block annotation**: `alwaysOnTop` punches through depth. Recipe inside the tooltip:
+
+    <RecipeFor id="minecraft:gold_block" />
+  </BlockAnnotation>
+
+  <LineAnnotation color="#ffd24c" from="0.5 1.2 0.5" to="2.5 1.2 2.5" thickness="0.08">
+    **Line annotation**: a slightly thicker line (`thickness=0.08`). Tooltips can embed a 3D preview:
+
+    <GameScene width="160" height="96" zoom={5} perspective="isometric_north_east" interactive={false}>
+      <Block id="minecraft:iron_block" />
+      <Block id="minecraft:gold_block" x="1" />
+      <DiamondAnnotation pos="0.5 1.2 0.5" color="#ffd24c">Endpoint A</DiamondAnnotation>
+      <DiamondAnnotation pos="1.5 1.2 0.5" color="#ee3333">Endpoint B</DiamondAnnotation>
+    </GameScene>
+  </LineAnnotation>
+</GameScene>
+
+## ImportStructure
+
+`<ImportStructure src="..." />` expands an external structure file into the surrounding `<GameScene>`. The declared file format matches SNBT (1.7.10's stock `JsonToNBT`: `pos:[0,1,2]` is recognized as IntArray automatically; the modern `[I; ...]` typed-array prefix is **not** supported and must be omitted). Gzipped or uncompressed binary NBT also work. Schema is `{size, palette, blocks}`; each block entry may carry `meta` and an optional `nbt` compound (the latter must include the vanilla TileEntity `id` field, e.g. `"Chest"`). Optional `x/y/z` attributes translate the whole structure.
+
+This example references `assets/example_structure.snbt`: a 5×3×5 cobblestone platform with a glowstone center, four corner stairs in different facings (meta=2/3), two stone slabs (meta=0 bottom, meta=8 top), two upward-facing torches (meta=5), and a chest pre-filled with diamonds, iron, redstone and bread via TileEntity NBT.
+
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructure src="/assets/example_structure.snbt" />
+  <BlockAnnotation color="#ffd24c" pos="2 1 2" alwaysOnTop={true}>
+    **Loaded chest carries TileEntity NBT** with diamonds, iron, redstone and bread. The SNBT entry:
+
+    ```
+    {pos:[2,1,2], state:4, meta:3, nbt:{id:"Chest", Items:[
+      {Slot:0b, id:"minecraft:diamond",    Count:5b,  Damage:0s},
+      {Slot:1b, id:"minecraft:iron_ingot", Count:32b, Damage:0s},
+      ...
+    ]}}
+    ```
+  </BlockAnnotation>
+  <BoxAnnotation color="#ee3333" min="1 1 1" max="4 1.5 2" thickness="0.04">
+    **Slab strip**: the two slabs use `meta=0` (bottom half) and `meta=8` (top half).
+  </BoxAnnotation>
+  <LineAnnotation color="#33ddee" from="1 1.4 3" to="3 1.4 3" thickness="0.06">
+    **Torch line**: both torches use `meta=5` (standing on the floor).
+  </LineAnnotation>
+</GameScene>
+
+The region wand defaults to the SNBT mode and exports a structure compatible with `<ImportStructure>` on sneak + right-click. Right-click in air to toggle between `snbt` and the legacy `blocks` mode that emits an inline `<GameScene><Block .../>...</GameScene>`.
+
+
 * Markdown inline mix: **bold** / *italic* / ~~strike~~ / `code` / [link](./japanese.md)

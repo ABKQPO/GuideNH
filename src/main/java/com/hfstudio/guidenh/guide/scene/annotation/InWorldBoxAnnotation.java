@@ -6,7 +6,7 @@ import com.hfstudio.guidenh.guide.color.ColorValue;
 
 public final class InWorldBoxAnnotation extends InWorldAnnotation {
 
-    public static final float DEFAULT_THICKNESS = 0.5f / 16f;
+    public static float DEFAULT_THICKNESS = 1f;
 
     private final Vector3f min;
     private final Vector3f max;

@@ -2,14 +2,16 @@ package com.hfstudio.guidenh.guide.scene.element;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 import net.minecraft.block.Block;
 import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.nbt.JsonToNBT;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagInt;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
@@ -23,14 +25,35 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * {@code <ImportStructure src="redstone_test.nbt" x="0" y="0" z="0" />}。
+ * {@code <ImportStructure src="redstone_test.snbt" x="0" y="0" z="0" />}.
+ *
+ * <p>
+ * Accepted file formats:
+ * <ul>
+ * <li>SNBT text (string-NBT, the {@code .snbt} format produced by the region wand);</li>
+ * <li>Gzipped binary NBT (the vanilla {@code .nbt} structure layout);</li>
+ * <li>Plain (uncompressed) binary NBT.</li>
+ * </ul>
+ *
+ * <p>
+ * <strong>SNBT dialect:</strong> 1.7.10's {@code JsonToNBT} parses an all-integer JSON-style array
+ * directly as an {@code IntArray}, so {@code pos:[0,1,2]} and {@code size:[5,3,5]} are valid. Modern
+ * typed-array prefixes such as {@code [I; ...]} / {@code [B; ...]} / {@code [L; ...]} are
+ * <em>not</em> recognized by 1.7.10 and must be omitted. Numeric suffixes ({@code 5b}, {@code 12s},
+ * {@code 1.5f}, {@code 7L}) are honored for the inner block compounds.
+ *
+ * <p>
+ * Schema:
  *
  * <pre>
- * { size: [x,y,z],
- *   palette: [ {Name:"minecraft:stone"}, {Name:"minecraft:chest"}, ... ],
- *   blocks: [ {pos:[x,y,z], state: int, nbt: {...} }, ... ]  }
+ * { size: [dx, dy, dz],
+ *   palette: [ {Name: "minecraft:stone"}, {Name: "minecraft:chest"}, ... ],
+ *   blocks: [ {pos: [rx, ry, rz], state: 0, meta: 0, nbt: {id:"Chest", Items:[...]}}, ... ] }
  * </pre>
  *
+ * <p>
+ * The optional {@code nbt} compound feeds {@link TileEntity#createAndLoadEntity(NBTTagCompound)} and
+ * therefore must contain a vanilla {@code id} field (e.g. {@code "Chest"}, {@code "Furnace"}).
  */
 public class ImportStructureElementCompiler implements SceneElementTagCompiler {
 
@@ -63,7 +86,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
 
         NBTTagCompound root;
         try {
-            root = readCompound(data);
+            root = readStructureNbt(data);
         } catch (Exception e) {
             errorSink.appendError(compiler, "Couldn't read structure: " + e.getMessage(), el);
             return;
@@ -95,11 +118,13 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             Block block = (Block) Block.blockRegistry.getObject(name);
             if (block == null) continue;
 
-            NBTTagList posTag = b.getTagList("pos", 3); // 3 = int
-            if (posTag.tagCount() < 3) continue;
-            int px = offsetX + intAt(posTag, 0);
-            int py = offsetY + intAt(posTag, 0);
-            int pz = offsetZ + intAt(posTag, 0);
+            int[] pos = b.getIntArray("pos");
+            if (pos.length < 3) continue;
+            int px = offsetX + pos[0];
+            int py = offsetY + pos[1];
+            int pz = offsetZ + pos[2];
+
+            int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
 
             TileEntity te = null;
             if (b.hasKey("nbt", 10)) {
@@ -107,7 +132,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
                     te = TileEntity.createAndLoadEntity(b.getCompoundTag("nbt"));
                 } catch (Exception ignored) {}
             }
-            level.setBlock(px, py, pz, block, 0, te);
+            level.setBlock(px, py, pz, block, meta, te);
             placed++;
         }
 
@@ -116,21 +141,40 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
         }
     }
 
-    private static int intAt(NBTTagList list, int i) {
-        var base = list.removeTag(0);
-        if (base instanceof NBTTagInt ti) {
-            return ti.func_150287_d();
+    private static NBTTagCompound readStructureNbt(byte[] data) throws Exception {
+        if (looksLikeText(data)) {
+            String text = new String(data, StandardCharsets.UTF_8);
+            // Strip a UTF-8 BOM if present.
+            if (!text.isEmpty() && text.charAt(0) == '\uFEFF') {
+                text = text.substring(1);
+            }
+            NBTBase parsed = JsonToNBT.func_150315_a(text);
+            if (parsed instanceof NBTTagCompound c) return c;
+            throw new IllegalStateException("SNBT root must be a Compound");
         }
-        return 0;
-    }
-
-    private static NBTTagCompound readCompound(byte[] data) throws Exception {
         try (var gzip = new GZIPInputStream(new ByteArrayInputStream(data)); var dis = new DataInputStream(gzip)) {
             return CompressedStreamTools.read(dis);
-        } catch (Exception gzipErr) {
+        } catch (Exception ignored) {
             try (var dis = new DataInputStream(new ByteArrayInputStream(data))) {
                 return CompressedStreamTools.read(dis);
             }
         }
+    }
+
+    private static boolean looksLikeText(byte[] data) {
+        // Skip BOM + leading whitespace; SNBT roots always start with '{'.
+        int i = 0;
+        if (data.length >= 3 && (data[0] & 0xFF) == 0xEF && (data[1] & 0xFF) == 0xBB && (data[2] & 0xFF) == 0xBF) {
+            i = 3;
+        }
+        while (i < data.length) {
+            byte b = data[i];
+            if (b == ' ' || b == '\t' || b == '\r' || b == '\n') {
+                i++;
+                continue;
+            }
+            return b == '{';
+        }
+        return false;
     }
 }

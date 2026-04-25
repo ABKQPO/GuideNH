@@ -180,6 +180,11 @@ public final class GuidebookLevelRenderer {
                 GL11.glMatrixMode(GL_MODELVIEW);
                 GL11.glPopMatrix();
             }
+
+            // Wipe depth values within the scene's scissor so subsequent GUI rendering (e.g.
+            // ItemStack icons drawn on top of a tooltip that contains this scene) is not occluded
+            // by the 3D blocks we just drew. glPopAttrib restores GL state but not pixel data.
+            GL11.glClear(GL_DEPTH_BUFFER_BIT);
         } finally {
             GL11.glPopAttrib();
             OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);

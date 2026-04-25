@@ -16,6 +16,7 @@ import org.joml.Vector3f;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -26,6 +27,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
@@ -79,7 +81,7 @@ public class LytGuidebookScene extends LytBlock {
         hoverBoxMin,
         hoverBoxMax,
         hoverBoxColor,
-        1f / 16f);
+        1f);
     private LytRect cachedOverlayViewport;
     private LytRect cachedScreenRect;
     private LytRect cachedSceneRect;
@@ -171,21 +173,63 @@ public class LytGuidebookScene extends LytBlock {
         }
         SceneAnnotation hit = null;
         LytRect viewport = cachedScreenRect = updateCachedRect(cachedScreenRect, lastAbsX, lastAbsY, lastW, lastH);
+        // Iterate top-down: overlays sit on top of in-world geometry.
         for (int i = annotations.size() - 1; i >= 0; i--) {
             var a = annotations.get(i);
-            if (a instanceof OverlayAnnotation ov) {
-                var rect = ov.getBoundingRect(camera, viewport);
-                if (hit == null && rect.contains(mouseX, mouseY)) {
-                    a.setHovered(true);
-                    hit = a;
-                } else {
-                    a.setHovered(false);
+            boolean hovered = false;
+            if (hit == null) {
+                if (a instanceof OverlayAnnotation ov) {
+                    hovered = ov.getBoundingRect(camera, viewport)
+                        .contains(mouseX, mouseY);
+                } else if (a instanceof InWorldBoxAnnotation box) {
+                    hovered = boxScreenRectContains(box, viewport, mouseX, mouseY);
+                } else if (a instanceof InWorldLineAnnotation line) {
+                    hovered = lineScreenDistance(line, viewport, mouseX, mouseY) <= LINE_HOVER_TOLERANCE_PX;
                 }
-            } else {
-                a.setHovered(false);
             }
+            a.setHovered(hovered);
+            if (hovered) hit = a;
         }
         return hit;
+    }
+
+    private static final int LINE_HOVER_TOLERANCE_PX = 4;
+
+    private boolean boxScreenRectContains(InWorldBoxAnnotation box, LytRect viewport, int mouseX, int mouseY) {
+        var min = box.min();
+        var max = box.max();
+        int cx = viewport.x() + viewport.width() / 2;
+        int cy = viewport.y() + viewport.height() / 2;
+        int minSx = Integer.MAX_VALUE, minSy = Integer.MAX_VALUE;
+        int maxSx = Integer.MIN_VALUE, maxSy = Integer.MIN_VALUE;
+        for (int corner = 0; corner < 8; corner++) {
+            float x = ((corner & 1) == 0) ? min.x : max.x;
+            float y = ((corner & 2) == 0) ? min.y : max.y;
+            float z = ((corner & 4) == 0) ? min.z : max.z;
+            var s = camera.worldToScreen(x, y, z);
+            int sx = cx + Math.round(s.x);
+            int sy = cy + Math.round(s.y);
+            if (sx < minSx) minSx = sx;
+            if (sy < minSy) minSy = sy;
+            if (sx > maxSx) maxSx = sx;
+            if (sy > maxSy) maxSy = sy;
+        }
+        return mouseX >= minSx && mouseX <= maxSx && mouseY >= minSy && mouseY <= maxSy;
+    }
+
+    private float lineScreenDistance(InWorldLineAnnotation line, LytRect viewport, int mouseX, int mouseY) {
+        int cx = viewport.x() + viewport.width() / 2;
+        int cy = viewport.y() + viewport.height() / 2;
+        var a = camera.worldToScreen(line.from().x, line.from().y, line.from().z);
+        var b = camera.worldToScreen(line.to().x, line.to().y, line.to().z);
+        float ax = cx + a.x, ay = cy + a.y;
+        float bx = cx + b.x, by = cy + b.y;
+        float dx = bx - ax, dy = by - ay;
+        float lenSq = dx * dx + dy * dy;
+        float t = lenSq < 1e-4f ? 0f : Math.max(0f, Math.min(1f, ((mouseX - ax) * dx + (mouseY - ay) * dy) / lenSq));
+        float px = ax + t * dx, py = ay + t * dy;
+        float ex = mouseX - px, ey = mouseY - py;
+        return (float) Math.sqrt(ex * ex + ey * ey);
     }
 
     public void clearAnnotationHover() {
@@ -476,6 +520,29 @@ public class LytGuidebookScene extends LytBlock {
         return cachedScreenRect = updateCachedRect(cachedScreenRect, lastAbsX, lastAbsY, lastW, lastH);
     }
 
+    public boolean containsSceneViewport(int mouseX, int mouseY) {
+        if (lastW <= 0 || lastH <= 0) return false;
+
+        int x0 = lastAbsX;
+        int y0 = lastAbsY;
+        int x1 = x0 + lastW;
+        int y1 = y0 + lastH;
+
+        if (renderedContentClip != null) {
+            int cx0 = renderedContentClip.x();
+            int cy0 = renderedContentClip.y();
+            int cx1 = cx0 + renderedContentClip.width();
+            int cy1 = cy0 + renderedContentClip.height();
+            if (x1 <= cx0 || x0 >= cx1 || y1 <= cy0 || y0 >= cy1) return false;
+            x0 = Math.max(x0, cx0);
+            y0 = Math.max(y0, cy0);
+            x1 = Math.min(x1, cx1);
+            y1 = Math.min(y1, cy1);
+        }
+
+        return mouseX >= x0 && mouseX < x1 && mouseY >= y0 && mouseY < y1;
+    }
+
     @Nullable
     public int[] pickBlock(int mouseAbsX, int mouseAbsY) {
         if (level.isEmpty() || lastW <= 0 || lastH <= 0) return null;
@@ -579,6 +646,14 @@ public class LytGuidebookScene extends LytBlock {
         this.dragLastY = mouseY;
     }
 
+    private static boolean isRotateButton(int button) {
+        return ModConfig.ui.sceneSwapMouseButtons ? button == 0 : button == 1;
+    }
+
+    private static boolean isPanButton(int button) {
+        return ModConfig.ui.sceneSwapMouseButtons ? button == 1 : button == 0;
+    }
+
     public void drag(int mouseX, int mouseY) {
         if (dragButton < 0) return;
         int dx = mouseX - dragLastX;
@@ -586,10 +661,10 @@ public class LytGuidebookScene extends LytBlock {
         dragLastX = mouseX;
         dragLastY = mouseY;
 
-        if (dragButton == 0) {
+        if (isPanButton(dragButton)) {
             camera.setOffsetX(camera.getOffsetX() + dx);
             camera.setOffsetY(camera.getOffsetY() - dy);
-        } else if (dragButton == 1) {
+        } else if (isRotateButton(dragButton)) {
             camera.setRotationY(camera.getRotationY() + dx * DRAG_ROTATE_SENSITIVITY);
             camera.setRotationX(camera.getRotationX() + dy * DRAG_ROTATE_SENSITIVITY);
         }

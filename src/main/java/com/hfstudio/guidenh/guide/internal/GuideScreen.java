@@ -931,8 +931,11 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         int docX = mouseX - contentX;
         int docY = mouseY - contentY + scrollY;
         var hit = document.pick(docX, docY);
-        var scene = hit != null ? findSceneAncestor(hit.node()) : null;
         var sceneButtonHit = findSceneButtonHit(document, mouseX, mouseY);
+        var scene = hit != null ? findSceneAncestor(hit.node()) : null;
+        if (scene != null && !scene.containsSceneViewport(mouseX, mouseY)) {
+            scene = null;
+        }
         interaction = new DocumentInteractionState(
             document,
             mouseX,

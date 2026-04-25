@@ -1,4 +1,7 @@
 # Configuration
+guideme.gui.config.ui=用户界面
+guideme.gui.config.ui.sceneSwapMouseButtons=交换 3D 预览鼠标按键
+guideme.gui.config.ui.sceneSwapMouseButtons.tooltip=启用后左键拖动旋转、右键拖动平移；关闭后恢复旧版左键平移、右键旋转。
 guideme.configuration.adaptiveScaling=自适应界面缩放
 guideme.configuration.debug=调试
 guideme.configuration.debug.tooltip=指南开发相关的高级调试选项
@@ -44,9 +47,12 @@ guideme.guidebook.PageNotFound=页面不存在：%s
 guideme.guidebook.RegionWandAreaTooLarge=§c[RegionWand]§r 区域过大（%s 方块 > 4096），请缩小选区。
 guideme.guidebook.RegionWandChatPos=§b[RegionWand]§r Pos%s = %s, %s, %s
 guideme.guidebook.RegionWandCopied=§a[RegionWand]§r 已复制到剪贴板：%s\u00d7%s\u00d7%s，共 %s 个非空方块，其中 %s 个携带 TileEntity NBT。
+guideme.guidebook.RegionWandCopiedSnbt=§a[RegionWand]§r 已复制 SNBT 结构到剪贴板：%s\u00d7%s\u00d7%s，共 %s 个非空方块，其中 %s 个携带 TileEntity NBT。请保存为 .snbt 文件并通过 <ImportStructure> 引用。
 guideme.guidebook.RegionWandCopyFailed=§c[RegionWand]§r 复制剪贴板失败：%s
+guideme.guidebook.RegionWandModeSwitched=§e[RegionWand]§r 已切换导出模式：§b%s§r
 guideme.guidebook.RegionWandNeedTwoCorners=§c[RegionWand]§r 请先用左键和右键分别选择两个角点。
-guideme.guidebook.RegionWandTooltipExport=§7潜行 + 右键：导出 GameScene 到剪贴板
+guideme.guidebook.RegionWandTooltipExport=§7潜行 + 右键：以当前模式导出到剪贴板
+guideme.guidebook.RegionWandTooltipMode=§7当前模式：§b%s§7（在空中右键切换）
 guideme.guidebook.RegionWandTooltipPos=§bPos%s§7 = %s, %s, %s
 guideme.guidebook.RegionWandTooltipSelect=§7左键：设置 Pos1；右键：设置 Pos2
 guideme.guidebook.ResetView=重置视图

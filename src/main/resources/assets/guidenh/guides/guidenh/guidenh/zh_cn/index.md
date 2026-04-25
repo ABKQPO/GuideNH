@@ -481,6 +481,81 @@ navigation:
 
 ## 镜头预设 + 偏移测试
 
+## 立体注解：盒子 / 方块 / 线
+
+这三种注解都使用世界坐标，可被场景按钮的“显示/隐藏注解”切换；隐藏后既不会绘制，也不会触发悬浮 tooltip。它们的子节点是富文本，会作为悬停 tooltip 显示。
+
+- `BoxAnnotation` 用 `min="x y z"` / `max="x y z"` 描述任意 AABB（支持小数）。
+- `BlockAnnotation` 用 `pos="x y z"`（整数）选中某个方块，等价于 1×1×1 的盒子。
+- `LineAnnotation` 用 `from="x y z"` / `to="x y z"` 画一条线段（支持小数）。
+
+所有三种都支持 `color="#AARRGGBB" 或 "#RRGGBB"`、`thickness="0.0625"`（线宽，单位：像素）以及 `alwaysOnTop`（始终绘制在最前）。`thickness` 默认 `1`。
+
+<GameScene width="384" height="224" zoom={4} interactive={true}>
+  <Block id="minecraft:iron_block" />
+  <Block id="minecraft:iron_block" x="1" />
+  <Block id="minecraft:iron_block" x="2" />
+  <Block id="minecraft:gold_block" z="2" />
+  <Block id="minecraft:gold_block" x="2" z="2" />
+
+  <BoxAnnotation color="#ee3333" min="0 1 0" max="1 1.6 0.6" thickness="0.04">
+    **盒子注解** 圈出半个方块，线宽 `0.04`。Tooltip 可以是任何富文本：
+
+    <Row>
+      <ItemImage id="minecraft:iron_ingot" scale="2" />
+      炼钢：在熔炉里烧炼铁矿。
+    </Row>
+    <RecipeFor id="minecraft:iron_ingot" handlerId="smelting" />
+  </BoxAnnotation>
+
+  <BlockAnnotation color="#33ddee" pos="2 0 2" alwaysOnTop={true}>
+    **方块注解**：`alwaysOnTop` 让它穿透其他方块绘制。下面是黄金的合成配方：
+
+    <RecipeFor id="minecraft:gold_block" />
+  </BlockAnnotation>
+
+  <LineAnnotation color="#ffd24c" from="0.5 1.2 0.5" to="2.5 1.2 2.5" thickness="0.08">
+    **线段注解**：连接两个角，`thickness=0.08` 略粗一些。Tooltip 里能嵌三维预览：
+
+    <GameScene width="160" height="96" zoom={5} perspective="isometric_north_east" interactive={false}>
+      <Block id="minecraft:iron_block" />
+      <Block id="minecraft:gold_block" x="1" />
+      <DiamondAnnotation pos="0.5 1.2 0.5" color="#ffd24c">连接点 A</DiamondAnnotation>
+      <DiamondAnnotation pos="1.5 1.2 0.5" color="#ee3333">连接点 B</DiamondAnnotation>
+    </GameScene>
+  </LineAnnotation>
+</GameScene>
+
+## ImportStructure 导入结构
+
+`<ImportStructure src="..." />` 把外部 SNBT/NBT 结构文件展开到当前 `<GameScene>`。声明格式与 SNBT 一致（1.7.10 原生 `JsonToNBT`：`pos:[0,1,2]` 会被识别为 IntArray，不需要现代的 `[I; ...]` 前缀），也可读取 gzip / 未压缩的二进制 NBT。schema 为 `{size, palette, blocks}`，每个 `block` 可携带 `meta` 与 `nbt` （`nbt` 需含与原版一致的 TileEntity `id` 字段，例如 `"Chest"`）。`x/y/z` 属性可整体平移结构。
+
+示例引用 `assets/example_structure.snbt`：5×3×5 鹅卵石平台、中心荧石、四角不同朝向的橡木台阶（meta=2/3）、两块上下不同的石质台阶（meta=0 / meta=8）、两支竖火把（meta=5），以及一个带着钻石/铁锭/红石/面包的箱子（TileEntity NBT）。
+
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructure src="/assets/example_structure.snbt" />
+  <BlockAnnotation color="#ffd24c" pos="2 1 2" alwaysOnTop={true}>
+    **这个箱子是带 NBT 的**：里面预先装了钛石 / 铁锭 / 红石 / 面包。SNBT 写法：
+
+    ```
+    {pos:[2,1,2], state:4, meta:3, nbt:{id:"Chest", Items:[
+      {Slot:0b, id:"minecraft:diamond",    Count:5b,  Damage:0s},
+      {Slot:1b, id:"minecraft:iron_ingot", Count:32b, Damage:0s},
+      ...
+    ]}}
+    ```
+  </BlockAnnotation>
+  <BoxAnnotation color="#ee3333" min="1 1 1" max="4 1.5 2" thickness="0.04">
+    **台阶区**：meta `0` / `8` 分别对应下半、上半台阶。
+  </BoxAnnotation>
+  <LineAnnotation color="#33ddee" from="1 1.4 3" to="3 1.4 3" thickness="0.06">
+    **竖火把连线**：这两支火把 meta=5（竖立在地面上）。
+  </LineAnnotation>
+</GameScene>
+
+搭配区域选择魔棒：默认即 SNBT 模式，潜行+右键导出当前 `<ImportStructure>` 兼容的 SNBT；空中右键可在 `snbt` 与 `blocks`（旧版 `<Block>` 列表，向下兼容）之间切换。
+
+
 `<GameScene>` / `<Scene>` 新增属性：
 
 * `perspective="isometric_north_east"` / `isometric_north_west"` / `up"` —— 选择预设视角（yaw/pitch/roll）；
