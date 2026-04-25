@@ -27,6 +27,7 @@ public final class GuideNavBar {
 
     public static final int WIDTH_CLOSED = 10;
     public static final int WIDTH_OPEN = 150;
+    private static final int CONTENT_PADDING = 2;
     private static final int ROW_H = 12;
     private static final int CHILD_INDENT = 12;
     private static final int EXPAND_INDENT = 8;
@@ -106,12 +107,10 @@ public final class GuideNavBar {
         GL11.glScissor(x * sf, mc.displayHeight - (y + height) * sf, w * sf, height * sf);
 
         FontRenderer fr = mc.fontRenderer;
-        int rowY = y + 2 - scrollY;
-        for (var row : rows) {
-            if (rowY + ROW_H < y) {
-                rowY += ROW_H;
-                continue;
-            }
+        int firstVisibleRow = getFirstVisibleRowIndex();
+        for (int rowIndex = firstVisibleRow; rowIndex < rows.size(); rowIndex++) {
+            var row = rows.get(rowIndex);
+            int rowY = getRowY(rowIndex);
             if (rowY >= y + height) break;
 
             int indent = row.depth * CHILD_INDENT;
@@ -149,8 +148,6 @@ public final class GuideNavBar {
                 int color = current ? 0xFFFFFFFF : (hovered ? 0xFF88BBFF : 0xFFBBBBBB);
                 fr.drawString(title, textX, rowY + 2, color, false);
             }
-
-            rowY += ROW_H;
         }
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
@@ -161,20 +158,19 @@ public final class GuideNavBar {
         if (!isOpen()) return null;
         int w = currentWidth();
         if (mouseX < x || mouseX >= x + w || mouseY < y || mouseY >= y + height) return null;
-        int rowY = y + 2 - scrollY;
-        for (var row : rows) {
-            if (mouseY >= rowY && mouseY < rowY + ROW_H) {
-                boolean hasChildren = !row.node.children()
-                    .isEmpty();
-                if (hasChildren) {
-                    toggleExpand(row.node);
-                }
-                if (row.node.pageId() != null && row.node.hasPage()) {
-                    return row.node.pageId();
-                }
-                return null;
-            }
-            rowY += ROW_H;
+        int rowIndex = getRowIndexAt(mouseY);
+        if (rowIndex < 0) {
+            return null;
+        }
+
+        var row = rows.get(rowIndex);
+        boolean hasChildren = !row.node.children()
+            .isEmpty();
+        if (hasChildren) {
+            toggleExpand(row.node);
+        }
+        if (row.node.pageId() != null && row.node.hasPage()) {
+            return row.node.pageId();
         }
         return null;
     }
@@ -185,11 +181,30 @@ public final class GuideNavBar {
     }
 
     public void scroll(int dwheel) {
-        int contentH = rows.size() * ROW_H + 4;
+        int contentH = rows.size() * ROW_H + CONTENT_PADDING * 2;
         int max = Math.max(0, contentH - height);
         scrollY -= Integer.signum(dwheel) * ROW_H * 2;
         if (scrollY < 0) scrollY = 0;
         if (scrollY > max) scrollY = max;
+    }
+
+    private int getFirstVisibleRowIndex() {
+        int firstVisibleRow = Math.floorDiv(scrollY - CONTENT_PADDING - 1, ROW_H);
+        return Math.max(0, Math.min(firstVisibleRow, rows.size()));
+    }
+
+    private int getRowIndexAt(int mouseY) {
+        int relativeY = mouseY - y + scrollY - CONTENT_PADDING;
+        if (relativeY < 0) {
+            return -1;
+        }
+
+        int rowIndex = relativeY / ROW_H;
+        return rowIndex >= 0 && rowIndex < rows.size() ? rowIndex : -1;
+    }
+
+    private int getRowY(int rowIndex) {
+        return y + CONTENT_PADDING - scrollY + rowIndex * ROW_H;
     }
 
     private void toggleExpand(@Nullable NavigationNode node) {

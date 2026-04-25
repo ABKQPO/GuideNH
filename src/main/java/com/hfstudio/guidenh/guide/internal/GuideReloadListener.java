@@ -137,17 +137,27 @@ public class GuideReloadListener implements IResourceManagerReloadListener {
         String namespace, String folder, String pagePath, ResourceLocation pageId) {
         var withLang = new ResourceLocation(namespace, folder + "/" + language + "/" + pagePath);
         var noLang = new ResourceLocation(namespace, folder + "/" + pagePath);
-        for (var candidate : new ResourceLocation[] { withLang, noLang }) {
-            try {
-                IResource res = resourceManager.getResource(candidate);
-                try (var in = res.getInputStream()) {
-                    return PageCompiler.parse(sourcePack, language, pageId, in);
-                }
-            } catch (IOException ignored) {} catch (Exception ex) {
-                LOG.error("Error parsing page {} from {}", pageId, candidate, ex);
-                return null;
+
+        try {
+            IResource res = resourceManager.getResource(withLang);
+            try (var in = res.getInputStream()) {
+                return PageCompiler.parse(sourcePack, language, pageId, in);
             }
+        } catch (IOException ignored) {} catch (Exception ex) {
+            LOG.error("Error parsing page {} from {}", pageId, withLang, ex);
+            return null;
         }
+
+        try {
+            IResource res = resourceManager.getResource(noLang);
+            try (var in = res.getInputStream()) {
+                return PageCompiler.parse(sourcePack, language, pageId, in);
+            }
+        } catch (IOException ignored) {} catch (Exception ex) {
+            LOG.error("Error parsing page {} from {}", pageId, noLang, ex);
+            return null;
+        }
+
         return null;
     }
 }

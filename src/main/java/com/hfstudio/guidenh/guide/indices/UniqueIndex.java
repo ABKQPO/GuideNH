@@ -2,9 +2,9 @@ package com.hfstudio.guidenh.guide.indices;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -81,9 +81,10 @@ public class UniqueIndex<K, V> implements PageIndex {
         }
 
         // Clean up all index entries associated with changed pages
-        var idsToRemove = changes.stream()
-            .map(GuidePageChange::pageId)
-            .collect(Collectors.toSet());
+        var idsToRemove = new HashSet<ResourceLocation>(changes.size());
+        for (var change : changes) {
+            idsToRemove.add(change.pageId());
+        }
         index.values()
             .removeIf(p -> idsToRemove.contains(p.pageId));
 

@@ -48,7 +48,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
     @Override
     public LytRect getBounds() {
-        return layout != null ? new LytRect(0, 0, layout.availableWidth, layout.contentHeight) : null;
+        return layout != null ? layout.bounds() : null;
     }
 
     @Override
@@ -98,8 +98,9 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
     private Layout createLayout(LayoutContext context, int availableWidth) {
         var bounds = Layouts.verticalLayout(context, blocks, 0, 0, availableWidth, 5, 5, 5, 5, 0, AlignItems.START);
+        var cachedBounds = new LytRect(0, 0, availableWidth, bounds.height());
 
-        return new Layout(availableWidth, bounds.height());
+        return new Layout(availableWidth, bounds.height(), cachedBounds);
     }
 
     public void render(RenderContext context) {
@@ -153,7 +154,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     public void onMouseEnter(@Nullable LytFlowContent hoveredContent) {}
 
     @Desugar
-    public record Layout(int availableWidth, int contentHeight) {}
+    public record Layout(int availableWidth, int contentHeight, LytRect bounds) {}
 
     @Desugar
     public record HitTestResult(LytNode node, @Nullable LytFlowContent content) {}

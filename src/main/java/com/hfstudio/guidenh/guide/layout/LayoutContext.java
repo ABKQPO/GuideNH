@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.layout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
-import java.util.stream.Stream;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -28,36 +27,42 @@ public class LayoutContext implements FontMetrics {
     }
 
     public OptionalInt getLeftFloatRightEdge() {
-        return leftFloats.stream()
-            .mapToInt(LytRect::right)
-            .max();
+        if (leftFloats.isEmpty()) {
+            return OptionalInt.empty();
+        }
+
+        int maxRight = Integer.MIN_VALUE;
+        for (var bounds : leftFloats) {
+            maxRight = Math.max(maxRight, bounds.right());
+        }
+        return OptionalInt.of(maxRight);
     }
 
     public OptionalInt getRightFloatLeftEdge() {
-        return rightFloats.stream()
-            .mapToInt(LytRect::x)
-            .min();
+        if (rightFloats.isEmpty()) {
+            return OptionalInt.empty();
+        }
+
+        int minLeft = Integer.MAX_VALUE;
+        for (var bounds : rightFloats) {
+            minLeft = Math.min(minLeft, bounds.x());
+        }
+        return OptionalInt.of(minLeft);
     }
 
     // Clears all pending floats and returns the lowest y level below the cleared floats
     public OptionalInt clearFloats(boolean left, boolean right) {
         if (left && right) {
-            var result = Stream.concat(leftFloats.stream(), rightFloats.stream())
-                .mapToInt(LytRect::bottom)
-                .max();
+            var result = getMaxBottom(leftFloats, rightFloats);
             leftFloats.clear();
             rightFloats.clear();
             return result;
         } else if (left) {
-            var result = leftFloats.stream()
-                .mapToInt(LytRect::bottom)
-                .max();
+            var result = getMaxBottom(leftFloats);
             leftFloats.clear();
             return result;
         } else if (right) {
-            var result = rightFloats.stream()
-                .mapToInt(LytRect::bottom)
-                .max();
+            var result = getMaxBottom(rightFloats);
             rightFloats.clear();
             return result;
         } else {
@@ -85,9 +90,54 @@ public class LayoutContext implements FontMetrics {
      * If there's a float whose bottom edge is below the given y coordinate, return that bottom edge.
      */
     public OptionalInt getNextFloatBottomEdge(int y) {
-        return Stream.concat(leftFloats.stream(), rightFloats.stream())
-            .mapToInt(LytRect::bottom)
-            .filter(bottom -> bottom > y)
-            .min();
+        int nextBottom = Integer.MAX_VALUE;
+        boolean found = false;
+
+        for (var bounds : leftFloats) {
+            var bottom = bounds.bottom();
+            if (bottom > y && bottom < nextBottom) {
+                nextBottom = bottom;
+                found = true;
+            }
+        }
+
+        for (var bounds : rightFloats) {
+            var bottom = bounds.bottom();
+            if (bottom > y && bottom < nextBottom) {
+                nextBottom = bottom;
+                found = true;
+            }
+        }
+
+        return found ? OptionalInt.of(nextBottom) : OptionalInt.empty();
+    }
+
+    private static OptionalInt getMaxBottom(List<LytRect> boundsList) {
+        int maxBottom = Integer.MIN_VALUE;
+        boolean found = false;
+
+        for (var bounds : boundsList) {
+            maxBottom = Math.max(maxBottom, bounds.bottom());
+            found = true;
+        }
+
+        return found ? OptionalInt.of(maxBottom) : OptionalInt.empty();
+    }
+
+    private static OptionalInt getMaxBottom(List<LytRect> leftBounds, List<LytRect> rightBounds) {
+        int maxBottom = Integer.MIN_VALUE;
+        boolean found = false;
+
+        for (var bounds : leftBounds) {
+            maxBottom = Math.max(maxBottom, bounds.bottom());
+            found = true;
+        }
+
+        for (var bounds : rightBounds) {
+            maxBottom = Math.max(maxBottom, bounds.bottom());
+            found = true;
+        }
+
+        return found ? OptionalInt.of(maxBottom) : OptionalInt.empty();
     }
 }

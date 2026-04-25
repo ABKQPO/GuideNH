@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -45,9 +45,11 @@ public class MultiValuedIndex<K, V> implements PageIndex {
     public List<V> get(K key) {
         var entries = index.get(key);
         if (entries != null) {
-            return entries.stream()
-                .map(Record::value)
-                .collect(Collectors.toList());
+            var result = new ArrayList<V>(entries.size());
+            for (var entry : entries) {
+                result.add(entry.value());
+            }
+            return result;
         }
         return Collections.emptyList();
     }
@@ -69,9 +71,10 @@ public class MultiValuedIndex<K, V> implements PageIndex {
     @Override
     public void update(List<ParsedGuidePage> allPages, List<GuidePageChange> changes) {
         // Clean up all index entries associated with changed pages
-        var idsToRemove = changes.stream()
-            .map(GuidePageChange::pageId)
-            .collect(Collectors.toSet());
+        var idsToRemove = new HashSet<ResourceLocation>(changes.size());
+        for (var change : changes) {
+            idsToRemove.add(change.pageId());
+        }
         var it = index.values()
             .iterator();
         while (it.hasNext()) {

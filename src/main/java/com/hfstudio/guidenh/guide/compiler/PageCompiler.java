@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.compiler;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -97,6 +97,7 @@ public final class PageCompiler {
      * Default gap between block-level elements. Set as margin.
      */
     private static final int DEFAULT_ELEMENT_SPACING = 5;
+    private static final MdastOptions PARSE_OPTIONS = createParseOptions();
 
     private final PageCollection pages;
     private final ExtensionCollection extensions;
@@ -133,14 +134,15 @@ public final class PageCompiler {
 
     public static ParsedGuidePage parse(String sourcePack, String language, ResourceLocation id, InputStream in)
         throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        byte[] chunk = new byte[4096];
-        int n;
-        while ((n = in.read(chunk)) != -1) {
-            buffer.write(chunk, 0, n);
+        StringBuilder buffer = new StringBuilder();
+        char[] chunk = new char[4096];
+        try (var reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+            int n;
+            while ((n = reader.read(chunk)) != -1) {
+                buffer.append(chunk, 0, n);
+            }
         }
-        String pageContent = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
-        return parse(sourcePack, language, id, pageContent);
+        return parse(sourcePack, language, id, buffer.toString());
     }
 
     @Deprecated
@@ -150,20 +152,11 @@ public final class PageCompiler {
 
     public static ParsedGuidePage parse(String sourcePack, String language, ResourceLocation id, String pageContent) {
         // Normalize line ending
-        pageContent = pageContent.replaceAll("\\r\\n?", "\n");
-
-        var options = new MdastOptions().withSyntaxExtension(MdxSyntax.INSTANCE)
-            .withSyntaxExtension(YamlFrontmatterSyntax.INSTANCE)
-            .withSyntaxExtension(GfmTableSyntax.INSTANCE)
-            .withSyntaxExtension(GfmStrikethroughSyntax.INSTANCE)
-            .withMdastExtension(MdxMdastExtension.INSTANCE)
-            .withMdastExtension(YamlFrontmatterExtension.INSTANCE)
-            .withMdastExtension(GfmTableMdastExtension.INSTANCE)
-            .withMdastExtension(GfmStrikethroughMdastExtension.INSTANCE);
+        pageContent = normalizeLineEndings(pageContent);
 
         MdAstRoot astRoot;
         try {
-            astRoot = MdAst.fromMarkdown(pageContent, options);
+            astRoot = MdAst.fromMarkdown(pageContent, PARSE_OPTIONS);
         } catch (ParseException e) {
             var position = "";
             if (e.getFrom() != null) {
@@ -188,6 +181,39 @@ public final class PageCompiler {
         var frontmatter = parseFrontmatter(id, astRoot);
 
         return new ParsedGuidePage(sourcePack, id, pageContent, astRoot, frontmatter, language);
+    }
+
+    private static MdastOptions createParseOptions() {
+        return new MdastOptions().withSyntaxExtension(MdxSyntax.INSTANCE)
+            .withSyntaxExtension(YamlFrontmatterSyntax.INSTANCE)
+            .withSyntaxExtension(GfmTableSyntax.INSTANCE)
+            .withSyntaxExtension(GfmStrikethroughSyntax.INSTANCE)
+            .withMdastExtension(MdxMdastExtension.INSTANCE)
+            .withMdastExtension(YamlFrontmatterExtension.INSTANCE)
+            .withMdastExtension(GfmTableMdastExtension.INSTANCE)
+            .withMdastExtension(GfmStrikethroughMdastExtension.INSTANCE);
+    }
+
+    private static String normalizeLineEndings(String pageContent) {
+        int firstCarriageReturn = pageContent.indexOf('\r');
+        if (firstCarriageReturn == -1) {
+            return pageContent;
+        }
+
+        StringBuilder normalized = new StringBuilder(pageContent.length());
+        normalized.append(pageContent, 0, firstCarriageReturn);
+        for (int i = firstCarriageReturn; i < pageContent.length(); i++) {
+            char currentChar = pageContent.charAt(i);
+            if (currentChar == '\r') {
+                normalized.append('\n');
+                if (i + 1 < pageContent.length() && pageContent.charAt(i + 1) == '\n') {
+                    i++;
+                }
+            } else {
+                normalized.append(currentChar);
+            }
+        }
+        return normalized.toString();
     }
 
     private static MdAstRoot buildErrorPage(String errorText) {

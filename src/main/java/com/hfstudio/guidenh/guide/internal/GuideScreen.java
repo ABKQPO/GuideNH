@@ -99,6 +99,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
     private boolean fullWidth;
 
     private final GuideNavBar navBar = new GuideNavBar();
+    private final MinecraftFontMetrics layoutFontMetrics = new MinecraftFontMetrics();
 
     private final VanillaRenderContext reusableRenderCtx = new VanillaRenderContext(
         LightDarkMode.LIGHT_MODE,
@@ -126,6 +127,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
     private GuiTextField searchField;
     private final List<SearchResult> searchResults = new ArrayList<>();
     private int searchSelected = -1;
+    private String currentPageTitle = "";
 
     private static final int SEARCH_PANEL_W = 260;
     private static final int SEARCH_PANEL_PAD = 8;
@@ -363,15 +365,38 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         } else {
             document = null;
         }
+        refreshCurrentPageTitle();
         scrollY = 0;
     }
 
     private void ensureLayout() {
         if (document == null) return;
         if (lastLayoutWidth != contentW) {
-            document.updateLayout(new LayoutContext(new MinecraftFontMetrics()), contentW);
+            document.updateLayout(new LayoutContext(layoutFontMetrics), contentW);
             lastLayoutWidth = contentW;
         }
+    }
+
+    private void refreshCurrentPageTitle() {
+        if (currentAnchor == null) {
+            currentPageTitle = "";
+            return;
+        }
+
+        String resolvedTitle = null;
+        try {
+            var node = guide.getNavigationTree()
+                .getNodeById(currentAnchor.pageId());
+            if (node != null) {
+                resolvedTitle = node.title();
+            }
+        } catch (Throwable ignored) {}
+
+        if (resolvedTitle == null || resolvedTitle.isEmpty()) {
+            resolvedTitle = currentAnchor.pageId()
+                .toString();
+        }
+        currentPageTitle = resolvedTitle;
     }
 
     private int getContentHeight() {
@@ -432,19 +457,9 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
 
     private void drawPageTitle() {
         if (currentAnchor == null) return;
-        String title = null;
-        try {
-            var node = guide.getNavigationTree()
-                .getNodeById(currentAnchor.pageId());
-            if (node != null) title = node.title();
-        } catch (Throwable ignored) {}
-        if (title == null || title.isEmpty()) {
-            title = currentAnchor.pageId()
-                .toString();
-        }
         int reservedRight = (16 + TOOLBAR_GAP) * 5 + PANEL_PADDING + 4;
         int maxW = Math.max(20, panelW - PANEL_PADDING - reservedRight);
-        String draw = title;
+        String draw = currentPageTitle;
         if (fontRendererObj.getStringWidth(draw) > maxW) {
             draw = fontRendererObj.trimStringToWidth(draw, maxW - 4) + "\u2026";
         }
@@ -1118,10 +1133,10 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
                 }
                 String idStr = p.getId()
                     .toString();
+                String idLower = idStr.toLowerCase(Locale.ROOT);
+                String titleLower = title != null ? title.toLowerCase(Locale.ROOT) : null;
                 String displayTitle = (title != null ? title : idStr);
-                if ((title != null && title.toLowerCase(Locale.ROOT)
-                    .contains(q)) || idStr.toLowerCase(Locale.ROOT)
-                        .contains(q)) {
+                if ((titleLower != null && titleLower.contains(q)) || idLower.contains(q)) {
                     var icon = resolveIcon(iconId);
                     String subtitle = (title != null) ? idStr : "";
                     searchResults.add(new SearchResult(new PageAnchor(p.getId(), null), icon, displayTitle, subtitle));
@@ -1233,15 +1248,27 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         int fx = searchField.xPosition;
         int fw = searchField.width;
         searchField.mouseClicked(mouseX, mouseY, button);
-        int ly = searchListY();
-        for (int i = 0; i < searchResults.size(); i++) {
-            if (mouseX >= fx && mouseX < fx + fw && mouseY >= ly && mouseY < ly + SEARCH_ROW_H) {
-                navigateToSearchResult(i);
-                return true;
-            }
-            ly += SEARCH_ROW_H;
+
+        int rowIndex = getSearchResultRowAt(mouseX, mouseY, fx, fw);
+        if (rowIndex >= 0) {
+            navigateToSearchResult(rowIndex);
         }
         return true;
+    }
+
+    private int getSearchResultRowAt(int mouseX, int mouseY, int listX, int listWidth) {
+        if (mouseX < listX || mouseX >= listX + listWidth) {
+            return -1;
+        }
+
+        int relativeY = mouseY - searchListY();
+        if (relativeY < 0) {
+            return -1;
+        }
+
+        int rowIndex = relativeY / SEARCH_ROW_H;
+        int visibleRows = Math.min(searchResults.size(), SEARCH_MAX_ROWS);
+        return rowIndex >= 0 && rowIndex < visibleRows ? rowIndex : -1;
     }
 
     private void navigateToSearchResult(int index) {

@@ -136,6 +136,10 @@ public class CameraSettings {
     private final Matrix4f reusableView = new Matrix4f();
     private final Matrix4f reusableProjection = new Matrix4f();
     private final Matrix4f reusableCombined = new Matrix4f();
+    private final Matrix4f reusableInverted = new Matrix4f();
+    private final Vector4f reusableWorldToScreen = new Vector4f();
+    private final Vector4f reusableNear = new Vector4f();
+    private final Vector4f reusableFar = new Vector4f();
 
     public Matrix4f getViewMatrix() {
         var result = reusableView.identity();
@@ -164,7 +168,11 @@ public class CameraSettings {
     }
 
     public Vector3f worldToScreen(float worldX, float worldY, float worldZ) {
-        var v = new Vector4f(worldX, worldY, worldZ, 1f);
+        return worldToScreen(worldX, worldY, worldZ, new Vector3f());
+    }
+
+    public Vector3f worldToScreen(float worldX, float worldY, float worldZ, Vector3f dest) {
+        var v = reusableWorldToScreen.set(worldX, worldY, worldZ, 1f);
         getCombinedMatrix().transform(v);
         if (v.w != 0f) {
             v.x /= v.w;
@@ -173,18 +181,23 @@ public class CameraSettings {
         }
         float halfW = viewportSize.width() * 0.5f;
         float halfH = viewportSize.height() * 0.5f;
-        return new Vector3f(v.x * halfW, -v.y * halfH, v.z);
+        return dest.set(v.x * halfW, -v.y * halfH, v.z);
     }
 
     public float[] screenToWorldRay(float screenX, float screenY) {
+        return screenToWorldRay(screenX, screenY, new float[6]);
+    }
+
+    public float[] screenToWorldRay(float screenX, float screenY, float[] dest) {
         float halfW = viewportSize.width() * 0.5f;
         float halfH = viewportSize.height() * 0.5f;
         float ndcX = halfW == 0f ? 0f : screenX / halfW;
         float ndcY = halfH == 0f ? 0f : -screenY / halfH;
 
-        var invMat = new Matrix4f(getCombinedMatrix()).invert();
-        var near = new Vector4f(ndcX, ndcY, -1f, 1f);
-        var far = new Vector4f(ndcX, ndcY, 1f, 1f);
+        var invMat = reusableInverted.set(getCombinedMatrix())
+            .invert();
+        var near = reusableNear.set(ndcX, ndcY, -1f, 1f);
+        var far = reusableFar.set(ndcX, ndcY, 1f, 1f);
         invMat.transform(near);
         invMat.transform(far);
         if (near.w != 0) {
@@ -206,7 +219,13 @@ public class CameraSettings {
             dy /= len;
             dz /= len;
         }
-        return new float[] { near.x, near.y, near.z, dx, dy, dz };
+        dest[0] = near.x;
+        dest[1] = near.y;
+        dest[2] = near.z;
+        dest[3] = dx;
+        dest[4] = dy;
+        dest[5] = dz;
+        return dest;
     }
 
     public SavedCameraSettings save() {

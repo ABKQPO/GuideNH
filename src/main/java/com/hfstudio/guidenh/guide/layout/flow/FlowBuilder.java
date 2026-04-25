@@ -90,12 +90,20 @@ public class FlowBuilder {
     }
 
     public Stream<LytRect> enumerateContentBounds(LytFlowContent content) {
-        return Stream.concat(
-            lines.stream()
-                .flatMap(Line::elements),
-            floats.stream())
-            .filter(el -> el.getFlowContent() == content)
-            .map(el -> el.bounds);
+        var matchingBounds = new ArrayList<LytRect>();
+        for (var line : lines) {
+            for (var el = line.firstElement(); el != null; el = el.next) {
+                if (el.getFlowContent() == content) {
+                    matchingBounds.add(el.bounds);
+                }
+            }
+        }
+        for (var el : floats) {
+            if (el.getFlowContent() == content) {
+                matchingBounds.add(el.bounds);
+            }
+        }
+        return matchingBounds.stream();
     }
 
     @Nullable

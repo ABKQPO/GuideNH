@@ -30,7 +30,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
@@ -69,6 +68,7 @@ public class GuideSearch implements AutoCloseable {
     private final Analyzer analyzer;
     private final IndexWriter indexWriter;
     private IndexReader indexReader;
+    private IndexSearcher indexSearcher;
     private final List<GuideIndexingTask> pendingTasks = new ArrayList<>();
     private Instant indexingStarted;
     private int pagesIndexed;
@@ -84,6 +84,7 @@ public class GuideSearch implements AutoCloseable {
             indexWriter.flush();
             indexWriter.commit();
             indexReader = DirectoryReader.open(directory);
+            indexSearcher = new IndexSearcher(indexReader);
         } catch (IOException e) {
             // ByteBuffersDirectory keeps this in memory, so initialization failures are unexpected.
             throw new UncheckedIOException("Failed to create index writer.", e);
@@ -93,7 +94,7 @@ public class GuideSearch implements AutoCloseable {
     public void index(Guide guide) {
         try {
             indexWriter.deleteDocuments(
-                new PhraseQuery(
+                new Term(
                     IndexSchema.FIELD_GUIDE_ID,
                     guide.getId()
                         .toString()));
@@ -164,9 +165,7 @@ public class GuideSearch implements AutoCloseable {
         try {
             indexWriter.flush();
             indexWriter.commit();
-
-            indexReader.close();
-            indexReader = DirectoryReader.open(directory);
+            refreshIndexReader();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -178,14 +177,21 @@ public class GuideSearch implements AutoCloseable {
         return System.nanoTime() - start >= TIME_PER_TICK;
     }
 
+    private void refreshIndexReader() throws IOException {
+        var newReader = DirectoryReader.open(directory);
+        var oldReader = indexReader;
+        indexReader = newReader;
+        indexSearcher = new IndexSearcher(newReader);
+        oldReader.close();
+    }
+
     public List<SearchResult> searchGuide(String queryText, @Nullable Guide onlyFromGuide) {
         if (queryText.isEmpty()) {
             return Collections.emptyList();
         }
 
         var searchLanguage = getLuceneLanguageFromMinecraft(LangUtil.getCurrentLanguage());
-
-        var indexSearcher = new IndexSearcher(indexReader);
+        var indexSearcher = this.indexSearcher;
 
         Query query;
         try {

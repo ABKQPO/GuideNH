@@ -76,6 +76,10 @@ public class LytGuidebookScene extends LytBlock {
     // Reuse hovered-block overlay objects across frames.
     private final Vector3f hoverBoxMin = new Vector3f();
     private final Vector3f hoverBoxMax = new Vector3f();
+    private final Vector3f projectedCornerScratch = new Vector3f();
+    private final Vector3f projectedLineFromScratch = new Vector3f();
+    private final Vector3f projectedLineToScratch = new Vector3f();
+    private final float[] pickRayScratch = new float[6];
     private final ConstantColor hoverBoxColor = new ConstantColor(0xFFFFFFFF);
     private final InWorldBoxAnnotation hoverBoxAnnotation = new InWorldBoxAnnotation(
         hoverBoxMin,
@@ -184,7 +188,7 @@ public class LytGuidebookScene extends LytBlock {
                 } else if (a instanceof InWorldBoxAnnotation box) {
                     hovered = boxScreenRectContains(box, viewport, mouseX, mouseY);
                 } else if (a instanceof InWorldLineAnnotation line) {
-                    hovered = lineScreenDistance(line, viewport, mouseX, mouseY) <= LINE_HOVER_TOLERANCE_PX;
+                    hovered = lineScreenContains(line, viewport, mouseX, mouseY);
                 }
             }
             a.setHovered(hovered);
@@ -194,6 +198,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private static final int LINE_HOVER_TOLERANCE_PX = 4;
+    private static final int LINE_HOVER_TOLERANCE_PX_SQUARED = LINE_HOVER_TOLERANCE_PX * LINE_HOVER_TOLERANCE_PX;
 
     private boolean boxScreenRectContains(InWorldBoxAnnotation box, LytRect viewport, int mouseX, int mouseY) {
         var min = box.min();
@@ -206,9 +211,9 @@ public class LytGuidebookScene extends LytBlock {
             float x = ((corner & 1) == 0) ? min.x : max.x;
             float y = ((corner & 2) == 0) ? min.y : max.y;
             float z = ((corner & 4) == 0) ? min.z : max.z;
-            var s = camera.worldToScreen(x, y, z);
-            int sx = cx + Math.round(s.x);
-            int sy = cy + Math.round(s.y);
+            var projected = camera.worldToScreen(x, y, z, projectedCornerScratch);
+            int sx = cx + Math.round(projected.x);
+            int sy = cy + Math.round(projected.y);
             if (sx < minSx) minSx = sx;
             if (sy < minSy) minSy = sy;
             if (sx > maxSx) maxSx = sx;
@@ -217,11 +222,11 @@ public class LytGuidebookScene extends LytBlock {
         return mouseX >= minSx && mouseX <= maxSx && mouseY >= minSy && mouseY <= maxSy;
     }
 
-    private float lineScreenDistance(InWorldLineAnnotation line, LytRect viewport, int mouseX, int mouseY) {
+    private boolean lineScreenContains(InWorldLineAnnotation line, LytRect viewport, int mouseX, int mouseY) {
         int cx = viewport.x() + viewport.width() / 2;
         int cy = viewport.y() + viewport.height() / 2;
-        var a = camera.worldToScreen(line.from().x, line.from().y, line.from().z);
-        var b = camera.worldToScreen(line.to().x, line.to().y, line.to().z);
+        var a = camera.worldToScreen(line.from().x, line.from().y, line.from().z, projectedLineFromScratch);
+        var b = camera.worldToScreen(line.to().x, line.to().y, line.to().z, projectedLineToScratch);
         float ax = cx + a.x, ay = cy + a.y;
         float bx = cx + b.x, by = cy + b.y;
         float dx = bx - ax, dy = by - ay;
@@ -229,7 +234,7 @@ public class LytGuidebookScene extends LytBlock {
         float t = lenSq < 1e-4f ? 0f : Math.max(0f, Math.min(1f, ((mouseX - ax) * dx + (mouseY - ay) * dy) / lenSq));
         float px = ax + t * dx, py = ay + t * dy;
         float ex = mouseX - px, ey = mouseY - py;
-        return (float) Math.sqrt(ex * ex + ey * ey);
+        return ex * ex + ey * ey <= LINE_HOVER_TOLERANCE_PX_SQUARED;
     }
 
     public void clearAnnotationHover() {
@@ -549,9 +554,26 @@ public class LytGuidebookScene extends LytBlock {
         float relX = (mouseAbsX) - (lastAbsX + lastW * 0.5f);
         float relY = (mouseAbsY) - (lastAbsY + lastH * 0.5f);
         camera.setViewportSize(lastW, lastH);
-        float[] ray = camera.screenToWorldRay(relX, relY);
+        float[] ray = camera.screenToWorldRay(relX, relY, pickRayScratch);
         float ox = ray[0], oy = ray[1], oz = ray[2];
         float dx = ray[3], dy = ray[4], dz = ray[5];
+        int[] sceneBounds = level.getBounds();
+        if (Float.isNaN(
+            rayAabb(
+                ox,
+                oy,
+                oz,
+                dx,
+                dy,
+                dz,
+                sceneBounds[0],
+                sceneBounds[1],
+                sceneBounds[2],
+                sceneBounds[3] + 1f,
+                sceneBounds[4] + 1f,
+                sceneBounds[5] + 1f))) {
+            return null;
+        }
         int[] best = null;
         float bestT = Float.POSITIVE_INFINITY;
         for (int[] b : level.getFilledBlocks()) {

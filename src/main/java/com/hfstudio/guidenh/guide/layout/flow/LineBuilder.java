@@ -37,6 +37,8 @@ class LineBuilder implements Consumer<LytFlowContent> {
     private int remainingLineWidth;
     @Nullable
     private LineElement openLineElement;
+    @Nullable
+    private LineElement openLineTail;
     private final TextAlignment alignment;
 
     public LineBuilder(LayoutContext context, int x, int y, int availableWidth, List<Line> lines,
@@ -73,6 +75,7 @@ class LineBuilder implements Consumer<LytFlowContent> {
         if (openLineElement == null) {
             openLineElement = new LineTextRun("", DefaultStyles.BASE_STYLE, DefaultStyles.BASE_STYLE);
             openLineElement.flowContent = flowContent;
+            openLineTail = openLineElement;
         }
         endLine();
 
@@ -161,13 +164,7 @@ class LineBuilder implements Consumer<LytFlowContent> {
 
     @Nullable
     private LineElement getEndOfOpenLine() {
-        var el = openLineElement;
-        if (el != null) {
-            while (el.next != null) {
-                el = el.next;
-            }
-        }
-        return el;
+        return openLineTail;
     }
 
     private void appendText(String text, LytFlowContent flowContent) {
@@ -354,6 +351,7 @@ class LineBuilder implements Consumer<LytFlowContent> {
 
         // Reset horizontal position
         openLineElement = null;
+        openLineTail = null;
         innerX = 0;
 
         // Recompute now that floats may have been closed, what the horizontal space really is
@@ -379,14 +377,13 @@ class LineBuilder implements Consumer<LytFlowContent> {
 
     private void appendToOpenLine(LineElement el) {
         if (openLineElement != null) {
-            var l = openLineElement;
-            while (l.next != null) {
-                l = l.next;
+            if (openLineTail != null) {
+                openLineTail.next = el;
             }
-            l.next = el;
         } else {
             openLineElement = el;
         }
+        openLineTail = el;
     }
 
     public void end() {
@@ -394,12 +391,13 @@ class LineBuilder implements Consumer<LytFlowContent> {
     }
 
     public LytRect getBounds() {
-        var width = lines.stream()
-            .mapToInt(
-                l -> l.bounds()
-                    .width())
-            .max()
-            .orElse(0);
+        int width = 0;
+        for (var line : lines) {
+            width = Math.max(
+                width,
+                line.bounds()
+                    .width());
+        }
         return new LytRect(lineBoxX, startY, width, lineBoxY - startY);
     }
 
