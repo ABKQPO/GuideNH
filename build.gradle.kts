@@ -16,6 +16,10 @@ tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
+tasks.named<Jar>("sourcesJar") {
+    dependsOn("packageGuideTutorialResourcePack")
+}
+
 val tutorialGuideSourceDir = layout.projectDirectory.dir("wiki/resourcepack")
 val tutorialGuidePackOutputDir = layout.projectDirectory.dir("src/main/resources/assets/guidenh/resourcepacks")
 
