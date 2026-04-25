@@ -3,6 +3,7 @@ item_ids:
   - guidenh:guide
 navigation:
   title: 首页
+  icon_texture: test1.png
 ---
 
 # 起始页

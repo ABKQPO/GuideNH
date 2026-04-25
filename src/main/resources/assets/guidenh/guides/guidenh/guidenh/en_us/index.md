@@ -3,6 +3,7 @@ item_ids:
   - guidenh:guide
 navigation:
   title: Root
+  icon_texture: test1.png
 ---
 
 # Start Page

@@ -44,7 +44,7 @@ public class RegionWandItem extends Item {
     public RegionWandItem() {
         super();
         setUnlocalizedName("region_wand");
-        setTextureName(GuideNH.MODID + ":" + "guide");
+        setTextureName(GuideNH.MODID + ":" + "region_wand");
         setMaxStackSize(1);
         setCreativeTab(CreativeTabs.tabTools);
         MinecraftForge.EVENT_BUS.register(this);

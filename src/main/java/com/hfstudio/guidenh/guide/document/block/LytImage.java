@@ -51,6 +51,11 @@ public class LytImage extends LytBlock {
         }
     }
 
+    public void setTexture(@Nullable ResourceLocation id, @Nullable GuidePageTexture texture) {
+        this.imageId = id;
+        this.texture = texture != null ? texture : GuidePageTexture.missing();
+    }
+
     public void setExplicitWidth(int width) {
         this.explicitWidth = width > 0 ? width : -1;
     }

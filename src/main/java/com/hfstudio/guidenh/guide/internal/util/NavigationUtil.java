@@ -4,11 +4,15 @@ import javax.annotation.Nullable;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hfstudio.guidenh.guide.GuidePageIcon;
+import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
 public final class NavigationUtil {
 
@@ -17,10 +21,22 @@ public final class NavigationUtil {
     private NavigationUtil() {}
 
     @Nullable
-    public static ItemStack createNavigationIcon(ParsedGuidePage page) {
+    public static GuidePageIcon createNavigationIcon(ParsedGuidePage page, @Nullable PageCollection pages) {
         var navigation = page.getFrontmatter()
             .navigationEntry();
-        if (navigation == null || navigation.iconItemId() == null) {
+        if (navigation == null) {
+            return null;
+        }
+
+        var iconTextureId = navigation.iconTextureId();
+        if (iconTextureId != null && pages != null) {
+            var textureIcon = createTextureIcon(page, pages, iconTextureId);
+            if (textureIcon != null) {
+                return textureIcon;
+            }
+        }
+
+        if (navigation.iconItemId() == null) {
             return null;
         }
 
@@ -30,6 +46,29 @@ public final class NavigationUtil {
             LOG.error("Couldn't find icon item {} for page {}", iconItemId, page.getId());
             return null;
         }
-        return new ItemStack(item);
+        return new GuidePageIcon(new ItemStack(item), null, null);
+    }
+
+    @Nullable
+    public static GuidePageIcon createNavigationIcon(ParsedGuidePage page) {
+        return createNavigationIcon(page, null);
+    }
+
+    @Nullable
+    private static GuidePageIcon createTextureIcon(ParsedGuidePage page, PageCollection pages,
+        ResourceLocation iconId) {
+        var data = pages.loadAsset(iconId);
+        if (data == null || data.length == 0) {
+            LOG.error("Couldn't find icon texture {} for page {}", iconId, page.getId());
+            return null;
+        }
+
+        var texture = GuidePageTexture.load(iconId, data);
+        if (texture.isMissing()) {
+            LOG.error("Couldn't decode icon texture {} for page {}", iconId, page.getId());
+            return null;
+        }
+
+        return new GuidePageIcon(null, iconId, texture);
     }
 }

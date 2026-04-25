@@ -29,7 +29,8 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
  *       "title":       "...",
  *       "parent":      "guidenh:category",
  *       "position":    10,
- *       "iconItemId":  "minecraft:chest"
+ *       "iconItemId":  "minecraft:chest",
+ *       "iconTextureId":"guidenh:test1.png"
  *     },
  *     "extra": { … additionalProperties … }
  *   }
@@ -88,6 +89,11 @@ public final class PageJsonWriter {
                 "iconItemId",
                 nav.iconItemId() == null ? null
                     : nav.iconItemId()
+                        .toString());
+            n.put(
+                "iconTextureId",
+                nav.iconTextureId() == null ? null
+                    : nav.iconTextureId()
                         .toString());
             out.put("navigation", n);
         }

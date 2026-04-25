@@ -38,6 +38,7 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
                 position = getInt(navigationMap, "position");
             }
             var iconIdStr = getString(navigationMap, "icon");
+            var iconTextureStr = getString(navigationMap, "icon_texture");
             Map<?, ?> iconComponents = getCompound(navigationMap, "icon_components");
 
             ResourceLocation parentId = null;
@@ -50,7 +51,12 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
                 iconId = IdUtils.resolveId(iconIdStr, pageId.getResourceDomain());
             }
 
-            navigation = new FrontmatterNavigation(title, parentId, position, iconId, iconComponents);
+            ResourceLocation iconTextureId = null;
+            if (iconTextureStr != null) {
+                iconTextureId = IdUtils.resolveLink(iconTextureStr, pageId);
+            }
+
+            navigation = new FrontmatterNavigation(title, parentId, position, iconId, iconComponents, iconTextureId);
         }
 
         return new Frontmatter(navigation, Collections.unmodifiableMap(new HashMap<>(data)));

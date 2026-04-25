@@ -356,11 +356,11 @@ public final class MutableGuide implements Guide {
 
     private NavigationTree buildNavigation() {
         if (developmentPages.isEmpty()) {
-            return NavigationTree.build(pages.values());
+            return NavigationTree.build(this, pages.values());
         } else {
             var allPages = new HashMap<>(pages);
             allPages.putAll(developmentPages);
-            return NavigationTree.build(allPages.values());
+            return NavigationTree.build(this, allPages.values());
         }
     }
 

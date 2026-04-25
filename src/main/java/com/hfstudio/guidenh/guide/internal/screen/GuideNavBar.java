@@ -14,14 +14,15 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
 public final class GuideNavBar {
 
@@ -132,10 +133,10 @@ public final class GuideNavBar {
             }
             int textX = rowX + EXPAND_INDENT;
 
-            ItemStack icon = row.node.icon();
+            GuidePageIcon icon = row.node.icon();
             if (icon != null) {
                 int iy = rowY + (ROW_H - ICON_SIZE) / 2;
-                drawMiniItemIcon(mc, icon, textX, iy);
+                drawMiniIcon(mc, icon, textX, iy);
                 textX += ICON_SIZE + 2;
             }
 
@@ -253,7 +254,15 @@ public final class GuideNavBar {
         }
     }
 
-    private static void drawMiniItemIcon(Minecraft mc, ItemStack stack, int x, int y) {
+    private static void drawMiniIcon(Minecraft mc, GuidePageIcon icon, int x, int y) {
+        if (icon.isTextureIcon()) {
+            drawMiniTextureIcon(icon.texture(), x, y);
+            return;
+        }
+        drawMiniItemIcon(mc, icon.itemStack(), x, y);
+    }
+
+    private static void drawMiniItemIcon(Minecraft mc, net.minecraft.item.ItemStack stack, int x, int y) {
         try {
             GL11.glPushMatrix();
             GL11.glTranslatef(x, y, 0);
@@ -270,6 +279,29 @@ public final class GuideNavBar {
         } catch (Throwable ignored) {
             GL11.glPopMatrix();
         }
+    }
+
+    private static void drawMiniTextureIcon(@Nullable GuidePageTexture texture, int x, int y) {
+        if (texture == null || texture.isMissing()) {
+            return;
+        }
+
+        Minecraft.getMinecraft()
+            .getTextureManager()
+            .bindTexture(texture.getTexture());
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+
+        var tess = Tessellator.instance;
+        tess.startDrawingQuads();
+        tess.addVertexWithUV(x, y + ICON_SIZE, 0, 0f, 1f);
+        tess.addVertexWithUV(x + ICON_SIZE, y + ICON_SIZE, 0, 1f, 1f);
+        tess.addVertexWithUV(x + ICON_SIZE, y, 0, 1f, 0f);
+        tess.addVertexWithUV(x, y, 0, 0f, 0f);
+        tess.draw();
     }
 
     private static final class Row {

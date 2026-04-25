@@ -46,9 +46,7 @@ import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.Guides;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstHeading;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
@@ -173,6 +171,12 @@ public class GuideSearch implements AutoCloseable {
         LOG.info("Indexing of {} pages finished in {}", pagesIndexed, Duration.between(indexingStarted, Instant.now()));
     }
 
+    public void processAllWork() {
+        while (!pendingTasks.isEmpty()) {
+            processWork();
+        }
+    }
+
     private boolean isTimeElapsed(long start) {
         return System.nanoTime() - start >= TIME_PER_TICK;
     }
@@ -188,6 +192,10 @@ public class GuideSearch implements AutoCloseable {
     public List<SearchResult> searchGuide(String queryText, @Nullable Guide onlyFromGuide) {
         if (queryText.isEmpty()) {
             return Collections.emptyList();
+        }
+
+        if (!pendingTasks.isEmpty()) {
+            processAllWork();
         }
 
         var searchLanguage = getLuceneLanguageFromMinecraft(LangUtil.getCurrentLanguage());
@@ -258,26 +266,14 @@ public class GuideSearch implements AutoCloseable {
                 }
 
                 var pageTitle = document.get(IndexSchema.FIELD_TITLE);
-                result.add(new SearchResult(guideId, pageId, pageTitle, buildHighlightedFragment(bestFragment)));
+                result.add(
+                    new SearchResult(guideId, pageId, pageTitle, GuideSearchSnippetFormatter.format(bestFragment)));
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
 
         return result;
-    }
-
-    private static boolean isStartOfHighlight(CharSequence text, int i) {
-        return (i + 3 <= text.length()) && text.charAt(i) == '<'
-            && text.charAt(i + 1) == 'B'
-            && text.charAt(i + 2) == '>';
-    }
-
-    private static boolean isEndOfHighlight(CharSequence text, int i) {
-        return (i + 4 <= text.length()) && text.charAt(i) == '<'
-            && text.charAt(i + 1) == '/'
-            && text.charAt(i + 2) == 'B'
-            && text.charAt(i + 3) == '>';
     }
 
     @Nullable
@@ -309,34 +305,6 @@ public class GuideSearch implements AutoCloseable {
         doc.add(new TextField(IndexSchema.getTitleField(searchLang), pageTitle, Field.Store.NO));
         doc.add(new TextField(IndexSchema.getTextField(searchLang), pageText, Field.Store.NO));
         return doc;
-    }
-
-    private static LytFlowContent buildHighlightedFragment(String bestFragment) {
-        var root = new LytFlowSpan();
-        LytFlowSpan currentSpan = root;
-        int startOfSegment = 0;
-        for (int i = 0; i < bestFragment.length(); i++) {
-            if (isStartOfHighlight(bestFragment, i)) {
-                appendFragmentText(currentSpan, bestFragment, startOfSegment, i);
-                startOfSegment = i + 3;
-                var highlightedSpan = new LytFlowSpan();
-                highlightedSpan.setStyle(DefaultStyles.SEARCH_RESULT_HIGHLIGHT);
-                currentSpan.append(highlightedSpan);
-                currentSpan = highlightedSpan;
-            } else if (isEndOfHighlight(bestFragment, i)) {
-                appendFragmentText(currentSpan, bestFragment, startOfSegment, i);
-                startOfSegment = i + 4;
-                currentSpan = Objects.requireNonNull((LytFlowSpan) currentSpan.getFlowParent());
-            }
-        }
-        appendFragmentText(currentSpan, bestFragment, startOfSegment, bestFragment.length());
-        return root;
-    }
-
-    private static void appendFragmentText(LytFlowSpan span, String fragment, int startInclusive, int endExclusive) {
-        if (endExclusive > startInclusive) {
-            span.appendText(fragment.substring(startInclusive, endExclusive));
-        }
     }
 
     private String getLuceneLanguageFromMinecraft(String language) {

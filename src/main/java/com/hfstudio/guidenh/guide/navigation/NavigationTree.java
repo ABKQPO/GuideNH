@@ -19,6 +19,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.util.NavigationUtil;
 
@@ -50,6 +51,10 @@ public class NavigationTree {
     }
 
     public static NavigationTree build(Collection<ParsedGuidePage> pages) {
+        return build(null, pages);
+    }
+
+    public static NavigationTree build(@Nullable PageCollection pageCollection, Collection<ParsedGuidePage> pages) {
         var pagesWithChildren = new HashMap<ResourceLocation, Pair<ParsedGuidePage, List<ParsedGuidePage>>>();
 
         // First pass, build a map of pages and their children
@@ -89,7 +94,14 @@ public class NavigationTree {
         var rootNodes = new ArrayList<NavigationNode>();
 
         for (var entry : pagesWithChildren.entrySet()) {
-            createNode(nodeIndex, rootNodes, pagesWithChildren, entry.getKey(), entry.getValue(), new HashSet<>());
+            createNode(
+                nodeIndex,
+                rootNodes,
+                pagesWithChildren,
+                pageCollection,
+                entry.getKey(),
+                entry.getValue(),
+                new HashSet<>());
         }
 
         // Sort root nodes
@@ -103,7 +115,8 @@ public class NavigationTree {
     @Nullable
     private static NavigationNode createNode(Map<ResourceLocation, NavigationNode> nodeIndex,
         List<NavigationNode> rootNodes,
-        Map<ResourceLocation, Pair<ParsedGuidePage, List<ParsedGuidePage>>> pagesWithChildren, ResourceLocation pageId,
+        Map<ResourceLocation, Pair<ParsedGuidePage, List<ParsedGuidePage>>> pagesWithChildren,
+        @Nullable PageCollection pageCollection, ResourceLocation pageId,
         Pair<ParsedGuidePage, List<ParsedGuidePage>> entry, Set<ResourceLocation> parents) {
         if (!parents.add(pageId)) {
             LOG.error("Detected a cycle in the navigation tree parent-child relationship for page {}", pageId);
@@ -125,7 +138,7 @@ public class NavigationTree {
             "navigation frontmatter");
 
         // Construct the icon if set
-        var icon = NavigationUtil.createNavigationIcon(page);
+        var icon = NavigationUtil.createNavigationIcon(page, pageCollection);
 
         var childNodes = new ArrayList<NavigationNode>(children.size());
         for (var childPage : children) {
@@ -135,6 +148,7 @@ public class NavigationTree {
                 nodeIndex,
                 rootNodes,
                 pagesWithChildren,
+                pageCollection,
                 childPage.getId(),
                 childPageEntry,
                 parents);
