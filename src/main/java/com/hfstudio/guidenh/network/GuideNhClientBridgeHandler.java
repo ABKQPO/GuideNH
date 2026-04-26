@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.network;
 
+import net.minecraft.client.Minecraft;
+
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -13,10 +15,11 @@ public final class GuideNhClientBridgeHandler implements IMessageHandler<GuideNh
 
     @Override
     public IMessage onMessage(GuideNhClientBridgeMessage message, MessageContext ctx) {
-        if (message.getAction() == GuideNhClientBridgeMessage.ACTION_IMPORT_STRUCTURE) {
-            GuideNhClientBridgeController.getInstance()
-                .beginImportStructure(message.getX(), message.getY(), message.getZ());
-        }
+        GuideNhClientBridgeDispatcher.dispatch(
+            message,
+            task -> Minecraft.getMinecraft()
+                .func_152344_a(task),
+            GuideNhClientBridgeController.getInstance()::beginImportStructure);
         return null;
     }
 }

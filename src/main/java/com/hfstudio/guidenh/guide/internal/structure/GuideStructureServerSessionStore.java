@@ -13,7 +13,8 @@ public final class GuideStructureServerSessionStore {
         this.placementService = placementService;
     }
 
-    public GuideStructureMemoryStore.Entry remember(UUID playerId, String label, String structureText) throws Exception {
+    public GuideStructureMemoryStore.Entry remember(UUID playerId, String label, String structureText)
+        throws Exception {
         return getOrCreate(playerId).remember(label, structureText);
     }
 

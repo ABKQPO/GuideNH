@@ -15,7 +15,7 @@ public class CommonProxy {
     public void preInit(FMLPreInitializationEvent event) {
         GameRegistry.registerItem(GuideNH.GUIDE_ITEM, "guide");
         GameRegistry.registerItem(GuideNH.REGION_WAND, "region_wand");
-        GuideNhNetwork.init();
+        GuideNhNetwork.initCommon();
         FMLCommonHandler.instance()
             .bus()
             .register(new GuideNhNetworkEvents());

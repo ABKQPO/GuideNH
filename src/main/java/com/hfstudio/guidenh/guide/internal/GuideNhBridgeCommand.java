@@ -1,8 +1,7 @@
 package com.hfstudio.guidenh.guide.internal;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -19,6 +18,8 @@ import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 
 public final class GuideNhBridgeCommand extends CommandBase {
+
+    private static final String[] ROOT_SUB_COMMANDS = { "importstructure", "placeallstructures" };
 
     @Override
     public String getCommandName() {
@@ -47,9 +48,9 @@ public final class GuideNhBridgeCommand extends CommandBase {
     @Override
     public List<String> addTabCompletionOptions(ICommandSender sender, String[] args) {
         if (args.length == 1) {
-            return getListOfStringsMatchingLastWord(args, "importstructure", "placeallstructures");
+            return getListOfStringsMatchingLastWord(args, ROOT_SUB_COMMANDS);
         }
-        return new ArrayList<>();
+        return Collections.emptyList();
     }
 
     @Override
@@ -97,17 +98,16 @@ public final class GuideNhBridgeCommand extends CommandBase {
         int x = GuideStructureCoordinateParser.parsePosition(baseX, args[1]);
         int y = GuideStructureCoordinateParser.parsePosition(baseY, args[2]);
         int z = GuideStructureCoordinateParser.parsePosition(baseZ, args[3]);
-        UUID playerId = player.getUniqueID();
-        if (GuideNhStructureRuntime.getServerSessionStore().isEmpty(playerId)) {
+        var sessionStore = GuideNhStructureRuntime.getServerSessionStore();
+        var structures = sessionStore.snapshotData(player.getUniqueID());
+        if (structures.isEmpty()) {
             send(sender, GuidebookText.CommandStructureNoMemory);
             return;
         }
 
         GuideNhStructureRuntime.getPlacementService()
-            .placeAll(new GuideStructureWorldPlacementTarget(player.worldObj),
-                GuideNhStructureRuntime.getServerSessionStore().snapshotData(playerId), x, y, z);
-        send(sender, GuidebookText.CommandStructurePlacedAll,
-            GuideNhStructureRuntime.getServerSessionStore().size(playerId), x, y, z);
+            .placeAll(new GuideStructureWorldPlacementTarget(player.worldObj), structures, x, y, z);
+        send(sender, GuidebookText.CommandStructurePlacedAll, structures.size(), x, y, z);
     }
 
     private EntityPlayerMP requirePlayer(ICommandSender sender) throws CommandException {

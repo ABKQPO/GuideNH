@@ -149,8 +149,12 @@ public final class GuideNhClientBridgeController {
     }
 
     private void syncAllClientStructuresToServer() {
-        for (var entry : GuideNhStructureRuntime.getClientMemoryStore()
-            .snapshotEntries()) {
+        var entries = GuideNhStructureRuntime.getClientMemoryStore()
+            .snapshotEntries();
+        if (entries.isEmpty()) {
+            return;
+        }
+        for (var entry : entries) {
             syncEntryToServerIfAvailable(entry);
         }
     }

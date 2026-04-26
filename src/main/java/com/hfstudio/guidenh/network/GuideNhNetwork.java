@@ -12,13 +12,12 @@ public final class GuideNhNetwork {
 
     private GuideNhNetwork() {}
 
-    public static void init() {
+    public static void initCommon() {
         CHANNEL.registerMessage(GuideNhServerHelloHandler.class, GuideNhServerHelloMessage.class, 0, Side.CLIENT);
-        CHANNEL.registerMessage(GuideNhClientBridgeHandler.class, GuideNhClientBridgeMessage.class, 1, Side.CLIENT);
         CHANNEL.registerMessage(
             GuideNhStructureRequestHandler.class,
             GuideNhStructureRequestMessage.class,
-            2,
+            1,
             Side.SERVER);
     }
 

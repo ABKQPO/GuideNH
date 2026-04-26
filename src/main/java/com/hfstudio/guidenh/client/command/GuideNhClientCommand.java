@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.client.command;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.command.CommandBase;
@@ -25,6 +26,9 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.siteexport.ExportTask;
 
 public final class GuideNhClientCommand extends CommandBase {
+
+    private static final String[] ROOT_SUB_COMMANDS = { "editor", "list", "open", "reload", "search", "export",
+        "exportstructure" };
 
     @Override
     public String getCommandName() {
@@ -58,19 +62,19 @@ public final class GuideNhClientCommand extends CommandBase {
     @Override
     public List<String> addTabCompletionOptions(ICommandSender sender, String[] args) {
         if (args.length == 1) {
-            return getListOfStringsMatchingLastWord(args, "editor", "list", "open", "reload", "search", "export",
-                "exportstructure");
+            return getListOfStringsMatchingLastWord(args, ROOT_SUB_COMMANDS);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("open") || args[0].equalsIgnoreCase("export"))) {
-            var ids = new ArrayList<String>();
-            for (var guide : GuideRegistry.getAll()) {
+            var guides = GuideRegistry.getAll();
+            var ids = new ArrayList<String>(guides.size());
+            for (var guide : guides) {
                 ids.add(
                     guide.getId()
                         .toString());
             }
             return getListOfStringsMatchingLastWord(args, ids.toArray(new String[0]));
         }
-        return new ArrayList<>();
+        return Collections.emptyList();
     }
 
     @Override
@@ -167,8 +171,13 @@ public final class GuideNhClientCommand extends CommandBase {
         send(sender, GuidebookText.CommandExportStart, guideId, outDir);
         try {
             ExportTask.Result result = new ExportTask(guide, outDir).run();
-            send(sender, GuidebookText.CommandExportSuccess, result.pagesExported, result.pagesFailed,
-                result.assetsCopied, result.outDir);
+            send(
+                sender,
+                GuidebookText.CommandExportSuccess,
+                result.pagesExported,
+                result.pagesFailed,
+                result.assetsCopied,
+                result.outDir);
         } catch (Throwable t) {
             send(sender, GuidebookText.CommandExportFailure, getErrorMessage(t));
         }
@@ -199,7 +208,10 @@ public final class GuideNhClientCommand extends CommandBase {
             String structureText = RegionWandItem
                 .exportRegionAsStructureSnbt(player.worldObj, x, y, z, sizeX, sizeY, sizeZ);
             if (structureText == null) {
-                send(sender, GuidebookText.RegionWandAreaTooLarge, GuideStructureVolume.blockCount(sizeX, sizeY, sizeZ));
+                send(
+                    sender,
+                    GuidebookText.RegionWandAreaTooLarge,
+                    GuideStructureVolume.blockCount(sizeX, sizeY, sizeZ));
                 return;
             }
 

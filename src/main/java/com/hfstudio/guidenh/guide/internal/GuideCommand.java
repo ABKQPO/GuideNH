@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,7 +12,6 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.Guide;
-import com.hfstudio.guidenh.guide.siteexport.ExportTask;
 
 public class GuideCommand extends CommandBase {
 
@@ -102,34 +99,6 @@ public class GuideCommand extends CommandBase {
                     send(sender, GuidebookText.CommandSearchFailure, getErrorMessage(t));
                 }
             }
-            case "export" -> {
-                if (args.length < 3) {
-                    send(sender, GuidebookText.CommandExportUsage);
-                    return;
-                }
-                var guideId = new ResourceLocation(args[1]);
-                Guide guide = GuideRegistry.getById(guideId);
-                if (guide == null) {
-                    send(sender, GuidebookText.CommandGuideNotFound, guideId);
-                    return;
-                }
-                Path outDir = Paths.get(args[2])
-                    .toAbsolutePath();
-                send(sender, GuidebookText.CommandExportStart, guideId, outDir);
-                try {
-                    ExportTask task = new ExportTask(guide, outDir);
-                    ExportTask.Result res = task.run();
-                    send(
-                        sender,
-                        GuidebookText.CommandExportSuccess,
-                        res.pagesExported,
-                        res.pagesFailed,
-                        res.assetsCopied,
-                        res.outDir);
-                } catch (Throwable t) {
-                    send(sender, GuidebookText.CommandExportFailure, getErrorMessage(t));
-                }
-            }
             default -> send(sender, GuidebookText.CommandUsage);
         }
     }
@@ -137,9 +106,9 @@ public class GuideCommand extends CommandBase {
     @Override
     public List<String> addTabCompletionOptions(ICommandSender sender, String[] args) {
         if (args.length == 1) {
-            return getListOfStringsMatchingLastWord(args, "list", "open", "reload", "search", "export");
+            return getListOfStringsMatchingLastWord(args, "list", "open", "reload", "search");
         }
-        if (args.length == 2 && (args[0].equalsIgnoreCase("open") || args[0].equalsIgnoreCase("export"))) {
+        if (args.length == 2 && args[0].equalsIgnoreCase("open")) {
             var ids = new ArrayList<String>();
             for (var guide : GuideRegistry.getAll()) {
                 ids.add(
@@ -148,7 +117,7 @@ public class GuideCommand extends CommandBase {
             }
             return getListOfStringsMatchingLastWord(args, ids.toArray(new String[0]));
         }
-        return new ArrayList<>();
+        return Collections.emptyList();
     }
 
     @Override
