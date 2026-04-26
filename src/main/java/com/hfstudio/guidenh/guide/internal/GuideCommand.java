@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.command.CommandBase;
@@ -30,7 +30,7 @@ public class GuideCommand extends CommandBase {
 
     @Override
     public List<String> getCommandAliases() {
-        return Arrays.asList("guidenH", "guidenh");
+        return Collections.emptyList();
     }
 
     @Override

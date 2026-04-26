@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -95,10 +96,7 @@ public class GuideRegistry {
         }
 
         if (!overridden.isEmpty()) {
-            Collections.sort(
-                overridden,
-                (a, b) -> a.toString()
-                    .compareTo(b.toString()));
+            Collections.sort(overridden, Comparator.comparing(ResourceLocation::toString));
             LOG.info("The following guides are overridden in resource packs: {}", overridden);
         }
 

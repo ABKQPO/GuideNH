@@ -24,11 +24,13 @@ public class DiamondAnnotation extends OverlayAnnotation {
     private final Vector3f pos;
     private final ColorValue color;
     private final ColorValue outerColor;
+    private boolean alwaysOnTop;
 
     public DiamondAnnotation(Vector3f pos, ColorValue color) {
         this.pos = pos;
         this.color = color;
         this.outerColor = new ConstantColor(0xFFCCCCCC);
+        this.alwaysOnTop = false;
     }
 
     public Vector3f getPos() {
@@ -37,6 +39,14 @@ public class DiamondAnnotation extends OverlayAnnotation {
 
     public ColorValue getColor() {
         return color;
+    }
+
+    public boolean isAlwaysOnTop() {
+        return alwaysOnTop;
+    }
+
+    public void setAlwaysOnTop(boolean alwaysOnTop) {
+        this.alwaysOnTop = alwaysOnTop;
     }
 
     @Override

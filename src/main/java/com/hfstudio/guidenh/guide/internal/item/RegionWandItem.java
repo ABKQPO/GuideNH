@@ -25,6 +25,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
@@ -114,6 +115,10 @@ public class RegionWandItem extends Item {
         return MODE_BLOCKS.equals(v) ? MODE_BLOCKS : MODE_SNBT;
     }
 
+    public static boolean hasCompleteSelection(ItemStack stack) {
+        return getPos(stack, 1) != null && getPos(stack, 2) != null;
+    }
+
     public static void setExportMode(ItemStack stack, String mode) {
         if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());
         stack.getTagCompound()
@@ -126,6 +131,44 @@ public class RegionWandItem extends Item {
 
     private static String modeDisplay(String mode) {
         return MODE_BLOCKS.equals(mode) ? "blocks" : "snbt";
+    }
+
+    @Nullable
+    public static String exportSelectionAsStructureSnbt(World world, ItemStack stack) {
+        if (world == null || stack == null) {
+            return null;
+        }
+        int[] p1 = getPos(stack, 1);
+        int[] p2 = getPos(stack, 2);
+        if (p1 == null || p2 == null) {
+            return null;
+        }
+
+        int minX = Math.min(p1[0], p2[0]);
+        int minY = Math.min(p1[1], p2[1]);
+        int minZ = Math.min(p1[2], p2[2]);
+        int maxX = Math.max(p1[0], p2[0]);
+        int maxY = Math.max(p1[1], p2[1]);
+        int maxZ = Math.max(p1[2], p2[2]);
+        int dx = maxX - minX + 1;
+        int dy = maxY - minY + 1;
+        int dz = maxZ - minZ + 1;
+        return exportRegionAsStructureSnbt(world, minX, minY, minZ, dx, dy, dz);
+    }
+
+    @Nullable
+    public static String exportRegionAsStructureSnbt(World world, int minX, int minY, int minZ, int sizeX, int sizeY,
+        int sizeZ) {
+        if (world == null || sizeX <= 0 || sizeY <= 0 || sizeZ <= 0) {
+            return null;
+        }
+        if (GuideStructureVolume.exceedsLimit(sizeX, sizeY, sizeZ, MAX_EXPORT_BLOCKS)) {
+            return null;
+        }
+        int maxX = minX + sizeX - 1;
+        int maxY = minY + sizeY - 1;
+        int maxZ = minZ + sizeZ - 1;
+        return exportSnbt(world, minX, minY, minZ, maxX, maxY, maxZ, sizeX, sizeY, sizeZ).text();
     }
 
     private static void exportToClipboard(ItemStack stack, EntityPlayer player, World world) {
@@ -149,7 +192,7 @@ public class RegionWandItem extends Item {
         int dy = maxY - minY + 1;
         int dz = maxZ - minZ + 1;
 
-        int total = dx * dy * dz;
+        long total = GuideStructureVolume.blockCount(dx, dy, dz);
         if (total > MAX_EXPORT_BLOCKS) {
             send(player, GuidebookText.RegionWandAreaTooLarge, total);
             return;

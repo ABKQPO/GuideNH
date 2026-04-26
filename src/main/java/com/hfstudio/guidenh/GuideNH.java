@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.hfstudio.guidenh.guide.internal.GuideCommand;
+import com.hfstudio.guidenh.guide.internal.GuideNhBridgeCommand;
 import com.hfstudio.guidenh.guide.internal.item.GuideItem;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 
@@ -68,6 +69,7 @@ public class GuideNH {
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new GuideCommand());
+        event.registerServerCommand(new GuideNhBridgeCommand());
     }
 
     @Mod.EventHandler

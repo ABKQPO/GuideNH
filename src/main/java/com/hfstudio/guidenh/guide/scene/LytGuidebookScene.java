@@ -44,6 +44,7 @@ public class LytGuidebookScene extends LytBlock {
     private int dragLastY;
 
     private boolean interactive = true;
+    private boolean sceneButtonsVisible = true;
 
     public static int SCENE_BG_COLOR = 0xFF0A0A10;
     public static int SCENE_BORDER_COLOR = 0xFF303040;
@@ -159,6 +160,14 @@ public class LytGuidebookScene extends LytBlock {
         this.interactive = interactive;
     }
 
+    public boolean isSceneButtonsVisible() {
+        return sceneButtonsVisible;
+    }
+
+    public void setSceneButtonsVisible(boolean sceneButtonsVisible) {
+        this.sceneButtonsVisible = sceneButtonsVisible;
+    }
+
     public void addAnnotation(SceneAnnotation annotation) {
         if (annotation != null) {
             annotations.add(annotation);
@@ -254,7 +263,7 @@ public class LytGuidebookScene extends LytBlock {
 
     /** Horizontal space the floating button column steals from the row when interactive. */
     private int buttonColumnReserve() {
-        return interactive ? (BTN_OUTSIDE_GAP + BTN_SIZE) : 0;
+        return interactive && sceneButtonsVisible ? (BTN_OUTSIDE_GAP + BTN_SIZE) : 0;
     }
 
     @Override
@@ -263,7 +272,7 @@ public class LytGuidebookScene extends LytBlock {
         int totalDesired = width + reserve;
         int w = Math.min(totalDesired, Math.max(reserve + 16, availableWidth));
         int sceneW = Math.max(16, w - reserve);
-        int buttonsTotalH = interactive
+        int buttonsTotalH = interactive && sceneButtonsVisible
             ? (BTN_SIZE * SCENE_BUTTONS_SHOWN.length + BTN_GAP * (SCENE_BUTTONS_SHOWN.length - 1))
             : 0;
         int h = Math.max(height, buttonsTotalH);
@@ -310,6 +319,10 @@ public class LytGuidebookScene extends LytBlock {
         int w = sceneRect.width();
         int h = sceneRect.height();
         camera.setViewportSize(w, h);
+        this.lastAbsX = absX;
+        this.lastAbsY = absY;
+        this.lastW = w;
+        this.lastH = h;
 
         List<InWorldAnnotation> inWorld = inWorldScratch;
         List<OverlayAnnotation> overlays = overlayScratch;
@@ -371,7 +384,7 @@ public class LytGuidebookScene extends LytBlock {
         // Draw border AFTER the 3D content so border pixels always sit on top.
         context.drawBorder(sceneRect, SCENE_BORDER_COLOR, 1);
 
-        if (interactive) {
+        if (interactive && sceneButtonsVisible) {
             drawSceneButtons(sceneRect.x(), sceneRect.y(), w, h, absX, absY);
         }
     }
@@ -479,6 +492,7 @@ public class LytGuidebookScene extends LytBlock {
 
     @Nullable
     public GuideIconButton.Role sceneButtonAt(int mouseX, int mouseY) {
+        if (!sceneButtonsVisible) return null;
         if (lastW <= 0 || lastH <= 0) return null;
         if (renderedContentClip != null) {
             int cx0 = renderedContentClip.x();

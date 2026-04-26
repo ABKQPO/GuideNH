@@ -1,5 +1,9 @@
 package com.hfstudio.guidenh;
 
+import com.hfstudio.guidenh.network.GuideNhNetwork;
+import com.hfstudio.guidenh.network.GuideNhNetworkEvents;
+
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -11,6 +15,10 @@ public class CommonProxy {
     public void preInit(FMLPreInitializationEvent event) {
         GameRegistry.registerItem(GuideNH.GUIDE_ITEM, "guide");
         GameRegistry.registerItem(GuideNH.REGION_WAND, "region_wand");
+        GuideNhNetwork.init();
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new GuideNhNetworkEvents());
     }
 
     public void init(FMLInitializationEvent event) {}

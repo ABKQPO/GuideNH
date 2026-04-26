@@ -17,10 +17,12 @@ public class GuideIconButton extends GuiButton {
     private static final ResourceLocation TEX = new ResourceLocation("guidenh", "textures/guide/buttons.png");
 
     private Role role;
+    private boolean active;
 
     public GuideIconButton(int id, int x, int y, Role role) {
         super(id, x, y, WIDTH, HEIGHT, "");
         this.role = role;
+        this.active = false;
     }
 
     public Role getRole() {
@@ -29,6 +31,14 @@ public class GuideIconButton extends GuiButton {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public String getTooltip() {
@@ -42,10 +52,25 @@ public class GuideIconButton extends GuiButton {
             && mouseX < xPosition + width
             && mouseY < yPosition + height;
 
-        int color;
-        if (!enabled) color = 0x60FFFFFF;
-        else if (field_146123_n) color = 0xFF00CAF2;
-        else color = 0xC0FFFFFF;
+        int color = resolveIconColor(enabled, field_146123_n, active);
+
+        drawIcon(mc, role, xPosition, yPosition, width, height, color);
+    }
+
+    public static int resolveIconColor(boolean enabled, boolean hovered, boolean active) {
+        if (!enabled) {
+            return 0x60FFFFFF;
+        }
+        if (active || hovered) {
+            return 0xFF00CAF2;
+        }
+        return 0xC0FFFFFF;
+    }
+
+    public static void drawIcon(Minecraft mc, Role role, int x, int y, int width, int height, int color) {
+        if (mc == null || role == null) {
+            return;
+        }
 
         mc.getTextureManager()
             .bindTexture(TEX);
@@ -65,10 +90,10 @@ public class GuideIconButton extends GuiButton {
 
         var tess = Tessellator.instance;
         tess.startDrawingQuads();
-        tess.addVertexWithUV(xPosition, yPosition + height, 0, u0, v1);
-        tess.addVertexWithUV(xPosition + width, yPosition + height, 0, u1, v1);
-        tess.addVertexWithUV(xPosition + width, yPosition, 0, u1, v0);
-        tess.addVertexWithUV(xPosition, yPosition, 0, u0, v0);
+        tess.addVertexWithUV(x, y + height, 0, u0, v1);
+        tess.addVertexWithUV(x + width, y + height, 0, u1, v1);
+        tess.addVertexWithUV(x + width, y, 0, u1, v0);
+        tess.addVertexWithUV(x, y, 0, u0, v0);
         tess.draw();
 
         GL11.glColor4f(1f, 1f, 1f, 1f);
@@ -79,14 +104,24 @@ public class GuideIconButton extends GuiButton {
         BACK(GuidebookText.HistoryGoBack, 0, 0),
         FORWARD(GuidebookText.HistoryGoForward, 16, 0),
         CLOSE(GuidebookText.Close, 32, 0),
+        SCENE_EDITOR_CLOSE(GuidebookText.SceneEditorClose, 32, 0),
         SEARCH(GuidebookText.Search, 48, 0),
+        SCENE_EDITOR_AUTO_PICK(GuidebookText.SceneEditorAutoPick, 48, 0),
         HIDE_ANNOTATIONS(GuidebookText.HideAnnotations, 0, 16),
         SHOW_ANNOTATIONS(GuidebookText.ShowAnnotations, 16, 16),
+        SCENE_EDITOR_HIDE_ELEMENT(GuidebookText.SceneEditorHideElement, 0, 16),
+        SCENE_EDITOR_SHOW_ELEMENT(GuidebookText.SceneEditorShowElement, 16, 16),
         ZOOM_OUT(GuidebookText.ZoomOut, 32, 16),
         ZOOM_IN(GuidebookText.ZoomIn, 48, 16),
+        SCENE_EDITOR_ADD_ELEMENT(GuidebookText.SceneEditorAddElement, 48, 16),
         RESET_VIEW(GuidebookText.ResetView, 0, 32),
+        SCENE_EDITOR_RESET_PREVIEW(GuidebookText.SceneEditorResetPreview, 0, 32),
         OPEN_FULL_WIDTH_VIEW(GuidebookText.FullWidthView, 16, 32),
-        CLOSE_FULL_WIDTH_VIEW(GuidebookText.CloseFullWidthView, 32, 32);
+        SCENE_EDITOR_EXPORT(GuidebookText.SceneEditorExport, 16, 32),
+        SCENE_EDITOR_IMPORT_STRUCTURE(GuidebookText.SceneEditorImportStructure, 16, 0),
+        CLOSE_FULL_WIDTH_VIEW(GuidebookText.CloseFullWidthView, 32, 32),
+        SCENE_EDITOR_SNAP(GuidebookText.SceneEditorSnap, 32, 32),
+        SCENE_EDITOR_DELETE_ELEMENT(GuidebookText.SceneEditorDeleteElement, 32, 0);
 
         private final GuidebookText textKey;
         final int iconSrcX;

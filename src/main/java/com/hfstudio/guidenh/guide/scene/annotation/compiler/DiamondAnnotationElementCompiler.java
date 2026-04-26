@@ -16,7 +16,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * {@code <DiamondAnnotation pos="x y z" color="..." />}.
+ * {@code <DiamondAnnotation pos="x y z" color="..." alwaysOnTop />}.
  * Default color is bright green when {@code color} is omitted.
  */
 public class DiamondAnnotationElementCompiler extends AnnotationTagCompiler {
@@ -34,6 +34,9 @@ public class DiamondAnnotationElementCompiler extends AnnotationTagCompiler {
     protected SceneAnnotation createAnnotation(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
         var pos = MdxAttrs.getVector3(compiler, errorSink, el, "pos", new Vector3f());
         var color = MdxAttrs.getColor(compiler, errorSink, el, "color", DEFAULT_DIAMOND_COLOR);
-        return new DiamondAnnotation(pos, color);
+        var alwaysOnTop = MdxAttrs.getBoolean(compiler, errorSink, el, "alwaysOnTop", false);
+        var annotation = new DiamondAnnotation(pos, color);
+        annotation.setAlwaysOnTop(alwaysOnTop);
+        return annotation;
     }
 }

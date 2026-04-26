@@ -71,8 +71,8 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         "guidenh",
         "textures/gui/sprites/background.png");
 
-    public static float BACKGROUND_ALPHA = 0.35f;
-    public static int BACKGROUND_DIM_COLOR = 0xC0101018;
+    public static float BACKGROUND_ALPHA = 0.7f;
+    public static int BACKGROUND_DIM_COLOR = 0x34101018;
 
     private MutableGuide guide;
     private PageAnchor currentAnchor;

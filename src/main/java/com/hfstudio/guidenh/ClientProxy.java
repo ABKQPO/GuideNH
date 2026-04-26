@@ -2,10 +2,14 @@ package com.hfstudio.guidenh;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IReloadableResourceManager;
+import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 
 import com.hfstudio.guidenh.client.RegionWandRenderer;
+import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
+import com.hfstudio.guidenh.client.command.GuideNhClientCommand;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
+import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 
@@ -27,7 +31,10 @@ public class ClientProxy extends CommonProxy {
         super.init(event);
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(new GuideReloadListener());
+        ClientCommandHandler.instance.registerCommand(new GuideNhClientCommand());
+        GuideNhClientBridgeController.init();
         OpenGuideHotkey.init();
+        OpenSceneEditorHotkey.init();
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
     }
 

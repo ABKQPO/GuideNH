@@ -22,7 +22,6 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 
 public class GuideReloadListener implements IResourceManagerReloadListener {
 
-    public static final ResourceLocation ID = GuideME.makeId("guides");
     private static final Logger LOG = LoggerFactory.getLogger(GuideReloadListener.class);
 
     @Override
