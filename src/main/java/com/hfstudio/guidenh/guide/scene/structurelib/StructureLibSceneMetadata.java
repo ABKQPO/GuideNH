@@ -12,7 +12,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.item.ItemStack;
 
-public final class StructureLibSceneMetadata {
+public class StructureLibSceneMetadata {
 
     private final String controller;
     @Nullable
@@ -65,14 +65,15 @@ public final class StructureLibSceneMetadata {
         return new StructureLibSceneMetadata(controller, piece, facing, rotation, flip, channelData, updated);
     }
 
-    public StructureLibSceneMetadata withChannelData(int minValue, int maxValue, int defaultValue, int currentValue) {
+    public StructureLibSceneMetadata withChannelData(String label, int minValue, int maxValue, int defaultValue,
+        int currentValue) {
         return new StructureLibSceneMetadata(
             controller,
             piece,
             facing,
             rotation,
             flip,
-            new ChannelData(minValue, maxValue, defaultValue, currentValue),
+            new ChannelData(label, minValue, maxValue, defaultValue, currentValue),
             blockTooltipDataByPos);
     }
 
@@ -198,7 +199,7 @@ public final class StructureLibSceneMetadata {
         return (int) (packedPos << 26 >> 38);
     }
 
-    public static final class BlockTooltipEntry {
+    public static class BlockTooltipEntry {
 
         private final int x;
         private final int y;
@@ -229,7 +230,7 @@ public final class StructureLibSceneMetadata {
         }
     }
 
-    public static final class BlockTooltipData {
+    public static class BlockTooltipData {
 
         @Nullable
         private final String structureLibDescription;
@@ -300,20 +301,27 @@ public final class StructureLibSceneMetadata {
         }
     }
 
-    public static final class ChannelData {
+    public static class ChannelData {
 
+        private final String label;
         private final int minValue;
         private final int maxValue;
         private final int defaultValue;
         private final int currentValue;
 
-        private ChannelData(int minValue, int maxValue, int defaultValue, int currentValue) {
+        private ChannelData(String label, int minValue, int maxValue, int defaultValue, int currentValue) {
+            String normalizedLabel = normalizeOptional(label);
             int normalizedMin = Math.max(1, minValue);
             int normalizedMax = Math.max(normalizedMin, maxValue);
+            this.label = normalizedLabel != null ? normalizedLabel : "Channel";
             this.minValue = normalizedMin;
             this.maxValue = normalizedMax;
             this.defaultValue = clamp(defaultValue, normalizedMin, normalizedMax);
             this.currentValue = clamp(currentValue, normalizedMin, normalizedMax);
+        }
+
+        public String getLabel() {
+            return label;
         }
 
         public int getMinValue() {

@@ -9,7 +9,7 @@ import javax.annotation.Nullable;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 
-public final class StructureLibImportResult {
+public class StructureLibImportResult {
 
     private final boolean success;
     private final List<PlacedBlock> blocks;
@@ -83,7 +83,7 @@ public final class StructureLibImportResult {
         return trimmed.isEmpty() ? "Unknown StructureLib import error" : trimmed;
     }
 
-    public static final class PlacedBlock {
+    public static class PlacedBlock {
 
         private final int x;
         private final int y;

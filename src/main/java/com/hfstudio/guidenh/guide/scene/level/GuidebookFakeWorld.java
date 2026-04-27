@@ -24,6 +24,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class GuidebookFakeWorld extends WorldClient {
 
     private static final long FROZEN_WORLD_TIME = 0L;
+    private static volatile boolean gregTechDummyWorldRegistrationAttempted;
 
     private final GuidebookLevel level;
 
@@ -36,6 +37,7 @@ public class GuidebookFakeWorld extends WorldClient {
             new Profiler());
         this.level = level;
         this.isRemote = true;
+        registerOptionalDummyWorldIntegrations();
     }
 
     private static NetHandlerPlayClient resolveNetHandler() {
@@ -55,6 +57,18 @@ public class GuidebookFakeWorld extends WorldClient {
     private static EnumDifficulty resolveDifficulty() {
         var currentWorld = Minecraft.getMinecraft().theWorld;
         return currentWorld != null ? currentWorld.difficultySetting : EnumDifficulty.NORMAL;
+    }
+
+    private static void registerOptionalDummyWorldIntegrations() {
+        if (gregTechDummyWorldRegistrationAttempted) {
+            return;
+        }
+        gregTechDummyWorldRegistrationAttempted = true;
+        try {
+            Class<?> gregTechApiClass = Class.forName("gregtech.api.GregTechAPI");
+            gregTechApiClass.getMethod("addDummyWorld", Class.class)
+                .invoke(null, GuidebookFakeWorld.class);
+        } catch (Throwable ignored) {}
     }
 
     public GuidebookLevel getGuidebookLevel() {
@@ -221,7 +235,25 @@ public class GuidebookFakeWorld extends WorldClient {
 
     @Override
     public boolean setBlock(int x, int y, int z, Block blockIn, int metadataIn, int flags) {
-        level.setBlock(x, y, z, blockIn, metadataIn, null);
+        TileEntity tileEntity = null;
+        if (blockIn != null && blockIn != Blocks.air && blockIn.hasTileEntity(metadataIn)) {
+            tileEntity = GuidebookTileEntityLoader.load(this, blockIn, metadataIn, x, y, z, null);
+        }
+        level.setBlock(x, y, z, blockIn, metadataIn, tileEntity);
+        return true;
+    }
+
+    @Override
+    public boolean setBlockMetadataWithNotify(int x, int y, int z, int metadata, int flags) {
+        Block block = level.getBlock(x, y, z);
+        if (block == null || block == Blocks.air) {
+            return false;
+        }
+        TileEntity tileEntity = level.getTileEntity(x, y, z);
+        if (tileEntity == null && block.hasTileEntity(metadata)) {
+            tileEntity = GuidebookTileEntityLoader.load(this, block, metadata, x, y, z, null);
+        }
+        level.setBlock(x, y, z, block, metadata, tileEntity);
         return true;
     }
 }

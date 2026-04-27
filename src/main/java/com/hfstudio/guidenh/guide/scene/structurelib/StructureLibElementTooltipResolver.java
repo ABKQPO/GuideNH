@@ -23,7 +23,7 @@ import com.gtnewhorizon.structurelib.structure.IItemSource;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.IStructureElementChain;
 
-final class StructureLibElementTooltipResolver {
+public class StructureLibElementTooltipResolver {
 
     private static final int MAX_TIER_SCAN = 50;
     private static final String LAZY_ELEMENT_CLASS_NAME = "com.gtnewhorizon.structurelib.structure.LazyStructureElement";
@@ -31,20 +31,20 @@ final class StructureLibElementTooltipResolver {
 
     private final HatchSupport hatchSupport;
 
-    StructureLibElementTooltipResolver() {
+    public StructureLibElementTooltipResolver() {
         this(ReflectiveGregTechHatchSupport.tryCreate());
     }
 
-    StructureLibElementTooltipResolver(HatchSupport hatchSupport) {
+    public StructureLibElementTooltipResolver(HatchSupport hatchSupport) {
         this.hatchSupport = hatchSupport;
     }
 
-    TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x, int y,
+    public TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x, int y,
         int z, ItemStack trigger) {
         return resolve(constructable, element, world, x, y, z, trigger, null);
     }
 
-    TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x, int y,
+    public TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x, int y,
         int z, ItemStack trigger, @Nullable EntityPlayer actor) {
         if (element == null || trigger == null) {
             return TooltipDetails.empty();
@@ -351,7 +351,7 @@ final class StructureLibElementTooltipResolver {
         return (IStructureElement<Object>) element;
     }
 
-    interface HatchSupport {
+    public interface HatchSupport {
 
         @Nullable
         HatchDetails inspectLeaf(Object constructable, IStructureElement<Object> element, @Nullable World world, int x,
@@ -363,28 +363,28 @@ final class StructureLibElementTooltipResolver {
         boolean isHatchItem(ItemStack stack);
     }
 
-    static final class HatchDetails {
+    public static class HatchDetails {
 
         private final int hintDot;
         @Nullable
         private final String hintText;
 
-        HatchDetails(int hintDot, @Nullable String hintText) {
+        public HatchDetails(int hintDot, @Nullable String hintText) {
             this.hintDot = hintDot;
             this.hintText = hintText;
         }
 
-        int getHintDot() {
+        public int getHintDot() {
             return hintDot;
         }
 
         @Nullable
-        String getHintText() {
+        public String getHintText() {
             return hintText;
         }
     }
 
-    static final class TooltipDetails {
+    public static class TooltipDetails {
 
         private static final TooltipDetails EMPTY = new TooltipDetails(
             Collections.<ItemStack>emptyList(),
@@ -395,42 +395,42 @@ final class StructureLibElementTooltipResolver {
         private final List<String> hatchDescriptionLines;
         private final List<ItemStack> hatchCandidates;
 
-        TooltipDetails(List<ItemStack> blockCandidates, List<String> hatchDescriptionLines,
+        public TooltipDetails(List<ItemStack> blockCandidates, List<String> hatchDescriptionLines,
             List<ItemStack> hatchCandidates) {
             this.blockCandidates = blockCandidates;
             this.hatchDescriptionLines = hatchDescriptionLines;
             this.hatchCandidates = hatchCandidates;
         }
 
-        static TooltipDetails empty() {
+        public static TooltipDetails empty() {
             return EMPTY;
         }
 
-        List<ItemStack> getBlockCandidates() {
+        public List<ItemStack> getBlockCandidates() {
             return blockCandidates;
         }
 
-        List<String> getHatchDescriptionLines() {
+        public List<String> getHatchDescriptionLines() {
             return hatchDescriptionLines;
         }
 
-        List<ItemStack> getHatchCandidates() {
+        public List<ItemStack> getHatchCandidates() {
             return hatchCandidates;
         }
     }
 
-    private static final class HatchLeafMatch {
+    public static class HatchLeafMatch {
 
         private final IStructureElement<Object> element;
         private final HatchDetails details;
 
-        private HatchLeafMatch(IStructureElement<Object> element, HatchDetails details) {
+        public HatchLeafMatch(IStructureElement<Object> element, HatchDetails details) {
             this.element = element;
             this.details = details;
         }
     }
 
-    private static final class ReflectiveGregTechHatchSupport implements HatchSupport {
+    public static class ReflectiveGregTechHatchSupport implements HatchSupport {
 
         private static final HatchSupport NO_OP = new HatchSupport() {
 
@@ -459,7 +459,7 @@ final class StructureLibElementTooltipResolver {
         private final Field blockMachinesField;
         private final Method itemMachinesGetter;
 
-        private ReflectiveGregTechHatchSupport(Class<?> hatchBuilderClass, Class<?> metaTileHatchClass,
+        public ReflectiveGregTechHatchSupport(Class<?> hatchBuilderClass, Class<?> metaTileHatchClass,
             Field builderHintField, Field metaTileEntitiesField, Field blockMachinesField, Method itemMachinesGetter) {
             this.hatchBuilderClass = hatchBuilderClass;
             this.metaTileHatchClass = metaTileHatchClass;
@@ -469,7 +469,7 @@ final class StructureLibElementTooltipResolver {
             this.itemMachinesGetter = itemMachinesGetter;
         }
 
-        private static HatchSupport tryCreate() {
+        public static HatchSupport tryCreate() {
             try {
                 Class<?> hatchBuilderClass = Class.forName("gregtech.api.util.HatchElementBuilder");
                 Class<?> gregTechApiClass = Class.forName("gregtech.api.GregTechAPI");

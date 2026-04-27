@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.structurelib;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,17 +13,17 @@ import net.minecraft.world.World;
 
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 
-final class StructureLibPreviewMetadataFactory {
+public class StructureLibPreviewMetadataFactory {
 
     private static final String GENERIC_STRUCTURELIB_DESCRIPTION = "StructureLib";
 
     private final StructureLibElementTooltipResolver tooltipResolver;
 
-    StructureLibPreviewMetadataFactory(StructureLibElementTooltipResolver tooltipResolver) {
+    public StructureLibPreviewMetadataFactory(StructureLibElementTooltipResolver tooltipResolver) {
         this.tooltipResolver = tooltipResolver;
     }
 
-    StructureLibSceneMetadata createMetadata(StructureLibImportRequest request, int minChannel, int maxChannel,
+    public StructureLibSceneMetadata createMetadata(StructureLibImportRequest request, int minChannel, int maxChannel,
         int currentChannel, List<AbsolutePreviewBlock> absoluteBlocks, List<VisitedStructureElement> visitedElements,
         ItemStack trigger, @Nullable World world) {
         return createMetadata(
@@ -38,7 +39,7 @@ final class StructureLibPreviewMetadataFactory {
             null);
     }
 
-    StructureLibSceneMetadata createMetadata(StructureLibImportRequest request, int minChannel, int maxChannel,
+    public StructureLibSceneMetadata createMetadata(StructureLibImportRequest request, int minChannel, int maxChannel,
         int currentChannel, List<AbsolutePreviewBlock> absoluteBlocks, List<VisitedStructureElement> visitedElements,
         ItemStack trigger, @Nullable World world, @Nullable Object constructable, @Nullable EntityPlayer actor) {
         StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(
@@ -48,7 +49,12 @@ final class StructureLibPreviewMetadataFactory {
             request.getRotation(),
             request.getFlip());
         if (maxChannel > minChannel) {
-            metadata = metadata.withChannelData(minChannel, maxChannel, currentChannel, currentChannel);
+            metadata = metadata.withChannelData(
+                resolveChannelLabel(visitedElements),
+                minChannel,
+                maxChannel,
+                currentChannel,
+                currentChannel);
         }
         if (absoluteBlocks.isEmpty()) {
             return metadata;
@@ -97,62 +103,99 @@ final class StructureLibPreviewMetadataFactory {
         return metadata;
     }
 
+    private static String resolveChannelLabel(List<VisitedStructureElement> visitedElements) {
+        for (VisitedStructureElement visitedElement : visitedElements) {
+            String label = resolveChannelLabel(visitedElement.getElement());
+            if (label != null) {
+                return label;
+            }
+        }
+        return "Channel";
+    }
+
+    @Nullable
+    private static String resolveChannelLabel(@Nullable IStructureElement<?> element) {
+        if (element == null) {
+            return null;
+        }
+        Class<?> current = element.getClass();
+        while (current != null && current != Object.class) {
+            for (Field field : current.getDeclaredFields()) {
+                if (field.getType() != String.class || !field.getName().toLowerCase().contains("channel")) {
+                    continue;
+                }
+                try {
+                    field.setAccessible(true);
+                    Object value = field.get(element);
+                    if (value instanceof String stringValue) {
+                        String trimmed = stringValue.trim();
+                        if (!trimmed.isEmpty()) {
+                            return trimmed;
+                        }
+                    }
+                } catch (Throwable ignored) {}
+            }
+            current = current.getSuperclass();
+        }
+        return null;
+    }
+
     private static long pack(int x, int y, int z) {
         return (((long) x & 0x3FFFFFFL) << 38) | (((long) z & 0x3FFFFFFL) << 12) | ((long) y & 0xFFFL);
     }
 
-    static final class AbsolutePreviewBlock {
+    public static class AbsolutePreviewBlock {
 
         private final int x;
         private final int y;
         private final int z;
 
-        AbsolutePreviewBlock(int x, int y, int z) {
+        public AbsolutePreviewBlock(int x, int y, int z) {
             this.x = x;
             this.y = y;
             this.z = z;
         }
 
-        int getX() {
+        public int getX() {
             return x;
         }
 
-        int getY() {
+        public int getY() {
             return y;
         }
 
-        int getZ() {
+        public int getZ() {
             return z;
         }
     }
 
-    static final class VisitedStructureElement {
+    public static class VisitedStructureElement {
 
         private final int x;
         private final int y;
         private final int z;
         private final IStructureElement<?> element;
 
-        VisitedStructureElement(int x, int y, int z, IStructureElement<?> element) {
+        public VisitedStructureElement(int x, int y, int z, IStructureElement<?> element) {
             this.x = x;
             this.y = y;
             this.z = z;
             this.element = element;
         }
 
-        int getX() {
+        public int getX() {
             return x;
         }
 
-        int getY() {
+        public int getY() {
             return y;
         }
 
-        int getZ() {
+        public int getZ() {
             return z;
         }
 
-        IStructureElement<?> getElement() {
+        public IStructureElement<?> getElement() {
             return element;
         }
     }

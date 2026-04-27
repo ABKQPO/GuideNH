@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import cpw.mods.fml.common.Loader;
 
-public final class StructureLibSceneImportService {
+public class StructureLibSceneImportService {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     private static final String RUNTIME_FACADE_CLASS = "com.hfstudio.guidenh.guide.scene.structurelib.StructureLibRuntimeFacade";
@@ -20,7 +20,7 @@ public final class StructureLibSceneImportService {
         this((Supplier<StructureLibFacade>) null);
     }
 
-    StructureLibSceneImportService(@Nullable Supplier<StructureLibFacade> facadeFactory) {
+    public StructureLibSceneImportService(@Nullable Supplier<StructureLibFacade> facadeFactory) {
         this(resolveFacade(facadeFactory));
     }
 

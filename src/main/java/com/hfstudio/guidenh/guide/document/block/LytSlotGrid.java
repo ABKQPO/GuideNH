@@ -16,6 +16,7 @@ public class LytSlotGrid extends LytBox {
     private final int height;
     private final LytSlot[] slots;
     private boolean renderEmptySlots = true;
+    private boolean renderSlotBackground = true;
 
     public LytSlotGrid(int width, int height) {
         this.width = width;
@@ -50,6 +51,7 @@ public class LytSlotGrid extends LytBox {
         if (idx >= 0 && idx < slots.length) {
             if (slots[idx] == null) {
                 slots[idx] = new LytSlot(stack);
+                configureSlot(slots[idx]);
                 append(slots[idx]);
             }
         }
@@ -60,6 +62,7 @@ public class LytSlotGrid extends LytBox {
         if (idx >= 0 && idx < slots.length) {
             if (slots[idx] == null) {
                 slots[idx] = new LytSlot(stacks);
+                configureSlot(slots[idx]);
                 append(slots[idx]);
             }
         }
@@ -71,6 +74,19 @@ public class LytSlotGrid extends LytBox {
 
     public void setRenderEmptySlots(boolean renderEmptySlots) {
         this.renderEmptySlots = renderEmptySlots;
+    }
+
+    public boolean isRenderSlotBackground() {
+        return renderSlotBackground;
+    }
+
+    public void setRenderSlotBackground(boolean renderSlotBackground) {
+        this.renderSlotBackground = renderSlotBackground;
+        for (LytSlot slot : slots) {
+            if (slot != null) {
+                configureSlot(slot);
+            }
+        }
     }
 
     public int getWidth() {
@@ -96,6 +112,7 @@ public class LytSlotGrid extends LytBox {
             for (int i = 0; i < slots.length; i++) {
                 if (slots[i] == null) {
                     slots[i] = new LytSlot((ItemStack) null);
+                    configureSlot(slots[i]);
                     append(slots[i]);
                 }
             }
@@ -110,5 +127,9 @@ public class LytSlotGrid extends LytBox {
             }
         }
         return new LytRect(x, y, this.width * LytSlot.OUTER_SIZE, height * LytSlot.OUTER_SIZE);
+    }
+
+    private void configureSlot(LytSlot slot) {
+        slot.setRenderSlotBackground(renderSlotBackground);
     }
 }

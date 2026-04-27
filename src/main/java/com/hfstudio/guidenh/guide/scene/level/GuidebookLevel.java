@@ -66,6 +66,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             te.blockType = getBlock(te.xCoord, te.yCoord, te.zCoord);
             te.blockMetadata = getBlockMetadata(te.xCoord, te.yCoord, te.zCoord);
             te.setWorldObj(world);
+            te.validate();
         }
     }
 
@@ -75,6 +76,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         previewStateDirty = false;
         rebindAllTileEntities();
+        tickPreviewTileEntities();
     }
 
     public void setBlock(int x, int y, int z, @Nullable Block block, int meta, @Nullable TileEntity tileEntity) {
@@ -111,6 +113,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
                 tileEntity.blockType = block;
                 tileEntity.blockMetadata = meta;
                 tileEntity.setWorldObj(getOrCreateFakeWorld());
+                tileEntity.validate();
                 tileEntities.put(key, tileEntity);
             } else {
                 tileEntities.remove(key);
@@ -153,6 +156,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             tileEntity.blockType = getBlock(x, y, z);
             tileEntity.blockMetadata = getBlockMetadata(x, y, z);
             tileEntity.setWorldObj(getOrCreateFakeWorld());
+            tileEntity.validate();
             tileEntities.put(key, tileEntity);
         }
         previewStateDirty = true;
@@ -329,6 +333,19 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     private static long packPos(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF)) | (((long) (z & 0x3FFFFFF)) << 26) | (((long) (y & 0xFF)) << 52);
+    }
+
+    private void tickPreviewTileEntities() {
+        TileEntity[] snapshot = tileEntities.values()
+            .toArray(new TileEntity[0]);
+        for (TileEntity tileEntity : snapshot) {
+            if (tileEntity == null || !tileEntity.canUpdate()) {
+                continue;
+            }
+            try {
+                tileEntity.updateEntity();
+            } catch (Throwable ignored) {}
+        }
     }
 
     @Nullable

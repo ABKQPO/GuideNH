@@ -27,6 +27,7 @@ import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
+import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
@@ -211,7 +212,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public boolean hasVisibleLayerData() {
-        return getVisibleLayerCount() > 1;
+        return getVisibleLayerCount() > 0;
     }
 
     public int getCurrentVisibleLayer() {
@@ -251,9 +252,9 @@ public class LytGuidebookScene extends LytBlock {
         if (layerCount <= 0) {
             return 0;
         }
-        int maxLayer = layerCount - 1;
+        int maxLayer = layerCount;
         if (visibleLayerOverride == null) {
-            return maxLayer;
+            return 0;
         }
         int requestedLayer = visibleLayerOverride.intValue();
         if (requestedLayer < 0) {
@@ -267,7 +268,11 @@ public class LytGuidebookScene extends LytBlock {
         if (!hasVisibleLayerData()) {
             return null;
         }
-        return Integer.valueOf(getVisibleLayerMinY() + resolveCurrentVisibleLayer());
+        int currentLayer = resolveCurrentVisibleLayer();
+        if (currentLayer <= 0) {
+            return null;
+        }
+        return Integer.valueOf(getVisibleLayerMinY() + currentLayer - 1);
     }
 
     private boolean isBlockVisibleForCurrentLayer(int y) {
@@ -364,6 +369,10 @@ public class LytGuidebookScene extends LytBlock {
     public boolean hasStructureLibChannelData() {
         StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData();
         return channelData != null && channelData.isSelectable();
+    }
+
+    public int getBottomControlAreaHeight() {
+        return visibleLayerSliderAreaHeight() + structureLibChannelSliderAreaHeight();
     }
 
     public boolean hasStructureLibHatchData() {
@@ -549,7 +558,7 @@ public class LytGuidebookScene extends LytBlock {
             this.lastOuterW = outerRect.width();
             this.lastOuterH = outerRect.height();
             this.cachedScreenRect = sceneRect;
-            context.fillRect(outerRect, SCENE_BG_COLOR);
+            context.fillRect(sceneRect, SCENE_BG_COLOR);
             if (hasVisibleLayerData()) {
                 drawVisibleLayerSlider(context, outerRect);
             } else {
@@ -560,11 +569,11 @@ public class LytGuidebookScene extends LytBlock {
             } else {
                 clearCachedChannelSliderRects();
             }
-            context.drawBorder(outerRect, SCENE_BORDER_COLOR, 1);
+            context.drawBorder(sceneRect, SCENE_BORDER_COLOR, 1);
             return;
         }
 
-        context.fillRect(outerRect, SCENE_BG_COLOR);
+        context.fillRect(sceneRect, SCENE_BG_COLOR);
 
         int absX = sceneRect.x();
         int absY = sceneRect.y();
@@ -700,7 +709,7 @@ public class LytGuidebookScene extends LytBlock {
         }
 
         // Draw border AFTER the 3D content so border pixels always sit on top.
-        context.drawBorder(outerRect, SCENE_BORDER_COLOR, 1);
+        context.drawBorder(sceneRect, SCENE_BORDER_COLOR, 1);
 
         if (interactive && sceneButtonsVisible) {
             drawSceneButtons(sceneRect.x(), sceneRect.y(), w, h, absX, absY);
@@ -940,12 +949,12 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public boolean containsSceneViewport(int mouseX, int mouseY) {
-        if (lastOuterW <= 0 || lastOuterH <= 0) return false;
+        if (lastW <= 0 || lastH <= 0) return false;
 
-        int x0 = lastOuterAbsX;
-        int y0 = lastOuterAbsY;
-        int x1 = x0 + lastOuterW;
-        int y1 = y0 + lastOuterH;
+        int x0 = lastAbsX;
+        int y0 = lastAbsY;
+        int x1 = x0 + lastW;
+        int y1 = y0 + lastH;
 
         if (renderedContentClip != null) {
             int cx0 = renderedContentClip.x();
@@ -962,6 +971,18 @@ public class LytGuidebookScene extends LytBlock {
         return mouseX >= x0 && mouseX < x1 && mouseY >= y0 && mouseY < y1;
     }
 
+    private String getVisibleLayerSliderLabel() {
+        int currentLayer = getCurrentVisibleLayer();
+        String value = currentLayer <= 0 ? GuidebookText.SceneAll.text() : Integer.toString(currentLayer);
+        return GuidebookText.SceneSliderLabelFormat.text(GuidebookText.SceneVisibleLayerLabel.text(), value);
+    }
+
+    private String getStructureLibChannelSliderLabel() {
+        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData();
+        String prefix = channelData != null ? channelData.getLabel() : "Channel";
+        return GuidebookText.SceneSliderLabelFormat.text(prefix, Integer.toString(structureLibCurrentChannel));
+    }
+
     public boolean containsStructureLibChannelSlider(int mouseX, int mouseY) {
         if (!hasStructureLibChannelData()) {
             return false;
@@ -976,6 +997,11 @@ public class LytGuidebookScene extends LytBlock {
         }
         LytRect hitRect = resolveVisibleLayerSliderHitRect();
         return !hitRect.isEmpty() && hitRect.contains(mouseX, mouseY);
+    }
+
+    public boolean containsSceneInteractiveTarget(int mouseX, int mouseY) {
+        return containsSceneViewport(mouseX, mouseY) || containsVisibleLayerSlider(mouseX, mouseY)
+            || containsStructureLibChannelSlider(mouseX, mouseY);
     }
 
     @Nullable
@@ -1328,7 +1354,7 @@ public class LytGuidebookScene extends LytBlock {
             geometry,
             highlighted);
 
-        String label = Integer.toString(getCurrentVisibleLayer());
+        String label = getVisibleLayerSliderLabel();
         int textWidth = context.getStringWidth(label, VISIBLE_LAYER_SLIDER_TEXT_STYLE);
         int textHeight = context.getLineHeight(VISIBLE_LAYER_SLIDER_TEXT_STYLE);
         int textX = outerRect.x() + (outerRect.width() - textWidth) / 2;
@@ -1386,20 +1412,20 @@ public class LytGuidebookScene extends LytBlock {
     private void applyVisibleLayerSliderAt(int mouseX) {
         int visibleLayerCount = getVisibleLayerCount();
         LytRect sliderTrackRect = resolveVisibleLayerSliderTrackRect();
-        if (visibleLayerCount <= 1 || sliderTrackRect.isEmpty()) {
+        if (visibleLayerCount <= 0 || sliderTrackRect.isEmpty()) {
             return;
         }
         float fraction = GuideSliderRenderer.fractionFromMouse(mouseX, sliderTrackRect.x(), sliderTrackRect.width());
-        int targetLayer = Math.round(fraction * (visibleLayerCount - 1));
+        int targetLayer = Math.round(fraction * visibleLayerCount);
         setVisibleLayer(targetLayer);
     }
 
     private float getVisibleLayerFraction() {
         int visibleLayerCount = getVisibleLayerCount();
-        if (visibleLayerCount <= 1) {
+        if (visibleLayerCount <= 0) {
             return 0f;
         }
-        return resolveCurrentVisibleLayer() / (float) (visibleLayerCount - 1);
+        return resolveCurrentVisibleLayer() / (float) visibleLayerCount;
     }
 
     private void nudgeVisibleLayer(int dwheel) {
@@ -1438,7 +1464,7 @@ public class LytGuidebookScene extends LytBlock {
             geometry,
             highlighted);
 
-        String label = Integer.toString(structureLibCurrentChannel);
+        String label = getStructureLibChannelSliderLabel();
         int textWidth = context.getStringWidth(label, STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE);
         int textHeight = context.getLineHeight(STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE);
         int textX = outerRect.x() + (outerRect.width() - textWidth) / 2;

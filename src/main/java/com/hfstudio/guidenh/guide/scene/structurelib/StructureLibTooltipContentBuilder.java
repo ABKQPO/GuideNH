@@ -13,8 +13,9 @@ import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytSlotGrid;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
+import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
-public final class StructureLibTooltipContentBuilder {
+public class StructureLibTooltipContentBuilder {
 
     private static final int DEFAULT_CANDIDATE_COLUMNS = 6;
 
@@ -26,16 +27,22 @@ public final class StructureLibTooltipContentBuilder {
         root.setGap(2);
         root.append(LytParagraph.of(requireBlockName(blockName)));
 
+        List<ItemStack> normalizedBlockCandidates = normalizeStacks(blockCandidates);
+        List<ItemStack> normalizedHatchCandidates = normalizeStacks(hatchCandidates);
+        boolean hasCandidates = !normalizedBlockCandidates.isEmpty() || !normalizedHatchCandidates.isEmpty();
         String normalizedStructureLibDescription = normalizeLine(structureLibDescription);
-        if (normalizedStructureLibDescription != null) {
+        if (hasCandidates && !shiftDown) {
+            root.append(LytParagraph.of(GuidebookText.SceneStructureLibHoldShiftCandidates.text()));
+        } else if (normalizedStructureLibDescription != null
+            && !isGenericStructureLibDescription(normalizedStructureLibDescription)) {
             root.append(LytParagraph.of(normalizedStructureLibDescription));
         }
 
         appendDescriptionLines(root, hatchDescriptionLines);
 
         if (shiftDown) {
-            appendCandidateGrid(root, normalizeStacks(blockCandidates));
-            appendCandidateGrid(root, normalizeStacks(hatchCandidates));
+            appendCandidateGrid(root, normalizedBlockCandidates);
+            appendCandidateGrid(root, normalizedHatchCandidates);
         }
 
         return new ContentTooltip(root);
@@ -62,6 +69,7 @@ public final class StructureLibTooltipContentBuilder {
         int height = (candidates.size() + width - 1) / width;
         LytSlotGrid grid = new LytSlotGrid(width, height);
         grid.setRenderEmptySlots(false);
+        grid.setRenderSlotBackground(false);
         for (int i = 0; i < candidates.size(); i++) {
             grid.setItem(i % width, i / width, candidates.get(i));
         }
@@ -95,6 +103,10 @@ public final class StructureLibTooltipContentBuilder {
             throw new IllegalArgumentException("StructureLib tooltip block name cannot be empty");
         }
         return normalized;
+    }
+
+    private static boolean isGenericStructureLibDescription(String value) {
+        return "StructureLib".equalsIgnoreCase(value);
     }
 
     @Nullable

@@ -43,7 +43,7 @@ import com.mojang.authlib.GameProfile;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
-final class StructureLibRuntimeFacade implements StructureLibFacade {
+public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     private static final int CONTROLLER_X = 0;
@@ -53,6 +53,8 @@ final class StructureLibRuntimeFacade implements StructureLibFacade {
     private static final int MAX_CHANNEL = 50;
     private static final StructureLibPreviewMetadataFactory PREVIEW_METADATA_FACTORY = new StructureLibPreviewMetadataFactory(
         new StructureLibElementTooltipResolver());
+
+    public StructureLibRuntimeFacade() {}
 
     @Override
     public boolean isAvailable() {
@@ -152,7 +154,7 @@ final class StructureLibRuntimeFacade implements StructureLibFacade {
         ItemStack triggerStack = createTriggerStack(channel);
         List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements = Collections.emptyList();
         Object instrumentId = new Object();
-        StructureVisitCollector visitCollector = new StructureVisitCollector(instrumentId, world);
+        StructureLibStructureVisitCollector visitCollector = new StructureLibStructureVisitCollector(instrumentId, world);
         boolean instrumentEnabled = false;
         try {
             StructureLibAPI.enableInstrument(instrumentId);
@@ -520,20 +522,20 @@ final class StructureLibRuntimeFacade implements StructureLibFacade {
         return trimmed.indexOf(':') >= 0 ? trimmed : "minecraft:" + trimmed;
     }
 
-    private static final class ResolvedController {
+    public static class ResolvedController {
 
         private final String blockId;
         private final Block block;
         private final int meta;
 
-        private ResolvedController(String blockId, Block block, int meta) {
+        public ResolvedController(String blockId, Block block, int meta) {
             this.blockId = blockId;
             this.block = block;
             this.meta = meta;
         }
     }
 
-    private static final class AbsolutePlacedBlock {
+    public static class AbsolutePlacedBlock {
 
         private final int x;
         private final int y;
@@ -545,7 +547,7 @@ final class StructureLibRuntimeFacade implements StructureLibFacade {
         @Nullable
         private final String blockId;
 
-        private AbsolutePlacedBlock(int x, int y, int z, Block block, int meta, @Nullable NBTTagCompound tileTag,
+        public AbsolutePlacedBlock(int x, int y, int z, Block block, int meta, @Nullable NBTTagCompound tileTag,
             @Nullable String blockId) {
             this.x = x;
             this.y = y;
@@ -557,7 +559,7 @@ final class StructureLibRuntimeFacade implements StructureLibFacade {
         }
     }
 
-    private static final class BuildSnapshot {
+    public static class BuildSnapshot {
 
         private final boolean success;
         private final List<StructureLibImportResult.PlacedBlock> blocks;
@@ -574,7 +576,7 @@ final class StructureLibRuntimeFacade implements StructureLibFacade {
         @Nullable
         private final String errorMessage;
 
-        private BuildSnapshot(boolean success, List<StructureLibImportResult.PlacedBlock> blocks,
+        public BuildSnapshot(boolean success, List<StructureLibImportResult.PlacedBlock> blocks,
             List<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock> absoluteBlocks,
             List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements, String fingerprint,
             @Nullable World world, ItemStack triggerStack, @Nullable Object constructable, @Nullable EntityPlayer actor,
@@ -591,7 +593,7 @@ final class StructureLibRuntimeFacade implements StructureLibFacade {
             this.errorMessage = errorMessage;
         }
 
-        private static BuildSnapshot success(List<StructureLibImportResult.PlacedBlock> blocks,
+        public static BuildSnapshot success(List<StructureLibImportResult.PlacedBlock> blocks,
             List<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock> absoluteBlocks,
             List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements, String fingerprint,
             World world, ItemStack triggerStack, Object constructable, EntityPlayer actor) {
@@ -608,7 +610,7 @@ final class StructureLibRuntimeFacade implements StructureLibFacade {
                 null);
         }
 
-        private static BuildSnapshot failure(String errorMessage) {
+        public static BuildSnapshot failure(String errorMessage) {
             return new BuildSnapshot(
                 false,
                 Collections.<StructureLibImportResult.PlacedBlock>emptyList(),
@@ -623,63 +625,29 @@ final class StructureLibRuntimeFacade implements StructureLibFacade {
         }
     }
 
-    private static final class SnapshotBlocksResult {
+    public static class SnapshotBlocksResult {
 
-        private static final SnapshotBlocksResult EMPTY = new SnapshotBlocksResult(
+        public static final SnapshotBlocksResult EMPTY = new SnapshotBlocksResult(
             Collections.<StructureLibImportResult.PlacedBlock>emptyList(),
             Collections.<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock>emptyList());
 
         private final List<StructureLibImportResult.PlacedBlock> blocks;
         private final List<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock> absoluteBlocks;
 
-        private SnapshotBlocksResult(List<StructureLibImportResult.PlacedBlock> blocks,
+        public SnapshotBlocksResult(List<StructureLibImportResult.PlacedBlock> blocks,
             List<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock> absoluteBlocks) {
             this.blocks = blocks;
             this.absoluteBlocks = absoluteBlocks;
         }
 
-        private static SnapshotBlocksResult empty() {
+        public static SnapshotBlocksResult empty() {
             return EMPTY;
         }
     }
 
-    private static final class StructureVisitCollector {
+    public static class PreviewFakePlayer extends EntityPlayer {
 
-        private final Object instrumentId;
-        private final World world;
-        private final List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements = new ArrayList<>();
-
-        private StructureVisitCollector(Object instrumentId, World world) {
-            this.instrumentId = instrumentId;
-            this.world = world;
-        }
-
-        @SubscribeEvent
-        public void onStructureElementVisited(StructureElementVisitedEvent event) {
-            if (event == null || event.getElement() == null
-                || event.getWorld() != world
-                || !instrumentId.equals(event.getInstrumentIdentifier())) {
-                return;
-            }
-            visitedElements.add(
-                new StructureLibPreviewMetadataFactory.VisitedStructureElement(
-                    event.getX(),
-                    event.getY(),
-                    event.getZ(),
-                    event.getElement()));
-        }
-
-        private List<StructureLibPreviewMetadataFactory.VisitedStructureElement> snapshot() {
-            if (visitedElements.isEmpty()) {
-                return Collections.emptyList();
-            }
-            return Collections.unmodifiableList(new ArrayList<>(visitedElements));
-        }
-    }
-
-    private static final class PreviewFakePlayer extends EntityPlayer {
-
-        private PreviewFakePlayer(World world) {
+        public PreviewFakePlayer(World world) {
             super(world, new GameProfile(UUID.fromString("9c7ef542-6ab6-4524-b7d7-8caaf8df467c"), "GuideNHPreview"));
             capabilities.isCreativeMode = true;
             noClip = true;

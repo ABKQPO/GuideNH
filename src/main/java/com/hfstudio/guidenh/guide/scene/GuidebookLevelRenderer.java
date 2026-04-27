@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.scene;
 
 import static org.lwjgl.opengl.GL11.GL_ALPHA_TEST;
 import static org.lwjgl.opengl.GL11.GL_BLEND;
+import static org.lwjgl.opengl.GL11.GL_CULL_FACE;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.GL_LIGHTING;
@@ -10,7 +11,6 @@ import static org.lwjgl.opengl.GL11.GL_PROJECTION;
 import static org.lwjgl.opengl.GL11.GL_SCISSOR_TEST;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 
-import java.lang.reflect.Field;
 import java.nio.FloatBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -26,25 +26,26 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.ForgeHooksClient;
 
 import org.apache.logging.log4j.LogManager;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
 
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-public final class GuidebookLevelRenderer {
+public class GuidebookLevelRenderer {
 
     private static final GuidebookLevelRenderer INSTANCE = new GuidebookLevelRenderer();
-
-    private static final Field FORGE_RENDER_PASS_FIELD = resolveRenderPassField();
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
@@ -162,9 +163,11 @@ public final class GuidebookLevelRenderer {
                 GL11.glDepthFunc(GL11.GL_LEQUAL);
                 GL11.glDisable(GL_LIGHTING);
                 GL11.glDisable(GL_BLEND);
+                GL11.glEnable(GL_CULL_FACE);
                 GL11.glEnable(GL_ALPHA_TEST);
                 GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
                 GL11.glEnable(GL_TEXTURE_2D);
+                GL11.glEnable(GL12.GL_RESCALE_NORMAL);
                 GL11.glColor4f(1f, 1f, 1f, 1f);
                 GL11.glNormal3f(0f, 1f, 0f);
 
@@ -184,11 +187,12 @@ public final class GuidebookLevelRenderer {
                     var filledBlocks = level.getFilledBlocks();
                     var tileEntities = level.getTileEntities();
 
-                    trySetRenderPass(0);
+                    mc.entityRenderer.disableLightmap(0);
+                    setRenderPass(0);
                     GL11.glDisable(GL_BLEND);
                     renderBlocksPass(level, filledBlocks, 0, visibleMaxY);
 
-                    trySetRenderPass(1);
+                    setRenderPass(1);
                     GL11.glEnable(GL_BLEND);
                     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                     GL11.glDepthMask(false);
@@ -196,9 +200,13 @@ public final class GuidebookLevelRenderer {
                     GL11.glDepthMask(true);
                     GL11.glDisable(GL_BLEND);
 
-                    trySetRenderPass(-1);
+                    setRenderPass(-1);
 
+                    RenderHelper.enableStandardItemLighting();
+                    GL11.glEnable(GL_LIGHTING);
                     renderBlockEntities(tileEntities, partialTicks, visibleMaxY);
+                    GL11.glDisable(GL_LIGHTING);
+                    RenderHelper.disableStandardItemLighting();
                     renderEntitiesStub(level, partialTicks);
 
                     if (!annotations.isEmpty()) {
@@ -243,37 +251,88 @@ public final class GuidebookLevelRenderer {
             cachedRenderBlocks = rb;
             cachedRenderBlocksLevel = level;
         }
+        Minecraft mc = Minecraft.getMinecraft();
+        int savedAmbientOcclusion = mc.gameSettings.ambientOcclusion;
+        mc.gameSettings.ambientOcclusion = 0;
+        IBlockAccess fakeWorld = level.getOrCreateFakeWorld();
         var tes = Tessellator.instance;
         tes.startDrawingQuads();
-        for (int[] p : filledBlocks) {
-            if (visibleMaxY != null && p[1] > visibleMaxY.intValue()) {
-                continue;
+        try {
+            tes.setBrightness((15 << 20) | (15 << 4));
+            for (int[] p : filledBlocks) {
+                if (visibleMaxY != null && p[1] > visibleMaxY.intValue()) {
+                    continue;
+                }
+                Block block = level.getBlock(p[0], p[1], p[2]);
+                if (block == null) continue;
+                if (!block.canRenderInPass(pass)) continue;
+                try {
+                    resetRenderBlocksState(rb, fakeWorld);
+                    rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
+                } catch (Throwable t) {
+                    log(t);
+                }
             }
-            Block block = level.getBlock(p[0], p[1], p[2]);
-            if (block == null) continue;
-            if (!block.canRenderInPass(pass)) continue;
-            try {
-                rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
-            } catch (Throwable t) {
-                log(t);
-            }
+        } finally {
+            tes.draw();
+            tes.setTranslation(0.0D, 0.0D, 0.0D);
+            mc.gameSettings.ambientOcclusion = savedAmbientOcclusion;
         }
-        tes.draw();
+    }
+
+    private static void resetRenderBlocksState(RenderBlocks renderBlocks, IBlockAccess blockAccess) {
+        renderBlocks.blockAccess = blockAccess;
+        renderBlocks.clearOverrideBlockTexture();
+        renderBlocks.renderAllFaces = false;
+        renderBlocks.useInventoryTint = false;
+        renderBlocks.enableAO = false;
+        renderBlocks.partialRenderBounds = false;
+        renderBlocks.renderFromInside = false;
+        renderBlocks.flipTexture = false;
+        renderBlocks.lockBlockBounds = false;
+        renderBlocks.uvRotateEast = 0;
+        renderBlocks.uvRotateWest = 0;
+        renderBlocks.uvRotateSouth = 0;
+        renderBlocks.uvRotateNorth = 0;
+        renderBlocks.uvRotateTop = 0;
+        renderBlocks.uvRotateBottom = 0;
+        renderBlocks.setRenderBounds(0.0D, 0.0D, 0.0D, 1.0D, 1.0D, 1.0D);
     }
 
     private void renderBlockEntities(Iterable<TileEntity> tileEntities, float partialTicks,
         @Nullable Integer visibleMaxY) {
-        var dispatcher = TileEntityRendererDispatcher.instance;
-        for (TileEntity te : tileEntities) {
-            if (visibleMaxY != null && te != null && te.yCoord > visibleMaxY.intValue()) {
-                continue;
-            }
-            try {
-                dispatcher.renderTileEntity(te, partialTicks);
-            } catch (Throwable t) {
-                log(t);
+        TileEntityRendererDispatcher dispatcher = TileEntityRendererDispatcher.instance;
+        for (int pass = 0; pass < 2; pass++) {
+            setRenderPass(pass);
+            setTileEntityRenderPassState(pass);
+            for (TileEntity te : tileEntities) {
+                if (te == null) {
+                    continue;
+                }
+                if (visibleMaxY != null && te.yCoord > visibleMaxY.intValue()) {
+                    continue;
+                }
+                if (!dispatcher.hasSpecialRenderer(te) || !te.shouldRenderInPass(pass)) {
+                    continue;
+                }
+                try {
+                    int brightness = te.getWorldObj()
+                        .getLightBrightnessForSkyBlocks(te.xCoord, te.yCoord, te.zCoord, 0);
+                    OpenGlHelper.setLightmapTextureCoords(
+                        OpenGlHelper.lightmapTexUnit,
+                        brightness % 65536,
+                        brightness / 65536);
+                    GL11.glColor4f(1f, 1f, 1f, 1f);
+                    dispatcher.renderTileEntityAt(te, te.xCoord, te.yCoord, te.zCoord, partialTicks);
+                } catch (Throwable t) {
+                    log(t);
+                }
             }
         }
+        setRenderPass(-1);
+        GL11.glEnable(GL_DEPTH_TEST);
+        GL11.glDisable(GL_BLEND);
+        GL11.glDepthMask(true);
     }
 
     @SuppressWarnings("unused")
@@ -286,21 +345,26 @@ public final class GuidebookLevelRenderer {
         GL11.glLoadMatrix(matrixBuffer);
     }
 
-    private static void trySetRenderPass(int pass) {
-        if (FORGE_RENDER_PASS_FIELD == null) return;
+    private static void setRenderPass(int pass) {
         try {
-            FORGE_RENDER_PASS_FIELD.setInt(null, pass);
+            ForgeHooksClient.setRenderPass(pass);
+        } catch (Throwable ignore) {}
+        try {
+            AccessorForgeHooksClient.setWorldRenderPass(pass);
         } catch (Throwable ignore) {}
     }
 
-    private static Field resolveRenderPassField() {
-        try {
-            var f = ForgeHooksClient.class.getDeclaredField("renderPass");
-            f.setAccessible(true);
-            return f;
-        } catch (Throwable t) {
-            return null;
+    private static void setTileEntityRenderPassState(int pass) {
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+        if (pass == 0) {
+            GL11.glEnable(GL_DEPTH_TEST);
+            GL11.glDisable(GL_BLEND);
+            GL11.glDepthMask(true);
+            return;
         }
+        GL11.glEnable(GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDepthMask(false);
     }
 
     private static void log(Throwable t) {

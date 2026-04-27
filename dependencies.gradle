@@ -16,6 +16,7 @@ dependencies {
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-911-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.16-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botanic-horizons:1.12.8-GTNH:dev")
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.12:dev")
 
     compileOnly("org.projectlombok:lombok:1.18.42") { transitive = false }
     annotationProcessor("org.projectlombok:lombok:1.18.42")
@@ -30,6 +31,9 @@ dependencies {
 }
 
 configurations.configureEach {
+    resolutionStrategy {
+        force "com.github.GTNewHorizons:GT5-Unofficial:5.09.52.398"
+    }
     exclude group: "com.github.GTNewHorizons", module: "CodeChickenLib"
     exclude group: "com.github.GTNewHorizons", module: "Hodgepodge"
     exclude group: "com.github.GTNewHorizons", module: "Baubles"

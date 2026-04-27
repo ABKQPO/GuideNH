@@ -24,6 +24,7 @@ public class LytSlot extends LytBlock implements InteractiveElement {
     private static final int CYCLE_TIME = 2000;
 
     private boolean largeSlot;
+    private boolean renderSlotBackground = true;
     private final List<ItemStack> stacks;
 
     public LytSlot(ItemStack stack) {
@@ -41,6 +42,14 @@ public class LytSlot extends LytBlock implements InteractiveElement {
 
     public void setLargeSlot(boolean largeSlot) {
         this.largeSlot = largeSlot;
+    }
+
+    public boolean isRenderSlotBackground() {
+        return renderSlotBackground;
+    }
+
+    public void setRenderSlotBackground(boolean renderSlotBackground) {
+        this.renderSlotBackground = renderSlotBackground;
     }
 
     @Override
@@ -62,14 +71,16 @@ public class LytSlot extends LytBlock implements InteractiveElement {
         int w = bounds.width();
         int h = bounds.height();
 
-        final int BORDER_DARK = 0xFF373737;
-        final int BORDER_LIGHT = 0xFFFFFFFF;
-        final int INNER_BG = 0xFF8B8B8B;
-        context.fillRect(new LytRect(x, y, w, 1), BORDER_DARK);
-        context.fillRect(new LytRect(x, y, 1, h), BORDER_DARK);
-        context.fillRect(new LytRect(x, y + h - 1, w, 1), BORDER_LIGHT);
-        context.fillRect(new LytRect(x + w - 1, y, 1, h), BORDER_LIGHT);
-        context.fillRect(new LytRect(x + 1, y + 1, w - 2, h - 2), INNER_BG);
+        if (renderSlotBackground) {
+            final int BORDER_DARK = 0xFF373737;
+            final int BORDER_LIGHT = 0xFFFFFFFF;
+            final int INNER_BG = 0xFF8B8B8B;
+            context.fillRect(new LytRect(x, y, w, 1), BORDER_DARK);
+            context.fillRect(new LytRect(x, y, 1, h), BORDER_DARK);
+            context.fillRect(new LytRect(x, y + h - 1, w, 1), BORDER_LIGHT);
+            context.fillRect(new LytRect(x + w - 1, y, 1, h), BORDER_LIGHT);
+            context.fillRect(new LytRect(x + 1, y + 1, w - 2, h - 2), INNER_BG);
+        }
 
         var padding = largeSlot ? LARGE_PADDING : PADDING;
         var stack = getDisplayedStack();

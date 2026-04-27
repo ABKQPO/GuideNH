@@ -632,7 +632,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
 
     private void drawContentTooltip(ContentTooltip ct, int mouseX, int mouseY) {
         int pad = 4;
-        int maxW = Math.max(80, this.width / 2);
+        int maxW = Math.max(80, (this.width * 4) / 5);
         var box = ct.layout(maxW);
         int w = box.width();
         int h = box.height();
@@ -666,11 +666,25 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
     private void drawTooltipText(String text, int mouseX, int mouseY) {
         FontRenderer fr = mc.fontRenderer;
         String norm = (text.indexOf('\\') >= 0) ? text.replace("\\n", "\n") : text;
-        String[] lines = norm.split("\n", -1);
+        int pad = 3;
+        int hardMaxWidth = Math.max(40, this.width - 24);
+        int preferredWrapWidth = Math.max(80, this.width / 2);
+        int wrapWidth = Math.max(40, Math.min(hardMaxWidth, preferredWrapWidth));
+        List<String> lines = new ArrayList<>();
+        for (String rawLine : norm.split("\n", -1)) {
+            if (rawLine.isEmpty()) {
+                lines.add("");
+                continue;
+            }
+            if (fr.getStringWidth(rawLine) <= wrapWidth) {
+                lines.add(rawLine);
+                continue;
+            }
+            lines.addAll(fr.listFormattedStringToWidth(rawLine, wrapWidth));
+        }
         int tw = 0;
         for (String ln : lines) tw = Math.max(tw, fr.getStringWidth(ln));
-        int th = lines.length * (fr.FONT_HEIGHT + 1) - 1;
-        int pad = 3;
+        int th = lines.size() * (fr.FONT_HEIGHT + 1) - 1;
         int x = mouseX + 12;
         int y = mouseY - 12;
         if (x + tw + pad > this.width) {
@@ -1087,7 +1101,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         var hit = activeDocument.pick(docX, docY);
         var sceneButtonHit = findSceneButtonHit(activeDocument, mouseX, mouseY);
         var scene = hit != null ? findSceneAncestor(hit.node()) : null;
-        if (scene != null && !scene.containsSceneViewport(mouseX, mouseY)) {
+        if (scene != null && !scene.containsSceneInteractiveTarget(mouseX, mouseY)) {
             scene = null;
         }
         interaction = new DocumentInteractionState(

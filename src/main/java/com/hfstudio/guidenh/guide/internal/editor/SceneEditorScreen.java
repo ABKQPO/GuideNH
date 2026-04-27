@@ -591,7 +591,9 @@ public final class SceneEditorScreen extends GuiScreen {
             }
             ensurePreviewScene();
             if (previewScene != null && isInsidePreviewInteractionArea(mouseX, mouseY)
-                && previewScene.containsSceneViewport(mouseX, mouseY)) {
+                && (previewScene.containsSceneViewport(mouseX, mouseY)
+                    || previewScene.containsVisibleLayerSlider(mouseX, mouseY)
+                    || previewScene.containsStructureLibChannelSlider(mouseX, mouseY))) {
                 previewScene.scroll(mouseX, mouseY, wheelDelta);
                 return;
             }
@@ -694,6 +696,13 @@ public final class SceneEditorScreen extends GuiScreen {
                 : null;
             if (button == 0 && sceneButtonRole != null) {
                 previewScene.activateSceneButton(sceneButtonRole);
+                return;
+            }
+            if (button == 0 && isInsidePreviewInteractionArea(mouseX, mouseY)
+                && (previewScene.containsVisibleLayerSlider(mouseX, mouseY)
+                    || previewScene.containsStructureLibChannelSlider(mouseX, mouseY))) {
+                activePreviewScene = previewScene;
+                activePreviewScene.startDrag(mouseX, mouseY, button);
                 return;
             }
             if (button == 0 && isInsidePreviewInteractionArea(mouseX, mouseY)
@@ -851,13 +860,13 @@ public final class SceneEditorScreen extends GuiScreen {
         leftPanelHeight = screenLayout.leftPanel()
             .height();
 
-        centerPanelX = screenLayout.previewInteraction()
+        centerPanelX = screenLayout.previewRender()
             .x();
-        centerPanelY = screenLayout.previewInteraction()
+        centerPanelY = screenLayout.previewRender()
             .y();
-        centerPanelWidth = screenLayout.previewInteraction()
+        centerPanelWidth = screenLayout.previewRender()
             .width();
-        centerPanelHeight = screenLayout.previewInteraction()
+        centerPanelHeight = screenLayout.previewRender()
             .height();
 
         rightPanelX = screenLayout.rightPanel()
@@ -990,7 +999,8 @@ public final class SceneEditorScreen extends GuiScreen {
     private void drawCenterPanel(int mouseX, int mouseY) {
         ensurePreviewScene();
         if (previewScene != null) {
-            previewScene.setSceneSize(previewBoxWidth, previewBoxHeight);
+            int previewSceneHeight = Math.max(16, previewBoxHeight - previewScene.getBottomControlAreaHeight());
+            previewScene.setSceneSize(previewBoxWidth, previewSceneHeight);
             previewScene.layout(previewLayoutContext, previewBoxX, previewBoxY, previewBoxWidth);
             previewRenderContext.setScreenHeight(this.height);
             previewRenderContext.setViewport(new LytRect(previewBoxX, previewBoxY, previewBoxWidth, previewBoxHeight));

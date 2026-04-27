@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.scene.structurelib;
 
 import javax.annotation.Nullable;
 
-public final class StructureLibImportRequest {
+public class StructureLibImportRequest {
 
     private final String controller;
     @Nullable

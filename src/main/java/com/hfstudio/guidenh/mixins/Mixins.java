@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum Mixins implements IMixins {
 
+    FORGE_HOOKS_CLIENT(Side.CLIENT, "forge.AccessorForgeHooksClient"),
+
     ;
 
     @Getter
