@@ -48,6 +48,7 @@ import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelectio
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibTooltipContentBuilder;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public class LytGuidebookScene extends LytBlock {
@@ -1506,7 +1507,9 @@ public class LytGuidebookScene extends LytBlock {
         clearCachedVisibleLayerSliderRects();
         clearCachedTierSliderRects();
         clearCachedChannelSliderRects();
+        logBottomControlState("evaluate", outerRect);
         if (getBottomControlAreaHeight() <= 0) {
+            logBottomControlState("skip-empty", outerRect);
             return;
         }
         if (hasStructureLibTierData()) {
@@ -1622,6 +1625,7 @@ public class LytGuidebookScene extends LytBlock {
     private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect) {
         LytRect sliderTrackRect = resolveVisibleLayerSliderTrackRect();
         if (sliderTrackRect.isEmpty()) {
+            logSliderSkipped("visible-layer", resolveVisibleLayerRowIndex(), outerRect);
             return;
         }
         GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer
@@ -1633,6 +1637,7 @@ public class LytGuidebookScene extends LytBlock {
             int[] mouse = resolveCurrentMousePosition();
             highlighted = mouse != null && geometry.hitRect().contains(mouse[0], mouse[1]);
         }
+        logSliderGeometry("visible-layer", geometry, resolveVisibleLayerRowIndex(), getVisibleLayerSliderLabel(), outerRect);
         drawSlider(context, geometry, highlighted, outerRect, resolveVisibleLayerRowIndex(), getVisibleLayerSliderLabel(),
             VISIBLE_LAYER_SLIDER_TEXT_STYLE);
     }
@@ -1679,6 +1684,7 @@ public class LytGuidebookScene extends LytBlock {
     private void drawStructureLibTierSlider(RenderContext context, LytRect outerRect) {
         LytRect sliderTrackRect = resolveStructureLibTierSliderTrackRect();
         if (sliderTrackRect.isEmpty()) {
+            logSliderSkipped("structurelib-tier", resolveStructureLibTierRowIndex(), outerRect);
             return;
         }
         GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer.layout(
@@ -1693,6 +1699,12 @@ public class LytGuidebookScene extends LytBlock {
             int[] mouse = resolveCurrentMousePosition();
             highlighted = mouse != null && geometry.hitRect().contains(mouse[0], mouse[1]);
         }
+        logSliderGeometry(
+            "structurelib-tier",
+            geometry,
+            resolveStructureLibTierRowIndex(),
+            getStructureLibTierSliderLabel(),
+            outerRect);
         drawSlider(context, geometry, highlighted, outerRect, resolveStructureLibTierRowIndex(), getStructureLibTierSliderLabel(),
             STRUCTURELIB_TIER_SLIDER_TEXT_STYLE);
     }
@@ -1762,6 +1774,10 @@ public class LytGuidebookScene extends LytBlock {
         StructureLibSceneMetadata.ChannelData channelData) {
         LytRect sliderTrackRect = resolveStructureLibChannelSliderTrackRect(channelData.getChannelId());
         if (sliderTrackRect.isEmpty()) {
+            logSliderSkipped(
+                "structurelib-channel:" + channelData.getChannelId(),
+                resolveStructureLibChannelRowIndex(channelData.getChannelId()),
+                outerRect);
             return;
         }
         GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer.layout(
@@ -1776,6 +1792,12 @@ public class LytGuidebookScene extends LytBlock {
             int[] mouse = resolveCurrentMousePosition();
             highlighted = mouse != null && geometry.hitRect().contains(mouse[0], mouse[1]);
         }
+        logSliderGeometry(
+            "structurelib-channel:" + channelData.getChannelId(),
+            geometry,
+            resolveStructureLibChannelRowIndex(channelData.getChannelId()),
+            getStructureLibChannelSliderLabel(channelData),
+            outerRect);
         drawSlider(
             context,
             geometry,
@@ -1837,6 +1859,64 @@ public class LytGuidebookScene extends LytBlock {
         int rowTop = bottomControlAreaTop(outerRect.bottom()) + rowIndex * SCENE_SLIDER_AREA_HEIGHT;
         int textY = rowTop + (SCENE_SLIDER_AREA_HEIGHT - textHeight) / 2;
         context.drawText(label, textX, textY, style);
+    }
+
+    private void logBottomControlState(String phase, LytRect outerRect) {
+        int selectableChannels = getSelectableStructureLibChannels().size();
+        GuideGregTechTileSupport.logInfoOnce(
+            "scene-bottom-controls:" + Integer.toHexString(System.identityHashCode(this)) + ":" + phase + ":"
+                + getBottomControlAreaHeight() + ":" + getBottomControlRowCount() + ":" + selectableChannels,
+            "Scene bottom controls {}: outerRect={} bottomVisible={} visibleLayerEnabled={} visibleLayerCount={} hasVisibleLayerSlider={} hasTierSlider={} selectableChannels={} bottomAreaHeight={} rowCount={}",
+            phase,
+            describeRect(outerRect),
+            Boolean.valueOf(bottomControlsVisible),
+            Boolean.valueOf(visibleLayerSliderEnabled),
+            Integer.valueOf(getVisibleLayerCount()),
+            Boolean.valueOf(hasVisibleLayerSlider()),
+            Boolean.valueOf(hasStructureLibTierData()),
+            Integer.valueOf(selectableChannels),
+            Integer.valueOf(getBottomControlAreaHeight()),
+            Integer.valueOf(getBottomControlRowCount()));
+    }
+
+    private void logSliderSkipped(String sliderId, int rowIndex, LytRect outerRect) {
+        GuideGregTechTileSupport.logInfoOnce(
+            "scene-slider-skip:" + Integer.toHexString(System.identityHashCode(this)) + ":" + sliderId + ":" + rowIndex
+                + ":" + getBottomControlAreaHeight(),
+            "Scene slider skipped {}: rowIndex={} outerRect={} bottomAreaHeight={} rowCount={} lastOuter={}x{}",
+            sliderId,
+            Integer.valueOf(rowIndex),
+            describeRect(outerRect),
+            Integer.valueOf(getBottomControlAreaHeight()),
+            Integer.valueOf(getBottomControlRowCount()),
+            Integer.valueOf(lastOuterW),
+            Integer.valueOf(lastOuterH));
+    }
+
+    private void logSliderGeometry(String sliderId, GuideSliderRenderer.SliderGeometry geometry, int rowIndex, String label,
+        LytRect outerRect) {
+        GuideGregTechTileSupport.logInfoOnce(
+            "scene-slider-geometry:" + Integer.toHexString(System.identityHashCode(this)) + ":" + sliderId + ":"
+                + rowIndex + ":" + describeRect(geometry.trackRect()),
+            "Scene slider geometry {}: rowIndex={} outerRect={} track={} fill={} thumb={} hit={} label={}",
+            sliderId,
+            Integer.valueOf(rowIndex),
+            describeRect(outerRect),
+            describeRect(geometry.trackRect()),
+            describeRect(geometry.fillRect()),
+            describeRect(geometry.thumbRect()),
+            describeRect(geometry.hitRect()),
+            label);
+    }
+
+    private static String describeRect(@Nullable LytRect rect) {
+        if (rect == null) {
+            return "null-rect";
+        }
+        if (rect.isEmpty()) {
+            return "empty-rect";
+        }
+        return "(" + rect.x() + "," + rect.y() + " " + rect.width() + "x" + rect.height() + ")";
     }
 
     private static int clampChannelValue(int value, int minValue, int maxValue) {

@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 
 public class GuidebookPreviewBlockPlacer {
 
@@ -35,6 +36,7 @@ public class GuidebookPreviewBlockPlacer {
     public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
         @Nullable NBTTagCompound tileTag, @Nullable String explicitBlockId) {
         PlacementData placementData = resolvePlacementData(block, meta, tileTag);
+        logPlacementRequest(x, y, z, block, meta, tileTag, explicitBlockId, placementData);
 
         // Place the block before loading its tile so world-aware tile initialization sees the correct block/meta.
         level.setBlock(x, y, z, block, placementData.blockMeta, null);
@@ -50,14 +52,29 @@ public class GuidebookPreviewBlockPlacer {
         }
         if (tileEntity != null) {
             level.setTileEntity(x, y, z, tileEntity);
+            logLoadedTile("loaded", x, y, z, tileEntity, placementData.metaTileId, tileTag);
             initializeGregTechMetaTile(tileEntity, placementData.metaTileId, tileTag);
+            logLoadedTile("gregtech-init", x, y, z, tileEntity, placementData.metaTileId, tileTag);
             applyGregTechDefaultFacing(tileEntity, tileTag);
             applyBartWorksGeneratedBlockMeta(tileEntity, block, placementData.blockMeta);
+            logLoadedTile("post-facing-meta", x, y, z, tileEntity, placementData.metaTileId, tileTag);
+            TileEntity residentTile = resolveWorldResidentTile(level.getOrCreateFakeWorld(), x, y, z, tileEntity);
             level.setTileEntity(
                 x,
                 y,
                 z,
-                resolveWorldResidentTile(level.getOrCreateFakeWorld(), x, y, z, tileEntity));
+                residentTile);
+            logLoadedTile("resident", x, y, z, residentTile, placementData.metaTileId, tileTag);
+        } else if (shouldLogPlacement(block, placementData)) {
+            GuideGregTechTileSupport.logInfoOnce(
+                "preview-place-missing-tile:" + x + ":" + y + ":" + z + ":" + GuideGregTechTileSupport.describeBlock(block),
+                "Preview tile load produced no TileEntity at {} for block={} explicitId={} blockMeta={} metaTileId={} tileTag=[{}]",
+                describePosition(x, y, z),
+                GuideGregTechTileSupport.describeBlock(block),
+                explicitBlockId,
+                Integer.valueOf(placementData.blockMeta),
+                placementData.metaTileId,
+                GuideGregTechTileSupport.describeTileTag(tileTag));
         }
         invokeOnBlockAdded(block, level.getOrCreateFakeWorld(), x, y, z);
         level.setExplicitBlockId(x, y, z, explicitBlockId);
@@ -256,6 +273,50 @@ public class GuidebookPreviewBlockPlacer {
     private static TileEntity resolveWorldResidentTile(GuidebookFakeWorld world, int x, int y, int z, TileEntity fallback) {
         TileEntity resident = world.getTileEntity(x, y, z);
         return resident != null ? resident : fallback;
+    }
+
+    private static void logPlacementRequest(int x, int y, int z, Block block, int requestedMeta,
+        @Nullable NBTTagCompound tileTag, @Nullable String explicitBlockId, PlacementData placementData) {
+        if (!shouldLogPlacement(block, placementData)) {
+            return;
+        }
+        GuideGregTechTileSupport.logInfoOnce(
+            "preview-place-request:" + x + ":" + y + ":" + z + ":" + GuideGregTechTileSupport.describeBlock(block),
+            "Preview place request {}: block={} explicitId={} requestedMeta={} resolvedBlockMeta={} resolvedMetaTileId={} tileTag=[{}]",
+            describePosition(x, y, z),
+            GuideGregTechTileSupport.describeBlock(block),
+            explicitBlockId,
+            Integer.valueOf(requestedMeta),
+            Integer.valueOf(placementData.blockMeta),
+            placementData.metaTileId,
+            GuideGregTechTileSupport.describeTileTag(tileTag));
+    }
+
+    private static void logLoadedTile(String stage, int x, int y, int z, @Nullable TileEntity tileEntity,
+        @Nullable Integer metaTileId, @Nullable NBTTagCompound tileTag) {
+        if (!GuideGregTechTileSupport.isGregTechTileEntity(tileEntity)
+            && !isInstanceOf(tileEntity, BARTWORKS_META_GENERATED_TILE_CLASS)) {
+            return;
+        }
+        GuideGregTechTileSupport.logInfoOnce(
+            "preview-place-" + stage + ":" + x + ":" + y + ":" + z + ":"
+                + (tileEntity != null ? tileEntity.getClass()
+                    .getName() : "null"),
+            "Preview tile {} {}: tile={} metaTileId={} tileTag=[{}]",
+            stage,
+            describePosition(x, y, z),
+            GuideGregTechTileSupport.describeTile(tileEntity),
+            metaTileId,
+            GuideGregTechTileSupport.describeTileTag(tileTag));
+    }
+
+    private static boolean shouldLogPlacement(Block block, PlacementData placementData) {
+        return placementData.metaTileId != null
+            || GuideBlockDisplayResolver.isBlockInstanceOf(block, BARTWORKS_META_GENERATED_BLOCKS_CLASS);
+    }
+
+    private static String describePosition(int x, int y, int z) {
+        return "(" + x + "," + y + "," + z + ")";
     }
 
     private static final class PlacementData {

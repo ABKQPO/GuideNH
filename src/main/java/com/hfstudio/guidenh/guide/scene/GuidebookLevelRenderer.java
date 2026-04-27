@@ -42,6 +42,7 @@ import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 
 public class GuidebookLevelRenderer {
 
@@ -268,6 +269,16 @@ public class GuidebookLevelRenderer {
                 if (block == null) continue;
                 if (!block.canRenderInPass(pass)) continue;
                 try {
+                    TileEntity tileEntity = level.getTileEntity(p[0], p[1], p[2]);
+                    if (GuideGregTechTileSupport.isGregTechTileEntity(tileEntity)
+                        && !GuideGregTechTileSupport.hasValidMetaTileBinding(tileEntity)) {
+                        GuideGregTechTileSupport.logInfoOnce(
+                            "render-invalid-block-pass:" + pass + ":" + GuideGregTechTileSupport.describeTile(tileEntity),
+                            "Render pass {} found invalid GregTech block tile before block render: {}",
+                            Integer.valueOf(pass),
+                            GuideGregTechTileSupport.describeTile(tileEntity));
+                        GuideGregTechTileSupport.repairMetaTileBinding(tileEntity);
+                    }
                     resetRenderBlocksState(rb, fakeWorld, exactLayerMode);
                     rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
                 } catch (Throwable t) {
@@ -310,6 +321,15 @@ public class GuidebookLevelRenderer {
             for (TileEntity te : tileEntities) {
                 if (te == null) {
                     continue;
+                }
+                if (GuideGregTechTileSupport.isGregTechTileEntity(te)
+                    && !GuideGregTechTileSupport.hasValidMetaTileBinding(te)) {
+                    GuideGregTechTileSupport.logInfoOnce(
+                        "render-invalid-tesr-pass:" + pass + ":" + GuideGregTechTileSupport.describeTile(te),
+                        "Render pass {} found invalid GregTech tile before TESR render: {}",
+                        Integer.valueOf(pass),
+                        GuideGregTechTileSupport.describeTile(te));
+                    GuideGregTechTileSupport.repairMetaTileBinding(te);
                 }
                 if (visibleLayerY != null && te.yCoord != visibleLayerY.intValue()) {
                     continue;
