@@ -17,6 +17,7 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibImportResult;
+import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -55,13 +56,17 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         }
 
         int requestedChannel = MdxAttrs.getInt(compiler, errorSink, el, "channel", Integer.MIN_VALUE);
+        StructureLibPreviewSelection selectionOverride = scene.getPendingStructureLibPreviewSelection();
         StructureLibImportRequest request = new StructureLibImportRequest(
             controller,
             MdxAttrs.getString(compiler, errorSink, el, "piece", null),
             MdxAttrs.getString(compiler, errorSink, el, "facing", null),
             MdxAttrs.getString(compiler, errorSink, el, "rotation", null),
             MdxAttrs.getString(compiler, errorSink, el, "flip", null),
-            requestedChannel == Integer.MIN_VALUE ? null : Integer.valueOf(requestedChannel));
+            requestedChannel == Integer.MIN_VALUE ? null : Integer.valueOf(requestedChannel),
+            selectionOverride != null ? selectionOverride
+                : requestedChannel == Integer.MIN_VALUE ? StructureLibPreviewSelection.defaultSelection()
+                    : StructureLibPreviewSelection.ofMasterTier(requestedChannel));
 
         StructureLibImportResult result = importService.importScene(request);
         attachMetadata(scene, request, result);
@@ -99,11 +104,6 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         StructureLibSceneMetadata metadata = result.getMetadata();
         if (metadata != null) {
             scene.setStructureLibSceneMetadata(metadata);
-            if (request.getChannel() != null && !scene.hasStructureLibChannelData()) {
-                scene.setStructureLibCurrentChannelSilently(
-                    request.getChannel()
-                        .intValue());
-            }
             return;
         }
 
@@ -115,11 +115,6 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
                     request.getFacing(),
                     request.getRotation(),
                     request.getFlip()));
-            if (request.getChannel() != null) {
-                scene.setStructureLibCurrentChannelSilently(
-                    request.getChannel()
-                        .intValue());
-            }
         }
     }
 

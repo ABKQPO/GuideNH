@@ -24,7 +24,9 @@ public class StructureLibSceneMetadata {
     @Nullable
     private final String flip;
     @Nullable
-    private final ChannelData channelData;
+    private final TierData tierData;
+    private final List<ChannelData> channelDataList;
+    private final Map<String, ChannelData> channelDataById;
     private final Map<Long, BlockTooltipData> blockTooltipDataByPos;
     private final List<BlockTooltipEntry> hatchTooltipEntries;
     private final Set<Long> hatchTooltipPositions;
@@ -32,18 +34,28 @@ public class StructureLibSceneMetadata {
 
     public StructureLibSceneMetadata(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip) {
-        this(controller, piece, facing, rotation, flip, null, Collections.<Long, BlockTooltipData>emptyMap());
+        this(
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            null,
+            Collections.<ChannelData>emptyList(),
+            Collections.<Long, BlockTooltipData>emptyMap());
     }
 
     private StructureLibSceneMetadata(String controller, @Nullable String piece, @Nullable String facing,
-        @Nullable String rotation, @Nullable String flip, @Nullable ChannelData channelData,
-        Map<Long, BlockTooltipData> blockTooltipDataByPos) {
+        @Nullable String rotation, @Nullable String flip, @Nullable TierData tierData,
+        List<ChannelData> channelDataList, Map<Long, BlockTooltipData> blockTooltipDataByPos) {
         this.controller = requireController(controller);
         this.piece = normalizeOptional(piece);
         this.facing = normalizeOptional(facing);
         this.rotation = normalizeOptional(rotation);
         this.flip = normalizeOptional(flip);
-        this.channelData = channelData;
+        this.tierData = tierData;
+        this.channelDataList = immutableChannels(channelDataList);
+        this.channelDataById = indexChannels(this.channelDataList);
         this.blockTooltipDataByPos = immutableCopy(blockTooltipDataByPos);
         this.hatchTooltipEntries = computeHatchTooltipEntries(this.blockTooltipDataByPos);
         this.hatchTooltipPositions = computeHatchTooltipPositions(this.hatchTooltipEntries);
@@ -62,18 +74,33 @@ public class StructureLibSceneMetadata {
         } else {
             updated.put(key, tooltipData);
         }
-        return new StructureLibSceneMetadata(controller, piece, facing, rotation, flip, channelData, updated);
+        return new StructureLibSceneMetadata(controller, piece, facing, rotation, flip, tierData, channelDataList, updated);
     }
 
-    public StructureLibSceneMetadata withChannelData(String label, int minValue, int maxValue, int defaultValue,
-        int currentValue) {
+    public StructureLibSceneMetadata withTierData(int minValue, int maxValue, int defaultValue, int currentValue) {
         return new StructureLibSceneMetadata(
             controller,
             piece,
             facing,
             rotation,
             flip,
-            new ChannelData(label, minValue, maxValue, defaultValue, currentValue),
+            new TierData(minValue, maxValue, defaultValue, currentValue),
+            channelDataList,
+            blockTooltipDataByPos);
+    }
+
+    public StructureLibSceneMetadata withChannelData(String channelId, String label, int maxValue, int currentValue) {
+        LinkedHashMap<String, ChannelData> updated = new LinkedHashMap<>(channelDataById);
+        ChannelData next = new ChannelData(channelId, label, maxValue, 0, currentValue);
+        updated.put(next.getChannelId(), next);
+        return new StructureLibSceneMetadata(
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            tierData,
+            new ArrayList<>(updated.values()),
             blockTooltipDataByPos);
     }
 
@@ -95,8 +122,27 @@ public class StructureLibSceneMetadata {
     }
 
     @Nullable
-    public ChannelData getChannelData() {
-        return channelData;
+    public TierData getTierData() {
+        return tierData;
+    }
+
+    public List<ChannelData> getChannelDataList() {
+        return channelDataList;
+    }
+
+    @Nullable
+    public ChannelData getChannelData(String channelId) {
+        String normalized = StructureLibPreviewSelection.normalizeChannelId(channelId);
+        return normalized != null ? channelDataById.get(normalized) : null;
+    }
+
+    public boolean hasSelectableChannels() {
+        for (ChannelData channelData : channelDataList) {
+            if (channelData.isSelectable()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Nullable
@@ -139,6 +185,31 @@ public class StructureLibSceneMetadata {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private static List<ChannelData> immutableChannels(@Nullable List<ChannelData> source) {
+        if (source == null || source.isEmpty()) {
+            return Collections.emptyList();
+        }
+        LinkedHashMap<String, ChannelData> deduplicated = new LinkedHashMap<>(source.size());
+        for (ChannelData channelData : source) {
+            if (channelData != null) {
+                deduplicated.put(channelData.getChannelId(), channelData);
+            }
+        }
+        return deduplicated.isEmpty() ? Collections.<ChannelData>emptyList()
+            : Collections.unmodifiableList(new ArrayList<>(deduplicated.values()));
+    }
+
+    private static Map<String, ChannelData> indexChannels(List<ChannelData> channels) {
+        if (channels.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        LinkedHashMap<String, ChannelData> indexed = new LinkedHashMap<>(channels.size());
+        for (ChannelData channelData : channels) {
+            indexed.put(channelData.getChannelId(), channelData);
+        }
+        return Collections.unmodifiableMap(indexed);
+    }
+
     private static Map<Long, BlockTooltipData> immutableCopy(@Nullable Map<Long, BlockTooltipData> source) {
         if (source == null || source.isEmpty()) {
             return Collections.emptyMap();
@@ -146,8 +217,7 @@ public class StructureLibSceneMetadata {
         return Collections.unmodifiableMap(new LinkedHashMap<>(source));
     }
 
-    private static List<BlockTooltipEntry> computeHatchTooltipEntries(
-        Map<Long, BlockTooltipData> blockTooltipDataByPos) {
+    private static List<BlockTooltipEntry> computeHatchTooltipEntries(Map<Long, BlockTooltipData> blockTooltipDataByPos) {
         if (blockTooltipDataByPos.isEmpty()) {
             return Collections.emptyList();
         }
@@ -157,15 +227,9 @@ public class StructureLibSceneMetadata {
             if (value != null && value.hasHatchDetails()) {
                 entries.add(
                     new BlockTooltipEntry(
-                        unpackBlockPosX(
-                            entry.getKey()
-                                .longValue()),
-                        unpackBlockPosY(
-                            entry.getKey()
-                                .longValue()),
-                        unpackBlockPosZ(
-                            entry.getKey()
-                                .longValue()),
+                        unpackBlockPosX(entry.getKey().longValue()),
+                        unpackBlockPosY(entry.getKey().longValue()),
+                        unpackBlockPosZ(entry.getKey().longValue()),
                         value));
             }
         }
@@ -235,11 +299,11 @@ public class StructureLibSceneMetadata {
         @Nullable
         private final String structureLibDescription;
         private final List<ItemStack> blockCandidates;
-        private final List<String> hatchDescriptionLines;
+        private final List<StructureLibHatchDescriptionLine> hatchDescriptionLines;
         private final List<ItemStack> hatchCandidates;
 
         public BlockTooltipData(@Nullable String structureLibDescription, List<ItemStack> blockCandidates,
-            List<String> hatchDescriptionLines, List<ItemStack> hatchCandidates) {
+            List<StructureLibHatchDescriptionLine> hatchDescriptionLines, List<ItemStack> hatchCandidates) {
             this.structureLibDescription = normalizeOptional(structureLibDescription);
             this.blockCandidates = immutableStacks(blockCandidates);
             this.hatchDescriptionLines = immutableLines(hatchDescriptionLines);
@@ -255,7 +319,7 @@ public class StructureLibSceneMetadata {
             return blockCandidates;
         }
 
-        public List<String> getHatchDescriptionLines() {
+        public List<StructureLibHatchDescriptionLine> getHatchDescriptionLines() {
             return hatchDescriptionLines;
         }
 
@@ -286,42 +350,36 @@ public class StructureLibSceneMetadata {
             return copied.isEmpty() ? Collections.<ItemStack>emptyList() : Collections.unmodifiableList(copied);
         }
 
-        private static List<String> immutableLines(@Nullable List<String> lines) {
+        private static List<StructureLibHatchDescriptionLine> immutableLines(
+            @Nullable List<StructureLibHatchDescriptionLine> lines) {
             if (lines == null || lines.isEmpty()) {
                 return Collections.emptyList();
             }
-            List<String> copied = new ArrayList<>(lines.size());
-            for (String line : lines) {
-                String normalized = normalizeOptional(line);
-                if (normalized != null) {
-                    copied.add(normalized);
+            List<StructureLibHatchDescriptionLine> copied = new ArrayList<>(lines.size());
+            for (StructureLibHatchDescriptionLine line : lines) {
+                if (line != null) {
+                    copied.add(line);
                 }
             }
-            return copied.isEmpty() ? Collections.<String>emptyList() : Collections.unmodifiableList(copied);
+            return copied.isEmpty() ? Collections.<StructureLibHatchDescriptionLine>emptyList()
+                : Collections.unmodifiableList(copied);
         }
     }
 
-    public static class ChannelData {
+    public static class TierData {
 
-        private final String label;
         private final int minValue;
         private final int maxValue;
         private final int defaultValue;
         private final int currentValue;
 
-        private ChannelData(String label, int minValue, int maxValue, int defaultValue, int currentValue) {
-            String normalizedLabel = normalizeOptional(label);
+        private TierData(int minValue, int maxValue, int defaultValue, int currentValue) {
             int normalizedMin = Math.max(1, minValue);
             int normalizedMax = Math.max(normalizedMin, maxValue);
-            this.label = normalizedLabel != null ? normalizedLabel : "Channel";
             this.minValue = normalizedMin;
             this.maxValue = normalizedMax;
             this.defaultValue = clamp(defaultValue, normalizedMin, normalizedMax);
             this.currentValue = clamp(currentValue, normalizedMin, normalizedMax);
-        }
-
-        public String getLabel() {
-            return label;
         }
 
         public int getMinValue() {
@@ -343,12 +401,60 @@ public class StructureLibSceneMetadata {
         public boolean isSelectable() {
             return maxValue > minValue;
         }
+    }
 
-        private static int clamp(int value, int minValue, int maxValue) {
-            if (value < minValue) {
-                return minValue;
-            }
-            return value > maxValue ? maxValue : value;
+    public static class ChannelData {
+
+        private final String channelId;
+        private final String label;
+        private final int maxValue;
+        private final int defaultValue;
+        private final int currentValue;
+
+        private ChannelData(String channelId, String label, int maxValue, int defaultValue, int currentValue) {
+            String normalizedChannelId = StructureLibPreviewSelection.normalizeChannelId(channelId);
+            String normalizedLabel = normalizeOptional(label);
+            int normalizedMax = Math.max(0, maxValue);
+            this.channelId = normalizedChannelId != null ? normalizedChannelId : "channel";
+            this.label = normalizedLabel != null ? normalizedLabel : this.channelId;
+            this.maxValue = normalizedMax;
+            this.defaultValue = clamp(defaultValue, 0, normalizedMax);
+            this.currentValue = clamp(currentValue, 0, normalizedMax);
         }
+
+        public String getChannelId() {
+            return channelId;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+
+        public int getMinValue() {
+            return 0;
+        }
+
+        public int getMaxValue() {
+            return maxValue;
+        }
+
+        public int getDefaultValue() {
+            return defaultValue;
+        }
+
+        public int getCurrentValue() {
+            return currentValue;
+        }
+
+        public boolean isSelectable() {
+            return maxValue > 0;
+        }
+    }
+
+    private static int clamp(int value, int minValue, int maxValue) {
+        if (value < minValue) {
+            return minValue;
+        }
+        return value > maxValue ? maxValue : value;
     }
 }

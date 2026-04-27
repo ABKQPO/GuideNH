@@ -33,6 +33,7 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibImportResult;
+import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
@@ -54,7 +55,8 @@ final class SceneEditorSceneNodePreviewApplier {
         apply(session, scene, null);
     }
 
-    void apply(SceneEditorSession session, LytGuidebookScene scene, @Nullable Integer structureLibChannelOverride) {
+    void apply(SceneEditorSession session, LytGuidebookScene scene,
+        @Nullable StructureLibPreviewSelection structureLibSelectionOverride) {
         SceneEditorSceneModel model = session.getSceneModel();
         if (model.getSceneNodes()
             .isEmpty()) {
@@ -63,7 +65,7 @@ final class SceneEditorSceneNodePreviewApplier {
         }
 
         for (SceneEditorSceneNodeModel node : model.getSceneNodes()) {
-            applyNode(session, scene, node, structureLibChannelOverride);
+            applyNode(session, scene, node, structureLibSelectionOverride);
         }
     }
 
@@ -83,13 +85,13 @@ final class SceneEditorSceneNodePreviewApplier {
     }
 
     private void applyNode(SceneEditorSession session, LytGuidebookScene scene, SceneEditorSceneNodeModel node,
-        @Nullable Integer structureLibChannelOverride) {
+        @Nullable StructureLibPreviewSelection structureLibSelectionOverride) {
         switch (node.getType()) {
             case IMPORT_STRUCTURE:
                 applyImportStructure(session, scene.getLevel(), node);
                 return;
             case IMPORT_STRUCTURE_LIB:
-                applyImportStructureLib(scene, node, structureLibChannelOverride);
+                applyImportStructureLib(scene, node, structureLibSelectionOverride);
                 return;
             case REMOVE_BLOCKS:
                 applyRemoveBlocks(scene.getLevel(), node);
@@ -121,7 +123,7 @@ final class SceneEditorSceneNodePreviewApplier {
     }
 
     private void applyImportStructureLib(LytGuidebookScene scene, SceneEditorSceneNodeModel node,
-        @Nullable Integer structureLibChannelOverride) {
+        @Nullable StructureLibPreviewSelection structureLibSelectionOverride) {
         String controller = normalizeAttribute(node.getAttribute("controller"));
         if (controller == null) {
             return;
@@ -134,8 +136,12 @@ final class SceneEditorSceneNodePreviewApplier {
             node.getAttribute("facing"),
             node.getAttribute("rotation"),
             node.getAttribute("flip"),
-            structureLibChannelOverride != null ? structureLibChannelOverride
-                : parseIntegerAttribute(node.getAttribute("channel")));
+            structureLibSelectionOverride != null ? Integer.valueOf(structureLibSelectionOverride.getMasterTier())
+                : parseIntegerAttribute(node.getAttribute("channel")),
+            structureLibSelectionOverride != null ? structureLibSelectionOverride
+                : parseIntegerAttribute(node.getAttribute("channel")) != null
+                    ? StructureLibPreviewSelection.ofMasterTier(parseIntegerAttribute(node.getAttribute("channel")))
+                    : StructureLibPreviewSelection.defaultSelection());
         StructureLibImportResult result = structureLibImportService.importScene(request);
         attachStructureLibMetadata(scene, request, result);
         if (!result.isSuccess()) {
@@ -169,11 +175,6 @@ final class SceneEditorSceneNodePreviewApplier {
         StructureLibImportResult result) {
         if (result.getMetadata() != null) {
             scene.setStructureLibSceneMetadata(result.getMetadata());
-            if (request.getChannel() != null && !scene.hasStructureLibChannelData()) {
-                scene.setStructureLibCurrentChannelSilently(
-                    request.getChannel()
-                        .intValue());
-            }
             return;
         }
         if (!result.isSuccess()) {
@@ -181,17 +182,12 @@ final class SceneEditorSceneNodePreviewApplier {
         }
 
         scene.setStructureLibSceneMetadata(
-            new com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata(
-                request.getController(),
-                request.getPiece(),
-                request.getFacing(),
-                request.getRotation(),
-                request.getFlip()));
-        if (request.getChannel() != null) {
-            scene.setStructureLibCurrentChannelSilently(
-                request.getChannel()
-                    .intValue());
-        }
+                new com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata(
+                    request.getController(),
+                    request.getPiece(),
+                    request.getFacing(),
+                    request.getRotation(),
+                    request.getFlip()));
     }
 
     private void applyRemoveBlocks(GuidebookLevel level, SceneEditorSceneNodeModel node) {

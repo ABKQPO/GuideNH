@@ -58,6 +58,7 @@ public final class LytNeiRecipeBox extends LytBlock implements InteractiveElemen
     private final int iconImageH;
     private final int bodyWidth;
     private final int bodyHeight;
+    private final int bodyYShift;
     private final int titleHeight;
 
     public LytNeiRecipeBox(Object handler, int recipeIndex) {
@@ -75,13 +76,15 @@ public final class LytNeiRecipeBox extends LytBlock implements InteractiveElemen
 
         int handlerW = NeiRecipeLookup.lookupHandlerWidth(handler);
         int handlerH = NeiRecipeLookup.lookupHandlerHeight(handler);
+        int recipeH = NeiRecipeLookup.lookupRecipeHeight(handler, recipeIndex);
         if (handlerW <= 0) handlerW = FALLBACK_BODY_WIDTH;
         if (handlerH <= 0) handlerH = DEFAULT_BODY_HEIGHT;
 
         // Respect the handler's declared background size verbatim; tight-fitting by slot bbox
         // caused visible clipping for some handlers and was reverted.
         this.bodyWidth = handlerW;
-        this.bodyHeight = handlerH;
+        this.bodyYShift = Math.max(0, NeiRecipeLookup.lookupHandlerYShift(handler));
+        this.bodyHeight = Math.max(1, recipeH > 0 ? recipeH : handlerH);
 
         int fh = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
         this.titleHeight = Math.max(ICON_SIZE, fh) + TITLE_PAD_TOP + TITLE_PAD_BOTTOM;
@@ -103,7 +106,7 @@ public final class LytNeiRecipeBox extends LytBlock implements InteractiveElemen
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int innerW = Math.max(bodyWidth, iconSize() + (iconSize() > 0 ? TITLE_GAP_AFTER_ICON : 0) + titleTextWidth());
         int w = FRAME_BORDER + innerW + FRAME_BORDER;
-        int h = FRAME_BORDER + titleHeight + BODY_MARGIN + bodyHeight + FRAME_BORDER;
+        int h = FRAME_BORDER + titleHeight + BODY_MARGIN + bodyHeight + bodyYShift + FRAME_BORDER;
         return new LytRect(x, y, w, h);
     }
 
@@ -149,7 +152,7 @@ public final class LytNeiRecipeBox extends LytBlock implements InteractiveElemen
         int bodyX = innerLeft;
         int bodyY = innerTop + titleHeight + BODY_MARGIN;
         NeiAnimationTicker.ensureUpdating(handler);
-        NeiHandlerRenderer.render(handler, recipeIndex, bodyX, bodyY, -1, -1);
+        NeiHandlerRenderer.render(handler, recipeIndex, bodyX, bodyY + bodyYShift, -1, -1);
     }
 
     private static void drawScaledItem(RenderContext context, ItemStack stack, int x, int y, int size) {
@@ -198,7 +201,7 @@ public final class LytNeiRecipeBox extends LytBlock implements InteractiveElemen
         int py = (int) my;
 
         int bodyX = bounds.x() + FRAME_BORDER;
-        int bodyY = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN;
+        int bodyY = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyYShift;
 
         ItemStack hit = findSlotHit(NeiRecipeLookup.readIngredientSlots(handler, recipeIndex), bodyX, bodyY, px, py);
         if (hit == null) {

@@ -16,9 +16,6 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 
@@ -55,6 +52,7 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 public final class GuideScreen extends GuiScreen implements GuideUiHost {
@@ -86,6 +84,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
 
     private int scrollY;
     private int lastLayoutWidth = -1;
+    private long lastPageWheelScrollAtMillis;
 
     private int panelX, panelY, panelW, panelH;
     private int contentX, contentY, contentW, contentH;
@@ -869,23 +868,38 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         super.handleMouseInput();
         int dwheel = Mouse.getEventDWheel();
         if (dwheel != 0) {
+            long now = System.currentTimeMillis();
             int mouseX = Mouse.getEventX() * this.width / mc.displayWidth;
             int mouseY = this.height - Mouse.getEventY() * this.height / mc.displayHeight - 1;
             if (navBar.isOpen() && navBar.contains(mouseX, mouseY)) {
                 navBar.scroll(dwheel);
                 return;
             }
-            if (ModConfig.ui.sceneWheelZoom) {
-                LytGuidebookScene scene = sceneAt(mouseX, mouseY);
-                if (scene != null && scene.isInteractive()) {
-                    scene.scroll(mouseX, mouseY, dwheel);
-                    return;
-                }
+            LytGuidebookScene scene = sceneAt(mouseX, mouseY);
+            boolean sceneWheelBlocked = isSceneWheelInteractionBlocked(now);
+            if (scene != null && scene.isInteractive() && !sceneWheelBlocked
+                && (scene.containsBottomControlSlider(mouseX, mouseY) || ModConfig.ui.sceneWheelZoom)) {
+                scene.scroll(mouseX, mouseY, dwheel);
+                return;
             }
 
             int step = GuiScreen.isShiftKeyDown() ? 60 : 20;
             scrollY -= Integer.signum(dwheel) * step;
             clampScroll();
+            lastPageWheelScrollAtMillis = now;
+        }
+    }
+
+    private boolean isSceneWheelInteractionBlocked(long now) {
+        int delayMillis = resolveSceneWheelInteractionDelayMillis();
+        return delayMillis > 0 && now - lastPageWheelScrollAtMillis < delayMillis;
+    }
+
+    private static int resolveSceneWheelInteractionDelayMillis() {
+        try {
+            return Math.max(0, ModConfig.ui.sceneWheelInteractionDelayMillis);
+        } catch (Throwable ignored) {
+            return 750;
         }
     }
 
@@ -1052,8 +1066,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         LytGuidebookScene scene = interaction != null ? interaction.scene : null;
         if (scene != null) {
             hoveredScene = scene;
-            if (scene.containsVisibleLayerSlider(mouseX, mouseY)
-                || scene.containsStructureLibChannelSlider(mouseX, mouseY)) {
+            if (scene.containsBottomControlSlider(mouseX, mouseY)) {
                 scene.clearAnnotationHover();
                 scene.setHoveredStructureLibHatch(null);
                 scene.setHoveredBlock(null);
@@ -1142,17 +1155,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
     @Nullable
     private static String blockDisplayName(LytGuidebookScene scene, int x, int y, int z) {
         try {
-            var level = scene.getLevel();
-            var block = level.getBlock(x, y, z);
-            if (block == null || block == Blocks.air) return null;
-            int meta = level.getBlockMetadata(x, y, z);
-            var item = Item.getItemFromBlock(block);
-            if (item != null) {
-                var stack = new ItemStack(item, 1, meta);
-                return stack.getDisplayName();
-            }
-            String unloc = block.getLocalizedName();
-            return unloc != null ? unloc : block.getUnlocalizedName();
+            return GuideBlockDisplayResolver.resolveDisplayName(scene.getLevel(), x, y, z);
         } catch (Throwable t) {
             return null;
         }

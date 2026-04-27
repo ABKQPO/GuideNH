@@ -85,6 +85,15 @@ public class ModConfig {
 
         @Comment("Maximum item columns per row when showing StructureLib block candidates in tooltips.")
         public int sceneStructureLibCandidateColumns = 6;
+
+        @Comment("Whether 3D scene previews show the layer slider by default. "
+            + "This can still be enabled per-scene from markdown. Default: true.")
+        @DefaultBoolean(true)
+        public boolean sceneLayerSliderEnabled = true;
+
+        @Comment("How long page-wheel scrolling temporarily blocks 3D preview wheel interactions. "
+            + "Value is in milliseconds. Default: 750.")
+        public int sceneWheelInteractionDelayMillis = 750;
     }
 
     public static void save() {

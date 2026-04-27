@@ -64,6 +64,9 @@ public class GuidebookTileEntityLoader {
     }
 
     private static void bindTile(TileEntity tileEntity, World world, Block block, int meta, int x, int y, int z) {
+        try {
+            tileEntity.updateContainingBlockInfo();
+        } catch (Throwable ignored) {}
         tileEntity.xCoord = x;
         tileEntity.yCoord = y;
         tileEntity.zCoord = z;

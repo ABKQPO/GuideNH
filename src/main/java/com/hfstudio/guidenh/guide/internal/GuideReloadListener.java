@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.guide.internal.recipe.NeiAnimationTicker;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
 public class GuideReloadListener implements IResourceManagerReloadListener {
 
@@ -30,6 +31,7 @@ public class GuideReloadListener implements IResourceManagerReloadListener {
         // Drop cached NEI reflection data so freshly (re)registered handlers are picked up.
         RecipeCache.clear();
         NeiAnimationTicker.clear();
+        GuidePageTexture.clear();
         GuideRegistry.setDataDriven(DataDrivenGuideLoader.load());
         var guidePages = new HashMap<ResourceLocation, Map<ResourceLocation, ParsedGuidePage>>();
 

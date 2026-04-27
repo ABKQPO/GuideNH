@@ -2,8 +2,10 @@ package com.hfstudio.guidenh.guide.document.interaction;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 
 public class ContentTooltip implements GuideTooltip {
 
@@ -14,6 +16,7 @@ public class ContentTooltip implements GuideTooltip {
 
     public ContentTooltip(LytBlock content) {
         this.content = content;
+        prepareEmbeddedScenes(content);
     }
 
     public LytBlock getContent() {
@@ -31,5 +34,19 @@ public class ContentTooltip implements GuideTooltip {
 
     public LytRect getLayoutBox() {
         return layoutBox;
+    }
+
+    private static void prepareEmbeddedScenes(LytNode node) {
+        if (node == null) {
+            return;
+        }
+        if (node instanceof LytGuidebookScene scene) {
+            scene.setInteractive(false);
+            scene.setSceneButtonsVisible(false);
+            scene.setBottomControlsVisible(false);
+        }
+        for (LytNode child : node.getChildren()) {
+            prepareEmbeddedScenes(child);
+        }
     }
 }

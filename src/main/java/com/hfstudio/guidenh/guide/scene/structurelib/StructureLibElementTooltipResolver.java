@@ -59,7 +59,7 @@ public class StructureLibElementTooltipResolver {
             z,
             trigger,
             actor,
-            new IdentityHashMap<IStructureElement<?>, Boolean>());
+                new IdentityHashMap<>());
         List<ItemStack> blockCandidates = collectStackCandidatesAcrossTiers(
             constructable,
             cast(element),
@@ -71,12 +71,13 @@ public class StructureLibElementTooltipResolver {
             actor);
         List<ItemStack> hatchCandidates = hatchLeafMatch != null
             ? collectHatchCandidatesAcrossTiers(constructable, hatchLeafMatch.element, world, x, y, z, trigger, actor)
-            : Collections.<ItemStack>emptyList();
+            : Collections.emptyList();
         if (hatchLeafMatch != null && !blockCandidates.isEmpty()) {
             blockCandidates = filterOutHatchCandidates(blockCandidates);
         }
-        List<String> hatchDescriptionLines = hatchLeafMatch != null ? buildHatchDescriptionLines(hatchLeafMatch.details)
-            : Collections.<String>emptyList();
+        List<StructureLibHatchDescriptionLine> hatchDescriptionLines = hatchLeafMatch != null
+            ? buildHatchDescriptionLines(hatchLeafMatch.details)
+            : Collections.emptyList();
         return new TooltipDetails(blockCandidates, hatchDescriptionLines, hatchCandidates);
     }
 
@@ -278,22 +279,29 @@ public class StructureLibElementTooltipResolver {
                 filtered.add(candidate.copy());
             }
         }
-        return filtered.isEmpty() ? Collections.<ItemStack>emptyList() : Collections.unmodifiableList(filtered);
+        return filtered.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(filtered);
     }
 
-    private List<String> buildHatchDescriptionLines(HatchDetails details) {
-        List<String> lines = new ArrayList<>(2);
+    private List<StructureLibHatchDescriptionLine> buildHatchDescriptionLines(HatchDetails details) {
+        List<StructureLibHatchDescriptionLine> lines = new ArrayList<>(2);
         if (details.getHintDot() > 0) {
-            lines.add("Hint Block: Gold Dot " + details.getHintDot());
+            lines.add(StructureLibHatchDescriptionLine.hintBlock(details.getHintDot()));
         }
         if (details.getHintText() != null && !details.getHintText()
             .trim()
             .isEmpty()) {
-            lines.add(
-                "Valid Hatches: " + details.getHintText()
-                    .trim());
+            lines.add(StructureLibHatchDescriptionLine.validHatches(normalizeHatchHintText(details.getHintText())));
         }
-        return lines.isEmpty() ? Collections.<String>emptyList() : Collections.unmodifiableList(lines);
+        return lines.isEmpty() ? Collections.emptyList()
+            : Collections.unmodifiableList(lines);
+    }
+
+    private static String normalizeHatchHintText(String hintText) {
+        String normalized = hintText.trim();
+        if (normalized.isEmpty()) {
+            return normalized;
+        }
+        return normalized.replaceAll("\\bor(?=\\S)", "or ");
     }
 
     private void appendStacks(Map<String, ItemStack> candidatesByKey, List<ItemStack> stacks) {
@@ -387,15 +395,16 @@ public class StructureLibElementTooltipResolver {
     public static class TooltipDetails {
 
         private static final TooltipDetails EMPTY = new TooltipDetails(
-            Collections.<ItemStack>emptyList(),
-            Collections.<String>emptyList(),
-            Collections.<ItemStack>emptyList());
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList());
 
         private final List<ItemStack> blockCandidates;
-        private final List<String> hatchDescriptionLines;
+        private final List<StructureLibHatchDescriptionLine> hatchDescriptionLines;
         private final List<ItemStack> hatchCandidates;
 
-        public TooltipDetails(List<ItemStack> blockCandidates, List<String> hatchDescriptionLines,
+        public TooltipDetails(List<ItemStack> blockCandidates,
+            List<StructureLibHatchDescriptionLine> hatchDescriptionLines,
             List<ItemStack> hatchCandidates) {
             this.blockCandidates = blockCandidates;
             this.hatchDescriptionLines = hatchDescriptionLines;
@@ -410,7 +419,7 @@ public class StructureLibElementTooltipResolver {
             return blockCandidates;
         }
 
-        public List<String> getHatchDescriptionLines() {
+        public List<StructureLibHatchDescriptionLine> getHatchDescriptionLines() {
             return hatchDescriptionLines;
         }
 

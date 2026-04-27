@@ -61,13 +61,12 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     public void rebindAllTileEntities() {
-        World world = getOrCreateFakeWorld();
+        GuidebookFakeWorld world = getOrCreateFakeWorld();
         for (TileEntity te : tileEntities.values()) {
-            te.blockType = getBlock(te.xCoord, te.yCoord, te.zCoord);
-            te.blockMetadata = getBlockMetadata(te.xCoord, te.yCoord, te.zCoord);
-            te.setWorldObj(world);
+            bindTileEntity(te, te.xCoord, te.yCoord, te.zCoord, world);
             te.validate();
         }
+        world.syncLoadedTileEntities(tileEntities.values());
     }
 
     public void prepareForPreview() {
@@ -76,7 +75,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         previewStateDirty = false;
         rebindAllTileEntities();
-        tickPreviewTileEntities();
+        tickPreviewWorld();
     }
 
     public void setBlock(int x, int y, int z, @Nullable Block block, int meta, @Nullable TileEntity tileEntity) {
@@ -107,12 +106,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
                 explicitBlockIds.remove(key);
             }
             if (tileEntity != null) {
-                tileEntity.xCoord = x;
-                tileEntity.yCoord = y;
-                tileEntity.zCoord = z;
-                tileEntity.blockType = block;
-                tileEntity.blockMetadata = meta;
-                tileEntity.setWorldObj(getOrCreateFakeWorld());
+                bindTileEntity(tileEntity, x, y, z, getOrCreateFakeWorld());
                 tileEntity.validate();
                 tileEntities.put(key, tileEntity);
             } else {
@@ -138,24 +132,14 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         TileEntity existing = tileEntities.get(key);
         if (existing == tileEntity) {
             if (tileEntity != null) {
-                tileEntity.xCoord = x;
-                tileEntity.yCoord = y;
-                tileEntity.zCoord = z;
-                tileEntity.blockType = getBlock(x, y, z);
-                tileEntity.blockMetadata = getBlockMetadata(x, y, z);
-                tileEntity.setWorldObj(getOrCreateFakeWorld());
+                bindTileEntity(tileEntity, x, y, z, getOrCreateFakeWorld());
             }
             return;
         }
         if (tileEntity == null) {
             tileEntities.remove(key);
         } else {
-            tileEntity.xCoord = x;
-            tileEntity.yCoord = y;
-            tileEntity.zCoord = z;
-            tileEntity.blockType = getBlock(x, y, z);
-            tileEntity.blockMetadata = getBlockMetadata(x, y, z);
-            tileEntity.setWorldObj(getOrCreateFakeWorld());
+            bindTileEntity(tileEntity, x, y, z, getOrCreateFakeWorld());
             tileEntity.validate();
             tileEntities.put(key, tileEntity);
         }
@@ -335,9 +319,17 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         return ((long) (x & 0x3FFFFFF)) | (((long) (z & 0x3FFFFFF)) << 26) | (((long) (y & 0xFF)) << 52);
     }
 
-    private void tickPreviewTileEntities() {
-        TileEntity[] snapshot = tileEntities.values()
-            .toArray(new TileEntity[0]);
+    private void tickPreviewWorld() {
+        GuidebookFakeWorld world = getOrCreateFakeWorld();
+        try {
+            world.updateEntitiesForPreview();
+        } catch (Throwable ignored) {
+            tickPreviewTileEntitiesFallback();
+        }
+    }
+
+    private void tickPreviewTileEntitiesFallback() {
+        TileEntity[] snapshot = tileEntities.values().toArray(new TileEntity[0]);
         for (TileEntity tileEntity : snapshot) {
             if (tileEntity == null || !tileEntity.canUpdate()) {
                 continue;
@@ -346,6 +338,18 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
                 tileEntity.updateEntity();
             } catch (Throwable ignored) {}
         }
+    }
+
+    private void bindTileEntity(TileEntity tileEntity, int x, int y, int z, World world) {
+        try {
+            tileEntity.updateContainingBlockInfo();
+        } catch (Throwable ignored) {}
+        tileEntity.xCoord = x;
+        tileEntity.yCoord = y;
+        tileEntity.zCoord = z;
+        tileEntity.blockType = getBlock(x, y, z);
+        tileEntity.blockMetadata = getBlockMetadata(x, y, z);
+        tileEntity.setWorldObj(world);
     }
 
     @Nullable

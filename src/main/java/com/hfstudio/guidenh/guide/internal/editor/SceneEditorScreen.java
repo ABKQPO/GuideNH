@@ -13,10 +13,13 @@ import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 
@@ -27,6 +30,10 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
+import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
+import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
+import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorDraftTextController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorElementContextMenuController;
@@ -64,6 +71,7 @@ import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorPreviewBrid
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorPreviewCameraController;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapModes;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapService;
+import com.hfstudio.guidenh.guide.internal.recipe.NeiItemTooltip;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
@@ -72,6 +80,8 @@ import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.SavedCameraSettings;
+import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 
 public final class SceneEditorScreen extends GuiScreen {
 
@@ -168,6 +178,7 @@ public final class SceneEditorScreen extends GuiScreen {
     private final SceneEditorStructureImportService structureImportService;
     private final LayoutContext previewLayoutContext;
     private final VanillaRenderContext previewRenderContext;
+    private final VanillaRenderContext previewTooltipRenderContext;
     private final List<NumericParameterRow> numericParameterRows;
     private final SceneEditorScrollState elementPanelScrollState;
     private final Random elementColorRandom;
@@ -246,7 +257,7 @@ public final class SceneEditorScreen extends GuiScreen {
     @Nullable
     private Integer previewVisibleLayerOverride;
     @Nullable
-    private Integer previewStructureLibChannelOverride;
+    private StructureLibPreviewSelection previewStructureLibSelectionOverride;
     private boolean closeConfirmDialogOpen;
     @Nullable
     private String closeConfirmErrorText;
@@ -290,6 +301,7 @@ public final class SceneEditorScreen extends GuiScreen {
         this.structureImportService = new SceneEditorStructureImportService(structureCache);
         this.previewLayoutContext = new LayoutContext(new MinecraftFontMetrics());
         this.previewRenderContext = new VanillaRenderContext(LightDarkMode.LIGHT_MODE, LytRect.empty(), 0);
+        this.previewTooltipRenderContext = new VanillaRenderContext(LightDarkMode.LIGHT_MODE, LytRect.empty(), 0);
         this.numericParameterRows = new ArrayList<>();
         this.elementPanelScrollState = new SceneEditorScrollState();
         this.addElementMenuState = new SceneEditorHoverMenuState();
@@ -315,7 +327,7 @@ public final class SceneEditorScreen extends GuiScreen {
         this.previewDirty = true;
         this.preservePreviewCameraOnNextRebuild = false;
         this.previewVisibleLayerOverride = null;
-        this.previewStructureLibChannelOverride = null;
+        this.previewStructureLibSelectionOverride = null;
         this.closeConfirmDialogOpen = false;
         this.closeConfirmErrorText = null;
         this.activeSettingsTab = SceneEditorSettingsTab.CAMERA;
@@ -556,6 +568,8 @@ public final class SceneEditorScreen extends GuiScreen {
                 mouseX,
                 mouseY,
                 this.fontRendererObj);
+        } else {
+            drawPreviewSceneHoverTooltip(mouseX, mouseY);
         }
     }
 
@@ -592,8 +606,7 @@ public final class SceneEditorScreen extends GuiScreen {
             ensurePreviewScene();
             if (previewScene != null && isInsidePreviewInteractionArea(mouseX, mouseY)
                 && (previewScene.containsSceneViewport(mouseX, mouseY)
-                    || previewScene.containsVisibleLayerSlider(mouseX, mouseY)
-                    || previewScene.containsStructureLibChannelSlider(mouseX, mouseY))) {
+                    || previewScene.containsBottomControlSlider(mouseX, mouseY))) {
                 previewScene.scroll(mouseX, mouseY, wheelDelta);
                 return;
             }
@@ -699,8 +712,7 @@ public final class SceneEditorScreen extends GuiScreen {
                 return;
             }
             if (button == 0 && isInsidePreviewInteractionArea(mouseX, mouseY)
-                && (previewScene.containsVisibleLayerSlider(mouseX, mouseY)
-                    || previewScene.containsStructureLibChannelSlider(mouseX, mouseY))) {
+                && previewScene.containsBottomControlSlider(mouseX, mouseY)) {
                 activePreviewScene = previewScene;
                 activePreviewScene.startDrag(mouseX, mouseY, button);
                 return;
@@ -1007,11 +1019,19 @@ public final class SceneEditorScreen extends GuiScreen {
             previewRenderContext.setDocumentOrigin(0, 0);
             previewRenderContext.setScrollOffsetY(0);
             if (isInsidePreviewInteractionArea(mouseX, mouseY)
-                && !previewScene.containsVisibleLayerSlider(mouseX, mouseY)
-                && !previewScene.containsStructureLibChannelSlider(mouseX, mouseY)) {
-                previewScene.updateAnnotationHover(mouseX, mouseY);
+                && !previewScene.containsBottomControlSlider(mouseX, mouseY)) {
+                var hoveredAnnotation = previewScene.updateAnnotationHover(mouseX, mouseY);
+                if (hoveredAnnotation != null) {
+                    previewScene.setHoveredStructureLibHatch(null);
+                    previewScene.setHoveredBlock(null);
+                } else {
+                    previewScene.setHoveredStructureLibHatch(previewScene.pickStructureLibHatch(mouseX, mouseY));
+                    previewScene.setHoveredBlock(previewScene.pickBlock(mouseX, mouseY));
+                }
             } else {
                 previewScene.clearAnnotationHover();
+                previewScene.setHoveredStructureLibHatch(null);
+                previewScene.setHoveredBlock(null);
             }
             previewScene.render(previewRenderContext);
             LytRect previewViewport = previewScene.getScreenRect();
@@ -1059,6 +1079,195 @@ public final class SceneEditorScreen extends GuiScreen {
             12,
             this.height - 14,
             PANEL_SUBTLE_TEXT);
+    }
+
+    private void drawPreviewSceneHoverTooltip(int mouseX, int mouseY) {
+        if (previewScene == null || !previewScene.containsSceneInteractiveTarget(mouseX, mouseY)) {
+            return;
+        }
+
+        for (var annotation : previewScene.getAnnotations()) {
+            if (annotation.isHovered() && annotation.getTooltip() != null) {
+                renderPreviewGuideTooltip(annotation.getTooltip(), mouseX, mouseY);
+                return;
+            }
+        }
+
+        int[] hoveredHatch = previewScene.getHoveredStructureLibHatch();
+        if (hoveredHatch != null) {
+            String name = GuideBlockDisplayResolver.resolveDisplayName(
+                previewScene.getLevel(),
+                hoveredHatch[0],
+                hoveredHatch[1],
+                hoveredHatch[2]);
+            if (name != null) {
+                GuideTooltip structureLibTooltip = previewScene
+                    .createStructureLibTooltipForHoveredBlock(name, isShiftKeyDown());
+                if (structureLibTooltip != null) {
+                    renderPreviewGuideTooltip(structureLibTooltip, mouseX, mouseY);
+                    return;
+                }
+                drawPreviewTooltipText(name, mouseX, mouseY);
+                return;
+            }
+        }
+
+        int[] hoveredBlock = previewScene.getHoveredBlock();
+        if (hoveredBlock == null) {
+            return;
+        }
+
+        String name = GuideBlockDisplayResolver.resolveDisplayName(
+            previewScene.getLevel(),
+            hoveredBlock[0],
+            hoveredBlock[1],
+            hoveredBlock[2]);
+        if (name != null) {
+            GuideTooltip structureLibTooltip = previewScene.createStructureLibTooltipForHoveredBlock(name, isShiftKeyDown());
+            if (structureLibTooltip != null) {
+                renderPreviewGuideTooltip(structureLibTooltip, mouseX, mouseY);
+                return;
+            }
+            drawPreviewTooltipText(name, mouseX, mouseY);
+        }
+    }
+
+    private void renderPreviewGuideTooltip(GuideTooltip tooltip, int mouseX, int mouseY) {
+        if (tooltip instanceof ItemTooltip itemTooltip) {
+            ItemStack stack = itemTooltip.getStack();
+            if (stack == null || stack.stackSize == 0) {
+                return;
+            }
+            List<String> lines;
+            try {
+                lines = stack.getTooltip(mc.thePlayer, mc.gameSettings.advancedItemTooltips);
+            } catch (Throwable t) {
+                lines = new ArrayList<>();
+                lines.add(stack.getDisplayName());
+            }
+            var rarity = stack.getRarity();
+            if (!lines.isEmpty() && rarity != null) {
+                lines.set(0, rarity.rarityColor.toString() + lines.get(0));
+            }
+            for (int i = 1; i < lines.size(); i++) {
+                lines.set(i, EnumChatFormatting.GRAY + lines.get(i));
+            }
+            if (tooltip instanceof NeiItemTooltip neiItemTooltip) {
+                neiItemTooltip.appendExtraLines(lines);
+            }
+            drawHoveringText(lines, mouseX, mouseY, mc.fontRenderer);
+            return;
+        }
+
+        if (tooltip instanceof TextTooltip textTooltip) {
+            drawPreviewTooltipText(textTooltip.getText(), mouseX, mouseY);
+            return;
+        }
+
+        if (tooltip instanceof ContentTooltip contentTooltip) {
+            drawPreviewContentTooltip(contentTooltip, mouseX, mouseY);
+        }
+    }
+
+    private void drawPreviewContentTooltip(ContentTooltip tooltip, int mouseX, int mouseY) {
+        int pad = 4;
+        int maxWidth = Math.max(80, (this.width * 4) / 5);
+        var box = tooltip.layout(maxWidth);
+        int tooltipWidth = box.width();
+        int tooltipHeight = box.height();
+        int tooltipX = mouseX + 12;
+        int tooltipY = mouseY - 12;
+        if (tooltipX + tooltipWidth + pad > this.width) {
+            tooltipX = mouseX - tooltipWidth - 12;
+        }
+        if (tooltipX - pad < 0) {
+            tooltipX = pad;
+        }
+        if (tooltipY + tooltipHeight + pad > this.height) {
+            tooltipY = this.height - tooltipHeight - pad;
+        }
+        if (tooltipY - pad < 0) {
+            tooltipY = pad;
+        }
+
+        drawRect(
+            tooltipX - pad,
+            tooltipY - pad,
+            tooltipX + tooltipWidth + pad,
+            tooltipY + tooltipHeight + pad,
+            0xF0100010);
+        drawBorder(tooltipX - pad, tooltipY - pad, tooltipWidth + pad * 2, tooltipHeight + pad * 2, 0xFF5000FF);
+
+        previewTooltipRenderContext.setLightDarkMode(LightDarkMode.LIGHT_MODE);
+        previewTooltipRenderContext.setViewport(new LytRect(0, 0, tooltipWidth, tooltipHeight));
+        previewTooltipRenderContext.setScreenHeight(this.height);
+        previewTooltipRenderContext.setDocumentOrigin(tooltipX, tooltipY);
+        previewTooltipRenderContext.setScrollOffsetY(0);
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(tooltipX, tooltipY, 300f);
+        try {
+            tooltip.getContent()
+                .render(previewTooltipRenderContext);
+        } catch (Throwable ignored) {
+            // Keep preview hover robust even if rich tooltip content fails.
+        } finally {
+            GL11.glPopMatrix();
+        }
+    }
+
+    private void drawPreviewTooltipText(String text, int mouseX, int mouseY) {
+        FontRenderer fontRenderer = mc.fontRenderer;
+        String normalizedText = text.indexOf('\\') >= 0 ? text.replace("\\n", "\n") : text;
+        int pad = 3;
+        int hardMaxWidth = Math.max(40, this.width - 24);
+        int preferredWrapWidth = Math.max(80, this.width / 2);
+        int wrapWidth = Math.max(40, Math.min(hardMaxWidth, preferredWrapWidth));
+        List<String> lines = new ArrayList<>();
+        for (String rawLine : normalizedText.split("\n", -1)) {
+            if (rawLine.isEmpty()) {
+                lines.add("");
+                continue;
+            }
+            if (fontRenderer.getStringWidth(rawLine) <= wrapWidth) {
+                lines.add(rawLine);
+                continue;
+            }
+            lines.addAll(fontRenderer.listFormattedStringToWidth(rawLine, wrapWidth));
+        }
+
+        int tooltipWidth = 0;
+        for (String line : lines) {
+            tooltipWidth = Math.max(tooltipWidth, fontRenderer.getStringWidth(line));
+        }
+        int tooltipHeight = lines.size() * (fontRenderer.FONT_HEIGHT + 1) - 1;
+        int tooltipX = mouseX + 12;
+        int tooltipY = mouseY - 12;
+        if (tooltipX + tooltipWidth + pad > this.width) {
+            tooltipX = mouseX - tooltipWidth - 12;
+        }
+        if (tooltipX - pad < 0) {
+            tooltipX = pad;
+        }
+        if (tooltipY + tooltipHeight + pad > this.height) {
+            tooltipY = this.height - tooltipHeight - pad;
+        }
+        if (tooltipY - pad < 0) {
+            tooltipY = pad;
+        }
+
+        drawRect(
+            tooltipX - pad,
+            tooltipY - pad,
+            tooltipX + tooltipWidth + pad,
+            tooltipY + tooltipHeight + pad,
+            0xF0100010);
+        drawBorder(tooltipX - pad, tooltipY - pad, tooltipWidth + pad * 2, tooltipHeight + pad * 2, 0xFF5000FF);
+        int lineY = tooltipY;
+        for (String line : lines) {
+            fontRenderer.drawStringWithShadow(line, tooltipX, lineY, 0xFFFFFFFF);
+            lineY += fontRenderer.FONT_HEIGHT + 1;
+        }
     }
 
     private void drawPreviewFrameOverlay() {
@@ -1503,7 +1712,7 @@ public final class SceneEditorScreen extends GuiScreen {
             savedCamera = previewScene.getCamera()
                 .save();
         }
-        previewScene = previewBridge.buildScene(session, previewStructureLibChannelOverride);
+        previewScene = previewBridge.buildScene(session, previewStructureLibSelectionOverride);
         bindPreviewScene(previewScene);
         previewScene.setAnnotationsVisible(annotationsVisible);
         if (visibleLayerOverride != null) {
@@ -1514,20 +1723,20 @@ public final class SceneEditorScreen extends GuiScreen {
                 .restore(savedCamera);
         }
         updatePreviewVisibleLayerOverride(visibleLayerOverride);
-        updatePreviewStructureLibChannelOverride();
+        updatePreviewStructureLibSelectionOverride();
         previewDirty = false;
         preservePreviewCameraOnNextRebuild = false;
     }
 
     private void bindPreviewScene(@Nullable LytGuidebookScene scene) {
         if (scene != null) {
-            scene.setStructureLibChannelChangeListener(this::handlePreviewSceneStructureLibChannelChanged);
+            scene.setStructureLibSelectionChangeListener(this::handlePreviewSceneStructureLibSelectionChanged);
         }
     }
 
-    private void updatePreviewStructureLibChannelOverride() {
-        previewStructureLibChannelOverride = previewScene != null && previewScene.hasStructureLibSceneMetadata()
-            ? Integer.valueOf(previewScene.getStructureLibCurrentChannel())
+    private void updatePreviewStructureLibSelectionOverride() {
+        previewStructureLibSelectionOverride = previewScene != null && previewScene.hasStructureLibSceneMetadata()
+            ? previewScene.getStructureLibPreviewSelection()
             : null;
     }
 
@@ -1537,7 +1746,7 @@ public final class SceneEditorScreen extends GuiScreen {
             : fallbackValue;
     }
 
-    private void handlePreviewSceneStructureLibChannelChanged(int channel) {
+    private void handlePreviewSceneStructureLibSelectionChanged(StructureLibPreviewSelection selection) {
         if (previewScene == null) {
             return;
         }
@@ -1547,8 +1756,8 @@ public final class SceneEditorScreen extends GuiScreen {
         Integer visibleLayerOverride = previewScene.hasVisibleLayerData()
             ? Integer.valueOf(previewScene.getCurrentVisibleLayer())
             : previewVisibleLayerOverride;
-        previewStructureLibChannelOverride = Integer.valueOf(channel);
-        previewBridge.rebuildScene(session, previewScene, previewStructureLibChannelOverride);
+        previewStructureLibSelectionOverride = selection;
+        previewBridge.rebuildScene(session, previewScene, previewStructureLibSelectionOverride);
         bindPreviewScene(previewScene);
         previewScene.setAnnotationsVisible(annotationsVisible);
         if (visibleLayerOverride != null) {
@@ -1557,7 +1766,7 @@ public final class SceneEditorScreen extends GuiScreen {
         previewScene.getCamera()
             .restore(savedCamera);
         updatePreviewVisibleLayerOverride(visibleLayerOverride);
-        updatePreviewStructureLibChannelOverride();
+        updatePreviewStructureLibSelectionOverride();
         previewDirty = false;
         preservePreviewCameraOnNextRebuild = false;
     }

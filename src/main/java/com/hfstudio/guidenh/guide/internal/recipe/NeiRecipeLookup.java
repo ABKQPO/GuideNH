@@ -46,6 +46,7 @@ public final class NeiRecipeLookup {
     private static final @Nullable Method H_DRAW_BACKGROUND;
     private static final @Nullable Method H_DRAW_FOREGROUND;
     private static final @Nullable Method H_ON_UPDATE;
+    private static final @Nullable Method H_GET_RECIPE_HEIGHT;
     private static final @Nullable Method H_GET_OVERLAY_IDENTIFIER;
     private static final @Nullable Method H_HANDLE_ITEM_TOOLTIP;
     private static final @Nullable Method TMPL_DRAW_EXTRAS;
@@ -59,6 +60,7 @@ public final class NeiRecipeLookup {
     private static final @Nullable Method INFO_GET_IMAGE;
     private static final @Nullable Method INFO_GET_WIDTH;
     private static final @Nullable Method INFO_GET_HEIGHT;
+    private static final @Nullable Method INFO_GET_Y_SHIFT;
     private static final @Nullable Method DRAWABLE_GET_WIDTH;
     private static final @Nullable Method DRAWABLE_GET_HEIGHT;
     private static final @Nullable Method DRAWABLE_DRAW;
@@ -67,9 +69,10 @@ public final class NeiRecipeLookup {
 
     static {
         Method gch = null, guh = null, nr = null, gi = null, gr = null, go = null, grn = null;
-        Method drawBg = null, drawFg = null, onUp = null, getOverlay = null, handleItemTt = null;
+        Method drawBg = null, drawFg = null, onUp = null, getRecipeHeight = null, getOverlay = null,
+            handleItemTt = null;
         Method drawExtras = null, getGuiTexture = null;
-        Method infoGetStack = null, infoGetImage = null, infoGetW = null, infoGetH = null;
+        Method infoGetStack = null, infoGetImage = null, infoGetW = null, infoGetH = null, infoGetYShift = null;
         Method drawableGetW = null, drawableGetH = null, drawableDraw = null;
         Field prx = null, pry = null, pits = null, pit = null, handlerMap = null;
         Class<?> guiRecipe = null, templateHandler = null;
@@ -103,6 +106,7 @@ public final class NeiRecipeLookup {
             drawBg = recipeHandler.getMethod("drawBackground", int.class);
             drawFg = recipeHandler.getMethod("drawForeground", int.class);
             onUp = recipeHandler.getMethod("onUpdate");
+            getRecipeHeight = recipeHandler.getMethod("getRecipeHeight", int.class);
             getOverlay = recipeHandler.getMethod("getOverlayIdentifier");
             handleItemTt = recipeHandler
                 .getMethod("handleItemTooltip", guiRecipe, ItemStack.class, List.class, int.class);
@@ -119,6 +123,7 @@ public final class NeiRecipeLookup {
             infoGetStack = handlerInfo.getMethod("getItemStack");
             infoGetW = handlerInfo.getMethod("getWidth");
             infoGetH = handlerInfo.getMethod("getHeight");
+            infoGetYShift = handlerInfo.getMethod("getYShift");
             // HandlerInfo.getImage / DrawableResource are optional — only present on newer NEI builds.
             // Failing to bind them must not abort the whole reflection block, so try them in a
             // nested try/catch that leaves everything else usable.
@@ -150,6 +155,7 @@ public final class NeiRecipeLookup {
         H_DRAW_BACKGROUND = drawBg;
         H_DRAW_FOREGROUND = drawFg;
         H_ON_UPDATE = onUp;
+        H_GET_RECIPE_HEIGHT = getRecipeHeight;
         H_GET_OVERLAY_IDENTIFIER = getOverlay;
         H_HANDLE_ITEM_TOOLTIP = handleItemTt;
         TMPL_DRAW_EXTRAS = drawExtras;
@@ -163,6 +169,7 @@ public final class NeiRecipeLookup {
         INFO_GET_IMAGE = infoGetImage;
         INFO_GET_WIDTH = infoGetW;
         INFO_GET_HEIGHT = infoGetH;
+        INFO_GET_Y_SHIFT = infoGetYShift;
         DRAWABLE_GET_WIDTH = drawableGetW;
         DRAWABLE_GET_HEIGHT = drawableGetH;
         DRAWABLE_DRAW = drawableDraw;
@@ -361,6 +368,20 @@ public final class NeiRecipeLookup {
 
     public static int lookupHandlerHeight(Object handler) {
         return lookupHandlerDimension(handler, INFO_GET_HEIGHT, 65);
+    }
+
+    public static int lookupHandlerYShift(Object handler) {
+        return lookupHandlerDimension(handler, INFO_GET_Y_SHIFT, 0);
+    }
+
+    public static int lookupRecipeHeight(Object handler, int recipeIndex) {
+        if (!AVAILABLE || handler == null || H_GET_RECIPE_HEIGHT == null) return 0;
+        try {
+            Object v = H_GET_RECIPE_HEIGHT.invoke(handler, recipeIndex);
+            return v instanceof Integer ? (Integer) v : 0;
+        } catch (Throwable t) {
+            return 0;
+        }
     }
 
     private static int lookupHandlerDimension(Object handler, @Nullable Method getter, int fallback) {

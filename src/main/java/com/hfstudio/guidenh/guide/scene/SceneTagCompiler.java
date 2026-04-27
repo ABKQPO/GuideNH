@@ -6,13 +6,17 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
+import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
@@ -20,6 +24,8 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistParent;
 
 public class SceneTagCompiler extends BlockTagCompiler {
+
+    private static final LytErrorSink NOOP_ERROR_SINK = (compiler, text, node) -> {};
 
     private Map<String, SceneElementTagCompiler> elementCompilers = Collections.emptyMap();
 
@@ -96,27 +102,18 @@ public class SceneTagCompiler extends BlockTagCompiler {
 
         boolean interactive = MdxAttrs.getBoolean(compiler, parent, el, "interactive", true);
         scene.setInteractive(interactive);
+        boolean allowLayerSlider = MdxAttrs.getBoolean(
+            compiler,
+            parent,
+            el,
+            "allowLayerSlider",
+            ModConfig.ui.sceneLayerSliderEnabled);
+        scene.setVisibleLayerSliderEnabled(allowLayerSlider);
 
         if (el instanceof MdxJsxFlowElement flow) {
-            AnnotationTagCompiler.CURRENT_SCENE.set(scene);
-            try {
-                for (var child : flow.children()) {
-                    UnistNode childNode = child;
-                    MdxJsxElementFields childEl = unwrapSceneElement(childNode);
-                    if (childEl != null) {
-                        String name = childEl.name();
-                        if (name == null) continue;
-                        var elCompiler = elementCompilers.get(name);
-                        if (elCompiler == null) {
-                            parent.appendError(compiler, "Unknown scene element <" + name + ">", childNode);
-                            continue;
-                        }
-                        elCompiler.compile(scene.getLevel(), scene.getCamera(), compiler, parent, childEl);
-                    }
-                }
-            } finally {
-                AnnotationTagCompiler.CURRENT_SCENE.remove();
-            }
+            compileSceneChildren(scene, compiler, parent, flow);
+            scene.setStructureLibSelectionChangeListener(
+                selection -> rebuildSceneForStructureLibSelection(scene, compiler, flow, explicitCenter, selection));
         }
 
         if (!scene.getLevel()
@@ -130,6 +127,61 @@ public class SceneTagCompiler extends BlockTagCompiler {
         scene.snapshotInitialCamera();
 
         parent.append(scene);
+    }
+
+    private void compileSceneChildren(LytGuidebookScene scene, PageCompiler compiler, LytErrorSink errorSink,
+        MdxJsxFlowElement flow) {
+        AnnotationTagCompiler.CURRENT_SCENE.set(scene);
+        try {
+            for (var child : flow.children()) {
+                UnistNode childNode = child;
+                MdxJsxElementFields childEl = unwrapSceneElement(childNode);
+                if (childEl == null) {
+                    continue;
+                }
+                String name = childEl.name();
+                if (name == null) {
+                    continue;
+                }
+                var elCompiler = elementCompilers.get(name);
+                if (elCompiler == null) {
+                    errorSink.appendError(compiler, "Unknown scene element <" + name + ">", childNode);
+                    continue;
+                }
+                elCompiler.compile(scene.getLevel(), scene.getCamera(), compiler, errorSink, childEl);
+            }
+        } finally {
+            AnnotationTagCompiler.CURRENT_SCENE.remove();
+        }
+    }
+
+    private void rebuildSceneForStructureLibSelection(LytGuidebookScene scene, PageCompiler compiler, MdxJsxFlowElement flow,
+        boolean explicitCenter, StructureLibPreviewSelection selection) {
+        if (scene == null) {
+            return;
+        }
+        SavedCameraSettings savedCamera = scene.getCamera().save();
+        boolean annotationsVisible = scene.isAnnotationsVisible();
+        boolean hatchHighlightEnabled = scene.isStructureLibHatchHighlightEnabled();
+        scene.getAnnotations().clear();
+        scene.setHoveredBlock(null);
+        scene.setHoveredStructureLibHatch(null);
+        scene.clearAnnotationHover();
+        scene.setStructureLibSceneMetadata(null);
+        scene.setPendingStructureLibPreviewSelection(selection);
+        scene.setLevel(new GuidebookLevel());
+        try {
+            compileSceneChildren(scene, compiler, NOOP_ERROR_SINK, flow);
+        } finally {
+            scene.setPendingStructureLibPreviewSelection(null);
+        }
+        if (!scene.getLevel().isEmpty() && !explicitCenter) {
+            var center = scene.getLevel().getCenter();
+            scene.getCamera().setRotationCenter(center[0], center[1], center[2]);
+        }
+        scene.setAnnotationsVisible(annotationsVisible);
+        scene.setStructureLibHatchHighlightEnabled(hatchHighlightEnabled);
+        scene.getCamera().restore(savedCamera);
     }
 
     private static MdxJsxElementFields unwrapSceneElement(UnistNode node) {

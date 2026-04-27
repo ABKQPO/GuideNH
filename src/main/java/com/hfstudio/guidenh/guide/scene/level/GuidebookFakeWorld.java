@@ -1,5 +1,11 @@
 package com.hfstudio.guidenh.guide.scene.level;
 
+import java.lang.reflect.Field;
+import java.util.Collection;
+import java.util.Iterator;
+
+import javax.annotation.Nullable;
+
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -25,6 +31,10 @@ public class GuidebookFakeWorld extends WorldClient {
 
     private static final long FROZEN_WORLD_TIME = 0L;
     private static volatile boolean gregTechDummyWorldRegistrationAttempted;
+    private static final String BARTWORKS_META_GENERATED_TILE_CLASS =
+        "bartworks.system.material.TileEntityMetaGeneratedBlock";
+    private static volatile Field bartWorksMetaField;
+    private static volatile boolean bartWorksMetaFieldResolved;
 
     private final GuidebookLevel level;
 
@@ -94,6 +104,11 @@ public class GuidebookFakeWorld extends WorldClient {
     @Override
     public int getBlockMetadata(int x, int y, int z) {
         if (level == null) return 0;
+        TileEntity tileEntity = level.getTileEntity(x, y, z);
+        Integer bartWorksMeta = resolveBartWorksMetadata(tileEntity);
+        if (bartWorksMeta != null) {
+            return bartWorksMeta.intValue();
+        }
         return level.getBlockMetadata(x, y, z);
     }
 
@@ -199,15 +214,18 @@ public class GuidebookFakeWorld extends WorldClient {
 
     @Override
     public void setTileEntity(int x, int y, int z, TileEntity tileEntityIn) {
+        unregisterTrackedTileEntity(x, y, z, null);
         level.setTileEntity(x, y, z, tileEntityIn);
         if (tileEntityIn != null) {
             tileEntityIn.validate();
+            addTileEntity(tileEntityIn);
         }
     }
 
     @Override
     public void removeTileEntity(int x, int y, int z) {
         TileEntity existing = level.getTileEntity(x, y, z);
+        unregisterTrackedTileEntity(x, y, z, existing);
         level.setTileEntity(x, y, z, null);
         if (existing != null) {
             existing.invalidate();
@@ -240,6 +258,11 @@ public class GuidebookFakeWorld extends WorldClient {
             tileEntity = GuidebookTileEntityLoader.load(this, blockIn, metadataIn, x, y, z, null);
         }
         level.setBlock(x, y, z, blockIn, metadataIn, tileEntity);
+        if (blockIn != null && blockIn != Blocks.air) {
+            try {
+                blockIn.onBlockAdded(this, x, y, z);
+            } catch (Throwable ignored) {}
+        }
         return true;
     }
 
@@ -255,5 +278,85 @@ public class GuidebookFakeWorld extends WorldClient {
         }
         level.setBlock(x, y, z, block, metadata, tileEntity);
         return true;
+    }
+
+    @Override
+    public void updateEntities() {}
+
+    public void updateEntitiesForPreview() {
+        super.updateEntities();
+    }
+
+    public void syncLoadedTileEntities(Collection<TileEntity> tileEntities) {
+        loadedTileEntityList.clear();
+        if (tileEntities == null || tileEntities.isEmpty()) {
+            return;
+        }
+        for (TileEntity tileEntity : tileEntities) {
+            if (tileEntity == null || tileEntity.isInvalid()) {
+                continue;
+            }
+            addTileEntity(tileEntity);
+        }
+    }
+
+    private void unregisterTrackedTileEntity(int x, int y, int z, TileEntity exactTileEntity) {
+        Iterator<TileEntity> iterator = loadedTileEntityList.iterator();
+        while (iterator.hasNext()) {
+            TileEntity tracked = iterator.next();
+            if (tracked == null) {
+                iterator.remove();
+                continue;
+            }
+            if (exactTileEntity != null ? tracked == exactTileEntity
+                : tracked.xCoord == x && tracked.yCoord == y && tracked.zCoord == z) {
+                iterator.remove();
+            }
+        }
+    }
+
+    @Nullable
+    private static Integer resolveBartWorksMetadata(@Nullable TileEntity tileEntity) {
+        if (!isInstanceOf(tileEntity, BARTWORKS_META_GENERATED_TILE_CLASS)) {
+            return null;
+        }
+        Field metaField = resolveBartWorksMetaField(tileEntity);
+        if (metaField == null) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(Math.max(0, metaField.getShort(tileEntity)));
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    @Nullable
+    private static Field resolveBartWorksMetaField(@Nullable TileEntity tileEntity) {
+        if (bartWorksMetaFieldResolved) {
+            return bartWorksMetaField;
+        }
+        bartWorksMetaFieldResolved = true;
+        if (tileEntity == null) {
+            return null;
+        }
+        try {
+            bartWorksMetaField = tileEntity.getClass().getField("mMetaData");
+        } catch (Throwable ignored) {
+            bartWorksMetaField = null;
+        }
+        return bartWorksMetaField;
+    }
+
+    private static boolean isInstanceOf(@Nullable Object instance, String className) {
+        if (instance == null || className == null || className.isEmpty()) {
+            return false;
+        }
+        for (Class<?> type = instance.getClass(); type != null; type = type.getSuperclass()) {
+            if (className.equals(type.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

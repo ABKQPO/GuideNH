@@ -13,10 +13,16 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
+
 public class GuidebookPreviewBlockPlacer {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     private static final String GREGTECH_BLOCK_MACHINES_CLASS = "gregtech.common.blocks.BlockMachines";
+    private static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS =
+        "bartworks.system.material.BWMetaGeneratedBlocks";
+    private static final String BARTWORKS_META_GENERATED_TILE_CLASS =
+        "bartworks.system.material.TileEntityMetaGeneratedBlock";
     private static final String GREGTECH_API_CLASS = "gregtech.api.GregTechAPI";
 
     private GuidebookPreviewBlockPlacer() {}
@@ -46,19 +52,22 @@ public class GuidebookPreviewBlockPlacer {
             level.setTileEntity(x, y, z, tileEntity);
             initializeGregTechMetaTile(tileEntity, placementData.metaTileId, tileTag);
             applyGregTechDefaultFacing(tileEntity, tileTag);
+            applyBartWorksGeneratedBlockMeta(tileEntity, block, placementData.blockMeta);
             level.setTileEntity(
                 x,
                 y,
                 z,
                 resolveWorldResidentTile(level.getOrCreateFakeWorld(), x, y, z, tileEntity));
         }
+        invokeOnBlockAdded(block, level.getOrCreateFakeWorld(), x, y, z);
         level.setExplicitBlockId(x, y, z, explicitBlockId);
     }
 
     private static PlacementData resolvePlacementData(Block block, int requestedMeta, @Nullable NBTTagCompound tileTag) {
         Integer metaTileId = resolveGregTechMetaTileId(block, requestedMeta, tileTag);
         if (metaTileId == null) {
-            return new PlacementData(requestedMeta, null);
+            Integer bartWorksMeta = resolveBartWorksBlockMeta(block, requestedMeta, tileTag);
+            return new PlacementData(bartWorksMeta != null ? bartWorksMeta.intValue() : requestedMeta, null);
         }
 
         Integer blockMeta = resolveGregTechBaseMeta(metaTileId.intValue());
@@ -71,9 +80,7 @@ public class GuidebookPreviewBlockPlacer {
 
     @Nullable
     private static Integer resolveGregTechMetaTileId(Block block, int requestedMeta, @Nullable NBTTagCompound tileTag) {
-        if (block == null || !GREGTECH_BLOCK_MACHINES_CLASS.equals(
-            block.getClass()
-                .getName())) {
+        if (!GuideBlockDisplayResolver.isBlockInstanceOf(block, GREGTECH_BLOCK_MACHINES_CLASS)) {
             return null;
         }
         if (tileTag != null && tileTag.hasKey("mID")) {
@@ -81,6 +88,23 @@ public class GuidebookPreviewBlockPlacer {
             return tagMetaTileId > 0 ? Integer.valueOf(tagMetaTileId) : null;
         }
         return requestedMeta > 15 ? Integer.valueOf(requestedMeta) : null;
+    }
+
+    @Nullable
+    private static Integer resolveBartWorksBlockMeta(Block block, int requestedMeta, @Nullable NBTTagCompound tileTag) {
+        if (!GuideBlockDisplayResolver.isBlockInstanceOf(block, BARTWORKS_META_GENERATED_BLOCKS_CLASS)) {
+            return null;
+        }
+        if (tileTag != null && tileTag.hasKey("m")) {
+            int metaFromTag = tileTag.getShort("m");
+            if (metaFromTag <= 0) {
+                metaFromTag = tileTag.getInteger("m");
+            }
+            if (metaFromTag > 0) {
+                return Integer.valueOf(metaFromTag);
+            }
+        }
+        return Integer.valueOf(Math.max(0, requestedMeta));
     }
 
     @Nullable
@@ -189,6 +213,44 @@ public class GuidebookPreviewBlockPlacer {
             }
         }
         return ForgeDirection.UNKNOWN;
+    }
+
+    private static void applyBartWorksGeneratedBlockMeta(@Nullable TileEntity tileEntity, Block block, int blockMeta) {
+        if (tileEntity == null || blockMeta <= 0
+            || !GuideBlockDisplayResolver.isBlockInstanceOf(block, BARTWORKS_META_GENERATED_BLOCKS_CLASS)
+            || !isInstanceOf(tileEntity, BARTWORKS_META_GENERATED_TILE_CLASS)) {
+            return;
+        }
+        try {
+            tileEntity.getClass()
+                .getField("mMetaData")
+                .setShort(tileEntity, (short) blockMeta);
+        } catch (Throwable t) {
+            LOG.warn("Failed to apply BartWorks preview meta {}", blockMeta, t);
+        }
+    }
+
+    private static void invokeOnBlockAdded(Block block, GuidebookFakeWorld world, int x, int y, int z) {
+        if (block == null || world == null) {
+            return;
+        }
+        try {
+            block.onBlockAdded(world, x, y, z);
+        } catch (Throwable t) {
+            LOG.warn("Preview block onBlockAdded hook failed for {}", block, t);
+        }
+    }
+
+    private static boolean isInstanceOf(@Nullable Object instance, String className) {
+        if (instance == null || className == null || className.isEmpty()) {
+            return false;
+        }
+        for (Class<?> type = instance.getClass(); type != null; type = type.getSuperclass()) {
+            if (className.equals(type.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static TileEntity resolveWorldResidentTile(GuidebookFakeWorld world, int x, int y, int z, TileEntity fallback) {

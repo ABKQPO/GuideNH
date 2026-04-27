@@ -23,14 +23,15 @@ public class StructureLibPreviewMetadataFactory {
         this.tooltipResolver = tooltipResolver;
     }
 
-    public StructureLibSceneMetadata createMetadata(StructureLibImportRequest request, int minChannel, int maxChannel,
-        int currentChannel, List<AbsolutePreviewBlock> absoluteBlocks, List<VisitedStructureElement> visitedElements,
-        ItemStack trigger, @Nullable World world) {
+    public StructureLibSceneMetadata createMetadata(StructureLibImportRequest request,
+        StructureLibPreviewSelection selection, int maxTier, Map<String, Integer> channelMaxTierMap,
+        List<AbsolutePreviewBlock> absoluteBlocks,
+        List<VisitedStructureElement> visitedElements, ItemStack trigger, @Nullable World world) {
         return createMetadata(
             request,
-            minChannel,
-            maxChannel,
-            currentChannel,
+            selection,
+            maxTier,
+            channelMaxTierMap,
             absoluteBlocks,
             visitedElements,
             trigger,
@@ -39,22 +40,32 @@ public class StructureLibPreviewMetadataFactory {
             null);
     }
 
-    public StructureLibSceneMetadata createMetadata(StructureLibImportRequest request, int minChannel, int maxChannel,
-        int currentChannel, List<AbsolutePreviewBlock> absoluteBlocks, List<VisitedStructureElement> visitedElements,
-        ItemStack trigger, @Nullable World world, @Nullable Object constructable, @Nullable EntityPlayer actor) {
+    public StructureLibSceneMetadata createMetadata(StructureLibImportRequest request,
+        StructureLibPreviewSelection selection, int maxTier, Map<String, Integer> channelMaxTierMap,
+        List<AbsolutePreviewBlock> absoluteBlocks,
+        List<VisitedStructureElement> visitedElements, ItemStack trigger, @Nullable World world,
+        @Nullable Object constructable, @Nullable EntityPlayer actor) {
         StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(
             request.getController(),
             request.getPiece(),
             request.getFacing(),
             request.getRotation(),
             request.getFlip());
-        if (maxChannel > minChannel) {
-            metadata = metadata.withChannelData(
-                resolveChannelLabel(visitedElements),
-                minChannel,
-                maxChannel,
-                currentChannel,
-                currentChannel);
+        if (maxTier > 0) {
+            metadata = metadata.withTierData(1, Math.max(1, maxTier), selection.getMasterTier(), selection.getMasterTier());
+        }
+        if (channelMaxTierMap != null && !channelMaxTierMap.isEmpty()) {
+            for (Map.Entry<String, Integer> entry : channelMaxTierMap.entrySet()) {
+                String channelId = resolveChannelId(entry.getKey());
+                if (channelId == null) {
+                    continue;
+                }
+                metadata = metadata.withChannelData(
+                    channelId,
+                    channelId,
+                    Math.max(0, entry.getValue().intValue()),
+                    selection.getChannelValue(channelId));
+            }
         }
         if (absoluteBlocks.isEmpty()) {
             return metadata;
@@ -103,9 +114,9 @@ public class StructureLibPreviewMetadataFactory {
         return metadata;
     }
 
-    private static String resolveChannelLabel(List<VisitedStructureElement> visitedElements) {
+    static String resolveFirstChannelLabel(List<VisitedStructureElement> visitedElements) {
         for (VisitedStructureElement visitedElement : visitedElements) {
-            String label = resolveChannelLabel(visitedElement.getElement());
+            String label = resolveChannelId(visitedElement.getElement());
             if (label != null) {
                 return label;
             }
@@ -114,7 +125,12 @@ public class StructureLibPreviewMetadataFactory {
     }
 
     @Nullable
-    private static String resolveChannelLabel(@Nullable IStructureElement<?> element) {
+    static String resolveChannelId(@Nullable String channelId) {
+        return StructureLibPreviewSelection.normalizeChannelId(channelId);
+    }
+
+    @Nullable
+    static String resolveChannelId(@Nullable IStructureElement<?> element) {
         if (element == null) {
             return null;
         }
@@ -128,9 +144,9 @@ public class StructureLibPreviewMetadataFactory {
                     field.setAccessible(true);
                     Object value = field.get(element);
                     if (value instanceof String stringValue) {
-                        String trimmed = stringValue.trim();
-                        if (!trimmed.isEmpty()) {
-                            return trimmed;
+                        String normalized = resolveChannelId(stringValue);
+                        if (normalized != null) {
+                            return normalized;
                         }
                     }
                 } catch (Throwable ignored) {}

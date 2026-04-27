@@ -2,8 +2,10 @@ package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.function.IntConsumer;
+import java.util.Map;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -42,6 +44,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibTooltipContentBuilder;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
@@ -53,10 +56,11 @@ public class LytGuidebookScene extends LytBlock {
     private static final float WHEEL_ZOOM_STEP = 1.1f;
     private static final float MIN_ZOOM = 0.1f;
     private static final float MAX_ZOOM = 10f;
-    private static final int VISIBLE_LAYER_SLIDER_AREA_HEIGHT = 14;
-    private static final int STRUCTURELIB_CHANNEL_SLIDER_AREA_HEIGHT = 14;
-    private static final int STRUCTURELIB_CHANNEL_SLIDER_SIDE_PADDING = 8;
+    private static final int SCENE_SLIDER_AREA_HEIGHT = 14;
+    private static final int SCENE_SLIDER_SIDE_PADDING = 8;
     private static final ResolvedTextStyle VISIBLE_LAYER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
+        .mergeWith(DefaultStyles.BASE_STYLE);
+    private static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
     private static final ResolvedTextStyle STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
@@ -65,10 +69,14 @@ public class LytGuidebookScene extends LytBlock {
     private int dragLastX;
     private int dragLastY;
     private boolean draggingVisibleLayerSlider;
-    private boolean draggingStructureLibChannelSlider;
+    private boolean draggingStructureLibTierSlider;
+    @Nullable
+    private String draggingStructureLibChannelId;
 
     private boolean interactive = true;
     private boolean sceneButtonsVisible = true;
+    private boolean bottomControlsVisible = true;
+    private boolean visibleLayerSliderEnabled;
 
     public static int SCENE_BG_COLOR = 0xFF0A0A10;
     public static int SCENE_BORDER_COLOR = 0xFF303040;
@@ -117,8 +125,10 @@ public class LytGuidebookScene extends LytBlock {
     private LytRect cachedSceneRect;
     private LytRect cachedVisibleLayerSliderRect;
     private LytRect cachedVisibleLayerSliderHitRect;
-    private LytRect cachedChannelSliderRect;
-    private LytRect cachedChannelSliderHitRect;
+    private LytRect cachedTierSliderRect;
+    private LytRect cachedTierSliderHitRect;
+    private final Map<String, LytRect> cachedChannelSliderRects = new LinkedHashMap<>();
+    private final Map<String, LytRect> cachedChannelSliderHitRects = new LinkedHashMap<>();
     private int sceneButtonsAbsX;
     private int sceneButtonsAbsY;
     private boolean cachedSceneButtonsVisible = true;
@@ -131,10 +141,13 @@ public class LytGuidebookScene extends LytBlock {
     private Integer visibleLayerOverride;
     @Nullable
     private StructureLibSceneMetadata structureLibSceneMetadata;
-    private int structureLibCurrentChannel;
+    private int structureLibCurrentTier = 1;
+    private final LinkedHashMap<String, Integer> structureLibChannelOverrides = new LinkedHashMap<>();
     private boolean structureLibHatchHighlightEnabled;
     @Nullable
-    private IntConsumer structureLibChannelChangeListener;
+    private Consumer<StructureLibPreviewSelection> structureLibSelectionChangeListener;
+    @Nullable
+    private StructureLibPreviewSelection pendingStructureLibPreviewSelection;
 
     private float[] initialCam = new float[] { 1f, 0f, 0f, 0f, 0f, 0f };
 
@@ -211,6 +224,22 @@ public class LytGuidebookScene extends LytBlock {
         this.sceneButtonsVisible = sceneButtonsVisible;
     }
 
+    public boolean isBottomControlsVisible() {
+        return bottomControlsVisible;
+    }
+
+    public void setBottomControlsVisible(boolean bottomControlsVisible) {
+        this.bottomControlsVisible = bottomControlsVisible;
+    }
+
+    public boolean isVisibleLayerSliderEnabled() {
+        return visibleLayerSliderEnabled;
+    }
+
+    public void setVisibleLayerSliderEnabled(boolean visibleLayerSliderEnabled) {
+        this.visibleLayerSliderEnabled = visibleLayerSliderEnabled;
+    }
+
     public boolean hasVisibleLayerData() {
         return getVisibleLayerCount() > 0;
     }
@@ -264,7 +293,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     @Nullable
-    private Integer resolveVisibleLayerMaxY() {
+    private Integer resolveVisibleLayerY() {
         if (!hasVisibleLayerData()) {
             return null;
         }
@@ -276,29 +305,38 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private boolean isBlockVisibleForCurrentLayer(int y) {
-        Integer visibleMaxY = resolveVisibleLayerMaxY();
-        return visibleMaxY == null || y <= visibleMaxY.intValue();
+        Integer visibleLayerY = resolveVisibleLayerY();
+        return visibleLayerY == null || y == visibleLayerY.intValue();
     }
 
     private boolean isAnnotationVisibleForCurrentLayer(SceneAnnotation annotation) {
-        Integer visibleMaxY = resolveVisibleLayerMaxY();
-        if (visibleMaxY == null || annotation == null) {
+        Integer visibleLayerY = resolveVisibleLayerY();
+        if (visibleLayerY == null || annotation == null) {
             return true;
         }
-        float upperExclusiveY = visibleMaxY.intValue() + 1f;
         if (annotation instanceof DiamondAnnotation diamondAnnotation) {
-            return diamondAnnotation.getPos().y < upperExclusiveY;
+            return isPointWithinVisibleLayer(diamondAnnotation.getPos().y, visibleLayerY.intValue());
         }
         if (annotation instanceof InWorldBoxAnnotation boxAnnotation) {
-            return Math.min(boxAnnotation.min().y, boxAnnotation.max().y) < upperExclusiveY;
+            return intersectsVisibleLayer(boxAnnotation.min().y, boxAnnotation.max().y, visibleLayerY.intValue());
         }
         if (annotation instanceof InWorldLineAnnotation lineAnnotation) {
-            return Math.min(lineAnnotation.from().y, lineAnnotation.to().y) < upperExclusiveY;
+            return intersectsVisibleLayer(lineAnnotation.from().y, lineAnnotation.to().y, visibleLayerY.intValue());
         }
         if (annotation instanceof InWorldBlockFaceOverlayAnnotation overlayAnnotation) {
-            return overlayAnnotation.getBlockY() <= visibleMaxY.intValue();
+            return overlayAnnotation.getBlockY() == visibleLayerY.intValue();
         }
         return true;
+    }
+
+    private static boolean isPointWithinVisibleLayer(float y, int visibleLayerY) {
+        return y >= visibleLayerY && y < visibleLayerY + 1f;
+    }
+
+    private static boolean intersectsVisibleLayer(float fromY, float toY, int visibleLayerY) {
+        float minY = Math.min(fromY, toY);
+        float maxY = Math.max(fromY, toY);
+        return maxY >= visibleLayerY && minY < visibleLayerY + 1f;
     }
 
     private void clearLayerDrivenHoverState() {
@@ -310,14 +348,20 @@ public class LytGuidebookScene extends LytBlock {
 
     public void setStructureLibSceneMetadata(@Nullable StructureLibSceneMetadata structureLibSceneMetadata) {
         this.structureLibSceneMetadata = structureLibSceneMetadata;
+        this.structureLibChannelOverrides.clear();
         if (structureLibSceneMetadata == null) {
-            this.structureLibCurrentChannel = 0;
+            this.structureLibCurrentTier = 1;
             this.structureLibHatchHighlightEnabled = false;
             this.hoveredStructureLibHatch = null;
             return;
         }
-        StructureLibSceneMetadata.ChannelData channelData = structureLibSceneMetadata.getChannelData();
-        this.structureLibCurrentChannel = channelData != null ? channelData.getCurrentValue() : 0;
+        StructureLibSceneMetadata.TierData tierData = structureLibSceneMetadata.getTierData();
+        this.structureLibCurrentTier = tierData != null ? tierData.getCurrentValue() : 1;
+        for (StructureLibSceneMetadata.ChannelData channelData : structureLibSceneMetadata.getChannelDataList()) {
+            if (channelData != null && channelData.getCurrentValue() > 0) {
+                this.structureLibChannelOverrides.put(channelData.getChannelId(), Integer.valueOf(channelData.getCurrentValue()));
+            }
+        }
         if (!structureLibSceneMetadata.hasHatchTooltipData()) {
             this.structureLibHatchHighlightEnabled = false;
             this.hoveredStructureLibHatch = null;
@@ -333,46 +377,121 @@ public class LytGuidebookScene extends LytBlock {
         return structureLibSceneMetadata != null;
     }
 
-    public int getStructureLibCurrentChannel() {
-        return structureLibCurrentChannel;
+    public int getStructureLibCurrentTier() {
+        return structureLibCurrentTier;
     }
 
-    public void setStructureLibCurrentChannel(int structureLibCurrentChannel) {
-        setStructureLibCurrentChannelInternal(structureLibCurrentChannel, true);
+    public void setStructureLibCurrentTier(int structureLibCurrentTier) {
+        setStructureLibCurrentTierInternal(structureLibCurrentTier, true);
     }
 
-    public void setStructureLibCurrentChannelSilently(int structureLibCurrentChannel) {
-        setStructureLibCurrentChannelInternal(structureLibCurrentChannel, false);
+    public void setStructureLibCurrentTierSilently(int structureLibCurrentTier) {
+        setStructureLibCurrentTierInternal(structureLibCurrentTier, false);
     }
 
-    public void setStructureLibChannelChangeListener(@Nullable IntConsumer structureLibChannelChangeListener) {
-        this.structureLibChannelChangeListener = structureLibChannelChangeListener;
+    public void setStructureLibSelectionChangeListener(
+        @Nullable Consumer<StructureLibPreviewSelection> structureLibSelectionChangeListener) {
+        this.structureLibSelectionChangeListener = structureLibSelectionChangeListener;
     }
 
-    private void setStructureLibCurrentChannelInternal(int structureLibCurrentChannel, boolean notifyListener) {
-        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData();
-        int previousValue = this.structureLibCurrentChannel;
-        if (channelData == null) {
-            this.structureLibCurrentChannel = Math.max(0, structureLibCurrentChannel);
+    private void setStructureLibCurrentTierInternal(int structureLibCurrentTier, boolean notifyListener) {
+        StructureLibSceneMetadata.TierData tierData = getStructureLibTierData();
+        int previousValue = this.structureLibCurrentTier;
+        if (tierData == null) {
+            this.structureLibCurrentTier = Math.max(1, structureLibCurrentTier);
         } else {
-            this.structureLibCurrentChannel = clampChannelValue(
-                structureLibCurrentChannel,
-                channelData.getMinValue(),
-                channelData.getMaxValue());
+            this.structureLibCurrentTier = clampChannelValue(
+                structureLibCurrentTier,
+                tierData.getMinValue(),
+                tierData.getMaxValue());
         }
-        if (notifyListener && previousValue != this.structureLibCurrentChannel
-            && structureLibChannelChangeListener != null) {
-            structureLibChannelChangeListener.accept(this.structureLibCurrentChannel);
+        if (notifyListener && previousValue != this.structureLibCurrentTier) {
+            notifyStructureLibSelectionChanged();
         }
+    }
+
+    public int getStructureLibChannelValue(String channelId) {
+        String normalized = StructureLibPreviewSelection.normalizeChannelId(channelId);
+        if (normalized == null) {
+            return 0;
+        }
+        Integer value = structureLibChannelOverrides.get(normalized);
+        return value != null ? value.intValue() : 0;
+    }
+
+    public void setStructureLibChannelValue(String channelId, int value) {
+        setStructureLibChannelValueInternal(channelId, value, true);
+    }
+
+    public void setStructureLibChannelValueSilently(String channelId, int value) {
+        setStructureLibChannelValueInternal(channelId, value, false);
+    }
+
+    private void setStructureLibChannelValueInternal(String channelId, int value, boolean notifyListener) {
+        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData(channelId);
+        String normalized = StructureLibPreviewSelection.normalizeChannelId(channelId);
+        if (normalized == null) {
+            return;
+        }
+        int previousValue = getStructureLibChannelValue(normalized);
+        int nextValue;
+        if (channelData == null) {
+            nextValue = Math.max(0, value);
+        } else {
+            nextValue = clampChannelValue(value, channelData.getMinValue(), channelData.getMaxValue());
+        }
+        if (nextValue > 0) {
+            structureLibChannelOverrides.put(normalized, Integer.valueOf(nextValue));
+        } else {
+            structureLibChannelOverrides.remove(normalized);
+        }
+        if (notifyListener && previousValue != nextValue) {
+            notifyStructureLibSelectionChanged();
+        }
+    }
+
+    public StructureLibPreviewSelection getStructureLibPreviewSelection() {
+        return new StructureLibPreviewSelection(structureLibCurrentTier, structureLibChannelOverrides);
+    }
+
+    @Nullable
+    public StructureLibPreviewSelection getPendingStructureLibPreviewSelection() {
+        return pendingStructureLibPreviewSelection;
+    }
+
+    public void setPendingStructureLibPreviewSelection(@Nullable StructureLibPreviewSelection pendingSelection) {
+        this.pendingStructureLibPreviewSelection = pendingSelection;
+    }
+
+    private void notifyStructureLibSelectionChanged() {
+        if (structureLibSelectionChangeListener != null) {
+            structureLibSelectionChangeListener.accept(getStructureLibPreviewSelection());
+        }
+    }
+
+    public boolean hasStructureLibTierData() {
+        StructureLibSceneMetadata.TierData tierData = getStructureLibTierData();
+        return tierData != null && tierData.isSelectable();
     }
 
     public boolean hasStructureLibChannelData() {
-        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData();
-        return channelData != null && channelData.isSelectable();
+        if (structureLibSceneMetadata == null) {
+            return false;
+        }
+        for (StructureLibSceneMetadata.ChannelData channelData : structureLibSceneMetadata.getChannelDataList()) {
+            if (channelData.isSelectable()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public int getBottomControlAreaHeight() {
-        return visibleLayerSliderAreaHeight() + structureLibChannelSliderAreaHeight();
+        if (!bottomControlsVisible) {
+            return 0;
+        }
+        return visibleLayerSliderAreaHeight() + structureLibTierSliderAreaHeight()
+            + structureLibChannelSliderAreaHeight();
     }
 
     public boolean hasStructureLibHatchData() {
@@ -525,7 +644,7 @@ public class LytGuidebookScene extends LytBlock {
             ? (BTN_SIZE * buttonCount + BTN_GAP * Math.max(0, buttonCount - 1))
             : 0;
         int sceneH = Math.max(height, buttonsTotalH);
-        int h = sceneH + visibleLayerSliderAreaHeight() + structureLibChannelSliderAreaHeight();
+        int h = sceneH + getBottomControlAreaHeight();
         this.layoutSceneWidth = sceneW;
         this.layoutSceneHeight = sceneH;
         return new LytRect(x, y, w, h);
@@ -538,7 +657,7 @@ public class LytGuidebookScene extends LytBlock {
     public void render(RenderContext context) {
         int sceneW = layoutSceneWidth > 0 ? layoutSceneWidth : getBounds().width() - buttonColumnReserve();
         if (sceneW < 16) sceneW = Math.max(16, getBounds().width() - buttonColumnReserve());
-        int sliderAreaHeight = visibleLayerSliderAreaHeight() + structureLibChannelSliderAreaHeight();
+        int sliderAreaHeight = getBottomControlAreaHeight();
         int sceneH = layoutSceneHeight > 0 ? layoutSceneHeight : Math.max(16, getBounds().height() - sliderAreaHeight);
         int totalH = Math.max(sceneH + sliderAreaHeight, getBounds().height());
         LytRect outerRect = new LytRect(getBounds().x(), getBounds().y(), sceneW, totalH);
@@ -559,16 +678,7 @@ public class LytGuidebookScene extends LytBlock {
             this.lastOuterH = outerRect.height();
             this.cachedScreenRect = sceneRect;
             context.fillRect(sceneRect, SCENE_BG_COLOR);
-            if (hasVisibleLayerData()) {
-                drawVisibleLayerSlider(context, outerRect);
-            } else {
-                clearCachedVisibleLayerSliderRects();
-            }
-            if (hasStructureLibChannelData()) {
-                drawStructureLibChannelSlider(context, outerRect);
-            } else {
-                clearCachedChannelSliderRects();
-            }
+            drawBottomControls(context, outerRect);
             context.drawBorder(sceneRect, SCENE_BORDER_COLOR, 1);
             return;
         }
@@ -662,7 +772,7 @@ public class LytGuidebookScene extends LytBlock {
             hoverBoxMax.set((float) (bx + maxX) + EPS, (float) (by + maxY) + EPS, (float) (bz + maxZ) + EPS);
             inWorld.add(hoverBoxAnnotation);
         }
-        Integer visibleMaxY = resolveVisibleLayerMaxY();
+        Integer visibleLayerY = resolveVisibleLayerY();
 
         GuidebookLevelRenderer.getInstance()
             .render(
@@ -679,7 +789,7 @@ public class LytGuidebookScene extends LytBlock {
                 0f,
                 inWorld,
                 context.lightDarkMode(),
-                visibleMaxY);
+                visibleLayerY);
 
         if (!overlays.isEmpty()) {
             LytRect viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
@@ -697,16 +807,7 @@ public class LytGuidebookScene extends LytBlock {
             }
         }
 
-        if (hasVisibleLayerData()) {
-            drawVisibleLayerSlider(context, outerRect);
-        } else {
-            clearCachedVisibleLayerSliderRects();
-        }
-        if (hasStructureLibChannelData()) {
-            drawStructureLibChannelSlider(context, outerRect);
-        } else {
-            clearCachedChannelSliderRects();
-        }
+        drawBottomControls(context, outerRect);
 
         // Draw border AFTER the 3D content so border pixels always sit on top.
         context.drawBorder(sceneRect, SCENE_BORDER_COLOR, 1);
@@ -977,31 +1078,53 @@ public class LytGuidebookScene extends LytBlock {
         return GuidebookText.SceneSliderLabelFormat.text(GuidebookText.SceneVisibleLayerLabel.text(), value);
     }
 
-    private String getStructureLibChannelSliderLabel() {
-        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData();
-        String prefix = channelData != null ? channelData.getLabel() : "Channel";
-        return GuidebookText.SceneSliderLabelFormat.text(prefix, Integer.toString(structureLibCurrentChannel));
+    private String getStructureLibTierSliderLabel() {
+        return GuidebookText.SceneSliderLabelFormat.text(
+            GuidebookText.SceneStructureLibTierLabel.text(),
+            Integer.toString(structureLibCurrentTier));
+    }
+
+    private String getStructureLibChannelSliderLabel(StructureLibSceneMetadata.ChannelData channelData) {
+        String value = getStructureLibChannelValue(channelData.getChannelId()) <= 0 ? GuidebookText.SceneNotSet.text()
+            : Integer.toString(getStructureLibChannelValue(channelData.getChannelId()));
+        return GuidebookText.SceneSliderLabelFormat.text(channelData.getLabel(), value);
     }
 
     public boolean containsStructureLibChannelSlider(int mouseX, int mouseY) {
-        if (!hasStructureLibChannelData()) {
+        if (!bottomControlsVisible || !hasStructureLibChannelData()) {
             return false;
         }
-        LytRect hitRect = resolveStructureLibChannelSliderHitRect();
+        for (LytRect hitRect : resolveStructureLibChannelSliderHitRects().values()) {
+            if (!hitRect.isEmpty() && hitRect.contains(mouseX, mouseY)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean containsStructureLibTierSlider(int mouseX, int mouseY) {
+        if (!bottomControlsVisible || !hasStructureLibTierData()) {
+            return false;
+        }
+        LytRect hitRect = resolveStructureLibTierSliderHitRect();
         return !hitRect.isEmpty() && hitRect.contains(mouseX, mouseY);
     }
 
     public boolean containsVisibleLayerSlider(int mouseX, int mouseY) {
-        if (!hasVisibleLayerData()) {
+        if (!bottomControlsVisible || !hasVisibleLayerSlider()) {
             return false;
         }
         LytRect hitRect = resolveVisibleLayerSliderHitRect();
         return !hitRect.isEmpty() && hitRect.contains(mouseX, mouseY);
     }
 
-    public boolean containsSceneInteractiveTarget(int mouseX, int mouseY) {
-        return containsSceneViewport(mouseX, mouseY) || containsVisibleLayerSlider(mouseX, mouseY)
+    public boolean containsBottomControlSlider(int mouseX, int mouseY) {
+        return containsStructureLibTierSlider(mouseX, mouseY) || containsVisibleLayerSlider(mouseX, mouseY)
             || containsStructureLibChannelSlider(mouseX, mouseY);
+    }
+
+    public boolean containsSceneInteractiveTarget(int mouseX, int mouseY) {
+        return containsSceneViewport(mouseX, mouseY) || containsBottomControlSlider(mouseX, mouseY);
     }
 
     @Nullable
@@ -1052,9 +1175,17 @@ public class LytGuidebookScene extends LytBlock {
             }
 
             MovingObjectPosition hit = null;
+            AxisAlignedBB fallbackBounds = null;
             try {
                 hit = block.collisionRayTrace(fakeWorld, b[0], b[1], b[2], rayStart, rayEnd);
             } catch (Throwable ignored) {}
+
+            if (hit == null || hit.hitVec == null) {
+                fallbackBounds = GuideBlockBoundsResolver.resolveWorldBounds(level, b[0], b[1], b[2]);
+                if (fallbackBounds != null) {
+                    hit = fallbackBounds.calculateIntercept(rayStart, rayEnd);
+                }
+            }
 
             if (hit == null || hit.hitVec == null) {
                 continue;
@@ -1064,7 +1195,8 @@ public class LytGuidebookScene extends LytBlock {
             if (distanceSq < bestDistanceSq) {
                 bestDistanceSq = distanceSq;
                 best = b;
-                bestBounds = resolveHoveredBounds(level, b[0], b[1], b[2], rayStart, rayEnd);
+                bestBounds = fallbackBounds != null ? fallbackBounds
+                    : resolveHoveredBounds(level, b[0], b[1], b[2], rayStart, rayEnd);
             }
         }
         hoveredBlockBounds = bestBounds;
@@ -1160,14 +1292,20 @@ public class LytGuidebookScene extends LytBlock {
 
     public void startDrag(int mouseX, int mouseY, int button) {
         if (!interactive) return;
+        if (button == 0 && containsStructureLibTierSlider(mouseX, mouseY)) {
+            draggingStructureLibTierSlider = true;
+            applyStructureLibTierSliderAt(mouseX);
+            return;
+        }
         if (button == 0 && containsVisibleLayerSlider(mouseX, mouseY)) {
             draggingVisibleLayerSlider = true;
             applyVisibleLayerSliderAt(mouseX);
             return;
         }
-        if (button == 0 && containsStructureLibChannelSlider(mouseX, mouseY)) {
-            draggingStructureLibChannelSlider = true;
-            applyStructureLibChannelSliderAt(mouseX);
+        String hoveredChannelId = resolveHoveredStructureLibChannelId(mouseX, mouseY);
+        if (button == 0 && hoveredChannelId != null) {
+            draggingStructureLibChannelId = hoveredChannelId;
+            applyStructureLibChannelSliderAt(hoveredChannelId, mouseX);
             return;
         }
         this.dragButton = button;
@@ -1184,12 +1322,16 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void drag(int mouseX, int mouseY) {
+        if (draggingStructureLibTierSlider) {
+            applyStructureLibTierSliderAt(mouseX);
+            return;
+        }
         if (draggingVisibleLayerSlider) {
             applyVisibleLayerSliderAt(mouseX);
             return;
         }
-        if (draggingStructureLibChannelSlider) {
-            applyStructureLibChannelSliderAt(mouseX);
+        if (draggingStructureLibChannelId != null) {
+            applyStructureLibChannelSliderAt(draggingStructureLibChannelId, mouseX);
             return;
         }
         if (dragButton < 0) return;
@@ -1210,22 +1352,29 @@ public class LytGuidebookScene extends LytBlock {
     public void endDrag() {
         this.dragButton = -1;
         this.draggingVisibleLayerSlider = false;
-        this.draggingStructureLibChannelSlider = false;
+        this.draggingStructureLibTierSlider = false;
+        this.draggingStructureLibChannelId = null;
     }
 
     public boolean isDragging() {
-        return dragButton >= 0 || draggingVisibleLayerSlider || draggingStructureLibChannelSlider;
+        return dragButton >= 0 || draggingVisibleLayerSlider || draggingStructureLibTierSlider
+            || draggingStructureLibChannelId != null;
     }
 
     public void scroll(int mouseX, int mouseY, int dwheel) {
         if (!interactive) return;
         if (dwheel == 0) return;
-        if (containsVisibleLayerSlider(mouseX, mouseY) && hasVisibleLayerData()) {
+        if (containsStructureLibTierSlider(mouseX, mouseY) && hasStructureLibTierData()) {
+            nudgeStructureLibTier(dwheel);
+            return;
+        }
+        if (containsVisibleLayerSlider(mouseX, mouseY) && hasVisibleLayerSlider()) {
             nudgeVisibleLayer(dwheel);
             return;
         }
-        if (containsStructureLibChannelSlider(mouseX, mouseY) && hasStructureLibChannelData()) {
-            nudgeStructureLibChannel(dwheel);
+        String hoveredChannelId = resolveHoveredStructureLibChannelId(mouseX, mouseY);
+        if (hoveredChannelId != null) {
+            nudgeStructureLibChannel(hoveredChannelId, dwheel);
             return;
         }
         float z = camera.getZoom();
@@ -1277,7 +1426,9 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     LytRect getStructureLibChannelSliderRectForTesting() {
-        return resolveStructureLibChannelSliderTrackRect();
+        List<StructureLibSceneMetadata.ChannelData> channels = getSelectableStructureLibChannels();
+        return channels.isEmpty() ? LytRect.empty() : resolveStructureLibChannelSliderTrackRect(
+            channels.get(0).getChannelId());
     }
 
     int getStructureLibChannelSliderAreaHeightForTesting() {
@@ -1313,54 +1464,129 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     @Nullable
-    private StructureLibSceneMetadata.ChannelData getStructureLibChannelData() {
-        return structureLibSceneMetadata != null ? structureLibSceneMetadata.getChannelData() : null;
+    private StructureLibSceneMetadata.TierData getStructureLibTierData() {
+        return structureLibSceneMetadata != null ? structureLibSceneMetadata.getTierData() : null;
+    }
+
+    @Nullable
+    private StructureLibSceneMetadata.ChannelData getStructureLibChannelData(String channelId) {
+        return structureLibSceneMetadata != null ? structureLibSceneMetadata.getChannelData(channelId) : null;
+    }
+
+    private boolean hasVisibleLayerSlider() {
+        return visibleLayerSliderEnabled && hasVisibleLayerData();
     }
 
     private int visibleLayerSliderAreaHeight() {
-        return hasVisibleLayerData() ? VISIBLE_LAYER_SLIDER_AREA_HEIGHT : 0;
+        return hasVisibleLayerSlider() ? SCENE_SLIDER_AREA_HEIGHT : 0;
+    }
+
+    private int structureLibTierSliderAreaHeight() {
+        return hasStructureLibTierData() ? SCENE_SLIDER_AREA_HEIGHT : 0;
     }
 
     private int structureLibChannelSliderAreaHeight() {
-        return hasStructureLibChannelData() ? STRUCTURELIB_CHANNEL_SLIDER_AREA_HEIGHT : 0;
+        return getSelectableStructureLibChannels().size() * SCENE_SLIDER_AREA_HEIGHT;
     }
 
-    private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect) {
-        LytRect sliderTrackRect = resolveVisibleLayerSliderTrackRect(
-            outerRect.x(),
-            outerRect.y(),
-            outerRect.width(),
-            outerRect.height());
-        if (sliderTrackRect.isEmpty()) {
-            clearCachedVisibleLayerSliderRects();
+    private List<StructureLibSceneMetadata.ChannelData> getSelectableStructureLibChannels() {
+        if (structureLibSceneMetadata == null) {
+            return Collections.emptyList();
+        }
+        List<StructureLibSceneMetadata.ChannelData> selectable = new ArrayList<>();
+        for (StructureLibSceneMetadata.ChannelData channelData : structureLibSceneMetadata.getChannelDataList()) {
+            if (channelData != null && channelData.isSelectable()) {
+                selectable.add(channelData);
+            }
+        }
+        return selectable.isEmpty() ? Collections.<StructureLibSceneMetadata.ChannelData>emptyList() : selectable;
+    }
+
+    private void drawBottomControls(RenderContext context, LytRect outerRect) {
+        clearCachedVisibleLayerSliderRects();
+        clearCachedTierSliderRects();
+        clearCachedChannelSliderRects();
+        if (getBottomControlAreaHeight() <= 0) {
             return;
         }
-
-        GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer
-            .layout(sliderTrackRect.x(), sliderTrackRect.y(), sliderTrackRect.width(), getVisibleLayerFraction());
-        cachedVisibleLayerSliderRect = geometry.trackRect();
-        cachedVisibleLayerSliderHitRect = geometry.hitRect();
-
-        boolean highlighted = draggingVisibleLayerSlider;
-        if (!highlighted) {
-            int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && geometry.hitRect()
-                .contains(mouse[0], mouse[1]);
+        if (hasStructureLibTierData()) {
+            drawStructureLibTierSlider(context, outerRect);
         }
+        if (hasVisibleLayerSlider()) {
+            drawVisibleLayerSlider(context, outerRect);
+        }
+        for (StructureLibSceneMetadata.ChannelData channelData : getSelectableStructureLibChannels()) {
+            drawStructureLibChannelSlider(context, outerRect, channelData);
+        }
+    }
 
-        GuideSliderRenderer.render(
-            (left, top, right, bottom, color) -> context
-                .fillRect(new LytRect(left, top, right - left, bottom - top), color),
-            geometry,
-            highlighted);
+    private int getBottomControlRowCount() {
+        return (hasStructureLibTierData() ? 1 : 0) + (hasVisibleLayerSlider() ? 1 : 0)
+            + getSelectableStructureLibChannels().size();
+    }
 
-        String label = getVisibleLayerSliderLabel();
-        int textWidth = context.getStringWidth(label, VISIBLE_LAYER_SLIDER_TEXT_STYLE);
-        int textHeight = context.getLineHeight(VISIBLE_LAYER_SLIDER_TEXT_STYLE);
-        int textX = outerRect.x() + (outerRect.width() - textWidth) / 2;
-        int areaTop = outerRect.bottom() - structureLibChannelSliderAreaHeight() - visibleLayerSliderAreaHeight();
-        int textY = areaTop + (visibleLayerSliderAreaHeight() - textHeight) / 2;
-        context.drawText(label, textX, textY, VISIBLE_LAYER_SLIDER_TEXT_STYLE);
+    @Nullable
+    private int[] resolveCurrentMousePosition() {
+        try {
+            Minecraft mc = Minecraft.getMinecraft();
+            int scaledWidth = DisplayScale.scaledWidth();
+            int scaledHeight = DisplayScale.scaledHeight();
+            return new int[] { Mouse.getX() * scaledWidth / mc.displayWidth,
+                scaledHeight - Mouse.getY() * scaledHeight / mc.displayHeight - 1 };
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private int bottomControlAreaTop(int outerBottom) {
+        return outerBottom - getBottomControlAreaHeight();
+    }
+
+    private int resolveVisibleLayerRowIndex() {
+        if (!hasVisibleLayerSlider()) {
+            return -1;
+        }
+        return hasStructureLibTierData() ? 1 : 0;
+    }
+
+    private int resolveStructureLibTierRowIndex() {
+        return hasStructureLibTierData() ? 0 : -1;
+    }
+
+    private int resolveStructureLibChannelRowIndex(String channelId) {
+        List<StructureLibSceneMetadata.ChannelData> channels = getSelectableStructureLibChannels();
+        int index = 0;
+        for (StructureLibSceneMetadata.ChannelData channelData : channels) {
+            if (channelData.getChannelId().equals(StructureLibPreviewSelection.normalizeChannelId(channelId))) {
+                return (hasStructureLibTierData() ? 1 : 0) + (hasVisibleLayerSlider() ? 1 : 0) + index;
+            }
+            index++;
+        }
+        return -1;
+    }
+
+    private LytRect resolveSliderTrackRect(int rowIndex) {
+        int originX = lastOuterW > 0 ? lastOuterAbsX : getBounds().x();
+        int originY = lastOuterH > 0 ? lastOuterAbsY : getBounds().y();
+        int outerWidth = lastOuterW > 0 ? lastOuterW
+            : Math.max(16, layoutSceneWidth > 0 ? layoutSceneWidth : this.width);
+        int outerHeight = lastOuterH > 0 ? lastOuterH : Math.max(getBounds().height(), this.height + getBottomControlAreaHeight());
+        return resolveSliderTrackRect(originX, originY, outerWidth, outerHeight, rowIndex);
+    }
+
+    private LytRect resolveSliderTrackRect(int originX, int originY, int outerWidth, int outerHeight, int rowIndex) {
+        if (rowIndex < 0 || outerWidth <= SCENE_SLIDER_SIDE_PADDING * 2 || getBottomControlRowCount() <= 0) {
+            return LytRect.empty();
+        }
+        int totalControlHeight = getBottomControlAreaHeight();
+        if (outerHeight < totalControlHeight) {
+            return LytRect.empty();
+        }
+        int rowTop = originY + outerHeight - totalControlHeight + rowIndex * SCENE_SLIDER_AREA_HEIGHT;
+        int sliderX = originX + SCENE_SLIDER_SIDE_PADDING;
+        int sliderWidth = Math.max(24, outerWidth - SCENE_SLIDER_SIDE_PADDING * 2);
+        int sliderY = rowTop + (SCENE_SLIDER_AREA_HEIGHT - GuideSliderRenderer.TRACK_HEIGHT) / 2;
+        return new LytRect(sliderX, sliderY, sliderWidth, GuideSliderRenderer.TRACK_HEIGHT);
     }
 
     private void clearCachedVisibleLayerSliderRects() {
@@ -1368,33 +1594,18 @@ public class LytGuidebookScene extends LytBlock {
         cachedVisibleLayerSliderHitRect = LytRect.empty();
     }
 
-    private LytRect resolveVisibleLayerSliderTrackRect() {
-        int originX = lastOuterW > 0 ? lastOuterAbsX : getBounds().x();
-        int originY = lastOuterH > 0 ? lastOuterAbsY : getBounds().y();
-        int outerWidth = lastOuterW > 0 ? lastOuterW
-            : Math.max(16, layoutSceneWidth > 0 ? layoutSceneWidth : this.width);
-        int outerHeight = lastOuterH > 0 ? lastOuterH
-            : Math.max(
-                getBounds().height(),
-                this.height + visibleLayerSliderAreaHeight() + structureLibChannelSliderAreaHeight());
-        return resolveVisibleLayerSliderTrackRect(originX, originY, outerWidth, outerHeight);
+    private void clearCachedTierSliderRects() {
+        cachedTierSliderRect = LytRect.empty();
+        cachedTierSliderHitRect = LytRect.empty();
     }
 
-    private LytRect resolveVisibleLayerSliderTrackRect(int originX, int originY, int outerWidth, int outerHeight) {
-        if (!hasVisibleLayerData() || outerWidth <= STRUCTURELIB_CHANNEL_SLIDER_SIDE_PADDING * 2) {
-            return LytRect.empty();
-        }
-        int areaHeight = visibleLayerSliderAreaHeight();
-        if (areaHeight <= 0 || outerHeight < areaHeight + structureLibChannelSliderAreaHeight()) {
-            return LytRect.empty();
-        }
-        int sliderX = originX + STRUCTURELIB_CHANNEL_SLIDER_SIDE_PADDING;
-        int sliderWidth = Math.max(24, outerWidth - STRUCTURELIB_CHANNEL_SLIDER_SIDE_PADDING * 2);
-        int sliderY = originY + outerHeight
-            - structureLibChannelSliderAreaHeight()
-            - areaHeight
-            + (areaHeight - GuideSliderRenderer.TRACK_HEIGHT) / 2;
-        return new LytRect(sliderX, sliderY, sliderWidth, GuideSliderRenderer.TRACK_HEIGHT);
+    private void clearCachedChannelSliderRects() {
+        cachedChannelSliderRects.clear();
+        cachedChannelSliderHitRects.clear();
+    }
+
+    private LytRect resolveVisibleLayerSliderTrackRect() {
+        return resolveSliderTrackRect(resolveVisibleLayerRowIndex());
     }
 
     private LytRect resolveVisibleLayerSliderHitRect() {
@@ -1405,8 +1616,25 @@ public class LytGuidebookScene extends LytBlock {
         if (trackRect.isEmpty()) {
             return LytRect.empty();
         }
-        return GuideSliderRenderer.layout(trackRect.x(), trackRect.y(), trackRect.width(), getVisibleLayerFraction())
-            .hitRect();
+        return GuideSliderRenderer.layout(trackRect.x(), trackRect.y(), trackRect.width(), getVisibleLayerFraction()).hitRect();
+    }
+
+    private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect) {
+        LytRect sliderTrackRect = resolveVisibleLayerSliderTrackRect();
+        if (sliderTrackRect.isEmpty()) {
+            return;
+        }
+        GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer
+            .layout(sliderTrackRect.x(), sliderTrackRect.y(), sliderTrackRect.width(), getVisibleLayerFraction());
+        cachedVisibleLayerSliderRect = geometry.trackRect();
+        cachedVisibleLayerSliderHitRect = geometry.hitRect();
+        boolean highlighted = draggingVisibleLayerSlider;
+        if (!highlighted) {
+            int[] mouse = resolveCurrentMousePosition();
+            highlighted = mouse != null && geometry.hitRect().contains(mouse[0], mouse[1]);
+        }
+        drawSlider(context, geometry, highlighted, outerRect, resolveVisibleLayerRowIndex(), getVisibleLayerSliderLabel(),
+            VISIBLE_LAYER_SLIDER_TEXT_STYLE);
     }
 
     private void applyVisibleLayerSliderAt(int mouseX) {
@@ -1432,144 +1660,183 @@ public class LytGuidebookScene extends LytBlock {
         setVisibleLayer(resolveCurrentVisibleLayer() + Integer.signum(dwheel));
     }
 
-    private void drawStructureLibChannelSlider(RenderContext context, LytRect outerRect) {
-        LytRect sliderTrackRect = resolveStructureLibChannelSliderTrackRect(
-            outerRect.x(),
-            outerRect.y(),
-            outerRect.width(),
-            outerRect.height());
+    private LytRect resolveStructureLibTierSliderTrackRect() {
+        return resolveSliderTrackRect(resolveStructureLibTierRowIndex());
+    }
+
+    private LytRect resolveStructureLibTierSliderHitRect() {
+        if (cachedTierSliderHitRect != null && !cachedTierSliderHitRect.isEmpty()) {
+            return cachedTierSliderHitRect;
+        }
+        LytRect trackRect = resolveStructureLibTierSliderTrackRect();
+        if (trackRect.isEmpty()) {
+            return LytRect.empty();
+        }
+        return GuideSliderRenderer.layout(trackRect.x(), trackRect.y(), trackRect.width(), getStructureLibTierFraction())
+            .hitRect();
+    }
+
+    private void drawStructureLibTierSlider(RenderContext context, LytRect outerRect) {
+        LytRect sliderTrackRect = resolveStructureLibTierSliderTrackRect();
         if (sliderTrackRect.isEmpty()) {
-            clearCachedChannelSliderRects();
             return;
         }
-
         GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer.layout(
             sliderTrackRect.x(),
             sliderTrackRect.y(),
             sliderTrackRect.width(),
-            getStructureLibChannelFraction());
-        cachedChannelSliderRect = geometry.trackRect();
-        cachedChannelSliderHitRect = geometry.hitRect();
-
-        boolean highlighted = draggingStructureLibChannelSlider;
+            getStructureLibTierFraction());
+        cachedTierSliderRect = geometry.trackRect();
+        cachedTierSliderHitRect = geometry.hitRect();
+        boolean highlighted = draggingStructureLibTierSlider;
         if (!highlighted) {
             int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && geometry.hitRect()
-                .contains(mouse[0], mouse[1]);
+            highlighted = mouse != null && geometry.hitRect().contains(mouse[0], mouse[1]);
         }
+        drawSlider(context, geometry, highlighted, outerRect, resolveStructureLibTierRowIndex(), getStructureLibTierSliderLabel(),
+            STRUCTURELIB_TIER_SLIDER_TEXT_STYLE);
+    }
 
-        GuideSliderRenderer.render(
-            (left, top, right, bottom, color) -> context
-                .fillRect(new LytRect(left, top, right - left, bottom - top), color),
+    private void applyStructureLibTierSliderAt(int mouseX) {
+        StructureLibSceneMetadata.TierData tierData = getStructureLibTierData();
+        LytRect sliderTrackRect = resolveStructureLibTierSliderTrackRect();
+        if (tierData == null || sliderTrackRect.isEmpty()) {
+            return;
+        }
+        int minValue = tierData.getMinValue();
+        int maxValue = tierData.getMaxValue();
+        if (maxValue <= minValue) {
+            setStructureLibCurrentTier(minValue);
+            return;
+        }
+        float fraction = GuideSliderRenderer.fractionFromMouse(mouseX, sliderTrackRect.x(), sliderTrackRect.width());
+        int nextValue = minValue + Math.round(Math.max(0f, Math.min(1f, fraction)) * (maxValue - minValue));
+        setStructureLibCurrentTier(clampChannelValue(nextValue, minValue, maxValue));
+    }
+
+    private float getStructureLibTierFraction() {
+        StructureLibSceneMetadata.TierData tierData = getStructureLibTierData();
+        if (tierData == null || tierData.getMaxValue() <= tierData.getMinValue()) {
+            return 0f;
+        }
+        return (structureLibCurrentTier - tierData.getMinValue()) / (float) (tierData.getMaxValue() - tierData.getMinValue());
+    }
+
+    private void nudgeStructureLibTier(int dwheel) {
+        setStructureLibCurrentTier(structureLibCurrentTier + Integer.signum(dwheel));
+    }
+
+    private Map<String, LytRect> resolveStructureLibChannelSliderHitRects() {
+        if (!cachedChannelSliderHitRects.isEmpty()) {
+            return cachedChannelSliderHitRects;
+        }
+        for (StructureLibSceneMetadata.ChannelData channelData : getSelectableStructureLibChannels()) {
+            LytRect trackRect = resolveStructureLibChannelSliderTrackRect(channelData.getChannelId());
+            if (trackRect.isEmpty()) {
+                continue;
+            }
+            cachedChannelSliderHitRects.put(
+                channelData.getChannelId(),
+                GuideSliderRenderer
+                    .layout(trackRect.x(), trackRect.y(), trackRect.width(), getStructureLibChannelFraction(channelData))
+                    .hitRect());
+        }
+        return cachedChannelSliderHitRects;
+    }
+
+    @Nullable
+    private String resolveHoveredStructureLibChannelId(int mouseX, int mouseY) {
+        for (Map.Entry<String, LytRect> entry : resolveStructureLibChannelSliderHitRects().entrySet()) {
+            if (!entry.getValue().isEmpty() && entry.getValue().contains(mouseX, mouseY)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    private LytRect resolveStructureLibChannelSliderTrackRect(String channelId) {
+        return resolveSliderTrackRect(resolveStructureLibChannelRowIndex(channelId));
+    }
+
+    private void drawStructureLibChannelSlider(RenderContext context, LytRect outerRect,
+        StructureLibSceneMetadata.ChannelData channelData) {
+        LytRect sliderTrackRect = resolveStructureLibChannelSliderTrackRect(channelData.getChannelId());
+        if (sliderTrackRect.isEmpty()) {
+            return;
+        }
+        GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer.layout(
+            sliderTrackRect.x(),
+            sliderTrackRect.y(),
+            sliderTrackRect.width(),
+            getStructureLibChannelFraction(channelData));
+        cachedChannelSliderRects.put(channelData.getChannelId(), geometry.trackRect());
+        cachedChannelSliderHitRects.put(channelData.getChannelId(), geometry.hitRect());
+        boolean highlighted = channelData.getChannelId().equals(draggingStructureLibChannelId);
+        if (!highlighted) {
+            int[] mouse = resolveCurrentMousePosition();
+            highlighted = mouse != null && geometry.hitRect().contains(mouse[0], mouse[1]);
+        }
+        drawSlider(
+            context,
             geometry,
-            highlighted);
-
-        String label = getStructureLibChannelSliderLabel();
-        int textWidth = context.getStringWidth(label, STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE);
-        int textHeight = context.getLineHeight(STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE);
-        int textX = outerRect.x() + (outerRect.width() - textWidth) / 2;
-        int textY = outerRect.bottom() - structureLibChannelSliderAreaHeight()
-            + (structureLibChannelSliderAreaHeight() - textHeight) / 2;
-        context.drawText(label, textX, textY, STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE);
+            highlighted,
+            outerRect,
+            resolveStructureLibChannelRowIndex(channelData.getChannelId()),
+            getStructureLibChannelSliderLabel(channelData),
+            STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE);
     }
 
-    private void clearCachedChannelSliderRects() {
-        cachedChannelSliderRect = LytRect.empty();
-        cachedChannelSliderHitRect = LytRect.empty();
-    }
-
-    private LytRect resolveStructureLibChannelSliderTrackRect() {
-        int originX = lastOuterW > 0 ? lastOuterAbsX : getBounds().x();
-        int originY = lastOuterH > 0 ? lastOuterAbsY : getBounds().y();
-        int outerWidth = lastOuterW > 0 ? lastOuterW
-            : Math.max(16, layoutSceneWidth > 0 ? layoutSceneWidth : this.width);
-        int outerHeight = lastOuterH > 0 ? lastOuterH
-            : Math.max(
-                getBounds().height(),
-                this.height + visibleLayerSliderAreaHeight() + structureLibChannelSliderAreaHeight());
-        return resolveStructureLibChannelSliderTrackRect(originX, originY, outerWidth, outerHeight);
-    }
-
-    private LytRect resolveStructureLibChannelSliderTrackRect(int originX, int originY, int outerWidth,
-        int outerHeight) {
-        if (!hasStructureLibChannelData() || outerWidth <= STRUCTURELIB_CHANNEL_SLIDER_SIDE_PADDING * 2) {
-            return LytRect.empty();
-        }
-        int areaHeight = structureLibChannelSliderAreaHeight();
-        if (areaHeight <= 0 || outerHeight < areaHeight) {
-            return LytRect.empty();
-        }
-        int sliderX = originX + STRUCTURELIB_CHANNEL_SLIDER_SIDE_PADDING;
-        int sliderWidth = Math.max(24, outerWidth - STRUCTURELIB_CHANNEL_SLIDER_SIDE_PADDING * 2);
-        int sliderY = originY + outerHeight - areaHeight + (areaHeight - GuideSliderRenderer.TRACK_HEIGHT) / 2;
-        return new LytRect(sliderX, sliderY, sliderWidth, GuideSliderRenderer.TRACK_HEIGHT);
-    }
-
-    private LytRect resolveStructureLibChannelSliderHitRect() {
-        if (cachedChannelSliderHitRect != null && !cachedChannelSliderHitRect.isEmpty()) {
-            return cachedChannelSliderHitRect;
-        }
-        LytRect trackRect = resolveStructureLibChannelSliderTrackRect();
-        if (trackRect.isEmpty()) {
-            return LytRect.empty();
-        }
-        return GuideSliderRenderer
-            .layout(trackRect.x(), trackRect.y(), trackRect.width(), getStructureLibChannelFraction())
-            .hitRect();
-    }
-
-    private void applyStructureLibChannelSliderAt(int mouseX) {
-        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData();
-        LytRect sliderTrackRect = resolveStructureLibChannelSliderTrackRect();
+    private void applyStructureLibChannelSliderAt(String channelId, int mouseX) {
+        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData(channelId);
+        LytRect sliderTrackRect = resolveStructureLibChannelSliderTrackRect(channelId);
         if (channelData == null || sliderTrackRect.isEmpty()) {
             return;
         }
-        applyStructureLibChannelFraction(
-            GuideSliderRenderer.fractionFromMouse(mouseX, sliderTrackRect.x(), sliderTrackRect.width()));
+        applyStructureLibChannelFraction(channelData, GuideSliderRenderer.fractionFromMouse(mouseX, sliderTrackRect.x(), sliderTrackRect.width()));
     }
 
-    private void applyStructureLibChannelFraction(float fraction) {
-        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData();
+    private void applyStructureLibChannelFraction(StructureLibSceneMetadata.ChannelData channelData, float fraction) {
         if (channelData == null) {
             return;
         }
         int minValue = channelData.getMinValue();
         int maxValue = channelData.getMaxValue();
         if (maxValue <= minValue) {
-            setStructureLibCurrentChannel(minValue);
+            setStructureLibChannelValue(channelData.getChannelId(), minValue);
             return;
         }
         int nextValue = minValue + Math.round(Math.max(0f, Math.min(1f, fraction)) * (maxValue - minValue));
-        setStructureLibCurrentChannel(clampChannelValue(nextValue, minValue, maxValue));
+        setStructureLibChannelValue(channelData.getChannelId(), clampChannelValue(nextValue, minValue, maxValue));
     }
 
-    private float getStructureLibChannelFraction() {
-        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData();
+    private float getStructureLibChannelFraction(StructureLibSceneMetadata.ChannelData channelData) {
         if (channelData == null || channelData.getMaxValue() <= channelData.getMinValue()) {
             return 0f;
         }
-        return (structureLibCurrentChannel - channelData.getMinValue())
+        return (getStructureLibChannelValue(channelData.getChannelId()) - channelData.getMinValue())
             / (float) (channelData.getMaxValue() - channelData.getMinValue());
     }
 
-    private void nudgeStructureLibChannel(int dwheel) {
-        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData();
+    private void nudgeStructureLibChannel(String channelId, int dwheel) {
+        StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData(channelId);
         if (channelData == null) {
             return;
         }
-        setStructureLibCurrentChannel(structureLibCurrentChannel + Integer.signum(dwheel));
+        setStructureLibChannelValue(channelId, getStructureLibChannelValue(channelId) + Integer.signum(dwheel));
     }
 
-    private int[] resolveCurrentMousePosition() {
-        try {
-            Minecraft mc = Minecraft.getMinecraft();
-            int scaledWidth = DisplayScale.scaledWidth();
-            int scaledHeight = DisplayScale.scaledHeight();
-            return new int[] { Mouse.getX() * scaledWidth / mc.displayWidth,
-                scaledHeight - Mouse.getY() * scaledHeight / mc.displayHeight - 1 };
-        } catch (Throwable ignored) {
-            return null;
-        }
+    private void drawSlider(RenderContext context, GuideSliderRenderer.SliderGeometry geometry, boolean highlighted,
+        LytRect outerRect, int rowIndex, String label, ResolvedTextStyle style) {
+        GuideSliderRenderer.render(
+            (left, top, right, bottom, color) -> context.fillRect(new LytRect(left, top, right - left, bottom - top), color),
+            geometry,
+            highlighted);
+        int textWidth = context.getStringWidth(label, style);
+        int textHeight = context.getLineHeight(style);
+        int textX = outerRect.x() + (outerRect.width() - textWidth) / 2;
+        int rowTop = bottomControlAreaTop(outerRect.bottom()) + rowIndex * SCENE_SLIDER_AREA_HEIGHT;
+        int textY = rowTop + (SCENE_SLIDER_AREA_HEIGHT - textHeight) / 2;
+        context.drawText(label, textX, textY, style);
     }
 
     private static int clampChannelValue(int value, int minValue, int maxValue) {

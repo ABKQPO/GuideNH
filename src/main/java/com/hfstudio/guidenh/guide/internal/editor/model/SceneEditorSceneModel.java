@@ -24,6 +24,7 @@ public final class SceneEditorSceneModel {
     private float offsetY;
     private float zoom;
     private boolean interactive;
+    private boolean allowLayerSlider;
     private float centerX;
     private float centerY;
     private float centerZ;
@@ -42,6 +43,7 @@ public final class SceneEditorSceneModel {
         this.offsetY = 0f;
         this.zoom = 1f;
         this.interactive = true;
+        this.allowLayerSlider = false;
         this.centerX = 0f;
         this.centerY = 0f;
         this.centerZ = 0f;
@@ -71,6 +73,7 @@ public final class SceneEditorSceneModel {
         copy.setOffsetY(this.offsetY);
         copy.setZoom(this.zoom);
         copy.setInteractive(this.interactive);
+        copy.setAllowLayerSlider(this.allowLayerSlider);
         copy.setCenterX(this.centerX);
         copy.setCenterY(this.centerY);
         copy.setCenterZ(this.centerZ);
@@ -195,6 +198,14 @@ public final class SceneEditorSceneModel {
 
     public void setInteractive(boolean interactive) {
         this.interactive = interactive;
+    }
+
+    public boolean isAllowLayerSlider() {
+        return allowLayerSlider;
+    }
+
+    public void setAllowLayerSlider(boolean allowLayerSlider) {
+        this.allowLayerSlider = allowLayerSlider;
     }
 
     public float getCenterX() {

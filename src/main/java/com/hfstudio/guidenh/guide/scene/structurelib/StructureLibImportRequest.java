@@ -15,15 +15,31 @@ public class StructureLibImportRequest {
     private final String flip;
     @Nullable
     private final Integer channel;
+    private final StructureLibPreviewSelection previewSelection;
 
     public StructureLibImportRequest(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip, @Nullable Integer channel) {
+        this(
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            channel,
+            channel != null ? StructureLibPreviewSelection.ofMasterTier(channel.intValue())
+                : StructureLibPreviewSelection.defaultSelection());
+    }
+
+    public StructureLibImportRequest(String controller, @Nullable String piece, @Nullable String facing,
+        @Nullable String rotation, @Nullable String flip, @Nullable Integer channel,
+        @Nullable StructureLibPreviewSelection previewSelection) {
         this.controller = requireController(controller);
         this.piece = normalizeOptional(piece);
         this.facing = normalizeOptional(facing);
         this.rotation = normalizeOptional(rotation);
         this.flip = normalizeOptional(flip);
         this.channel = channel;
+        this.previewSelection = previewSelection != null ? previewSelection : StructureLibPreviewSelection.defaultSelection();
     }
 
     public String getController() {
@@ -53,6 +69,10 @@ public class StructureLibImportRequest {
     @Nullable
     public Integer getChannel() {
         return channel;
+    }
+
+    public StructureLibPreviewSelection getPreviewSelection() {
+        return previewSelection;
     }
 
     private static String requireController(@Nullable String controller) {

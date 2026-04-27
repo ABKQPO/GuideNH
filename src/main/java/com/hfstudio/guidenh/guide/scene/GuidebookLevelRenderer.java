@@ -119,7 +119,7 @@ public class GuidebookLevelRenderer {
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
-        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, @Nullable Integer visibleMaxY) {
+        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, @Nullable Integer visibleLayerY) {
 
         int cx0 = Math.max(panelX, scissorX);
         int cy0 = Math.max(panelY, scissorY);
@@ -190,13 +190,13 @@ public class GuidebookLevelRenderer {
                     mc.entityRenderer.disableLightmap(0);
                     setRenderPass(0);
                     GL11.glDisable(GL_BLEND);
-                    renderBlocksPass(level, filledBlocks, 0, visibleMaxY);
+                    renderBlocksPass(level, filledBlocks, 0, visibleLayerY);
 
                     setRenderPass(1);
                     GL11.glEnable(GL_BLEND);
                     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                     GL11.glDepthMask(false);
-                    renderBlocksPass(level, filledBlocks, 1, visibleMaxY);
+                    renderBlocksPass(level, filledBlocks, 1, visibleLayerY);
                     GL11.glDepthMask(true);
                     GL11.glDisable(GL_BLEND);
 
@@ -204,7 +204,7 @@ public class GuidebookLevelRenderer {
 
                     RenderHelper.enableStandardItemLighting();
                     GL11.glEnable(GL_LIGHTING);
-                    renderBlockEntities(tileEntities, partialTicks, visibleMaxY);
+                    renderBlockEntities(tileEntities, partialTicks, visibleLayerY);
                     GL11.glDisable(GL_LIGHTING);
                     RenderHelper.disableStandardItemLighting();
                     renderEntitiesStub(level, partialTicks);
@@ -244,7 +244,7 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
-        @Nullable Integer visibleMaxY) {
+        @Nullable Integer visibleLayerY) {
         RenderBlocks rb = cachedRenderBlocks;
         if (rb == null || cachedRenderBlocksLevel != level) {
             rb = new RenderBlocks(level.getOrCreateFakeWorld());
@@ -259,15 +259,16 @@ public class GuidebookLevelRenderer {
         tes.startDrawingQuads();
         try {
             tes.setBrightness((15 << 20) | (15 << 4));
+            boolean exactLayerMode = visibleLayerY != null;
             for (int[] p : filledBlocks) {
-                if (visibleMaxY != null && p[1] > visibleMaxY.intValue()) {
+                if (exactLayerMode && p[1] != visibleLayerY.intValue()) {
                     continue;
                 }
                 Block block = level.getBlock(p[0], p[1], p[2]);
                 if (block == null) continue;
                 if (!block.canRenderInPass(pass)) continue;
                 try {
-                    resetRenderBlocksState(rb, fakeWorld);
+                    resetRenderBlocksState(rb, fakeWorld, exactLayerMode);
                     rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
                 } catch (Throwable t) {
                     log(t);
@@ -280,10 +281,11 @@ public class GuidebookLevelRenderer {
         }
     }
 
-    private static void resetRenderBlocksState(RenderBlocks renderBlocks, IBlockAccess blockAccess) {
+    private static void resetRenderBlocksState(RenderBlocks renderBlocks, IBlockAccess blockAccess,
+        boolean renderAllFaces) {
         renderBlocks.blockAccess = blockAccess;
         renderBlocks.clearOverrideBlockTexture();
-        renderBlocks.renderAllFaces = false;
+        renderBlocks.renderAllFaces = renderAllFaces;
         renderBlocks.useInventoryTint = false;
         renderBlocks.enableAO = false;
         renderBlocks.partialRenderBounds = false;
@@ -300,7 +302,7 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderBlockEntities(Iterable<TileEntity> tileEntities, float partialTicks,
-        @Nullable Integer visibleMaxY) {
+        @Nullable Integer visibleLayerY) {
         TileEntityRendererDispatcher dispatcher = TileEntityRendererDispatcher.instance;
         for (int pass = 0; pass < 2; pass++) {
             setRenderPass(pass);
@@ -309,7 +311,7 @@ public class GuidebookLevelRenderer {
                 if (te == null) {
                     continue;
                 }
-                if (visibleMaxY != null && te.yCoord > visibleMaxY.intValue()) {
+                if (visibleLayerY != null && te.yCoord != visibleLayerY.intValue()) {
                     continue;
                 }
                 if (!dispatcher.hasSpecialRenderer(te) || !te.shouldRenderInPass(pass)) {

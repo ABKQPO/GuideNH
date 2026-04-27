@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.scene.support;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
@@ -18,6 +21,18 @@ public final class GuideBlockBoundsResolver {
         if (block == null || block == Blocks.air) {
             return null;
         }
+
+        AxisAlignedBB mergedBounds = resolveCollisionBounds(level, block, x, y, z);
+        if (mergedBounds != null) {
+            return mergedBounds;
+        }
+
+        try {
+            AxisAlignedBB selectedBounds = block.getSelectedBoundingBoxFromPool(level.getOrCreateFakeWorld(), x, y, z);
+            if (selectedBounds != null && isNonEmpty(selectedBounds)) {
+                return selectedBounds;
+            }
+        } catch (Throwable ignored) {}
 
         double minX = 0d;
         double minY = 0d;
@@ -44,5 +59,32 @@ public final class GuideBlockBoundsResolver {
         }
 
         return AxisAlignedBB.getBoundingBox(x + minX, y + minY, z + minZ, x + maxX, y + maxY, z + maxZ);
+    }
+
+    @Nullable
+    private static AxisAlignedBB resolveCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
+        try {
+            List<AxisAlignedBB> collisionBoxes = new ArrayList<>();
+            AxisAlignedBB fullBlockBounds = AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d);
+            block.addCollisionBoxesToList(level.getOrCreateFakeWorld(), x, y, z, fullBlockBounds, collisionBoxes, null);
+            AxisAlignedBB merged = null;
+            for (AxisAlignedBB collisionBox : collisionBoxes) {
+                if (collisionBox == null || !isNonEmpty(collisionBox)) {
+                    continue;
+                }
+                merged = merged == null ? copyOf(collisionBox) : merged.func_111270_a(collisionBox);
+            }
+            return merged;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static boolean isNonEmpty(AxisAlignedBB bounds) {
+        return bounds != null && bounds.maxX > bounds.minX && bounds.maxY > bounds.minY && bounds.maxZ > bounds.minZ;
+    }
+
+    private static AxisAlignedBB copyOf(AxisAlignedBB bounds) {
+        return AxisAlignedBB.getBoundingBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ);
     }
 }
