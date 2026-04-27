@@ -39,13 +39,13 @@ public class StructureLibElementTooltipResolver {
         this.hatchSupport = hatchSupport;
     }
 
-    public TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x, int y,
-        int z, ItemStack trigger) {
+    public TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x,
+        int y, int z, ItemStack trigger) {
         return resolve(constructable, element, world, x, y, z, trigger, null);
     }
 
-    public TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x, int y,
-        int z, ItemStack trigger, @Nullable EntityPlayer actor) {
+    public TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x,
+        int y, int z, ItemStack trigger, @Nullable EntityPlayer actor) {
         if (element == null || trigger == null) {
             return TooltipDetails.empty();
         }
@@ -59,7 +59,7 @@ public class StructureLibElementTooltipResolver {
             z,
             trigger,
             actor,
-                new IdentityHashMap<>());
+            new IdentityHashMap<>());
         List<ItemStack> blockCandidates = collectStackCandidatesAcrossTiers(
             constructable,
             cast(element),
@@ -292,8 +292,7 @@ public class StructureLibElementTooltipResolver {
             .isEmpty()) {
             lines.add(StructureLibHatchDescriptionLine.validHatches(normalizeHatchHintText(details.getHintText())));
         }
-        return lines.isEmpty() ? Collections.emptyList()
-            : Collections.unmodifiableList(lines);
+        return lines.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(lines);
     }
 
     private static String normalizeHatchHintText(String hintText) {
@@ -404,8 +403,7 @@ public class StructureLibElementTooltipResolver {
         private final List<ItemStack> hatchCandidates;
 
         public TooltipDetails(List<ItemStack> blockCandidates,
-            List<StructureLibHatchDescriptionLine> hatchDescriptionLines,
-            List<ItemStack> hatchCandidates) {
+            List<StructureLibHatchDescriptionLine> hatchDescriptionLines, List<ItemStack> hatchCandidates) {
             this.blockCandidates = blockCandidates;
             this.hatchDescriptionLines = hatchDescriptionLines;
             this.hatchCandidates = hatchCandidates;

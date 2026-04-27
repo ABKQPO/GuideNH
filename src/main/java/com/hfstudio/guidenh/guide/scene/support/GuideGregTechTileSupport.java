@@ -78,7 +78,9 @@ public final class GuideGregTechTileSupport {
                 .invoke(tileEntity);
             if (metaTileEntity != null) {
                 if (tryRebindExistingMetaTile(tileEntity, metaTileEntity)) {
-                    logOnce("repair-rebind:" + describeTile(tileEntity), "Rebound existing GregTech MetaTileEntity: {}",
+                    logOnce(
+                        "repair-rebind:" + describeTile(tileEntity),
+                        "Rebound existing GregTech MetaTileEntity: {}",
                         describeTile(tileEntity));
                     return true;
                 }
@@ -86,8 +88,10 @@ public final class GuideGregTechTileSupport {
 
             int metaTileId = resolveMetaTileId(tileEntity, 0);
             if (metaTileId <= 0) {
-                logOnce("repair-missing-id:" + describeTile(tileEntity),
-                    "Cannot repair GregTech tile because no MetaTile id was available: {}", describeTile(tileEntity));
+                logOnce(
+                    "repair-missing-id:" + describeTile(tileEntity),
+                    "Cannot repair GregTech tile because no MetaTile id was available: {}",
+                    describeTile(tileEntity));
                 return false;
             }
 
@@ -103,8 +107,10 @@ public final class GuideGregTechTileSupport {
                 describeTile(tileEntity));
             return repaired;
         } catch (Throwable ignored) {
-            logOnce("repair-exception:" + describeTile(tileEntity),
-                "Exception while repairing GregTech MetaTileEntity binding: {}", describeTile(tileEntity));
+            logOnce(
+                "repair-exception:" + describeTile(tileEntity),
+                "Exception while repairing GregTech MetaTileEntity binding: {}",
+                describeTile(tileEntity));
             return false;
         }
     }
@@ -206,9 +212,17 @@ public final class GuideGregTechTileSupport {
             return "null-tile";
         }
         return tileEntity.getClass()
-            .getName() + "@(" + tileEntity.xCoord + "," + tileEntity.yCoord + "," + tileEntity.zCoord + ")"
-            + " metaId=" + resolveMetaTileId(tileEntity, -1)
-            + " valid=" + hasValidMetaTileBinding(tileEntity);
+            .getName() + "@("
+            + tileEntity.xCoord
+            + ","
+            + tileEntity.yCoord
+            + ","
+            + tileEntity.zCoord
+            + ")"
+            + " metaId="
+            + resolveMetaTileId(tileEntity, -1)
+            + " valid="
+            + hasValidMetaTileBinding(tileEntity);
     }
 
     private static void logOnce(String key, String message, Object arg) {

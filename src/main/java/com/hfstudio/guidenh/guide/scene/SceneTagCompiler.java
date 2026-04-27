@@ -102,12 +102,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
 
         boolean interactive = MdxAttrs.getBoolean(compiler, parent, el, "interactive", true);
         scene.setInteractive(interactive);
-        boolean allowLayerSlider = MdxAttrs.getBoolean(
-            compiler,
-            parent,
-            el,
-            "allowLayerSlider",
-            ModConfig.ui.sceneLayerSliderEnabled);
+        boolean allowLayerSlider = MdxAttrs
+            .getBoolean(compiler, parent, el, "allowLayerSlider", ModConfig.ui.sceneLayerSliderEnabled);
         scene.setVisibleLayerSliderEnabled(allowLayerSlider);
 
         if (el instanceof MdxJsxFlowElement flow) {
@@ -155,15 +151,17 @@ public class SceneTagCompiler extends BlockTagCompiler {
         }
     }
 
-    private void rebuildSceneForStructureLibSelection(LytGuidebookScene scene, PageCompiler compiler, MdxJsxFlowElement flow,
-        boolean explicitCenter, StructureLibPreviewSelection selection) {
+    private void rebuildSceneForStructureLibSelection(LytGuidebookScene scene, PageCompiler compiler,
+        MdxJsxFlowElement flow, boolean explicitCenter, StructureLibPreviewSelection selection) {
         if (scene == null) {
             return;
         }
-        SavedCameraSettings savedCamera = scene.getCamera().save();
+        SavedCameraSettings savedCamera = scene.getCamera()
+            .save();
         boolean annotationsVisible = scene.isAnnotationsVisible();
         boolean hatchHighlightEnabled = scene.isStructureLibHatchHighlightEnabled();
-        scene.getAnnotations().clear();
+        scene.getAnnotations()
+            .clear();
         scene.setHoveredBlock(null);
         scene.setHoveredStructureLibHatch(null);
         scene.clearAnnotationHover();
@@ -175,13 +173,17 @@ public class SceneTagCompiler extends BlockTagCompiler {
         } finally {
             scene.setPendingStructureLibPreviewSelection(null);
         }
-        if (!scene.getLevel().isEmpty() && !explicitCenter) {
-            var center = scene.getLevel().getCenter();
-            scene.getCamera().setRotationCenter(center[0], center[1], center[2]);
+        if (!scene.getLevel()
+            .isEmpty() && !explicitCenter) {
+            var center = scene.getLevel()
+                .getCenter();
+            scene.getCamera()
+                .setRotationCenter(center[0], center[1], center[2]);
         }
         scene.setAnnotationsVisible(annotationsVisible);
         scene.setStructureLibHatchHighlightEnabled(hatchHighlightEnabled);
-        scene.getCamera().restore(savedCamera);
+        scene.getCamera()
+            .restore(savedCamera);
     }
 
     private static MdxJsxElementFields unwrapSceneElement(UnistNode node) {

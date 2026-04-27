@@ -85,8 +85,7 @@ public class StructureLibPreviewSelection {
             }
             normalized.put(channelId, Integer.valueOf(value.intValue()));
         }
-        return normalized.isEmpty() ? Collections.<String, Integer>emptyMap()
-            : Collections.unmodifiableMap(normalized);
+        return normalized.isEmpty() ? Collections.<String, Integer>emptyMap() : Collections.unmodifiableMap(normalized);
     }
 
     @Nullable

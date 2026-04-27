@@ -6,21 +6,32 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.MovingObjectPosition;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public final class GuideBlockDisplayResolver {
 
-    private static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS =
-        "bartworks.system.material.BWMetaGeneratedBlocks";
+    private static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS = "bartworks.system.material.BWMetaGeneratedBlocks";
 
     private GuideBlockDisplayResolver() {}
 
     @Nullable
     public static ItemStack resolveDisplayStack(GuidebookLevel level, int x, int y, int z) {
+        return resolveDisplayStack(level, x, y, z, null);
+    }
+
+    @Nullable
+    public static ItemStack resolveDisplayStack(GuidebookLevel level, int x, int y, int z,
+        @Nullable MovingObjectPosition target) {
         Block block = level.getBlock(x, y, z);
         if (block == null || block == Blocks.air) {
             return null;
+        }
+
+        ItemStack pickedStack = safeResolvePickedStack(level, block, x, y, z, target);
+        if (pickedStack != null) {
+            return pickedStack;
         }
 
         Item item = Item.getItemFromBlock(block);
@@ -33,13 +44,19 @@ public final class GuideBlockDisplayResolver {
 
     @Nullable
     public static String resolveDisplayName(GuidebookLevel level, int x, int y, int z) {
+        return resolveDisplayName(level, x, y, z, null);
+    }
+
+    @Nullable
+    public static String resolveDisplayName(GuidebookLevel level, int x, int y, int z,
+        @Nullable MovingObjectPosition target) {
         Block block = level.getBlock(x, y, z);
         if (block == null || block == Blocks.air) {
             return null;
         }
 
         try {
-            ItemStack stack = resolveDisplayStack(level, x, y, z);
+            ItemStack stack = resolveDisplayStack(level, x, y, z, target);
             if (stack != null) {
                 return stack.getDisplayName();
             }
@@ -89,6 +106,20 @@ public final class GuideBlockDisplayResolver {
             return Math.max(0, block.getDamageValue(level.getOrCreateFakeWorld(), x, y, z));
         } catch (Throwable ignored) {
             return -1;
+        }
+    }
+
+    @Nullable
+    private static ItemStack safeResolvePickedStack(GuidebookLevel level, Block block, int x, int y, int z,
+        @Nullable MovingObjectPosition target) {
+        if (target == null) {
+            return null;
+        }
+        try {
+            ItemStack pickedStack = block.getPickBlock(target, level.getOrCreateFakeWorld(), x, y, z);
+            return pickedStack != null ? pickedStack.copy() : null;
+        } catch (Throwable ignored) {
+            return null;
         }
     }
 }

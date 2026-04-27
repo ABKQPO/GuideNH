@@ -11,6 +11,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.init.Blocks;
@@ -156,6 +157,8 @@ public class LytGuidebookScene extends LytBlock {
     private int[] hoveredBlock;
     @Nullable
     private AxisAlignedBB hoveredBlockBounds;
+    @Nullable
+    private MovingObjectPosition hoveredBlockHitResult;
     @Nullable
     private int[] hoveredStructureLibHatch;
 
@@ -343,6 +346,7 @@ public class LytGuidebookScene extends LytBlock {
     private void clearLayerDrivenHoverState() {
         hoveredBlock = null;
         hoveredBlockBounds = null;
+        hoveredBlockHitResult = null;
         hoveredStructureLibHatch = null;
         clearAnnotationHover();
     }
@@ -360,7 +364,8 @@ public class LytGuidebookScene extends LytBlock {
         this.structureLibCurrentTier = tierData != null ? tierData.getCurrentValue() : 1;
         for (StructureLibSceneMetadata.ChannelData channelData : structureLibSceneMetadata.getChannelDataList()) {
             if (channelData != null && channelData.getCurrentValue() > 0) {
-                this.structureLibChannelOverrides.put(channelData.getChannelId(), Integer.valueOf(channelData.getCurrentValue()));
+                this.structureLibChannelOverrides
+                    .put(channelData.getChannelId(), Integer.valueOf(channelData.getCurrentValue()));
             }
         }
         if (!structureLibSceneMetadata.hasHatchTooltipData()) {
@@ -745,7 +750,7 @@ public class LytGuidebookScene extends LytBlock {
                 Block block = level.getBlock(bx, by, bz);
                 if (block != null && block != Blocks.air) {
                     try {
-                        AxisAlignedBB blockBounds = GuideBlockBoundsResolver.resolveWorldBounds(level, bx, by, bz);
+                        AxisAlignedBB blockBounds = GuideBlockBoundsResolver.resolveSelectedBounds(level, bx, by, bz);
                         if (blockBounds != null) {
                             minX = blockBounds.minX - bx;
                             minY = blockBounds.minY - by;
@@ -984,12 +989,18 @@ public class LytGuidebookScene extends LytBlock {
         this.hoveredBlock = xyz;
         if (xyz == null) {
             this.hoveredBlockBounds = null;
+            this.hoveredBlockHitResult = null;
         }
     }
 
     @Nullable
     public int[] getHoveredBlock() {
         return hoveredBlock;
+    }
+
+    @Nullable
+    public MovingObjectPosition getHoveredBlockHitResult() {
+        return hoveredBlockHitResult;
     }
 
     public void setHoveredStructureLibHatch(@Nullable int[] xyz) {
@@ -1080,9 +1091,8 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private String getStructureLibTierSliderLabel() {
-        return GuidebookText.SceneSliderLabelFormat.text(
-            GuidebookText.SceneStructureLibTierLabel.text(),
-            Integer.toString(structureLibCurrentTier));
+        return GuidebookText.SceneSliderLabelFormat
+            .text(GuidebookText.SceneStructureLibTierLabel.text(), Integer.toString(structureLibCurrentTier));
     }
 
     private String getStructureLibChannelSliderLabel(StructureLibSceneMetadata.ChannelData channelData) {
@@ -1165,6 +1175,7 @@ public class LytGuidebookScene extends LytBlock {
         int[] best = null;
         double bestDistanceSq = Double.POSITIVE_INFINITY;
         AxisAlignedBB bestBounds = null;
+        MovingObjectPosition bestHitResult = null;
         var fakeWorld = level.getOrCreateFakeWorld();
         for (int[] b : level.getFilledBlocks()) {
             if (!isBlockVisibleForCurrentLayer(b[1])) {
@@ -1196,22 +1207,18 @@ public class LytGuidebookScene extends LytBlock {
             if (distanceSq < bestDistanceSq) {
                 bestDistanceSq = distanceSq;
                 best = b;
-                bestBounds = fallbackBounds != null ? fallbackBounds
-                    : resolveHoveredBounds(level, b[0], b[1], b[2], rayStart, rayEnd);
+                bestHitResult = hit;
+                bestBounds = fallbackBounds != null ? fallbackBounds : resolveHoveredBounds(level, b[0], b[1], b[2]);
             }
         }
         hoveredBlockBounds = bestBounds;
+        hoveredBlockHitResult = bestHitResult;
         return best;
     }
 
     @Nullable
-    private AxisAlignedBB resolveHoveredBounds(GuidebookLevel level, int x, int y, int z, Vec3 rayStart, Vec3 rayEnd) {
-        AxisAlignedBB blockBounds = GuideBlockBoundsResolver.resolveWorldBounds(level, x, y, z);
-        if (blockBounds == null) {
-            return null;
-        }
-        MovingObjectPosition hit = blockBounds.calculateIntercept(rayStart, rayEnd);
-        return hit != null && hit.hitVec != null ? blockBounds : null;
+    private AxisAlignedBB resolveHoveredBounds(GuidebookLevel level, int x, int y, int z) {
+        return GuideBlockBoundsResolver.resolveSelectedBounds(level, x, y, z);
     }
 
     private static float rayAabb(float ox, float oy, float oz, float dx, float dy, float dz, float minX, float minY,
@@ -1358,7 +1365,8 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public boolean isDragging() {
-        return dragButton >= 0 || draggingVisibleLayerSlider || draggingStructureLibTierSlider
+        return dragButton >= 0 || draggingVisibleLayerSlider
+            || draggingStructureLibTierSlider
             || draggingStructureLibChannelId != null;
     }
 
@@ -1428,8 +1436,10 @@ public class LytGuidebookScene extends LytBlock {
 
     LytRect getStructureLibChannelSliderRectForTesting() {
         List<StructureLibSceneMetadata.ChannelData> channels = getSelectableStructureLibChannels();
-        return channels.isEmpty() ? LytRect.empty() : resolveStructureLibChannelSliderTrackRect(
-            channels.get(0).getChannelId());
+        return channels.isEmpty() ? LytRect.empty()
+            : resolveStructureLibChannelSliderTrackRect(
+                channels.get(0)
+                    .getChannelId());
     }
 
     int getStructureLibChannelSliderAreaHeightForTesting() {
@@ -1560,7 +1570,8 @@ public class LytGuidebookScene extends LytBlock {
         List<StructureLibSceneMetadata.ChannelData> channels = getSelectableStructureLibChannels();
         int index = 0;
         for (StructureLibSceneMetadata.ChannelData channelData : channels) {
-            if (channelData.getChannelId().equals(StructureLibPreviewSelection.normalizeChannelId(channelId))) {
+            if (channelData.getChannelId()
+                .equals(StructureLibPreviewSelection.normalizeChannelId(channelId))) {
                 return (hasStructureLibTierData() ? 1 : 0) + (hasVisibleLayerSlider() ? 1 : 0) + index;
             }
             index++;
@@ -1573,7 +1584,8 @@ public class LytGuidebookScene extends LytBlock {
         int originY = lastOuterH > 0 ? lastOuterAbsY : getBounds().y();
         int outerWidth = lastOuterW > 0 ? lastOuterW
             : Math.max(16, layoutSceneWidth > 0 ? layoutSceneWidth : this.width);
-        int outerHeight = lastOuterH > 0 ? lastOuterH : Math.max(getBounds().height(), this.height + getBottomControlAreaHeight());
+        int outerHeight = lastOuterH > 0 ? lastOuterH
+            : Math.max(getBounds().height(), this.height + getBottomControlAreaHeight());
         return resolveSliderTrackRect(originX, originY, outerWidth, outerHeight, rowIndex);
     }
 
@@ -1619,7 +1631,8 @@ public class LytGuidebookScene extends LytBlock {
         if (trackRect.isEmpty()) {
             return LytRect.empty();
         }
-        return GuideSliderRenderer.layout(trackRect.x(), trackRect.y(), trackRect.width(), getVisibleLayerFraction()).hitRect();
+        return GuideSliderRenderer.layout(trackRect.x(), trackRect.y(), trackRect.width(), getVisibleLayerFraction())
+            .hitRect();
     }
 
     private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect) {
@@ -1635,10 +1648,22 @@ public class LytGuidebookScene extends LytBlock {
         boolean highlighted = draggingVisibleLayerSlider;
         if (!highlighted) {
             int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && geometry.hitRect().contains(mouse[0], mouse[1]);
+            highlighted = mouse != null && geometry.hitRect()
+                .contains(mouse[0], mouse[1]);
         }
-        logSliderGeometry("visible-layer", geometry, resolveVisibleLayerRowIndex(), getVisibleLayerSliderLabel(), outerRect);
-        drawSlider(context, geometry, highlighted, outerRect, resolveVisibleLayerRowIndex(), getVisibleLayerSliderLabel(),
+        logSliderGeometry(
+            "visible-layer",
+            geometry,
+            resolveVisibleLayerRowIndex(),
+            getVisibleLayerSliderLabel(),
+            outerRect);
+        drawSlider(
+            context,
+            geometry,
+            highlighted,
+            outerRect,
+            resolveVisibleLayerRowIndex(),
+            getVisibleLayerSliderLabel(),
             VISIBLE_LAYER_SLIDER_TEXT_STYLE);
     }
 
@@ -1677,7 +1702,8 @@ public class LytGuidebookScene extends LytBlock {
         if (trackRect.isEmpty()) {
             return LytRect.empty();
         }
-        return GuideSliderRenderer.layout(trackRect.x(), trackRect.y(), trackRect.width(), getStructureLibTierFraction())
+        return GuideSliderRenderer
+            .layout(trackRect.x(), trackRect.y(), trackRect.width(), getStructureLibTierFraction())
             .hitRect();
     }
 
@@ -1687,17 +1713,15 @@ public class LytGuidebookScene extends LytBlock {
             logSliderSkipped("structurelib-tier", resolveStructureLibTierRowIndex(), outerRect);
             return;
         }
-        GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer.layout(
-            sliderTrackRect.x(),
-            sliderTrackRect.y(),
-            sliderTrackRect.width(),
-            getStructureLibTierFraction());
+        GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer
+            .layout(sliderTrackRect.x(), sliderTrackRect.y(), sliderTrackRect.width(), getStructureLibTierFraction());
         cachedTierSliderRect = geometry.trackRect();
         cachedTierSliderHitRect = geometry.hitRect();
         boolean highlighted = draggingStructureLibTierSlider;
         if (!highlighted) {
             int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && geometry.hitRect().contains(mouse[0], mouse[1]);
+            highlighted = mouse != null && geometry.hitRect()
+                .contains(mouse[0], mouse[1]);
         }
         logSliderGeometry(
             "structurelib-tier",
@@ -1705,7 +1729,13 @@ public class LytGuidebookScene extends LytBlock {
             resolveStructureLibTierRowIndex(),
             getStructureLibTierSliderLabel(),
             outerRect);
-        drawSlider(context, geometry, highlighted, outerRect, resolveStructureLibTierRowIndex(), getStructureLibTierSliderLabel(),
+        drawSlider(
+            context,
+            geometry,
+            highlighted,
+            outerRect,
+            resolveStructureLibTierRowIndex(),
+            getStructureLibTierSliderLabel(),
             STRUCTURELIB_TIER_SLIDER_TEXT_STYLE);
     }
 
@@ -1731,7 +1761,8 @@ public class LytGuidebookScene extends LytBlock {
         if (tierData == null || tierData.getMaxValue() <= tierData.getMinValue()) {
             return 0f;
         }
-        return (structureLibCurrentTier - tierData.getMinValue()) / (float) (tierData.getMaxValue() - tierData.getMinValue());
+        return (structureLibCurrentTier - tierData.getMinValue())
+            / (float) (tierData.getMaxValue() - tierData.getMinValue());
     }
 
     private void nudgeStructureLibTier(int dwheel) {
@@ -1750,7 +1781,11 @@ public class LytGuidebookScene extends LytBlock {
             cachedChannelSliderHitRects.put(
                 channelData.getChannelId(),
                 GuideSliderRenderer
-                    .layout(trackRect.x(), trackRect.y(), trackRect.width(), getStructureLibChannelFraction(channelData))
+                    .layout(
+                        trackRect.x(),
+                        trackRect.y(),
+                        trackRect.width(),
+                        getStructureLibChannelFraction(channelData))
                     .hitRect());
         }
         return cachedChannelSliderHitRects;
@@ -1759,7 +1794,9 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private String resolveHoveredStructureLibChannelId(int mouseX, int mouseY) {
         for (Map.Entry<String, LytRect> entry : resolveStructureLibChannelSliderHitRects().entrySet()) {
-            if (!entry.getValue().isEmpty() && entry.getValue().contains(mouseX, mouseY)) {
+            if (!entry.getValue()
+                .isEmpty() && entry.getValue()
+                    .contains(mouseX, mouseY)) {
                 return entry.getKey();
             }
         }
@@ -1787,10 +1824,12 @@ public class LytGuidebookScene extends LytBlock {
             getStructureLibChannelFraction(channelData));
         cachedChannelSliderRects.put(channelData.getChannelId(), geometry.trackRect());
         cachedChannelSliderHitRects.put(channelData.getChannelId(), geometry.hitRect());
-        boolean highlighted = channelData.getChannelId().equals(draggingStructureLibChannelId);
+        boolean highlighted = channelData.getChannelId()
+            .equals(draggingStructureLibChannelId);
         if (!highlighted) {
             int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && geometry.hitRect().contains(mouse[0], mouse[1]);
+            highlighted = mouse != null && geometry.hitRect()
+                .contains(mouse[0], mouse[1]);
         }
         logSliderGeometry(
             "structurelib-channel:" + channelData.getChannelId(),
@@ -1814,7 +1853,9 @@ public class LytGuidebookScene extends LytBlock {
         if (channelData == null || sliderTrackRect.isEmpty()) {
             return;
         }
-        applyStructureLibChannelFraction(channelData, GuideSliderRenderer.fractionFromMouse(mouseX, sliderTrackRect.x(), sliderTrackRect.width()));
+        applyStructureLibChannelFraction(
+            channelData,
+            GuideSliderRenderer.fractionFromMouse(mouseX, sliderTrackRect.x(), sliderTrackRect.width()));
     }
 
     private void applyStructureLibChannelFraction(StructureLibSceneMetadata.ChannelData channelData, float fraction) {
@@ -1849,10 +1890,7 @@ public class LytGuidebookScene extends LytBlock {
 
     private void drawSlider(RenderContext context, GuideSliderRenderer.SliderGeometry geometry, boolean highlighted,
         LytRect outerRect, int rowIndex, String label, ResolvedTextStyle style) {
-        GuideSliderRenderer.render(
-            (left, top, right, bottom, color) -> context.fillRect(new LytRect(left, top, right - left, bottom - top), color),
-            geometry,
-            highlighted);
+        GuideSliderRenderer.render(Gui::drawRect, geometry, highlighted);
         int textWidth = context.getStringWidth(label, style);
         int textHeight = context.getLineHeight(style);
         int textX = outerRect.x() + (outerRect.width() - textWidth) / 2;
@@ -1864,8 +1902,15 @@ public class LytGuidebookScene extends LytBlock {
     private void logBottomControlState(String phase, LytRect outerRect) {
         int selectableChannels = getSelectableStructureLibChannels().size();
         GuideGregTechTileSupport.logInfoOnce(
-            "scene-bottom-controls:" + Integer.toHexString(System.identityHashCode(this)) + ":" + phase + ":"
-                + getBottomControlAreaHeight() + ":" + getBottomControlRowCount() + ":" + selectableChannels,
+            "scene-bottom-controls:" + Integer.toHexString(System.identityHashCode(this))
+                + ":"
+                + phase
+                + ":"
+                + getBottomControlAreaHeight()
+                + ":"
+                + getBottomControlRowCount()
+                + ":"
+                + selectableChannels,
             "Scene bottom controls {}: outerRect={} bottomVisible={} visibleLayerEnabled={} visibleLayerCount={} hasVisibleLayerSlider={} hasTierSlider={} selectableChannels={} bottomAreaHeight={} rowCount={}",
             phase,
             describeRect(outerRect),
@@ -1881,8 +1926,8 @@ public class LytGuidebookScene extends LytBlock {
 
     private void logSliderSkipped(String sliderId, int rowIndex, LytRect outerRect) {
         GuideGregTechTileSupport.logInfoOnce(
-            "scene-slider-skip:" + Integer.toHexString(System.identityHashCode(this)) + ":" + sliderId + ":" + rowIndex
-                + ":" + getBottomControlAreaHeight(),
+            "scene-slider-skip:" + Integer.toHexString(
+                System.identityHashCode(this)) + ":" + sliderId + ":" + rowIndex + ":" + getBottomControlAreaHeight(),
             "Scene slider skipped {}: rowIndex={} outerRect={} bottomAreaHeight={} rowCount={} lastOuter={}x{}",
             sliderId,
             Integer.valueOf(rowIndex),
@@ -1893,11 +1938,16 @@ public class LytGuidebookScene extends LytBlock {
             Integer.valueOf(lastOuterH));
     }
 
-    private void logSliderGeometry(String sliderId, GuideSliderRenderer.SliderGeometry geometry, int rowIndex, String label,
-        LytRect outerRect) {
+    private void logSliderGeometry(String sliderId, GuideSliderRenderer.SliderGeometry geometry, int rowIndex,
+        String label, LytRect outerRect) {
         GuideGregTechTileSupport.logInfoOnce(
-            "scene-slider-geometry:" + Integer.toHexString(System.identityHashCode(this)) + ":" + sliderId + ":"
-                + rowIndex + ":" + describeRect(geometry.trackRect()),
+            "scene-slider-geometry:" + Integer.toHexString(System.identityHashCode(this))
+                + ":"
+                + sliderId
+                + ":"
+                + rowIndex
+                + ":"
+                + describeRect(geometry.trackRect()),
             "Scene slider geometry {}: rowIndex={} outerRect={} track={} fill={} thumb={} hit={} label={}",
             sliderId,
             Integer.valueOf(rowIndex),

@@ -33,7 +33,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.gtnewhorizon.structurelib.StructureEvent.StructureElementVisitedEvent;
 import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.gtnewhorizon.structurelib.alignment.IAlignment;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
@@ -47,7 +46,6 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.mojang.authlib.GameProfile;
 
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 public class StructureLibRuntimeFacade implements StructureLibFacade {
@@ -130,7 +128,10 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
         LinkedHashSet<String> discoveredChannels = new LinkedHashSet<>();
         int maxTotalTier = estimateMaxTotalTier(request, controller, discoveredChannels);
-        LinkedHashMap<String, Integer> channelMaxTierMap = estimateChannelMaxTiers(request, controller, discoveredChannels);
+        LinkedHashMap<String, Integer> channelMaxTierMap = estimateChannelMaxTiers(
+            request,
+            controller,
+            discoveredChannels);
         ControlAnalysis created = new ControlAnalysis(maxTotalTier, channelMaxTierMap);
         CONTROL_ANALYSIS_CACHE.put(key, created);
         return created;
@@ -176,8 +177,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 continue;
             }
 
-            StructureLibPreviewSelection baseSelection = StructureLibPreviewSelection
-                .ofMasterTier(MIN_TIER)
+            StructureLibPreviewSelection baseSelection = StructureLibPreviewSelection.ofMasterTier(MIN_TIER)
                 .withChannelOverride(channelId, MIN_TIER);
             BuildSnapshot previous = buildSnapshot(request, controller, baseSelection, new ArrayList<String>());
             if (!previous.success) {
@@ -192,8 +192,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             int maxTier = MIN_TIER;
             String previousFingerprint = previous.fingerprint;
             for (int tier = MIN_TIER + 1; tier <= MAX_TIER; tier++) {
-                StructureLibPreviewSelection selection = StructureLibPreviewSelection
-                    .ofMasterTier(MIN_TIER)
+                StructureLibPreviewSelection selection = StructureLibPreviewSelection.ofMasterTier(MIN_TIER)
                     .withChannelOverride(channelId, tier);
                 BuildSnapshot current = buildSnapshot(request, controller, selection, new ArrayList<String>());
                 if (!current.success) {
@@ -217,7 +216,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return resolved;
     }
 
-    private static void collectChannelIds(List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements,
+    private static void collectChannelIds(
+        List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements,
         Set<String> discoveredChannels) {
         if (visitedElements == null || visitedElements.isEmpty()) {
             return;
@@ -258,7 +258,9 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         ItemStack triggerStack = createTriggerStack(selection);
         List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements = Collections.emptyList();
         Object instrumentId = new Object();
-        StructureLibStructureVisitCollector visitCollector = new StructureLibStructureVisitCollector(instrumentId, world);
+        StructureLibStructureVisitCollector visitCollector = new StructureLibStructureVisitCollector(
+            instrumentId,
+            world);
         boolean instrumentEnabled = false;
         try {
             StructureLibAPI.enableInstrument(instrumentId);
@@ -390,11 +392,13 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     private static ItemStack createTriggerStack(StructureLibPreviewSelection selection) {
-        StructureLibPreviewSelection effectiveSelection = selection != null ? selection : StructureLibPreviewSelection.defaultSelection();
+        StructureLibPreviewSelection effectiveSelection = selection != null ? selection
+            : StructureLibPreviewSelection.defaultSelection();
         ItemStack triggerStack = new ItemStack(
             StructureLibAPI.getDefaultHologramItem(),
             Math.max(MIN_TIER, effectiveSelection.getMasterTier()));
-        for (Map.Entry<String, Integer> entry : effectiveSelection.getChannelOverrides().entrySet()) {
+        for (Map.Entry<String, Integer> entry : effectiveSelection.getChannelOverrides()
+            .entrySet()) {
             Integer channelValue = entry.getValue();
             if (channelValue != null && channelValue.intValue() > 0) {
                 ChannelDataAccessor.setChannelData(triggerStack, entry.getKey(), channelValue.intValue());
@@ -686,12 +690,17 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             StructureLibPreviewSelection effectiveSelection = selection != null ? selection
                 : StructureLibPreviewSelection.defaultSelection();
             LinkedHashMap<String, Integer> clampedChannels = new LinkedHashMap<>();
-            for (Map.Entry<String, Integer> entry : effectiveSelection.getChannelOverrides().entrySet()) {
+            for (Map.Entry<String, Integer> entry : effectiveSelection.getChannelOverrides()
+                .entrySet()) {
                 Integer maxValue = channelMaxTierMap.get(entry.getKey());
                 if (maxValue == null || maxValue.intValue() <= 0 || entry.getValue() == null) {
                     continue;
                 }
-                int clamped = clamp(entry.getValue().intValue(), 1, maxValue.intValue());
+                int clamped = clamp(
+                    entry.getValue()
+                        .intValue(),
+                    1,
+                    maxValue.intValue());
                 clampedChannels.put(entry.getKey(), Integer.valueOf(clamped));
             }
             return new StructureLibPreviewSelection(

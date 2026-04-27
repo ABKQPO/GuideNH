@@ -62,6 +62,24 @@ public final class GuideBlockBoundsResolver {
     }
 
     @Nullable
+    public static AxisAlignedBB resolveSelectedBounds(GuidebookLevel level, int x, int y, int z) {
+        Block block = level.getBlock(x, y, z);
+        if (block == null || block == Blocks.air) {
+            return null;
+        }
+
+        try {
+            block.setBlockBoundsBasedOnState(level.getOrCreateFakeWorld(), x, y, z);
+            AxisAlignedBB selectedBounds = block.getSelectedBoundingBoxFromPool(level.getOrCreateFakeWorld(), x, y, z);
+            if (selectedBounds != null && isNonEmpty(selectedBounds)) {
+                return copyOf(selectedBounds);
+            }
+        } catch (Throwable ignored) {}
+
+        return resolveWorldBounds(level, x, y, z);
+    }
+
+    @Nullable
     private static AxisAlignedBB resolveCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
         try {
             List<AxisAlignedBB> collisionBoxes = new ArrayList<>();
@@ -85,6 +103,7 @@ public final class GuideBlockBoundsResolver {
     }
 
     private static AxisAlignedBB copyOf(AxisAlignedBB bounds) {
-        return AxisAlignedBB.getBoundingBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ);
+        return AxisAlignedBB
+            .getBoundingBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ);
     }
 }

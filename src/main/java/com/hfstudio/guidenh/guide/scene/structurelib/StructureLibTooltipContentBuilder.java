@@ -24,8 +24,8 @@ public class StructureLibTooltipContentBuilder {
     private static final TextStyle HATCH_LABEL_STYLE = TextStyle.builder()
         .color(new ConstantColor(0xFFFFCC55))
         .build();
-    private static final int[] HINT_DOT_COLORS = new int[] { 0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFFFFFF00,
-        0xFFFF00FF, 0xFF00FFFF, 0xFFFFA500, 0xFF800080, 0xFF006400, 0xFF8B0000, 0xFF00008B, 0xFF008B8B };
+    private static final int[] HINT_DOT_COLORS = new int[] { 0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFFFFFF00, 0xFFFF00FF,
+        0xFF00FFFF, 0xFFFFA500, 0xFF800080, 0xFF006400, 0xFF8B0000, 0xFF00008B, 0xFF008B8B };
 
     private StructureLibTooltipContentBuilder() {}
 
@@ -44,8 +44,8 @@ public class StructureLibTooltipContentBuilder {
             root.append(LytParagraph.of(GuidebookText.SceneStructureLibHoldShiftCandidates.text()));
         } else if (normalizedStructureLibDescription != null
             && !isGenericStructureLibDescription(normalizedStructureLibDescription)) {
-            root.append(LytParagraph.of(normalizedStructureLibDescription));
-        }
+                root.append(LytParagraph.of(normalizedStructureLibDescription));
+            }
 
         appendDescriptionLines(root, hatchDescriptionLines);
 
@@ -87,8 +87,12 @@ public class StructureLibTooltipContentBuilder {
         }
         LytParagraph paragraph = new LytParagraph();
         appendStyledText(paragraph, GuidebookText.SceneStructureLibHintBlockLabel.text(), HATCH_LABEL_STYLE);
-        appendStyledText(paragraph, GuidebookText.SceneStructureLibHintDotNumber.text(Integer.valueOf(hintDot)),
-            TextStyle.builder().color(new ConstantColor(resolveHintDotColor(hintDot))).build());
+        appendStyledText(
+            paragraph,
+            GuidebookText.SceneStructureLibHintDotNumber.text(Integer.valueOf(hintDot)),
+            TextStyle.builder()
+                .color(new ConstantColor(resolveHintDotColor(hintDot)))
+                .build());
         return paragraph;
     }
 

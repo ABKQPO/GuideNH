@@ -329,7 +329,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     private void tickPreviewTileEntitiesFallback() {
-        TileEntity[] snapshot = tileEntities.values().toArray(new TileEntity[0]);
+        TileEntity[] snapshot = tileEntities.values()
+            .toArray(new TileEntity[0]);
         for (TileEntity tileEntity : snapshot) {
             if (tileEntity == null || !tileEntity.canUpdate()) {
                 continue;

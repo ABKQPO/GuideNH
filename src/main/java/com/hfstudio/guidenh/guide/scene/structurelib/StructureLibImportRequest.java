@@ -39,7 +39,8 @@ public class StructureLibImportRequest {
         this.rotation = normalizeOptional(rotation);
         this.flip = normalizeOptional(flip);
         this.channel = channel;
-        this.previewSelection = previewSelection != null ? previewSelection : StructureLibPreviewSelection.defaultSelection();
+        this.previewSelection = previewSelection != null ? previewSelection
+            : StructureLibPreviewSelection.defaultSelection();
     }
 
     public String getController() {

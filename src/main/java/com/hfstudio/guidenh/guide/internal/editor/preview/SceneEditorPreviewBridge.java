@@ -57,7 +57,9 @@ public final class SceneEditorPreviewBridge {
         scene.clearAnnotationHover();
         scene.setStructureLibSceneMetadata(null);
         scene.setLevel(new GuidebookLevel());
-        scene.setVisibleLayerSliderEnabled(session.getSceneModel().isAllowLayerSlider() || ModConfig.ui.sceneLayerSliderEnabled);
+        scene.setVisibleLayerSliderEnabled(
+            session.getSceneModel()
+                .isAllowLayerSlider() || ModConfig.ui.sceneLayerSliderEnabled);
         sceneNodePreviewApplier.apply(session, scene, structureLibSelectionOverride);
     }
 

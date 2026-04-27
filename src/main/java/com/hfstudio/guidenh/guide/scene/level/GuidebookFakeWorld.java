@@ -31,8 +31,7 @@ public class GuidebookFakeWorld extends WorldClient {
 
     private static final long FROZEN_WORLD_TIME = 0L;
     private static volatile boolean gregTechDummyWorldRegistrationAttempted;
-    private static final String BARTWORKS_META_GENERATED_TILE_CLASS =
-        "bartworks.system.material.TileEntityMetaGeneratedBlock";
+    private static final String BARTWORKS_META_GENERATED_TILE_CLASS = "bartworks.system.material.TileEntityMetaGeneratedBlock";
     private static volatile Field bartWorksMetaField;
     private static volatile boolean bartWorksMetaFieldResolved;
 
@@ -341,7 +340,8 @@ public class GuidebookFakeWorld extends WorldClient {
             return null;
         }
         try {
-            bartWorksMetaField = tileEntity.getClass().getField("mMetaData");
+            bartWorksMetaField = tileEntity.getClass()
+                .getField("mMetaData");
         } catch (Throwable ignored) {
             bartWorksMetaField = null;
         }

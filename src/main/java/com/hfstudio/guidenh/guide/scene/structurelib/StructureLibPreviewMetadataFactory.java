@@ -25,8 +25,8 @@ public class StructureLibPreviewMetadataFactory {
 
     public StructureLibSceneMetadata createMetadata(StructureLibImportRequest request,
         StructureLibPreviewSelection selection, int maxTier, Map<String, Integer> channelMaxTierMap,
-        List<AbsolutePreviewBlock> absoluteBlocks,
-        List<VisitedStructureElement> visitedElements, ItemStack trigger, @Nullable World world) {
+        List<AbsolutePreviewBlock> absoluteBlocks, List<VisitedStructureElement> visitedElements, ItemStack trigger,
+        @Nullable World world) {
         return createMetadata(
             request,
             selection,
@@ -42,9 +42,8 @@ public class StructureLibPreviewMetadataFactory {
 
     public StructureLibSceneMetadata createMetadata(StructureLibImportRequest request,
         StructureLibPreviewSelection selection, int maxTier, Map<String, Integer> channelMaxTierMap,
-        List<AbsolutePreviewBlock> absoluteBlocks,
-        List<VisitedStructureElement> visitedElements, ItemStack trigger, @Nullable World world,
-        @Nullable Object constructable, @Nullable EntityPlayer actor) {
+        List<AbsolutePreviewBlock> absoluteBlocks, List<VisitedStructureElement> visitedElements, ItemStack trigger,
+        @Nullable World world, @Nullable Object constructable, @Nullable EntityPlayer actor) {
         StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(
             request.getController(),
             request.getPiece(),
@@ -52,7 +51,8 @@ public class StructureLibPreviewMetadataFactory {
             request.getRotation(),
             request.getFlip());
         if (maxTier > 0) {
-            metadata = metadata.withTierData(1, Math.max(1, maxTier), selection.getMasterTier(), selection.getMasterTier());
+            metadata = metadata
+                .withTierData(1, Math.max(1, maxTier), selection.getMasterTier(), selection.getMasterTier());
         }
         if (channelMaxTierMap != null && !channelMaxTierMap.isEmpty()) {
             for (Map.Entry<String, Integer> entry : channelMaxTierMap.entrySet()) {
@@ -63,7 +63,10 @@ public class StructureLibPreviewMetadataFactory {
                 metadata = metadata.withChannelData(
                     channelId,
                     channelId,
-                    Math.max(0, entry.getValue().intValue()),
+                    Math.max(
+                        0,
+                        entry.getValue()
+                            .intValue()),
                     selection.getChannelValue(channelId));
             }
         }
@@ -137,7 +140,9 @@ public class StructureLibPreviewMetadataFactory {
         Class<?> current = element.getClass();
         while (current != null && current != Object.class) {
             for (Field field : current.getDeclaredFields()) {
-                if (field.getType() != String.class || !field.getName().toLowerCase().contains("channel")) {
+                if (field.getType() != String.class || !field.getName()
+                    .toLowerCase()
+                    .contains("channel")) {
                     continue;
                 }
                 try {

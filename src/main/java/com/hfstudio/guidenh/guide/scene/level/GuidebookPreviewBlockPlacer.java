@@ -20,10 +20,8 @@ public class GuidebookPreviewBlockPlacer {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     private static final String GREGTECH_BLOCK_MACHINES_CLASS = "gregtech.common.blocks.BlockMachines";
-    private static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS =
-        "bartworks.system.material.BWMetaGeneratedBlocks";
-    private static final String BARTWORKS_META_GENERATED_TILE_CLASS =
-        "bartworks.system.material.TileEntityMetaGeneratedBlock";
+    private static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS = "bartworks.system.material.BWMetaGeneratedBlocks";
+    private static final String BARTWORKS_META_GENERATED_TILE_CLASS = "bartworks.system.material.TileEntityMetaGeneratedBlock";
     private static final String GREGTECH_API_CLASS = "gregtech.api.GregTechAPI";
 
     private GuidebookPreviewBlockPlacer() {}
@@ -59,15 +57,17 @@ public class GuidebookPreviewBlockPlacer {
             applyBartWorksGeneratedBlockMeta(tileEntity, block, placementData.blockMeta);
             logLoadedTile("post-facing-meta", x, y, z, tileEntity, placementData.metaTileId, tileTag);
             TileEntity residentTile = resolveWorldResidentTile(level.getOrCreateFakeWorld(), x, y, z, tileEntity);
-            level.setTileEntity(
-                x,
-                y,
-                z,
-                residentTile);
+            level.setTileEntity(x, y, z, residentTile);
             logLoadedTile("resident", x, y, z, residentTile, placementData.metaTileId, tileTag);
         } else if (shouldLogPlacement(block, placementData)) {
             GuideGregTechTileSupport.logInfoOnce(
-                "preview-place-missing-tile:" + x + ":" + y + ":" + z + ":" + GuideGregTechTileSupport.describeBlock(block),
+                "preview-place-missing-tile:" + x
+                    + ":"
+                    + y
+                    + ":"
+                    + z
+                    + ":"
+                    + GuideGregTechTileSupport.describeBlock(block),
                 "Preview tile load produced no TileEntity at {} for block={} explicitId={} blockMeta={} metaTileId={} tileTag=[{}]",
                 describePosition(x, y, z),
                 GuideGregTechTileSupport.describeBlock(block),
@@ -80,7 +80,8 @@ public class GuidebookPreviewBlockPlacer {
         level.setExplicitBlockId(x, y, z, explicitBlockId);
     }
 
-    private static PlacementData resolvePlacementData(Block block, int requestedMeta, @Nullable NBTTagCompound tileTag) {
+    private static PlacementData resolvePlacementData(Block block, int requestedMeta,
+        @Nullable NBTTagCompound tileTag) {
         Integer metaTileId = resolveGregTechMetaTileId(block, requestedMeta, tileTag);
         if (metaTileId == null) {
             Integer bartWorksMeta = resolveBartWorksBlockMeta(block, requestedMeta, tileTag);
@@ -217,13 +218,8 @@ public class GuidebookPreviewBlockPlacer {
 
     private static ForgeDirection findPreferredFacing(Method isValidFacing, TileEntity tileEntity)
         throws ReflectiveOperationException {
-        ForgeDirection[] preferredOrder = new ForgeDirection[] {
-            ForgeDirection.SOUTH,
-            ForgeDirection.NORTH,
-            ForgeDirection.EAST,
-            ForgeDirection.WEST,
-            ForgeDirection.UP,
-            ForgeDirection.DOWN };
+        ForgeDirection[] preferredOrder = new ForgeDirection[] { ForgeDirection.SOUTH, ForgeDirection.NORTH,
+            ForgeDirection.EAST, ForgeDirection.WEST, ForgeDirection.UP, ForgeDirection.DOWN };
         for (ForgeDirection facing : preferredOrder) {
             if (isFacingValid(isValidFacing, tileEntity, facing)) {
                 return facing;
@@ -270,7 +266,8 @@ public class GuidebookPreviewBlockPlacer {
         return false;
     }
 
-    private static TileEntity resolveWorldResidentTile(GuidebookFakeWorld world, int x, int y, int z, TileEntity fallback) {
+    private static TileEntity resolveWorldResidentTile(GuidebookFakeWorld world, int x, int y, int z,
+        TileEntity fallback) {
         TileEntity resident = world.getTileEntity(x, y, z);
         return resident != null ? resident : fallback;
     }
@@ -299,7 +296,14 @@ public class GuidebookPreviewBlockPlacer {
             return;
         }
         GuideGregTechTileSupport.logInfoOnce(
-            "preview-place-" + stage + ":" + x + ":" + y + ":" + z + ":"
+            "preview-place-" + stage
+                + ":"
+                + x
+                + ":"
+                + y
+                + ":"
+                + z
+                + ":"
                 + (tileEntity != null ? tileEntity.getClass()
                     .getName() : "null"),
             "Preview tile {} {}: tile={} metaTileId={} tileTag=[{}]",

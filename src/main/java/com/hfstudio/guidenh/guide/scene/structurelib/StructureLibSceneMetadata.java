@@ -74,7 +74,15 @@ public class StructureLibSceneMetadata {
         } else {
             updated.put(key, tooltipData);
         }
-        return new StructureLibSceneMetadata(controller, piece, facing, rotation, flip, tierData, channelDataList, updated);
+        return new StructureLibSceneMetadata(
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            tierData,
+            channelDataList,
+            updated);
     }
 
     public StructureLibSceneMetadata withTierData(int minValue, int maxValue, int defaultValue, int currentValue) {
@@ -217,7 +225,8 @@ public class StructureLibSceneMetadata {
         return Collections.unmodifiableMap(new LinkedHashMap<>(source));
     }
 
-    private static List<BlockTooltipEntry> computeHatchTooltipEntries(Map<Long, BlockTooltipData> blockTooltipDataByPos) {
+    private static List<BlockTooltipEntry> computeHatchTooltipEntries(
+        Map<Long, BlockTooltipData> blockTooltipDataByPos) {
         if (blockTooltipDataByPos.isEmpty()) {
             return Collections.emptyList();
         }
@@ -227,9 +236,15 @@ public class StructureLibSceneMetadata {
             if (value != null && value.hasHatchDetails()) {
                 entries.add(
                     new BlockTooltipEntry(
-                        unpackBlockPosX(entry.getKey().longValue()),
-                        unpackBlockPosY(entry.getKey().longValue()),
-                        unpackBlockPosZ(entry.getKey().longValue()),
+                        unpackBlockPosX(
+                            entry.getKey()
+                                .longValue()),
+                        unpackBlockPosY(
+                            entry.getKey()
+                                .longValue()),
+                        unpackBlockPosZ(
+                            entry.getKey()
+                                .longValue()),
                         value));
             }
         }

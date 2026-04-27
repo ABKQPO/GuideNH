@@ -38,11 +38,11 @@ import org.lwjgl.opengl.GL12;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
-import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
+import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 
 public class GuidebookLevelRenderer {
 
@@ -273,7 +273,9 @@ public class GuidebookLevelRenderer {
                     if (GuideGregTechTileSupport.isGregTechTileEntity(tileEntity)
                         && !GuideGregTechTileSupport.hasValidMetaTileBinding(tileEntity)) {
                         GuideGregTechTileSupport.logInfoOnce(
-                            "render-invalid-block-pass:" + pass + ":" + GuideGregTechTileSupport.describeTile(tileEntity),
+                            "render-invalid-block-pass:" + pass
+                                + ":"
+                                + GuideGregTechTileSupport.describeTile(tileEntity),
                             "Render pass {} found invalid GregTech block tile before block render: {}",
                             Integer.valueOf(pass),
                             GuideGregTechTileSupport.describeTile(tileEntity));
@@ -340,10 +342,8 @@ public class GuidebookLevelRenderer {
                 try {
                     int brightness = te.getWorldObj()
                         .getLightBrightnessForSkyBlocks(te.xCoord, te.yCoord, te.zCoord, 0);
-                    OpenGlHelper.setLightmapTextureCoords(
-                        OpenGlHelper.lightmapTexUnit,
-                        brightness % 65536,
-                        brightness / 65536);
+                    OpenGlHelper
+                        .setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, brightness % 65536, brightness / 65536);
                     GL11.glColor4f(1f, 1f, 1f, 1f);
                     dispatcher.renderTileEntityAt(te, te.xCoord, te.yCoord, te.zCoord, partialTicks);
                 } catch (Throwable t) {

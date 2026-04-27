@@ -877,7 +877,8 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
             }
             LytGuidebookScene scene = sceneAt(mouseX, mouseY);
             boolean sceneWheelBlocked = isSceneWheelInteractionBlocked(now);
-            if (scene != null && scene.isInteractive() && !sceneWheelBlocked
+            if (scene != null && scene.isInteractive()
+                && !sceneWheelBlocked
                 && (scene.containsBottomControlSlider(mouseX, mouseY) || ModConfig.ui.sceneWheelZoom)) {
                 scene.scroll(mouseX, mouseY, dwheel);
                 return;
@@ -1155,6 +1156,10 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
     @Nullable
     private static String blockDisplayName(LytGuidebookScene scene, int x, int y, int z) {
         try {
+            var hoveredHit = scene.getHoveredBlockHitResult();
+            if (hoveredHit != null && hoveredHit.blockX == x && hoveredHit.blockY == y && hoveredHit.blockZ == z) {
+                return GuideBlockDisplayResolver.resolveDisplayName(scene.getLevel(), x, y, z, hoveredHit);
+            }
             return GuideBlockDisplayResolver.resolveDisplayName(scene.getLevel(), x, y, z);
         } catch (Throwable t) {
             return null;

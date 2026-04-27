@@ -19,8 +19,8 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.input.Keyboard;
@@ -1099,7 +1099,8 @@ public final class SceneEditorScreen extends GuiScreen {
                 previewScene.getLevel(),
                 hoveredHatch[0],
                 hoveredHatch[1],
-                hoveredHatch[2]);
+                hoveredHatch[2],
+                previewScene.getHoveredBlockHitResult());
             if (name != null) {
                 GuideTooltip structureLibTooltip = previewScene
                     .createStructureLibTooltipForHoveredBlock(name, isShiftKeyDown());
@@ -1121,9 +1122,11 @@ public final class SceneEditorScreen extends GuiScreen {
             previewScene.getLevel(),
             hoveredBlock[0],
             hoveredBlock[1],
-            hoveredBlock[2]);
+            hoveredBlock[2],
+            previewScene.getHoveredBlockHitResult());
         if (name != null) {
-            GuideTooltip structureLibTooltip = previewScene.createStructureLibTooltipForHoveredBlock(name, isShiftKeyDown());
+            GuideTooltip structureLibTooltip = previewScene
+                .createStructureLibTooltipForHoveredBlock(name, isShiftKeyDown());
             if (structureLibTooltip != null) {
                 renderPreviewGuideTooltip(structureLibTooltip, mouseX, mouseY);
                 return;

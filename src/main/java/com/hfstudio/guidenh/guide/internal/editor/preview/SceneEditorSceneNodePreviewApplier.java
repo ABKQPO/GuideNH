@@ -182,12 +182,12 @@ final class SceneEditorSceneNodePreviewApplier {
         }
 
         scene.setStructureLibSceneMetadata(
-                new com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata(
-                    request.getController(),
-                    request.getPiece(),
-                    request.getFacing(),
-                    request.getRotation(),
-                    request.getFlip()));
+            new com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata(
+                request.getController(),
+                request.getPiece(),
+                request.getFacing(),
+                request.getRotation(),
+                request.getFlip()));
     }
 
     private void applyRemoveBlocks(GuidebookLevel level, SceneEditorSceneNodeModel node) {
