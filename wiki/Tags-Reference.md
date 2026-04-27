@@ -212,3 +212,16 @@ See [Navigation](Navigation) for full navigation behavior.
 ### `<Structure>`
 
 See [Examples](Examples) and [GameScene](GameScene) when deciding whether to use a static structure preview or a full 3D scene.
+
+### Scene Runtime Tags
+
+These tags only work inside `<GameScene>` / `<Scene>`:
+
+| Tag | Purpose | Key attributes |
+| --- | --- | --- |
+| `<ImportStructure>` | import an external SNBT/NBT structure asset | `src`, `x`, `y`, `z` |
+| `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `piece`, `facing`, `rotation`, `flip`, `channel` |
+| `<RemoveBlocks>` | remove already-placed blocks that match a block matcher | `id` |
+| `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
+
+See [GameScene](GameScene) for scene import/removal behavior and [Annotations](Annotations) for annotation template rules.

@@ -26,6 +26,8 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
+import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
@@ -157,6 +159,29 @@ public class RegionWandItem extends Item {
     }
 
     @Nullable
+    public static String exportSelectionAsStructureSnbt(GuidebookLevel level, ItemStack stack) {
+        if (level == null || stack == null) {
+            return null;
+        }
+        int[] p1 = getPos(stack, 1);
+        int[] p2 = getPos(stack, 2);
+        if (p1 == null || p2 == null) {
+            return null;
+        }
+
+        int minX = Math.min(p1[0], p2[0]);
+        int minY = Math.min(p1[1], p2[1]);
+        int minZ = Math.min(p1[2], p2[2]);
+        int maxX = Math.max(p1[0], p2[0]);
+        int maxY = Math.max(p1[1], p2[1]);
+        int maxZ = Math.max(p1[2], p2[2]);
+        int dx = maxX - minX + 1;
+        int dy = maxY - minY + 1;
+        int dz = maxZ - minZ + 1;
+        return exportRegionAsStructureSnbt(level, minX, minY, minZ, dx, dy, dz);
+    }
+
+    @Nullable
     public static String exportRegionAsStructureSnbt(World world, int minX, int minY, int minZ, int sizeX, int sizeY,
         int sizeZ) {
         if (world == null || sizeX <= 0 || sizeY <= 0 || sizeZ <= 0) {
@@ -168,7 +193,42 @@ public class RegionWandItem extends Item {
         int maxX = minX + sizeX - 1;
         int maxY = minY + sizeY - 1;
         int maxZ = minZ + sizeZ - 1;
-        return exportSnbt(world, minX, minY, minZ, maxX, maxY, maxZ, sizeX, sizeY, sizeZ).text();
+        return exportSnbt(
+            new WorldStructureExportAccess(world),
+            minX,
+            minY,
+            minZ,
+            maxX,
+            maxY,
+            maxZ,
+            sizeX,
+            sizeY,
+            sizeZ).text();
+    }
+
+    @Nullable
+    public static String exportRegionAsStructureSnbt(GuidebookLevel level, int minX, int minY, int minZ, int sizeX,
+        int sizeY, int sizeZ) {
+        if (level == null || sizeX <= 0 || sizeY <= 0 || sizeZ <= 0) {
+            return null;
+        }
+        if (GuideStructureVolume.exceedsLimit(sizeX, sizeY, sizeZ, MAX_EXPORT_BLOCKS)) {
+            return null;
+        }
+        int maxX = minX + sizeX - 1;
+        int maxY = minY + sizeY - 1;
+        int maxZ = minZ + sizeZ - 1;
+        return exportSnbt(
+            new GuidebookLevelStructureExportAccess(level),
+            minX,
+            minY,
+            minZ,
+            maxX,
+            maxY,
+            maxZ,
+            sizeX,
+            sizeY,
+            sizeZ).text();
     }
 
     private static void exportToClipboard(ItemStack stack, EntityPlayer player, World world) {
@@ -244,7 +304,7 @@ public class RegionWandItem extends Item {
                             teTag.removeTag("x");
                             teTag.removeTag("y");
                             teTag.removeTag("z");
-                            String s = teTag.toString();
+                            String s = GuideTextNbtCodec.writeTextSafeCompound(teTag);
                             nbtSnbt = s.replace("'", "\\'");
                         } catch (Throwable t) {
                             nbtSnbt = null;
@@ -283,6 +343,11 @@ public class RegionWandItem extends Item {
 
     private static ExportResult exportSnbt(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
         int dx, int dy, int dz) {
+        return exportSnbt(new WorldStructureExportAccess(world), minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz);
+    }
+
+    private static ExportResult exportSnbt(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
+        int maxY, int maxZ, int dx, int dy, int dz) {
         Map<String, Integer> paletteIndex = new HashMap<>();
         NBTTagList paletteList = new NBTTagList();
         NBTTagList blocksList = new NBTTagList();
@@ -291,11 +356,11 @@ public class RegionWandItem extends Item {
         for (int y = minY; y <= maxY; y++) {
             for (int z = minZ; z <= maxZ; z++) {
                 for (int x = minX; x <= maxX; x++) {
-                    Block block = world.getBlock(x, y, z);
+                    Block block = access.getBlock(x, y, z);
                     if (block == null || block == Blocks.air) continue;
-                    String regName = Block.blockRegistry.getNameForObject(block);
+                    String regName = access.getBlockId(x, y, z, block);
                     if (regName == null || regName.isEmpty()) continue;
-                    int meta = world.getBlockMetadata(x, y, z);
+                    int meta = access.getBlockMetadata(x, y, z);
 
                     Integer idx = paletteIndex.get(regName);
                     if (idx == null) {
@@ -311,7 +376,7 @@ public class RegionWandItem extends Item {
                     blockTag.setInteger("state", idx);
                     if (meta != 0) blockTag.setInteger("meta", meta);
 
-                    TileEntity te = world.getTileEntity(x, y, z);
+                    TileEntity te = access.getTileEntity(x, y, z);
                     if (te != null) {
                         try {
                             NBTTagCompound teTag = new NBTTagCompound();
@@ -333,7 +398,80 @@ public class RegionWandItem extends Item {
         root.setIntArray("size", new int[] { dx, dy, dz });
         root.setTag("palette", paletteList);
         root.setTag("blocks", blocksList);
-        return new ExportResult(root.toString(), nonAir, teCount);
+        return new ExportResult(GuideTextNbtCodec.writeStructureSnbt(root), nonAir, teCount);
+    }
+
+    private interface StructureExportAccess {
+
+        Block getBlock(int x, int y, int z);
+
+        int getBlockMetadata(int x, int y, int z);
+
+        @Nullable
+        TileEntity getTileEntity(int x, int y, int z);
+
+        @Nullable
+        String getBlockId(int x, int y, int z, Block block);
+    }
+
+    private static final class WorldStructureExportAccess implements StructureExportAccess {
+
+        private final World world;
+
+        private WorldStructureExportAccess(World world) {
+            this.world = world;
+        }
+
+        @Override
+        public Block getBlock(int x, int y, int z) {
+            return world.getBlock(x, y, z);
+        }
+
+        @Override
+        public int getBlockMetadata(int x, int y, int z) {
+            return world.getBlockMetadata(x, y, z);
+        }
+
+        @Override
+        public TileEntity getTileEntity(int x, int y, int z) {
+            return world.getTileEntity(x, y, z);
+        }
+
+        @Override
+        public String getBlockId(int x, int y, int z, Block block) {
+            return Block.blockRegistry.getNameForObject(block);
+        }
+    }
+
+    private static final class GuidebookLevelStructureExportAccess implements StructureExportAccess {
+
+        private final GuidebookLevel level;
+
+        private GuidebookLevelStructureExportAccess(GuidebookLevel level) {
+            this.level = level;
+        }
+
+        @Override
+        public Block getBlock(int x, int y, int z) {
+            return level.getBlock(x, y, z);
+        }
+
+        @Override
+        public int getBlockMetadata(int x, int y, int z) {
+            return level.getBlockMetadata(x, y, z);
+        }
+
+        @Override
+        public TileEntity getTileEntity(int x, int y, int z) {
+            return level.getTileEntity(x, y, z);
+        }
+
+        @Override
+        public String getBlockId(int x, int y, int z, Block block) {
+            String explicitBlockId = level.getExplicitBlockId(x, y, z);
+            return explicitBlockId != null && !explicitBlockId.isEmpty() ? explicitBlockId
+                : Block.blockRegistry.getNameForObject(block);
+        }
     }
 
     @Desugar

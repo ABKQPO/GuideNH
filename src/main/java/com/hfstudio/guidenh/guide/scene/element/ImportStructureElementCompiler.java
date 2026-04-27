@@ -1,27 +1,21 @@
 package com.hfstudio.guidenh.guide.scene.element;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Set;
-import java.util.zip.GZIPInputStream;
 
 import net.minecraft.block.Block;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
+import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
@@ -52,8 +46,9 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
  * </pre>
  *
  * <p>
- * The optional {@code nbt} compound feeds {@link TileEntity#createAndLoadEntity(NBTTagCompound)} and
- * therefore must contain a vanilla {@code id} field (e.g. {@code "Chest"}, {@code "Furnace"}).
+ * The optional {@code nbt} compound is applied to the block entity. Supplying an {@code id} is preferred,
+ * but if deserialization by id fails and the block can create its own tile entity, GuideNH falls back to
+ * constructing the tile from the block and then applying the NBT manually.
  */
 public class ImportStructureElementCompiler implements SceneElementTagCompiler {
 
@@ -126,13 +121,9 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
 
             int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
 
-            TileEntity te = null;
-            if (b.hasKey("nbt", 10)) {
-                try {
-                    te = TileEntity.createAndLoadEntity(b.getCompoundTag("nbt"));
-                } catch (Exception ignored) {}
-            }
-            level.setBlock(px, py, pz, block, meta, te);
+            NBTTagCompound tileTag = b.hasKey("nbt", 10) ? b.getCompoundTag("nbt") : null;
+            GuidebookPreviewBlockPlacer.place(level, px, py, pz, block, meta, tileTag, name);
+            level.setExplicitBlockId(px, py, pz, name);
             placed++;
         }
 
@@ -142,39 +133,6 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
     }
 
     private static NBTTagCompound readStructureNbt(byte[] data) throws Exception {
-        if (looksLikeText(data)) {
-            String text = new String(data, StandardCharsets.UTF_8);
-            // Strip a UTF-8 BOM if present.
-            if (!text.isEmpty() && text.charAt(0) == '\uFEFF') {
-                text = text.substring(1);
-            }
-            NBTBase parsed = JsonToNBT.func_150315_a(text);
-            if (parsed instanceof NBTTagCompound c) return c;
-            throw new IllegalStateException("SNBT root must be a Compound");
-        }
-        try (var gzip = new GZIPInputStream(new ByteArrayInputStream(data)); var dis = new DataInputStream(gzip)) {
-            return CompressedStreamTools.read(dis);
-        } catch (Exception ignored) {
-            try (var dis = new DataInputStream(new ByteArrayInputStream(data))) {
-                return CompressedStreamTools.read(dis);
-            }
-        }
-    }
-
-    private static boolean looksLikeText(byte[] data) {
-        // Skip BOM + leading whitespace; SNBT roots always start with '{'.
-        int i = 0;
-        if (data.length >= 3 && (data[0] & 0xFF) == 0xEF && (data[1] & 0xFF) == 0xBB && (data[2] & 0xFF) == 0xBF) {
-            i = 3;
-        }
-        while (i < data.length) {
-            byte b = data[i];
-            if (b == ' ' || b == '\t' || b == '\r' || b == '\n') {
-                i++;
-                continue;
-            }
-            return b == '{';
-        }
-        return false;
+        return GuideTextNbtCodec.readStructureNbt(data);
     }
 }

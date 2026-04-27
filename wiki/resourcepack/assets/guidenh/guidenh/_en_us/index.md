@@ -257,6 +257,21 @@ Fixed height 40 (width derived):
   <Block id="minecraft:gold_block" y="1" x="1" z="1" />
 </GameScene>
 
+StructureLib import sample:
+
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
+</GameScene>
+
+Hover blocks in the StructureLib preview to inspect the extra structure text. Hold `Shift` to expand replacement candidates. If the imported structure exposes hatch or channel metadata, the preview also adds the hatch highlight button and the bottom sliders automatically.
+
+Imported structure cleanup sample:
+
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructure src="/assets/example_structure.snbt" />
+  <RemoveBlocks id="minecraft:glowstone" />
+</GameScene>
+
 ## ItemStack Scale Test
 
 <Row>

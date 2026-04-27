@@ -4,18 +4,19 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
+import net.minecraft.util.AxisAlignedBB;
 
 import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 
 public final class SceneEditorSnapService {
 
     private static final float DEFAULT_SNAP_DISTANCE = 0.2f;
+    private final java.util.ArrayList<BlockBounds> blockBoundsScratch = new java.util.ArrayList<>(16);
 
     public Vector3f snapBlockPosition(float x, float y, float z) {
         return new Vector3f(Math.round(x), Math.round(y), Math.round(z));
@@ -45,21 +46,29 @@ public final class SceneEditorSnapService {
         float bestDistanceSq = Float.POSITIVE_INFINITY;
         Vector3f bestPoint = null;
         for (int[] pos : level.getFilledBlocks()) {
-            BlockBounds bounds = getBlockBounds(level, pos[0], pos[1], pos[2]);
-            if (bounds == null) {
+            List<BlockBounds> boundsList = getBlockBounds(level, pos[0], pos[1], pos[2]);
+            if (boundsList == null) {
                 continue;
             }
-            for (SnapCandidate candidate : collectSnapCandidates(bounds, desired, snapModes)) {
-                float maxDistanceSq = snapDistance * snapDistance
-                    * candidate.distanceMultiplier
-                    * candidate.distanceMultiplier;
-                float distanceSq = squaredDistance(candidate.point.x, candidate.point.y, candidate.point.z, x, y, z);
-                if (distanceSq <= maxDistanceSq && distanceSq <= bestDistanceSq) {
-                    bestDistanceSq = distanceSq;
-                    if (bestPoint == null) {
-                        bestPoint = candidate.point;
-                    } else {
-                        bestPoint.set(candidate.point);
+            for (BlockBounds bounds : boundsList) {
+                for (SnapCandidate candidate : collectSnapCandidates(bounds, desired, snapModes)) {
+                    float maxDistanceSq = snapDistance * snapDistance
+                        * candidate.distanceMultiplier
+                        * candidate.distanceMultiplier;
+                    float distanceSq = squaredDistance(
+                        candidate.point.x,
+                        candidate.point.y,
+                        candidate.point.z,
+                        x,
+                        y,
+                        z);
+                    if (distanceSq <= maxDistanceSq && distanceSq <= bestDistanceSq) {
+                        bestDistanceSq = distanceSq;
+                        if (bestPoint == null) {
+                            bestPoint = candidate.point;
+                        } else {
+                            bestPoint.set(candidate.point);
+                        }
                     }
                 }
             }
@@ -136,28 +145,37 @@ public final class SceneEditorSnapService {
         float bestDistanceSq = Float.POSITIVE_INFINITY;
         Vector3f bestPoint = null;
         for (int[] pos : level.getFilledBlocks()) {
-            BlockBounds bounds = getBlockBounds(level, pos[0], pos[1], pos[2]);
-            if (bounds == null) {
+            List<BlockBounds> boundsList = getBlockBounds(level, pos[0], pos[1], pos[2]);
+            if (boundsList == null) {
                 continue;
             }
-            for (SnapCandidate freeCandidate : collectSnapCandidates(bounds, desired, snapModes)) {
-                Vector3f candidate = applyConstraint(freeCandidate.point, lockX, lockY, lockZ, fixedX, fixedY, fixedZ);
-                float maxDistanceSq = snapDistance * snapDistance
-                    * freeCandidate.distanceMultiplier
-                    * freeCandidate.distanceMultiplier;
-                float distanceSq = squaredDistance(
-                    candidate.x,
-                    candidate.y,
-                    candidate.z,
-                    desired.x,
-                    desired.y,
-                    desired.z);
-                if (distanceSq <= maxDistanceSq && distanceSq <= bestDistanceSq) {
-                    bestDistanceSq = distanceSq;
-                    if (bestPoint == null) {
-                        bestPoint = candidate;
-                    } else {
-                        bestPoint.set(candidate);
+            for (BlockBounds bounds : boundsList) {
+                for (SnapCandidate freeCandidate : collectSnapCandidates(bounds, desired, snapModes)) {
+                    Vector3f candidate = applyConstraint(
+                        freeCandidate.point,
+                        lockX,
+                        lockY,
+                        lockZ,
+                        fixedX,
+                        fixedY,
+                        fixedZ);
+                    float maxDistanceSq = snapDistance * snapDistance
+                        * freeCandidate.distanceMultiplier
+                        * freeCandidate.distanceMultiplier;
+                    float distanceSq = squaredDistance(
+                        candidate.x,
+                        candidate.y,
+                        candidate.z,
+                        desired.x,
+                        desired.y,
+                        desired.z);
+                    if (distanceSq <= maxDistanceSq && distanceSq <= bestDistanceSq) {
+                        bestDistanceSq = distanceSq;
+                        if (bestPoint == null) {
+                            bestPoint = candidate;
+                        } else {
+                            bestPoint.set(candidate);
+                        }
                     }
                 }
             }
@@ -190,30 +208,43 @@ public final class SceneEditorSnapService {
         float relX = mouseX - (viewport.x() + viewport.width() * 0.5f);
         float relY = mouseY - (viewport.y() + viewport.height() * 0.5f);
         float[] ray = camera.screenToWorldRay(relX, relY);
+        float bestDesiredDistanceSq = Float.POSITIVE_INFINITY;
         float bestRayDistanceSq = Float.POSITIVE_INFINITY;
         float bestRayT = Float.POSITIVE_INFINITY;
         Vector3f bestPoint = null;
         for (int[] pos : level.getFilledBlocks()) {
-            BlockBounds bounds = getBlockBounds(level, pos[0], pos[1], pos[2]);
-            if (bounds == null) {
+            List<BlockBounds> boundsList = getBlockBounds(level, pos[0], pos[1], pos[2]);
+            if (boundsList == null) {
                 continue;
             }
-            for (SnapCandidate candidate : collectSnapCandidates(bounds, desired, snapModes)) {
-                float maxDistanceSq = snapDistance * snapDistance
-                    * candidate.distanceMultiplier
-                    * candidate.distanceMultiplier;
-                RayCandidateMetrics metrics = measurePointToRay(ray, candidate.point);
-                if (metrics.rayT < -0.1f || metrics.distanceSq > maxDistanceSq) {
-                    continue;
-                }
-                if (metrics.distanceSq < bestRayDistanceSq - 1e-6f
-                    || Math.abs(metrics.distanceSq - bestRayDistanceSq) <= 1e-6f && metrics.rayT < bestRayT) {
-                    bestRayDistanceSq = metrics.distanceSq;
-                    bestRayT = metrics.rayT;
-                    if (bestPoint == null) {
-                        bestPoint = new Vector3f(candidate.point);
-                    } else {
-                        bestPoint.set(candidate.point);
+            for (BlockBounds bounds : boundsList) {
+                for (SnapCandidate candidate : collectSnapCandidates(bounds, desired, snapModes)) {
+                    float maxDistanceSq = snapDistance * snapDistance
+                        * candidate.distanceMultiplier
+                        * candidate.distanceMultiplier;
+                    RayCandidateMetrics metrics = measurePointToRay(ray, candidate.point);
+                    if (metrics.rayT < -0.1f || metrics.distanceSq > maxDistanceSq) {
+                        continue;
+                    }
+                    float desiredDistanceSq = squaredDistance(
+                        candidate.point.x,
+                        candidate.point.y,
+                        candidate.point.z,
+                        desired.x,
+                        desired.y,
+                        desired.z);
+                    if (desiredDistanceSq < bestDesiredDistanceSq - 1e-6f || Math
+                        .abs(desiredDistanceSq - bestDesiredDistanceSq) <= 1e-6f
+                        && (metrics.distanceSq < bestRayDistanceSq - 1e-6f
+                            || Math.abs(metrics.distanceSq - bestRayDistanceSq) <= 1e-6f && metrics.rayT < bestRayT)) {
+                        bestDesiredDistanceSq = desiredDistanceSq;
+                        bestRayDistanceSq = metrics.distanceSq;
+                        bestRayT = metrics.rayT;
+                        if (bestPoint == null) {
+                            bestPoint = new Vector3f(candidate.point);
+                        } else {
+                            bestPoint.set(candidate.point);
+                        }
                     }
                 }
             }
@@ -223,42 +254,22 @@ public final class SceneEditorSnapService {
     }
 
     @Nullable
-    private BlockBounds getBlockBounds(GuidebookLevel level, int blockX, int blockY, int blockZ) {
-        Block block = level.getBlock(blockX, blockY, blockZ);
-        if (block == null || block == Blocks.air) {
+    private List<BlockBounds> getBlockBounds(GuidebookLevel level, int blockX, int blockY, int blockZ) {
+        blockBoundsScratch.clear();
+
+        AxisAlignedBB blockBounds = GuideBlockBoundsResolver.resolveWorldBounds(level, blockX, blockY, blockZ);
+        if (blockBounds == null) {
             return null;
         }
-
-        float minX = 0f;
-        float minY = 0f;
-        float minZ = 0f;
-        float maxX = 1f;
-        float maxY = 1f;
-        float maxZ = 1f;
-        try {
-            block.setBlockBoundsBasedOnState(level, blockX, blockY, blockZ);
-            minX = (float) block.getBlockBoundsMinX();
-            minY = (float) block.getBlockBoundsMinY();
-            minZ = (float) block.getBlockBoundsMinZ();
-            maxX = (float) block.getBlockBoundsMaxX();
-            maxY = (float) block.getBlockBoundsMaxY();
-            maxZ = (float) block.getBlockBoundsMaxZ();
-            if (maxX <= minX || maxY <= minY || maxZ <= minZ) {
-                minX = minY = minZ = 0f;
-                maxX = maxY = maxZ = 1f;
-            }
-        } catch (Throwable ignored) {
-            minX = minY = minZ = 0f;
-            maxX = maxY = maxZ = 1f;
-        }
-
-        float worldMinX = blockX + minX;
-        float worldMinY = blockY + minY;
-        float worldMinZ = blockZ + minZ;
-        float worldMaxX = blockX + maxX;
-        float worldMaxY = blockY + maxY;
-        float worldMaxZ = blockZ + maxZ;
-        return new BlockBounds(worldMinX, worldMinY, worldMinZ, worldMaxX, worldMaxY, worldMaxZ);
+        blockBoundsScratch.add(
+            new BlockBounds(
+                (float) blockBounds.minX,
+                (float) blockBounds.minY,
+                (float) blockBounds.minZ,
+                (float) blockBounds.maxX,
+                (float) blockBounds.maxY,
+                (float) blockBounds.maxZ));
+        return blockBoundsScratch;
     }
 
     private List<SnapCandidate> collectSnapCandidates(BlockBounds bounds, Vector3f desired,

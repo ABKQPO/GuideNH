@@ -7,11 +7,12 @@
 ## 功能特性
 
 * 完整支持 Markdown 渲染，包括标题、段落、列表、链接、图片、引用、代码块，以及通过 GFM 提供的表格等内容
-* 支持自定义 MDX 风格标签，例如 `<A>`、`<Box>`、`<Color>`、`<ItemLink>`、`<Recipe>`、`<Structure>`、`<ItemGrid>`、`<KeyBind>` 和 `<PlayerName>`
+* 支持自定义 MDX 风格标签，例如 `<A>`、`<Box>`、`<Color>`、`<ItemLink>`、`<Recipe>`、`<Structure>`、`<GameScene>`、`<ImportStructureLib>`、`<RemoveBlocks>`、`<BlockAnnotationTemplate>`、`<ItemGrid>`、`<KeyBind>` 和 `<PlayerName>`
 * 可直接从资源树中发现并加载多页指南
 * 支持多语言页面，并自动进行回退（`zh_cn` -> `en_us`）
 * 支持物品索引：对着已注册指南条目的物品按住 `G`，即可直接跳转到对应页面
 * 支持多方块结构预览（当前为基于物品图标的 2.5D 等轴测 MVP）
+* 支持带 StructureLib 导入、注解、方块清理、层控制与信道控制的交互式 3D 场景预览
 * 支持通过 `F3+T` 重载资源后立即读取修改过的 `.md` 文件
 * 基于原版 `GuiScreen` 的界面实现，不依赖 ModularUI 或 Blaze3D
 
@@ -46,6 +47,8 @@ wiki/resourcepack/assets/guidenh/guidenh/
 ```
 
 GuideNH 现在会直接从 `assets/<modid>/guidenh/_<lang>/...` 中发现指南页面，因此已经不再需要 `_manifest.json`。
+
+内置示例 `index.md` 现已同时覆盖 `ImportStructureLib`、`RemoveBlocks` 与 `BlockAnnotationTemplate`，可直接用来检查场景预览相关能力。
 
 ## 添加内容
 

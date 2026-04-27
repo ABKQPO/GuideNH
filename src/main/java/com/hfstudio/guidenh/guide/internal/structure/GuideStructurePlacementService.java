@@ -1,15 +1,9 @@
 package com.hfstudio.guidenh.guide.internal.structure;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
 
 import net.minecraft.block.Block;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
@@ -81,41 +75,7 @@ public final class GuideStructurePlacementService {
     }
 
     private static NBTTagCompound readStructureNbt(byte[] data) throws Exception {
-        if (looksLikeText(data)) {
-            String text = new String(data, StandardCharsets.UTF_8);
-            if (!text.isEmpty() && text.charAt(0) == '\uFEFF') {
-                text = text.substring(1);
-            }
-            NBTBase parsed = JsonToNBT.func_150315_a(text);
-            if (parsed instanceof NBTTagCompound compound) {
-                return compound;
-            }
-            throw new IllegalStateException("SNBT root must be a Compound");
-        }
-        try (GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(data));
-            DataInputStream input = new DataInputStream(gzip)) {
-            return CompressedStreamTools.read(input);
-        } catch (Exception ignored) {
-            try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(data))) {
-                return CompressedStreamTools.read(input);
-            }
-        }
-    }
-
-    private static boolean looksLikeText(byte[] data) {
-        int index = 0;
-        if (data.length >= 3 && (data[0] & 0xFF) == 0xEF && (data[1] & 0xFF) == 0xBB && (data[2] & 0xFF) == 0xBF) {
-            index = 3;
-        }
-        while (index < data.length) {
-            byte next = data[index];
-            if (next == ' ' || next == '\t' || next == '\r' || next == '\n') {
-                index++;
-                continue;
-            }
-            return next == '{';
-        }
-        return false;
+        return GuideTextNbtCodec.readStructureNbt(data);
     }
 
     @FunctionalInterface

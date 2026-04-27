@@ -6,7 +6,7 @@ GuideNH already ships a runtime example guide in `wiki/resourcepack/`. This page
 
 | Runtime file | What it demonstrates |
 | --- | --- |
-| `.../_en_us/index.md` | frontmatter, item ids, recipes, item/block images, command links, tooltips, scenes, annotations |
+| `.../_en_us/index.md` | frontmatter, item ids, recipes, item/block images, command links, tooltips, scenes, annotations, `ImportStructureLib`, `RemoveBlocks`, `BlockAnnotationTemplate` |
 | `.../_en_us/markdown.md` | plain markdown features and tables |
 | `.../_en_us/rendering.md` | block-level rendering and layout behavior |
 | `.../_en_us/structure.md` | `<Structure>` usage and coordinate format |
@@ -18,7 +18,7 @@ GuideNH already ships a runtime example guide in `wiki/resourcepack/`. This page
 | Runtime file | Purpose |
 | --- | --- |
 | `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png` | page-local image example |
-| `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt` | rooted shared structure asset for `<ImportStructure>` |
+| `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt` | rooted shared structure asset for `<ImportStructure>` and `<RemoveBlocks>` |
 
 ## Example Snippets
 
@@ -44,6 +44,23 @@ navigation:
 <ImportStructure src="/assets/example_structure.snbt" />
 ````
 
+### StructureLib Scene Import
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
+</GameScene>
+````
+
+### Imported Structure Cleanup
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructure src="/assets/example_structure.snbt" />
+  <RemoveBlocks id="minecraft:glowstone" />
+</GameScene>
+````
+
 ### Scene Annotation Tooltip
 
 ````md
@@ -62,7 +79,7 @@ navigation:
 ## When To Use Which Example
 
 - start with `markdown.md` if you are validating parser basics
-- use `index.md` when testing mixed runtime features together
+- use `index.md` when testing mixed runtime features together, including StructureLib tooltip, hatch-highlight, and cleanup behavior
 - use `structure.md` when you only need static block layout previews
 - use `example_structure.snbt` when you need a reusable imported structure asset
 

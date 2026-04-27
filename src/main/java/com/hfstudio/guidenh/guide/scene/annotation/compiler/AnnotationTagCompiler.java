@@ -27,16 +27,22 @@ public abstract class AnnotationTagCompiler implements SceneElementTagCompiler {
         }
         SceneAnnotation annotation = createAnnotation(compiler, errorSink, el);
         if (annotation == null) return;
-        var children = el.children();
-        if (children != null && !children.isEmpty()) {
-            var contentBox = new LytVBox();
-            compiler.compileBlockContext(children, contentBox);
-            if (!contentBox.getChildren()
-                .isEmpty()) {
-                annotation.setTooltip(new ContentTooltip(contentBox));
-            }
-        }
+        applyTooltip(compiler, annotation, el);
         scene.addAnnotation(annotation);
+    }
+
+    static void applyTooltip(PageCompiler compiler, SceneAnnotation annotation, MdxJsxElementFields el) {
+        var children = el.children();
+        if (children == null || children.isEmpty()) {
+            return;
+        }
+
+        var contentBox = new LytVBox();
+        compiler.compileBlockContext(children, contentBox);
+        if (!contentBox.getChildren()
+            .isEmpty()) {
+            annotation.setTooltip(new ContentTooltip(contentBox));
+        }
     }
 
     @Nullable

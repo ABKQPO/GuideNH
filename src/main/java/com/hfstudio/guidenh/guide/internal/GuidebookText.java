@@ -81,6 +81,7 @@ public enum GuidebookText implements LocalizationEnum {
     HoldToShow,
     HideAnnotations,
     ShowAnnotations,
+    HighlightStructureLibHatches,
     ZoomIn,
     ZoomOut,
     ResetView,

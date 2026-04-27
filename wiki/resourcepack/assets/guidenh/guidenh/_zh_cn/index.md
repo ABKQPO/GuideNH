@@ -258,6 +258,21 @@ navigation:
   <Block id="minecraft:gold_block" y="1" x="1" z="1" />
 </GameScene>
 
+StructureLib 导入示例：
+
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
+</GameScene>
+
+将光标移到 StructureLib 结构方块上可以看到额外的结构说明；按住 `Shift` 会展开候选替换方块。如果该结构提供仓室或信道元数据，还会自动出现仓室高亮按钮和底部滑条。
+
+导入结构后移除方块示例：
+
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructure src="/assets/example_structure.snbt" />
+  <RemoveBlocks id="minecraft:glowstone" />
+</GameScene>
+
 ## 不同大小的 ItemStack 渲染测试
 
 <Row>

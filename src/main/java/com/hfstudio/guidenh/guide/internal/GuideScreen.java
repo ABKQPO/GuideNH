@@ -539,10 +539,30 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
                     return;
                 }
             }
+            var hoveredHatch = scene.getHoveredStructureLibHatch();
+            if (hoveredHatch != null) {
+                String name = blockDisplayName(scene, hoveredHatch[0], hoveredHatch[1], hoveredHatch[2]);
+                if (name != null) {
+                    GuideTooltip structureLibTooltip = scene
+                        .createStructureLibTooltipForHoveredBlock(name, isShiftDown());
+                    if (structureLibTooltip != null) {
+                        renderGuideTooltip(structureLibTooltip, mouseX, mouseY);
+                        return;
+                    }
+                    drawTooltipText(name, mouseX, mouseY);
+                    return;
+                }
+            }
             var hb = scene.getHoveredBlock();
             if (hb != null) {
                 String name = blockDisplayName(scene, hb[0], hb[1], hb[2]);
                 if (name != null) {
+                    GuideTooltip structureLibTooltip = scene
+                        .createStructureLibTooltipForHoveredBlock(name, isShiftDown());
+                    if (structureLibTooltip != null) {
+                        renderGuideTooltip(structureLibTooltip, mouseX, mouseY);
+                        return;
+                    }
                     drawTooltipText(name, mouseX, mouseY);
                     return;
                 }
@@ -844,7 +864,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
             if (ModConfig.ui.sceneWheelZoom) {
                 LytGuidebookScene scene = sceneAt(mouseX, mouseY);
                 if (scene != null && scene.isInteractive()) {
-                    scene.scroll(dwheel);
+                    scene.scroll(mouseX, mouseY, dwheel);
                     return;
                 }
             }
@@ -1018,10 +1038,18 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         LytGuidebookScene scene = interaction != null ? interaction.scene : null;
         if (scene != null) {
             hoveredScene = scene;
+            if (scene.containsVisibleLayerSlider(mouseX, mouseY)
+                || scene.containsStructureLibChannelSlider(mouseX, mouseY)) {
+                scene.clearAnnotationHover();
+                scene.setHoveredStructureLibHatch(null);
+                scene.setHoveredBlock(null);
+                return;
+            }
             var ann = scene.updateAnnotationHover(mouseX, mouseY);
             if (ann != null) {
                 return;
             }
+            scene.setHoveredStructureLibHatch(scene.pickStructureLibHatch(mouseX, mouseY));
             int[] picked = scene.pickBlock(mouseX, mouseY);
             scene.setHoveredBlock(picked);
         }
@@ -1029,6 +1057,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
 
     private void clearHoveredScene() {
         if (hoveredScene != null) {
+            hoveredScene.setHoveredStructureLibHatch(null);
             hoveredScene.setHoveredBlock(null);
             hoveredScene.clearAnnotationHover();
             hoveredScene = null;
@@ -1113,6 +1142,10 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         } catch (Throwable t) {
             return null;
         }
+    }
+
+    private static boolean isShiftDown() {
+        return Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
     }
 
     @Override

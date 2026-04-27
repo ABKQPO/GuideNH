@@ -2,10 +2,6 @@ dependencies {
 
     implementation("com.github.GTNewHorizons:GTNHLib:0.9.50:dev")
 
-    devOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.8.91-GTNH:dev")
-
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-911-GTNH:dev")
-
     shadowImplementation("org.yaml:snakeyaml:1.33") { transitive = false }
     shadowImplementation("io.methvin:directory-watcher:0.17.1")
     shadowImplementation("org.apache.lucene:lucene-core:8.11.4")
@@ -14,11 +10,23 @@ dependencies {
     shadowImplementation("org.apache.lucene:lucene-highlighter:8.11.4")
     shadowImplementation("org.apache.lucene:lucene-memory:8.11.4")
 
+    devOnlyNonPublishable("com.github.GTNewHorizons:StructureLib:1.4.34:dev")
+    devOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.8.91-GTNH:dev")
+
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-911-GTNH:dev")
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.16-GTNH:dev")
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botanic-horizons:1.12.8-GTNH:dev")
+
     compileOnly("org.projectlombok:lombok:1.18.42") { transitive = false }
     annotationProcessor("org.projectlombok:lombok:1.18.42")
 
     implementation("com.google.auto.value:auto-value-annotations:1.10.4")
     annotationProcessor("com.google.auto.value:auto-value:1.10.4")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.12.2")
+    testImplementation("com.github.GTNewHorizons:StructureLib:1.4.34:dev")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.12.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
 }
 
 configurations.configureEach {

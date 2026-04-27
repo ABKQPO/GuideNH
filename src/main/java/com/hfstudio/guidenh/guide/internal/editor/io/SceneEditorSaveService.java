@@ -21,7 +21,7 @@ public final class SceneEditorSaveService {
     }
 
     public SaveResult save(SceneEditorSession session, @Nullable EntityPlayer player) {
-        String serialized = session.getLastAppliedText();
+        String serialized = session.getRawText();
         Optional<Path> writtenStructurePath = Optional.empty();
         try {
             String importedStructureSnbt = session.getImportedStructureSnbt();
@@ -32,11 +32,7 @@ public final class SceneEditorSaveService {
                 }
             }
             clipboardExporter.export(player, serialized);
-            if (serialized.equals(session.getRawText())) {
-                session.markSaved(serialized);
-            } else {
-                session.markAppliedSaved(serialized);
-            }
+            session.markSaved(serialized);
             return SaveResult.success(serialized, writtenStructurePath);
         } catch (Exception e) {
             clipboardExporter.notifyFailure(player, e);

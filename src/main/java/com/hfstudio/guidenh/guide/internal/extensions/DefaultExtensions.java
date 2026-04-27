@@ -39,6 +39,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.compiler.LineAnnotationElemen
 import com.hfstudio.guidenh.guide.scene.element.BlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.EntityElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
+import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.IsometricCameraElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.RemoveBlocksElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
@@ -97,6 +98,7 @@ public final class DefaultExtensions {
             new EntityElementCompiler(),
             new BlockElementCompiler(),
             new ImportStructureElementCompiler(),
+            new ImportStructureLibElementCompiler(),
             new IsometricCameraElementCompiler(),
             new BlockAnnotationElementCompiler(),
             new BoxAnnotationElementCompiler(),

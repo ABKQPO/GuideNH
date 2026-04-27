@@ -109,6 +109,7 @@ public class GuideIconButton extends GuiButton {
         SCENE_EDITOR_AUTO_PICK(GuidebookText.SceneEditorAutoPick, 48, 0),
         HIDE_ANNOTATIONS(GuidebookText.HideAnnotations, 0, 16),
         SHOW_ANNOTATIONS(GuidebookText.ShowAnnotations, 16, 16),
+        HIGHLIGHT_STRUCTURELIB_HATCHES(GuidebookText.HighlightStructureLibHatches, 16, 16),
         SCENE_EDITOR_HIDE_ELEMENT(GuidebookText.SceneEditorHideElement, 0, 16),
         SCENE_EDITOR_SHOW_ELEMENT(GuidebookText.SceneEditorShowElement, 16, 16),
         ZOOM_OUT(GuidebookText.ZoomOut, 32, 16),

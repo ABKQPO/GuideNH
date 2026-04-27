@@ -57,6 +57,11 @@ public final class InWorldAnnotationRenderer {
             if (a instanceof InWorldBoxAnnotation box) {
                 int color = resolve(box.color(), mode, a.isHovered(), occluded);
                 drawBoxEdges(box.min(), box.max(), color, box.thickness());
+            } else if (a instanceof InWorldBlockFaceOverlayAnnotation overlay) {
+                if (!occluded) {
+                    int color = resolve(overlay.color(), mode, a.isHovered(), false);
+                    drawBlockFaceOverlay(overlay, color);
+                }
             } else if (a instanceof InWorldLineAnnotation line) {
                 int color = resolve(line.color(), mode, a.isHovered(), occluded);
                 drawLine(line.from(), line.to(), color, line.thickness());
@@ -269,6 +274,37 @@ public final class InWorldAnnotationRenderer {
         quad(argb, 0f, 0f, -1f, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0);
         // +Z
         quad(argb, 0f, 0f, 1f, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1);
+    }
+
+    private static void drawBlockFaceOverlay(InWorldBlockFaceOverlayAnnotation overlay, int argb) {
+        float x0 = overlay.getBlockX();
+        float y0 = overlay.getBlockY();
+        float z0 = overlay.getBlockZ();
+        float x1 = x0 + 1f;
+        float y1 = y0 + 1f;
+        float z1 = z0 + 1f;
+        float eps = 0.002f;
+
+        GL11.glBegin(GL11.GL_QUADS);
+        if (!overlay.hasGroupedNeighbor(overlay.getBlockX(), overlay.getBlockY() - 1, overlay.getBlockZ())) {
+            quad(argb, 0f, -1f, 0f, x0, y0 - eps, z0, x1, y0 - eps, z0, x1, y0 - eps, z1, x0, y0 - eps, z1);
+        }
+        if (!overlay.hasGroupedNeighbor(overlay.getBlockX(), overlay.getBlockY() + 1, overlay.getBlockZ())) {
+            quad(argb, 0f, 1f, 0f, x0, y1 + eps, z0, x0, y1 + eps, z1, x1, y1 + eps, z1, x1, y1 + eps, z0);
+        }
+        if (!overlay.hasGroupedNeighbor(overlay.getBlockX(), overlay.getBlockY(), overlay.getBlockZ() - 1)) {
+            quad(argb, 0f, 0f, -1f, x0, y0, z0 - eps, x0, y1, z0 - eps, x1, y1, z0 - eps, x1, y0, z0 - eps);
+        }
+        if (!overlay.hasGroupedNeighbor(overlay.getBlockX(), overlay.getBlockY(), overlay.getBlockZ() + 1)) {
+            quad(argb, 0f, 0f, 1f, x0, y0, z1 + eps, x1, y0, z1 + eps, x1, y1, z1 + eps, x0, y1, z1 + eps);
+        }
+        if (!overlay.hasGroupedNeighbor(overlay.getBlockX() - 1, overlay.getBlockY(), overlay.getBlockZ())) {
+            quad(argb, -1f, 0f, 0f, x0 - eps, y0, z0, x0 - eps, y0, z1, x0 - eps, y1, z1, x0 - eps, y1, z0);
+        }
+        if (!overlay.hasGroupedNeighbor(overlay.getBlockX() + 1, overlay.getBlockY(), overlay.getBlockZ())) {
+            quad(argb, 1f, 0f, 0f, x1 + eps, y0, z0, x1 + eps, y1, z0, x1 + eps, y1, z1, x1 + eps, y0, z1);
+        }
+        GL11.glEnd();
     }
 
     private static void quad(int argb, float nx, float ny, float nz, float x1, float y1, float z1, float x2, float y2,

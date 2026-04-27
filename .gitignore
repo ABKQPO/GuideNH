@@ -53,3 +53,6 @@ layout.json
 ### Mac OS ###
 .DS_Store
 /scripts
+/.gradle-user
+/.superpowers
+/src/test

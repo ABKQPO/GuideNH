@@ -160,6 +160,7 @@ guideme.guidebook.SearchPlaceholder=Type to search...
 guideme.guidebook.SearchNoMatch=(No matches)
 guideme.guidebook.ShapelessCrafting=Crafting (Shapeless)
 guideme.guidebook.ShowAnnotations=Show Annotations
+guideme.guidebook.HighlightStructureLibHatches=Highlight Hatch Positions
 guideme.guidebook.Smelting=Smelting
 guideme.guidebook.ZoomIn=Zoom In
 guideme.guidebook.ZoomOut=Zoom Out

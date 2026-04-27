@@ -7,11 +7,12 @@
 ## Features
 
 * Full Markdown rendering (headings, paragraphs, lists, links, images, blockquotes, code, tables via GFM)
-* Custom MDX-style tags such as `<A>`, `<Box>`, `<Color>`, `<ItemLink>`, `<Recipe>`, `<Structure>`, `<ItemGrid>`, `<KeyBind>`, and `<PlayerName>`
+* Custom MDX-style tags such as `<A>`, `<Box>`, `<Color>`, `<ItemLink>`, `<Recipe>`, `<Structure>`, `<GameScene>`, `<ImportStructureLib>`, `<RemoveBlocks>`, `<BlockAnnotationTemplate>`, `<ItemGrid>`, `<KeyBind>`, and `<PlayerName>`
 * Multi-page guides discovered directly from the resource tree
 * Multi-language pages with automatic fallback (`zh_cn` -> `en_us`)
 * Item index support: hold `G` on any item to jump straight to the relevant guide page
 * Multi-block structure preview (2.5D isometric MVP, item-icon based)
+* Interactive 3D scene previews with StructureLib import, scene annotations, block cleanup tags, layer controls, and channel controls
 * F3+T resource reload picks up edited `.md` files
 * Vanilla `GuiScreen`-based UI with no ModularUI or Blaze3D dependency
 
@@ -46,6 +47,8 @@ wiki/resourcepack/assets/guidenh/guidenh/
 ```
 
 GuideNH now discovers guide pages directly from `assets/<modid>/guidenh/_<lang>/...`, so `_manifest.json` is no longer required.
+
+The bundled `index.md` examples now cover `ImportStructureLib`, `RemoveBlocks`, and `BlockAnnotationTemplate` alongside the existing recipe, tooltip, and scene samples.
 
 ## Adding Content
 

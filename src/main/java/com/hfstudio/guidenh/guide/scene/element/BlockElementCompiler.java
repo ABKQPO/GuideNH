@@ -5,18 +5,16 @@ import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.init.Blocks;
-import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
+import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class BlockElementCompiler implements SceneElementTagCompiler {
@@ -29,7 +27,6 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
     @Override
     public void compile(GuidebookLevel level, CameraSettings camera, PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el) {
-
         var pair = MdxAttrs.getRequiredBlockAndId(compiler, errorSink, el, "id");
         if (pair == null) return;
         Block block = pair.getRight();
@@ -43,27 +40,19 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
             meta = defaultMetaFor(block, facing);
         }
 
-        TileEntity te = null;
+        NBTTagCompound tileTag = null;
         String nbtStr = MdxAttrs.getString(compiler, errorSink, el, "nbt", null);
         if (nbtStr != null && !nbtStr.isEmpty()) {
             try {
-                NBTBase parsed = JsonToNBT.func_150315_a(nbtStr);
-                if (parsed instanceof NBTTagCompound tag) {
-                    te = TileEntity.createAndLoadEntity(tag);
-                } else {
-                    errorSink.appendError(compiler, "nbt must be a Compound, got: " + parsed.getClass(), el);
-                }
+                tileTag = GuideTextNbtCodec.readTextSafeCompound(nbtStr);
             } catch (Exception e) {
                 errorSink.appendError(compiler, "Bad NBT: " + e.getMessage(), el);
             }
         }
-        if (te == null && block instanceof ITileEntityProvider provider) {
-            try {
-                te = provider.createNewTileEntity(level.getOrCreateFakeWorld(), meta);
-            } catch (Throwable ignored) {}
-        }
-
-        level.setBlock(x, y, z, block, meta, te);
+        String explicitBlockId = pair.getLeft()
+            .toString();
+        GuidebookPreviewBlockPlacer.place(level, x, y, z, block, meta, tileTag, explicitBlockId);
+        level.setExplicitBlockId(x, y, z, explicitBlockId);
     }
 
     private static int defaultMetaFor(Block block, String facing) {

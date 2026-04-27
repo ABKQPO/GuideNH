@@ -65,6 +65,7 @@ import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorPreviewCame
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapModes;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
+import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
@@ -92,9 +93,6 @@ public final class SceneEditorScreen extends GuiScreen {
     private static final int INPUT_FOCUSED_BORDER_COLOR = 0xFF7FC8FF;
     private static final int INPUT_ERROR_BORDER_COLOR = 0xFFFF6767;
     private static final int INPUT_BACKGROUND_COLOR = 0x80101012;
-    private static final int SLIDER_TRACK_COLOR = 0x6622262C;
-    private static final int SLIDER_FILL_COLOR = 0xAA1CB4E9;
-    private static final int SLIDER_THUMB_COLOR = 0xFFEAF6FF;
     private static final int CHECKBOX_BACKGROUND_COLOR = 0xA0141418;
     private static final int CHECKBOX_CHECK_COLOR = 0xFF00CAF2;
     private static final int SETTINGS_BOX_PADDING = 8;
@@ -103,8 +101,8 @@ public final class SceneEditorScreen extends GuiScreen {
     private static final int PARAMETER_INPUT_WIDTH = 46;
     private static final int PARAMETER_INPUT_HEIGHT = 14;
     private static final int PARAMETER_GAP = 4;
-    private static final int PARAMETER_SLIDER_HEIGHT = 4;
-    private static final int PARAMETER_SLIDER_THUMB_WIDTH = 6;
+    private static final int PARAMETER_SLIDER_HEIGHT = GuideSliderRenderer.TRACK_HEIGHT;
+    private static final int PARAMETER_SLIDER_THUMB_WIDTH = GuideSliderRenderer.THUMB_WIDTH;
     private static final int PARAMETER_SLIDER_Y_OFFSET = 5;
     private static final int SETTINGS_TAB_HEIGHT = 18;
     private static final int SETTINGS_TAB_GAP = 4;
@@ -245,6 +243,10 @@ public final class SceneEditorScreen extends GuiScreen {
     private boolean previewFrameOverlayVisible;
     private boolean previewDirty;
     private boolean preservePreviewCameraOnNextRebuild;
+    @Nullable
+    private Integer previewVisibleLayerOverride;
+    @Nullable
+    private Integer previewStructureLibChannelOverride;
     private boolean closeConfirmDialogOpen;
     @Nullable
     private String closeConfirmErrorText;
@@ -312,6 +314,8 @@ public final class SceneEditorScreen extends GuiScreen {
         this.previewFrameOverlayVisible = false;
         this.previewDirty = true;
         this.preservePreviewCameraOnNextRebuild = false;
+        this.previewVisibleLayerOverride = null;
+        this.previewStructureLibChannelOverride = null;
         this.closeConfirmDialogOpen = false;
         this.closeConfirmErrorText = null;
         this.activeSettingsTab = SceneEditorSettingsTab.CAMERA;
@@ -588,7 +592,7 @@ public final class SceneEditorScreen extends GuiScreen {
             ensurePreviewScene();
             if (previewScene != null && isInsidePreviewInteractionArea(mouseX, mouseY)
                 && previewScene.containsSceneViewport(mouseX, mouseY)) {
-                previewScene.scroll(wheelDelta);
+                previewScene.scroll(mouseX, mouseY, wheelDelta);
                 return;
             }
         }
@@ -992,7 +996,9 @@ public final class SceneEditorScreen extends GuiScreen {
             previewRenderContext.setViewport(new LytRect(previewBoxX, previewBoxY, previewBoxWidth, previewBoxHeight));
             previewRenderContext.setDocumentOrigin(0, 0);
             previewRenderContext.setScrollOffsetY(0);
-            if (isInsidePreviewInteractionArea(mouseX, mouseY)) {
+            if (isInsidePreviewInteractionArea(mouseX, mouseY)
+                && !previewScene.containsVisibleLayerSlider(mouseX, mouseY)
+                && !previewScene.containsStructureLibChannelSlider(mouseX, mouseY)) {
                 previewScene.updateAnnotationHover(mouseX, mouseY);
             } else {
                 previewScene.clearAnnotationHover();
@@ -1480,16 +1486,68 @@ public final class SceneEditorScreen extends GuiScreen {
     private void rebuildPreviewScene(boolean preserveCurrentView) {
         SavedCameraSettings savedCamera = null;
         boolean annotationsVisible = previewScene == null || previewScene.isAnnotationsVisible();
+        Integer visibleLayerOverride = previewScene != null && previewScene.hasVisibleLayerData()
+            ? Integer.valueOf(previewScene.getCurrentVisibleLayer())
+            : previewVisibleLayerOverride;
         if (preserveCurrentView && previewScene != null) {
             savedCamera = previewScene.getCamera()
                 .save();
         }
-        previewScene = previewBridge.buildScene(session);
+        previewScene = previewBridge.buildScene(session, previewStructureLibChannelOverride);
+        bindPreviewScene(previewScene);
         previewScene.setAnnotationsVisible(annotationsVisible);
+        if (visibleLayerOverride != null) {
+            previewScene.setVisibleLayerSilently(visibleLayerOverride.intValue());
+        }
         if (savedCamera != null) {
             previewScene.getCamera()
                 .restore(savedCamera);
         }
+        updatePreviewVisibleLayerOverride(visibleLayerOverride);
+        updatePreviewStructureLibChannelOverride();
+        previewDirty = false;
+        preservePreviewCameraOnNextRebuild = false;
+    }
+
+    private void bindPreviewScene(@Nullable LytGuidebookScene scene) {
+        if (scene != null) {
+            scene.setStructureLibChannelChangeListener(this::handlePreviewSceneStructureLibChannelChanged);
+        }
+    }
+
+    private void updatePreviewStructureLibChannelOverride() {
+        previewStructureLibChannelOverride = previewScene != null && previewScene.hasStructureLibSceneMetadata()
+            ? Integer.valueOf(previewScene.getStructureLibCurrentChannel())
+            : null;
+    }
+
+    private void updatePreviewVisibleLayerOverride(@Nullable Integer fallbackValue) {
+        previewVisibleLayerOverride = previewScene != null && previewScene.hasVisibleLayerData()
+            ? Integer.valueOf(previewScene.getCurrentVisibleLayer())
+            : fallbackValue;
+    }
+
+    private void handlePreviewSceneStructureLibChannelChanged(int channel) {
+        if (previewScene == null) {
+            return;
+        }
+        SavedCameraSettings savedCamera = previewScene.getCamera()
+            .save();
+        boolean annotationsVisible = previewScene.isAnnotationsVisible();
+        Integer visibleLayerOverride = previewScene.hasVisibleLayerData()
+            ? Integer.valueOf(previewScene.getCurrentVisibleLayer())
+            : previewVisibleLayerOverride;
+        previewStructureLibChannelOverride = Integer.valueOf(channel);
+        previewBridge.rebuildScene(session, previewScene, previewStructureLibChannelOverride);
+        bindPreviewScene(previewScene);
+        previewScene.setAnnotationsVisible(annotationsVisible);
+        if (visibleLayerOverride != null) {
+            previewScene.setVisibleLayerSilently(visibleLayerOverride.intValue());
+        }
+        previewScene.getCamera()
+            .restore(savedCamera);
+        updatePreviewVisibleLayerOverride(visibleLayerOverride);
+        updatePreviewStructureLibChannelOverride();
         previewDirty = false;
         preservePreviewCameraOnNextRebuild = false;
     }
@@ -4062,23 +4120,10 @@ public final class SceneEditorScreen extends GuiScreen {
             drawBorder(inputBoxX, inputBoxY, inputBoxWidth, PARAMETER_INPUT_HEIGHT + 2, borderColor);
             drawCompactTextFieldValue(inputField, controller.getDraftText());
 
-            drawRect(sliderX, sliderY, sliderX + sliderWidth, sliderY + PARAMETER_SLIDER_HEIGHT, SLIDER_TRACK_COLOR);
-            int thumbX = sliderX
-                + Math.round(controller.getSliderFraction() * Math.max(0, sliderWidth - PARAMETER_SLIDER_THUMB_WIDTH));
-            drawRect(
-                sliderX,
-                sliderY,
-                thumbX + PARAMETER_SLIDER_THUMB_WIDTH / 2,
-                sliderY + PARAMETER_SLIDER_HEIGHT,
-                SLIDER_FILL_COLOR);
-            int thumbColor = containsSlider(mouseX, mouseY) || activeSliderRow == this ? 0xFFFFFFFF
-                : SLIDER_THUMB_COLOR;
-            drawRect(
-                thumbX,
-                sliderY - 2,
-                thumbX + PARAMETER_SLIDER_THUMB_WIDTH,
-                sliderY + PARAMETER_SLIDER_HEIGHT + 2,
-                thumbColor);
+            GuideSliderRenderer.render(
+                (left, top, right, bottom, color) -> SceneEditorScreen.this.drawRect(left, top, right, bottom, color),
+                GuideSliderRenderer.layout(sliderX, sliderY, sliderWidth, controller.getSliderFraction()),
+                containsSlider(mouseX, mouseY) || activeSliderRow == this);
         }
 
         private void updateCursorCounter() {
@@ -4162,19 +4207,14 @@ public final class SceneEditorScreen extends GuiScreen {
         }
 
         private boolean containsSlider(int mouseX, int mouseY) {
-            return mouseX >= sliderX && mouseX < sliderX + sliderWidth
-                && mouseY >= sliderY - 3
-                && mouseY < sliderY + PARAMETER_SLIDER_HEIGHT + 3;
+            return GuideSliderRenderer.layout(sliderX, sliderY, sliderWidth, controller.getSliderFraction())
+                .hitRect()
+                .contains(mouseX, mouseY);
         }
 
         private void applySliderAt(int mouseX) {
-            float fraction = sliderWidth <= 0 ? 0f : (mouseX - sliderX) / (float) sliderWidth;
-            if (fraction < 0f) {
-                fraction = 0f;
-            } else if (fraction > 1f) {
-                fraction = 1f;
-            }
-            float value = minValue + (maxValue - minValue) * fraction;
+            float value = minValue
+                + (maxValue - minValue) * GuideSliderRenderer.fractionFromMouse(mouseX, sliderX, sliderWidth);
             controller.applySliderValue(value);
             inputField.setText(controller.getDraftText());
         }

@@ -46,8 +46,10 @@ GuideNH currently registers these scene child tags:
 
 - `<Block>`
 - `<ImportStructure>`
+- `<ImportStructureLib>`
 - `<IsometricCamera>`
 - `<RemoveBlocks>`
+- `<BlockAnnotationTemplate>`
 - `<Entity>`
 - annotation tags such as `<BoxAnnotation>` and `<LineAnnotation>`
 
@@ -106,6 +108,32 @@ Example:
 <ImportStructure src="/assets/example_structure.snbt" x="4" />
 ````
 
+## `<ImportStructureLib>`
+
+Imports a StructureLib multiblock preview by controller id.
+
+| Attribute | Required | Meaning |
+| --- | --- | --- |
+| `controller` | yes | controller block id, using `modid:block[:meta]` |
+| `piece` | no | StructureLib piece name override |
+| `facing` | no | facing override passed to the importer |
+| `rotation` | no | rotation override passed to the importer |
+| `flip` | no | flip/mirror override passed to the importer |
+| `channel` | no | integer channel override for channel-aware structures |
+
+Notes:
+
+- the imported structure starts from scene `0 0 0`; the controller is not forced to be placed at `0 0 0`
+- this tag enables StructureLib-specific tooltip, hatch highlight, and channel slider UI when metadata is available
+- controller matching supports the GTNH-style `modid:block:meta` form
+
+Example:
+
+````md
+<ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+````
+
 ## `<IsometricCamera>`
 
 Applies explicit isometric camera yaw/pitch/roll.
@@ -128,9 +156,42 @@ Removes every already-placed block matching a target block id.
 
 | Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes | block id to remove |
+| `id` | yes | block id to remove, using `modid:block[:meta]` |
 
 This is useful after importing a structure when you want to hide specific blocks for clarity.
+
+Example:
+
+````md
+<ImportStructure src="/assets/example_structure.snbt" />
+<RemoveBlocks id="minecraft:stone" />
+<RemoveBlocks id="minecraft:stone:3" />
+````
+
+## `<BlockAnnotationTemplate>`
+
+Expands one or more child annotations onto every matching block that already exists in the current scene.
+
+| Attribute | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | block matcher in `modid:block[:meta]` form |
+
+Rules:
+
+- place it after the blocks or imported structures that it should match
+- matching happens against the current scene state at parse time
+- child annotations use local coordinates relative to each matched block
+
+Example:
+
+````md
+<ImportStructure src="/assets/example_structure.snbt" />
+<BlockAnnotationTemplate id="minecraft:log">
+  <DiamondAnnotation pos="0.5 0.5 0.5" color="#ff0000">
+    Highlighted by template.
+  </DiamondAnnotation>
+</BlockAnnotationTemplate>
+````
 
 ## `<Entity>`
 
@@ -143,6 +204,11 @@ If no explicit `centerX/Y/Z` is given, GuideNH auto-centers the scene from the p
 ## Interaction Notes
 
 When `interactive={true}` the scene supports rotation, pan, zoom, reset, annotation toggles, and other UI controls exposed by the guide screen.
+
+- scenes spanning multiple Y levels show a visible-layer slider above the bottom edge
+- StructureLib scenes can add a hatch-highlight toggle button plus a channel slider at the very bottom when the imported metadata provides them
+- annotation hover takes priority over block hover; block tooltips appear normally once no annotation hotspot is being hovered
+- StructureLib hover keeps the block name on the first tooltip line, adds structure-specific text starting on the second line, and expands replacement candidates when `Shift` is held
 
 ## Related Pages
 

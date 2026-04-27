@@ -15,7 +15,9 @@ import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompile
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
+import com.hfstudio.guidenh.libs.unist.UnistParent;
 
 public class SceneTagCompiler extends BlockTagCompiler {
 
@@ -99,12 +101,14 @@ public class SceneTagCompiler extends BlockTagCompiler {
             AnnotationTagCompiler.CURRENT_SCENE.set(scene);
             try {
                 for (var child : flow.children()) {
-                    if (child instanceof MdxJsxElementFields childEl) {
+                    UnistNode childNode = child;
+                    MdxJsxElementFields childEl = unwrapSceneElement(childNode);
+                    if (childEl != null) {
                         String name = childEl.name();
                         if (name == null) continue;
                         var elCompiler = elementCompilers.get(name);
                         if (elCompiler == null) {
-                            parent.appendError(compiler, "Unknown scene element <" + name + ">", (UnistNode) child);
+                            parent.appendError(compiler, "Unknown scene element <" + name + ">", childNode);
                             continue;
                         }
                         elCompiler.compile(scene.getLevel(), scene.getCamera(), compiler, parent, childEl);
@@ -126,5 +130,42 @@ public class SceneTagCompiler extends BlockTagCompiler {
         scene.snapshotInitialCamera();
 
         parent.append(scene);
+    }
+
+    private static MdxJsxElementFields unwrapSceneElement(UnistNode node) {
+        if (node instanceof MdxJsxElementFields elementFields) {
+            return elementFields;
+        }
+        if (!(node instanceof UnistParent parent)) {
+            return null;
+        }
+
+        MdxJsxElementFields found = null;
+        for (UnistNode child : parent.children()) {
+            if (isIgnorableNode(child)) {
+                continue;
+            }
+            MdxJsxElementFields nested = unwrapSceneElement(child);
+            if (nested == null) {
+                return null;
+            }
+            if (found != null) {
+                return null;
+            }
+            found = nested;
+        }
+        return found;
+    }
+
+    private static boolean isIgnorableNode(UnistNode node) {
+        if (node instanceof MdxJsxElementFields) {
+            return false;
+        }
+        if (node instanceof MdAstNode astNode) {
+            return astNode.toText()
+                .trim()
+                .isEmpty();
+        }
+        return false;
     }
 }

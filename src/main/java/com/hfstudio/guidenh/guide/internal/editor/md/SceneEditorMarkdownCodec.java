@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.md;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -12,6 +13,8 @@ import javax.annotation.Nullable;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
+import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
+import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.YamlFrontmatterExtension;
@@ -28,6 +31,7 @@ import com.hfstudio.guidenh.libs.micromark.extensions.YamlFrontmatterSyntax;
 import com.hfstudio.guidenh.libs.micromark.extensions.gfm.GfmTableSyntax;
 import com.hfstudio.guidenh.libs.micromark.extensions.gfmstrikethrough.GfmStrikethroughSyntax;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
+import com.hfstudio.guidenh.libs.unist.UnistParent;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 public final class SceneEditorMarkdownCodec {
@@ -61,6 +65,12 @@ public final class SceneEditorMarkdownCodec {
                 "interactive")));
     private static final Set<String> IMPORT_STRUCTURE_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Collections.singletonList("src")));
+    private static final Set<String> IMPORT_STRUCTURE_LIB_ATTRIBUTES = Collections
+        .unmodifiableSet(new HashSet<>(Arrays.asList("controller", "piece", "facing", "rotation", "flip", "channel")));
+    private static final Set<String> REMOVE_BLOCKS_ATTRIBUTES = Collections
+        .unmodifiableSet(new HashSet<>(Collections.singletonList("id")));
+    private static final Set<String> BLOCK_ANNOTATION_TEMPLATE_ATTRIBUTES = Collections
+        .unmodifiableSet(new HashSet<>(Collections.singletonList("id")));
     private static final Set<String> BLOCK_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Arrays.asList("pos", "color", "thickness", "alwaysOnTop", "visible")));
     private static final Set<String> BOX_ATTRIBUTES = Collections
@@ -96,23 +106,15 @@ public final class SceneEditorMarkdownCodec {
         builder.append("<GameScene");
         appendRootAttributes(builder, model);
 
-        boolean hasImportStructure = model.getStructureSource() != null && !model.getStructureSource()
-            .isEmpty();
-        boolean hasElements = !model.getElements()
-            .isEmpty();
-        if (!hasImportStructure && !hasElements) {
+        List<SceneEditorSceneNodeModel> sceneNodes = collectSerializableSceneNodes(model);
+        if (sceneNodes.isEmpty()) {
             builder.append(" />");
             return builder.toString();
         }
 
         builder.append(">\n");
-        if (hasImportStructure) {
-            builder.append("    <ImportStructure src=\"")
-                .append(escapeAttribute(model.getStructureSource()))
-                .append("\" />\n");
-        }
-        for (SceneEditorElementModel element : model.getElements()) {
-            appendElement(builder, element);
+        for (SceneEditorSceneNodeModel sceneNode : sceneNodes) {
+            appendSceneNode(builder, sceneNode);
         }
         builder.append("</GameScene>");
         return builder.toString();
@@ -162,7 +164,6 @@ public final class SceneEditorMarkdownCodec {
         model.setCenterZ(parseFloatAttribute(sceneElement, "centerZ", model.getCenterZ()));
         model.setInteractive(parseBooleanAttribute(sceneElement, "interactive", model.isInteractive()));
 
-        boolean importStructureSeen = false;
         for (Object child : sceneElement.children()) {
             if (!(child instanceof UnistNode node)) {
                 continue;
@@ -170,21 +171,25 @@ public final class SceneEditorMarkdownCodec {
             if (isIgnorableNode(node, source)) {
                 continue;
             }
-            if (!(child instanceof MdxJsxElementFields element)) {
-                throw new UnsupportedSubsetException("Unsupported content inside <GameScene>");
+            MdxJsxElementFields element = unwrapJsxElement(node, source);
+            if (element == null) {
+                continue;
             }
             String tagName = element.name();
             if ("ImportStructure".equals(tagName)) {
-                if (importStructureSeen) {
-                    throw new UnsupportedSubsetException("Only one <ImportStructure> is supported");
-                }
-                ensureAllowedAttributes(element, IMPORT_STRUCTURE_ATTRIBUTES, tagName);
-                String src = parseRequiredStringAttribute(element, "src");
-                if (src.isEmpty()) {
-                    throw new InvalidSceneSyntaxException("ImportStructure src cannot be empty");
-                }
-                model.setStructureSource(src);
-                importStructureSeen = true;
+                model.addSceneNode(parseImportStructureNode(element));
+                continue;
+            }
+            if ("ImportStructureLib".equals(tagName)) {
+                model.addSceneNode(parseImportStructureLibNode(element));
+                continue;
+            }
+            if ("RemoveBlocks".equals(tagName)) {
+                model.addSceneNode(parseRemoveBlocksNode(element));
+                continue;
+            }
+            if ("BlockAnnotationTemplate".equals(tagName)) {
+                model.addSceneNode(parseBlockAnnotationTemplateNode(element, source));
                 continue;
             }
 
@@ -253,6 +258,82 @@ public final class SceneEditorMarkdownCodec {
         throw new UnsupportedSubsetException("Unsupported scene element <" + tagName + ">");
     }
 
+    private SceneEditorSceneNodeModel parseImportStructureNode(MdxJsxElementFields element) {
+        ensureAllowedAttributes(element, IMPORT_STRUCTURE_ATTRIBUTES, "ImportStructure");
+        String src = parseRequiredStringAttribute(element, "src");
+        if (src.isEmpty()) {
+            throw new InvalidSceneSyntaxException("ImportStructure src cannot be empty");
+        }
+
+        SceneEditorSceneNodeModel node = new SceneEditorSceneNodeModel(SceneEditorSceneNodeType.IMPORT_STRUCTURE);
+        node.setAttribute("src", src);
+        return node;
+    }
+
+    private SceneEditorSceneNodeModel parseImportStructureLibNode(MdxJsxElementFields element) {
+        ensureAllowedAttributes(element, IMPORT_STRUCTURE_LIB_ATTRIBUTES, "ImportStructureLib");
+        String controller = parseRequiredStringAttribute(element, "controller");
+        if (controller.isEmpty()) {
+            throw new InvalidSceneSyntaxException("ImportStructureLib controller cannot be empty");
+        }
+
+        SceneEditorSceneNodeModel node = new SceneEditorSceneNodeModel(SceneEditorSceneNodeType.IMPORT_STRUCTURE_LIB);
+        node.setAttribute("controller", controller);
+        copyOptionalAttribute(element, node, "piece");
+        copyOptionalAttribute(element, node, "facing");
+        copyOptionalAttribute(element, node, "rotation");
+        copyOptionalAttribute(element, node, "flip");
+        copyOptionalIntegerAttribute(element, node, "channel");
+        return node;
+    }
+
+    private SceneEditorSceneNodeModel parseRemoveBlocksNode(MdxJsxElementFields element) {
+        ensureAllowedAttributes(element, REMOVE_BLOCKS_ATTRIBUTES, "RemoveBlocks");
+        String blockId = parseRequiredStringAttribute(element, "id");
+        if (blockId.isEmpty()) {
+            throw new InvalidSceneSyntaxException("RemoveBlocks id cannot be empty");
+        }
+
+        SceneEditorSceneNodeModel node = new SceneEditorSceneNodeModel(SceneEditorSceneNodeType.REMOVE_BLOCKS);
+        node.setAttribute("id", blockId);
+        return node;
+    }
+
+    private SceneEditorSceneNodeModel parseBlockAnnotationTemplateNode(MdxJsxElementFields element, String source) {
+        ensureAllowedAttributes(element, BLOCK_ANNOTATION_TEMPLATE_ATTRIBUTES, "BlockAnnotationTemplate");
+        String blockId = parseRequiredStringAttribute(element, "id");
+        if (blockId.isEmpty()) {
+            throw new InvalidSceneSyntaxException("BlockAnnotationTemplate id cannot be empty");
+        }
+
+        SceneEditorSceneNodeModel node = new SceneEditorSceneNodeModel(
+            SceneEditorSceneNodeType.BLOCK_ANNOTATION_TEMPLATE);
+        node.setAttribute("id", blockId);
+
+        for (Object child : element.children()) {
+            if (!(child instanceof UnistNode childNode)) {
+                continue;
+            }
+            if (isIgnorableNode(childNode, source)) {
+                continue;
+            }
+            MdxJsxElementFields childElement = unwrapJsxElement(childNode, source);
+            if (childElement == null) {
+                continue;
+            }
+            node.addTemplateElement(parseElement(childElement, source));
+        }
+
+        return node;
+    }
+
+    private void copyOptionalAttribute(MdxJsxElementFields element, SceneEditorSceneNodeModel node, String attribute) {
+        String value = parseOptionalStringAttribute(element, attribute);
+        if (value != null && !value.isEmpty()) {
+            node.setAttribute(attribute, value);
+        }
+    }
+
     private void appendRootAttributes(StringBuilder builder, SceneEditorSceneModel model) {
         if (model.getPreviewWidth() != 256) {
             builder.append(" width=\"")
@@ -284,25 +365,158 @@ public final class SceneEditorMarkdownCodec {
         }
     }
 
-    private void appendElement(StringBuilder builder, SceneEditorElementModel element) {
-        switch (element.getType()) {
-            case BLOCK -> appendBlockElement(builder, element);
-            case BOX -> appendBoxElement(builder, element);
-            case LINE -> appendLineElement(builder, element);
-            case DIAMOND -> appendDiamondElement(builder, element);
+    private List<SceneEditorSceneNodeModel> collectSerializableSceneNodes(SceneEditorSceneModel model) {
+        ArrayList<SceneEditorSceneNodeModel> sceneNodes = new ArrayList<>(model.getSceneNodes());
+        if (!hasImportStructureNode(sceneNodes) && model.getStructureSource() != null
+            && !model.getStructureSource()
+                .isEmpty()) {
+            SceneEditorSceneNodeModel importStructure = new SceneEditorSceneNodeModel(
+                SceneEditorSceneNodeType.IMPORT_STRUCTURE);
+            importStructure.setAttribute("src", model.getStructureSource());
+            sceneNodes.add(0, importStructure);
+        }
+
+        Set<java.util.UUID> annotationIds = new HashSet<>();
+        for (SceneEditorSceneNodeModel sceneNode : sceneNodes) {
+            if (sceneNode.getType() == SceneEditorSceneNodeType.ANNOTATION
+                && sceneNode.getAnnotationElement() != null) {
+                annotationIds.add(
+                    sceneNode.getAnnotationElement()
+                        .getId());
+            }
+        }
+
+        for (SceneEditorElementModel element : model.getElements()) {
+            if (annotationIds.contains(element.getId())) {
+                continue;
+            }
+            SceneEditorSceneNodeModel annotationNode = new SceneEditorSceneNodeModel(
+                SceneEditorSceneNodeType.ANNOTATION);
+            annotationNode.setAnnotationElement(element);
+            sceneNodes.add(annotationNode);
+        }
+
+        return sceneNodes;
+    }
+
+    private boolean hasImportStructureNode(List<SceneEditorSceneNodeModel> sceneNodes) {
+        for (SceneEditorSceneNodeModel sceneNode : sceneNodes) {
+            if (sceneNode.getType() == SceneEditorSceneNodeType.IMPORT_STRUCTURE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void appendSceneNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {
+        switch (sceneNode.getType()) {
+            case IMPORT_STRUCTURE -> appendImportStructureNode(builder, sceneNode);
+            case IMPORT_STRUCTURE_LIB -> appendImportStructureLibNode(builder, sceneNode);
+            case REMOVE_BLOCKS -> appendRemoveBlocksNode(builder, sceneNode);
+            case BLOCK_ANNOTATION_TEMPLATE -> appendBlockAnnotationTemplateNode(builder, sceneNode);
+            case ANNOTATION -> {
+                if (sceneNode.getAnnotationElement() != null) {
+                    appendElement(builder, sceneNode.getAnnotationElement(), "    ");
+                }
+            }
         }
     }
 
-    private void appendBlockElement(StringBuilder builder, SceneEditorElementModel element) {
+    private void appendImportStructureNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {
+        String src = sceneNode.getAttribute("src");
+        if (src == null || src.isEmpty()) {
+            return;
+        }
+        builder.append("    <ImportStructure src=\"")
+            .append(escapeAttribute(src))
+            .append("\" />\n");
+    }
+
+    private void appendImportStructureLibNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {
+        String controller = sceneNode.getAttribute("controller");
+        if (controller == null || controller.isEmpty()) {
+            return;
+        }
+        builder.append("    <ImportStructureLib controller=\"")
+            .append(escapeAttribute(controller))
+            .append('"');
+        appendSceneNodeAttribute(builder, sceneNode, "piece");
+        appendSceneNodeAttribute(builder, sceneNode, "facing");
+        appendSceneNodeAttribute(builder, sceneNode, "rotation");
+        appendSceneNodeAttribute(builder, sceneNode, "flip");
+        appendSceneNodeAttribute(builder, sceneNode, "channel");
+        builder.append(" />\n");
+    }
+
+    private void appendRemoveBlocksNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {
+        String blockId = sceneNode.getAttribute("id");
+        if (blockId == null || blockId.isEmpty()) {
+            return;
+        }
+        builder.append("    <RemoveBlocks id=\"")
+            .append(escapeAttribute(blockId))
+            .append("\" />\n");
+    }
+
+    private void appendBlockAnnotationTemplateNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {
+        String blockId = sceneNode.getAttribute("id");
+        if (blockId == null || blockId.isEmpty()) {
+            return;
+        }
+
+        if (sceneNode.getTemplateElements()
+            .isEmpty()) {
+            builder.append("    <BlockAnnotationTemplate id=\"")
+                .append(escapeAttribute(blockId))
+                .append("\" />\n");
+            return;
+        }
+
+        builder.append("    <BlockAnnotationTemplate id=\"")
+            .append(escapeAttribute(blockId))
+            .append("\">\n");
+        for (SceneEditorElementModel templateElement : sceneNode.getTemplateElements()) {
+            appendElement(builder, templateElement, "        ");
+        }
+        builder.append("    </BlockAnnotationTemplate>\n");
+    }
+
+    private void appendSceneNodeAttribute(StringBuilder builder, SceneEditorSceneNodeModel sceneNode,
+        String attribute) {
+        String value = sceneNode.getAttribute(attribute);
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+        builder.append(' ')
+            .append(attribute)
+            .append("=\"")
+            .append(escapeAttribute(value))
+            .append('"');
+    }
+
+    private void appendElement(StringBuilder builder, SceneEditorElementModel element) {
+        appendElement(builder, element, "    ");
+    }
+
+    private void appendElement(StringBuilder builder, SceneEditorElementModel element, String indent) {
+        switch (element.getType()) {
+            case BLOCK -> appendBlockElement(builder, element, indent);
+            case BOX -> appendBoxElement(builder, element, indent);
+            case LINE -> appendLineElement(builder, element, indent);
+            case DIAMOND -> appendDiamondElement(builder, element, indent);
+        }
+    }
+
+    private void appendBlockElement(StringBuilder builder, SceneEditorElementModel element, String indent) {
         StringBuilder tagBuilder = new StringBuilder();
         tagBuilder.append("<BlockAnnotation pos=\"")
             .append(formatVector(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()))
             .append('"');
         appendElementStyleAttributes(tagBuilder, element, "#FFFFFFFF", true);
-        appendElementTooltip(builder, "BlockAnnotation", tagBuilder, element.getTooltipMarkdown());
+        appendElementTooltip(builder, indent, "BlockAnnotation", tagBuilder, element.getTooltipMarkdown());
     }
 
-    private void appendBoxElement(StringBuilder builder, SceneEditorElementModel element) {
+    private void appendBoxElement(StringBuilder builder, SceneEditorElementModel element, String indent) {
         StringBuilder tagBuilder = new StringBuilder();
         tagBuilder.append("<BoxAnnotation min=\"")
             .append(formatVector(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()))
@@ -310,10 +524,10 @@ public final class SceneEditorMarkdownCodec {
             .append(formatVector(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ()))
             .append('"');
         appendElementStyleAttributes(tagBuilder, element, "#FFFFFFFF", true);
-        appendElementTooltip(builder, "BoxAnnotation", tagBuilder, element.getTooltipMarkdown());
+        appendElementTooltip(builder, indent, "BoxAnnotation", tagBuilder, element.getTooltipMarkdown());
     }
 
-    private void appendLineElement(StringBuilder builder, SceneEditorElementModel element) {
+    private void appendLineElement(StringBuilder builder, SceneEditorElementModel element, String indent) {
         StringBuilder tagBuilder = new StringBuilder();
         tagBuilder.append("<LineAnnotation from=\"")
             .append(formatVector(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()))
@@ -321,16 +535,16 @@ public final class SceneEditorMarkdownCodec {
             .append(formatVector(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ()))
             .append('"');
         appendElementStyleAttributes(tagBuilder, element, "#FFFFFFFF", true);
-        appendElementTooltip(builder, "LineAnnotation", tagBuilder, element.getTooltipMarkdown());
+        appendElementTooltip(builder, indent, "LineAnnotation", tagBuilder, element.getTooltipMarkdown());
     }
 
-    private void appendDiamondElement(StringBuilder builder, SceneEditorElementModel element) {
+    private void appendDiamondElement(StringBuilder builder, SceneEditorElementModel element, String indent) {
         StringBuilder tagBuilder = new StringBuilder();
         tagBuilder.append("<DiamondAnnotation pos=\"")
             .append(formatVector(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()))
             .append('"');
         appendElementStyleAttributes(tagBuilder, element, "#FF00E000", false);
-        appendElementTooltip(builder, "DiamondAnnotation", tagBuilder, element.getTooltipMarkdown());
+        appendElementTooltip(builder, indent, "DiamondAnnotation", tagBuilder, element.getTooltipMarkdown());
     }
 
     private void appendElementStyleAttributes(StringBuilder builder, SceneEditorElementModel element,
@@ -353,35 +567,36 @@ public final class SceneEditorMarkdownCodec {
         }
     }
 
-    private void appendElementTooltip(StringBuilder builder, String tagName, StringBuilder openingTag,
+    private void appendElementTooltip(StringBuilder builder, String indent, String tagName, StringBuilder openingTag,
         String tooltipMarkdown) {
         if (tooltipMarkdown == null || tooltipMarkdown.isEmpty()) {
-            builder.append("    ")
+            builder.append(indent)
                 .append(openingTag)
                 .append(" />\n");
             return;
         }
 
-        builder.append("    ")
+        builder.append(indent)
             .append(openingTag)
             .append(">\n");
-        appendIndentedTooltip(builder, tooltipMarkdown);
+        appendIndentedTooltip(builder, indent + "    ", tooltipMarkdown);
         if (!tooltipMarkdown.endsWith("\n")) {
             builder.append('\n');
         }
-        builder.append("    </")
+        builder.append(indent)
+            .append("</")
             .append(tagName)
             .append(">\n");
     }
 
-    private void appendIndentedTooltip(StringBuilder builder, String tooltipMarkdown) {
+    private void appendIndentedTooltip(StringBuilder builder, String indent, String tooltipMarkdown) {
         String normalizedTooltip = normalizeLineEndings(tooltipMarkdown);
         if (normalizedTooltip.isEmpty()) {
             return;
         }
         String[] lines = normalizedTooltip.split("\n", -1);
         for (int i = 0; i < lines.length; i++) {
-            builder.append("        ")
+            builder.append(indent)
                 .append(lines[i]);
             if (i < lines.length - 1) {
                 builder.append('\n');
@@ -428,6 +643,18 @@ public final class SceneEditorMarkdownCodec {
             return Integer.parseInt(rawValue.trim());
         } catch (NumberFormatException e) {
             throw new InvalidSceneSyntaxException("Attribute '" + name + "' must be an integer");
+        }
+    }
+
+    private void copyOptionalIntegerAttribute(MdxJsxElementFields element, SceneEditorSceneNodeModel node,
+        String name) {
+        String rawValue = getOptionalAttributeValue(element, name);
+        if (rawValue == null) {
+            return;
+        }
+        int parsed = parseIntAttribute(element, name, Integer.MIN_VALUE);
+        if (parsed != Integer.MIN_VALUE) {
+            node.setAttribute(name, Integer.toString(parsed));
         }
     }
 
@@ -593,6 +820,32 @@ public final class SceneEditorMarkdownCodec {
         return source.substring(startOffset, endOffset)
             .trim()
             .isEmpty();
+    }
+
+    @Nullable
+    private MdxJsxElementFields unwrapJsxElement(UnistNode node, String source) {
+        if (node instanceof MdxJsxElementFields element) {
+            return element;
+        }
+        if (!(node instanceof UnistParent parent)) {
+            return null;
+        }
+
+        MdxJsxElementFields found = null;
+        for (UnistNode child : parent.children()) {
+            if (isIgnorableNode(child, source)) {
+                continue;
+            }
+            MdxJsxElementFields nested = unwrapJsxElement(child, source);
+            if (nested == null) {
+                return null;
+            }
+            if (found != null) {
+                return null;
+            }
+            found = nested;
+        }
+        return found;
     }
 
     private void appendFloatAttribute(StringBuilder builder, String name, float value, float defaultValue) {

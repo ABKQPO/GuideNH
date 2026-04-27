@@ -43,15 +43,25 @@ The wiki explains the runtime syntax, but it does not use the runtime tags direc
 3. Put markdown pages inside those language folders.
 4. Declare navigation metadata in frontmatter when you want a page to appear in the sidebar.
 5. Use relative asset paths for page-local files and rooted `/...` paths for guide-root assets.
+6. For 3D scenes, compose `<GameScene>` with `<ImportStructure>`, `<ImportStructureLib>`, `<RemoveBlocks>`, and `<BlockAnnotationTemplate>` as needed.
+
+## Scene Authoring Highlights
+
+- `<ImportStructure>` imports external SNBT/NBT structures into a scene.
+- `<ImportStructureLib>` imports StructureLib multiblocks by controller id using GTNH-style `modid:block[:meta]`.
+- `<RemoveBlocks>` trims already-placed helper blocks after imports without changing neighboring states.
+- `<BlockAnnotationTemplate>` copies the same child annotations onto every matching block that already exists in the scene.
+- Interactive scenes can automatically expose layer sliders, StructureLib channel sliders, hatch highlight buttons, and rich hover tooltips when the underlying scene data provides them.
 
 ## Runtime Example Sources
 
 The bundled example guide currently lives here:
 
 - `wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md`
+- `wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/index.md`
 - `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md`
 - `wiki/resourcepack/assets/guidenh/guidenh/_en_us/rendering.md`
 - `wiki/resourcepack/assets/guidenh/guidenh/_en_us/structure.md`
 - `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt`
 
-Those files are the best place to inspect real, running examples while reading this wiki.
+Those files are the best place to inspect real, running examples while reading this wiki. The two `index.md` pages now include mixed scene samples for `ImportStructureLib`, `RemoveBlocks`, and `BlockAnnotationTemplate`.

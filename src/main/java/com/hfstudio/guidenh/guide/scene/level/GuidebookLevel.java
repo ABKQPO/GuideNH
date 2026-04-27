@@ -22,6 +22,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -32,6 +33,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private final HashMap<Long, TileEntity> tileEntities = new HashMap<>();
 
     private final HashMap<Long, int[]> filledBlocks = new HashMap<>();
+    private final HashMap<Long, String> explicitBlockIds = new HashMap<>();
 
     // Pre-built unmodifiable views returned every call to avoid per-frame
     // Collections.unmodifiableCollection() wrapper allocation (hot on the render loop).
@@ -44,6 +46,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     @Nullable
     private GuidebookFakeWorld fakeWorld;
+
+    private boolean previewStateDirty = true;
 
     private int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
     private int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
@@ -59,8 +63,18 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     public void rebindAllTileEntities() {
         World world = getOrCreateFakeWorld();
         for (TileEntity te : tileEntities.values()) {
+            te.blockType = getBlock(te.xCoord, te.yCoord, te.zCoord);
+            te.blockMetadata = getBlockMetadata(te.xCoord, te.yCoord, te.zCoord);
             te.setWorldObj(world);
         }
+    }
+
+    public void prepareForPreview() {
+        if (!previewStateDirty) {
+            return;
+        }
+        previewStateDirty = false;
+        rebindAllTileEntities();
     }
 
     public void setBlock(int x, int y, int z, @Nullable Block block, int meta, @Nullable TileEntity tileEntity) {
@@ -81,8 +95,15 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (isAir) {
             filledBlocks.remove(key);
             tileEntities.remove(key);
+            explicitBlockIds.remove(key);
         } else {
             filledBlocks.put(key, new int[] { x, y, z });
+            String resolvedBlockId = resolveBlockId(block);
+            if (resolvedBlockId != null) {
+                explicitBlockIds.put(key, resolvedBlockId);
+            } else {
+                explicitBlockIds.remove(key);
+            }
             if (tileEntity != null) {
                 tileEntity.xCoord = x;
                 tileEntity.yCoord = y;
@@ -102,6 +123,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             if (z > maxZ) maxZ = z;
         }
         boundsDirty = true;
+        previewStateDirty = true;
     }
 
     public void setBlock(int x, int y, int z, @Nullable Block block, int meta) {
@@ -110,15 +132,45 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     public void setTileEntity(int x, int y, int z, @Nullable TileEntity tileEntity) {
         long key = packPos(x, y, z);
+        TileEntity existing = tileEntities.get(key);
+        if (existing == tileEntity) {
+            if (tileEntity != null) {
+                tileEntity.xCoord = x;
+                tileEntity.yCoord = y;
+                tileEntity.zCoord = z;
+                tileEntity.blockType = getBlock(x, y, z);
+                tileEntity.blockMetadata = getBlockMetadata(x, y, z);
+                tileEntity.setWorldObj(getOrCreateFakeWorld());
+            }
+            return;
+        }
         if (tileEntity == null) {
             tileEntities.remove(key);
         } else {
             tileEntity.xCoord = x;
             tileEntity.yCoord = y;
             tileEntity.zCoord = z;
+            tileEntity.blockType = getBlock(x, y, z);
+            tileEntity.blockMetadata = getBlockMetadata(x, y, z);
             tileEntity.setWorldObj(getOrCreateFakeWorld());
             tileEntities.put(key, tileEntity);
         }
+        previewStateDirty = true;
+    }
+
+    public void setExplicitBlockId(int x, int y, int z, @Nullable String blockId) {
+        long key = packPos(x, y, z);
+        if (blockId == null || blockId.trim()
+            .isEmpty()) {
+            explicitBlockIds.remove(key);
+        } else {
+            explicitBlockIds.put(key, blockId.trim());
+        }
+    }
+
+    @Nullable
+    public String getExplicitBlockId(int x, int y, int z) {
+        return explicitBlockIds.get(packPos(x, y, z));
     }
 
     public boolean isEmpty() {
@@ -234,7 +286,14 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     @Override
     public int isBlockProvidingPowerTo(int x, int y, int z, int directionIn) {
-        return 0;
+        Block block = getBlock(x, y, z);
+        if (block == null || block == Blocks.air) {
+            return 0;
+        }
+
+        int weakPower = block.isProvidingWeakPower(this, x, y, z, directionIn);
+        int strongPower = block.isProvidingStrongPower(this, x, y, z, directionIn);
+        return Math.max(weakPower, strongPower);
     }
 
     @SideOnly(Side.CLIENT)
@@ -270,6 +329,55 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     private static long packPos(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF)) | (((long) (z & 0x3FFFFFF)) << 26) | (((long) (y & 0xFF)) << 52);
+    }
+
+    @Nullable
+    private static String resolveBlockId(@Nullable Block block) {
+        if (block == null || block == Blocks.air) {
+            return null;
+        }
+
+        try {
+            GameRegistry.UniqueIdentifier uniqueIdentifier = GameRegistry.findUniqueIdentifierFor(block);
+            if (uniqueIdentifier != null) {
+                return uniqueIdentifier.toString();
+            }
+        } catch (RuntimeException ignored) {
+            // Tests and synthetic preview blocks can reach here without a full loader context.
+        }
+
+        Object registryName = Block.blockRegistry.getNameForObject(block);
+        if (registryName != null) {
+            String normalized = normalizeBlockId(registryName.toString());
+            if (normalized != null) {
+                return normalized;
+            }
+        }
+
+        return normalizeBlockId(block.getUnlocalizedName());
+    }
+
+    @Nullable
+    private static String normalizeBlockId(@Nullable String candidate) {
+        if (candidate == null) {
+            return null;
+        }
+
+        String trimmed = candidate.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        if (trimmed.startsWith("tile.") && trimmed.length() > 5) {
+            return "minecraft:" + trimmed.substring(5);
+        }
+
+        int tileNamespaceIndex = trimmed.indexOf(":tile.");
+        if (tileNamespaceIndex >= 0) {
+            return trimmed.substring(0, tileNamespaceIndex + 1) + trimmed.substring(tileNamespaceIndex + 6);
+        }
+
+        return trimmed.indexOf(':') >= 0 ? trimmed : "minecraft:" + trimmed;
     }
 
 }

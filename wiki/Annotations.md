@@ -16,7 +16,7 @@ GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They 
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
 
-GuideNH also registers `<BlockAnnotationTemplate>`, but the current built-in implementation is a no-op stub and does not produce any visible annotation yet.
+GuideNH also supports `<BlockAnnotationTemplate>`, which applies its child annotations to every already-placed matching block in the current scene.
 
 ## `<BlockAnnotation>`
 
@@ -115,9 +115,32 @@ Example:
 </DiamondAnnotation>
 ````
 
-## Unsupported Template Tag
+## `<BlockAnnotationTemplate>`
 
-`<BlockAnnotationTemplate>` is currently registered but the built-in compiler body is empty. Treat it as reserved for future work.
+Use it when you want to stamp the same annotation onto every matching block.
+
+| Attribute | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | block matcher in `modid:block[:meta]` form |
+
+Rules:
+
+- the template only sees blocks that already exist when it is parsed
+- place it after `<Block>`, `<ImportStructure>`, or `<ImportStructureLib>` tags that should feed it
+- child annotations use local coordinates relative to each matched block
+
+Example:
+
+````md
+<GameScene zoom={2}>
+  <ImportStructure src="/assets/example_structure.snbt" />
+  <BlockAnnotationTemplate id="minecraft:log">
+    <DiamondAnnotation pos="0.5 0.5 0.5" color="#ff0000">
+      Template-generated tooltip
+    </DiamondAnnotation>
+  </BlockAnnotationTemplate>
+</GameScene>
+````
 
 ## Related Pages
 

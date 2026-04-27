@@ -177,5 +177,7 @@ key.categories.guidenh=GuideNH
 key.guidenh.open_guide=打开物品对应的指南
 key.guidenh.open_scene_editor=打开场景编辑器
 
+guideme.guidebook.HighlightStructureLibHatches=切换仓室位置高亮
+
 # Guide name
 guideme.guide_name=GuideNH 示例指南

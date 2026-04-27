@@ -82,6 +82,9 @@ public class ModConfig {
         @Comment("Whether the markdown panel wraps lines in the scene editor.")
         @DefaultBoolean(true)
         public boolean sceneEditorMarkdownWrapEnabled = true;
+
+        @Comment("Maximum item columns per row when showing StructureLib block candidates in tooltips.")
+        public int sceneStructureLibCandidateColumns = 6;
     }
 
     public static void save() {

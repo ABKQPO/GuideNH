@@ -73,16 +73,13 @@ public final class SceneEditorHandleOverlay {
             return null;
         }
         String bestHandleId = null;
-        int bestDistanceSq = Integer.MAX_VALUE;
+        float bestDistanceSq = Float.POSITIVE_INFINITY;
         for (String handleId : getHandleIds(element)) {
             LytRect bounds = getHandleBounds(element, camera, viewport, handleId).expand(2);
             if (!bounds.contains(mouseX, mouseY)) {
                 continue;
             }
-            Vector3f handleCenter = projectHandlePoint(element, camera, viewport, handleId);
-            int dx = Math.round(mouseX - handleCenter.x);
-            int dy = Math.round(mouseY - handleCenter.y);
-            int distanceSq = dx * dx + dy * dy;
+            float distanceSq = measureHitDistanceSq(element, camera, viewport, handleId, mouseX, mouseY);
             if (distanceSq < bestDistanceSq) {
                 bestDistanceSq = distanceSq;
                 bestHandleId = handleId;
@@ -212,6 +209,19 @@ public final class SceneEditorHandleOverlay {
             }
         }
         return false;
+    }
+
+    private float measureHitDistanceSq(SceneEditorElementModel element, CameraSettings camera, LytRect viewport,
+        String handleId, int mouseX, int mouseY) {
+        if (isAxisHandle(handleId)) {
+            Vector3f center = projectHandlePoint(element, camera, viewport, CENTER_HANDLE_ID);
+            Vector3f tip = projectHandlePoint(element, camera, viewport, handleId);
+            return distanceSqToSegment(mouseX, mouseY, center.x, center.y, tip.x, tip.y);
+        }
+        Vector3f handleCenter = projectHandlePoint(element, camera, viewport, handleId);
+        float dx = mouseX - handleCenter.x;
+        float dy = mouseY - handleCenter.y;
+        return dx * dx + dy * dy;
     }
 
     private Vector3f getHandleWorldPoint(SceneEditorElementModel element, String handleId) {
@@ -352,6 +362,28 @@ public final class SceneEditorHandleOverlay {
             from.x + (to.x - from.x) * factor,
             from.y + (to.y - from.y) * factor,
             from.z + (to.z - from.z) * factor);
+    }
+
+    private float distanceSqToSegment(float px, float py, float ax, float ay, float bx, float by) {
+        float dx = bx - ax;
+        float dy = by - ay;
+        float lengthSq = dx * dx + dy * dy;
+        if (lengthSq <= 1e-6f) {
+            float ox = px - ax;
+            float oy = py - ay;
+            return ox * ox + oy * oy;
+        }
+        float t = ((px - ax) * dx + (py - ay) * dy) / lengthSq;
+        if (t < 0f) {
+            t = 0f;
+        } else if (t > 1f) {
+            t = 1f;
+        }
+        float closestX = ax + dx * t;
+        float closestY = ay + dy * t;
+        float ox = px - closestX;
+        float oy = py - closestY;
+        return ox * ox + oy * oy;
     }
 
     private void drawAxisArrow(Vector3f from, Vector3f to, int color) {

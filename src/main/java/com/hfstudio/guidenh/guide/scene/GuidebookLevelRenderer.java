@@ -15,6 +15,8 @@ import java.nio.FloatBuffer;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -32,6 +34,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
@@ -64,9 +67,14 @@ public final class GuidebookLevelRenderer {
             panelY,
             panelWidth,
             panelHeight,
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight,
             partialTicks,
             Collections.emptyList(),
-            LightDarkMode.LIGHT_MODE);
+            LightDarkMode.LIGHT_MODE,
+            null);
     }
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
@@ -84,12 +92,33 @@ public final class GuidebookLevelRenderer {
             panelHeight,
             partialTicks,
             annotations,
-            lightDarkMode);
+            lightDarkMode,
+            null);
     }
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
         List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode) {
+        render(
+            level,
+            camera,
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight,
+            scissorX,
+            scissorY,
+            scissorW,
+            scissorH,
+            partialTicks,
+            annotations,
+            lightDarkMode,
+            null);
+    }
+
+    public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
+        int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
+        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, @Nullable Integer visibleMaxY) {
 
         int cx0 = Math.max(panelX, scissorX);
         int cy0 = Math.max(panelY, scissorY);
@@ -105,88 +134,92 @@ public final class GuidebookLevelRenderer {
         int glScissorW = (cx1 - cx0) * sf;
         int glScissorH = (cy1 - cy0) * sf;
 
-        GL11.glPushAttrib(
-            GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT
-                | GL11.GL_DEPTH_BUFFER_BIT
-                | GL11.GL_SCISSOR_BIT
-                | GL11.GL_LIGHTING_BIT
-                | GL11.GL_TEXTURE_BIT
-                | GL11.GL_CURRENT_BIT
-                | GL11.GL_VIEWPORT_BIT
-                | GL11.GL_TRANSFORM_BIT
-                | GL11.GL_POLYGON_BIT);
-        try {
-            GL11.glEnable(GL_SCISSOR_TEST);
-            GL11.glScissor(glScissorX, glScissorY, glScissorW, glScissorH);
-            GL11.glClear(GL_DEPTH_BUFFER_BIT);
+        try (var env = GuidebookFakeRenderEnvironment.enter(level, camera, partialTicks)) {
+            level.prepareForPreview();
 
-            int glVpX = panelX * sf;
-            int glVpY = displayHeight - (panelY + panelHeight) * sf;
-            int glVpW = panelWidth * sf;
-            int glVpH = panelHeight * sf;
-            GL11.glViewport(glVpX, glVpY, glVpW, glVpH);
-
-            GL11.glEnable(GL_DEPTH_TEST);
-            GL11.glDepthFunc(GL11.GL_LEQUAL);
-            GL11.glDisable(GL_LIGHTING);
-            GL11.glDisable(GL_BLEND);
-            GL11.glEnable(GL_ALPHA_TEST);
-            GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
-            GL11.glEnable(GL_TEXTURE_2D);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
-            GL11.glNormal3f(0f, 1f, 0f);
-
-            OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
-
-            GL11.glMatrixMode(GL_PROJECTION);
-            GL11.glPushMatrix();
-            loadMatrix(camera.getProjectionMatrix());
-
-            GL11.glMatrixMode(GL_MODELVIEW);
-            GL11.glPushMatrix();
-            loadMatrix(camera.getViewMatrix());
-
+            GL11.glPushAttrib(
+                GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT
+                    | GL11.GL_DEPTH_BUFFER_BIT
+                    | GL11.GL_SCISSOR_BIT
+                    | GL11.GL_LIGHTING_BIT
+                    | GL11.GL_TEXTURE_BIT
+                    | GL11.GL_CURRENT_BIT
+                    | GL11.GL_VIEWPORT_BIT
+                    | GL11.GL_TRANSFORM_BIT
+                    | GL11.GL_POLYGON_BIT);
             try {
-                mc.getTextureManager()
-                    .bindTexture(TextureMap.locationBlocksTexture);
-                var filledBlocks = level.getFilledBlocks();
-                var tileEntities = level.getTileEntities();
+                GL11.glEnable(GL_SCISSOR_TEST);
+                GL11.glScissor(glScissorX, glScissorY, glScissorW, glScissorH);
+                GL11.glClear(GL_DEPTH_BUFFER_BIT);
 
-                trySetRenderPass(0);
+                int glVpX = panelX * sf;
+                int glVpY = displayHeight - (panelY + panelHeight) * sf;
+                int glVpW = panelWidth * sf;
+                int glVpH = panelHeight * sf;
+                GL11.glViewport(glVpX, glVpY, glVpW, glVpH);
+
+                GL11.glEnable(GL_DEPTH_TEST);
+                GL11.glDepthFunc(GL11.GL_LEQUAL);
+                GL11.glDisable(GL_LIGHTING);
                 GL11.glDisable(GL_BLEND);
-                renderBlocksPass(level, filledBlocks, 0);
+                GL11.glEnable(GL_ALPHA_TEST);
+                GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
+                GL11.glEnable(GL_TEXTURE_2D);
+                GL11.glColor4f(1f, 1f, 1f, 1f);
+                GL11.glNormal3f(0f, 1f, 0f);
 
-                trySetRenderPass(1);
-                GL11.glEnable(GL_BLEND);
-                GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                GL11.glDepthMask(false);
-                renderBlocksPass(level, filledBlocks, 1);
-                GL11.glDepthMask(true);
-                GL11.glDisable(GL_BLEND);
+                OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
 
-                trySetRenderPass(-1);
-
-                renderBlockEntities(level, tileEntities, partialTicks);
-                renderEntitiesStub(level, partialTicks);
-
-                if (!annotations.isEmpty()) {
-                    InWorldAnnotationRenderer.render(annotations, lightDarkMode);
-                }
-            } catch (Throwable t) {
-                log(t);
-            } finally {
                 GL11.glMatrixMode(GL_PROJECTION);
-                GL11.glPopMatrix();
-                GL11.glMatrixMode(GL_MODELVIEW);
-                GL11.glPopMatrix();
-            }
+                GL11.glPushMatrix();
+                loadMatrix(camera.getProjectionMatrix());
 
-            // Wipe depth values within the scene's scissor so subsequent GUI rendering (e.g.
-            // ItemStack icons drawn on top of a tooltip that contains this scene) is not occluded
-            // by the 3D blocks we just drew. glPopAttrib restores GL state but not pixel data.
-            GL11.glClear(GL_DEPTH_BUFFER_BIT);
-        } finally {
-            GL11.glPopAttrib();
+                GL11.glMatrixMode(GL_MODELVIEW);
+                GL11.glPushMatrix();
+                loadMatrix(camera.getViewMatrix());
+
+                try {
+                    mc.getTextureManager()
+                        .bindTexture(TextureMap.locationBlocksTexture);
+                    var filledBlocks = level.getFilledBlocks();
+                    var tileEntities = level.getTileEntities();
+
+                    trySetRenderPass(0);
+                    GL11.glDisable(GL_BLEND);
+                    renderBlocksPass(level, filledBlocks, 0, visibleMaxY);
+
+                    trySetRenderPass(1);
+                    GL11.glEnable(GL_BLEND);
+                    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                    GL11.glDepthMask(false);
+                    renderBlocksPass(level, filledBlocks, 1, visibleMaxY);
+                    GL11.glDepthMask(true);
+                    GL11.glDisable(GL_BLEND);
+
+                    trySetRenderPass(-1);
+
+                    renderBlockEntities(tileEntities, partialTicks, visibleMaxY);
+                    renderEntitiesStub(level, partialTicks);
+
+                    if (!annotations.isEmpty()) {
+                        InWorldAnnotationRenderer.render(annotations, lightDarkMode);
+                    }
+                } catch (Throwable t) {
+                    log(t);
+                } finally {
+                    GL11.glMatrixMode(GL_PROJECTION);
+                    GL11.glPopMatrix();
+                    GL11.glMatrixMode(GL_MODELVIEW);
+                    GL11.glPopMatrix();
+                }
+
+                // Wipe depth values within the scene's scissor so subsequent GUI rendering (e.g.
+                // ItemStack icons drawn on top of a tooltip that contains this scene) is not occluded
+                // by the 3D blocks we just drew. glPopAttrib restores GL state but not pixel data.
+                GL11.glClear(GL_DEPTH_BUFFER_BIT);
+            } finally {
+                GL11.glPopAttrib();
+            }
             OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
             GL11.glEnable(GL_TEXTURE_2D);
             GL11.glDisable(GL_LIGHTING);
@@ -202,16 +235,20 @@ public final class GuidebookLevelRenderer {
         }
     }
 
-    private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass) {
+    private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
+        @Nullable Integer visibleMaxY) {
         RenderBlocks rb = cachedRenderBlocks;
         if (rb == null || cachedRenderBlocksLevel != level) {
-            rb = new RenderBlocks(level);
+            rb = new RenderBlocks(level.getOrCreateFakeWorld());
             cachedRenderBlocks = rb;
             cachedRenderBlocksLevel = level;
         }
         var tes = Tessellator.instance;
         tes.startDrawingQuads();
         for (int[] p : filledBlocks) {
+            if (visibleMaxY != null && p[1] > visibleMaxY.intValue()) {
+                continue;
+            }
             Block block = level.getBlock(p[0], p[1], p[2]);
             if (block == null) continue;
             if (!block.canRenderInPass(pass)) continue;
@@ -224,21 +261,18 @@ public final class GuidebookLevelRenderer {
         tes.draw();
     }
 
-    private void renderBlockEntities(GuidebookLevel level, Iterable<TileEntity> tileEntities, float partialTicks) {
+    private void renderBlockEntities(Iterable<TileEntity> tileEntities, float partialTicks,
+        @Nullable Integer visibleMaxY) {
         var dispatcher = TileEntityRendererDispatcher.instance;
-        var fakeWorld = level.getOrCreateFakeWorld();
-        var prevWorld = dispatcher.field_147550_f;
-        dispatcher.field_147550_f = fakeWorld;
-        try {
-            for (TileEntity te : tileEntities) {
-                try {
-                    dispatcher.renderTileEntityAt(te, te.xCoord, te.yCoord, te.zCoord, partialTicks);
-                } catch (Throwable t) {
-                    log(t);
-                }
+        for (TileEntity te : tileEntities) {
+            if (visibleMaxY != null && te != null && te.yCoord > visibleMaxY.intValue()) {
+                continue;
             }
-        } finally {
-            dispatcher.field_147550_f = prevWorld;
+            try {
+                dispatcher.renderTileEntity(te, partialTicks);
+            } catch (Throwable t) {
+                log(t);
+            }
         }
     }
 
