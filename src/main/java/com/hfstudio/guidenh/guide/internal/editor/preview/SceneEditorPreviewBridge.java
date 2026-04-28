@@ -54,6 +54,7 @@ public final class SceneEditorPreviewBridge {
             .clear();
         scene.setHoveredStructureLibHatch(null);
         scene.setHoveredBlock(null);
+        scene.setHoveredEntity(null);
         scene.clearAnnotationHover();
         scene.setStructureLibSceneMetadata(null);
         scene.setLevel(new GuidebookLevel());

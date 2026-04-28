@@ -84,7 +84,7 @@ public final class LytNeiRecipeBox extends LytBlock implements InteractiveElemen
         // caused visible clipping for some handlers and was reverted.
         this.bodyWidth = handlerW;
         this.bodyYShift = Math.max(0, NeiRecipeLookup.lookupHandlerYShift(handler));
-        this.bodyHeight = Math.max(1, recipeH > 0 ? recipeH : handlerH);
+        this.bodyHeight = NeiRecipeLayoutMetrics.resolveBodyHeight(handlerH, recipeH, DEFAULT_BODY_HEIGHT);
 
         int fh = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
         this.titleHeight = Math.max(ICON_SIZE, fh) + TITLE_PAD_TOP + TITLE_PAD_BOTTOM;

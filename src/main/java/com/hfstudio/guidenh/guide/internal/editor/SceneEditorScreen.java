@@ -82,6 +82,7 @@ import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.SavedCameraSettings;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 
 public final class SceneEditorScreen extends GuiScreen {
 
@@ -1024,14 +1025,16 @@ public final class SceneEditorScreen extends GuiScreen {
                 if (hoveredAnnotation != null) {
                     previewScene.setHoveredStructureLibHatch(null);
                     previewScene.setHoveredBlock(null);
+                    previewScene.setHoveredEntity(null);
                 } else {
                     previewScene.setHoveredStructureLibHatch(previewScene.pickStructureLibHatch(mouseX, mouseY));
-                    previewScene.setHoveredBlock(previewScene.pickBlock(mouseX, mouseY));
+                    previewScene.updateHoveredSceneTarget(mouseX, mouseY);
                 }
             } else {
                 previewScene.clearAnnotationHover();
                 previewScene.setHoveredStructureLibHatch(null);
                 previewScene.setHoveredBlock(null);
+                previewScene.setHoveredEntity(null);
             }
             previewScene.render(previewRenderContext);
             LytRect previewViewport = previewScene.getScreenRect();
@@ -1114,6 +1117,14 @@ public final class SceneEditorScreen extends GuiScreen {
         }
 
         int[] hoveredBlock = previewScene.getHoveredBlock();
+        var hoveredEntity = previewScene.getHoveredEntity();
+        if (hoveredEntity != null) {
+            String entityName = GuideEntityDisplayResolver.resolveDisplayName(hoveredEntity);
+            if (entityName != null) {
+                drawPreviewTooltipText(entityName, mouseX, mouseY);
+                return;
+            }
+        }
         if (hoveredBlock == null) {
             return;
         }

@@ -138,6 +138,13 @@ Example:
 
 Applies explicit isometric camera yaw/pitch/roll.
 
+If this tag is omitted, the scene keeps using the `<GameScene>` `perspective` preset. The default
+`isometric-north-east` preset is equivalent to:
+
+````md
+<IsometricCamera yaw="225" pitch="30" />
+````
+
 | Attribute | Meaning |
 | --- | --- |
 | `yaw` | float |
@@ -195,7 +202,34 @@ Example:
 
 ## `<Entity>`
 
-`<Entity id="..."/>` is parsed but entity rendering is not implemented yet. The tag is safe to mention in documentation, but it should not be relied on for visible output today.
+Adds an entity to the preview scene.
+
+The attributes follow summon-style entity placement and SNBT data.
+
+| Attribute | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | entity type id as used by `/summon`; modern vanilla ids like `minecraft:sheep` are accepted |
+| `x` | no | float X coordinate the entity is centered on, default `0.5` |
+| `y` | no | float Y coordinate at the bottom of the entity, default `0` |
+| `z` | no | float Z coordinate the entity is centered on, default `0.5` |
+| `rotationY` | no | yaw in degrees, default `-45` |
+| `rotationX` | no | pitch in degrees, default `0` |
+| `data` | no | summon-style SNBT merged into the entity NBT before spawn |
+
+Notes:
+
+- entity bounds participate in scene auto-centering and visible-layer filtering
+- entity creation falls back gracefully when the preview world is not ready yet, then binds on first render
+- hovering an entity shows its localized display name, or its custom name if one was provided
+
+Example:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="minecraft:sheep" y="1" data="{Color:2}" />
+</GameScene>
+````
 
 ## Camera Center Behavior
 

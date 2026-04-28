@@ -86,7 +86,10 @@ public class GuidebookFakeWorld extends WorldClient {
 
     @Override
     public Entity getEntityByID(int id) {
-        return null;
+        if (level == null) {
+            return null;
+        }
+        return level.getEntity(id);
     }
 
     @Override
@@ -296,6 +299,21 @@ public class GuidebookFakeWorld extends WorldClient {
                 continue;
             }
             addTileEntity(tileEntity);
+        }
+    }
+
+    public void syncLoadedEntities(Collection<Entity> entities) {
+        loadedEntityList.clear();
+        if (entities == null || entities.isEmpty()) {
+            return;
+        }
+        for (Entity entity : entities) {
+            if (entity == null || entity.isDead) {
+                continue;
+            }
+            entity.worldObj = this;
+            entity.dimension = provider.dimensionId;
+            loadedEntityList.add(entity);
         }
     }
 

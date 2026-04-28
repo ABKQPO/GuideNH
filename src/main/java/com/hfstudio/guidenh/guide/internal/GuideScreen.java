@@ -53,6 +53,7 @@ import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 public final class GuideScreen extends GuiScreen implements GuideUiHost {
@@ -553,6 +554,14 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
                 }
             }
             var hb = scene.getHoveredBlock();
+            var hoveredEntity = scene.getHoveredEntity();
+            if (hoveredEntity != null) {
+                String name = GuideEntityDisplayResolver.resolveDisplayName(hoveredEntity);
+                if (name != null) {
+                    drawTooltipText(name, mouseX, mouseY);
+                    return;
+                }
+            }
             if (hb != null) {
                 String name = blockDisplayName(scene, hb[0], hb[1], hb[2]);
                 if (name != null) {
@@ -1071,15 +1080,18 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
                 scene.clearAnnotationHover();
                 scene.setHoveredStructureLibHatch(null);
                 scene.setHoveredBlock(null);
+                scene.setHoveredEntity(null);
                 return;
             }
             var ann = scene.updateAnnotationHover(mouseX, mouseY);
             if (ann != null) {
+                scene.setHoveredStructureLibHatch(null);
+                scene.setHoveredBlock(null);
+                scene.setHoveredEntity(null);
                 return;
             }
             scene.setHoveredStructureLibHatch(scene.pickStructureLibHatch(mouseX, mouseY));
-            int[] picked = scene.pickBlock(mouseX, mouseY);
-            scene.setHoveredBlock(picked);
+            scene.updateHoveredSceneTarget(mouseX, mouseY);
         }
     }
 
@@ -1087,6 +1099,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         if (hoveredScene != null) {
             hoveredScene.setHoveredStructureLibHatch(null);
             hoveredScene.setHoveredBlock(null);
+            hoveredScene.setHoveredEntity(null);
             hoveredScene.clearAnnotationHover();
             hoveredScene = null;
         }

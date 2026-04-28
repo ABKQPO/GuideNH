@@ -8,6 +8,7 @@ import javax.annotation.Nullable;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.Vec3;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
@@ -80,13 +81,50 @@ public final class GuideBlockBoundsResolver {
     }
 
     @Nullable
+    public static AxisAlignedBB resolveRayHitBounds(GuidebookLevel level, int x, int y, int z, Vec3 rayStart,
+        Vec3 rayEnd) {
+        Block block = level.getBlock(x, y, z);
+        if (block == null || block == Blocks.air || rayStart == null || rayEnd == null) {
+            return null;
+        }
+
+        AxisAlignedBB bestBounds = resolveNearestRayHitBounds(collectCollisionBounds(level, block, x, y, z), rayStart, rayEnd);
+
+        if (bestBounds != null) {
+            return copyOf(bestBounds);
+        }
+        return resolveSelectedBounds(level, x, y, z);
+    }
+
+    @Nullable
+    static AxisAlignedBB resolveNearestRayHitBounds(List<AxisAlignedBB> collisionBoxes, Vec3 rayStart, Vec3 rayEnd) {
+        if (collisionBoxes == null || rayStart == null || rayEnd == null) {
+            return null;
+        }
+        AxisAlignedBB bestBounds = null;
+        double bestDistanceSq = Double.POSITIVE_INFINITY;
+        for (AxisAlignedBB collisionBox : collisionBoxes) {
+            if (collisionBox == null || !isNonEmpty(collisionBox)) {
+                continue;
+            }
+            var intercept = collisionBox.calculateIntercept(rayStart, rayEnd);
+            if (intercept == null || intercept.hitVec == null) {
+                continue;
+            }
+            double distanceSq = intercept.hitVec.squareDistanceTo(rayStart);
+            if (distanceSq < bestDistanceSq) {
+                bestDistanceSq = distanceSq;
+                bestBounds = collisionBox;
+            }
+        }
+        return bestBounds != null ? copyOf(bestBounds) : null;
+    }
+
+    @Nullable
     private static AxisAlignedBB resolveCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
         try {
-            List<AxisAlignedBB> collisionBoxes = new ArrayList<>();
-            AxisAlignedBB fullBlockBounds = AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d);
-            block.addCollisionBoxesToList(level.getOrCreateFakeWorld(), x, y, z, fullBlockBounds, collisionBoxes, null);
             AxisAlignedBB merged = null;
-            for (AxisAlignedBB collisionBox : collisionBoxes) {
+            for (AxisAlignedBB collisionBox : collectCollisionBounds(level, block, x, y, z)) {
                 if (collisionBox == null || !isNonEmpty(collisionBox)) {
                     continue;
                 }
@@ -96,6 +134,13 @@ public final class GuideBlockBoundsResolver {
         } catch (Throwable ignored) {
             return null;
         }
+    }
+
+    private static List<AxisAlignedBB> collectCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
+        List<AxisAlignedBB> collisionBoxes = new ArrayList<>();
+        AxisAlignedBB fullBlockBounds = AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d);
+        block.addCollisionBoxesToList(level.getOrCreateFakeWorld(), x, y, z, fullBlockBounds, collisionBoxes, null);
+        return collisionBoxes;
     }
 
     private static boolean isNonEmpty(AxisAlignedBB bounds) {

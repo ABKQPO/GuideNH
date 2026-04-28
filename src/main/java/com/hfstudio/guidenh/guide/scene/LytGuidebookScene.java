@@ -12,6 +12,7 @@ import javax.annotation.Nullable;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.entity.Entity;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.init.Blocks;
@@ -49,6 +50,7 @@ import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelectio
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibTooltipContentBuilder;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideEntityRayPicker;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
@@ -160,7 +162,40 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private MovingObjectPosition hoveredBlockHitResult;
     @Nullable
+    private Entity hoveredEntity;
+    @Nullable
+    private AxisAlignedBB hoveredEntityBounds;
+    @Nullable
+    private MovingObjectPosition hoveredEntityHitResult;
+    @Nullable
     private int[] hoveredStructureLibHatch;
+
+    private static final class PickRay {
+
+        private final Vec3 start;
+        private final Vec3 end;
+
+        private PickRay(Vec3 start, Vec3 end) {
+            this.start = start;
+            this.end = end;
+        }
+    }
+
+    private static final class BlockPickResult {
+
+        private final int[] pos;
+        private final AxisAlignedBB bounds;
+        private final MovingObjectPosition hitResult;
+        private final double distanceSq;
+
+        private BlockPickResult(int[] pos, @Nullable AxisAlignedBB bounds, @Nullable MovingObjectPosition hitResult,
+            double distanceSq) {
+            this.pos = pos;
+            this.bounds = bounds;
+            this.hitResult = hitResult;
+            this.distanceSq = distanceSq;
+        }
+    }
 
     public LytGuidebookScene() {
         camera.setPerspectivePreset(PerspectivePreset.ISOMETRIC_NORTH_EAST);
@@ -347,6 +382,9 @@ public class LytGuidebookScene extends LytBlock {
         hoveredBlock = null;
         hoveredBlockBounds = null;
         hoveredBlockHitResult = null;
+        hoveredEntity = null;
+        hoveredEntityBounds = null;
+        hoveredEntityHitResult = null;
         hoveredStructureLibHatch = null;
         clearAnnotationHover();
     }
@@ -736,7 +774,18 @@ public class LytGuidebookScene extends LytBlock {
             }
         }
         appendStructureLibHatchOverlays(inWorld);
-        if (hoveredBlock != null && isBlockVisibleForCurrentLayer(hoveredBlock[1])) {
+        if (hoveredEntity != null && hoveredEntityBounds != null && isEntityVisibleForCurrentLayer(hoveredEntity)) {
+            float eps = 0.002f;
+            hoverBoxMin.set(
+                (float) hoveredEntityBounds.minX - eps,
+                (float) hoveredEntityBounds.minY - eps,
+                (float) hoveredEntityBounds.minZ - eps);
+            hoverBoxMax.set(
+                (float) hoveredEntityBounds.maxX + eps,
+                (float) hoveredEntityBounds.maxY + eps,
+                (float) hoveredEntityBounds.maxZ + eps);
+            inWorld.add(hoverBoxAnnotation);
+        } else if (hoveredBlock != null && isBlockVisibleForCurrentLayer(hoveredBlock[1])) {
             int bx = hoveredBlock[0], by = hoveredBlock[1], bz = hoveredBlock[2];
             double minX = 0, minY = 0, minZ = 0, maxX = 1, maxY = 1, maxZ = 1;
             if (hoveredBlockBounds != null) {
@@ -993,6 +1042,14 @@ public class LytGuidebookScene extends LytBlock {
         }
     }
 
+    public void setHoveredEntity(@Nullable Entity entity) {
+        this.hoveredEntity = entity;
+        if (entity == null) {
+            this.hoveredEntityBounds = null;
+            this.hoveredEntityHitResult = null;
+        }
+    }
+
     @Nullable
     public int[] getHoveredBlock() {
         return hoveredBlock;
@@ -1003,6 +1060,16 @@ public class LytGuidebookScene extends LytBlock {
         return hoveredBlockHitResult;
     }
 
+    @Nullable
+    public Entity getHoveredEntity() {
+        return hoveredEntity;
+    }
+
+    @Nullable
+    public MovingObjectPosition getHoveredEntityHitResult() {
+        return hoveredEntityHitResult;
+    }
+
     public void setHoveredStructureLibHatch(@Nullable int[] xyz) {
         this.hoveredStructureLibHatch = xyz;
     }
@@ -1010,6 +1077,35 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     public int[] getHoveredStructureLibHatch() {
         return hoveredStructureLibHatch;
+    }
+
+    public void updateHoveredSceneTarget(int mouseAbsX, int mouseAbsY) {
+        PickRay pickRay = resolvePickRay(mouseAbsX, mouseAbsY);
+        if (pickRay == null) {
+            setHoveredEntity(null);
+            setHoveredBlock(null);
+            return;
+        }
+
+        GuideEntityRayPicker.Hit entityHit = pickEntityHit(pickRay);
+        BlockPickResult blockHit = pickBlockHit(pickRay);
+        if (entityHit != null && (blockHit == null || entityHit.getDistanceSq() < blockHit.distanceSq)) {
+            hoveredEntity = entityHit.getEntity();
+            hoveredEntityBounds = entityHit.getBounds();
+            hoveredEntityHitResult = entityHit.getHitResult();
+            setHoveredBlock(null);
+            return;
+        }
+
+        setHoveredEntity(null);
+        if (blockHit == null) {
+            setHoveredBlock(null);
+            return;
+        }
+
+        hoveredBlock = blockHit.pos;
+        hoveredBlockBounds = blockHit.bounds;
+        hoveredBlockHitResult = blockHit.hitResult;
     }
 
     @Nullable
@@ -1140,7 +1236,40 @@ public class LytGuidebookScene extends LytBlock {
 
     @Nullable
     public int[] pickBlock(int mouseAbsX, int mouseAbsY) {
-        if (level.isEmpty() || lastW <= 0 || lastH <= 0) return null;
+        PickRay pickRay = resolvePickRay(mouseAbsX, mouseAbsY);
+        if (pickRay == null) {
+            hoveredBlockBounds = null;
+            hoveredBlockHitResult = null;
+            return null;
+        }
+
+        BlockPickResult hit = pickBlockHit(pickRay);
+        hoveredBlockBounds = hit != null ? hit.bounds : null;
+        hoveredBlockHitResult = hit != null ? hit.hitResult : null;
+        return hit != null ? hit.pos : null;
+    }
+
+    @Nullable
+    public Entity pickEntity(int mouseAbsX, int mouseAbsY) {
+        PickRay pickRay = resolvePickRay(mouseAbsX, mouseAbsY);
+        if (pickRay == null) {
+            hoveredEntityBounds = null;
+            hoveredEntityHitResult = null;
+            return null;
+        }
+
+        GuideEntityRayPicker.Hit hit = pickEntityHit(pickRay);
+        hoveredEntityBounds = hit != null ? hit.getBounds() : null;
+        hoveredEntityHitResult = hit != null ? hit.getHitResult() : null;
+        return hit != null ? hit.getEntity() : null;
+    }
+
+    @Nullable
+    private PickRay resolvePickRay(int mouseAbsX, int mouseAbsY) {
+        if (level.isEmpty() || lastW <= 0 || lastH <= 0) {
+            return null;
+        }
+
         float relX = (mouseAbsX) - (lastAbsX + lastW * 0.5f);
         float relY = (mouseAbsY) - (lastAbsY + lastH * 0.5f);
         camera.setViewportSize(lastW, lastH);
@@ -1169,9 +1298,13 @@ public class LytGuidebookScene extends LytBlock {
         float spanY = sceneBounds[4] - sceneBounds[1] + 1f;
         float spanZ = sceneBounds[5] - sceneBounds[2] + 1f;
         float rayReach = Math.max(64f, (float) Math.sqrt(spanX * spanX + spanY * spanY + spanZ * spanZ) + 8f);
-        Vec3 rayStart = Vec3.createVectorHelper(ox, oy, oz);
-        Vec3 rayEnd = Vec3.createVectorHelper(ox + dx * rayReach, oy + dy * rayReach, oz + dz * rayReach);
+        return new PickRay(
+            Vec3.createVectorHelper(ox, oy, oz),
+            Vec3.createVectorHelper(ox + dx * rayReach, oy + dy * rayReach, oz + dz * rayReach));
+    }
 
+    @Nullable
+    private BlockPickResult pickBlockHit(PickRay pickRay) {
         int[] best = null;
         double bestDistanceSq = Double.POSITIVE_INFINITY;
         AxisAlignedBB bestBounds = null;
@@ -1189,13 +1322,14 @@ public class LytGuidebookScene extends LytBlock {
             MovingObjectPosition hit = null;
             AxisAlignedBB fallbackBounds = null;
             try {
-                hit = block.collisionRayTrace(fakeWorld, b[0], b[1], b[2], rayStart, rayEnd);
+                hit = block.collisionRayTrace(fakeWorld, b[0], b[1], b[2], pickRay.start, pickRay.end);
             } catch (Throwable ignored) {}
 
             if (hit == null || hit.hitVec == null) {
                 fallbackBounds = GuideBlockBoundsResolver.resolveWorldBounds(level, b[0], b[1], b[2]);
                 if (fallbackBounds != null) {
-                    hit = fallbackBounds.calculateIntercept(rayStart, rayEnd);
+                    MovingObjectPosition fallbackHit = fallbackBounds.calculateIntercept(pickRay.start, pickRay.end);
+                    hit = withBlockCoordinates(fallbackHit, b[0], b[1], b[2]);
                 }
             }
 
@@ -1203,22 +1337,45 @@ public class LytGuidebookScene extends LytBlock {
                 continue;
             }
 
-            double distanceSq = hit.hitVec.squareDistanceTo(rayStart);
+            double distanceSq = hit.hitVec.squareDistanceTo(pickRay.start);
             if (distanceSq < bestDistanceSq) {
                 bestDistanceSq = distanceSq;
                 best = b;
-                bestHitResult = hit;
-                bestBounds = fallbackBounds != null ? fallbackBounds : resolveHoveredBounds(level, b[0], b[1], b[2]);
+                bestHitResult = withBlockCoordinates(hit, b[0], b[1], b[2]);
+                bestBounds = fallbackBounds != null ? fallbackBounds
+                    : resolveHoveredBounds(level, b[0], b[1], b[2], pickRay.start, pickRay.end);
             }
         }
-        hoveredBlockBounds = bestBounds;
-        hoveredBlockHitResult = bestHitResult;
-        return best;
+        return best != null ? new BlockPickResult(best, bestBounds, bestHitResult, bestDistanceSq) : null;
     }
 
     @Nullable
-    private AxisAlignedBB resolveHoveredBounds(GuidebookLevel level, int x, int y, int z) {
-        return GuideBlockBoundsResolver.resolveSelectedBounds(level, x, y, z);
+    private GuideEntityRayPicker.Hit pickEntityHit(PickRay pickRay) {
+        return GuideEntityRayPicker.pick(level.getEntities(), pickRay.start, pickRay.end, resolveVisibleLayerY());
+    }
+
+    @Nullable
+    private AxisAlignedBB resolveHoveredBounds(GuidebookLevel level, int x, int y, int z, Vec3 rayStart, Vec3 rayEnd) {
+        AxisAlignedBB hitBounds = GuideBlockBoundsResolver.resolveRayHitBounds(level, x, y, z, rayStart, rayEnd);
+        return hitBounds != null ? hitBounds : GuideBlockBoundsResolver.resolveSelectedBounds(level, x, y, z);
+    }
+
+    private boolean isEntityVisibleForCurrentLayer(@Nullable Entity entity) {
+        Integer visibleLayerY = resolveVisibleLayerY();
+        AxisAlignedBB bounds = entity != null ? entity.boundingBox : null;
+        return visibleLayerY == null || bounds == null
+            || (bounds.maxY > visibleLayerY.intValue() && bounds.minY < visibleLayerY.intValue() + 1.0D);
+    }
+
+    @Nullable
+    private static MovingObjectPosition withBlockCoordinates(@Nullable MovingObjectPosition hit, int x, int y, int z) {
+        if (hit == null || hit.hitVec == null) {
+            return hit;
+        }
+        if (hit.blockX == x && hit.blockY == y && hit.blockZ == z) {
+            return hit;
+        }
+        return new MovingObjectPosition(x, y, z, hit.sideHit, hit.hitVec);
     }
 
     private static float rayAabb(float ox, float oy, float oz, float dx, float dy, float dz, float minX, float minY,
@@ -1636,33 +1793,38 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect) {
-        LytRect sliderTrackRect = resolveVisibleLayerSliderTrackRect();
-        if (sliderTrackRect.isEmpty()) {
+        int rowIndex = resolveVisibleLayerRowIndex();
+        LytRect screenTrackRect = resolveVisibleLayerSliderTrackRect();
+        LytRect renderTrackRect = resolveSliderTrackRect(outerRect.x(), outerRect.y(), outerRect.width(), outerRect.height(), rowIndex);
+        if (screenTrackRect.isEmpty() || renderTrackRect.isEmpty()) {
             logSliderSkipped("visible-layer", resolveVisibleLayerRowIndex(), outerRect);
             return;
         }
-        GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer
-            .layout(sliderTrackRect.x(), sliderTrackRect.y(), sliderTrackRect.width(), getVisibleLayerFraction());
-        cachedVisibleLayerSliderRect = geometry.trackRect();
-        cachedVisibleLayerSliderHitRect = geometry.hitRect();
+        float fraction = getVisibleLayerFraction();
+        GuideSliderRenderer.SliderGeometry screenGeometry = GuideSliderRenderer
+            .layout(screenTrackRect.x(), screenTrackRect.y(), screenTrackRect.width(), fraction);
+        GuideSliderRenderer.SliderGeometry renderGeometry = GuideSliderRenderer
+            .layout(renderTrackRect.x(), renderTrackRect.y(), renderTrackRect.width(), fraction);
+        cachedVisibleLayerSliderRect = screenGeometry.trackRect();
+        cachedVisibleLayerSliderHitRect = screenGeometry.hitRect();
         boolean highlighted = draggingVisibleLayerSlider;
         if (!highlighted) {
             int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && geometry.hitRect()
+            highlighted = mouse != null && screenGeometry.hitRect()
                 .contains(mouse[0], mouse[1]);
         }
         logSliderGeometry(
             "visible-layer",
-            geometry,
-            resolveVisibleLayerRowIndex(),
+            screenGeometry,
+            rowIndex,
             getVisibleLayerSliderLabel(),
             outerRect);
         drawSlider(
             context,
-            geometry,
+            renderGeometry,
             highlighted,
             outerRect,
-            resolveVisibleLayerRowIndex(),
+            rowIndex,
             getVisibleLayerSliderLabel(),
             VISIBLE_LAYER_SLIDER_TEXT_STYLE);
     }
@@ -1708,33 +1870,38 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void drawStructureLibTierSlider(RenderContext context, LytRect outerRect) {
-        LytRect sliderTrackRect = resolveStructureLibTierSliderTrackRect();
-        if (sliderTrackRect.isEmpty()) {
+        int rowIndex = resolveStructureLibTierRowIndex();
+        LytRect screenTrackRect = resolveStructureLibTierSliderTrackRect();
+        LytRect renderTrackRect = resolveSliderTrackRect(outerRect.x(), outerRect.y(), outerRect.width(), outerRect.height(), rowIndex);
+        if (screenTrackRect.isEmpty() || renderTrackRect.isEmpty()) {
             logSliderSkipped("structurelib-tier", resolveStructureLibTierRowIndex(), outerRect);
             return;
         }
-        GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer
-            .layout(sliderTrackRect.x(), sliderTrackRect.y(), sliderTrackRect.width(), getStructureLibTierFraction());
-        cachedTierSliderRect = geometry.trackRect();
-        cachedTierSliderHitRect = geometry.hitRect();
+        float fraction = getStructureLibTierFraction();
+        GuideSliderRenderer.SliderGeometry screenGeometry = GuideSliderRenderer
+            .layout(screenTrackRect.x(), screenTrackRect.y(), screenTrackRect.width(), fraction);
+        GuideSliderRenderer.SliderGeometry renderGeometry = GuideSliderRenderer
+            .layout(renderTrackRect.x(), renderTrackRect.y(), renderTrackRect.width(), fraction);
+        cachedTierSliderRect = screenGeometry.trackRect();
+        cachedTierSliderHitRect = screenGeometry.hitRect();
         boolean highlighted = draggingStructureLibTierSlider;
         if (!highlighted) {
             int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && geometry.hitRect()
+            highlighted = mouse != null && screenGeometry.hitRect()
                 .contains(mouse[0], mouse[1]);
         }
         logSliderGeometry(
             "structurelib-tier",
-            geometry,
-            resolveStructureLibTierRowIndex(),
+            screenGeometry,
+            rowIndex,
             getStructureLibTierSliderLabel(),
             outerRect);
         drawSlider(
             context,
-            geometry,
+            renderGeometry,
             highlighted,
             outerRect,
-            resolveStructureLibTierRowIndex(),
+            rowIndex,
             getStructureLibTierSliderLabel(),
             STRUCTURELIB_TIER_SLIDER_TEXT_STYLE);
     }
@@ -1809,40 +1976,48 @@ public class LytGuidebookScene extends LytBlock {
 
     private void drawStructureLibChannelSlider(RenderContext context, LytRect outerRect,
         StructureLibSceneMetadata.ChannelData channelData) {
-        LytRect sliderTrackRect = resolveStructureLibChannelSliderTrackRect(channelData.getChannelId());
-        if (sliderTrackRect.isEmpty()) {
+        int rowIndex = resolveStructureLibChannelRowIndex(channelData.getChannelId());
+        LytRect screenTrackRect = resolveStructureLibChannelSliderTrackRect(channelData.getChannelId());
+        LytRect renderTrackRect = resolveSliderTrackRect(outerRect.x(), outerRect.y(), outerRect.width(), outerRect.height(), rowIndex);
+        if (screenTrackRect.isEmpty() || renderTrackRect.isEmpty()) {
             logSliderSkipped(
                 "structurelib-channel:" + channelData.getChannelId(),
                 resolveStructureLibChannelRowIndex(channelData.getChannelId()),
                 outerRect);
             return;
         }
-        GuideSliderRenderer.SliderGeometry geometry = GuideSliderRenderer.layout(
-            sliderTrackRect.x(),
-            sliderTrackRect.y(),
-            sliderTrackRect.width(),
-            getStructureLibChannelFraction(channelData));
-        cachedChannelSliderRects.put(channelData.getChannelId(), geometry.trackRect());
-        cachedChannelSliderHitRects.put(channelData.getChannelId(), geometry.hitRect());
+        float fraction = getStructureLibChannelFraction(channelData);
+        GuideSliderRenderer.SliderGeometry screenGeometry = GuideSliderRenderer.layout(
+            screenTrackRect.x(),
+            screenTrackRect.y(),
+            screenTrackRect.width(),
+            fraction);
+        GuideSliderRenderer.SliderGeometry renderGeometry = GuideSliderRenderer.layout(
+            renderTrackRect.x(),
+            renderTrackRect.y(),
+            renderTrackRect.width(),
+            fraction);
+        cachedChannelSliderRects.put(channelData.getChannelId(), screenGeometry.trackRect());
+        cachedChannelSliderHitRects.put(channelData.getChannelId(), screenGeometry.hitRect());
         boolean highlighted = channelData.getChannelId()
             .equals(draggingStructureLibChannelId);
         if (!highlighted) {
             int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && geometry.hitRect()
+            highlighted = mouse != null && screenGeometry.hitRect()
                 .contains(mouse[0], mouse[1]);
         }
         logSliderGeometry(
             "structurelib-channel:" + channelData.getChannelId(),
-            geometry,
-            resolveStructureLibChannelRowIndex(channelData.getChannelId()),
+            screenGeometry,
+            rowIndex,
             getStructureLibChannelSliderLabel(channelData),
             outerRect);
         drawSlider(
             context,
-            geometry,
+            renderGeometry,
             highlighted,
             outerRect,
-            resolveStructureLibChannelRowIndex(channelData.getChannelId()),
+            rowIndex,
             getStructureLibChannelSliderLabel(channelData),
             STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE);
     }

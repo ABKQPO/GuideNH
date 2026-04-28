@@ -9,6 +9,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
@@ -31,6 +32,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private final LinkedHashMap<ChunkCoordIntPair, GuidebookChunk> chunks = new LinkedHashMap<>();
 
     private final HashMap<Long, TileEntity> tileEntities = new HashMap<>();
+    private final LinkedHashMap<Integer, Entity> entities = new LinkedHashMap<>();
 
     private final HashMap<Long, int[]> filledBlocks = new HashMap<>();
     private final HashMap<Long, String> explicitBlockIds = new HashMap<>();
@@ -39,6 +41,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     // Collections.unmodifiableCollection() wrapper allocation (hot on the render loop).
     private final Collection<int[]> filledBlocksView = Collections.unmodifiableCollection(filledBlocks.values());
     private final Collection<TileEntity> tileEntitiesView = Collections.unmodifiableCollection(tileEntities.values());
+    private final Collection<Entity> entitiesView = Collections.unmodifiableCollection(entities.values());
     private final Collection<GuidebookChunk> chunksView = Collections.unmodifiableCollection(chunks.values());
 
     // Reusable bounds scratch buffer returned from getBounds(); callers consume immediately.
@@ -67,6 +70,10 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             te.validate();
         }
         world.syncLoadedTileEntities(tileEntities.values());
+        for (Entity entity : entities.values()) {
+            bindEntity(entity, world);
+        }
+        world.syncLoadedEntities(entities.values());
     }
 
     public void prepareForPreview() {
@@ -162,7 +169,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     public boolean isEmpty() {
-        return filledBlocks.isEmpty();
+        return filledBlocks.isEmpty() && entities.isEmpty();
     }
 
     public Collection<int[]> getFilledBlocks() {
@@ -175,6 +182,34 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     public Collection<TileEntity> getTileEntities() {
         return tileEntitiesView;
+    }
+
+    public Collection<Entity> getEntities() {
+        return entitiesView;
+    }
+
+    public void addEntity(@Nullable Entity entity) {
+        if (entity == null) {
+            return;
+        }
+        if (entity.worldObj == null && fakeWorld != null) {
+            bindEntity(entity, fakeWorld);
+        }
+        entities.put(entity.getEntityId(), entity);
+        boundsDirty = true;
+        previewStateDirty = true;
+    }
+
+    public void removeEntity(int entityId) {
+        if (entities.remove(entityId) != null) {
+            boundsDirty = true;
+            previewStateDirty = true;
+        }
+    }
+
+    @Nullable
+    public Entity getEntity(int entityId) {
+        return entities.get(entityId);
     }
 
     public int[] getBounds() {
@@ -193,6 +228,23 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
                 if (p[0] > hx) hx = p[0];
                 if (p[1] > hy) hy = p[1];
                 if (p[2] > hz) hz = p[2];
+            }
+            for (Entity entity : entities.values()) {
+                if (entity == null || entity.boundingBox == null) {
+                    continue;
+                }
+                int ex0 = (int) Math.floor(entity.boundingBox.minX);
+                int ey0 = (int) Math.floor(entity.boundingBox.minY);
+                int ez0 = (int) Math.floor(entity.boundingBox.minZ);
+                int ex1 = Math.max(ex0, (int) Math.ceil(entity.boundingBox.maxX) - 1);
+                int ey1 = Math.max(ey0, (int) Math.ceil(entity.boundingBox.maxY) - 1);
+                int ez1 = Math.max(ez0, (int) Math.ceil(entity.boundingBox.maxZ) - 1);
+                if (ex0 < lx) lx = ex0;
+                if (ey0 < ly) ly = ey0;
+                if (ez0 < lz) lz = ez0;
+                if (ex1 > hx) hx = ex1;
+                if (ey1 > hy) hy = ey1;
+                if (ez1 > hz) hz = ez1;
             }
             minX = lx;
             minY = ly;
@@ -213,8 +265,38 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     public float[] getCenter() {
         if (isEmpty()) return new float[] { 0f, 0f, 0f };
-        var b = getBounds();
-        return new float[] { (b[0] + b[3] + 1) * 0.5f, (b[1] + b[4] + 1) * 0.5f, (b[2] + b[5] + 1) * 0.5f };
+        double minCenterX = Double.POSITIVE_INFINITY;
+        double minCenterY = Double.POSITIVE_INFINITY;
+        double minCenterZ = Double.POSITIVE_INFINITY;
+        double maxCenterX = Double.NEGATIVE_INFINITY;
+        double maxCenterY = Double.NEGATIVE_INFINITY;
+        double maxCenterZ = Double.NEGATIVE_INFINITY;
+        for (int[] p : filledBlocks.values()) {
+            minCenterX = Math.min(minCenterX, p[0]);
+            minCenterY = Math.min(minCenterY, p[1]);
+            minCenterZ = Math.min(minCenterZ, p[2]);
+            maxCenterX = Math.max(maxCenterX, p[0] + 1.0D);
+            maxCenterY = Math.max(maxCenterY, p[1] + 1.0D);
+            maxCenterZ = Math.max(maxCenterZ, p[2] + 1.0D);
+        }
+        for (Entity entity : entities.values()) {
+            if (entity == null || entity.boundingBox == null) {
+                continue;
+            }
+            minCenterX = Math.min(minCenterX, entity.boundingBox.minX);
+            minCenterY = Math.min(minCenterY, entity.boundingBox.minY);
+            minCenterZ = Math.min(minCenterZ, entity.boundingBox.minZ);
+            maxCenterX = Math.max(maxCenterX, entity.boundingBox.maxX);
+            maxCenterY = Math.max(maxCenterY, entity.boundingBox.maxY);
+            maxCenterZ = Math.max(maxCenterZ, entity.boundingBox.maxZ);
+        }
+        if (!Double.isFinite(minCenterX) || !Double.isFinite(maxCenterX)) {
+            return new float[] { 0f, 0f, 0f };
+        }
+        return new float[] {
+            (float) ((minCenterX + maxCenterX) * 0.5D),
+            (float) ((minCenterY + maxCenterY) * 0.5D),
+            (float) ((minCenterZ + maxCenterZ) * 0.5D) };
     }
 
     public GuidebookLevel withSampleChest() {
@@ -339,6 +421,11 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
                 tileEntity.updateEntity();
             } catch (Throwable ignored) {}
         }
+    }
+
+    private void bindEntity(Entity entity, World world) {
+        entity.worldObj = world;
+        entity.dimension = world.provider.dimensionId;
     }
 
     private void bindTileEntity(TileEntity tileEntity, int x, int y, int z, World world) {

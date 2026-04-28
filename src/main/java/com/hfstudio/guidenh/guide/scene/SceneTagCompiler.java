@@ -163,6 +163,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         scene.getAnnotations()
             .clear();
         scene.setHoveredBlock(null);
+        scene.setHoveredEntity(null);
         scene.setHoveredStructureLibHatch(null);
         scene.clearAnnotationHover();
         scene.setStructureLibSceneMetadata(null);

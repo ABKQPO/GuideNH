@@ -23,7 +23,9 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.entity.Entity;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
@@ -206,9 +208,9 @@ public class GuidebookLevelRenderer {
                     RenderHelper.enableStandardItemLighting();
                     GL11.glEnable(GL_LIGHTING);
                     renderBlockEntities(tileEntities, partialTicks, visibleLayerY);
+                    renderEntities(level.getEntities(), partialTicks, visibleLayerY);
                     GL11.glDisable(GL_LIGHTING);
                     RenderHelper.disableStandardItemLighting();
-                    renderEntitiesStub(level, partialTicks);
 
                     if (!annotations.isEmpty()) {
                         InWorldAnnotationRenderer.render(annotations, lightDarkMode);
@@ -357,8 +359,26 @@ public class GuidebookLevelRenderer {
         GL11.glDepthMask(true);
     }
 
-    @SuppressWarnings("unused")
-    private void renderEntitiesStub(GuidebookLevel level, float partialTicks) {}
+    private void renderEntities(Iterable<Entity> entities, float partialTicks, @Nullable Integer visibleLayerY) {
+        RenderManager renderManager = RenderManager.instance;
+        for (Entity entity : entities) {
+            if (entity == null || entity.isDead) {
+                continue;
+            }
+            if (visibleLayerY != null && entity.boundingBox != null) {
+                double layerMinY = visibleLayerY.doubleValue();
+                double layerMaxY = layerMinY + 1.0D;
+                if (entity.boundingBox.maxY <= layerMinY || entity.boundingBox.minY >= layerMaxY) {
+                    continue;
+                }
+            }
+            try {
+                renderManager.renderEntityStatic(entity, partialTicks, false);
+            } catch (Throwable t) {
+                log(t);
+            }
+        }
+    }
 
     private void loadMatrix(Matrix4f m) {
         matrixBuffer.clear();

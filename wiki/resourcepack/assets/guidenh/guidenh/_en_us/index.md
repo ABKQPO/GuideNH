@@ -51,6 +51,11 @@ You may ~~need~~ a <Color color="#ff0000">door</Color> <Color id="RED">door</Col
 <Recipe id="minecraft:missingrecipe" fallbackText="This recipe is not registered." />
 <RecipeFor id="minecraft:iron_pickaxe" />
 
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="minecraft:sheep" y="1" data="{Color:2}" />
+</GameScene>
+
 <GameScene zoom={2} interactive={true}>
   <Block id="minecraft:log" />
   <Block id="minecraft:log" x="1" />

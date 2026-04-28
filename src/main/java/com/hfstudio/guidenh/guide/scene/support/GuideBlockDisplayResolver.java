@@ -3,10 +3,13 @@ package com.hfstudio.guidenh.guide.scene.support;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.client.Minecraft;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.world.World;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
@@ -115,8 +118,32 @@ public final class GuideBlockDisplayResolver {
         if (target == null) {
             return null;
         }
+        var world = level.getOrCreateFakeWorld();
+        EntityPlayer player = null;
         try {
-            ItemStack pickedStack = block.getPickBlock(target, level.getOrCreateFakeWorld(), x, y, z);
+            player = Minecraft.getMinecraft().thePlayer;
+        } catch (Throwable ignored) {}
+        try {
+            return resolvePickedStackForTarget(block, world, player, x, y, z, target);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    @Nullable
+    static ItemStack resolvePickedStackForTarget(Block block, @Nullable World world, @Nullable EntityPlayer player, int x,
+        int y, int z, @Nullable MovingObjectPosition target) {
+        if (block == null || target == null) {
+            return null;
+        }
+        try {
+            ItemStack pickedStack = block.getPickBlock(target, world, x, y, z, player);
+            if (pickedStack != null) {
+                return pickedStack.copy();
+            }
+        } catch (Throwable ignored) {}
+        try {
+            ItemStack pickedStack = block.getPickBlock(target, world, x, y, z);
             return pickedStack != null ? pickedStack.copy() : null;
         } catch (Throwable ignored) {
             return null;
