@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.WeakHashMap;
 
 import javax.annotation.Nullable;
 
@@ -53,6 +54,7 @@ public class MutableGuide implements Guide {
      * These are only loaded for the current language and backfilled by default language pages.
      */
     private Map<ResourceLocation, ParsedGuidePage> pages;
+    private final Map<ParsedGuidePage, GuidePage> compiledPages = Collections.synchronizedMap(new WeakHashMap<>());
     private final ExtensionCollection extensions;
     private final boolean availableToOpenHotkey;
     private final GuideItemSettings itemSettings;
@@ -128,9 +130,21 @@ public class MutableGuide implements Guide {
     @Override
     @Nullable
     public GuidePage getPage(ResourceLocation id) {
-        var page = getParsedPage(id);
+        var parsedPage = getParsedPage(id);
+        if (parsedPage == null) {
+            return null;
+        }
 
-        return page != null ? PageCompiler.compile(this, extensions, page) : null;
+        GuidePage compiledPage;
+        synchronized (compiledPages) {
+            compiledPage = compiledPages.get(parsedPage);
+            if (compiledPage == null) {
+                compiledPage = PageCompiler.compile(this, extensions, parsedPage);
+                compiledPages.put(parsedPage, compiledPage);
+            }
+        }
+        compiledPage.prepareForDisplay();
+        return compiledPage;
     }
 
     @Override
@@ -365,6 +379,7 @@ public class MutableGuide implements Guide {
 
     public void setPages(Map<ResourceLocation, ParsedGuidePage> pages) {
         this.pages = Collections.unmodifiableMap(new HashMap<>(pages));
+        compiledPages.clear();
 
         if (watcher != null) {
             watcher.clearChanges(); // Since we'll load them all now, ignore all changes up to now
@@ -376,6 +391,7 @@ public class MutableGuide implements Guide {
 
         rebuildIndices();
         navigationTree = buildNavigation();
+        warmPage(startPage);
 
         var guideScreen = GuideScreen.current();
         if (guideScreen != null && guideScreen.isShowingGuide(getId())) {
@@ -389,5 +405,17 @@ public class MutableGuide implements Guide {
 
     public String getDefaultLanguage() {
         return defaultLanguage;
+    }
+
+    private void warmPage(ResourceLocation pageId) {
+        var parsedPage = getParsedPage(pageId);
+        if (parsedPage == null) {
+            return;
+        }
+        synchronized (compiledPages) {
+            if (!compiledPages.containsKey(parsedPage)) {
+                compiledPages.put(parsedPage, PageCompiler.compile(this, extensions, parsedPage));
+            }
+        }
     }
 }

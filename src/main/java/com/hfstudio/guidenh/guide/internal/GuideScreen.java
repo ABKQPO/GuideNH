@@ -1126,8 +1126,19 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         int docX = mouseX - contentX;
         int docY = mouseY - getDocumentRenderY(activeDocument) + scrollY;
         var hit = activeDocument.pick(docX, docY);
-        var sceneButtonHit = findSceneButtonHit(activeDocument, mouseX, mouseY);
         var scene = hit != null ? findSceneAncestor(hit.node()) : null;
+        SceneButtonHit sceneButtonHit = null;
+        if (scene != null) {
+            var role = scene.sceneButtonAt(mouseX, mouseY);
+            if (role != null) {
+                sceneButtonHit = new SceneButtonHit(scene, role);
+            }
+        } else {
+            sceneButtonHit = findSceneButtonHit(activeDocument, mouseX, mouseY);
+            if (sceneButtonHit != null) {
+                scene = sceneButtonHit.scene;
+            }
+        }
         if (scene != null && !scene.containsSceneInteractiveTarget(mouseX, mouseY)) {
             scene = null;
         }
@@ -1398,24 +1409,6 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
 
     private String clipSearchPath(String value, int pathWidth) {
         return clipRightForWidth(clipRightForChars(value, SEARCH_PATH_MAX_CHARS), pathWidth);
-    }
-
-    private String clipLeftForWidth(String value, int maxWidth) {
-        if (value == null || value.isEmpty() || maxWidth <= 0 || fontRendererObj.getStringWidth(value) <= maxWidth) {
-            return value;
-        }
-
-        int ellipsisWidth = fontRendererObj.getStringWidth(ASCII_ELLIPSIS);
-        if (ellipsisWidth >= maxWidth) {
-            return fontRendererObj.trimStringToWidth(ASCII_ELLIPSIS, maxWidth);
-        }
-
-        String reversed = new StringBuilder(value).reverse()
-            .toString();
-        String reversedTail = fontRendererObj.trimStringToWidth(reversed, maxWidth - ellipsisWidth);
-        String tail = new StringBuilder(reversedTail).reverse()
-            .toString();
-        return ASCII_ELLIPSIS + tail;
     }
 
     private String clipRightForWidth(String value, int maxWidth) {

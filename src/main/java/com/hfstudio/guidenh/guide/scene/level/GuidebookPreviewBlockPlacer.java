@@ -5,7 +5,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
 
@@ -36,6 +38,12 @@ public class GuidebookPreviewBlockPlacer {
     public static final String BARTWORKS_META_GENERATED_TILE_CLASS = "bartworks.system.material.TileEntityMetaGeneratedBlock";
     public static final String GREGTECH_API_CLASS = "gregtech.api.GregTechAPI";
     public static final Set<String> KNOWN_GREGTECH_BYTE_ARRAY_KEYS = createKnownGregTechByteArrayKeys();
+    private static final int MISSING_BASE_META = Integer.MIN_VALUE;
+    private static final Map<Integer, Integer> GREGTECH_BASE_META_CACHE = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, Method> GREGTECH_BASE_META_METHOD_CACHE = new ConcurrentHashMap<>();
+    @Nullable
+    private static volatile Object gregTechMetaTileEntities;
+    private static volatile boolean gregTechMetaTileEntitiesResolved;
 
     private GuidebookPreviewBlockPlacer() {}
 
@@ -159,10 +167,19 @@ public class GuidebookPreviewBlockPlacer {
         if (metaTileId <= 0) {
             return null;
         }
+        Integer cached = GREGTECH_BASE_META_CACHE.get(metaTileId);
+        if (cached != null) {
+            return cached.intValue() == MISSING_BASE_META ? null : cached;
+        }
+        Integer resolved = resolveGregTechBaseMetaUncached(metaTileId);
+        GREGTECH_BASE_META_CACHE.put(metaTileId, resolved != null ? resolved : MISSING_BASE_META);
+        return resolved;
+    }
+
+    @Nullable
+    private static Integer resolveGregTechBaseMetaUncached(int metaTileId) {
         try {
-            Class<?> gregTechApiClass = Class.forName(GREGTECH_API_CLASS);
-            Object metaTileEntities = gregTechApiClass.getField("METATILEENTITIES")
-                .get(null);
+            Object metaTileEntities = resolveGregTechMetaTileEntities();
             if (metaTileEntities == null || !metaTileEntities.getClass()
                 .isArray()) {
                 return null;
@@ -175,12 +192,44 @@ public class GuidebookPreviewBlockPlacer {
             if (metaTileEntity == null) {
                 return null;
             }
-            Method getTileEntityBaseType = metaTileEntity.getClass()
-                .getMethod("getTileEntityBaseType");
+            Method getTileEntityBaseType = resolveGregTechBaseMetaMethod(metaTileEntity.getClass());
+            if (getTileEntityBaseType == null) {
+                return null;
+            }
             Object baseMeta = getTileEntityBaseType.invoke(metaTileEntity);
             return baseMeta instanceof Number number ? number.intValue() : null;
         } catch (Throwable t) {
             GuideDebugLog.warn(LOG, "Failed to resolve GregTech base meta for preview block {}", metaTileId, t);
+            return null;
+        }
+    }
+
+    @Nullable
+    private static Object resolveGregTechMetaTileEntities() throws ReflectiveOperationException {
+        if (!gregTechMetaTileEntitiesResolved) {
+            synchronized (GuidebookPreviewBlockPlacer.class) {
+                if (!gregTechMetaTileEntitiesResolved) {
+                    gregTechMetaTileEntities = Class.forName(GREGTECH_API_CLASS)
+                        .getField("METATILEENTITIES")
+                        .get(null);
+                    gregTechMetaTileEntitiesResolved = true;
+                }
+            }
+        }
+        return gregTechMetaTileEntities;
+    }
+
+    @Nullable
+    private static Method resolveGregTechBaseMetaMethod(Class<?> metaTileClass) {
+        Method cached = GREGTECH_BASE_META_METHOD_CACHE.get(metaTileClass);
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            Method resolved = metaTileClass.getMethod("getTileEntityBaseType");
+            Method previous = GREGTECH_BASE_META_METHOD_CACHE.putIfAbsent(metaTileClass, resolved);
+            return previous != null ? previous : resolved;
+        } catch (NoSuchMethodException ignored) {
             return null;
         }
     }

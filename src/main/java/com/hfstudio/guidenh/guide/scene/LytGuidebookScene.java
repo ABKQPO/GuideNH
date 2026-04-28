@@ -158,6 +158,13 @@ public class LytGuidebookScene extends LytBlock {
     private Consumer<StructureLibPreviewSelection> structureLibSelectionChangeListener;
     @Nullable
     private StructureLibPreviewSelection pendingStructureLibPreviewSelection;
+    private boolean initialStateCaptured;
+    private boolean initialAnnotationsVisible = true;
+    @Nullable
+    private Integer initialVisibleLayerOverride;
+    private int initialStructureLibCurrentTier = 1;
+    private final LinkedHashMap<String, Integer> initialStructureLibChannelOverrides = new LinkedHashMap<>();
+    private boolean initialStructureLibHatchHighlightEnabled;
 
     private float[] initialCam = new float[] { 1f, 0f, 0f, 0f, 0f, 0f };
 
@@ -238,6 +245,44 @@ public class LytGuidebookScene extends LytBlock {
         initialCam[3] = camera.getRotationZ();
         initialCam[4] = camera.getOffsetX();
         initialCam[5] = camera.getOffsetY();
+    }
+
+    public void captureInitialInteractiveState() {
+        initialStateCaptured = true;
+        initialAnnotationsVisible = annotationsVisible;
+        initialVisibleLayerOverride = visibleLayerOverride;
+        initialStructureLibCurrentTier = structureLibCurrentTier;
+        initialStructureLibChannelOverrides.clear();
+        initialStructureLibChannelOverrides.putAll(structureLibChannelOverrides);
+        initialStructureLibHatchHighlightEnabled = structureLibHatchHighlightEnabled;
+    }
+
+    public void resetInteractiveState() {
+        dragButton = -1;
+        draggingVisibleLayerSlider = false;
+        draggingStructureLibTierSlider = false;
+        draggingStructureLibChannelId = null;
+        hoveredBlock = null;
+        hoveredBlockBounds = null;
+        hoveredBlockHitResult = null;
+        hoveredEntity = null;
+        hoveredEntityBounds = null;
+        hoveredEntityHitResult = null;
+        hoveredStructureLibHatch = null;
+        clearAnnotationHover();
+        if (initialStateCaptured) {
+            annotationsVisible = initialAnnotationsVisible;
+            visibleLayerOverride = initialVisibleLayerOverride;
+            structureLibCurrentTier = initialStructureLibCurrentTier;
+            structureLibChannelOverrides.clear();
+            structureLibChannelOverrides.putAll(initialStructureLibChannelOverrides);
+            structureLibHatchHighlightEnabled = initialStructureLibHatchHighlightEnabled;
+        }
+        pendingStructureLibPreviewSelection = null;
+        clearCachedVisibleLayerSliderRects();
+        clearCachedTierSliderRects();
+        clearCachedChannelSliderRects();
+        resetViewToInitialCamera();
     }
 
     public int getSceneWidth() {
@@ -1486,16 +1531,18 @@ public class LytGuidebookScene extends LytBlock {
                 float z = Math.max(0.1f, camera.getZoom() / 1.25f);
                 camera.setZoom(z);
             }
-            case RESET_VIEW -> {
-                camera.setZoom(initialCam[0]);
-                camera.setRotationX(initialCam[1]);
-                camera.setRotationY(initialCam[2]);
-                camera.setRotationZ(initialCam[3]);
-                camera.setOffsetX(initialCam[4]);
-                camera.setOffsetY(initialCam[5]);
-            }
+            case RESET_VIEW -> resetViewToInitialCamera();
             default -> {}
         }
+    }
+
+    private void resetViewToInitialCamera() {
+        camera.setZoom(initialCam[0]);
+        camera.setRotationX(initialCam[1]);
+        camera.setRotationY(initialCam[2]);
+        camera.setRotationZ(initialCam[3]);
+        camera.setOffsetX(initialCam[4]);
+        camera.setOffsetY(initialCam[5]);
     }
 
     public void startDrag(int mouseX, int mouseY, int button) {

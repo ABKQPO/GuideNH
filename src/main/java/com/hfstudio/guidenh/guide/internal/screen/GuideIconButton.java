@@ -122,7 +122,7 @@ public class GuideIconButton extends GuiButton {
         SCENE_EDITOR_IMPORT_STRUCTURE(GuidebookText.SceneEditorImportStructure, 16, 48),
         SCENE_EDITOR_SCREENSHOT(GuidebookText.SceneEditorScreenshot, 32, 48),
         CLOSE_FULL_WIDTH_VIEW(GuidebookText.CloseFullWidthView, 32, 32),
-        SCENE_EDITOR_SNAP(GuidebookText.SceneEditorSnap, 32, 32),
+        SCENE_EDITOR_SNAP(GuidebookText.SceneEditorSnap, 48, 48),
         SCENE_EDITOR_DELETE_ELEMENT(GuidebookText.SceneEditorDeleteElement, 32, 0);
 
         private final GuidebookText textKey;

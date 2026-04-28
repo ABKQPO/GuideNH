@@ -121,6 +121,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         }
 
         scene.snapshotInitialCamera();
+        scene.captureInitialInteractiveState();
 
         parent.append(scene);
     }
