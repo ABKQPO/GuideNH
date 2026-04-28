@@ -38,7 +38,7 @@ import com.hfstudio.guidenh.guide.navigation.NavigationTree;
  * Encapsulates a Guide, which consists of a collection of Markdown pages and associated content, loaded from a
  * guide-specific subdirectory of resource packs.
  */
-public class MutableGuide implements Guide {
+public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
 
     public static final Logger LOG = LoggerFactory.getLogger(MutableGuide.class);
 
@@ -259,6 +259,11 @@ public class MutableGuide implements Guide {
             .addShutdownHook(new Thread(watcher::close));
     }
 
+    @Override
+    public boolean hasDevelopmentSources() {
+        return watcher != null;
+    }
+
     public void tick() {
         if (pages == null || watcher == null) {
             return; // Do nothing while pages haven't been loaded yet
@@ -268,6 +273,11 @@ public class MutableGuide implements Guide {
         if (!changes.isEmpty()) {
             applyChanges(changes);
         }
+    }
+
+    @Override
+    public void tickDevelopmentSources() {
+        tick();
     }
 
     private boolean isForDefaultLanguage(GuidePageChange change) {

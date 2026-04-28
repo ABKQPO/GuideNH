@@ -115,3 +115,33 @@ runConfigs.forEach { (taskName, path) ->
         }
     }
 }
+
+val guidePreviewSourceDir = tutorialGuideSourceDir.dir("assets/guidenh/guidenh").asFile.absolutePath
+val guideRunConfigs = listOf(
+    Triple("runGuide", "runClient", "run/client"),
+    Triple("runGuide17", "runClient17", "run/client_new"),
+    Triple("runGuide21", "runClient21", "run/client_new"),
+    Triple("runGuide25", "runClient25", "run/client_new"))
+
+guideRunConfigs.forEach { (taskName, baseTaskName, path) ->
+    val baseTask = tasks.named<JavaExec>(baseTaskName).get()
+    tasks.register<JavaExec>(taskName) {
+        group = baseTask.group
+        description = "Runs GuideNH live preview based on $baseTaskName."
+        dependsOn(baseTask.taskDependencies.getDependencies(baseTask))
+        standardInput = System.`in`
+        workingDir = file("${projectDir}/$path")
+        classpath = baseTask.classpath
+        javaLauncher.set(baseTask.javaLauncher)
+        baseTask.mainClass.orNull?.let { mainClass.set(it) }
+        setArgs(baseTask.args ?: emptyList())
+        setJvmArgs(baseTask.jvmArgs ?: emptyList())
+        environment(baseTask.environment)
+        systemProperties.putAll(baseTask.systemProperties)
+        systemProperty("guideme.guidenh.guidenh.sources", guidePreviewSourceDir)
+        systemProperty("guideme.showOnStartup", "guidenh:guidenh!index.md")
+        doFirst {
+            workingDir.mkdirs()
+        }
+    }
+}

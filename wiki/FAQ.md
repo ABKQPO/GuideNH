@@ -11,3 +11,8 @@ The files under `wiki/*.md` are human-facing GitHub Wiki documentation. The file
 ## Can I use the same markdown in both places?
 
 Not directly. Runtime guide markdown may contain GuideNH-specific MDX tags that GitHub Wiki does not understand. Keep runtime syntax inside the runtime guide tree and show it in the wiki only inside fenced code blocks.
+
+## How do I preview guide edits quickly?
+
+Use the dedicated live preview run tasks documented in [Live Preview](Live-Preview). In this repository, `runGuide`
+launches the client with the built-in example guide source folder already wired in and opens the guide on startup.

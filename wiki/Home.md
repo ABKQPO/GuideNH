@@ -6,6 +6,7 @@ GuideNH is an in-game guide framework for GTNH-era Minecraft mods. This wiki doc
 
 - [Installation](Installation)
 - [Getting Started](Getting-Started)
+- [Live Preview](Live-Preview)
 - [Guide Page Format](Guide-Page-Format)
 - [Navigation](Navigation)
 - [Search](Search)
@@ -44,6 +45,11 @@ The wiki explains the runtime syntax, but it does not use the runtime tags direc
 4. Declare navigation metadata in frontmatter when you want a page to appear in the sidebar.
 5. Use relative asset paths for page-local files and rooted `/...` paths for guide-root assets.
 6. For 3D scenes, compose `<GameScene>` with `<ImportStructure>`, `<ImportStructureLib>`, `<RemoveBlocks>`, and `<BlockAnnotationTemplate>` as needed.
+
+## Fast Iteration
+
+For the built-in example guide, use the dedicated live preview flow documented in [Live Preview](Live-Preview). It
+launches the client with a development source folder and opens the guide directly on startup.
 
 ## Scene Authoring Highlights
 

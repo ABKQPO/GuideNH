@@ -10,7 +10,9 @@ import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.command.GuideNhClientCommand;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
+import com.hfstudio.guidenh.guide.internal.GuideDevWatcherPump;
 import com.hfstudio.guidenh.guide.internal.GuideME;
+import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
@@ -52,5 +54,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void completeInit(FMLLoadCompleteEvent event) {
         super.completeInit(event);
+        GuideDevWatcherPump.init();
+        GuideOnStartup.init();
     }
 }

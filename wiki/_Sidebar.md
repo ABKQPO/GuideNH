@@ -3,6 +3,7 @@
 - [Home](Home)
 - [Installation](Installation)
 - [Getting Started](Getting-Started)
+- [Live Preview](Live-Preview)
 - [Guide Page Format](Guide-Page-Format)
 - [Navigation](Navigation)
 - [Search](Search)

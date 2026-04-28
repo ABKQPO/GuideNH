@@ -27,8 +27,8 @@ During `processResources`, the project copies everything under `wiki/resourcepac
 
 1. Edit runtime pages and assets under `wiki/resourcepack/`.
 2. Edit human documentation under `wiki/*.md`.
-3. Rebuild resources or rerun the client so the updated guide assets are copied onto the classpath.
-4. Reload or restart the client and open the guide.
+3. For fast guide-content iteration, use the live preview flow from [Live Preview](Live-Preview).
+4. Rebuild resources or rerun the client when you are not using live preview, or when you changed code/build logic.
 
 ## What Not To Do
 
@@ -39,5 +39,6 @@ During `processResources`, the project copies everything under `wiki/resourcepac
 ## Related Pages
 
 - [Getting Started](Getting-Started)
+- [Live Preview](Live-Preview)
 - [Guide Page Format](Guide-Page-Format)
 - [Examples](Examples)

@@ -27,6 +27,19 @@ GuideNH now discovers pages directly from the resource tree. Any markdown file u
 `assets/<modid>/guidenh/_<lang>/...` is part of the guide for `<modid>:guidenh`.
 `index.md` is still the conventional start page and the recommended place to begin.
 
+## Fast Local Iteration
+
+If you are editing the built-in example guide in this repository, prefer the live preview workflow documented in
+[Live Preview](Live-Preview).
+
+That workflow points GuideNH at:
+
+```text
+wiki/resourcepack/assets/guidenh/guidenh/
+```
+
+and opens the guide automatically on startup.
+
 ## First Page
 
 ````md
@@ -81,6 +94,7 @@ Reference them with a rooted guide path:
 
 ## Next Steps
 
+- [Live Preview](Live-Preview)
 - [Guide Page Format](Guide-Page-Format)
 - [Navigation](Navigation)
 - [Images And Assets](Images-And-Assets)

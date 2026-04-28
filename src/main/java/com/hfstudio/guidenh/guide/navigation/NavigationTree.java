@@ -118,6 +118,11 @@ public class NavigationTree {
         Map<ResourceLocation, Pair<ParsedGuidePage, List<ParsedGuidePage>>> pagesWithChildren,
         @Nullable PageCollection pageCollection, ResourceLocation pageId,
         Pair<ParsedGuidePage, List<ParsedGuidePage>> entry, Set<ResourceLocation> parents) {
+        var existingNode = nodeIndex.get(pageId);
+        if (existingNode != null) {
+            return existingNode;
+        }
+
         if (!parents.add(pageId)) {
             LOG.error("Detected a cycle in the navigation tree parent-child relationship for page {}", pageId);
             return null;
