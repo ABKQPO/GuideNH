@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.structure;
 
-public final class GuideStructureVolume {
+public class GuideStructureVolume {
 
     private GuideStructureVolume() {}
 

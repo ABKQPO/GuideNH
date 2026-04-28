@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.structure;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class GuideStructureMemoryStore {
+public class GuideStructureMemoryStore {
 
     private final GuideStructurePlacementService placementService;
     private final List<Entry> entries = new ArrayList<>();
@@ -43,7 +43,7 @@ public final class GuideStructureMemoryStore {
         entries.clear();
     }
 
-    public static final class Entry {
+    public static class Entry {
 
         private final String label;
         private final String structureText;

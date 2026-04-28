@@ -16,7 +16,7 @@ import com.hfstudio.guidenh.libs.micromark.Types;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
-public final class Attention {
+public class Attention {
 
     private Attention() {}
 

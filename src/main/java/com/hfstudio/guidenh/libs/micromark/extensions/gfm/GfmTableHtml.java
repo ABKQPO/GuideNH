@@ -9,7 +9,7 @@ import com.hfstudio.guidenh.libs.micromark.html.HtmlContext;
 import com.hfstudio.guidenh.libs.micromark.html.HtmlContextProperty;
 import com.hfstudio.guidenh.libs.micromark.html.HtmlExtension;
 
-public final class GfmTableHtml {
+public class GfmTableHtml {
 
     private static final HtmlContextProperty<List<Align>> TABLE_ALIGN = new HtmlContextProperty<>();
     private static final HtmlContextProperty<Integer> TABLE_COLUMN = new HtmlContextProperty<>();

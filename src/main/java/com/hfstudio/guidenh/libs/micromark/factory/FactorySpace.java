@@ -4,7 +4,7 @@ import com.hfstudio.guidenh.libs.micromark.CharUtil;
 import com.hfstudio.guidenh.libs.micromark.State;
 import com.hfstudio.guidenh.libs.micromark.Tokenizer;
 
-public final class FactorySpace {
+public class FactorySpace {
 
     private FactorySpace() {}
 

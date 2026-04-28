@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.util;
 /**
  * Models transitions for numeric values.
  */
-public final class Transition {
+public class Transition {
 
     private static final double EPSILON = 0.0001; // Values differing less than this are considered equal
     private static final double MIN_UPDATE_DURATION = 0.005; // 5 millisecond

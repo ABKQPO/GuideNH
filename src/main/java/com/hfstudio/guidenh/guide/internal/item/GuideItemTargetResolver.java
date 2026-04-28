@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 
-final class GuideItemTargetResolver {
+public class GuideItemTargetResolver {
 
     private GuideItemTargetResolver() {}
 

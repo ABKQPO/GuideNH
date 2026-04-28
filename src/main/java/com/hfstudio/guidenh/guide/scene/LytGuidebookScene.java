@@ -80,6 +80,7 @@ public class LytGuidebookScene extends LytBlock {
     private boolean interactive = true;
     private boolean sceneButtonsVisible = true;
     private boolean bottomControlsVisible = true;
+    private boolean reserveBottomControlArea = true;
     private boolean visibleLayerSliderEnabled;
 
     public static int SCENE_BG_COLOR = 0xFF0A0A10;
@@ -170,7 +171,7 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private int[] hoveredStructureLibHatch;
 
-    private static final class PickRay {
+    public static class PickRay {
 
         private final Vec3 start;
         private final Vec3 end;
@@ -181,7 +182,7 @@ public class LytGuidebookScene extends LytBlock {
         }
     }
 
-    private static final class BlockPickResult {
+    public static class BlockPickResult {
 
         private final int[] pos;
         private final AxisAlignedBB bounds;
@@ -271,6 +272,14 @@ public class LytGuidebookScene extends LytBlock {
         this.bottomControlsVisible = bottomControlsVisible;
     }
 
+    public boolean isReserveBottomControlArea() {
+        return reserveBottomControlArea;
+    }
+
+    public void setReserveBottomControlArea(boolean reserveBottomControlArea) {
+        this.reserveBottomControlArea = reserveBottomControlArea;
+    }
+
     public boolean isVisibleLayerSliderEnabled() {
         return visibleLayerSliderEnabled;
     }
@@ -296,7 +305,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void setVisibleLayerInternal(int layer, boolean preserveHoverState) {
-        visibleLayerOverride = Integer.valueOf(Math.max(0, layer));
+        visibleLayerOverride = Math.max(0, layer);
         clearLayerDrivenHoverState();
     }
 
@@ -324,7 +333,7 @@ public class LytGuidebookScene extends LytBlock {
         if (visibleLayerOverride == null) {
             return 0;
         }
-        int requestedLayer = visibleLayerOverride.intValue();
+        int requestedLayer = visibleLayerOverride;
         if (requestedLayer < 0) {
             return 0;
         }
@@ -340,12 +349,12 @@ public class LytGuidebookScene extends LytBlock {
         if (currentLayer <= 0) {
             return null;
         }
-        return Integer.valueOf(getVisibleLayerMinY() + currentLayer - 1);
+        return getVisibleLayerMinY() + currentLayer - 1;
     }
 
     private boolean isBlockVisibleForCurrentLayer(int y) {
         Integer visibleLayerY = resolveVisibleLayerY();
-        return visibleLayerY == null || y == visibleLayerY.intValue();
+        return visibleLayerY == null || y == visibleLayerY;
     }
 
     private boolean isAnnotationVisibleForCurrentLayer(SceneAnnotation annotation) {
@@ -354,16 +363,16 @@ public class LytGuidebookScene extends LytBlock {
             return true;
         }
         if (annotation instanceof DiamondAnnotation diamondAnnotation) {
-            return isPointWithinVisibleLayer(diamondAnnotation.getPos().y, visibleLayerY.intValue());
+            return isPointWithinVisibleLayer(diamondAnnotation.getPos().y, visibleLayerY);
         }
         if (annotation instanceof InWorldBoxAnnotation boxAnnotation) {
-            return intersectsVisibleLayer(boxAnnotation.min().y, boxAnnotation.max().y, visibleLayerY.intValue());
+            return intersectsVisibleLayer(boxAnnotation.min().y, boxAnnotation.max().y, visibleLayerY);
         }
         if (annotation instanceof InWorldLineAnnotation lineAnnotation) {
-            return intersectsVisibleLayer(lineAnnotation.from().y, lineAnnotation.to().y, visibleLayerY.intValue());
+            return intersectsVisibleLayer(lineAnnotation.from().y, lineAnnotation.to().y, visibleLayerY);
         }
         if (annotation instanceof InWorldBlockFaceOverlayAnnotation overlayAnnotation) {
-            return overlayAnnotation.getBlockY() == visibleLayerY.intValue();
+            return overlayAnnotation.getBlockY() == visibleLayerY;
         }
         return true;
     }
@@ -402,8 +411,7 @@ public class LytGuidebookScene extends LytBlock {
         this.structureLibCurrentTier = tierData != null ? tierData.getCurrentValue() : 1;
         for (StructureLibSceneMetadata.ChannelData channelData : structureLibSceneMetadata.getChannelDataList()) {
             if (channelData != null && channelData.getCurrentValue() > 0) {
-                this.structureLibChannelOverrides
-                    .put(channelData.getChannelId(), Integer.valueOf(channelData.getCurrentValue()));
+                this.structureLibChannelOverrides.put(channelData.getChannelId(), channelData.getCurrentValue());
             }
         }
         if (!structureLibSceneMetadata.hasHatchTooltipData()) {
@@ -460,7 +468,7 @@ public class LytGuidebookScene extends LytBlock {
             return 0;
         }
         Integer value = structureLibChannelOverrides.get(normalized);
-        return value != null ? value.intValue() : 0;
+        return value != null ? value : 0;
     }
 
     public void setStructureLibChannelValue(String channelId, int value) {
@@ -485,7 +493,7 @@ public class LytGuidebookScene extends LytBlock {
             nextValue = clampChannelValue(value, channelData.getMinValue(), channelData.getMaxValue());
         }
         if (nextValue > 0) {
-            structureLibChannelOverrides.put(normalized, Integer.valueOf(nextValue));
+            structureLibChannelOverrides.put(normalized, nextValue);
         } else {
             structureLibChannelOverrides.remove(normalized);
         }
@@ -688,7 +696,7 @@ public class LytGuidebookScene extends LytBlock {
             ? (BTN_SIZE * buttonCount + BTN_GAP * Math.max(0, buttonCount - 1))
             : 0;
         int sceneH = Math.max(height, buttonsTotalH);
-        int h = sceneH + getBottomControlAreaHeight();
+        int h = sceneH + (reserveBottomControlArea ? getBottomControlAreaHeight() : 0);
         this.layoutSceneWidth = sceneW;
         this.layoutSceneHeight = sceneH;
         return new LytRect(x, y, w, h);
@@ -703,7 +711,8 @@ public class LytGuidebookScene extends LytBlock {
         if (sceneW < 16) sceneW = Math.max(16, getBounds().width() - buttonColumnReserve());
         int sliderAreaHeight = getBottomControlAreaHeight();
         int sceneH = layoutSceneHeight > 0 ? layoutSceneHeight : Math.max(16, getBounds().height() - sliderAreaHeight);
-        int totalH = Math.max(sceneH + sliderAreaHeight, getBounds().height());
+        int totalH = reserveBottomControlArea ? Math.max(sceneH + sliderAreaHeight, getBounds().height())
+            : Math.max(sceneH, getBounds().height());
         LytRect outerRect = new LytRect(getBounds().x(), getBounds().y(), sceneW, totalH);
         LytRect sceneRect = cachedSceneRect = updateCachedRect(
             cachedSceneRect,
@@ -1364,7 +1373,7 @@ public class LytGuidebookScene extends LytBlock {
         Integer visibleLayerY = resolveVisibleLayerY();
         AxisAlignedBB bounds = entity != null ? entity.boundingBox : null;
         return visibleLayerY == null || bounds == null
-            || (bounds.maxY > visibleLayerY.intValue() && bounds.minY < visibleLayerY.intValue() + 1.0D);
+            || (bounds.maxY > visibleLayerY && bounds.minY < visibleLayerY + 1.0D);
     }
 
     @Nullable
@@ -1667,7 +1676,7 @@ public class LytGuidebookScene extends LytBlock {
                 selectable.add(channelData);
             }
         }
-        return selectable.isEmpty() ? Collections.<StructureLibSceneMetadata.ChannelData>emptyList() : selectable;
+        return selectable.isEmpty() ? Collections.emptyList() : selectable;
     }
 
     private void drawBottomControls(RenderContext context, LytRect outerRect) {
@@ -2088,14 +2097,14 @@ public class LytGuidebookScene extends LytBlock {
             "Scene bottom controls {}: outerRect={} bottomVisible={} visibleLayerEnabled={} visibleLayerCount={} hasVisibleLayerSlider={} hasTierSlider={} selectableChannels={} bottomAreaHeight={} rowCount={}",
             phase,
             describeRect(outerRect),
-            Boolean.valueOf(bottomControlsVisible),
-            Boolean.valueOf(visibleLayerSliderEnabled),
-            Integer.valueOf(getVisibleLayerCount()),
-            Boolean.valueOf(hasVisibleLayerSlider()),
-            Boolean.valueOf(hasStructureLibTierData()),
-            Integer.valueOf(selectableChannels),
-            Integer.valueOf(getBottomControlAreaHeight()),
-            Integer.valueOf(getBottomControlRowCount()));
+            bottomControlsVisible,
+            visibleLayerSliderEnabled,
+            getVisibleLayerCount(),
+            hasVisibleLayerSlider(),
+            hasStructureLibTierData(),
+            selectableChannels,
+            getBottomControlAreaHeight(),
+            getBottomControlRowCount());
     }
 
     private void logSliderSkipped(String sliderId, int rowIndex, LytRect outerRect) {
@@ -2104,12 +2113,12 @@ public class LytGuidebookScene extends LytBlock {
                 System.identityHashCode(this)) + ":" + sliderId + ":" + rowIndex + ":" + getBottomControlAreaHeight(),
             "Scene slider skipped {}: rowIndex={} outerRect={} bottomAreaHeight={} rowCount={} lastOuter={}x{}",
             sliderId,
-            Integer.valueOf(rowIndex),
+            rowIndex,
             describeRect(outerRect),
-            Integer.valueOf(getBottomControlAreaHeight()),
-            Integer.valueOf(getBottomControlRowCount()),
-            Integer.valueOf(lastOuterW),
-            Integer.valueOf(lastOuterH));
+            getBottomControlAreaHeight(),
+            getBottomControlRowCount(),
+            lastOuterW,
+            lastOuterH);
     }
 
     private void logSliderGeometry(String sliderId, GuideSliderRenderer.SliderGeometry geometry, int rowIndex,
@@ -2124,7 +2133,7 @@ public class LytGuidebookScene extends LytBlock {
                 + describeRect(geometry.trackRect()),
             "Scene slider geometry {}: rowIndex={} outerRect={} track={} fill={} thumb={} hit={} label={}",
             sliderId,
-            Integer.valueOf(rowIndex),
+            rowIndex,
             describeRect(outerRect),
             describeRect(geometry.trackRect()),
             describeRect(geometry.fillRect()),
@@ -2147,6 +2156,6 @@ public class LytGuidebookScene extends LytBlock {
         if (value < minValue) {
             return minValue;
         }
-        return value > maxValue ? maxValue : value;
+        return Math.min(value, maxValue);
     }
 }

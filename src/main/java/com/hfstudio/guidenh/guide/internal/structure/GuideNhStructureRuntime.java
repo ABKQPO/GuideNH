@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.structure;
 
-public final class GuideNhStructureRuntime {
+public class GuideNhStructureRuntime {
 
     private static final GuideStructurePlacementService PLACEMENT_SERVICE = new GuideStructurePlacementService();
     private static final GuideStructureMemoryStore CLIENT_MEMORY_STORE = new GuideStructureMemoryStore(

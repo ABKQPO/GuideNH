@@ -38,7 +38,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstStrong;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstThematicBreak;
 
-public final class PageIndexer implements IndexingContext {
+public class PageIndexer implements IndexingContext {
 
     private static final Logger LOG = LoggerFactory.getLogger(PageIndexer.class);
 

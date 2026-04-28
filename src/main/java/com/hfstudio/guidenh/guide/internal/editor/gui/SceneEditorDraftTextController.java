@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public final class SceneEditorDraftTextController {
+public class SceneEditorDraftTextController {
 
     private final Supplier<String> appliedValueSupplier;
     private final boolean emptyMeansRestoreAppliedValue;

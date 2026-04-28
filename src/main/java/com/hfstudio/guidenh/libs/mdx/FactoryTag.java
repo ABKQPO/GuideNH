@@ -18,7 +18,7 @@ import com.hfstudio.guidenh.libs.micromark.factory.FactorySpace;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
-public final class FactoryTag {
+public class FactoryTag {
 
     private FactoryTag() {}
 

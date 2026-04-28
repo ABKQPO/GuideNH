@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class LytStructureView extends LytBlock {
 
-    public static final class BlockEntry {
+    public static class BlockEntry {
 
         public final int x;
         public final int y;

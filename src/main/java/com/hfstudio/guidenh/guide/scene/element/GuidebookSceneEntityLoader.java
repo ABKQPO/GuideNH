@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.scene.element;
 
-import java.net.Proxy;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -20,14 +20,14 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 
+import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.mojang.authlib.Agent;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.GameProfileRepository;
 import com.mojang.authlib.ProfileLookupCallback;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
-import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 
-final class GuidebookSceneEntityLoader {
+public class GuidebookSceneEntityLoader {
 
     private static final Map<String, String> VANILLA_ENTITY_ID_ALIASES = createVanillaEntityIdAliases();
     private static final Set<String> PREVIEW_PLAYER_IDS = createPreviewPlayerIds();
@@ -64,8 +64,8 @@ final class GuidebookSceneEntityLoader {
     }
 
     @Nullable
-    static Entity load(@Nullable World world, String entityId, @Nullable NBTTagCompound data, @Nullable String playerName,
-        @Nullable String playerUuid) {
+    static Entity load(@Nullable World world, String entityId, @Nullable NBTTagCompound data,
+        @Nullable String playerName, @Nullable String playerUuid) {
         if (entityId == null) {
             return null;
         }
@@ -180,7 +180,10 @@ final class GuidebookSceneEntityLoader {
         }
 
         if (uniqueSimpleMatches.size() == 1) {
-            addCandidateForms(candidates, uniqueSimpleMatches.iterator().next());
+            addCandidateForms(
+                candidates,
+                uniqueSimpleMatches.iterator()
+                    .next());
         }
     }
 
@@ -210,8 +213,9 @@ final class GuidebookSceneEntityLoader {
     @Nullable
     private static String normalizeEntityId(@Nullable String entityId) {
         String trimmed = trimToNull(entityId);
-        return trimmed == null ? null : trimmed.replace(':', '.')
-            .toLowerCase(Locale.ROOT);
+        return trimmed == null ? null
+            : trimmed.replace(':', '.')
+                .toLowerCase(Locale.ROOT);
     }
 
     private static String extractSimpleEntityToken(String entityId) {
@@ -251,7 +255,8 @@ final class GuidebookSceneEntityLoader {
     @Nullable
     private static Entity createPreviewPlayerEntity(World world, GameProfile gameProfile) {
         try {
-            Class<?> entityClass = Class.forName("com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity");
+            Class<?> entityClass = Class
+                .forName("com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity");
             Constructor<?> constructor = entityClass.getConstructor(World.class, GameProfile.class);
             Object entity = constructor.newInstance(world, gameProfile);
             return entity instanceof Entity ? (Entity) entity : null;
@@ -277,8 +282,8 @@ final class GuidebookSceneEntityLoader {
             return resolvedNamedProfile;
         }
 
-        UUID offlineUuid = UUID.nameUUIDFromBytes(
-            ("OfflinePlayer:" + profileSpec.getName()).getBytes(StandardCharsets.UTF_8));
+        UUID offlineUuid = UUID
+            .nameUUIDFromBytes(("OfflinePlayer:" + profileSpec.getName()).getBytes(StandardCharsets.UTF_8));
         return new GameProfile(offlineUuid, profileSpec.getName());
     }
 
@@ -394,7 +399,10 @@ final class GuidebookSceneEntityLoader {
             PREVIEW_PLAYER_PROFILE_CACHE.put(cacheKey, profile);
         }
         if (profile != null && profile.getId() != null) {
-            PREVIEW_PLAYER_PROFILE_CACHE.put(profile.getId().toString(), profile);
+            PREVIEW_PLAYER_PROFILE_CACHE.put(
+                profile.getId()
+                    .toString(),
+                profile);
         }
     }
 
@@ -533,7 +541,7 @@ final class GuidebookSceneEntityLoader {
         return aliases;
     }
 
-    static final class GameProfileSpec {
+    static public class GameProfileSpec {
 
         private final UUID uuid;
         private final String name;

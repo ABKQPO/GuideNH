@@ -6,7 +6,7 @@ package com.hfstudio.guidenh.libs.micromark.symbol;
  * Additionally, there are a couple symbols used inside micromark. These are all defined here, but compiled away by
  * scripts.
  */
-public final class Constants {
+public class Constants {
 
     private Constants() {}
 

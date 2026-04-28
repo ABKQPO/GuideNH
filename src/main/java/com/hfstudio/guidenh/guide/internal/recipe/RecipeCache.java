@@ -16,7 +16,7 @@ import net.minecraft.item.ItemStack;
  * sufficient: entries are small (a list of handler references) and keyed by a lightweight composite
  * without referencing the original ItemStack.
  */
-public final class RecipeCache {
+public class RecipeCache {
 
     private static final Map<Key, List<Object>> HANDLERS = new HashMap<>();
     private static final Map<Key, List<Object>> USAGE_HANDLERS = new HashMap<>();
@@ -55,7 +55,7 @@ public final class RecipeCache {
         USAGE_HANDLERS.clear();
     }
 
-    private static final class Key {
+    public static class Key {
 
         final Item item;
         final int meta;

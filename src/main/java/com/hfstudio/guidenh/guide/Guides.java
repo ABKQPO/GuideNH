@@ -14,7 +14,7 @@ import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 /**
  * Global registry of GuideME guides.
  */
-public final class Guides {
+public class Guides {
 
     private Guides() {}
 

@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.libs.mdast;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.micromark.Micromark;
 
-public final class MdAst {
+public class MdAst {
 
     private MdAst() {}
 

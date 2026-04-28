@@ -6,7 +6,7 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 
-public final class GuideNhServerHelloHandler implements IMessageHandler<GuideNhServerHelloMessage, IMessage> {
+public class GuideNhServerHelloHandler implements IMessageHandler<GuideNhServerHelloMessage, IMessage> {
 
     @Override
     public IMessage onMessage(GuideNhServerHelloMessage message, MessageContext ctx) {

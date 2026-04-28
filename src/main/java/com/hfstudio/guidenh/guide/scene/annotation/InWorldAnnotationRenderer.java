@@ -6,7 +6,7 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 
-public final class InWorldAnnotationRenderer {
+public class InWorldAnnotationRenderer {
 
     private InWorldAnnotationRenderer() {}
 

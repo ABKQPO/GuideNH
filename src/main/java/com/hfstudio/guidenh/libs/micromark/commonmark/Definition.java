@@ -15,7 +15,7 @@ import com.hfstudio.guidenh.libs.micromark.factory.FactoryTitle;
 import com.hfstudio.guidenh.libs.micromark.factory.FactoryWhitespace;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-public final class Definition {
+public class Definition {
 
     private Definition() {}
 

@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.libs.micromark;
 
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-public final class CharUtil {
+public class CharUtil {
 
     private CharUtil() {}
 

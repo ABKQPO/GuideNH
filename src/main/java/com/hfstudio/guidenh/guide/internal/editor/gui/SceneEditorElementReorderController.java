@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 
 import java.util.List;
 
-public final class SceneEditorElementReorderController {
+public class SceneEditorElementReorderController {
 
     private boolean dragging;
     private int draggedIndex;
@@ -89,7 +89,7 @@ public final class SceneEditorElementReorderController {
         return new MoveOperation(fromIndex, toIndex);
     }
 
-    public static final class RowMetrics {
+    public static class RowMetrics {
 
         private final int top;
         private final int height;
@@ -112,7 +112,7 @@ public final class SceneEditorElementReorderController {
         }
     }
 
-    public static final class MoveOperation {
+    public static class MoveOperation {
 
         private final int fromIndex;
         private final int toIndex;

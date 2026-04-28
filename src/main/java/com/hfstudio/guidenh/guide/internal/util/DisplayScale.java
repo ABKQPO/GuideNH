@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 
-public final class DisplayScale {
+public class DisplayScale {
 
     private static int cachedDW = -1;
     private static int cachedDH = -1;

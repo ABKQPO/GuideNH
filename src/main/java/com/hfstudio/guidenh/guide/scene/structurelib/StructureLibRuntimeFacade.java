@@ -86,7 +86,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         StructureLibPreviewSelection requestedSelection = request.getPreviewSelection();
         StructureLibPreviewSelection effectiveSelection = controlAnalysis.clampSelection(requestedSelection);
         Integer requestedChannel = request.getChannel();
-        if (requestedChannel != null && requestedChannel.intValue() != effectiveSelection.getMasterTier()) {
+        if (requestedChannel != null && requestedChannel != effectiveSelection.getMasterTier()) {
             warnings.add(
                 "Requested StructureLib channel " + requestedChannel
                     + " was clamped to "
@@ -143,7 +143,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             request,
             controller,
             StructureLibPreviewSelection.ofMasterTier(MIN_TIER),
-            new ArrayList<String>());
+            new ArrayList<>());
         if (!previous.success) {
             return MIN_TIER;
         }
@@ -154,7 +154,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 request,
                 controller,
                 StructureLibPreviewSelection.ofMasterTier(tier),
-                new ArrayList<String>());
+                new ArrayList<>());
             if (!current.success) {
                 return Math.max(MIN_TIER, tier - 1);
             }
@@ -179,7 +179,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
             StructureLibPreviewSelection baseSelection = StructureLibPreviewSelection.ofMasterTier(MIN_TIER)
                 .withChannelOverride(channelId, MIN_TIER);
-            BuildSnapshot previous = buildSnapshot(request, controller, baseSelection, new ArrayList<String>());
+            BuildSnapshot previous = buildSnapshot(request, controller, baseSelection, new ArrayList<>());
             if (!previous.success) {
                 continue;
             }
@@ -194,7 +194,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             for (int tier = MIN_TIER + 1; tier <= MAX_TIER; tier++) {
                 StructureLibPreviewSelection selection = StructureLibPreviewSelection.ofMasterTier(MIN_TIER)
                     .withChannelOverride(channelId, tier);
-                BuildSnapshot current = buildSnapshot(request, controller, selection, new ArrayList<String>());
+                BuildSnapshot current = buildSnapshot(request, controller, selection, new ArrayList<>());
                 if (!current.success) {
                     break;
                 }
@@ -210,7 +210,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             }
 
             if (maxTier > 0) {
-                resolved.put(channelId, Integer.valueOf(maxTier));
+                resolved.put(channelId, maxTier);
             }
         }
         return resolved;
@@ -400,8 +400,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         for (Map.Entry<String, Integer> entry : effectiveSelection.getChannelOverrides()
             .entrySet()) {
             Integer channelValue = entry.getValue();
-            if (channelValue != null && channelValue.intValue() > 0) {
-                ChannelDataAccessor.setChannelData(triggerStack, entry.getKey(), channelValue.intValue());
+            if (channelValue != null && channelValue > 0) {
+                ChannelDataAccessor.setChannelData(triggerStack, entry.getKey(), channelValue);
             }
         }
         return triggerStack;
@@ -530,11 +530,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             throw new IllegalArgumentException(
                 "Could not resolve StructureLib controller block: " + request.getController());
         }
-        return new ResolvedController(
-            matcher.getBlockId(),
-            block,
-            matcher.getMeta() != null ? matcher.getMeta()
-                .intValue() : 0);
+        return new ResolvedController(matcher.getBlockId(), block, matcher.getMeta() != null ? matcher.getMeta() : 0);
     }
 
     private static ForgeDirection parseDirection(@Nullable String rawFacing, List<String> warnings) {
@@ -632,7 +628,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         if (value < minValue) {
             return minValue;
         }
-        return value > maxValue ? maxValue : value;
+        return Math.min(value, maxValue);
     }
 
     private static class AnalysisKey {
@@ -693,15 +689,11 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             for (Map.Entry<String, Integer> entry : effectiveSelection.getChannelOverrides()
                 .entrySet()) {
                 Integer maxValue = channelMaxTierMap.get(entry.getKey());
-                if (maxValue == null || maxValue.intValue() <= 0 || entry.getValue() == null) {
+                if (maxValue == null || maxValue <= 0 || entry.getValue() == null) {
                     continue;
                 }
-                int clamped = clamp(
-                    entry.getValue()
-                        .intValue(),
-                    1,
-                    maxValue.intValue());
-                clampedChannels.put(entry.getKey(), Integer.valueOf(clamped));
+                int clamped = clamp(entry.getValue(), 1, maxValue);
+                clampedChannels.put(entry.getKey(), clamped);
             }
             return new StructureLibPreviewSelection(
                 clamp(effectiveSelection.getMasterTier(), MIN_TIER, maxTotalTier),
@@ -716,13 +708,12 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             for (Map.Entry<String, Integer> entry : source.entrySet()) {
                 String channelId = StructureLibPreviewSelection.normalizeChannelId(entry.getKey());
                 Integer value = entry.getValue();
-                if (channelId == null || value == null || value.intValue() <= 0) {
+                if (channelId == null || value == null || value <= 0) {
                     continue;
                 }
-                normalized.put(channelId, Integer.valueOf(value.intValue()));
+                normalized.put(channelId, value);
             }
-            return normalized.isEmpty() ? Collections.<String, Integer>emptyMap()
-                : Collections.unmodifiableMap(normalized);
+            return normalized.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(normalized);
         }
     }
 
@@ -817,9 +808,9 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         public static BuildSnapshot failure(String errorMessage) {
             return new BuildSnapshot(
                 false,
-                Collections.<StructureLibImportResult.PlacedBlock>emptyList(),
-                Collections.<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock>emptyList(),
-                Collections.<StructureLibPreviewMetadataFactory.VisitedStructureElement>emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
                 "",
                 null,
                 new ItemStack(StructureLibAPI.getDefaultHologramItem(), MIN_TIER),
@@ -832,8 +823,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     public static class SnapshotBlocksResult {
 
         public static final SnapshotBlocksResult EMPTY = new SnapshotBlocksResult(
-            Collections.<StructureLibImportResult.PlacedBlock>emptyList(),
-            Collections.<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock>emptyList());
+            Collections.emptyList(),
+            Collections.emptyList());
 
         private final List<StructureLibImportResult.PlacedBlock> blocks;
         private final List<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock> absoluteBlocks;

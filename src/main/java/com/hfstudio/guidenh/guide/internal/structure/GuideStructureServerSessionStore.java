@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class GuideStructureServerSessionStore {
+public class GuideStructureServerSessionStore {
 
     private final GuideStructurePlacementService placementService;
     private final ConcurrentHashMap<UUID, GuideStructureMemoryStore> stores = new ConcurrentHashMap<>();

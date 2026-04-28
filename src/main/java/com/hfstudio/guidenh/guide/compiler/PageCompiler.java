@@ -89,7 +89,7 @@ import com.hfstudio.guidenh.libs.micromark.extensions.gfm.GfmTableSyntax;
 import com.hfstudio.guidenh.libs.micromark.extensions.gfmstrikethrough.GfmStrikethroughSyntax;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 
-public final class PageCompiler {
+public class PageCompiler {
 
     private static final Logger LOG = LoggerFactory.getLogger(PageCompiler.class);
 

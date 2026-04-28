@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-public final class BlockAnnotationTemplateExpander {
+public class BlockAnnotationTemplateExpander {
 
     private BlockAnnotationTemplateExpander() {}
 

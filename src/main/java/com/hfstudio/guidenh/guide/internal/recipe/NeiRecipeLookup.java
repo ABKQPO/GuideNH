@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * <li>{@code GuiRecipeTab.handlerMap} + {@code HandlerInfo.getItemStack/getWidth/getHeight}</li>
  * </ul>
  */
-public final class NeiRecipeLookup {
+public class NeiRecipeLookup {
 
     private static final Logger LOG = LoggerFactory.getLogger(NeiRecipeLookup.class);
 
@@ -183,7 +183,7 @@ public final class NeiRecipeLookup {
         return AVAILABLE;
     }
 
-    public static final class Slot {
+    public static class Slot {
 
         public final int relx;
         public final int rely;
@@ -196,7 +196,7 @@ public final class NeiRecipeLookup {
         }
     }
 
-    public static final class Entry {
+    public static class Entry {
 
         public final String handlerName;
         public final String recipeName;

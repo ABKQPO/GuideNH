@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.libs.micromark.extensions.gfmstrikethrough;
 
 import com.hfstudio.guidenh.libs.micromark.html.HtmlExtension;
 
-public final class GfmStrikethroughHtml {
+public class GfmStrikethroughHtml {
 
     private GfmStrikethroughHtml() {}
 

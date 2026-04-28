@@ -18,7 +18,7 @@ import net.minecraft.nbt.NBTTagList;
  * compound keys into a list-backed representation before stringification, then restores the original
  * keys after parsing.
  */
-public final class GuideTextNbtCodec {
+public class GuideTextNbtCodec {
 
     private static final String ENCODED_KEYS_TAG = "__guidenh_encoded_keys_v1";
     private static final String ENTRY_KEY_TAG = "k";

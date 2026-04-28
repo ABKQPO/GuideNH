@@ -4,7 +4,7 @@ import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
-public final class SceneEditorUndoSnapshot {
+public class SceneEditorUndoSnapshot {
 
     private final String rawText;
     private final String lastAppliedText;

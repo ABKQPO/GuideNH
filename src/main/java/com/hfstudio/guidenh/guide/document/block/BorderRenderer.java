@@ -4,7 +4,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 
-final class BorderRenderer {
+public class BorderRenderer {
 
     public void render(RenderContext context, LytRect bounds, BorderStyle borderTop, BorderStyle borderLeft,
         BorderStyle borderRight, BorderStyle borderBottom) {

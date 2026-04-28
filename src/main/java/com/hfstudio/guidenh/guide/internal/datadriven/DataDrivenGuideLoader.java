@@ -26,7 +26,7 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import cpw.mods.fml.client.FMLClientHandler;
 import cpw.mods.fml.common.ObfuscationReflectionHelper;
 
-public final class DataDrivenGuideLoader {
+public class DataDrivenGuideLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataDrivenGuideLoader.class);
     private static final String AUTO_GUIDE_FOLDER = "guidenh";

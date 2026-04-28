@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.md;
 
 import java.util.UUID;
 
-public final class SceneEditorMarkdownElementRange {
+public class SceneEditorMarkdownElementRange {
 
     private final UUID elementId;
     private final int startIndex;

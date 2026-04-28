@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.libs.micromark.NamedCharacterEntities;
 /**
  * Reduced functionality port of https://github.com/wooorm/parse-entities/
  */
-final class ParseEntities {
+public class ParseEntities {
 
     private ParseEntities() {}
 

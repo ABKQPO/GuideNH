@@ -16,7 +16,7 @@ public class StructureLibPreviewSelection {
     private final Map<String, Integer> channelOverrides;
 
     public StructureLibPreviewSelection() {
-        this(DEFAULT_MASTER_TIER, Collections.<String, Integer>emptyMap());
+        this(DEFAULT_MASTER_TIER, Collections.emptyMap());
     }
 
     public StructureLibPreviewSelection(int masterTier, @Nullable Map<String, Integer> channelOverrides) {
@@ -29,7 +29,7 @@ public class StructureLibPreviewSelection {
     }
 
     public static StructureLibPreviewSelection ofMasterTier(int masterTier) {
-        return new StructureLibPreviewSelection(masterTier, Collections.<String, Integer>emptyMap());
+        return new StructureLibPreviewSelection(masterTier, Collections.emptyMap());
     }
 
     public int getMasterTier() {
@@ -51,7 +51,7 @@ public class StructureLibPreviewSelection {
             return 0;
         }
         Integer value = channelOverrides.get(normalized);
-        return value != null ? value.intValue() : 0;
+        return value != null ? value : 0;
     }
 
     public StructureLibPreviewSelection withMasterTier(int nextMasterTier) {
@@ -65,7 +65,7 @@ public class StructureLibPreviewSelection {
         }
         LinkedHashMap<String, Integer> updated = new LinkedHashMap<>(channelOverrides);
         if (value > 0) {
-            updated.put(normalized, Integer.valueOf(value));
+            updated.put(normalized, value);
         } else {
             updated.remove(normalized);
         }
@@ -80,12 +80,12 @@ public class StructureLibPreviewSelection {
         for (Map.Entry<String, Integer> entry : source.entrySet()) {
             String channelId = normalizeChannelId(entry.getKey());
             Integer value = entry.getValue();
-            if (channelId == null || value == null || value.intValue() <= 0) {
+            if (channelId == null || value == null || value <= 0) {
                 continue;
             }
-            normalized.put(channelId, Integer.valueOf(value.intValue()));
+            normalized.put(channelId, value);
         }
-        return normalized.isEmpty() ? Collections.<String, Integer>emptyMap() : Collections.unmodifiableMap(normalized);
+        return normalized.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(normalized);
     }
 
     @Nullable
@@ -113,6 +113,6 @@ public class StructureLibPreviewSelection {
 
     @Override
     public int hashCode() {
-        return Objects.hash(Integer.valueOf(masterTier), channelOverrides);
+        return Objects.hash(masterTier, channelOverrides);
     }
 }

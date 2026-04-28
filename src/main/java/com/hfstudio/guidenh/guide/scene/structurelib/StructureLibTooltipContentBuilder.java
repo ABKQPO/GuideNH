@@ -89,7 +89,7 @@ public class StructureLibTooltipContentBuilder {
         appendStyledText(paragraph, GuidebookText.SceneStructureLibHintBlockLabel.text(), HATCH_LABEL_STYLE);
         appendStyledText(
             paragraph,
-            GuidebookText.SceneStructureLibHintDotNumber.text(Integer.valueOf(hintDot)),
+            GuidebookText.SceneStructureLibHintDotNumber.text(hintDot),
             TextStyle.builder()
                 .color(new ConstantColor(resolveHintDotColor(hintDot)))
                 .build());
@@ -163,7 +163,7 @@ public class StructureLibTooltipContentBuilder {
                 normalized.add(stack);
             }
         }
-        return normalized.isEmpty() ? Collections.<ItemStack>emptyList() : normalized;
+        return normalized.isEmpty() ? Collections.emptyList() : normalized;
     }
 
     private static String requireBlockName(@Nullable String blockName) {

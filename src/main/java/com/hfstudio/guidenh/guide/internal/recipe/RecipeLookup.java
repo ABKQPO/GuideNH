@@ -21,7 +21,7 @@ import net.minecraftforge.oredict.ShapelessOreRecipe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class RecipeLookup {
+public class RecipeLookup {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecipeLookup.class);
 
@@ -47,7 +47,7 @@ public final class RecipeLookup {
 
     private RecipeLookup() {}
 
-    public static final class Entry {
+    public static class Entry {
 
         public final ItemStack[] input3x3 = new ItemStack[9];
         public ItemStack result;

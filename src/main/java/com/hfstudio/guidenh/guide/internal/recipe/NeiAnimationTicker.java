@@ -11,7 +11,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * alive as long as the handler object remains referenced anywhere. Handlers are held via
  * {@link WeakHashMap} so unused ones are garbage-collected with their entries.
  */
-public final class NeiAnimationTicker {
+public class NeiAnimationTicker {
 
     private static final WeakHashMap<Object, Boolean> TRACKED = new WeakHashMap<>();
     private static boolean registered;

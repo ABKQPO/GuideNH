@@ -25,7 +25,7 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideStructureCoordinatePar
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.siteexport.ExportTask;
 
-public final class GuideNhClientCommand extends CommandBase {
+public class GuideNhClientCommand extends CommandBase {
 
     private static final String[] ROOT_SUB_COMMANDS = { "editor", "list", "open", "reload", "search", "export",
         "exportstructure" };

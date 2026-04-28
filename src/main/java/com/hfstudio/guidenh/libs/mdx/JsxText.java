@@ -5,7 +5,7 @@ import com.hfstudio.guidenh.libs.micromark.State;
 import com.hfstudio.guidenh.libs.micromark.TokenizeContext;
 import com.hfstudio.guidenh.libs.micromark.Tokenizer;
 
-final class JsxText {
+public class JsxText {
 
     public static final Construct INSTANCE = new Construct();
 

@@ -4,7 +4,7 @@ import com.hfstudio.guidenh.libs.micromark.Token;
 import com.hfstudio.guidenh.libs.micromark.html.HtmlContext;
 import com.hfstudio.guidenh.libs.micromark.html.HtmlExtension;
 
-public final class YamlFrontmatterHtml {
+public class YamlFrontmatterHtml {
 
     public static final HtmlExtension INSTANCE = HtmlExtension.builder()
         .enter("yaml", YamlFrontmatterHtml::enter)

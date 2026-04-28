@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.LytRect;
 
-public final class SceneEditorScreenLayout {
+public class SceneEditorScreenLayout {
 
     public static final int COLLAPSED_MARKDOWN_WIDTH = 10;
     public static final int TOOLBAR_Y = 8;

@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.color;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class Colors {
+public class Colors {
 
     private static final Logger LOG = LoggerFactory.getLogger(Colors.class);
 

@@ -9,7 +9,7 @@ import javax.annotation.Nullable;
  * Stores content-only history for the scene editor.
  * Selection-only changes and UI preference changes must never be pushed here.
  */
-public final class SceneEditorUndoHistory {
+public class SceneEditorUndoHistory {
 
     private final int maxEntries;
     private final List<Entry> entries;
@@ -127,7 +127,7 @@ public final class SceneEditorUndoHistory {
         currentMergeOpen = false;
     }
 
-    private static final class Entry {
+    public static class Entry {
 
         private final SceneEditorUndoSnapshot snapshot;
         @Nullable

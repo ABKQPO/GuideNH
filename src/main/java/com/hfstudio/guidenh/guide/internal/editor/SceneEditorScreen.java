@@ -14,6 +14,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
@@ -84,7 +85,7 @@ import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelectio
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 
-public final class SceneEditorScreen extends GuiScreen {
+public class SceneEditorScreen extends GuiScreen {
 
     private static final ResourceLocation BG_TEXTURE = new ResourceLocation(
         "guidenh",
@@ -287,7 +288,7 @@ public final class SceneEditorScreen extends GuiScreen {
         this.elementContextMenuController = new SceneEditorElementContextMenuController(
             this.session,
             this.markdownCodec,
-            () -> this.elementColorRandom.nextInt());
+            this.elementColorRandom::nextInt);
         this.elementPropertyController = new SceneEditorElementPropertyController(this.session, this.markdownCodec);
         this.elementReorderController = new SceneEditorElementReorderController();
         this.linkedSelectionController = new SceneEditorLinkedSelectionController();
@@ -902,20 +903,15 @@ public final class SceneEditorScreen extends GuiScreen {
     }
 
     private void drawToolbarTitle() {
-        boolean hasImportedStructure = session.getSceneModel()
-            .getStructureSource() != null
-            && !session.getSceneModel()
-                .getStructureSource()
-                .isEmpty();
-        this.drawString(
-            this.fontRendererObj,
-            GuidebookText.SceneEditorTitle.text(),
-            TOOLBAR_MARGIN_X + 132,
-            TOOLBAR_Y + 4,
-            0xFFFFFF);
+        String structureSource = session.getSceneModel()
+            .getStructureSource();
+        boolean hasImportedStructure = structureSource != null && !structureSource.isEmpty();
+        int titleX = TOOLBAR_MARGIN_X + 132;
+        int sessionLabelY = TOOLBAR_Y + 16;
+        this.drawString(this.fontRendererObj, GuidebookText.SceneEditorTitle.text(), titleX, TOOLBAR_Y + 4, 0xFFFFFF);
         String sessionLabel = hasImportedStructure ? GuidebookText.SceneEditorImportedSession.text()
             : GuidebookText.SceneEditorBlankSession.text();
-        this.drawString(this.fontRendererObj, sessionLabel, TOOLBAR_MARGIN_X + 132, TOOLBAR_Y + 16, 0xFF8FC7FF);
+        this.drawString(this.fontRendererObj, sessionLabel, titleX, sessionLabelY, 0xFF8FC7FF);
     }
 
     private void syncToolbarToggleState() {
@@ -1012,7 +1008,10 @@ public final class SceneEditorScreen extends GuiScreen {
     private void drawCenterPanel(int mouseX, int mouseY) {
         ensurePreviewScene();
         if (previewScene != null) {
-            int previewSceneHeight = Math.max(16, previewBoxHeight - previewScene.getBottomControlAreaHeight());
+            int reservedBottomHeight = previewScene.isReserveBottomControlArea()
+                ? previewScene.getBottomControlAreaHeight()
+                : 0;
+            int previewSceneHeight = Math.max(16, previewBoxHeight - reservedBottomHeight);
             previewScene.setSceneSize(previewBoxWidth, previewSceneHeight);
             previewScene.layout(previewLayoutContext, previewBoxX, previewBoxY, previewBoxWidth);
             previewRenderContext.setScreenHeight(this.height);
@@ -1037,6 +1036,7 @@ public final class SceneEditorScreen extends GuiScreen {
                 previewScene.setHoveredEntity(null);
             }
             previewScene.render(previewRenderContext);
+            drawPreviewStructureSource(previewScene);
             LytRect previewViewport = previewScene.getScreenRect();
             if (previewFrameOverlayVisible) {
                 drawPreviewFrameOverlay();
@@ -1073,15 +1073,30 @@ public final class SceneEditorScreen extends GuiScreen {
                 centerY,
                 PANEL_MUTED_TEXT);
         }
-        this.drawString(
-            this.fontRendererObj,
-            session.getSceneModel()
-                .getStructureSource() == null ? GuidebookText.SceneEditorBlankSession.text()
-                    : session.getSceneModel()
-                        .getStructureSource(),
-            12,
-            this.height - 14,
-            PANEL_SUBTLE_TEXT);
+    }
+
+    private void drawPreviewStructureSource(LytGuidebookScene scene) {
+        String structureSource = session.getSceneModel()
+            .getStructureSource();
+        if (structureSource == null || structureSource.isEmpty()) {
+            return;
+        }
+        int pathX = screenLayout.previewInteraction()
+            .x() + 8;
+        int maxPathWidth = Math.max(
+            0,
+            screenLayout.previewInteraction()
+                .width() - 16);
+        if (maxPathWidth <= 0) {
+            return;
+        }
+        int bottomControlsHeight = scene.getBottomControlAreaHeight();
+        int pathY = previewBoxY + previewBoxHeight - bottomControlsHeight - this.fontRendererObj.FONT_HEIGHT - 6;
+        if (pathY < previewBoxY + 6) {
+            pathY = previewBoxY + 6;
+        }
+        String visiblePath = this.fontRendererObj.trimStringToWidth(structureSource, maxPathWidth);
+        this.drawString(this.fontRendererObj, visiblePath, pathX, pathY, PANEL_SUBTLE_TEXT);
     }
 
     private void drawPreviewSceneHoverTooltip(int mouseX, int mouseY) {
@@ -1236,7 +1251,7 @@ public final class SceneEditorScreen extends GuiScreen {
         int pad = 3;
         int hardMaxWidth = Math.max(40, this.width - 24);
         int preferredWrapWidth = Math.max(80, this.width / 2);
-        int wrapWidth = Math.max(40, Math.min(hardMaxWidth, preferredWrapWidth));
+        int wrapWidth = Math.min(hardMaxWidth, preferredWrapWidth);
         List<String> lines = new ArrayList<>();
         for (String rawLine : normalizedText.split("\n", -1)) {
             if (rawLine.isEmpty()) {
@@ -1591,16 +1606,17 @@ public final class SceneEditorScreen extends GuiScreen {
         drawRect(dialogBounds.x(), dialogBounds.y(), dialogBounds.right(), dialogBounds.bottom(), CLOSE_DIALOG_COLOR);
         drawBorder(dialogBounds.x(), dialogBounds.y(), dialogBounds.width(), dialogBounds.height(), PANEL_BORDER_COLOR);
 
+        int x = dialogBounds.x() + dialogBounds.width() / 2;
         this.drawCenteredString(
             this.fontRendererObj,
             GuidebookText.SceneEditorClose.text(),
-            dialogBounds.x() + dialogBounds.width() / 2,
+            x,
             dialogBounds.y() + 12,
             PANEL_HEADER_COLOR);
         this.drawCenteredString(
             this.fontRendererObj,
             GuidebookText.SceneEditorClosePrompt.text(),
-            dialogBounds.x() + dialogBounds.width() / 2,
+            x,
             dialogBounds.y() + 30,
             PANEL_MUTED_TEXT);
 
@@ -1608,7 +1624,7 @@ public final class SceneEditorScreen extends GuiScreen {
             this.drawCenteredString(
                 this.fontRendererObj,
                 closeConfirmErrorText,
-                dialogBounds.x() + dialogBounds.width() / 2,
+                x,
                 dialogBounds.y() + 46,
                 INPUT_ERROR_BORDER_COLOR);
         }
@@ -1730,7 +1746,7 @@ public final class SceneEditorScreen extends GuiScreen {
         bindPreviewScene(previewScene);
         previewScene.setAnnotationsVisible(annotationsVisible);
         if (visibleLayerOverride != null) {
-            previewScene.setVisibleLayerSilently(visibleLayerOverride.intValue());
+            previewScene.setVisibleLayerSilently(visibleLayerOverride);
         }
         if (savedCamera != null) {
             previewScene.getCamera()
@@ -1775,7 +1791,7 @@ public final class SceneEditorScreen extends GuiScreen {
         bindPreviewScene(previewScene);
         previewScene.setAnnotationsVisible(annotationsVisible);
         if (visibleLayerOverride != null) {
-            previewScene.setVisibleLayerSilently(visibleLayerOverride.intValue());
+            previewScene.setVisibleLayerSilently(visibleLayerOverride);
         }
         previewScene.getCamera()
             .restore(savedCamera);
@@ -1797,21 +1813,9 @@ public final class SceneEditorScreen extends GuiScreen {
                     .getCenterX(),
                 -256f,
                 256f,
-                new FloatValueSetter() {
-
-                    @Override
-                    public void setValue(float value) {
-                        parameterController.setCenterX(value);
-                    }
-                },
-                new FloatModelValueProvider() {
-
-                    @Override
-                    public float getValue() {
-                        return session.getSceneModel()
-                            .getCenterX();
-                    }
-                }));
+                parameterController::setCenterX,
+                () -> session.getSceneModel()
+                    .getCenterX()));
         numericParameterRows.add(
             createDecimalParameterRow(
                 GuidebookText.SceneEditorCameraY,
@@ -1819,21 +1823,9 @@ public final class SceneEditorScreen extends GuiScreen {
                     .getCenterY(),
                 -256f,
                 256f,
-                new FloatValueSetter() {
-
-                    @Override
-                    public void setValue(float value) {
-                        parameterController.setCenterY(value);
-                    }
-                },
-                new FloatModelValueProvider() {
-
-                    @Override
-                    public float getValue() {
-                        return session.getSceneModel()
-                            .getCenterY();
-                    }
-                }));
+                parameterController::setCenterY,
+                () -> session.getSceneModel()
+                    .getCenterY()));
         numericParameterRows.add(
             createDecimalParameterRow(
                 GuidebookText.SceneEditorCameraZ,
@@ -1841,21 +1833,9 @@ public final class SceneEditorScreen extends GuiScreen {
                     .getCenterZ(),
                 -256f,
                 256f,
-                new FloatValueSetter() {
-
-                    @Override
-                    public void setValue(float value) {
-                        parameterController.setCenterZ(value);
-                    }
-                },
-                new FloatModelValueProvider() {
-
-                    @Override
-                    public float getValue() {
-                        return session.getSceneModel()
-                            .getCenterZ();
-                    }
-                }));
+                parameterController::setCenterZ,
+                () -> session.getSceneModel()
+                    .getCenterZ()));
         numericParameterRows.add(
             createDecimalParameterRow(
                 GuidebookText.SceneEditorRotateX,
@@ -1863,21 +1843,9 @@ public final class SceneEditorScreen extends GuiScreen {
                     .getRotationX(),
                 -180f,
                 180f,
-                new FloatValueSetter() {
-
-                    @Override
-                    public void setValue(float value) {
-                        parameterController.setRotationX(value);
-                    }
-                },
-                new FloatModelValueProvider() {
-
-                    @Override
-                    public float getValue() {
-                        return session.getSceneModel()
-                            .getRotationX();
-                    }
-                }));
+                parameterController::setRotationX,
+                () -> session.getSceneModel()
+                    .getRotationX()));
         numericParameterRows.add(
             createDecimalParameterRow(
                 GuidebookText.SceneEditorRotateY,
@@ -1885,21 +1853,9 @@ public final class SceneEditorScreen extends GuiScreen {
                     .getRotationY(),
                 -180f,
                 180f,
-                new FloatValueSetter() {
-
-                    @Override
-                    public void setValue(float value) {
-                        parameterController.setRotationY(value);
-                    }
-                },
-                new FloatModelValueProvider() {
-
-                    @Override
-                    public float getValue() {
-                        return session.getSceneModel()
-                            .getRotationY();
-                    }
-                }));
+                parameterController::setRotationY,
+                () -> session.getSceneModel()
+                    .getRotationY()));
         numericParameterRows.add(
             createDecimalParameterRow(
                 GuidebookText.SceneEditorRotateZ,
@@ -1907,21 +1863,9 @@ public final class SceneEditorScreen extends GuiScreen {
                     .getRotationZ(),
                 -180f,
                 180f,
-                new FloatValueSetter() {
-
-                    @Override
-                    public void setValue(float value) {
-                        parameterController.setRotationZ(value);
-                    }
-                },
-                new FloatModelValueProvider() {
-
-                    @Override
-                    public float getValue() {
-                        return session.getSceneModel()
-                            .getRotationZ();
-                    }
-                }));
+                parameterController::setRotationZ,
+                () -> session.getSceneModel()
+                    .getRotationZ()));
         numericParameterRows.add(
             createDecimalParameterRow(
                 GuidebookText.SceneEditorZoom,
@@ -1929,21 +1873,9 @@ public final class SceneEditorScreen extends GuiScreen {
                     .getZoom(),
                 0.1f,
                 8f,
-                new FloatValueSetter() {
-
-                    @Override
-                    public void setValue(float value) {
-                        parameterController.setZoom(value);
-                    }
-                },
-                new FloatModelValueProvider() {
-
-                    @Override
-                    public float getValue() {
-                        return session.getSceneModel()
-                            .getZoom();
-                    }
-                }));
+                parameterController::setZoom,
+                () -> session.getSceneModel()
+                    .getZoom()));
         numericParameterRows.add(
             createIntegerParameterRow(
                 GuidebookText.SceneEditorPreviewWidth,
@@ -1951,21 +1883,9 @@ public final class SceneEditorScreen extends GuiScreen {
                     .getPreviewWidth(),
                 16,
                 512,
-                new IntValueSetter() {
-
-                    @Override
-                    public void setValue(int value) {
-                        parameterController.setPreviewWidth(value);
-                    }
-                },
-                new FloatModelValueProvider() {
-
-                    @Override
-                    public float getValue() {
-                        return session.getSceneModel()
-                            .getPreviewWidth();
-                    }
-                }));
+                parameterController::setPreviewWidth,
+                () -> session.getSceneModel()
+                    .getPreviewWidth()));
         numericParameterRows.add(
             createIntegerParameterRow(
                 GuidebookText.SceneEditorPreviewHeight,
@@ -1973,21 +1893,9 @@ public final class SceneEditorScreen extends GuiScreen {
                     .getPreviewHeight(),
                 16,
                 512,
-                new IntValueSetter() {
-
-                    @Override
-                    public void setValue(int value) {
-                        parameterController.setPreviewHeight(value);
-                    }
-                },
-                new FloatModelValueProvider() {
-
-                    @Override
-                    public float getValue() {
-                        return session.getSceneModel()
-                            .getPreviewHeight();
-                    }
-                }));
+                parameterController::setPreviewHeight,
+                () -> session.getSceneModel()
+                    .getPreviewHeight()));
     }
 
     private NumericParameterRow createDecimalParameterRow(GuidebookText label, float initialValue, float minValue,
@@ -2147,15 +2055,11 @@ public final class SceneEditorScreen extends GuiScreen {
         if (overflow > 0) {
             cameraWidth = Math.max(42, cameraWidth - overflow);
         }
-        switch (tab) {
-            case ROTATION:
-                return rotationWidth;
-            case PREVIEW:
-                return previewWidth;
-            case CAMERA:
-            default:
-                return cameraWidth;
-        }
+        return switch (tab) {
+            case ROTATION -> rotationWidth;
+            case PREVIEW -> previewWidth;
+            default -> cameraWidth;
+        };
     }
 
     private int getSettingsTabX(SceneEditorSettingsTab tab) {
@@ -2353,11 +2257,9 @@ public final class SceneEditorScreen extends GuiScreen {
 
         this.drawString(
             this.fontRendererObj,
-            Integer.toString(
-                session.getSceneModel()
-                    .getElements()
-                    .size())
-                + " element(s)",
+            session.getSceneModel()
+                .getElements()
+                .size() + " element(s)",
             elementsBoxX + 8,
             elementsBoxY + 7,
             PANEL_MUTED_TEXT);
@@ -3518,7 +3420,7 @@ public final class SceneEditorScreen extends GuiScreen {
         return null;
     }
 
-    private final class ElementEditorPanel {
+    public class ElementEditorPanel {
 
         private final UUID elementId;
         private final SceneEditorElementType type;
@@ -3552,7 +3454,7 @@ public final class SceneEditorScreen extends GuiScreen {
                 new SceneEditorDraftTextController(
                     () -> readCurrentElement().getColorLiteral(),
                     true,
-                    draft -> applyColorDraft(draft)));
+                    this::applyColorDraft));
             this.primaryFields = createVectorFields(primaryVectorLabel(type), true);
             this.secondaryFields = secondaryVectorLabel(type) == null ? null
                 : createVectorFields(secondaryVectorLabel(type), false);
@@ -3563,7 +3465,7 @@ public final class SceneEditorScreen extends GuiScreen {
                     new SceneEditorDraftTextController(
                         () -> formatFloat(readCurrentElement().getThickness()),
                         true,
-                        draft -> applyThicknessDraft(draft)))
+                        this::applyThicknessDraft))
                 : null;
             this.tooltipController = new SceneEditorDraftTextController(
                 () -> readCurrentElement().getTooltipMarkdown(),
@@ -3968,32 +3870,24 @@ public final class SceneEditorScreen extends GuiScreen {
         }
 
         private GuidebookText primaryVectorLabel(SceneEditorElementType elementType) {
-            switch (elementType) {
-                case BOX:
-                    return GuidebookText.SceneEditorElementMin;
-                case LINE:
-                    return GuidebookText.SceneEditorElementFrom;
-                case BLOCK:
-                case DIAMOND:
-                default:
-                    return GuidebookText.SceneEditorElementPosition;
-            }
+            return switch (elementType) {
+                case BOX -> GuidebookText.SceneEditorElementMin;
+                case LINE -> GuidebookText.SceneEditorElementFrom;
+                default -> GuidebookText.SceneEditorElementPosition;
+            };
         }
 
         @Nullable
         private GuidebookText secondaryVectorLabel(SceneEditorElementType elementType) {
-            switch (elementType) {
-                case BOX:
-                    return GuidebookText.SceneEditorElementMax;
-                case LINE:
-                    return GuidebookText.SceneEditorElementTo;
-                default:
-                    return null;
-            }
+            return switch (elementType) {
+                case BOX -> GuidebookText.SceneEditorElementMax;
+                case LINE -> GuidebookText.SceneEditorElementTo;
+                default -> null;
+            };
         }
     }
 
-    private final class ElementInputField {
+    public class ElementInputField {
 
         private final String label;
         private final String undoFieldKey;
@@ -4150,22 +4044,15 @@ public final class SceneEditorScreen extends GuiScreen {
         DELETE;
 
         private GuidebookText getText(SceneEditorElementModel element) {
-            switch (this) {
-                case CUT:
-                    return GuidebookText.SceneEditorCutElement;
-                case COPY:
-                    return GuidebookText.SceneEditorCopyElement;
-                case PASTE:
-                    return GuidebookText.SceneEditorPasteElement;
-                case TOGGLE_VISIBILITY:
-                    return element.isVisible() ? GuidebookText.SceneEditorHideElement
-                        : GuidebookText.SceneEditorShowElement;
-                case RANDOMIZE_COLOR:
-                    return GuidebookText.SceneEditorRandomizeElementColor;
-                case DELETE:
-                default:
-                    return GuidebookText.SceneEditorDeleteElement;
-            }
+            return switch (this) {
+                case CUT -> GuidebookText.SceneEditorCutElement;
+                case COPY -> GuidebookText.SceneEditorCopyElement;
+                case PASTE -> GuidebookText.SceneEditorPasteElement;
+                case TOGGLE_VISIBILITY -> element.isVisible() ? GuidebookText.SceneEditorHideElement
+                    : GuidebookText.SceneEditorShowElement;
+                case RANDOMIZE_COLOR -> GuidebookText.SceneEditorRandomizeElementColor;
+                default -> GuidebookText.SceneEditorDeleteElement;
+            };
         }
     }
 
@@ -4260,7 +4147,7 @@ public final class SceneEditorScreen extends GuiScreen {
         BODY
     }
 
-    private static final class ElementHit {
+    public static class ElementHit {
 
         private final SceneEditorElementModel element;
         private final int index;
@@ -4273,7 +4160,7 @@ public final class SceneEditorScreen extends GuiScreen {
         }
     }
 
-    private static final class ElementRowLayout {
+    public static class ElementRowLayout {
 
         private final SceneEditorElementModel element;
         private final int index;
@@ -4293,7 +4180,7 @@ public final class SceneEditorScreen extends GuiScreen {
         }
     }
 
-    private final class NumericParameterRow {
+    public class NumericParameterRow {
 
         private final GuidebookText label;
         private final SceneEditorNumericFieldController controller;
@@ -4354,7 +4241,7 @@ public final class SceneEditorScreen extends GuiScreen {
             drawCompactTextFieldValue(inputField, controller.getDraftText());
 
             GuideSliderRenderer.render(
-                (left, top, right, bottom, color) -> SceneEditorScreen.this.drawRect(left, top, right, bottom, color),
+                Gui::drawRect,
                 GuideSliderRenderer.layout(sliderX, sliderY, sliderWidth, controller.getSliderFraction()),
                 containsSlider(mouseX, mouseY) || activeSliderRow == this);
         }

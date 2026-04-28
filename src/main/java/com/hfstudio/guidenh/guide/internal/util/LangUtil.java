@@ -8,7 +8,7 @@ import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
 
-public final class LangUtil {
+public class LangUtil {
 
     private static final Pattern LANGUAGE_CODE_PATTERN = Pattern.compile("[a-z0-9][a-z0-9_\\-]*");
 

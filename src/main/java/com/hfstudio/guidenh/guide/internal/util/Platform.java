@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.util;
 
-public final class Platform {
+public class Platform {
 
     private Platform() {}
 

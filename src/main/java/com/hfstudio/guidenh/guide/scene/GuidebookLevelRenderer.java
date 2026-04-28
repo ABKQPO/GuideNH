@@ -264,7 +264,7 @@ public class GuidebookLevelRenderer {
             tes.setBrightness((15 << 20) | (15 << 4));
             boolean exactLayerMode = visibleLayerY != null;
             for (int[] p : filledBlocks) {
-                if (exactLayerMode && p[1] != visibleLayerY.intValue()) {
+                if (exactLayerMode && p[1] != visibleLayerY) {
                     continue;
                 }
                 Block block = level.getBlock(p[0], p[1], p[2]);
@@ -279,7 +279,7 @@ public class GuidebookLevelRenderer {
                                 + ":"
                                 + GuideGregTechTileSupport.describeTile(tileEntity),
                             "Render pass {} found invalid GregTech block tile before block render: {}",
-                            Integer.valueOf(pass),
+                            pass,
                             GuideGregTechTileSupport.describeTile(tileEntity));
                         GuideGregTechTileSupport.repairMetaTileBinding(tileEntity);
                     }
@@ -331,11 +331,11 @@ public class GuidebookLevelRenderer {
                     GuideGregTechTileSupport.logInfoOnce(
                         "render-invalid-tesr-pass:" + pass + ":" + GuideGregTechTileSupport.describeTile(te),
                         "Render pass {} found invalid GregTech tile before TESR render: {}",
-                        Integer.valueOf(pass),
+                        pass,
                         GuideGregTechTileSupport.describeTile(te));
                     GuideGregTechTileSupport.repairMetaTileBinding(te);
                 }
-                if (visibleLayerY != null && te.yCoord != visibleLayerY.intValue()) {
+                if (visibleLayerY != null && te.yCoord != visibleLayerY) {
                     continue;
                 }
                 if (!dispatcher.hasSpecialRenderer(te) || !te.shouldRenderInPass(pass)) {

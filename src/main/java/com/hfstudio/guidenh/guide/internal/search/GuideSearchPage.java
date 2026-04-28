@@ -7,7 +7,7 @@ import net.minecraft.util.ResourceLocation;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 
-public final class GuideSearchPage {
+public class GuideSearchPage {
 
     public static final ResourceLocation PAGE_ID = GuideME.makeId("search");
 

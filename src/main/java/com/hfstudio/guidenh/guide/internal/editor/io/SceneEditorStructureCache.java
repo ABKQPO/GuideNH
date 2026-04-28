@@ -12,7 +12,7 @@ import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 
-public final class SceneEditorStructureCache {
+public class SceneEditorStructureCache {
 
     private final Path workingRoot;
 

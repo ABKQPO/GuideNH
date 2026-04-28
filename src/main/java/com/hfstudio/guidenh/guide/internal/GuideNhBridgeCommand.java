@@ -17,7 +17,7 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideStructureWorldPlacemen
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 
-public final class GuideNhBridgeCommand extends CommandBase {
+public class GuideNhBridgeCommand extends CommandBase {
 
     private static final String[] ROOT_SUB_COMMANDS = { "importstructure", "placeallstructures" };
 

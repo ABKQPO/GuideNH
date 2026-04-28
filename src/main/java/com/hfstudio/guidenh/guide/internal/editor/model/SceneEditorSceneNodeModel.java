@@ -7,7 +7,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-public final class SceneEditorSceneNodeModel {
+public class SceneEditorSceneNodeModel {
 
     private final SceneEditorSceneNodeType type;
     private final Map<String, String> attributes;

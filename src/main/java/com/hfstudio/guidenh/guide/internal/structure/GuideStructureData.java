@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.structure;
 
 import net.minecraft.nbt.NBTTagCompound;
 
-public final class GuideStructureData {
+public class GuideStructureData {
 
     private final NBTTagCompound root;
     private final int sizeX;

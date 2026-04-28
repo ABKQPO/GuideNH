@@ -5,7 +5,7 @@ import com.hfstudio.guidenh.libs.micromark.State;
 import com.hfstudio.guidenh.libs.micromark.Tokenizer;
 import com.hfstudio.guidenh.libs.micromark.Types;
 
-public final class FactoryWhitespace {
+public class FactoryWhitespace {
 
     private FactoryWhitespace() {}
 

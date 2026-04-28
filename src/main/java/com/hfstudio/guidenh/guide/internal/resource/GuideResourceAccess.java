@@ -11,7 +11,7 @@ import net.minecraft.client.resources.IResource;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.util.ResourceLocation;
 
-public final class GuideResourceAccess {
+public class GuideResourceAccess {
 
     private GuideResourceAccess() {}
 

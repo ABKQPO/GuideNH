@@ -7,7 +7,7 @@ import java.util.Objects;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
-final class InitializeText {
+public class InitializeText {
 
     private InitializeText() {}
 

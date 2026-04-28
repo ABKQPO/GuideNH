@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
-public final class SceneEditorElementController {
+public class SceneEditorElementController {
 
     private final SceneEditorSession session;
     private final SceneEditorMarkdownCodec codec;

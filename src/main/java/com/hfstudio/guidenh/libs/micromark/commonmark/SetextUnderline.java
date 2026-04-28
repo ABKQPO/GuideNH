@@ -13,7 +13,7 @@ import com.hfstudio.guidenh.libs.micromark.Types;
 import com.hfstudio.guidenh.libs.micromark.factory.FactorySpace;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-public final class SetextUnderline {
+public class SetextUnderline {
 
     private SetextUnderline() {}
 

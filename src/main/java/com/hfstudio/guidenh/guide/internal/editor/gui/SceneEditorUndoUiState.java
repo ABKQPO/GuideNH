@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public final class SceneEditorUndoUiState {
+public class SceneEditorUndoUiState {
 
     private static final SceneEditorUndoUiState EMPTY = new SceneEditorUndoUiState(Collections.emptyMap());
 
@@ -34,7 +34,7 @@ public final class SceneEditorUndoUiState {
         return Optional.ofNullable(fieldStates.get(fieldKey));
     }
 
-    public static final class Builder {
+    public static class Builder {
 
         private final Map<String, SceneEditorUndoFieldState> fieldStates = new LinkedHashMap<>();
 

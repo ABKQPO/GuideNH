@@ -9,7 +9,7 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-public final class SceneEditorSceneModel {
+public class SceneEditorSceneModel {
 
     @Nullable
     private String structureSource;

@@ -6,7 +6,7 @@ import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownElementRangeIndex;
 
-public final class SceneEditorLinkedSelectionController {
+public class SceneEditorLinkedSelectionController {
 
     @Nullable
     public UUID resolveSelectedElementId(SceneEditorMarkdownElementRangeIndex index, int cursorIndex,

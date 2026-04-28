@@ -8,7 +8,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 
-public final class GuideStructurePlacementService {
+public class GuideStructurePlacementService {
 
     private final StructureBlockResolver blockResolver;
 

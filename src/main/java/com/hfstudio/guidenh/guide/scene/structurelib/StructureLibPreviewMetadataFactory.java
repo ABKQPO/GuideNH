@@ -63,10 +63,7 @@ public class StructureLibPreviewMetadataFactory {
                 metadata = metadata.withChannelData(
                     channelId,
                     channelId,
-                    Math.max(
-                        0,
-                        entry.getValue()
-                            .intValue()),
+                    Math.max(0, entry.getValue()),
                     selection.getChannelValue(channelId));
             }
         }

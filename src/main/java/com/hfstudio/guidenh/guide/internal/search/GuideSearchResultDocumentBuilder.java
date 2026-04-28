@@ -23,7 +23,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 
-public final class GuideSearchResultDocumentBuilder {
+public class GuideSearchResultDocumentBuilder {
 
     private static final ConstantColor SEARCH_TITLE_COLOR = new ConstantColor(0xFF00D2FC);
     private static final ConstantColor RESULT_DIVIDER_COLOR = new ConstantColor(0xFF3A3A3A);
@@ -175,7 +175,7 @@ public final class GuideSearchResultDocumentBuilder {
     public record SearchPageResult(PageAnchor anchor, @Nullable GuidePageIcon icon, String title, String pagePath,
         LytFlowContent snippet) {}
 
-    static final class CenteredStateBlock extends LytVBox {
+    static public class CenteredStateBlock extends LytVBox {
 
         CenteredStateBlock() {
             setFullWidth(true);
@@ -183,7 +183,7 @@ public final class GuideSearchResultDocumentBuilder {
         }
     }
 
-    static final class ResultRowBlock extends LytHBox {
+    static public class ResultRowBlock extends LytHBox {
 
         ResultRowBlock() {
             setFullWidth(true);

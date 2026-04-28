@@ -13,7 +13,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-public final class SceneEditorPointDragService {
+public class SceneEditorPointDragService {
 
     private final SceneEditorSnapService snapService;
     private final float[] rayScratch = new float[6];
@@ -207,12 +207,23 @@ public final class SceneEditorPointDragService {
                 state.originPoint,
                 state.axisDirection,
                 dragPointScratch)
-            : projectMouseToPlane(camera, viewport, mouseX, mouseY, state.originPoint, state.planeNormal, dragPointScratch);
+            : projectMouseToPlane(
+                camera,
+                viewport,
+                mouseX,
+                mouseY,
+                state.originPoint,
+                state.planeNormal,
+                dragPointScratch);
         if (draggedPoint == null) {
             return false;
         }
 
-        Vector3f constrainedPoint = applyConstraint(draggedPoint, state.mode, state.originPoint, constrainedPointScratch);
+        Vector3f constrainedPoint = applyConstraint(
+            draggedPoint,
+            state.mode,
+            state.originPoint,
+            constrainedPointScratch);
         Vector3f resolvedPoint = state.elementType == SceneEditorElementType.BLOCK
             ? resolveBlockPoint(constrainedPoint, state.mode, state.originPoint)
             : state.mode == DragMode.CENTER ? snapService
@@ -516,7 +527,7 @@ public final class SceneEditorPointDragService {
         }
     }
 
-    public static final class DragState {
+    public static class DragState {
 
         private final UUID elementId;
         private final SceneEditorElementType elementType;

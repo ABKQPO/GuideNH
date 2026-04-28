@@ -14,7 +14,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstInlineCode;
 import com.hfstudio.guidenh.libs.micromark.Token;
 import com.hfstudio.guidenh.libs.micromark.extensions.gfm.GfmTableSyntax;
 
-public final class GfmTableMdastExtension {
+public class GfmTableMdastExtension {
 
     private static final MdastContextProperty<Boolean> IN_TABLE = new MdastContextProperty<>();
 

@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.network;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 
-public final class GuideNhClientBridgeMessage implements IMessage {
+public class GuideNhClientBridgeMessage implements IMessage {
 
     public static final byte ACTION_IMPORT_STRUCTURE = 0;
 

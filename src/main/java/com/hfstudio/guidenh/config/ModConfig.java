@@ -99,6 +99,6 @@ public class ModConfig {
     public static void save() {
         try {
             ConfigurationManager.save(ModConfig.class);
-        } catch (Throwable t) {}
+        } catch (Throwable ignored) {}
     }
 }

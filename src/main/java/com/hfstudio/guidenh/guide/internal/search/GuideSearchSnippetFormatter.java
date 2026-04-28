@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 
-public final class GuideSearchSnippetFormatter {
+public class GuideSearchSnippetFormatter {
 
     private static final String START = "<B>";
     private static final String END = "</B>";

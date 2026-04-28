@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 
 import com.hfstudio.guidenh.config.ModConfig;
 
-public final class SceneEditorMarkdownPanelState {
+public class SceneEditorMarkdownPanelState {
 
     private boolean expanded;
     private int openWidth;

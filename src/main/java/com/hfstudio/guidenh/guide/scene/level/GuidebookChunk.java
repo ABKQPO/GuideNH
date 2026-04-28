@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.scene.level;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 
-public final class GuidebookChunk {
+public class GuidebookChunk {
 
     public final int chunkX;
 

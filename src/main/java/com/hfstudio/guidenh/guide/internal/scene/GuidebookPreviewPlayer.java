@@ -10,7 +10,7 @@ import net.minecraft.util.MovementInputFromOptions;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-final class GuidebookPreviewPlayer extends EntityClientPlayerMP {
+public class GuidebookPreviewPlayer extends EntityClientPlayerMP {
 
     private final float[] rayScratch = new float[6];
 

@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 
-public final class SceneEditorOpenService {
+public class SceneEditorOpenService {
 
     private final SceneEditorStructureCache structureCache;
 
@@ -73,10 +73,9 @@ public final class SceneEditorOpenService {
     private float[] extractStructureCenter(String structureSnbt) {
         try {
             NBTBase parsed = JsonToNBT.func_150315_a(structureSnbt);
-            if (!(parsed instanceof NBTTagCompound)) {
+            if (!(parsed instanceof NBTTagCompound root)) {
                 return null;
             }
-            NBTTagCompound root = (NBTTagCompound) parsed;
             int[] size = root.getIntArray("size");
             if (size.length < 3) {
                 return null;
@@ -87,7 +86,7 @@ public final class SceneEditorOpenService {
         }
     }
 
-    public static final class OpenResult {
+    public static class OpenResult {
 
         private final SceneEditorSession session;
         private final boolean importUnavailable;

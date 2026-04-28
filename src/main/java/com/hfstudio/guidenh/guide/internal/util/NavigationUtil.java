@@ -14,7 +14,7 @@ import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
-public final class NavigationUtil {
+public class NavigationUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(NavigationUtil.class);
 

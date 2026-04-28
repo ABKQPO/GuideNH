@@ -5,7 +5,7 @@ package com.hfstudio.guidenh.libs.micromark;
  * they are found. In picking names, generally, the rule is to be as explicit as possible instead of reusing names. For
  * example, there is a `definitionDestination` and a `resourceDestination`, instead of one shared name.
  */
-public final class Types {
+public class Types {
 
     private Types() {}
 

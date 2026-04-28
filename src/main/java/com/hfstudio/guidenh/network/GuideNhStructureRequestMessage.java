@@ -4,7 +4,7 @@ import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
 
-public final class GuideNhStructureRequestMessage implements IMessage {
+public class GuideNhStructureRequestMessage implements IMessage {
 
     public static final byte ACTION_CACHE = 0;
     public static final byte ACTION_IMPORT_AND_PLACE = 1;

@@ -14,7 +14,7 @@ import net.minecraft.tileentity.TileEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public final class GuideGregTechTileSupport {
+public class GuideGregTechTileSupport {
 
     private static final String GREGTECH_TILE_CLASS = "gregtech.api.interfaces.tileentity.IGregTechTileEntity";
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");

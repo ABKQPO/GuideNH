@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.network;
 
-final class GuideNhClientBridgeDispatcher {
+public class GuideNhClientBridgeDispatcher {
 
     private GuideNhClientBridgeDispatcher() {}
 

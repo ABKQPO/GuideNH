@@ -6,7 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
-public final class GuideStructureWorldPlacementTarget implements GuideStructurePlacementTarget {
+public class GuideStructureWorldPlacementTarget implements GuideStructurePlacementTarget {
 
     private final World world;
 

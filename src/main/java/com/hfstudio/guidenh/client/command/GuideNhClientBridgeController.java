@@ -25,7 +25,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public final class GuideNhClientBridgeController {
+public class GuideNhClientBridgeController {
 
     private static final GuideNhClientBridgeController INSTANCE = new GuideNhClientBridgeController();
 
@@ -182,7 +182,7 @@ public final class GuideNhClientBridgeController {
                 .getSimpleName();
     }
 
-    private static final class PendingImportRequest {
+    public static class PendingImportRequest {
 
         private final int x;
         private final int y;

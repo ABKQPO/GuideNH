@@ -20,15 +20,15 @@ import net.minecraft.util.StringUtils;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
-import com.mojang.authlib.GameProfile;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookNameplateControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookPlayerPoseControllable;
+import com.mojang.authlib.GameProfile;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-final class GuidebookPreviewPlayerRenderer extends RenderPlayer {
+public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
 
     private static final GuidebookPreviewPlayerRenderer INSTANCE = new GuidebookPreviewPlayerRenderer();
 
@@ -80,8 +80,9 @@ final class GuidebookPreviewPlayerRenderer extends RenderPlayer {
                     itemstack,
                     net.minecraftforge.client.IItemRenderer.ItemRendererHelper.BLOCK_3D);
 
-                if (is3D || RenderBlocks.renderItemIn3d(Block.getBlockFromItem(itemstack.getItem())
-                    .getRenderType())) {
+                if (is3D || RenderBlocks.renderItemIn3d(
+                    Block.getBlockFromItem(itemstack.getItem())
+                        .getRenderType())) {
                     f1 = 0.625F;
                     GL11.glTranslatef(0.0F, -0.25F, 0.0F);
                     GL11.glRotatef(90.0F, 0.0F, 1.0F, 0.0F);
@@ -115,16 +116,16 @@ final class GuidebookPreviewPlayerRenderer extends RenderPlayer {
         float f2;
 
         if (p_77029_1_.getCommandSenderName()
-            .equals("deadmau5")
-            && p_77029_1_.func_152123_o()) {
+            .equals("deadmau5") && p_77029_1_.func_152123_o()) {
             this.bindTexture(p_77029_1_.getLocationSkin());
 
             for (int j = 0; j < 2; ++j) {
-                float f9 = p_77029_1_.prevRotationYaw + (p_77029_1_.rotationYaw - p_77029_1_.prevRotationYaw) * p_77029_2_
+                float f9 = p_77029_1_.prevRotationYaw
+                    + (p_77029_1_.rotationYaw - p_77029_1_.prevRotationYaw) * p_77029_2_
                     - (p_77029_1_.prevRenderYawOffset
                         + (p_77029_1_.renderYawOffset - p_77029_1_.prevRenderYawOffset) * p_77029_2_);
-                float f10 = p_77029_1_.prevRotationPitch + (p_77029_1_.rotationPitch - p_77029_1_.prevRotationPitch)
-                    * p_77029_2_;
+                float f10 = p_77029_1_.prevRotationPitch
+                    + (p_77029_1_.rotationPitch - p_77029_1_.prevRotationPitch) * p_77029_2_;
                 GL11.glPushMatrix();
                 GL11.glRotatef(f9, 0.0F, 1.0F, 0.0F);
                 GL11.glRotatef(f10, 1.0F, 0.0F, 0.0F);

@@ -7,7 +7,7 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 
-public final class GuideEntityRayPicker {
+public class GuideEntityRayPicker {
 
     private GuideEntityRayPicker() {}
 
@@ -25,7 +25,7 @@ public final class GuideEntityRayPicker {
             }
 
             AxisAlignedBB bounds = entity.boundingBox;
-            if (visibleLayerY != null && !intersectsVisibleLayer(bounds, visibleLayerY.intValue())) {
+            if (visibleLayerY != null && !intersectsVisibleLayer(bounds, visibleLayerY)) {
                 continue;
             }
 
@@ -56,7 +56,7 @@ public final class GuideEntityRayPicker {
             .getBoundingBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ);
     }
 
-    public static final class Hit {
+    public static class Hit {
 
         private final Entity entity;
         private final AxisAlignedBB bounds;

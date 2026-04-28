@@ -7,11 +7,10 @@ import org.apache.logging.log4j.Logger;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-public final class GuidePreviewStateSupport {
+public class GuidePreviewStateSupport {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
-    private static final String AE2_SUPPORT_CLASS =
-        "com.hfstudio.guidenh.guide.scene.support.ae2.GuideAe2PreviewSupport";
+    private static final String AE2_SUPPORT_CLASS = "com.hfstudio.guidenh.guide.scene.support.ae2.GuideAe2PreviewSupport";
 
     private static volatile Method ae2PrepareMethod;
     private static volatile boolean ae2ResolutionAttempted;

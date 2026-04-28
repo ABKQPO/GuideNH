@@ -4,11 +4,10 @@ import javax.annotation.Nullable;
 
 import net.minecraft.util.ResourceLocation;
 
+import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearch;
 
 public class GuideME {
-
-    public static final String MOD_ID = "guidenh";
 
     static GuideMEProxy PROXY = new GuideMEServerProxy();
 
@@ -18,7 +17,7 @@ public class GuideME {
     private GuideME() {}
 
     public static ResourceLocation makeId(String path) {
-        return new ResourceLocation(MOD_ID, path);
+        return new ResourceLocation(GuideNH.MODID, path);
     }
 
     public static void initClientProxy() {

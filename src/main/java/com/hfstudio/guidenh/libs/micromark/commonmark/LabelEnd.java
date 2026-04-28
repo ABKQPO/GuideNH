@@ -24,7 +24,7 @@ import com.hfstudio.guidenh.libs.micromark.factory.FactoryWhitespace;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
-public final class LabelEnd {
+public class LabelEnd {
 
     private LabelEnd() {}
 

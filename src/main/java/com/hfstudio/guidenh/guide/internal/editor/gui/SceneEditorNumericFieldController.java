@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 
 import java.util.function.Consumer;
 
-public final class SceneEditorNumericFieldController {
+public class SceneEditorNumericFieldController {
 
     private final boolean integerMode;
     private final float minValue;

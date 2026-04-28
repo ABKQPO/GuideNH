@@ -6,7 +6,7 @@ import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
 
-public final class LinkParser {
+public class LinkParser {
 
     private LinkParser() {}
 

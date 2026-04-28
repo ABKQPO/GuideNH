@@ -9,7 +9,7 @@ import net.minecraft.entity.player.EntityPlayer;
 
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 
-public final class SceneEditorSaveService {
+public class SceneEditorSaveService {
 
     private final SceneEditorStructureCache structureCache;
     private final SceneEditorClipboardExporter clipboardExporter;
@@ -40,7 +40,7 @@ public final class SceneEditorSaveService {
         }
     }
 
-    public static final class SaveResult {
+    public static class SaveResult {
 
         private final boolean success;
         private final String savedText;

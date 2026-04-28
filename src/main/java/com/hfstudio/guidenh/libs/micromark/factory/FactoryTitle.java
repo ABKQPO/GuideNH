@@ -9,7 +9,7 @@ import com.hfstudio.guidenh.libs.micromark.Tokenizer;
 import com.hfstudio.guidenh.libs.micromark.Types;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-public final class FactoryTitle {
+public class FactoryTitle {
 
     private FactoryTitle() {}
 

@@ -4,7 +4,7 @@ import com.hfstudio.guidenh.libs.mdast.MdastContext;
 import com.hfstudio.guidenh.libs.mdast.MdastExtension;
 import com.hfstudio.guidenh.libs.micromark.Token;
 
-public final class GfmStrikethroughMdastExtension {
+public class GfmStrikethroughMdastExtension {
 
     public static final MdastExtension INSTANCE = MdastExtension.builder()
         .canContainEol("delete")

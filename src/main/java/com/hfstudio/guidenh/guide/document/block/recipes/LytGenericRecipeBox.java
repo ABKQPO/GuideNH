@@ -89,7 +89,7 @@ public class LytGenericRecipeBox extends LytBox {
         return title != null && !title.isEmpty();
     }
 
-    private static final class PositionedSlot extends LytSlot {
+    public static class PositionedSlot extends LytSlot {
 
         final NeiRecipeLookup.Slot src;
 

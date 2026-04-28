@@ -22,7 +22,7 @@ import net.minecraft.nbt.JsonToNBT;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 
-public final class SceneEditorStructureImportService {
+public class SceneEditorStructureImportService {
 
     private static final String SNBT_EXTENSION = ".snbt";
     private static final Executor IMPORT_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
@@ -176,7 +176,7 @@ public final class SceneEditorStructureImportService {
         String read(Path path) throws Exception;
     }
 
-    public static final class ImportResult {
+    public static class ImportResult {
 
         private final String structureSource;
         private final String structureText;

@@ -9,7 +9,7 @@ import com.hfstudio.guidenh.libs.micromark.Types;
 import com.hfstudio.guidenh.libs.micromark.factory.FactorySpace;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-public final class BlankLine {
+public class BlankLine {
 
     private BlankLine() {}
 

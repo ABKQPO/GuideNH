@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.libs.micromark.html;
 
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-public final class NumericCharacterReference {
+public class NumericCharacterReference {
 
     private NumericCharacterReference() {}
 

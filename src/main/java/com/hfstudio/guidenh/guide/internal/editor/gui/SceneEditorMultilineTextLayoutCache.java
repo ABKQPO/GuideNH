@@ -8,7 +8,7 @@ import net.minecraft.client.gui.FontRenderer;
 
 import com.github.bsideup.jabel.Desugar;
 
-public final class SceneEditorMultilineTextLayoutCache {
+public class SceneEditorMultilineTextLayoutCache {
 
     private final List<VisualLine> visualLines = new ArrayList<>();
     private List<VisualLine> readonlyVisualLines = Collections.emptyList();

@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 
-public final class SceneEditorHandleOverlay {
+public class SceneEditorHandleOverlay {
 
     public static final String CENTER_HANDLE_ID = "center";
     public static final String X_AXIS_HANDLE_ID = "axis_x";
@@ -326,12 +326,7 @@ public final class SceneEditorHandleOverlay {
 
     private LytRect getAxisHandleBounds(SceneEditorElementModel element, CameraSettings camera, LytRect viewport,
         String handleId) {
-        Vector3f center = projectHandlePoint(
-            element,
-            camera,
-            viewport,
-            CENTER_HANDLE_ID,
-            axisBoundsCenterScratch);
+        Vector3f center = projectHandlePoint(element, camera, viewport, CENTER_HANDLE_ID, axisBoundsCenterScratch);
         Vector3f tip = projectHandlePoint(element, camera, viewport, handleId, axisBoundsTipScratch);
         AxisArrowGeometry geometry = createAxisArrowGeometry(center, tip, axisArrowScratch);
         float minX = Math.min(tip.x, Math.min(geometry.leftX, geometry.rightX));
@@ -510,7 +505,7 @@ public final class SceneEditorHandleOverlay {
         }
     }
 
-    private static final class AxisArrowGeometry {
+    public static class AxisArrowGeometry {
 
         private float leftX;
         private float leftY;

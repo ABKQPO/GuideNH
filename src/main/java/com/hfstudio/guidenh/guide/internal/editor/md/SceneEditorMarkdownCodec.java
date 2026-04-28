@@ -34,7 +34,7 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistParent;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
-public final class SceneEditorMarkdownCodec {
+public class SceneEditorMarkdownCodec {
 
     private static final MdastOptions PARSE_OPTIONS = new MdastOptions().withSyntaxExtension(MdxSyntax.INSTANCE)
         .withSyntaxExtension(YamlFrontmatterSyntax.INSTANCE)
@@ -927,14 +927,14 @@ public final class SceneEditorMarkdownCodec {
             + ")";
     }
 
-    private static final class UnsupportedSubsetException extends RuntimeException {
+    public static class UnsupportedSubsetException extends RuntimeException {
 
         private UnsupportedSubsetException(String message) {
             super(message);
         }
     }
 
-    private static final class InvalidSceneSyntaxException extends RuntimeException {
+    public static class InvalidSceneSyntaxException extends RuntimeException {
 
         private InvalidSceneSyntaxException(String message) {
             super(message);

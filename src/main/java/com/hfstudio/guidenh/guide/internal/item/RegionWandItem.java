@@ -414,7 +414,7 @@ public class RegionWandItem extends Item {
         String getBlockId(int x, int y, int z, Block block);
     }
 
-    private static final class WorldStructureExportAccess implements StructureExportAccess {
+    public static class WorldStructureExportAccess implements StructureExportAccess {
 
         private final World world;
 
@@ -443,7 +443,7 @@ public class RegionWandItem extends Item {
         }
     }
 
-    private static final class GuidebookLevelStructureExportAccess implements StructureExportAccess {
+    public static class GuidebookLevelStructureExportAccess implements StructureExportAccess {
 
         private final GuidebookLevel level;
 

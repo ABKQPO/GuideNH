@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 
 import com.github.bsideup.jabel.Desugar;
 
-public final class SceneEditorHorizontalScrollbar {
+public class SceneEditorHorizontalScrollbar {
 
     private static final int MIN_THUMB_SIZE = 18;
 

@@ -11,7 +11,7 @@ import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
-public final class SceneEditorElementContextMenuController {
+public class SceneEditorElementContextMenuController {
 
     private final SceneEditorSession session;
     private final SceneEditorMarkdownCodec codec;

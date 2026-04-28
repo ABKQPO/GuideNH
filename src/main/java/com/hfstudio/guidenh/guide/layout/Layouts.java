@@ -8,7 +8,7 @@ import com.hfstudio.guidenh.guide.document.block.AlignItems;
 import com.hfstudio.guidenh.guide.document.block.LytAxis;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 
-public final class Layouts {
+public class Layouts {
 
     private Layouts() {}
 

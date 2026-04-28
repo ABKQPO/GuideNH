@@ -13,7 +13,7 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneImportService;
 
-public final class SceneEditorPreviewBridge {
+public class SceneEditorPreviewBridge {
 
     private final SceneEditorPreviewCameraController previewCameraController;
     private final SceneEditorSceneNodePreviewApplier sceneNodePreviewApplier;
@@ -37,6 +37,7 @@ public final class SceneEditorPreviewBridge {
         LytGuidebookScene scene = new LytGuidebookScene();
         scene.setInteractive(true);
         scene.setSceneButtonsVisible(false);
+        scene.setReserveBottomControlArea(false);
         scene.setVisibleLayerSliderEnabled(model.isAllowLayerSlider() || ModConfig.ui.sceneLayerSliderEnabled);
         scene.setSceneSize(model.getPreviewWidth(), model.getPreviewHeight());
         applyExportCamera(scene.getCamera(), model);
@@ -58,6 +59,7 @@ public final class SceneEditorPreviewBridge {
         scene.clearAnnotationHover();
         scene.setStructureLibSceneMetadata(null);
         scene.setLevel(new GuidebookLevel());
+        scene.setReserveBottomControlArea(false);
         scene.setVisibleLayerSliderEnabled(
             session.getSceneModel()
                 .isAllowLayerSlider() || ModConfig.ui.sceneLayerSliderEnabled);

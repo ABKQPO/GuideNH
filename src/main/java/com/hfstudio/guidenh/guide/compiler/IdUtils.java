@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.github.bsideup.jabel.Desugar;
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 
-public final class IdUtils {
+public class IdUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(IdUtils.class);
 

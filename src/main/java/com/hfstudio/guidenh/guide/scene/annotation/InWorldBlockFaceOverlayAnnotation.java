@@ -5,7 +5,7 @@ import java.util.Set;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
 
-public final class InWorldBlockFaceOverlayAnnotation extends InWorldAnnotation {
+public class InWorldBlockFaceOverlayAnnotation extends InWorldAnnotation {
 
     private final int blockX;
     private final int blockY;
@@ -19,7 +19,7 @@ public final class InWorldBlockFaceOverlayAnnotation extends InWorldAnnotation {
         this.blockY = blockY;
         this.blockZ = blockZ;
         this.color = color;
-        this.groupedPositions = groupedPositions != null ? groupedPositions : Collections.<Long>emptySet();
+        this.groupedPositions = groupedPositions != null ? groupedPositions : Collections.emptySet();
     }
 
     public int getBlockX() {

@@ -19,7 +19,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
-public final class MdxAttrs {
+public class MdxAttrs {
 
     private static final Pattern COLOR_PATTERN = Pattern.compile("^#([0-9a-fA-F]{2}){3,4}$");
 

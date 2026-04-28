@@ -16,7 +16,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 /**
  * Indexes all anchors within a page to allow faster navigation to them.
  */
-public final class AnchorIndexer {
+public class AnchorIndexer {
 
     private final LytDocument document;
 

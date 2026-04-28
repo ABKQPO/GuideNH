@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
-final class Preprocessor {
+public class Preprocessor {
 
     private static final Pattern SEARCH = Pattern.compile("[\0\t\n\r]");
 

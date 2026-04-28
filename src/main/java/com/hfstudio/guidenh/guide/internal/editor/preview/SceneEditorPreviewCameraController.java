@@ -5,7 +5,7 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
 
-public final class SceneEditorPreviewCameraController {
+public class SceneEditorPreviewCameraController {
 
     public void applyModelCamera(LytGuidebookScene scene, SceneEditorSceneModel model) {
         applyModelCamera(scene.getCamera(), model);

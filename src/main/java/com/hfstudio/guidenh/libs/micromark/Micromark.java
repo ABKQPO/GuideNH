@@ -6,7 +6,7 @@ import java.util.List;
 import com.hfstudio.guidenh.libs.micromark.commonmark.Subtokenize;
 import com.hfstudio.guidenh.libs.micromark.html.ParseOptions;
 
-public final class Micromark {
+public class Micromark {
 
     public static final boolean ENABLE_TRACE = false;
 

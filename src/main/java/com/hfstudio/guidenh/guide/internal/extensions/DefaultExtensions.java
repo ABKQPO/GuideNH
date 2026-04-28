@@ -44,7 +44,7 @@ import com.hfstudio.guidenh.guide.scene.element.IsometricCameraElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.RemoveBlocksElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 
-public final class DefaultExtensions {
+public class DefaultExtensions {
 
     private static final List<Registration<?>> EXTENSIONS = Arrays.asList(
         new Registration<>(TagCompiler.EXTENSION_POINT, DefaultExtensions::tagCompilers),

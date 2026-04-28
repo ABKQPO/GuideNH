@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
 import com.hfstudio.guidenh.libs.micromark.CharUtil;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-public final class SanitizeUri {
+public class SanitizeUri {
 
     private SanitizeUri() {}
 

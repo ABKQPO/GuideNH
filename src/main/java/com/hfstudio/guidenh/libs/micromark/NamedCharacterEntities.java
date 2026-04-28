@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public final class NamedCharacterEntities {
+public class NamedCharacterEntities {
 
     private static final Map<String, String> ENTITIES = new HashMap<>();
 

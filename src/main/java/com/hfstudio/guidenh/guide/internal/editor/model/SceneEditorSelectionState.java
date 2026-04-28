@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-public final class SceneEditorSelectionState {
+public class SceneEditorSelectionState {
 
     @Nullable
     private UUID selectedElementId;

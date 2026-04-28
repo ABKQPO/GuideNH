@@ -7,7 +7,7 @@ import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.internal.GuideMEProxy;
 
-public final class GuidesCommon {
+public class GuidesCommon {
 
     private GuidesCommon() {}
 

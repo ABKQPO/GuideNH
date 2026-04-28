@@ -13,7 +13,7 @@ import net.minecraft.world.World;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-public final class GuidebookFakeRenderEnvironment implements AutoCloseable {
+public class GuidebookFakeRenderEnvironment implements AutoCloseable {
 
     private static GuidebookPreviewPlayer cachedPreviewPlayer;
     private static NetHandlerPlayClient cachedNetHandler;
@@ -102,7 +102,7 @@ public final class GuidebookFakeRenderEnvironment implements AutoCloseable {
         return cachedPreviewPlayer;
     }
 
-    private static final class RenderManagerState {
+    public static class RenderManagerState {
 
         private final World world;
         private final EntityLivingBase livingPlayer;
@@ -145,7 +145,7 @@ public final class GuidebookFakeRenderEnvironment implements AutoCloseable {
         }
     }
 
-    private static final class TileEntityDispatcherState {
+    public static class TileEntityDispatcherState {
 
         private final World world;
         private final EntityLivingBase livingPlayer;

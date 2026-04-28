@@ -14,7 +14,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 
-public final class SceneEditorMultilineTextArea {
+public class SceneEditorMultilineTextArea {
 
     private static final int PADDING = 4;
     private static final int SCROLLBAR_SIZE = 5;

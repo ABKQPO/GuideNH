@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.color;
 /**
  * A helper for mutating color values. The color values are stored as {@code float} components between 0 and 1.
  */
-public final class MutableColor implements ColorValue {
+public class MutableColor implements ColorValue {
 
     private float r = 1f;
     private float g = 1f;

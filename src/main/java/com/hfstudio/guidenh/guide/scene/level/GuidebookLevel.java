@@ -23,11 +23,11 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.hfstudio.guidenh.guide.scene.support.GuidePreviewStateSupport;
+
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-
-import com.hfstudio.guidenh.guide.scene.support.GuidePreviewStateSupport;
 
 public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 

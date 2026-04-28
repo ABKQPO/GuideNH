@@ -36,7 +36,7 @@ public class HtmlCompiler {
     private static final Pattern protocolSrc = Pattern.compile("^https?$", Pattern.CASE_INSENSITIVE);
     private final CompileOptions options;
 
-    private static final class Media {
+    public static class Media {
 
         boolean image;
         String labelId;

@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
-public final class SceneEditorScrollState {
+public class SceneEditorScrollState {
 
     private int offsetPixels;
     private int viewportPixels;

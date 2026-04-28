@@ -6,7 +6,7 @@ import net.minecraft.block.Block;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
-public final class GuideBlockMatcher {
+public class GuideBlockMatcher {
 
     private final String blockId;
     @Nullable
@@ -35,7 +35,7 @@ public final class GuideBlockMatcher {
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid block matcher meta: " + literal, e);
             }
-            if (meta.intValue() < 0) {
+            if (meta < 0) {
                 throw new IllegalArgumentException("Block matcher meta must be non-negative: " + literal);
             }
         }
@@ -61,11 +61,11 @@ public final class GuideBlockMatcher {
             return false;
         }
 
-        return this.meta == null || this.meta.intValue() == meta;
+        return this.meta == null || this.meta == meta;
     }
 
     public boolean matchesResolvedBlockId(@Nullable String resolvedBlockId, int meta) {
-        return matchesCandidate(resolvedBlockId) && (this.meta == null || this.meta.intValue() == meta);
+        return matchesCandidate(resolvedBlockId) && (this.meta == null || this.meta == meta);
     }
 
     private boolean matchesBlockId(Block block) {

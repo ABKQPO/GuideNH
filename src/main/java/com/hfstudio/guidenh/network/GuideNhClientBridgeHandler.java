@@ -11,7 +11,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public final class GuideNhClientBridgeHandler implements IMessageHandler<GuideNhClientBridgeMessage, IMessage> {
+public class GuideNhClientBridgeHandler implements IMessageHandler<GuideNhClientBridgeMessage, IMessage> {
 
     @Override
     public IMessage onMessage(GuideNhClientBridgeMessage message, MessageContext ctx) {

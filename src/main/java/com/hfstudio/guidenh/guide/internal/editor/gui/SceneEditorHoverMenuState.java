@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
-public final class SceneEditorHoverMenuState {
+public class SceneEditorHoverMenuState {
 
     private boolean open;
     private boolean stickyUntilPointerLeaves;

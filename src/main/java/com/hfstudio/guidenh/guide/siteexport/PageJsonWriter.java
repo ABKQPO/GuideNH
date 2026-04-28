@@ -37,7 +37,7 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
  * }
  * </pre>
  */
-public final class PageJsonWriter {
+public class PageJsonWriter {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
         .disableHtmlEscaping()

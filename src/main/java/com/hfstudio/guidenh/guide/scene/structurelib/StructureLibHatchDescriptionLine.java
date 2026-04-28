@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-public final class StructureLibHatchDescriptionLine {
+public class StructureLibHatchDescriptionLine {
 
     public enum Kind {
         HINT_BLOCK,

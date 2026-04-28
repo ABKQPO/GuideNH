@@ -111,7 +111,7 @@ public class GuidebookFakeWorld extends WorldClient {
         TileEntity tileEntity = level.getTileEntity(x, y, z);
         Integer bartWorksMeta = resolveBartWorksMetadata(tileEntity);
         if (bartWorksMeta != null) {
-            return bartWorksMeta.intValue();
+            return bartWorksMeta;
         }
         return level.getBlockMetadata(x, y, z);
     }
@@ -350,7 +350,7 @@ public class GuidebookFakeWorld extends WorldClient {
             return null;
         }
         try {
-            return Integer.valueOf(Math.max(0, metaField.getShort(tileEntity)));
+            return Math.max(0, metaField.getShort(tileEntity));
         } catch (Throwable ignored) {
             return null;
         }

@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 
-public final class SceneEditorMarkdownElementRangeIndex {
+public class SceneEditorMarkdownElementRangeIndex {
 
     private static final Pattern ELEMENT_START_PATTERN = Pattern
         .compile("<(BlockAnnotation|BoxAnnotation|LineAnnotation|DiamondAnnotation)\\b");
@@ -119,7 +119,7 @@ public final class SceneEditorMarkdownElementRangeIndex {
         return false;
     }
 
-    private static final class MatchedTag {
+    public static class MatchedTag {
 
         private final String tagName;
         private final int startIndex;

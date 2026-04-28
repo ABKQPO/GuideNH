@@ -4,7 +4,7 @@ package com.hfstudio.guidenh.libs.mdx;
  * EcmaScript identifier character checks.
  *
  */
-public final class EcmaScriptIdentifiers {
+public class EcmaScriptIdentifiers {
 
     private EcmaScriptIdentifiers() {}
 

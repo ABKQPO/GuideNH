@@ -13,7 +13,7 @@ import com.hfstudio.guidenh.guide.color.LightDarkMode;
  * borders) at an arbitrary target rectangle. Corners keep their size, edges stretch, center
  * stretches. This is the same scheme used by GuideME's {@code PanelBlitter}/{@code GuiAssets}.
  */
-public final class WindowNinePatch {
+public class WindowNinePatch {
 
     public static final int TEX_SIZE = 16;
     public static final int BORDER = 4;

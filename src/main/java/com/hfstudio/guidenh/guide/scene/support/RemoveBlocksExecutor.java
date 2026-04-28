@@ -7,7 +7,7 @@ import net.minecraft.init.Blocks;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-public final class RemoveBlocksExecutor {
+public class RemoveBlocksExecutor {
 
     private RemoveBlocksExecutor() {}
 

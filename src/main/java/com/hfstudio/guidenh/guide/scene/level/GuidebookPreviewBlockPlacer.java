@@ -72,7 +72,7 @@ public class GuidebookPreviewBlockPlacer {
                 describePosition(x, y, z),
                 GuideGregTechTileSupport.describeBlock(block),
                 explicitBlockId,
-                Integer.valueOf(placementData.blockMeta),
+                placementData.blockMeta,
                 placementData.metaTileId,
                 GuideGregTechTileSupport.describeTileTag(tileTag));
         }
@@ -85,15 +85,15 @@ public class GuidebookPreviewBlockPlacer {
         Integer metaTileId = resolveGregTechMetaTileId(block, requestedMeta, tileTag);
         if (metaTileId == null) {
             Integer bartWorksMeta = resolveBartWorksBlockMeta(block, requestedMeta, tileTag);
-            return new PlacementData(bartWorksMeta != null ? bartWorksMeta.intValue() : requestedMeta, null);
+            return new PlacementData(bartWorksMeta != null ? bartWorksMeta : requestedMeta, null);
         }
 
-        Integer blockMeta = resolveGregTechBaseMeta(metaTileId.intValue());
+        Integer blockMeta = resolveGregTechBaseMeta(metaTileId);
         if (blockMeta == null) {
             return new PlacementData(requestedMeta, null);
         }
 
-        return new PlacementData(blockMeta.intValue(), metaTileId);
+        return new PlacementData(blockMeta, metaTileId);
     }
 
     @Nullable
@@ -103,9 +103,9 @@ public class GuidebookPreviewBlockPlacer {
         }
         if (tileTag != null && tileTag.hasKey("mID")) {
             int tagMetaTileId = tileTag.getInteger("mID");
-            return tagMetaTileId > 0 ? Integer.valueOf(tagMetaTileId) : null;
+            return tagMetaTileId > 0 ? tagMetaTileId : null;
         }
-        return requestedMeta > 15 ? Integer.valueOf(requestedMeta) : null;
+        return requestedMeta > 15 ? requestedMeta : null;
     }
 
     @Nullable
@@ -119,10 +119,10 @@ public class GuidebookPreviewBlockPlacer {
                 metaFromTag = tileTag.getInteger("m");
             }
             if (metaFromTag > 0) {
-                return Integer.valueOf(metaFromTag);
+                return metaFromTag;
             }
         }
-        return Integer.valueOf(Math.max(0, requestedMeta));
+        return Math.max(0, requestedMeta);
     }
 
     @Nullable
@@ -149,7 +149,7 @@ public class GuidebookPreviewBlockPlacer {
             Method getTileEntityBaseType = metaTileEntity.getClass()
                 .getMethod("getTileEntityBaseType");
             Object baseMeta = getTileEntityBaseType.invoke(metaTileEntity);
-            return baseMeta instanceof Number number ? Integer.valueOf(number.intValue()) : null;
+            return baseMeta instanceof Number number ? number.intValue() : null;
         } catch (Throwable t) {
             LOG.warn("Failed to resolve GregTech base meta for preview block {}", metaTileId, t);
             return null;
@@ -158,18 +158,18 @@ public class GuidebookPreviewBlockPlacer {
 
     private static void initializeGregTechMetaTile(@Nullable TileEntity tileEntity, @Nullable Integer metaTileId,
         @Nullable NBTTagCompound tileTag) {
-        if (tileEntity == null || metaTileId == null || metaTileId.intValue() <= 0) {
+        if (tileEntity == null || metaTileId == null || metaTileId <= 0) {
             return;
         }
         try {
             Method initializer = tileEntity.getClass()
                 .getMethod("setInitialValuesAsNBT", NBTTagCompound.class, short.class);
             NBTTagCompound initTag = tileTag;
-            if (initTag != null && (!initTag.hasKey("mID") || initTag.getInteger("mID") != metaTileId.intValue())) {
+            if (initTag != null && (!initTag.hasKey("mID") || initTag.getInteger("mID") != metaTileId)) {
                 initTag = (NBTTagCompound) initTag.copy();
-                initTag.setInteger("mID", metaTileId.intValue());
+                initTag.setInteger("mID", metaTileId);
             }
-            initializer.invoke(tileEntity, initTag, Short.valueOf((short) metaTileId.intValue()));
+            initializer.invoke(tileEntity, initTag, (short) metaTileId.intValue());
         } catch (NoSuchMethodException ignored) {
             // Non-GregTech tiles do not expose this initializer.
         } catch (Throwable t) {
@@ -213,7 +213,7 @@ public class GuidebookPreviewBlockPlacer {
             return false;
         }
         Object valid = isValidFacing.invoke(tileEntity, facing);
-        return valid instanceof Boolean && ((Boolean) valid).booleanValue();
+        return valid instanceof Boolean && (Boolean) valid;
     }
 
     private static ForgeDirection findPreferredFacing(Method isValidFacing, TileEntity tileEntity)
@@ -283,8 +283,8 @@ public class GuidebookPreviewBlockPlacer {
             describePosition(x, y, z),
             GuideGregTechTileSupport.describeBlock(block),
             explicitBlockId,
-            Integer.valueOf(requestedMeta),
-            Integer.valueOf(placementData.blockMeta),
+            requestedMeta,
+            placementData.blockMeta,
             placementData.metaTileId,
             GuideGregTechTileSupport.describeTileTag(tileTag));
     }
@@ -323,7 +323,7 @@ public class GuidebookPreviewBlockPlacer {
         return "(" + x + "," + y + "," + z + ")";
     }
 
-    private static final class PlacementData {
+    public static class PlacementData {
 
         private final int blockMeta;
         @Nullable

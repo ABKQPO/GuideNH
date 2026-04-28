@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark;
 
-public final class Assert {
+public class Assert {
 
     private Assert() {}
 

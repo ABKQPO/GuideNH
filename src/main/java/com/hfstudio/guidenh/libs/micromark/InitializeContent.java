@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.libs.micromark;
 import com.hfstudio.guidenh.libs.micromark.factory.FactorySpace;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-public final class InitializeContent {
+public class InitializeContent {
 
     private InitializeContent() {}
 

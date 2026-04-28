@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
-public final class SceneEditorSnapModes {
+public class SceneEditorSnapModes {
 
     private static final SceneEditorSnapModes DEFAULT = new SceneEditorSnapModes(true, false, false, false);
 

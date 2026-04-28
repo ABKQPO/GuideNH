@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.libs.micromark.Types;
 import com.hfstudio.guidenh.libs.micromark.factory.FactorySpace;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-final class JsxFlow {
+public class JsxFlow {
 
     public static final Construct INSTANCE = new Construct();
 

@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.scene;
 
 import net.minecraft.entity.Entity;
 
-final class GuideEntityRenderStateResolver {
+public class GuideEntityRenderStateResolver {
 
     private GuideEntityRenderStateResolver() {}
 
@@ -19,7 +19,7 @@ final class GuideEntityRenderStateResolver {
         return new ResolvedEntityRenderState(x, y, z, yaw);
     }
 
-    static final class ResolvedEntityRenderState {
+    static public class ResolvedEntityRenderState {
 
         final double x;
         final double y;

@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.guide.style;
 
 /**
- * See https://developer.mozilla.org/en-US/docs/Web/CSS/white-space
+ * See <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/white-space">...</a>
  */
 public enum WhiteSpaceMode {
 

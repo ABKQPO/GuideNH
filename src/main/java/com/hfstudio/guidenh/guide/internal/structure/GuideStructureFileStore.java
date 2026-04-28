@@ -8,7 +8,7 @@ import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.UUID;
 
-public final class GuideStructureFileStore {
+public class GuideStructureFileStore {
 
     private final Path workingRoot;
 

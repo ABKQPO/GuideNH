@@ -24,7 +24,7 @@ import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
-public final class GuideNavBar {
+public class GuideNavBar {
 
     public static final int WIDTH_CLOSED = 10;
     public static final int WIDTH_OPEN = 150;
@@ -304,7 +304,7 @@ public final class GuideNavBar {
         tess.draw();
     }
 
-    private static final class Row {
+    public static class Row {
 
         final NavigationNode node;
         final int depth;

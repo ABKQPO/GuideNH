@@ -7,7 +7,7 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 
-public final class DefaultStyles {
+public class DefaultStyles {
 
     private DefaultStyles() {}
 

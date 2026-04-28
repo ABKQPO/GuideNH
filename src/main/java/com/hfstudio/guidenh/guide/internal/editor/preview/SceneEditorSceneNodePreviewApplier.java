@@ -39,16 +39,18 @@ import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.RemoveBlocksExecutor;
 
-final class SceneEditorSceneNodePreviewApplier {
+public class SceneEditorSceneNodePreviewApplier {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
 
     private final Path workingRoot;
     private final StructureLibSceneImportService structureLibImportService;
+    private final SceneEditorTooltipCompiler tooltipCompiler;
 
     SceneEditorSceneNodePreviewApplier(Path workingRoot, StructureLibSceneImportService structureLibImportService) {
         this.workingRoot = workingRoot;
         this.structureLibImportService = structureLibImportService;
+        this.tooltipCompiler = new SceneEditorTooltipCompiler();
     }
 
     void apply(SceneEditorSession session, LytGuidebookScene scene) {
@@ -324,10 +326,7 @@ final class SceneEditorSceneNodePreviewApplier {
                     element.getPrimaryZ() + 1f);
                 InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
                 annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                if (!element.getTooltipMarkdown()
-                    .isEmpty()) {
-                    annotation.setTooltipText(element.getTooltipMarkdown());
-                }
+                applyTooltip(annotation, element.getTooltipMarkdown());
                 return annotation;
             }
             case BOX: {
@@ -336,10 +335,7 @@ final class SceneEditorSceneNodePreviewApplier {
                 normalizeBounds(min, max);
                 InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
                 annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                if (!element.getTooltipMarkdown()
-                    .isEmpty()) {
-                    annotation.setTooltipText(element.getTooltipMarkdown());
-                }
+                applyTooltip(annotation, element.getTooltipMarkdown());
                 return annotation;
             }
             case LINE: {
@@ -349,10 +345,7 @@ final class SceneEditorSceneNodePreviewApplier {
                     color,
                     element.getThickness());
                 annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                if (!element.getTooltipMarkdown()
-                    .isEmpty()) {
-                    annotation.setTooltipText(element.getTooltipMarkdown());
-                }
+                applyTooltip(annotation, element.getTooltipMarkdown());
                 return annotation;
             }
             case DIAMOND:
@@ -361,13 +354,14 @@ final class SceneEditorSceneNodePreviewApplier {
                     new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
                     color);
                 annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                if (!element.getTooltipMarkdown()
-                    .isEmpty()) {
-                    annotation.setTooltipText(element.getTooltipMarkdown());
-                }
+                applyTooltip(annotation, element.getTooltipMarkdown());
                 return annotation;
             }
         }
+    }
+
+    private void applyTooltip(SceneAnnotation annotation, @Nullable String tooltipMarkdown) {
+        annotation.setTooltip(tooltipCompiler.compile(tooltipMarkdown));
     }
 
     private void normalizeBounds(Vector3f min, Vector3f max) {
@@ -419,7 +413,7 @@ final class SceneEditorSceneNodePreviewApplier {
             return null;
         }
         try {
-            return Integer.valueOf(Integer.parseInt(normalized));
+            return Integer.parseInt(normalized);
         } catch (NumberFormatException ignored) {
             return null;
         }

@@ -13,7 +13,7 @@ import com.hfstudio.guidenh.libs.micromark.Types;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
-public final class CharacterReference {
+public class CharacterReference {
 
     private CharacterReference() {}
 

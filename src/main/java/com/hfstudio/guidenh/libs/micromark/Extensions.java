@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class Extensions {
+public class Extensions {
 
     private Extensions() {}
 

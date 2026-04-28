@@ -11,7 +11,7 @@ import com.hfstudio.guidenh.libs.micromark.factory.FactorySpace;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
-public final class ThematicBreak {
+public class ThematicBreak {
 
     private ThematicBreak() {}
 

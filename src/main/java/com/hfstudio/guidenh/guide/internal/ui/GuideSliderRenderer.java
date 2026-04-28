@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.ui;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 
-public final class GuideSliderRenderer {
+public class GuideSliderRenderer {
 
     public static final int TRACK_COLOR = 0x6622262C;
     public static final int FILL_COLOR = 0xAA1CB4E9;
@@ -66,7 +66,7 @@ public final class GuideSliderRenderer {
         void drawRect(int left, int top, int right, int bottom, int color);
     }
 
-    public static final class SliderGeometry {
+    public static class SliderGeometry {
 
         private final LytRect trackRect;
         private final LytRect fillRect;

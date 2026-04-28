@@ -6,5 +6,5 @@ package com.hfstudio.guidenh.libs.micromark.html;
  * @param <T> The type of data associated with this property.
  */
 @SuppressWarnings("unused")
-public final class HtmlContextProperty<T> {
+public class HtmlContextProperty<T> {
 }

@@ -26,7 +26,7 @@ import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 
-public final class ExportTask {
+public class ExportTask {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExportTask.class);
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
@@ -112,7 +112,7 @@ public final class ExportTask {
         return collector;
     }
 
-    public static final class Result {
+    public static class Result {
 
         public final int pagesExported;
         public final int pagesFailed;
@@ -127,7 +127,7 @@ public final class ExportTask {
         }
     }
 
-    private final class Collector implements ResourceExporter {
+    public class Collector implements ResourceExporter {
 
         final Set<ResourceLocation> textures = new HashSet<>();
         final Set<Item> items = new HashSet<>();

@@ -3,17 +3,16 @@ package com.hfstudio.guidenh.guide.internal.scene;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.world.World;
 
-import com.mojang.authlib.GameProfile;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookCapeControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookNameplateControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookPlayerPoseControllable;
+import com.mojang.authlib.GameProfile;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public class GuidebookScenePreviewPlayerEntity
-    extends EntityOtherPlayerMP
+public class GuidebookScenePreviewPlayerEntity extends EntityOtherPlayerMP
     implements GuidebookNameplateControllable, GuidebookCapeControllable, GuidebookPlayerPoseControllable {
 
     private boolean guidebookNameplateVisible = true;

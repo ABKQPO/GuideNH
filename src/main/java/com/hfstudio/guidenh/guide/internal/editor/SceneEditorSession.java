@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorUndoUiState;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSelectionState;
 
-public final class SceneEditorSession {
+public class SceneEditorSession {
 
     private SceneEditorSceneModel sceneModel;
     private final boolean blankSession;

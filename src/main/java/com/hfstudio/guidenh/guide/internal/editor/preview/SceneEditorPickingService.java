@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 
-public final class SceneEditorPickingService {
+public class SceneEditorPickingService {
 
     public boolean applyPreviewClickSelection(SceneEditorSession session, LytGuidebookScene previewScene, int mouseX,
         int mouseY, boolean autoPickEnabled) {

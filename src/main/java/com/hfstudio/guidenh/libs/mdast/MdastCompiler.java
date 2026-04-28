@@ -52,7 +52,7 @@ import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
-final class MdastCompiler implements MdastContext {
+public class MdastCompiler implements MdastContext {
 
     private static final TokenProperty<Boolean> SPREAD = new TokenProperty<>();
 

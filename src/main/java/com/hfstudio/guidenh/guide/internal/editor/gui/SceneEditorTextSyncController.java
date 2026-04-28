@@ -9,7 +9,7 @@ import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownElementRangeIndex;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownParseResult;
 
-public final class SceneEditorTextSyncController {
+public class SceneEditorTextSyncController {
 
     public enum ValidationKind {
         NONE,

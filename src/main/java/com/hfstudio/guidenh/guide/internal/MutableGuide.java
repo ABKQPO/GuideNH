@@ -37,7 +37,7 @@ import com.hfstudio.guidenh.guide.navigation.NavigationTree;
  * Encapsulates a Guide, which consists of a collection of Markdown pages and associated content, loaded from a
  * guide-specific subdirectory of resource packs.
  */
-public final class MutableGuide implements Guide {
+public class MutableGuide implements Guide {
 
     private static final Logger LOG = LoggerFactory.getLogger(MutableGuide.class);
 

@@ -13,7 +13,7 @@ import net.minecraft.world.World;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-public final class GuideBlockDisplayResolver {
+public class GuideBlockDisplayResolver {
 
     private static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS = "bartworks.system.material.BWMetaGeneratedBlocks";
 

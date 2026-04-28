@@ -4,7 +4,7 @@ import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
 
-public final class InWorldBoxAnnotation extends InWorldAnnotation {
+public class InWorldBoxAnnotation extends InWorldAnnotation {
 
     public static float DEFAULT_THICKNESS = 1f;
 

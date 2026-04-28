@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.color;
 
-public final class ARGB {
+public class ARGB {
 
     private ARGB() {}
 

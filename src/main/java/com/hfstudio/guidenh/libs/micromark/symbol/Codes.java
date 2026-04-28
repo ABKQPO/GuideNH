@@ -10,7 +10,7 @@ package com.hfstudio.guidenh.libs.micromark.symbol;
  * and NUL (which is present as the replacement character), are guaranteed to not exist.
  * Unicode basic latin block.
  */
-public final class Codes {
+public class Codes {
 
     private Codes() {}
 

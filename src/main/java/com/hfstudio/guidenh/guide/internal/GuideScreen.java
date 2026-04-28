@@ -56,7 +56,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-public final class GuideScreen extends GuiScreen implements GuideUiHost {
+public class GuideScreen extends GuiScreen implements GuideUiHost {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/GuideScreen");
 
@@ -144,7 +144,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
     private static final String ASCII_ELLIPSIS = "...";
     private static final int SEARCH_TOOLBAR_FIELD_Y_OFFSET = 5;
 
-    private static final class SceneButtonHit {
+    public static class SceneButtonHit {
 
         final LytGuidebookScene scene;
         final GuideIconButton.Role role;
@@ -155,7 +155,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         }
     }
 
-    private static final class DocumentInteractionState {
+    public static class DocumentInteractionState {
 
         final LytDocument document;
         final int mouseX;
@@ -677,7 +677,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
         int pad = 3;
         int hardMaxWidth = Math.max(40, this.width - 24);
         int preferredWrapWidth = Math.max(80, this.width / 2);
-        int wrapWidth = Math.max(40, Math.min(hardMaxWidth, preferredWrapWidth));
+        int wrapWidth = Math.min(hardMaxWidth, preferredWrapWidth);
         List<String> lines = new ArrayList<>();
         for (String rawLine : norm.split("\n", -1)) {
             if (rawLine.isEmpty()) {
@@ -1508,7 +1508,7 @@ public final class GuideScreen extends GuiScreen implements GuideUiHost {
             updateSearchQuery(after);
         }
 
-        return focused ? shouldConsumeFocusedSearchKey(typedChar, keyCode, before, after) : true;
+        return !focused || shouldConsumeFocusedSearchKey(typedChar, keyCode, before, after);
     }
 
     private void updateSearchQuery(String query) {

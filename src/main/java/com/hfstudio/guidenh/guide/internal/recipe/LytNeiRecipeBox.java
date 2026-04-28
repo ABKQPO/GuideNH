@@ -36,7 +36,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
  * "recipe pool" category; hovering a slot yields an {@link NeiItemTooltip} carrying the extra
  * tooltip lines that NEI's tab normally contributes. The icon itself has no tooltip.
  */
-public final class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
+public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
     private static final int FRAME_BORDER = 4;
     private static final int ICON_SIZE = 8;

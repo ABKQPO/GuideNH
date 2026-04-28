@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.libs.micromark;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
-public final class ClassifyCharacter {
+public class ClassifyCharacter {
 
     private ClassifyCharacter() {}
 

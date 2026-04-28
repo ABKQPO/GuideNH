@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 
-public final class SceneEditorCameraMarkerOverlay {
+public class SceneEditorCameraMarkerOverlay {
 
     private static final int MARKER_SIZE = 16;
     private static final int MARKER_HALF_SIZE = MARKER_SIZE / 2;

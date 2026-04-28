@@ -21,7 +21,7 @@ import com.hfstudio.guidenh.libs.micromark.ParseException;
 import com.hfstudio.guidenh.libs.micromark.Point;
 import com.hfstudio.guidenh.libs.micromark.Token;
 
-public final class MdxMdastExtension {
+public class MdxMdastExtension {
 
     private static final MdastContextProperty<List<Tag>> TAG_STACK = new MdastContextProperty<>();
     private static final MdastContextProperty<Tag> TAG = new MdastContextProperty<>();

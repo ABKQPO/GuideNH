@@ -9,7 +9,7 @@ import com.hfstudio.guidenh.libs.micromark.Tokenizer;
 import com.hfstudio.guidenh.libs.micromark.Types;
 import com.hfstudio.guidenh.libs.micromark.factory.FactorySpace;
 
-public final class LineEnding {
+public class LineEnding {
 
     private LineEnding() {}
 

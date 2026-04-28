@@ -4,10 +4,15 @@ import javax.annotation.Nullable;
 
 import org.joml.Vector3f;
 
-public final class GuidebookPreviewPlayerPose {
+public class GuidebookPreviewPlayerPose {
 
     public static final Vector3f DEFAULT_CAPE_ROTATION_DEGREES = new Vector3f(6.0f, 0.0f, 0.0f);
-    public static final GuidebookPreviewPlayerPose DEFAULT = new GuidebookPreviewPlayerPose(null, null, null, null, null,
+    public static final GuidebookPreviewPlayerPose DEFAULT = new GuidebookPreviewPlayerPose(
+        null,
+        null,
+        null,
+        null,
+        null,
         null);
 
     @Nullable
@@ -60,7 +65,8 @@ public final class GuidebookPreviewPlayerPose {
     }
 
     public Vector3f resolveCapeRotationDegrees() {
-        return capeRotationDegrees != null ? new Vector3f(capeRotationDegrees) : new Vector3f(DEFAULT_CAPE_ROTATION_DEGREES);
+        return capeRotationDegrees != null ? new Vector3f(capeRotationDegrees)
+            : new Vector3f(DEFAULT_CAPE_ROTATION_DEGREES);
     }
 
     @Nullable

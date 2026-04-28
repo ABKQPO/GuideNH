@@ -5,7 +5,7 @@ import com.hfstudio.guidenh.libs.micromark.commonmark.Content;
 import com.hfstudio.guidenh.libs.micromark.factory.FactorySpace;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-public final class InitializeFlow {
+public class InitializeFlow {
 
     private InitializeFlow() {}
 

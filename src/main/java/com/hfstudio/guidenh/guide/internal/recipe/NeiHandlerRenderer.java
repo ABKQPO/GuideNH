@@ -18,7 +18,7 @@ import org.lwjgl.opengl.GL11;
  * {@code GuiRecipe} state (verified against NEI source). All calls are wrapped in try-catch so a
  * misbehaving third-party handler cannot crash the guide UI.
  */
-public final class NeiHandlerRenderer {
+public class NeiHandlerRenderer {
 
     private static final RenderItem ITEM_RENDERER = new RenderItem();
 

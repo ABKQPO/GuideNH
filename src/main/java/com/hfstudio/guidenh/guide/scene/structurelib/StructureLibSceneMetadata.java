@@ -34,15 +34,7 @@ public class StructureLibSceneMetadata {
 
     public StructureLibSceneMetadata(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip) {
-        this(
-            controller,
-            piece,
-            facing,
-            rotation,
-            flip,
-            null,
-            Collections.<ChannelData>emptyList(),
-            Collections.<Long, BlockTooltipData>emptyMap());
+        this(controller, piece, facing, rotation, flip, null, Collections.emptyList(), Collections.emptyMap());
     }
 
     private StructureLibSceneMetadata(String controller, @Nullable String piece, @Nullable String facing,
@@ -203,7 +195,7 @@ public class StructureLibSceneMetadata {
                 deduplicated.put(channelData.getChannelId(), channelData);
             }
         }
-        return deduplicated.isEmpty() ? Collections.<ChannelData>emptyList()
+        return deduplicated.isEmpty() ? Collections.emptyList()
             : Collections.unmodifiableList(new ArrayList<>(deduplicated.values()));
     }
 
@@ -236,19 +228,13 @@ public class StructureLibSceneMetadata {
             if (value != null && value.hasHatchDetails()) {
                 entries.add(
                     new BlockTooltipEntry(
-                        unpackBlockPosX(
-                            entry.getKey()
-                                .longValue()),
-                        unpackBlockPosY(
-                            entry.getKey()
-                                .longValue()),
-                        unpackBlockPosZ(
-                            entry.getKey()
-                                .longValue()),
+                        unpackBlockPosX(entry.getKey()),
+                        unpackBlockPosY(entry.getKey()),
+                        unpackBlockPosZ(entry.getKey()),
                         value));
             }
         }
-        return entries.isEmpty() ? Collections.<BlockTooltipEntry>emptyList() : Collections.unmodifiableList(entries);
+        return entries.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(entries);
     }
 
     private static long packBlockPos(int x, int y, int z) {
@@ -362,7 +348,7 @@ public class StructureLibSceneMetadata {
                     copied.add(stack.copy());
                 }
             }
-            return copied.isEmpty() ? Collections.<ItemStack>emptyList() : Collections.unmodifiableList(copied);
+            return copied.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(copied);
         }
 
         private static List<StructureLibHatchDescriptionLine> immutableLines(
@@ -376,8 +362,7 @@ public class StructureLibSceneMetadata {
                     copied.add(line);
                 }
             }
-            return copied.isEmpty() ? Collections.<StructureLibHatchDescriptionLine>emptyList()
-                : Collections.unmodifiableList(copied);
+            return copied.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(copied);
         }
     }
 
@@ -470,6 +455,6 @@ public class StructureLibSceneMetadata {
         if (value < minValue) {
             return minValue;
         }
-        return value > maxValue ? maxValue : value;
+        return Math.min(value, maxValue);
     }
 }

@@ -26,7 +26,7 @@ public class StructureLibImportRequest {
             rotation,
             flip,
             channel,
-            channel != null ? StructureLibPreviewSelection.ofMasterTier(channel.intValue())
+            channel != null ? StructureLibPreviewSelection.ofMasterTier(channel)
                 : StructureLibPreviewSelection.defaultSelection());
     }
 

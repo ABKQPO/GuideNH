@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
-public final class SceneEditorElementPropertyController {
+public class SceneEditorElementPropertyController {
 
     private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("#(?i:[0-9a-f]{6}|[0-9a-f]{8})");
 

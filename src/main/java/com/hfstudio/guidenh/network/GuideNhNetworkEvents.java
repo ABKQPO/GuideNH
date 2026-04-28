@@ -8,7 +8,7 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureRuntime;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
 
-public final class GuideNhNetworkEvents {
+public class GuideNhNetworkEvents {
 
     @SubscribeEvent
     public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {

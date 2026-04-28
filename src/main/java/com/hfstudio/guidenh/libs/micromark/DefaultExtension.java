@@ -28,7 +28,7 @@ import com.hfstudio.guidenh.libs.micromark.commonmark.SetextUnderline;
 import com.hfstudio.guidenh.libs.micromark.commonmark.ThematicBreak;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 
-public final class DefaultExtension {
+public class DefaultExtension {
 
     private DefaultExtension() {}
 

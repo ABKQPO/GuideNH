@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
-public final class SceneEditorClipboardExporter {
+public class SceneEditorClipboardExporter {
 
     private static final Logger LOG = LogManager.getLogger("guidenh");
 
@@ -40,29 +40,16 @@ public final class SceneEditorClipboardExporter {
     private final ChatSink chatSink;
 
     public SceneEditorClipboardExporter() {
-        this(new ClipboardSink() {
-
-            @Override
-            public void copy(String text) {
-                Toolkit.getDefaultToolkit()
-                    .getSystemClipboard()
-                    .setContents(new StringSelection(text), null);
-            }
-        }, new LogSink() {
-
-            @Override
-            public void log(String text) {
-                LOG.info("Scene editor export:\n{}", text);
-            }
-        }, new ChatSink() {
-
-            @Override
-            public void send(@Nullable EntityPlayer player, GuidebookText key, Object... args) {
+        this(
+            text -> Toolkit.getDefaultToolkit()
+                .getSystemClipboard()
+                .setContents(new StringSelection(text), null),
+            text -> LOG.info("Scene editor export:\n{}", text),
+            (player, key, args) -> {
                 if (player != null) {
                     player.addChatMessage(new ChatComponentTranslation(key.getTranslationKey(), args));
                 }
-            }
-        });
+            });
     }
 
     public SceneEditorClipboardExporter(ClipboardSink clipboardSink, LogSink logSink, ChatSink chatSink) {

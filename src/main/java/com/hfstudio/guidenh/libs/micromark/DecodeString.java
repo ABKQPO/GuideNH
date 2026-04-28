@@ -8,7 +8,7 @@ import com.hfstudio.guidenh.libs.micromark.html.NumericCharacterReference;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
-public final class DecodeString {
+public class DecodeString {
 
     private static final Pattern characterEscapeOrReference = Pattern
         .compile("\\\\([!-/:-@\\[-`{-~])|&(#(?:\\d{1,7}|x[\\da-f]{1,6})|[\\da-z]{1,31});", Pattern.CASE_INSENSITIVE);

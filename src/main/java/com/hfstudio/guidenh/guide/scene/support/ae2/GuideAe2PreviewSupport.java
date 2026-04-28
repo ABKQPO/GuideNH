@@ -11,6 +11,11 @@ import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+
 import appeng.api.networking.IGridNode;
 import appeng.api.parts.IPart;
 import appeng.me.Grid;
@@ -21,12 +26,7 @@ import appeng.parts.CableBusContainer;
 import appeng.tile.AEBaseTile;
 import appeng.tile.networking.TileCableBus;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-
-public final class GuideAe2PreviewSupport {
+public class GuideAe2PreviewSupport {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     private static final ForgeDirection[] PART_SIDES = ForgeDirection.values();
@@ -38,14 +38,10 @@ public final class GuideAe2PreviewSupport {
     private GuideAe2PreviewSupport() {}
 
     public static void prepare(GuidebookLevel level) {
-        preparePreviewState(level.getTileEntities(), new Runnable() {
-
-            @Override
-            public void run() {
-                level.getOrCreateFakeWorld()
-                    .syncLoadedTileEntities(level.getTileEntities());
-            }
-        });
+        preparePreviewState(
+            level.getTileEntities(),
+            () -> level.getOrCreateFakeWorld()
+                .syncLoadedTileEntities(level.getTileEntities()));
     }
 
     static void preparePreviewState(Iterable<? extends TileEntity> tileEntities, Runnable postSyncAction) {

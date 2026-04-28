@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
-public final class SceneEditorTextSelectionModel {
+public class SceneEditorTextSelectionModel {
 
     private String text;
     private int cursorIndex;

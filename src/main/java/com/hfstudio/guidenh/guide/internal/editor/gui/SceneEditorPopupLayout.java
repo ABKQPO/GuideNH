@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 
-public final class SceneEditorPopupLayout {
+public class SceneEditorPopupLayout {
 
     private SceneEditorPopupLayout() {}
 

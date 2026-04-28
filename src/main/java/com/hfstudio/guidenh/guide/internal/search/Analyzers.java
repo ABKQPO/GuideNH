@@ -33,7 +33,7 @@ import org.apache.lucene.analysis.ru.RussianAnalyzer;
 import org.apache.lucene.analysis.sv.SwedishAnalyzer;
 import org.apache.lucene.analysis.tr.TurkishAnalyzer;
 
-final class Analyzers {
+public class Analyzers {
 
     private Analyzers() {}
 

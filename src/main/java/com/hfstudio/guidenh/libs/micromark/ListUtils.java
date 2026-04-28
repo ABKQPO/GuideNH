@@ -5,7 +5,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-public final class ListUtils {
+public class ListUtils {
 
     private ListUtils() {}
 

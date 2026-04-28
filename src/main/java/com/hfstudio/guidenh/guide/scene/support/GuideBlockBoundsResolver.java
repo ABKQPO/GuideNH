@@ -12,7 +12,7 @@ import net.minecraft.util.Vec3;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-public final class GuideBlockBoundsResolver {
+public class GuideBlockBoundsResolver {
 
     private GuideBlockBoundsResolver() {}
 

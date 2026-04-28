@@ -4,7 +4,7 @@ import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
-public final class SceneEditorParameterController {
+public class SceneEditorParameterController {
 
     private final SceneEditorSession session;
     private final SceneEditorMarkdownCodec codec;

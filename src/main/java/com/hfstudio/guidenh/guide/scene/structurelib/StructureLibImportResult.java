@@ -29,11 +29,11 @@ public class StructureLibImportResult {
 
     public static StructureLibImportResult success(List<PlacedBlock> blocks, List<String> warnings,
         @Nullable StructureLibSceneMetadata metadata) {
-        return new StructureLibImportResult(true, blocks, warnings, Collections.<String>emptyList(), metadata);
+        return new StructureLibImportResult(true, blocks, warnings, Collections.emptyList(), metadata);
     }
 
     public static StructureLibImportResult failure(String error) {
-        return failure(error, Collections.<String>emptyList(), null);
+        return failure(error, Collections.emptyList(), null);
     }
 
     public static StructureLibImportResult failure(String error, List<String> warnings,
@@ -41,7 +41,7 @@ public class StructureLibImportResult {
         String normalized = normalizeMessage(error);
         return new StructureLibImportResult(
             false,
-            Collections.<PlacedBlock>emptyList(),
+            Collections.emptyList(),
             warnings,
             Collections.singletonList(normalized),
             metadata);

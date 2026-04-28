@@ -5,7 +5,7 @@ import javax.annotation.Nullable;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 
-public final class GuideEntityDisplayResolver {
+public class GuideEntityDisplayResolver {
 
     private GuideEntityDisplayResolver() {}
 

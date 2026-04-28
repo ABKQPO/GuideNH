@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.search;
 
-final class IndexSchema {
+public class IndexSchema {
 
     static final String FIELD_GUIDE_ID = "guide_id";
     static final String FIELD_PAGE_ID = "page_id";

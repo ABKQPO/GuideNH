@@ -84,7 +84,8 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
 
         if (entity instanceof GuidebookNameplateControllable nameplateControllable) {
             boolean defaultVisible = GuidebookSceneEntityLoader.isPreviewPlayerId(id);
-            nameplateControllable.setGuidebookNameplateVisible(showName != null ? showName.booleanValue() : defaultVisible);
+            nameplateControllable
+                .setGuidebookNameplateVisible(showName != null ? showName.booleanValue() : defaultVisible);
         } else if (showName != null && entity instanceof EntityLiving living) {
             living.setAlwaysRenderNameTag(showName.booleanValue());
         }

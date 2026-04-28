@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
  * {@code IRecipeHandler.handleItemTooltip}. The GuideScreen renderer checks for this subtype and
  * appends {@link #appendExtraLines(List)} output after the vanilla tooltip lines.
  */
-public final class NeiItemTooltip extends ItemTooltip {
+public class NeiItemTooltip extends ItemTooltip {
 
     private final Object handler;
     private final int recipeIndex;

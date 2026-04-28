@@ -14,7 +14,7 @@ import com.hfstudio.guidenh.libs.micromark.Types;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
-public final class HtmlFlow {
+public class HtmlFlow {
 
     private HtmlFlow() {}
 

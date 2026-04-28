@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 
-public final class SceneEditorSnapService {
+public class SceneEditorSnapService {
 
     private static final float DEFAULT_SNAP_DISTANCE = 0.2f;
     private final BlockBounds boundsScratch = new BlockBounds();
@@ -422,10 +422,7 @@ public final class SceneEditorSnapService {
         if (value < min) {
             return min;
         }
-        if (value > max) {
-            return max;
-        }
-        return value;
+        return Math.min(value, max);
     }
 
     private static float squaredDistance(float ax, float ay, float az, float bx, float by, float bz) {
@@ -440,7 +437,7 @@ public final class SceneEditorSnapService {
         void visit(float x, float y, float z, float distanceMultiplier);
     }
 
-    private static final class FreeSnapAccumulator implements SnapCandidateVisitor {
+    public static class FreeSnapAccumulator implements SnapCandidateVisitor {
 
         private final float desiredX;
         private final float desiredY;
@@ -478,7 +475,7 @@ public final class SceneEditorSnapService {
         }
     }
 
-    private static final class ConstrainedSnapAccumulator implements SnapCandidateVisitor {
+    public static class ConstrainedSnapAccumulator implements SnapCandidateVisitor {
 
         private final float desiredX;
         private final float desiredY;
@@ -532,7 +529,7 @@ public final class SceneEditorSnapService {
         }
     }
 
-    private static final class RaySnapAccumulator implements SnapCandidateVisitor {
+    public static class RaySnapAccumulator implements SnapCandidateVisitor {
 
         private final float[] ray;
         private final float desiredX;
@@ -596,7 +593,7 @@ public final class SceneEditorSnapService {
         }
     }
 
-    private static final class BlockBounds {
+    public static class BlockBounds {
 
         private float minX;
         private float minY;

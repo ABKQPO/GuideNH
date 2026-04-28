@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.search;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class QueryStringSplitter {
+public class QueryStringSplitter {
 
     private QueryStringSplitter() {}
 

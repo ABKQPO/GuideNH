@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
-public final class SceneEditorUndoFieldState {
+public class SceneEditorUndoFieldState {
 
     private final String draftText;
     private final boolean validationError;

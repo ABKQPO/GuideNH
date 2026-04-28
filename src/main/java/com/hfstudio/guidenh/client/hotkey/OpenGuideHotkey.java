@@ -31,7 +31,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public final class OpenGuideHotkey {
+public class OpenGuideHotkey {
 
     private static final int TICKS_TO_OPEN = 10;
 
@@ -48,7 +48,7 @@ public final class OpenGuideHotkey {
 
     private OpenGuideHotkey() {}
 
-    private static final class FoundPage {
+    public static class FoundPage {
 
         final MutableGuide guide;
         final PageAnchor page;

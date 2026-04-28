@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.model;
 
 import java.util.UUID;
 
-public final class SceneEditorElementModel {
+public class SceneEditorElementModel {
 
     private final UUID id;
     private final SceneEditorElementType type;
