@@ -119,9 +119,7 @@ public class GuideGregTechTileSupport {
         if (key == null || key.isEmpty() || message == null || message.isEmpty()) {
             return;
         }
-        if (LOGGED_KEYS.add(key)) {
-            LOG.info(message, args);
-        }
+        GuideDebugLog.runOnce(LOGGED_KEYS, key, () -> LOG.info(message, args));
     }
 
     public static String describeBlock(@Nullable Block block) {

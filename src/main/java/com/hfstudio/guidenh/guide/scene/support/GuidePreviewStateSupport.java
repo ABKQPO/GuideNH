@@ -29,7 +29,7 @@ public class GuidePreviewStateSupport {
         } catch (Throwable t) {
             if (!ae2InvokeFailureLogged) {
                 ae2InvokeFailureLogged = true;
-                LOG.warn("AE2 preview state preparation failed; 3D cable preview may be incomplete", t);
+                GuideDebugLog.warn(LOG, "AE2 preview state preparation failed; 3D cable preview may be incomplete", t);
             }
         }
     }
@@ -46,7 +46,8 @@ public class GuidePreviewStateSupport {
             ae2PrepareMethod = null;
             if (!ae2LoadFailureLogged) {
                 ae2LoadFailureLogged = true;
-                LOG.warn("AE2 preview support is unavailable; continuing without AE2 preview state sync", t);
+                GuideDebugLog
+                    .warn(LOG, "AE2 preview support is unavailable; continuing without AE2 preview state sync", t);
             }
         }
         return ae2PrepareMethod;

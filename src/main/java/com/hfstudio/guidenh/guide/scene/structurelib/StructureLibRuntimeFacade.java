@@ -44,6 +44,7 @@ import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.mojang.authlib.GameProfile;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -237,7 +238,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         try {
             world = level.getOrCreateFakeWorld();
         } catch (Throwable t) {
-            LOG.warn("Failed to create Guidebook fake world for StructureLib preview", t);
+            GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib preview", t);
             return BuildSnapshot.failure("StructureLib preview requires an active client world.");
         }
 
@@ -271,13 +272,17 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 .add("StructureLib instrumentation was already active; preview tooltip metadata may be incomplete.");
         } catch (Throwable t) {
             warnings.add("StructureLib instrumentation setup failed; preview tooltip metadata may be incomplete.");
-            LOG.warn("Failed to enable StructureLib instrumentation for controller {}", request.getController(), t);
+            GuideDebugLog.warn(
+                LOG,
+                "Failed to enable StructureLib instrumentation for controller {}",
+                request.getController(),
+                t);
         }
 
         try {
             constructable.construct(triggerStack.copy(), false);
         } catch (Throwable t) {
-            LOG.warn("StructureLib construct() failed for controller {}", request.getController(), t);
+            GuideDebugLog.warn(LOG, "StructureLib construct() failed for controller {}", request.getController(), t);
             return BuildSnapshot.failure("StructureLib construct() failed: " + sanitizeMessage(t.getMessage()));
         } finally {
             if (instrumentEnabled) {
@@ -325,7 +330,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             } catch (Throwable t) {
                 warnings.add(
                     "Controller item placement failed in StructureLib preview, falling back to direct block placement.");
-                LOG.warn("StructureLib controller item placement failed for {}", controller.blockId, t);
+                GuideDebugLog.warn(LOG, "StructureLib controller item placement failed for {}", controller.blockId, t);
             }
         }
 
@@ -341,7 +346,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 fallbackTile = controller.block.createTileEntity(world, controller.meta);
             }
         } catch (Throwable t) {
-            LOG.warn("Direct controller tile creation failed for {}", controller.blockId, t);
+            GuideDebugLog.warn(LOG, "Direct controller tile creation failed for {}", controller.blockId, t);
         }
 
         level.setBlock(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z, controller.block, controller.meta, fallbackTile);
@@ -482,7 +487,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             tile.writeToNBT(tag);
             return tag;
         } catch (Throwable t) {
-            LOG.warn(
+            GuideDebugLog.warn(
+                LOG,
                 "Failed to serialize preview tile entity {}",
                 tile.getClass()
                     .getName(),

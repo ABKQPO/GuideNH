@@ -15,6 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import appeng.api.networking.IGridNode;
 import appeng.api.parts.IPart;
@@ -178,7 +179,7 @@ public class GuideAe2PreviewSupport {
         } catch (Throwable t) {
             if (!nodeCreationFailureLogged) {
                 nodeCreationFailureLogged = true;
-                LOG.warn("Failed to synthesize an AE2 grid node for guide preview rendering", t);
+                GuideDebugLog.warn(LOG, "Failed to synthesize an AE2 grid node for guide preview rendering", t);
             }
             return null;
         }

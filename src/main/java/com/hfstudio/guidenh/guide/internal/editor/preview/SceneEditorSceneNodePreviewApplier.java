@@ -37,6 +37,7 @@ import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelectio
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.RemoveBlocksExecutor;
 
 public class SceneEditorSceneNodePreviewApplier {
@@ -201,7 +202,7 @@ public class SceneEditorSceneNodePreviewApplier {
         try {
             RemoveBlocksExecutor.execute(level, GuideBlockMatcher.parse(blockId));
         } catch (IllegalArgumentException e) {
-            LOG.warn("Ignoring invalid RemoveBlocks matcher in preview: {}", blockId, e);
+            GuideDebugLog.warn(LOG, "Ignoring invalid RemoveBlocks matcher in preview: {}", blockId, e);
         }
     }
 
@@ -230,7 +231,7 @@ public class SceneEditorSceneNodePreviewApplier {
                 scene.addAnnotation(annotation);
             }
         } catch (IllegalArgumentException e) {
-            LOG.warn("Ignoring invalid BlockAnnotationTemplate matcher in preview: {}", blockId, e);
+            GuideDebugLog.warn(LOG, "Ignoring invalid BlockAnnotationTemplate matcher in preview: {}", blockId, e);
         }
     }
 
@@ -268,7 +269,7 @@ public class SceneEditorSceneNodePreviewApplier {
         try {
             return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            LOG.warn("Failed to read scene editor preview structure {}", normalizedSource, e);
+            GuideDebugLog.warn(LOG, "Failed to read scene editor preview structure {}", normalizedSource, e);
             return null;
         }
     }
@@ -278,7 +279,7 @@ public class SceneEditorSceneNodePreviewApplier {
             NBTTagCompound root = GuideTextNbtCodec.readStructureNbt(structureText.getBytes(StandardCharsets.UTF_8));
             loadStructureIntoLevel(level, root);
         } catch (Exception e) {
-            LOG.warn("Failed to parse scene editor preview structure text", e);
+            GuideDebugLog.warn(LOG, "Failed to parse scene editor preview structure text", e);
         }
     }
 

@@ -23,6 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 
@@ -59,7 +60,7 @@ public class GuidebookPreviewBlockPlacer {
                 tileEntity = GuidebookTileEntityLoader
                     .load(level.getOrCreateFakeWorld(), block, placementData.blockMeta, x, y, z, previewTileTag);
             } catch (Throwable t) {
-                LOG.warn("Preview tile entity load failed, falling back to block-only placement", t);
+                GuideDebugLog.warn(LOG, "Preview tile entity load failed, falling back to block-only placement", t);
             }
         }
         if (tileEntity != null) {
@@ -180,7 +181,7 @@ public class GuidebookPreviewBlockPlacer {
             Object baseMeta = getTileEntityBaseType.invoke(metaTileEntity);
             return baseMeta instanceof Number number ? number.intValue() : null;
         } catch (Throwable t) {
-            LOG.warn("Failed to resolve GregTech base meta for preview block {}", metaTileId, t);
+            GuideDebugLog.warn(LOG, "Failed to resolve GregTech base meta for preview block {}", metaTileId, t);
             return null;
         }
     }
@@ -209,7 +210,7 @@ public class GuidebookPreviewBlockPlacer {
                 "Preview GregTech init byte-array key shapes for metaTileId={} are [{}]",
                 metaTileId,
                 describeKnownGregTechByteArrayKeys(tileTag));
-            LOG.warn("Failed to initialize GregTech preview tile {}", metaTileId, t);
+            GuideDebugLog.warn(LOG, "Failed to initialize GregTech preview tile {}", metaTileId, t);
         }
     }
 
@@ -239,7 +240,7 @@ public class GuidebookPreviewBlockPlacer {
         } catch (NoSuchMethodException ignored) {
             // Non-GregTech tiles do not expose facing controls.
         } catch (Throwable t) {
-            LOG.warn("Failed to assign a default GregTech preview facing", t);
+            GuideDebugLog.warn(LOG, "Failed to assign a default GregTech preview facing", t);
         }
     }
 
@@ -275,7 +276,7 @@ public class GuidebookPreviewBlockPlacer {
                 .getField("mMetaData")
                 .setShort(tileEntity, (short) blockMeta);
         } catch (Throwable t) {
-            LOG.warn("Failed to apply BartWorks preview meta {}", blockMeta, t);
+            GuideDebugLog.warn(LOG, "Failed to apply BartWorks preview meta {}", blockMeta, t);
         }
     }
 
@@ -286,7 +287,7 @@ public class GuidebookPreviewBlockPlacer {
         try {
             block.onBlockAdded(world, x, y, z);
         } catch (Throwable t) {
-            LOG.warn("Preview block onBlockAdded hook failed for {}", block, t);
+            GuideDebugLog.warn(LOG, "Preview block onBlockAdded hook failed for {}", block, t);
         }
     }
 

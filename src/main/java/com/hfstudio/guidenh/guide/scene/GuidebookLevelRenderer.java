@@ -43,6 +43,7 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
@@ -452,8 +453,7 @@ public class GuidebookLevelRenderer {
 
     private static void log(Throwable t) {
         try {
-            LogManager.getLogger("GuideNH/SceneRenderer")
-                .warn("Scene render warning", t);
+            GuideDebugLog.warn(LogManager.getLogger("GuideNH/SceneRenderer"), "Scene render warning", t);
         } catch (Throwable ignore) {}
     }
 }

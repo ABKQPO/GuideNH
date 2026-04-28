@@ -7,6 +7,8 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+
 import cpw.mods.fml.common.Loader;
 
 public class StructureLibSceneImportService {
@@ -32,7 +34,7 @@ public class StructureLibSceneImportService {
         try {
             return facade.isAvailable();
         } catch (Throwable t) {
-            LOG.warn("StructureLib facade availability check failed", t);
+            GuideDebugLog.warn(LOG, "StructureLib facade availability check failed", t);
             return false;
         }
     }
@@ -49,7 +51,7 @@ public class StructureLibSceneImportService {
             }
             return StructureLibImportResult.failure("StructureLib facade returned no import result");
         } catch (Throwable t) {
-            LOG.warn("StructureLib import failed for controller {}", request.getController(), t);
+            GuideDebugLog.warn(LOG, "StructureLib import failed for controller {}", request.getController(), t);
             return StructureLibImportResult.failure(resolveFailureMessage(t));
         }
     }
@@ -71,7 +73,7 @@ public class StructureLibSceneImportService {
             StructureLibFacade facade = facadeFactory.get();
             return facade != null ? facade : createDefaultFacade();
         } catch (Throwable t) {
-            LOG.warn("StructureLib facade factory failed, falling back to default facade", t);
+            GuideDebugLog.warn(LOG, "StructureLib facade factory failed, falling back to default facade", t);
             return createDefaultFacade();
         }
     }
@@ -87,11 +89,13 @@ public class StructureLibSceneImportService {
             if (facade instanceof StructureLibFacade structureLibFacade) {
                 return structureLibFacade;
             }
-            LOG.warn(
+            GuideDebugLog.warn(
+                LOG,
                 "Resolved StructureLib runtime facade does not implement StructureLibFacade: {}",
                 facadeClass.getName());
         } catch (Throwable t) {
-            LOG.warn("Failed to initialize StructureLib runtime facade, falling back to unavailable facade", t);
+            GuideDebugLog
+                .warn(LOG, "Failed to initialize StructureLib runtime facade, falling back to unavailable facade", t);
         }
         return new StructureLibUnavailableFacade();
     }
