@@ -36,7 +36,7 @@ import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 public class SceneEditorMarkdownCodec {
 
-    private static final MdastOptions PARSE_OPTIONS = new MdastOptions().withSyntaxExtension(MdxSyntax.INSTANCE)
+    public static final MdastOptions PARSE_OPTIONS = new MdastOptions().withSyntaxExtension(MdxSyntax.INSTANCE)
         .withSyntaxExtension(YamlFrontmatterSyntax.INSTANCE)
         .withSyntaxExtension(GfmTableSyntax.INSTANCE)
         .withSyntaxExtension(GfmStrikethroughSyntax.INSTANCE)
@@ -45,9 +45,9 @@ public class SceneEditorMarkdownCodec {
         .withMdastExtension(GfmTableMdastExtension.INSTANCE)
         .withMdastExtension(GfmStrikethroughMdastExtension.INSTANCE);
 
-    private static final Set<String> ROOT_TAG_NAMES = Collections
+    public static final Set<String> ROOT_TAG_NAMES = Collections
         .unmodifiableSet(new HashSet<>(Arrays.asList("GameScene", "Scene")));
-    private static final Set<String> ROOT_ATTRIBUTES = Collections.unmodifiableSet(
+    public static final Set<String> ROOT_ATTRIBUTES = Collections.unmodifiableSet(
         new HashSet<>(
             Arrays.asList(
                 "width",
@@ -64,21 +64,21 @@ public class SceneEditorMarkdownCodec {
                 "centerZ",
                 "interactive",
                 "allowLayerSlider")));
-    private static final Set<String> IMPORT_STRUCTURE_ATTRIBUTES = Collections
+    public static final Set<String> IMPORT_STRUCTURE_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Collections.singletonList("src")));
-    private static final Set<String> IMPORT_STRUCTURE_LIB_ATTRIBUTES = Collections
+    public static final Set<String> IMPORT_STRUCTURE_LIB_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Arrays.asList("controller", "piece", "facing", "rotation", "flip", "channel")));
-    private static final Set<String> REMOVE_BLOCKS_ATTRIBUTES = Collections
+    public static final Set<String> REMOVE_BLOCKS_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Collections.singletonList("id")));
-    private static final Set<String> BLOCK_ANNOTATION_TEMPLATE_ATTRIBUTES = Collections
+    public static final Set<String> BLOCK_ANNOTATION_TEMPLATE_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Collections.singletonList("id")));
-    private static final Set<String> BLOCK_ATTRIBUTES = Collections
+    public static final Set<String> BLOCK_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Arrays.asList("pos", "color", "thickness", "alwaysOnTop", "visible")));
-    private static final Set<String> BOX_ATTRIBUTES = Collections
+    public static final Set<String> BOX_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Arrays.asList("min", "max", "color", "thickness", "alwaysOnTop", "visible")));
-    private static final Set<String> LINE_ATTRIBUTES = Collections
+    public static final Set<String> LINE_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Arrays.asList("from", "to", "color", "thickness", "alwaysOnTop", "visible")));
-    private static final Set<String> DIAMOND_ATTRIBUTES = Collections
+    public static final Set<String> DIAMOND_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Arrays.asList("pos", "color", "alwaysOnTop", "visible")));
 
     public SceneEditorMarkdownParseResult parse(String markdown) {

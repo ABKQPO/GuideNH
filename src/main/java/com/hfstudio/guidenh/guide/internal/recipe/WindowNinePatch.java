@@ -18,16 +18,16 @@ public class WindowNinePatch {
     public static final int TEX_SIZE = 16;
     public static final int BORDER = 4;
 
-    private static final ResourceLocation WINDOW_LIGHT = new ResourceLocation(
+    public static final ResourceLocation WINDOW_LIGHT = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/window.png");
-    private static final ResourceLocation WINDOW_DARK = new ResourceLocation(
+    public static final ResourceLocation WINDOW_DARK = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/window_darkmode.png");
-    private static final ResourceLocation WINDOW_INNER_LIGHT = new ResourceLocation(
+    public static final ResourceLocation WINDOW_INNER_LIGHT = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/window_inner.png");
-    private static final ResourceLocation WINDOW_INNER_DARK = new ResourceLocation(
+    public static final ResourceLocation WINDOW_INNER_DARK = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/window_inner_darkmode.png");
 
@@ -89,7 +89,7 @@ public class WindowNinePatch {
         tess.draw();
     }
 
-    private static void quad(Tessellator tess, int x0, int y0, int x1, int y1, float u0, float v0, float u1, float v1) {
+    public static void quad(Tessellator tess, int x0, int y0, int x1, int y1, float u0, float v0, float u1, float v1) {
         tess.addVertexWithUV(x0, y1, 0, u0, v1);
         tess.addVertexWithUV(x1, y1, 0, u1, v1);
         tess.addVertexWithUV(x1, y0, 0, u1, v0);

@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
  */
 public class Token {
 
-    private static final boolean DEBUG_TOKEN_CREATION = false;
+    public static final boolean DEBUG_TOKEN_CREATION = false;
 
     @Nullable
     private Map<TokenProperty<?>, Object> tokenData;

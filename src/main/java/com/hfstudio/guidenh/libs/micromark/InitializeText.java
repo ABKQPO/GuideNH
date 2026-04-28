@@ -82,7 +82,7 @@ public class InitializeText {
 
     }
 
-    private static InitialConstruct initializeFactory(String field) {
+    public static InitialConstruct initializeFactory(String field) {
         var construct = new InitialConstruct();
         construct.tokenize = (context, effects, ok, nok) -> {
             var constructs = switch (field) {

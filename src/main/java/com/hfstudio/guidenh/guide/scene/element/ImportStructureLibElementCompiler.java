@@ -99,7 +99,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         }
     }
 
-    private static void attachMetadata(LytGuidebookScene scene, StructureLibImportRequest request,
+    public static void attachMetadata(LytGuidebookScene scene, StructureLibImportRequest request,
         StructureLibImportResult result) {
         StructureLibSceneMetadata metadata = result.getMetadata();
         if (metadata != null) {
@@ -118,7 +118,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         }
     }
 
-    private static String resolveFailureMessage(List<String> errors, String controller) {
+    public static String resolveFailureMessage(List<String> errors, String controller) {
         if (errors != null && !errors.isEmpty()) {
             String firstError = errors.get(0);
             if (firstError != null && !firstError.trim()

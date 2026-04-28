@@ -17,9 +17,9 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 
 public class DiamondAnnotation extends OverlayAnnotation {
 
-    private static final ResourceLocation TEXTURE = new ResourceLocation("guidenh", "textures/guide/diamond.png");
+    public static final ResourceLocation TEXTURE = new ResourceLocation("guidenh", "textures/guide/diamond.png");
 
-    private static final int SIZE = 16;
+    public static final int SIZE = 16;
 
     private final Vector3f pos;
     private final ColorValue color;
@@ -96,7 +96,7 @@ public class DiamondAnnotation extends OverlayAnnotation {
         GL11.glColor4f(1f, 1f, 1f, 1f);
     }
 
-    private static void drawTintedQuad(LytRect rect, int argb, float u0, float v0, float u1, float v1) {
+    public static void drawTintedQuad(LytRect rect, int argb, float u0, float v0, float u1, float v1) {
         float a = ((argb >>> 24) & 0xFF) / 255f;
         float r = ((argb >>> 16) & 0xFF) / 255f;
         float g = ((argb >>> 8) & 0xFF) / 255f;
@@ -115,7 +115,7 @@ public class DiamondAnnotation extends OverlayAnnotation {
         tess.draw();
     }
 
-    private static int lighten(int argb, int percent) {
+    public static int lighten(int argb, int percent) {
         int a = (argb >>> 24) & 0xFF;
         int r = Math.min(255, ((argb >>> 16) & 0xFF) + percent * 255 / 100);
         int g = Math.min(255, ((argb >>> 8) & 0xFF) + percent * 255 / 100);

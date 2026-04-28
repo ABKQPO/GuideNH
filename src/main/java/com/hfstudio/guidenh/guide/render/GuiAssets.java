@@ -23,7 +23,7 @@ public class GuiAssets {
         26,
         26);
 
-    private static final GuiAssets INSTANCE = new GuiAssets();
+    public static final GuiAssets INSTANCE = new GuiAssets();
 
     private GuiAssets() {}
 

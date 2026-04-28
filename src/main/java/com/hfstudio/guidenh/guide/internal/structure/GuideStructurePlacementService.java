@@ -74,7 +74,7 @@ public class GuideStructurePlacementService {
         }
     }
 
-    private static NBTTagCompound readStructureNbt(byte[] data) throws Exception {
+    public static NBTTagCompound readStructureNbt(byte[] data) throws Exception {
         return GuideTextNbtCodec.readStructureNbt(data);
     }
 

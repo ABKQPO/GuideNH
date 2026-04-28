@@ -91,13 +91,13 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 public class PageCompiler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PageCompiler.class);
+    public static final Logger LOG = LoggerFactory.getLogger(PageCompiler.class);
 
     /**
      * Default gap between block-level elements. Set as margin.
      */
-    private static final int DEFAULT_ELEMENT_SPACING = 5;
-    private static final MdastOptions PARSE_OPTIONS = createParseOptions();
+    public static final int DEFAULT_ELEMENT_SPACING = 5;
+    public static final MdastOptions PARSE_OPTIONS = createParseOptions();
 
     private final PageCollection pages;
     private final ExtensionCollection extensions;
@@ -183,7 +183,7 @@ public class PageCompiler {
         return new ParsedGuidePage(sourcePack, id, pageContent, astRoot, frontmatter, language);
     }
 
-    private static MdastOptions createParseOptions() {
+    public static MdastOptions createParseOptions() {
         return new MdastOptions().withSyntaxExtension(MdxSyntax.INSTANCE)
             .withSyntaxExtension(YamlFrontmatterSyntax.INSTANCE)
             .withSyntaxExtension(GfmTableSyntax.INSTANCE)
@@ -194,7 +194,7 @@ public class PageCompiler {
             .withMdastExtension(GfmStrikethroughMdastExtension.INSTANCE);
     }
 
-    private static String normalizeLineEndings(String pageContent) {
+    public static String normalizeLineEndings(String pageContent) {
         int firstCarriageReturn = pageContent.indexOf('\r');
         if (firstCarriageReturn == -1) {
             return pageContent;
@@ -216,7 +216,7 @@ public class PageCompiler {
         return normalized.toString();
     }
 
-    private static MdAstRoot buildErrorPage(String errorText) {
+    public static MdAstRoot buildErrorPage(String errorText) {
         var root = new MdAstRoot();
 
         var heading = new MdAstHeading();
@@ -260,7 +260,7 @@ public class PageCompiler {
         return document;
     }
 
-    private static Frontmatter parseFrontmatter(ResourceLocation pageId, MdAstRoot root) {
+    public static Frontmatter parseFrontmatter(ResourceLocation pageId, MdAstRoot root) {
         Frontmatter result = null;
 
         for (var child : root.children()) {

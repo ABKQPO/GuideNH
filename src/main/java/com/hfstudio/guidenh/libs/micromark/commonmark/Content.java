@@ -38,12 +38,12 @@ public class Content {
      * Content is transparent: it’s parsed right now. That way, definitions are also parsed right now: before text in
      * paragraphs (specifically, media) are parsed.
      */
-    private static List<Tokenizer.Event> resolveContent(List<Tokenizer.Event> events, TokenizeContext context) {
+    public static List<Tokenizer.Event> resolveContent(List<Tokenizer.Event> events, TokenizeContext context) {
         Subtokenize.subtokenize(events);
         return events;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -105,7 +105,7 @@ public class Content {
 
     }
 
-    private static class ContinuationStateMachine {
+    public static class ContinuationStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

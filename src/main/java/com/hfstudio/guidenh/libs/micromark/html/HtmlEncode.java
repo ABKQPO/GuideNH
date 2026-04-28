@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 public class HtmlEncode {
 
-    private static final Map<String, String> characterReferences;
+    public static final Map<String, String> characterReferences;
     static {
         HashMap<String, String> m = new HashMap<>();
         m.put("\"", "quot");
@@ -17,7 +17,7 @@ public class HtmlEncode {
         characterReferences = m;
     }
 
-    private static final Pattern ESCAPE_PATTERN = Pattern.compile("[\"&<>]");
+    public static final Pattern ESCAPE_PATTERN = Pattern.compile("[\"&<>]");
 
     private HtmlEncode() {}
 

@@ -16,16 +16,16 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 
 public class SceneEditorMultilineTextArea {
 
-    private static final int PADDING = 4;
-    private static final int SCROLLBAR_SIZE = 5;
-    private static final int BORDER_COLOR = 0xFF53565C;
-    private static final int FOCUSED_BORDER_COLOR = 0xFF7FC8FF;
-    private static final int ERROR_BORDER_COLOR = 0xFFFF6767;
-    private static final int BACKGROUND_COLOR = 0xA0121216;
-    private static final int SCROLLBAR_TRACK_COLOR = 0x35101010;
-    private static final int SCROLLBAR_THUMB_COLOR = 0xA0D8D8D8;
-    private static final int SELECTION_COLOR = 0x663D89C9;
-    private static final int EXTERNAL_HIGHLIGHT_COLOR = 0x4438BDF8;
+    public static final int PADDING = 4;
+    public static final int SCROLLBAR_SIZE = 5;
+    public static final int BORDER_COLOR = 0xFF53565C;
+    public static final int FOCUSED_BORDER_COLOR = 0xFF7FC8FF;
+    public static final int ERROR_BORDER_COLOR = 0xFFFF6767;
+    public static final int BACKGROUND_COLOR = 0xA0121216;
+    public static final int SCROLLBAR_TRACK_COLOR = 0x35101010;
+    public static final int SCROLLBAR_THUMB_COLOR = 0xA0D8D8D8;
+    public static final int SELECTION_COLOR = 0x663D89C9;
+    public static final int EXTERNAL_HIGHLIGHT_COLOR = 0x4438BDF8;
 
     private final FontRenderer fontRenderer;
     private final SceneEditorScrollState scrollState = new SceneEditorScrollState();
@@ -736,7 +736,7 @@ public class SceneEditorMultilineTextArea {
         return (System.currentTimeMillis() / 500L) % 2L == 0L;
     }
 
-    private static boolean isCtrlKeyCombo(int keyCode, int expectedKeyCode) {
+    public static boolean isCtrlKeyCombo(int keyCode, int expectedKeyCode) {
         return keyCode == expectedKeyCode
             && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL));
     }

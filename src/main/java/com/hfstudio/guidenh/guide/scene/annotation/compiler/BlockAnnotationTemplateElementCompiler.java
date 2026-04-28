@@ -23,7 +23,7 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCompiler {
 
-    private static final Map<String, AnnotationTagCompiler> TEMPLATE_ANNOTATION_COMPILERS = createTemplateCompilers();
+    public static final Map<String, AnnotationTagCompiler> TEMPLATE_ANNOTATION_COMPILERS = createTemplateCompilers();
 
     @Override
     public Set<String> getTagNames() {
@@ -60,7 +60,7 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
         }
     }
 
-    private static List<SceneAnnotation> collectTemplateAnnotations(PageCompiler compiler, LytErrorSink errorSink,
+    public static List<SceneAnnotation> collectTemplateAnnotations(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el) {
         List<SceneAnnotation> templateAnnotations = new ArrayList<>();
         for (Object child : el.children()) {
@@ -71,7 +71,7 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
         return templateAnnotations;
     }
 
-    private static void collectTemplateAnnotationFromNode(PageCompiler compiler, LytErrorSink errorSink, UnistNode node,
+    public static void collectTemplateAnnotationFromNode(PageCompiler compiler, LytErrorSink errorSink, UnistNode node,
         List<SceneAnnotation> templateAnnotations) {
         MdxJsxElementFields childElement = unwrapJsxElement(node);
         if (childElement != null) {
@@ -103,7 +103,7 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
         }
     }
 
-    private static MdxJsxElementFields unwrapJsxElement(UnistNode node) {
+    public static MdxJsxElementFields unwrapJsxElement(UnistNode node) {
         if (node instanceof MdxJsxElementFields elementFields) {
             return elementFields;
         }
@@ -131,7 +131,7 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
         return found;
     }
 
-    private static boolean isIgnorableNode(UnistNode node) {
+    public static boolean isIgnorableNode(UnistNode node) {
         if (node instanceof MdxJsxElementFields) {
             return false;
         }
@@ -143,7 +143,7 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
         return false;
     }
 
-    private static Map<String, AnnotationTagCompiler> createTemplateCompilers() {
+    public static Map<String, AnnotationTagCompiler> createTemplateCompilers() {
         Map<String, AnnotationTagCompiler> compilers = new HashMap<>();
         registerTemplateCompiler(compilers, new BlockAnnotationElementCompiler());
         registerTemplateCompiler(compilers, new BoxAnnotationElementCompiler());
@@ -152,7 +152,7 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
         return Collections.unmodifiableMap(compilers);
     }
 
-    private static void registerTemplateCompiler(Map<String, AnnotationTagCompiler> compilers,
+    public static void registerTemplateCompiler(Map<String, AnnotationTagCompiler> compilers,
         AnnotationTagCompiler compiler) {
         for (String tagName : compiler.getTagNames()) {
             compilers.put(tagName, compiler);

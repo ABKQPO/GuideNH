@@ -33,11 +33,11 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class GuidebookFakeWorld extends WorldClient {
 
-    private static final long FROZEN_WORLD_TIME = 0L;
-    private static volatile boolean gregTechDummyWorldRegistrationAttempted;
-    private static final String BARTWORKS_META_GENERATED_TILE_CLASS = "bartworks.system.material.TileEntityMetaGeneratedBlock";
-    private static volatile Field bartWorksMetaField;
-    private static volatile boolean bartWorksMetaFieldResolved;
+    public static final long FROZEN_WORLD_TIME = 0L;
+    public static volatile boolean gregTechDummyWorldRegistrationAttempted;
+    public static final String BARTWORKS_META_GENERATED_TILE_CLASS = "bartworks.system.material.TileEntityMetaGeneratedBlock";
+    public static volatile Field bartWorksMetaField;
+    public static volatile boolean bartWorksMetaFieldResolved;
 
     private final GuidebookLevel level;
     @Nullable
@@ -55,7 +55,7 @@ public class GuidebookFakeWorld extends WorldClient {
         registerOptionalDummyWorldIntegrations();
     }
 
-    private static NetHandlerPlayClient resolveNetHandler() {
+    public static NetHandlerPlayClient resolveNetHandler() {
         var netHandler = Minecraft.getMinecraft()
             .getNetHandler();
         if (netHandler == null) {
@@ -64,17 +64,17 @@ public class GuidebookFakeWorld extends WorldClient {
         return netHandler;
     }
 
-    private static int resolveDimensionId() {
+    public static int resolveDimensionId() {
         var currentWorld = Minecraft.getMinecraft().theWorld;
         return currentWorld != null ? currentWorld.provider.dimensionId : 0;
     }
 
-    private static EnumDifficulty resolveDifficulty() {
+    public static EnumDifficulty resolveDifficulty() {
         var currentWorld = Minecraft.getMinecraft().theWorld;
         return currentWorld != null ? currentWorld.difficultySetting : EnumDifficulty.NORMAL;
     }
 
-    private static void registerOptionalDummyWorldIntegrations() {
+    public static void registerOptionalDummyWorldIntegrations() {
         if (gregTechDummyWorldRegistrationAttempted) {
             return;
         }
@@ -345,7 +345,7 @@ public class GuidebookFakeWorld extends WorldClient {
     }
 
     @Nullable
-    private static Integer resolveBartWorksMetadata(@Nullable TileEntity tileEntity) {
+    public static Integer resolveBartWorksMetadata(@Nullable TileEntity tileEntity) {
         if (!isInstanceOf(tileEntity, BARTWORKS_META_GENERATED_TILE_CLASS)) {
             return null;
         }
@@ -361,7 +361,7 @@ public class GuidebookFakeWorld extends WorldClient {
     }
 
     @Nullable
-    private static Field resolveBartWorksMetaField(@Nullable TileEntity tileEntity) {
+    public static Field resolveBartWorksMetaField(@Nullable TileEntity tileEntity) {
         if (bartWorksMetaFieldResolved) {
             return bartWorksMetaField;
         }
@@ -378,7 +378,7 @@ public class GuidebookFakeWorld extends WorldClient {
         return bartWorksMetaField;
     }
 
-    private static boolean isInstanceOf(@Nullable Object instance, String className) {
+    public static boolean isInstanceOf(@Nullable Object instance, String className) {
         if (instance == null || className == null || className.isEmpty()) {
             return false;
         }
@@ -390,7 +390,7 @@ public class GuidebookFakeWorld extends WorldClient {
         return false;
     }
 
-    private static void applyDescriptionPacket(TileEntity tileEntity) {
+    public static void applyDescriptionPacket(TileEntity tileEntity) {
         try {
             Packet packet = tileEntity.getDescriptionPacket();
             if (packet instanceof S35PacketUpdateTileEntity updatePacket) {
@@ -406,7 +406,7 @@ public class GuidebookFakeWorld extends WorldClient {
         return markBlockForUpdateGuard;
     }
 
-    private static long packBlockPos(int x, int y, int z) {
+    public static long packBlockPos(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF)) | (((long) (z & 0x3FFFFFF)) << 26) | (((long) (y & 0xFFF)) << 52);
     }
 }

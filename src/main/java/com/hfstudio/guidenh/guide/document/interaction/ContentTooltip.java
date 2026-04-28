@@ -36,7 +36,7 @@ public class ContentTooltip implements GuideTooltip {
         return layoutBox;
     }
 
-    private static void prepareEmbeddedScenes(LytNode node) {
+    public static void prepareEmbeddedScenes(LytNode node) {
         if (node == null) {
             return;
         }

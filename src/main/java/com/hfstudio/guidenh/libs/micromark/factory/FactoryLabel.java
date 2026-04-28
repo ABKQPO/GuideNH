@@ -20,7 +20,7 @@ public class FactoryLabel {
         return new StateMachine(context, effects, ok, nok, type, markerType, stringType)::start;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private TokenizeContext context;
         private Tokenizer.Effects effects;

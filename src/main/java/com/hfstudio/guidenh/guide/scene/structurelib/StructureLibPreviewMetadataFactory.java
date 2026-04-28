@@ -15,7 +15,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureElement;
 
 public class StructureLibPreviewMetadataFactory {
 
-    private static final String GENERIC_STRUCTURELIB_DESCRIPTION = "StructureLib";
+    public static final String GENERIC_STRUCTURELIB_DESCRIPTION = "StructureLib";
 
     private final StructureLibElementTooltipResolver tooltipResolver;
 
@@ -158,7 +158,7 @@ public class StructureLibPreviewMetadataFactory {
         return null;
     }
 
-    private static long pack(int x, int y, int z) {
+    public static long pack(int x, int y, int z) {
         return (((long) x & 0x3FFFFFFL) << 38) | (((long) z & 0x3FFFFFFL) << 12) | ((long) y & 0xFFFL);
     }
 

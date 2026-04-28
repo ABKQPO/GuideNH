@@ -28,7 +28,7 @@ public class CodeIndented {
         indentedContent.partial = true;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -88,7 +88,7 @@ public class CodeIndented {
 
     }
 
-    private static class IndentedContentStateMachine {
+    public static class IndentedContentStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

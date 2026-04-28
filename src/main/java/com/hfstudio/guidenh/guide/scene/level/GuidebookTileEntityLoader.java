@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 
 public class GuidebookTileEntityLoader {
 
-    private static final String GREGTECH_BLOCK_MACHINES_CLASS = "gregtech.common.blocks.BlockMachines";
+    public static final String GREGTECH_BLOCK_MACHINES_CLASS = "gregtech.common.blocks.BlockMachines";
 
     private GuidebookTileEntityLoader() {}
 
@@ -49,12 +49,12 @@ public class GuidebookTileEntityLoader {
         return tileEntity;
     }
 
-    private static boolean shouldApplyTagImmediately(Block block) {
+    public static boolean shouldApplyTagImmediately(Block block) {
         return !GuideBlockDisplayResolver.isBlockInstanceOf(block, GREGTECH_BLOCK_MACHINES_CLASS);
     }
 
     @Nullable
-    private static TileEntity tryCreateAndLoad(NBTTagCompound tag, int x, int y, int z) {
+    public static TileEntity tryCreateAndLoad(NBTTagCompound tag, int x, int y, int z) {
         try {
             return TileEntity.createAndLoadEntity(withWorldPosition(tag, x, y, z));
         } catch (Exception ignored) {
@@ -63,7 +63,7 @@ public class GuidebookTileEntityLoader {
     }
 
     @Nullable
-    private static TileEntity tryCreateFromBlock(Block block, World world, int meta) {
+    public static TileEntity tryCreateFromBlock(Block block, World world, int meta) {
         try {
             if (block.hasTileEntity(meta)) {
                 return block.createTileEntity(world, meta);
@@ -72,13 +72,13 @@ public class GuidebookTileEntityLoader {
         return null;
     }
 
-    private static void applyTag(TileEntity tileEntity, NBTTagCompound tag, int x, int y, int z) {
+    public static void applyTag(TileEntity tileEntity, NBTTagCompound tag, int x, int y, int z) {
         try {
             tileEntity.readFromNBT(withWorldPosition(tag, x, y, z));
         } catch (Exception ignored) {}
     }
 
-    private static void bindTile(TileEntity tileEntity, World world, Block block, int meta, int x, int y, int z) {
+    public static void bindTile(TileEntity tileEntity, World world, Block block, int meta, int x, int y, int z) {
         try {
             tileEntity.updateContainingBlockInfo();
         } catch (Throwable ignored) {}
@@ -90,7 +90,7 @@ public class GuidebookTileEntityLoader {
         tileEntity.setWorldObj(world);
     }
 
-    private static TileEntity resolveWorldReplacement(World world, int x, int y, int z, TileEntity current) {
+    public static TileEntity resolveWorldReplacement(World world, int x, int y, int z, TileEntity current) {
         try {
             TileEntity replacement = world.getTileEntity(x, y, z);
             if (replacement != null && replacement != current) {
@@ -100,14 +100,14 @@ public class GuidebookTileEntityLoader {
         return current;
     }
 
-    private static TileEntity selectLoadedTileEntity(TileEntity loaded, @Nullable TileEntity replacement) {
+    public static TileEntity selectLoadedTileEntity(TileEntity loaded, @Nullable TileEntity replacement) {
         if (replacement == null || replacement == loaded) {
             return loaded;
         }
         return replacement.getClass() == loaded.getClass() ? loaded : replacement;
     }
 
-    private static NBTTagCompound withWorldPosition(NBTTagCompound original, int x, int y, int z) {
+    public static NBTTagCompound withWorldPosition(NBTTagCompound original, int x, int y, int z) {
         NBTTagCompound copy = (NBTTagCompound) original.copy();
         copy.setInteger("x", x);
         copy.setInteger("y", y);

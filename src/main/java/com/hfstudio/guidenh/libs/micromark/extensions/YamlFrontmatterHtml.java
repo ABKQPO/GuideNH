@@ -11,11 +11,11 @@ public class YamlFrontmatterHtml {
         .exit("yaml", YamlFrontmatterHtml::exit)
         .build();
 
-    private static void enter(HtmlContext context, Token token) {
+    public static void enter(HtmlContext context, Token token) {
         context.buffer();
     }
 
-    private static void exit(HtmlContext context, Token token) {
+    public static void exit(HtmlContext context, Token token) {
         context.resume();
         context.setSlurpOneLineEnding(true);
     }

@@ -38,15 +38,15 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
  */
 public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
-    private static final int FRAME_BORDER = 4;
-    private static final int ICON_SIZE = 8;
-    private static final int TITLE_PAD_TOP = 2;
-    private static final int TITLE_PAD_BOTTOM = 2;
-    private static final int TITLE_GAP_AFTER_ICON = 3;
-    private static final int BODY_MARGIN = 2;
-    private static final int SLOT_SIZE = 16;
-    private static final int DEFAULT_BODY_HEIGHT = 65;
-    private static final int FALLBACK_BODY_WIDTH = 166;
+    public static final int FRAME_BORDER = 4;
+    public static final int ICON_SIZE = 8;
+    public static final int TITLE_PAD_TOP = 2;
+    public static final int TITLE_PAD_BOTTOM = 2;
+    public static final int TITLE_GAP_AFTER_ICON = 3;
+    public static final int BODY_MARGIN = 2;
+    public static final int SLOT_SIZE = 16;
+    public static final int DEFAULT_BODY_HEIGHT = 65;
+    public static final int FALLBACK_BODY_WIDTH = 166;
 
     private final Object handler;
     private final int recipeIndex;
@@ -90,7 +90,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         this.titleHeight = Math.max(ICON_SIZE, fh) + TITLE_PAD_TOP + TITLE_PAD_BOTTOM;
     }
 
-    private static String stripFormatting(String s) {
+    public static String stripFormatting(String s) {
         return s == null ? "" : EnumChatFormatting.getTextWithoutFormattingCodes(s);
     }
 
@@ -155,7 +155,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         NeiHandlerRenderer.render(handler, recipeIndex, bodyX, bodyY + bodyYShift, -1, -1);
     }
 
-    private static void drawScaledItem(RenderContext context, ItemStack stack, int x, int y, int size) {
+    public static void drawScaledItem(RenderContext context, ItemStack stack, int x, int y, int size) {
         float scale = size / 16f;
         GL11.glPushMatrix();
         try {
@@ -173,7 +173,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
      * come from {@link NeiRecipeLookup#drawableWidth}/{@code drawableHeight} so we avoid another
      * reflective call per frame.
      */
-    private static void drawScaledImage(Object image, int x, int y, int size, int nativeW, int nativeH) {
+    public static void drawScaledImage(Object image, int x, int y, int size, int nativeW, int nativeH) {
         if (nativeW <= 0 || nativeH <= 0) return;
         float scale = Math.min(size / (float) nativeW, size / (float) nativeH);
         int drawW = Math.round(nativeW * scale);
@@ -220,7 +220,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         return Optional.of(new NeiItemTooltip(hit, handler, recipeIndex));
     }
 
-    private static @Nullable ItemStack findSlotHit(List<NeiRecipeLookup.Slot> slots, int originX, int originY, int px,
+    public static @Nullable ItemStack findSlotHit(List<NeiRecipeLookup.Slot> slots, int originX, int originY, int px,
         int py) {
         for (NeiRecipeLookup.Slot s : slots) {
             if (!isOver(originX + s.relx, originY + s.rely, SLOT_SIZE, SLOT_SIZE, px, py)) continue;
@@ -230,7 +230,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         return null;
     }
 
-    private static @Nullable ItemStack pickVisibleStack(NeiRecipeLookup.Slot s) {
+    public static @Nullable ItemStack pickVisibleStack(NeiRecipeLookup.Slot s) {
         if (s == null || s.stacks == null || s.stacks.isEmpty()) return null;
         for (int i = 0, n = s.stacks.size(); i < n; i++) {
             ItemStack st = s.stacks.get(i);
@@ -239,7 +239,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         return null;
     }
 
-    private static boolean isOver(int x, int y, int w, int h, int px, int py) {
+    public static boolean isOver(int x, int y, int w, int h, int px, int py) {
         return px >= x && px < x + w && py >= y && py < y + h;
     }
 }

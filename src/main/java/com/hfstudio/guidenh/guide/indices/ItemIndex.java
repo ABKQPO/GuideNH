@@ -27,7 +27,7 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
  */
 public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ItemIndex.class);
+    public static final Logger LOG = LoggerFactory.getLogger(ItemIndex.class);
 
     public ItemIndex() {
         super(
@@ -62,13 +62,13 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
         return null;
     }
 
-    private static String formatKey(ItemId key) {
+    public static String formatKey(ItemId key) {
         Object name = Item.itemRegistry.getNameForObject(key.getItem());
         String base = name != null ? name.toString() : "unknown";
         return key.getItemMeta() == OreDictionary.WILDCARD_VALUE ? base : base + ":" + key.getItemMeta();
     }
 
-    private static List<Pair<ItemId, PageAnchor>> getItemAnchors(ParsedGuidePage page) {
+    public static List<Pair<ItemId, PageAnchor>> getItemAnchors(ParsedGuidePage page) {
         var itemIdsNode = page.getFrontmatter()
             .additionalProperties()
             .get("item_ids");

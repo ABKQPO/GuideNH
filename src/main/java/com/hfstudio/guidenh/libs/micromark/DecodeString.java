@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
 public class DecodeString {
 
-    private static final Pattern characterEscapeOrReference = Pattern
+    public static final Pattern characterEscapeOrReference = Pattern
         .compile("\\\\([!-/:-@\\[-`{-~])|&(#(?:\\d{1,7}|x[\\da-f]{1,6})|[\\da-z]{1,31});", Pattern.CASE_INSENSITIVE);
 
     /**
@@ -27,7 +27,7 @@ public class DecodeString {
         return sb.toString();
     }
 
-    private static String decode(MatchResult result) {
+    public static String decode(MatchResult result) {
         var escape = result.group(1);
 
         if (escape != null) {

@@ -25,9 +25,9 @@ import com.gtnewhorizon.structurelib.structure.IStructureElementChain;
 
 public class StructureLibElementTooltipResolver {
 
-    private static final int MAX_TIER_SCAN = 50;
-    private static final String LAZY_ELEMENT_CLASS_NAME = "com.gtnewhorizon.structurelib.structure.LazyStructureElement";
-    private static final IItemSource EMPTY_ITEM_SOURCE = (predicate, simulate, count) -> Collections.emptyMap();
+    public static final int MAX_TIER_SCAN = 50;
+    public static final String LAZY_ELEMENT_CLASS_NAME = "com.gtnewhorizon.structurelib.structure.LazyStructureElement";
+    public static final IItemSource EMPTY_ITEM_SOURCE = (predicate, simulate, count) -> Collections.emptyMap();
 
     private final HatchSupport hatchSupport;
 
@@ -211,7 +211,7 @@ public class StructureLibElementTooltipResolver {
     }
 
     @Nullable
-    private static IStructureElement<?> unwrapLazyElement(IStructureElement<?> element, Object constructable) {
+    public static IStructureElement<?> unwrapLazyElement(IStructureElement<?> element, Object constructable) {
         if (!LAZY_ELEMENT_CLASS_NAME.equals(
             element.getClass()
                 .getName())) {
@@ -228,7 +228,7 @@ public class StructureLibElementTooltipResolver {
         }
     }
 
-    private static List<IStructureElement<?>> unwrapCapturedElements(IStructureElement<?> element) {
+    public static List<IStructureElement<?>> unwrapCapturedElements(IStructureElement<?> element) {
         List<IStructureElement<?>> wrappedElements = new ArrayList<>();
         for (Field field : element.getClass()
             .getDeclaredFields()) {
@@ -246,7 +246,7 @@ public class StructureLibElementTooltipResolver {
         return wrappedElements;
     }
 
-    private static IStructureElement.BlocksToPlace getBlocksToPlace(IStructureElement<Object> element,
+    public static IStructureElement.BlocksToPlace getBlocksToPlace(IStructureElement<Object> element,
         Object constructable, @Nullable World world, int x, int y, int z, ItemStack trigger,
         @Nullable EntityPlayer actor) {
         try {
@@ -256,14 +256,14 @@ public class StructureLibElementTooltipResolver {
         }
     }
 
-    private static AutoPlaceEnvironment createEnvironment(@Nullable EntityPlayer actor) {
+    public static AutoPlaceEnvironment createEnvironment(@Nullable EntityPlayer actor) {
         return AutoPlaceEnvironment
             .fromLegacy(EMPTY_ITEM_SOURCE, actor, StructureLibElementTooltipResolver::ignoreChat);
     }
 
-    private static void ignoreChat(@Nullable IChatComponent ignored) {}
+    public static void ignoreChat(@Nullable IChatComponent ignored) {}
 
-    private static ItemStack copyTrigger(ItemStack trigger, int tier) {
+    public static ItemStack copyTrigger(ItemStack trigger, int tier) {
         ItemStack copied = trigger.copy();
         copied.stackSize = Math.max(1, tier);
         return copied;
@@ -295,7 +295,7 @@ public class StructureLibElementTooltipResolver {
         return lines.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(lines);
     }
 
-    private static String normalizeHatchHintText(String hintText) {
+    public static String normalizeHatchHintText(String hintText) {
         String normalized = hintText.trim();
         if (normalized.isEmpty()) {
             return normalized;
@@ -312,7 +312,7 @@ public class StructureLibElementTooltipResolver {
         }
     }
 
-    private static List<ItemStack> normalizeStacks(Iterable<ItemStack> stacks) {
+    public static List<ItemStack> normalizeStacks(Iterable<ItemStack> stacks) {
         if (stacks == null) {
             return Collections.emptyList();
         }
@@ -328,7 +328,7 @@ public class StructureLibElementTooltipResolver {
         return normalized;
     }
 
-    private static String fingerprint(List<ItemStack> stacks) {
+    public static String fingerprint(List<ItemStack> stacks) {
         if (stacks.isEmpty()) {
             return "";
         }
@@ -340,13 +340,13 @@ public class StructureLibElementTooltipResolver {
         return builder.toString();
     }
 
-    private static String stackKey(ItemStack stack) {
+    public static String stackKey(ItemStack stack) {
         return stack.getItem()
             .getUnlocalizedName() + '@'
             + stack.getItemDamage();
     }
 
-    private static List<ItemStack> immutableStacks(Map<String, ItemStack> candidatesByKey) {
+    public static List<ItemStack> immutableStacks(Map<String, ItemStack> candidatesByKey) {
         if (candidatesByKey.isEmpty()) {
             return Collections.emptyList();
         }
@@ -354,7 +354,7 @@ public class StructureLibElementTooltipResolver {
     }
 
     @SuppressWarnings("unchecked")
-    private static IStructureElement<Object> cast(IStructureElement<?> element) {
+    public static IStructureElement<Object> cast(IStructureElement<?> element) {
         return (IStructureElement<Object>) element;
     }
 
@@ -393,7 +393,7 @@ public class StructureLibElementTooltipResolver {
 
     public static class TooltipDetails {
 
-        private static final TooltipDetails EMPTY = new TooltipDetails(
+        public static final TooltipDetails EMPTY = new TooltipDetails(
             Collections.emptyList(),
             Collections.emptyList(),
             Collections.emptyList());
@@ -439,7 +439,7 @@ public class StructureLibElementTooltipResolver {
 
     public static class ReflectiveGregTechHatchSupport implements HatchSupport {
 
-        private static final HatchSupport NO_OP = new HatchSupport() {
+        public static final HatchSupport NO_OP = new HatchSupport() {
 
             @Override
             public HatchDetails inspectLeaf(Object constructable, IStructureElement<Object> element, World world, int x,

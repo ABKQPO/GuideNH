@@ -4,7 +4,7 @@ import com.github.bsideup.jabel.Desugar;
 
 public class SceneEditorHorizontalScrollbar {
 
-    private static final int MIN_THUMB_SIZE = 18;
+    public static final int MIN_THUMB_SIZE = 18;
 
     private SceneEditorHorizontalScrollbar() {}
 
@@ -44,7 +44,7 @@ public class SceneEditorHorizontalScrollbar {
         return (int) ((long) (clampedThumbLeft - trackStart) * maxOffset / thumbTrack);
     }
 
-    private static int clamp(int value, int minValue, int maxValue) {
+    public static int clamp(int value, int minValue, int maxValue) {
         if (value < minValue) {
             return minValue;
         }

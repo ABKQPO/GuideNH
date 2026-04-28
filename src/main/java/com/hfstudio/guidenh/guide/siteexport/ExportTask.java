@@ -28,8 +28,8 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 
 public class ExportTask {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ExportTask.class);
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+    public static final Logger LOG = LoggerFactory.getLogger(ExportTask.class);
+    public static final Gson GSON = new GsonBuilder().setPrettyPrinting()
         .disableHtmlEscaping()
         .serializeNulls()
         .create();

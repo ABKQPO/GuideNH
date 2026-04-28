@@ -63,7 +63,7 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
     }
 
     @Nullable
-    private static String getString(Map<?, ?> map, String key) {
+    public static String getString(Map<?, ?> map, String key) {
         var value = map.get(key);
         if (value != null && !(value instanceof String)) {
             throw new IllegalArgumentException("Key " + key + " has to be a String!");
@@ -71,7 +71,7 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
         return (String) value;
     }
 
-    private static int getInt(Map<?, ?> map, String key) {
+    public static int getInt(Map<?, ?> map, String key) {
         var value = map.get(key);
         if (value == null) {
             throw new IllegalArgumentException("Key " + key + " is missing in navigation frontmatter");
@@ -83,7 +83,7 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
     }
 
     @Nullable
-    private static Map<?, ?> getCompound(Map<?, ?> map, String key) {
+    public static Map<?, ?> getCompound(Map<?, ?> map, String key) {
         var value = map.get(key);
         if (value == null) {
             return null;

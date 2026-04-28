@@ -50,8 +50,8 @@ import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 
 public class GuidebookLevelRenderer {
 
-    private static final GuidebookLevelRenderer INSTANCE = new GuidebookLevelRenderer();
-    private static final int FULL_BRIGHTNESS = 15728880;
+    public static final GuidebookLevelRenderer INSTANCE = new GuidebookLevelRenderer();
+    public static final int FULL_BRIGHTNESS = 15728880;
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
@@ -303,7 +303,7 @@ public class GuidebookLevelRenderer {
         }
     }
 
-    private static void resetRenderBlocksState(RenderBlocks renderBlocks, IBlockAccess blockAccess,
+    public static void resetRenderBlocksState(RenderBlocks renderBlocks, IBlockAccess blockAccess,
         boolean renderAllFaces) {
         renderBlocks.blockAccess = blockAccess;
         renderBlocks.clearOverrideBlockTexture();
@@ -409,11 +409,11 @@ public class GuidebookLevelRenderer {
         GL11.glDisable(GL_LIGHTING);
     }
 
-    private static int resolveEntityBrightnessForPreview(Entity entity, float partialTicks) {
+    public static int resolveEntityBrightnessForPreview(Entity entity, float partialTicks) {
         return FULL_BRIGHTNESS;
     }
 
-    private static void preparePreviewModelLighting() {
+    public static void preparePreviewModelLighting() {
         RenderHelper.enableStandardItemLighting();
         GL11.glEnable(GL_LIGHTING);
         GL11.glDisable(GL12.GL_RESCALE_NORMAL);
@@ -429,7 +429,7 @@ public class GuidebookLevelRenderer {
         GL11.glLoadMatrix(matrixBuffer);
     }
 
-    private static void setRenderPass(int pass) {
+    public static void setRenderPass(int pass) {
         try {
             ForgeHooksClient.setRenderPass(pass);
         } catch (Throwable ignore) {}
@@ -438,7 +438,7 @@ public class GuidebookLevelRenderer {
         } catch (Throwable ignore) {}
     }
 
-    private static void setTileEntityRenderPassState(int pass) {
+    public static void setTileEntityRenderPassState(int pass) {
         GL11.glColor4f(1f, 1f, 1f, 1f);
         if (pass == 0) {
             GL11.glEnable(GL_DEPTH_TEST);
@@ -451,7 +451,7 @@ public class GuidebookLevelRenderer {
         GL11.glDepthMask(false);
     }
 
-    private static void log(Throwable t) {
+    public static void log(Throwable t) {
         try {
             GuideDebugLog.warn(LogManager.getLogger("GuideNH/SceneRenderer"), "Scene render warning", t);
         } catch (Throwable ignore) {}

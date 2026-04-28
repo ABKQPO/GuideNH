@@ -60,7 +60,7 @@ public class GuideQueryParser {
         return builder.build();
     }
 
-    private static BooleanQuery buildFieldQuery(QueryBuilder queryBuilder, String fieldName, List<String> tokens,
+    public static BooleanQuery buildFieldQuery(QueryBuilder queryBuilder, String fieldName, List<String> tokens,
         boolean makeLastTokenWildcard, BooleanClause.Occur clause) {
 
         // Prepare a BooleanQuery to combine terms with OR

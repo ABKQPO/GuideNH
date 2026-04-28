@@ -32,32 +32,32 @@ public class SceneEditorHandleOverlay {
     public static final String BOX_CORNER_MAX_MAX_MIN_HANDLE_ID = "box_corner_max_max_min";
     public static final String BOX_CORNER_MAX_MAX_MAX_HANDLE_ID = "box_corner_max_max_max";
 
-    private static final int CENTER_HANDLE_RADIUS = 5;
-    private static final int CENTER_HANDLE_DIAMETER = CENTER_HANDLE_RADIUS * 2 + 1;
-    private static final int AXIS_HANDLE_RADIUS = 5;
-    private static final int AXIS_HANDLE_DIAMETER = AXIS_HANDLE_RADIUS * 2 + 1;
-    private static final int POINT_HANDLE_RADIUS = 4;
-    private static final int POINT_HANDLE_DIAMETER = POINT_HANDLE_RADIUS * 2 + 1;
-    private static final int PLANE_HANDLE_SIZE = 7;
-    private static final float AXIS_WORLD_LENGTH = 1.5f;
-    private static final float PLANE_WORLD_OFFSET = 0.8f;
-    private static final float PLANE_GUIDE_FACTOR = 0.28f;
-    private static final float AXIS_LINE_WIDTH = 3.25f;
-    private static final float PLANE_LINE_WIDTH = 2.25f;
-    private static final float ARROW_LENGTH = 8f;
-    private static final float ARROW_HALF_WIDTH = 4f;
-    private static final int CENTER_HANDLE_FILL = 0x8A00CAF2;
-    private static final int CENTER_HANDLE_OUTLINE = 0xFFF4FBFF;
-    private static final int X_AXIS_COLOR = 0xFFFF5A5A;
-    private static final int Y_AXIS_COLOR = 0xFF67E26C;
-    private static final int Z_AXIS_COLOR = 0xFF64A8FF;
-    private static final int XY_PLANE_COLOR = 0xD8FFD45A;
-    private static final int YZ_PLANE_COLOR = 0xD85AE9FF;
-    private static final int ZX_PLANE_COLOR = 0xD8F16BFF;
-    private static final String[] POINT_HANDLE_IDS = new String[] { CENTER_HANDLE_ID, XY_PLANE_HANDLE_ID,
+    public static final int CENTER_HANDLE_RADIUS = 5;
+    public static final int CENTER_HANDLE_DIAMETER = CENTER_HANDLE_RADIUS * 2 + 1;
+    public static final int AXIS_HANDLE_RADIUS = 5;
+    public static final int AXIS_HANDLE_DIAMETER = AXIS_HANDLE_RADIUS * 2 + 1;
+    public static final int POINT_HANDLE_RADIUS = 4;
+    public static final int POINT_HANDLE_DIAMETER = POINT_HANDLE_RADIUS * 2 + 1;
+    public static final int PLANE_HANDLE_SIZE = 7;
+    public static final float AXIS_WORLD_LENGTH = 1.5f;
+    public static final float PLANE_WORLD_OFFSET = 0.8f;
+    public static final float PLANE_GUIDE_FACTOR = 0.28f;
+    public static final float AXIS_LINE_WIDTH = 3.25f;
+    public static final float PLANE_LINE_WIDTH = 2.25f;
+    public static final float ARROW_LENGTH = 8f;
+    public static final float ARROW_HALF_WIDTH = 4f;
+    public static final int CENTER_HANDLE_FILL = 0x8A00CAF2;
+    public static final int CENTER_HANDLE_OUTLINE = 0xFFF4FBFF;
+    public static final int X_AXIS_COLOR = 0xFFFF5A5A;
+    public static final int Y_AXIS_COLOR = 0xFF67E26C;
+    public static final int Z_AXIS_COLOR = 0xFF64A8FF;
+    public static final int XY_PLANE_COLOR = 0xD8FFD45A;
+    public static final int YZ_PLANE_COLOR = 0xD85AE9FF;
+    public static final int ZX_PLANE_COLOR = 0xD8F16BFF;
+    public static final String[] POINT_HANDLE_IDS = new String[] { CENTER_HANDLE_ID, XY_PLANE_HANDLE_ID,
         YZ_PLANE_HANDLE_ID, ZX_PLANE_HANDLE_ID, X_AXIS_HANDLE_ID, Y_AXIS_HANDLE_ID, Z_AXIS_HANDLE_ID };
-    private static final String[] LINE_HANDLE_IDS = new String[] { LINE_FROM_HANDLE_ID, LINE_TO_HANDLE_ID };
-    private static final String[] BOX_HANDLE_IDS = new String[] { BOX_CORNER_MIN_MIN_MIN_HANDLE_ID,
+    public static final String[] LINE_HANDLE_IDS = new String[] { LINE_FROM_HANDLE_ID, LINE_TO_HANDLE_ID };
+    public static final String[] BOX_HANDLE_IDS = new String[] { BOX_CORNER_MIN_MIN_MIN_HANDLE_ID,
         BOX_CORNER_MIN_MIN_MAX_HANDLE_ID, BOX_CORNER_MIN_MAX_MIN_HANDLE_ID, BOX_CORNER_MIN_MAX_MAX_HANDLE_ID,
         BOX_CORNER_MAX_MIN_MIN_HANDLE_ID, BOX_CORNER_MAX_MIN_MAX_HANDLE_ID, BOX_CORNER_MAX_MAX_MIN_HANDLE_ID,
         BOX_CORNER_MAX_MAX_MAX_HANDLE_ID };

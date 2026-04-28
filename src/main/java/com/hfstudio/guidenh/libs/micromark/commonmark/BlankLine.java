@@ -21,7 +21,7 @@ public class BlankLine {
         blankLine.partial = true;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

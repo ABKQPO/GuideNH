@@ -18,7 +18,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
  */
 public class LytPlaceholderBlock extends LytBlock {
 
-    private static final Logger LOG = LoggerFactory.getLogger(LytPlaceholderBlock.class);
+    public static final Logger LOG = LoggerFactory.getLogger(LytPlaceholderBlock.class);
 
     private final CompletableFuture<LytBlock> future;
 

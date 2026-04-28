@@ -43,7 +43,7 @@ public class StructureLibHatchDescriptionLine {
         return text;
     }
 
-    private static String normalize(@Nullable String value) {
+    public static String normalize(@Nullable String value) {
         if (value == null) {
             return null;
         }

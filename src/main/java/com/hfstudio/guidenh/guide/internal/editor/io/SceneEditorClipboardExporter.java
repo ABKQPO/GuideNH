@@ -15,7 +15,7 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
 public class SceneEditorClipboardExporter {
 
-    private static final Logger LOG = LogManager.getLogger("guidenh");
+    public static final Logger LOG = LogManager.getLogger("guidenh");
 
     @FunctionalInterface
     public interface ClipboardSink {

@@ -42,7 +42,7 @@ import com.hfstudio.guidenh.guide.scene.support.RemoveBlocksExecutor;
 
 public class SceneEditorSceneNodePreviewApplier {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
+    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
 
     private final Path workingRoot;
     private final StructureLibSceneImportService structureLibImportService;
@@ -399,7 +399,7 @@ public class SceneEditorSceneNodePreviewApplier {
     }
 
     @Nullable
-    private static String normalizeAttribute(@Nullable String value) {
+    public static String normalizeAttribute(@Nullable String value) {
         if (value == null) {
             return null;
         }
@@ -408,7 +408,7 @@ public class SceneEditorSceneNodePreviewApplier {
     }
 
     @Nullable
-    private static Integer parseIntegerAttribute(@Nullable String value) {
+    public static Integer parseIntegerAttribute(@Nullable String value) {
         String normalized = normalizeAttribute(value);
         if (normalized == null) {
             return null;

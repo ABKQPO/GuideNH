@@ -33,39 +33,39 @@ import org.slf4j.LoggerFactory;
  */
 public class NeiRecipeLookup {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NeiRecipeLookup.class);
+    public static final Logger LOG = LoggerFactory.getLogger(NeiRecipeLookup.class);
 
-    private static final boolean AVAILABLE;
-    private static final @Nullable Method GET_CRAFTING_HANDLERS;
-    private static final @Nullable Method GET_USAGE_HANDLERS;
-    private static final @Nullable Method H_NUM_RECIPES;
-    private static final @Nullable Method H_GET_INGREDIENTS;
-    private static final @Nullable Method H_GET_RESULT;
-    private static final @Nullable Method H_GET_OTHERS;
-    private static final @Nullable Method H_GET_RECIPE_NAME;
-    private static final @Nullable Method H_DRAW_BACKGROUND;
-    private static final @Nullable Method H_DRAW_FOREGROUND;
-    private static final @Nullable Method H_ON_UPDATE;
-    private static final @Nullable Method H_GET_RECIPE_HEIGHT;
-    private static final @Nullable Method H_GET_OVERLAY_IDENTIFIER;
-    private static final @Nullable Method H_HANDLE_ITEM_TOOLTIP;
-    private static final @Nullable Method TMPL_DRAW_EXTRAS;
-    private static final @Nullable Method TMPL_GET_GUI_TEXTURE;
-    private static final @Nullable Field PS_RELX;
-    private static final @Nullable Field PS_RELY;
-    private static final @Nullable Field PS_ITEMS;
-    private static final @Nullable Field PS_ITEM;
-    private static final @Nullable Field TAB_HANDLER_MAP;
-    private static final @Nullable Method INFO_GET_ITEMSTACK;
-    private static final @Nullable Method INFO_GET_IMAGE;
-    private static final @Nullable Method INFO_GET_WIDTH;
-    private static final @Nullable Method INFO_GET_HEIGHT;
-    private static final @Nullable Method INFO_GET_Y_SHIFT;
-    private static final @Nullable Method DRAWABLE_GET_WIDTH;
-    private static final @Nullable Method DRAWABLE_GET_HEIGHT;
-    private static final @Nullable Method DRAWABLE_DRAW;
-    private static final @Nullable Class<?> CLASS_GUI_RECIPE;
-    private static final @Nullable Class<?> CLASS_TEMPLATE_HANDLER;
+    public static final boolean AVAILABLE;
+    public static final @Nullable Method GET_CRAFTING_HANDLERS;
+    public static final @Nullable Method GET_USAGE_HANDLERS;
+    public static final @Nullable Method H_NUM_RECIPES;
+    public static final @Nullable Method H_GET_INGREDIENTS;
+    public static final @Nullable Method H_GET_RESULT;
+    public static final @Nullable Method H_GET_OTHERS;
+    public static final @Nullable Method H_GET_RECIPE_NAME;
+    public static final @Nullable Method H_DRAW_BACKGROUND;
+    public static final @Nullable Method H_DRAW_FOREGROUND;
+    public static final @Nullable Method H_ON_UPDATE;
+    public static final @Nullable Method H_GET_RECIPE_HEIGHT;
+    public static final @Nullable Method H_GET_OVERLAY_IDENTIFIER;
+    public static final @Nullable Method H_HANDLE_ITEM_TOOLTIP;
+    public static final @Nullable Method TMPL_DRAW_EXTRAS;
+    public static final @Nullable Method TMPL_GET_GUI_TEXTURE;
+    public static final @Nullable Field PS_RELX;
+    public static final @Nullable Field PS_RELY;
+    public static final @Nullable Field PS_ITEMS;
+    public static final @Nullable Field PS_ITEM;
+    public static final @Nullable Field TAB_HANDLER_MAP;
+    public static final @Nullable Method INFO_GET_ITEMSTACK;
+    public static final @Nullable Method INFO_GET_IMAGE;
+    public static final @Nullable Method INFO_GET_WIDTH;
+    public static final @Nullable Method INFO_GET_HEIGHT;
+    public static final @Nullable Method INFO_GET_Y_SHIFT;
+    public static final @Nullable Method DRAWABLE_GET_WIDTH;
+    public static final @Nullable Method DRAWABLE_GET_HEIGHT;
+    public static final @Nullable Method DRAWABLE_DRAW;
+    public static final @Nullable Class<?> CLASS_GUI_RECIPE;
+    public static final @Nullable Class<?> CLASS_TEMPLATE_HANDLER;
 
     static {
         Method gch = null, guh = null, nr = null, gi = null, gr = null, go = null, grn = null;
@@ -384,7 +384,7 @@ public class NeiRecipeLookup {
         }
     }
 
-    private static int lookupHandlerDimension(Object handler, @Nullable Method getter, int fallback) {
+    public static int lookupHandlerDimension(Object handler, @Nullable Method getter, int fallback) {
         if (!AVAILABLE || handler == null || getter == null || TAB_HANDLER_MAP == null) return fallback;
         try {
             Object info = lookupHandlerInfo(handler);
@@ -397,7 +397,7 @@ public class NeiRecipeLookup {
     }
 
     @SuppressWarnings("unchecked")
-    private static @Nullable Object lookupHandlerInfo(Object handler) throws IllegalAccessException {
+    public static @Nullable Object lookupHandlerInfo(Object handler) throws IllegalAccessException {
         if (TAB_HANDLER_MAP == null) return null;
         Object rawMap = TAB_HANDLER_MAP.get(null);
         if (!(rawMap instanceof Map)) return null;
@@ -484,7 +484,7 @@ public class NeiRecipeLookup {
     }
 
     @SuppressWarnings("unchecked")
-    private static List<Entry> queryHandlers(Method lookupMethod, String kind, Object[] args) {
+    public static List<Entry> queryHandlers(Method lookupMethod, String kind, Object[] args) {
         if (lookupMethod == null) return Collections.emptyList();
         try {
             Object handlers = lookupMethod.invoke(null, kind, args);
@@ -502,7 +502,7 @@ public class NeiRecipeLookup {
         }
     }
 
-    private static @Nullable Entry[] readHandler(Object handler) {
+    public static @Nullable Entry[] readHandler(Object handler) {
         try {
             int n = (int) H_NUM_RECIPES.invoke(handler);
             if (n <= 0) return new Entry[0];
@@ -524,7 +524,7 @@ public class NeiRecipeLookup {
     }
 
     @SuppressWarnings("unchecked")
-    private static List<Slot> readSlotList(Object obj) {
+    public static List<Slot> readSlotList(Object obj) {
         if (!(obj instanceof List)) return Collections.emptyList();
         List<Slot> out = new ArrayList<>();
         for (Object ps : (List<Object>) obj) {
@@ -534,7 +534,7 @@ public class NeiRecipeLookup {
         return out;
     }
 
-    private static @Nullable Slot readSlot(@Nullable Object ps) {
+    public static @Nullable Slot readSlot(@Nullable Object ps) {
         if (ps == null) return null;
         try {
             int relx = PS_RELX.getInt(ps);
@@ -557,7 +557,7 @@ public class NeiRecipeLookup {
         }
     }
 
-    private static String safeString(@Nullable Object o) {
+    public static String safeString(@Nullable Object o) {
         return o == null ? "" : o.toString();
     }
 }

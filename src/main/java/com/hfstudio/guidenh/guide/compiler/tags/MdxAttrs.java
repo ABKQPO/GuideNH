@@ -21,7 +21,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class MdxAttrs {
 
-    private static final Pattern COLOR_PATTERN = Pattern.compile("^#([0-9a-fA-F]{2}){3,4}$");
+    public static final Pattern COLOR_PATTERN = Pattern.compile("^#([0-9a-fA-F]{2}){3,4}$");
 
     private MdxAttrs() {}
 
@@ -293,7 +293,7 @@ public class MdxAttrs {
         throw new AttributeException(name, "Unrecognized option for attribute " + name + ": " + stringValue);
     }
 
-    private static class AttributeException extends RuntimeException {
+    public static class AttributeException extends RuntimeException {
 
         private final String attribute;
 

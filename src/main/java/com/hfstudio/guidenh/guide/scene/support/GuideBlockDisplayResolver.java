@@ -15,7 +15,7 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public class GuideBlockDisplayResolver {
 
-    private static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS = "bartworks.system.material.BWMetaGeneratedBlocks";
+    public static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS = "bartworks.system.material.BWMetaGeneratedBlocks";
 
     private GuideBlockDisplayResolver() {}
 
@@ -93,7 +93,7 @@ public class GuideBlockDisplayResolver {
     }
 
     @Nullable
-    private static String resolveIntrinsicBlockDisplayName(GuidebookLevel level, Block block, int x, int y, int z) {
+    public static String resolveIntrinsicBlockDisplayName(GuidebookLevel level, Block block, int x, int y, int z) {
         try {
             Item item = Item.getItemFromBlock(block);
             if (item != null) {
@@ -145,7 +145,7 @@ public class GuideBlockDisplayResolver {
         return false;
     }
 
-    private static int safeResolveDamageValue(GuidebookLevel level, Block block, int x, int y, int z) {
+    public static int safeResolveDamageValue(GuidebookLevel level, Block block, int x, int y, int z) {
         try {
             return Math.max(0, block.getDamageValue(level.getOrCreateFakeWorld(), x, y, z));
         } catch (Throwable ignored) {
@@ -154,7 +154,7 @@ public class GuideBlockDisplayResolver {
     }
 
     @Nullable
-    private static ItemStack safeResolvePickedStack(GuidebookLevel level, Block block, int x, int y, int z,
+    public static ItemStack safeResolvePickedStack(GuidebookLevel level, Block block, int x, int y, int z,
         @Nullable MovingObjectPosition target) {
         if (target == null) {
             return null;

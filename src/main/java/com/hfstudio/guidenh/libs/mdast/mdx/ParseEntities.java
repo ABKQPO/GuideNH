@@ -138,7 +138,7 @@ public class ParseEntities {
     /**
      * Check if `character` is outside the permissible unicode range.
      */
-    private static boolean prohibited(int code) {
+    public static boolean prohibited(int code) {
         return (code >= 0xd800 && code <= 0xdfff) || code > 0x10ffff;
     }
 
@@ -172,7 +172,7 @@ public class ParseEntities {
     /**
      * Map of invalid numeric character references to their replacements, according to HTML.
      */
-    private static final Map<Integer, String> characterReferenceInvalid;
+    public static final Map<Integer, String> characterReferenceInvalid;
     static {
         var codes = new HashMap<Integer, String>();
         codes.put(0, "�");

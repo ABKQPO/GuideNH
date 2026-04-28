@@ -28,11 +28,11 @@ public class GuideNavBar {
 
     public static final int WIDTH_CLOSED = 10;
     public static final int WIDTH_OPEN = 150;
-    private static final int CONTENT_PADDING = 2;
-    private static final int ROW_H = 12;
-    private static final int CHILD_INDENT = 12;
-    private static final int EXPAND_INDENT = 8;
-    private static final int ICON_SIZE = 9;
+    public static final int CONTENT_PADDING = 2;
+    public static final int ROW_H = 12;
+    public static final int CHILD_INDENT = 12;
+    public static final int EXPAND_INDENT = 8;
+    public static final int ICON_SIZE = 9;
 
     private final List<Row> rows = new ArrayList<>();
     private final Set<NavigationNode> expanded = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -215,7 +215,7 @@ public class GuideNavBar {
         rebuildRows(lastTree);
     }
 
-    private static void drawVGradient(int x, int y, int w, int h, int topColor, int botColor) {
+    public static void drawVGradient(int x, int y, int w, int h, int topColor, int botColor) {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -239,7 +239,7 @@ public class GuideNavBar {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
     }
 
-    private static void drawArrow(int x, int y, boolean pointRight, int color) {
+    public static void drawArrow(int x, int y, boolean pointRight, int color) {
         if (pointRight) {
             // row0 1px; row1 2px; row2 3px; row3 4px; row4 3px; row5 2px; row6 1px
             Gui.drawRect(x, y, x + 1, y + 7, color);
@@ -254,7 +254,7 @@ public class GuideNavBar {
         }
     }
 
-    private static void drawMiniIcon(Minecraft mc, GuidePageIcon icon, int x, int y) {
+    public static void drawMiniIcon(Minecraft mc, GuidePageIcon icon, int x, int y) {
         if (icon.isTextureIcon()) {
             drawMiniTextureIcon(icon.texture(), x, y);
             return;
@@ -262,7 +262,7 @@ public class GuideNavBar {
         drawMiniItemIcon(mc, icon.itemStack(), x, y);
     }
 
-    private static void drawMiniItemIcon(Minecraft mc, net.minecraft.item.ItemStack stack, int x, int y) {
+    public static void drawMiniItemIcon(Minecraft mc, net.minecraft.item.ItemStack stack, int x, int y) {
         try {
             GL11.glPushMatrix();
             GL11.glTranslatef(x, y, 0);
@@ -281,7 +281,7 @@ public class GuideNavBar {
         }
     }
 
-    private static void drawMiniTextureIcon(@Nullable GuidePageTexture texture, int x, int y) {
+    public static void drawMiniTextureIcon(@Nullable GuidePageTexture texture, int x, int y) {
         if (texture == null || texture.isMissing()) {
             return;
         }

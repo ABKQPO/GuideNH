@@ -22,14 +22,14 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
  */
 public class GuideRegistry {
 
-    private static final Logger LOG = LoggerFactory.getLogger(GuideRegistry.class);
+    public static final Logger LOG = LoggerFactory.getLogger(GuideRegistry.class);
 
-    private static final ConcurrentHashMap<ResourceLocation, MutableGuide> guides = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<ResourceLocation, MutableGuide> guides = new ConcurrentHashMap<>();
 
-    private static final Map<ResourceLocation, MutableGuide> dataDrivenGuides = new HashMap<>();
+    public static final Map<ResourceLocation, MutableGuide> dataDrivenGuides = new HashMap<>();
 
     // Merged between data-driven and in-code guides
-    private static volatile Map<ResourceLocation, MutableGuide> mergedGuides = Collections.emptyMap();
+    public static volatile Map<ResourceLocation, MutableGuide> mergedGuides = Collections.emptyMap();
 
     public static Collection<MutableGuide> getAll() {
         return mergedGuides.values();
@@ -86,7 +86,7 @@ public class GuideRegistry {
         }
     }
 
-    private static void rebuildGuides() {
+    public static void rebuildGuides() {
         var merged = new HashMap<>(guides);
         var overridden = new ArrayList<ResourceLocation>();
         for (var entry : dataDrivenGuides.entrySet()) {

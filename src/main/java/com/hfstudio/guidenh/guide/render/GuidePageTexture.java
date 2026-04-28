@@ -19,10 +19,10 @@ import com.hfstudio.guidenh.guide.document.LytSize;
 
 public class GuidePageTexture {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/GuidePageTexture");
-    private static final GuidePageTexture MISSING = new GuidePageTexture(null, 0, 0, null);
+    public static final Logger LOG = LogManager.getLogger("GuideNH/GuidePageTexture");
+    public static final GuidePageTexture MISSING = new GuidePageTexture(null, 0, 0, null);
 
-    private static final Map<ResourceLocation, GuidePageTexture> CACHE = new HashMap<>();
+    public static final Map<ResourceLocation, GuidePageTexture> CACHE = new HashMap<>();
 
     @Nullable
     private final ResourceLocation sourceId;
@@ -76,7 +76,7 @@ public class GuidePageTexture {
         CACHE.clear();
     }
 
-    private static String sanitize(String raw) {
+    public static String sanitize(String raw) {
         return raw.replaceAll("[^a-zA-Z0-9]", "_");
     }
 

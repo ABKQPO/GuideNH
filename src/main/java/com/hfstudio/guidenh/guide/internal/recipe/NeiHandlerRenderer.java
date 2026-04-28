@@ -20,7 +20,7 @@ import org.lwjgl.opengl.GL11;
  */
 public class NeiHandlerRenderer {
 
-    private static final RenderItem ITEM_RENDERER = new RenderItem();
+    public static final RenderItem ITEM_RENDERER = new RenderItem();
 
     private NeiHandlerRenderer() {}
 
@@ -75,7 +75,7 @@ public class NeiHandlerRenderer {
         return hovered;
     }
 
-    private static @Nullable ItemStack drawSlots(List<NeiRecipeLookup.Slot> slots, int screenX, int screenY, int mouseX,
+    public static @Nullable ItemStack drawSlots(List<NeiRecipeLookup.Slot> slots, int screenX, int screenY, int mouseX,
         int mouseY, @Nullable ItemStack currentHovered) {
         ItemStack hovered = currentHovered;
         for (NeiRecipeLookup.Slot s : slots) {
@@ -89,7 +89,7 @@ public class NeiHandlerRenderer {
         return hovered;
     }
 
-    private static @Nullable ItemStack pickVisibleStack(NeiRecipeLookup.Slot s) {
+    public static @Nullable ItemStack pickVisibleStack(NeiRecipeLookup.Slot s) {
         if (s == null || s.stacks == null || s.stacks.isEmpty()) return null;
         // The current ItemStack rotates via handler.onUpdate() which mutates PositionedStack.item;
         // we re-read through the stacks list and just show the first non-empty entry.
@@ -100,11 +100,11 @@ public class NeiHandlerRenderer {
         return null;
     }
 
-    private static boolean isOver(int x, int y, int mouseX, int mouseY) {
+    public static boolean isOver(int x, int y, int mouseX, int mouseY) {
         return mouseX >= x && mouseX < x + 16 && mouseY >= y && mouseY < y + 16;
     }
 
-    private static void drawItem(ItemStack stack, int x, int y) {
+    public static void drawItem(ItemStack stack, int x, int y) {
         Minecraft mc = Minecraft.getMinecraft();
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_LIGHTING_BIT);
         try {

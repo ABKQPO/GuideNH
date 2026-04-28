@@ -31,7 +31,7 @@ public class FactoryDestination {
             max)::start;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private Tokenizer.Effects effects;
         private State ok;

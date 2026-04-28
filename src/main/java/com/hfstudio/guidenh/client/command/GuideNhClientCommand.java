@@ -27,7 +27,7 @@ import com.hfstudio.guidenh.guide.siteexport.ExportTask;
 
 public class GuideNhClientCommand extends CommandBase {
 
-    private static final String[] ROOT_SUB_COMMANDS = { "editor", "list", "open", "reload", "search", "export",
+    public static final String[] ROOT_SUB_COMMANDS = { "editor", "list", "open", "reload", "search", "export",
         "exportstructure" };
 
     @Override
@@ -223,11 +223,11 @@ public class GuideNhClientCommand extends CommandBase {
         }
     }
 
-    private static void send(ICommandSender sender, GuidebookText key, Object... args) {
+    public static void send(ICommandSender sender, GuidebookText key, Object... args) {
         sender.addChatMessage(new ChatComponentTranslation(key.getTranslationKey(), args));
     }
 
-    private static String getErrorMessage(Throwable throwable) {
+    public static String getErrorMessage(Throwable throwable) {
         return throwable.getMessage() != null ? throwable.getMessage()
             : throwable.getClass()
                 .getSimpleName();

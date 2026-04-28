@@ -20,7 +20,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class SubPagesCompiler extends BlockTagCompiler {
 
-    private static final Comparator<NavigationNode> ALPHABETICAL_COMPARATOR = Comparator
+    public static final Comparator<NavigationNode> ALPHABETICAL_COMPARATOR = Comparator
         .comparing(NavigationNode::title);
 
     @Override

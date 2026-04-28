@@ -18,8 +18,8 @@ import net.minecraft.item.ItemStack;
  */
 public class RecipeCache {
 
-    private static final Map<Key, List<Object>> HANDLERS = new HashMap<>();
-    private static final Map<Key, List<Object>> USAGE_HANDLERS = new HashMap<>();
+    public static final Map<Key, List<Object>> HANDLERS = new HashMap<>();
+    public static final Map<Key, List<Object>> USAGE_HANDLERS = new HashMap<>();
 
     private RecipeCache() {}
 

@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 public class Colors {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Colors.class);
+    public static final Logger LOG = LoggerFactory.getLogger(Colors.class);
 
     /**
      * Converts a hexadecimal color string to a packed RGB or ARGB integer. If no alpha is given, assumes alpha 255. The
@@ -63,7 +63,7 @@ public class Colors {
         return 0;
     }
 
-    private static int fromHexChar(int ch) {
+    public static int fromHexChar(int ch) {
         if (ch >= '0' && ch <= '9') {
             return ch - '0';
         } else if (ch >= 'a' && ch <= 'f') {

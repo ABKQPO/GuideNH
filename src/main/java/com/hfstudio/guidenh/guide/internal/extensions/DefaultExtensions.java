@@ -46,7 +46,7 @@ import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 
 public class DefaultExtensions {
 
-    private static final List<Registration<?>> EXTENSIONS = Arrays.asList(
+    public static final List<Registration<?>> EXTENSIONS = Arrays.asList(
         new Registration<>(TagCompiler.EXTENSION_POINT, DefaultExtensions::tagCompilers),
         new Registration<>(SceneElementTagCompiler.EXTENSION_POINT, DefaultExtensions::sceneElementCompilers));
 
@@ -58,7 +58,7 @@ public class DefaultExtensions {
         }
     }
 
-    private static <T extends Extension> void add(ExtensionCollection.Builder builder,
+    public static <T extends Extension> void add(ExtensionCollection.Builder builder,
         Set<ExtensionPoint<?>> disabledExtensionPoints, Registration<T> registration) {
         if (disabledExtensionPoints.contains(registration.extensionPoint)) {
             return;
@@ -69,7 +69,7 @@ public class DefaultExtensions {
         }
     }
 
-    private static List<TagCompiler> tagCompilers() {
+    public static List<TagCompiler> tagCompilers() {
         return Arrays.asList(
             new DivTagCompiler(),
             new ATagCompiler(),
@@ -93,7 +93,7 @@ public class DefaultExtensions {
             new StructureViewCompiler());
     }
 
-    private static List<SceneElementTagCompiler> sceneElementCompilers() {
+    public static List<SceneElementTagCompiler> sceneElementCompilers() {
         return Arrays.asList(
             new EntityElementCompiler(),
             new BlockElementCompiler(),

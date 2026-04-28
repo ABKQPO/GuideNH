@@ -23,7 +23,7 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public class VanillaRenderContext implements RenderContext {
 
-    private static final RenderItem ITEM_RENDERER = new RenderItem();
+    public static final RenderItem ITEM_RENDERER = new RenderItem();
 
     private final FontRenderer fontRenderer;
     private int screenHeight;
@@ -176,7 +176,7 @@ public class VanillaRenderContext implements RenderContext {
         return Math.round(raw * scale);
     }
 
-    private static int countRenderedChars(String text) {
+    public static int countRenderedChars(String text) {
         int n = 0;
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);

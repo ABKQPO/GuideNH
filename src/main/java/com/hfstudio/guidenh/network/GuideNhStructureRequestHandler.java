@@ -83,11 +83,11 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
         return null;
     }
 
-    private static void send(EntityPlayerMP player, GuidebookText key, Object... args) {
+    public static void send(EntityPlayerMP player, GuidebookText key, Object... args) {
         player.addChatMessage(new ChatComponentTranslation(key.getTranslationKey(), args));
     }
 
-    private static String getErrorMessage(Throwable throwable) {
+    public static String getErrorMessage(Throwable throwable) {
         return throwable.getMessage() != null ? throwable.getMessage()
             : throwable.getClass()
                 .getSimpleName();

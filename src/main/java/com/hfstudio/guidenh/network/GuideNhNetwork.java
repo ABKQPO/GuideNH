@@ -8,7 +8,7 @@ import cpw.mods.fml.relauncher.Side;
 
 public class GuideNhNetwork {
 
-    private static final SimpleNetworkWrapper CHANNEL = NetworkRegistry.INSTANCE.newSimpleChannel(GuideNH.MODID);
+    public static final SimpleNetworkWrapper CHANNEL = NetworkRegistry.INSTANCE.newSimpleChannel(GuideNH.MODID);
 
     private GuideNhNetwork() {}
 

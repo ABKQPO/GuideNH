@@ -25,7 +25,7 @@ import com.hfstudio.guidenh.libs.unist.UnistParent;
 
 public class SceneTagCompiler extends BlockTagCompiler {
 
-    private static final LytErrorSink NOOP_ERROR_SINK = (compiler, text, node) -> {};
+    public static final LytErrorSink NOOP_ERROR_SINK = (compiler, text, node) -> {};
 
     private Map<String, SceneElementTagCompiler> elementCompilers = Collections.emptyMap();
 
@@ -187,7 +187,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             .restore(savedCamera);
     }
 
-    private static MdxJsxElementFields unwrapSceneElement(UnistNode node) {
+    public static MdxJsxElementFields unwrapSceneElement(UnistNode node) {
         if (node instanceof MdxJsxElementFields elementFields) {
             return elementFields;
         }
@@ -212,7 +212,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         return found;
     }
 
-    private static boolean isIgnorableNode(UnistNode node) {
+    public static boolean isIgnorableNode(UnistNode node) {
         if (node instanceof MdxJsxElementFields) {
             return false;
         }

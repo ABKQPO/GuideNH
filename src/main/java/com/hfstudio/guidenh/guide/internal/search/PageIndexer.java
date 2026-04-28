@@ -40,7 +40,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstThematicBreak;
 
 public class PageIndexer implements IndexingContext {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PageIndexer.class);
+    public static final Logger LOG = LoggerFactory.getLogger(PageIndexer.class);
 
     private final PageCollection pages;
     private final ExtensionCollection extensions;

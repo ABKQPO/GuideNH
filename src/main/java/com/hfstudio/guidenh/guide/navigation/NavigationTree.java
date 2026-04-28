@@ -25,7 +25,7 @@ import com.hfstudio.guidenh.guide.internal.util.NavigationUtil;
 
 public class NavigationTree {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NavigationTree.class);
+    public static final Logger LOG = LoggerFactory.getLogger(NavigationTree.class);
 
     private final Map<ResourceLocation, NavigationNode> nodeIndex;
 
@@ -113,7 +113,7 @@ public class NavigationTree {
     }
 
     @Nullable
-    private static NavigationNode createNode(Map<ResourceLocation, NavigationNode> nodeIndex,
+    public static NavigationNode createNode(Map<ResourceLocation, NavigationNode> nodeIndex,
         List<NavigationNode> rootNodes,
         Map<ResourceLocation, Pair<ParsedGuidePage, List<ParsedGuidePage>>> pagesWithChildren,
         @Nullable PageCollection pageCollection, ResourceLocation pageId,
@@ -172,7 +172,7 @@ public class NavigationTree {
         return node;
     }
 
-    private static final Comparator<NavigationNode> NODE_COMPARATOR = Comparator.comparingInt(NavigationNode::position)
+    public static final Comparator<NavigationNode> NODE_COMPARATOR = Comparator.comparingInt(NavigationNode::position)
         .thenComparing(NavigationNode::title);
 
 }

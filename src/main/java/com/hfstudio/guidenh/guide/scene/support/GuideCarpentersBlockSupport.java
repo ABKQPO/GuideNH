@@ -15,11 +15,11 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public class GuideCarpentersBlockSupport {
 
-    private static final String CARPENTERS_BLOCK_PACKAGE = "com.carpentersblocks.block.";
-    private static final String CARPENTERS_TILE_PACKAGE = "com.carpentersblocks.tileentity.";
-    private static final String CARPENTERS_BLOCK_PROPERTIES_CLASS = "com.carpentersblocks.util.BlockProperties";
-    private static final String FEATURE_SENSITIVE_STACK_METHOD = "getFeatureSensitiveSideItemStack";
-    private static final int BASE_COVER_SIDE = 6;
+    public static final String CARPENTERS_BLOCK_PACKAGE = "com.carpentersblocks.block.";
+    public static final String CARPENTERS_TILE_PACKAGE = "com.carpentersblocks.tileentity.";
+    public static final String CARPENTERS_BLOCK_PROPERTIES_CLASS = "com.carpentersblocks.util.BlockProperties";
+    public static final String FEATURE_SENSITIVE_STACK_METHOD = "getFeatureSensitiveSideItemStack";
+    public static final int BASE_COVER_SIDE = 6;
 
     private GuideCarpentersBlockSupport() {}
 
@@ -62,12 +62,12 @@ public class GuideCarpentersBlockSupport {
         return preferredSide != BASE_COVER_SIDE ? resolveCoverStack(tileEntity, BASE_COVER_SIDE) : null;
     }
 
-    private static int resolvePreferredSide(@Nullable MovingObjectPosition target) {
+    public static int resolvePreferredSide(@Nullable MovingObjectPosition target) {
         return target != null && target.sideHit >= 0 && target.sideHit < BASE_COVER_SIDE ? target.sideHit
             : BASE_COVER_SIDE;
     }
 
-    private static boolean isCarpentersTile(@Nullable TileEntity tileEntity) {
+    public static boolean isCarpentersTile(@Nullable TileEntity tileEntity) {
         if (tileEntity == null) {
             return false;
         }
@@ -81,8 +81,7 @@ public class GuideCarpentersBlockSupport {
     }
 
     @Nullable
-    private static ItemStack resolveFeatureSensitiveStack(TileEntity tileEntity,
-        @Nullable MovingObjectPosition target) {
+    public static ItemStack resolveFeatureSensitiveStack(TileEntity tileEntity, @Nullable MovingObjectPosition target) {
         Method method = resolveFeatureSensitiveStackMethod(tileEntity.getClass());
         if (method == null) {
             return null;
@@ -96,7 +95,7 @@ public class GuideCarpentersBlockSupport {
     }
 
     @Nullable
-    private static Method resolveFeatureSensitiveStackMethod(Class<?> tileEntityClass) {
+    public static Method resolveFeatureSensitiveStackMethod(Class<?> tileEntityClass) {
         try {
             for (Method method : Class.forName(CARPENTERS_BLOCK_PROPERTIES_CLASS)
                 .getMethods()) {
@@ -116,14 +115,14 @@ public class GuideCarpentersBlockSupport {
         return null;
     }
 
-    private static ForgeDirection resolveForgeDirection(@Nullable MovingObjectPosition target) {
+    public static ForgeDirection resolveForgeDirection(@Nullable MovingObjectPosition target) {
         return target != null && target.sideHit >= 0 && target.sideHit < BASE_COVER_SIDE
             ? ForgeDirection.getOrientation(target.sideHit)
             : ForgeDirection.UNKNOWN;
     }
 
     @Nullable
-    private static ItemStack resolveCoverStack(TileEntity tileEntity, int sideIndex) {
+    public static ItemStack resolveCoverStack(TileEntity tileEntity, int sideIndex) {
         byte[] coverAttributes = resolveCoverAttributes(tileEntity);
         if (coverAttributes == null || sideIndex < 0 || sideIndex >= coverAttributes.length) {
             return null;
@@ -145,7 +144,7 @@ public class GuideCarpentersBlockSupport {
     }
 
     @Nullable
-    private static byte[] resolveCoverAttributes(TileEntity tileEntity) {
+    public static byte[] resolveCoverAttributes(TileEntity tileEntity) {
         try {
             Object value = tileEntity.getClass()
                 .getField("ATTR_COVER")
@@ -156,7 +155,7 @@ public class GuideCarpentersBlockSupport {
         }
     }
 
-    private static boolean hasAttribute(TileEntity tileEntity, byte attribute) {
+    public static boolean hasAttribute(TileEntity tileEntity, byte attribute) {
         try {
             Object value = tileEntity.getClass()
                 .getMethod("hasAttribute", byte.class)

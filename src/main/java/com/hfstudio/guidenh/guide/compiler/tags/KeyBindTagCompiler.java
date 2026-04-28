@@ -34,7 +34,7 @@ public class KeyBindTagCompiler extends FlowTagCompiler {
         parent.appendText(mapping.getKeyDescription());
     }
 
-    private static KeyBinding findMapping(String id) {
+    public static KeyBinding findMapping(String id) {
         var keyMappings = Minecraft.getMinecraft().gameSettings.keyBindings;
         for (var keyMapping : keyMappings) {
             if (id.equals(keyMapping.getKeyCategory() + "." + keyMapping.getKeyDescription())

@@ -14,7 +14,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
 public class SceneEditorElementPropertyController {
 
-    private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("#(?i:[0-9a-f]{6}|[0-9a-f]{8})");
+    public static final Pattern HEX_COLOR_PATTERN = Pattern.compile("#(?i:[0-9a-f]{6}|[0-9a-f]{8})");
 
     private final SceneEditorSession session;
     private final SceneEditorMarkdownCodec codec;

@@ -5,8 +5,8 @@ package com.hfstudio.guidenh.guide.internal.util;
  */
 public class Transition {
 
-    private static final double EPSILON = 0.0001; // Values differing less than this are considered equal
-    private static final double MIN_UPDATE_DURATION = 0.005; // 5 millisecond
+    public static final double EPSILON = 0.0001; // Values differing less than this are considered equal
+    public static final double MIN_UPDATE_DURATION = 0.005; // 5 millisecond
 
     // The Min/Max range of the value. Used to determine the time for a full transition
     private final double valueMin;
@@ -102,7 +102,7 @@ public class Transition {
         this.ticker = ticker;
     }
 
-    private static boolean equal(double a, double b) {
+    public static boolean equal(double a, double b) {
         return Math.abs(a - b) < EPSILON;
     }
 }

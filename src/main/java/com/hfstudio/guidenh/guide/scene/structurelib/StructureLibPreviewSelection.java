@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
 
 public class StructureLibPreviewSelection {
 
-    private static final int DEFAULT_MASTER_TIER = 1;
+    public static final int DEFAULT_MASTER_TIER = 1;
 
     private final int masterTier;
     private final Map<String, Integer> channelOverrides;
@@ -72,7 +72,7 @@ public class StructureLibPreviewSelection {
         return new StructureLibPreviewSelection(masterTier, updated);
     }
 
-    private static Map<String, Integer> immutableChannelOverrides(@Nullable Map<String, Integer> source) {
+    public static Map<String, Integer> immutableChannelOverrides(@Nullable Map<String, Integer> source) {
         if (source == null || source.isEmpty()) {
             return Collections.emptyMap();
         }

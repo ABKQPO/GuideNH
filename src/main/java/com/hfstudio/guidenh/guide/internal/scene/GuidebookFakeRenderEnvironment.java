@@ -15,8 +15,8 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public class GuidebookFakeRenderEnvironment implements AutoCloseable {
 
-    private static GuidebookPreviewPlayer cachedPreviewPlayer;
-    private static NetHandlerPlayClient cachedNetHandler;
+    public static GuidebookPreviewPlayer cachedPreviewPlayer;
+    public static NetHandlerPlayClient cachedNetHandler;
 
     private final Minecraft minecraft;
     private final EntityClientPlayerMP previousPlayer;
@@ -90,7 +90,7 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
         tileEntityDispatcherState.restore(TileEntityRendererDispatcher.instance);
     }
 
-    private static GuidebookPreviewPlayer getOrCreatePreviewPlayer(Minecraft minecraft, WorldClient world) {
+    public static GuidebookPreviewPlayer getOrCreatePreviewPlayer(Minecraft minecraft, WorldClient world) {
         NetHandlerPlayClient netHandler = minecraft.getNetHandler();
         if (netHandler == null) {
             throw new IllegalStateException("Guidebook preview requires an active client world");

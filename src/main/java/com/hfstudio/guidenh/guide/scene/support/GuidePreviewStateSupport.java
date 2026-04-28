@@ -9,13 +9,13 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public class GuidePreviewStateSupport {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
-    private static final String AE2_SUPPORT_CLASS = "com.hfstudio.guidenh.guide.scene.support.ae2.GuideAe2PreviewSupport";
+    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
+    public static final String AE2_SUPPORT_CLASS = "com.hfstudio.guidenh.guide.scene.support.ae2.GuideAe2PreviewSupport";
 
-    private static volatile Method ae2PrepareMethod;
-    private static volatile boolean ae2ResolutionAttempted;
-    private static volatile boolean ae2LoadFailureLogged;
-    private static volatile boolean ae2InvokeFailureLogged;
+    public static volatile Method ae2PrepareMethod;
+    public static volatile boolean ae2ResolutionAttempted;
+    public static volatile boolean ae2LoadFailureLogged;
+    public static volatile boolean ae2InvokeFailureLogged;
 
     private GuidePreviewStateSupport() {}
 
@@ -34,7 +34,7 @@ public class GuidePreviewStateSupport {
         }
     }
 
-    private static Method resolveAe2PrepareMethod() {
+    public static Method resolveAe2PrepareMethod() {
         if (ae2ResolutionAttempted) {
             return ae2PrepareMethod;
         }

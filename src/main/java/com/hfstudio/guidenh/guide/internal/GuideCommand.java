@@ -125,11 +125,11 @@ public class GuideCommand extends CommandBase {
         return true;
     }
 
-    private static void send(ICommandSender sender, GuidebookText key, Object... args) {
+    public static void send(ICommandSender sender, GuidebookText key, Object... args) {
         sender.addChatMessage(new ChatComponentTranslation(key.getTranslationKey(), args));
     }
 
-    private static String getErrorMessage(Throwable throwable) {
+    public static String getErrorMessage(Throwable throwable) {
         return throwable.getMessage() != null ? throwable.getMessage()
             : throwable.getClass()
                 .getSimpleName();

@@ -131,11 +131,11 @@ public class MutableColor implements ColorValue {
         return this;
     }
 
-    private static int toByte(float v) {
+    public static int toByte(float v) {
         return Math.max(0, Math.min(255, Math.round(v * 255)));
     }
 
-    private static float fromByte(int v) {
+    public static float fromByte(int v) {
         return Math.max(0f, Math.min(1f, v / 255f));
     }
 

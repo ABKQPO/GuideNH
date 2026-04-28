@@ -14,17 +14,17 @@ import net.minecraft.world.World;
 
 public class GuideForgeMultipartSupport {
 
-    private static final String BLOCK_MULTIPART_CLASS = "codechicken.multipart.BlockMultipart";
-    private static final String TILE_MULTIPART_CLASS = "codechicken.multipart.TileMultipart";
-    private static final String TILE_MULTIPART_CLIENT_CLASS = "codechicken.multipart.TileMultipartClient";
-    private static final String MULTIPART_HELPER_CLASS = "codechicken.multipart.MultipartHelper";
-    private static final String MULTIPART_HELPER_OBJECT_CLASS = "codechicken.multipart.MultipartHelper$";
-    private static final String MULTIPART_GENERATOR_CLASS = "codechicken.multipart.MultipartGenerator";
-    private static final String MULTIPART_GENERATOR_OBJECT_CLASS = "codechicken.multipart.MultipartGenerator$";
-    private static final String MULTIPART_RENDERER_CLASS = "codechicken.multipart.MultipartRenderer";
-    private static final String MULTIPART_RENDERER_OBJECT_CLASS = "codechicken.multipart.MultipartRenderer$";
-    private static final String SAVED_MULTIPART_ID = "savedMultipart";
-    private static final Object INVOCATION_MISSING = new Object();
+    public static final String BLOCK_MULTIPART_CLASS = "codechicken.multipart.BlockMultipart";
+    public static final String TILE_MULTIPART_CLASS = "codechicken.multipart.TileMultipart";
+    public static final String TILE_MULTIPART_CLIENT_CLASS = "codechicken.multipart.TileMultipartClient";
+    public static final String MULTIPART_HELPER_CLASS = "codechicken.multipart.MultipartHelper";
+    public static final String MULTIPART_HELPER_OBJECT_CLASS = "codechicken.multipart.MultipartHelper$";
+    public static final String MULTIPART_GENERATOR_CLASS = "codechicken.multipart.MultipartGenerator";
+    public static final String MULTIPART_GENERATOR_OBJECT_CLASS = "codechicken.multipart.MultipartGenerator$";
+    public static final String MULTIPART_RENDERER_CLASS = "codechicken.multipart.MultipartRenderer";
+    public static final String MULTIPART_RENDERER_OBJECT_CLASS = "codechicken.multipart.MultipartRenderer$";
+    public static final String SAVED_MULTIPART_ID = "savedMultipart";
+    public static final Object INVOCATION_MISSING = new Object();
 
     private GuideForgeMultipartSupport() {}
 
@@ -91,7 +91,7 @@ public class GuideForgeMultipartSupport {
     }
 
     @Nullable
-    private static TileEntity createMultipartTileFromNbt(World world, NBTTagCompound tag) {
+    public static TileEntity createMultipartTileFromNbt(World world, NBTTagCompound tag) {
         Object value = invokeStaticOrSingletonMethod(
             MULTIPART_HELPER_CLASS,
             MULTIPART_HELPER_OBJECT_CLASS,
@@ -101,7 +101,7 @@ public class GuideForgeMultipartSupport {
         return value instanceof TileEntity tileEntity ? tileEntity : null;
     }
 
-    private static TileEntity promoteClientMultipartTile(TileEntity tileEntity, @Nullable NBTTagCompound tag) {
+    public static TileEntity promoteClientMultipartTile(TileEntity tileEntity, @Nullable NBTTagCompound tag) {
         if (tileEntity == null || isInstanceOf(tileEntity, TILE_MULTIPART_CLIENT_CLASS)) {
             return tileEntity;
         }
@@ -134,7 +134,7 @@ public class GuideForgeMultipartSupport {
     }
 
     @Nullable
-    private static TileEntity ensureClientMultipartTile(@Nullable TileEntity tileEntity) {
+    public static TileEntity ensureClientMultipartTile(@Nullable TileEntity tileEntity) {
         if (tileEntity == null || !isMultipartTileEntity(tileEntity)
             || isInstanceOf(tileEntity, TILE_MULTIPART_CLIENT_CLASS)
             || tileEntity.getWorldObj() == null
@@ -148,7 +148,7 @@ public class GuideForgeMultipartSupport {
     }
 
     @Nullable
-    private static NBTTagCompound snapshotTile(@Nullable TileEntity tileEntity) {
+    public static NBTTagCompound snapshotTile(@Nullable TileEntity tileEntity) {
         if (tileEntity == null) {
             return null;
         }
@@ -162,7 +162,7 @@ public class GuideForgeMultipartSupport {
     }
 
     @Nullable
-    private static Object resolvePartList(TileEntity tileEntity) {
+    public static Object resolvePartList(TileEntity tileEntity) {
         Object value = invokeMethodIfPresent(tileEntity, "partList");
         if (value != INVOCATION_MISSING) {
             return value;
@@ -176,7 +176,7 @@ public class GuideForgeMultipartSupport {
         }
     }
 
-    private static Object invokeStaticOrSingletonMethod(String className, String singletonClassName, String methodName,
+    public static Object invokeStaticOrSingletonMethod(String className, String singletonClassName, String methodName,
         Object... args) {
         Object value = invokeStaticMethodIfPresent(className, methodName, args);
         if (value != INVOCATION_MISSING) {
@@ -193,7 +193,7 @@ public class GuideForgeMultipartSupport {
         }
     }
 
-    private static Object invokeStaticMethodIfPresent(String className, String methodName, Object... args) {
+    public static Object invokeStaticMethodIfPresent(String className, String methodName, Object... args) {
         try {
             Class<?> type = Class.forName(className);
             Method method = findMatchingMethod(type, methodName, true, args);
@@ -209,7 +209,7 @@ public class GuideForgeMultipartSupport {
         }
     }
 
-    private static Object invokeMethodIfPresent(Object target, String methodName, Object... args) {
+    public static Object invokeMethodIfPresent(Object target, String methodName, Object... args) {
         if (target == null) {
             return INVOCATION_MISSING;
         }
@@ -226,7 +226,7 @@ public class GuideForgeMultipartSupport {
     }
 
     @Nullable
-    private static Method findMatchingMethod(Class<?> type, String methodName, boolean requireStatic, Object... args) {
+    public static Method findMatchingMethod(Class<?> type, String methodName, boolean requireStatic, Object... args) {
         Method declaredMatch = findMatchingMethod(type.getDeclaredMethods(), methodName, requireStatic, args);
         if (declaredMatch != null) {
             return declaredMatch;
@@ -235,7 +235,7 @@ public class GuideForgeMultipartSupport {
     }
 
     @Nullable
-    private static Method findMatchingMethod(Method[] methods, String methodName, boolean requireStatic,
+    public static Method findMatchingMethod(Method[] methods, String methodName, boolean requireStatic,
         Object... args) {
         for (Method method : methods) {
             if (!methodName.equals(method.getName()) || method.getParameterCount() != args.length) {
@@ -251,7 +251,7 @@ public class GuideForgeMultipartSupport {
         return null;
     }
 
-    private static boolean matchesParameters(Class<?>[] parameterTypes, Object[] args) {
+    public static boolean matchesParameters(Class<?>[] parameterTypes, Object[] args) {
         for (int i = 0; i < parameterTypes.length; i++) {
             Class<?> parameterType = parameterTypes[i];
             Object arg = args[i];
@@ -272,7 +272,7 @@ public class GuideForgeMultipartSupport {
         return true;
     }
 
-    private static Class<?> wrapPrimitiveType(Class<?> primitiveType) {
+    public static Class<?> wrapPrimitiveType(Class<?> primitiveType) {
         if (primitiveType == boolean.class) {
             return Boolean.class;
         }
@@ -300,7 +300,7 @@ public class GuideForgeMultipartSupport {
         return primitiveType;
     }
 
-    private static boolean isInstanceOf(@Nullable Object instance, String className) {
+    public static boolean isInstanceOf(@Nullable Object instance, String className) {
         if (instance == null || className == null || className.isEmpty()) {
             return false;
         }
@@ -317,7 +317,7 @@ public class GuideForgeMultipartSupport {
         return false;
     }
 
-    private static NBTTagCompound withWorldPosition(NBTTagCompound original, int x, int y, int z) {
+    public static NBTTagCompound withWorldPosition(NBTTagCompound original, int x, int y, int z) {
         NBTTagCompound copy = (NBTTagCompound) original.copy();
         copy.setInteger("x", x);
         copy.setInteger("y", y);

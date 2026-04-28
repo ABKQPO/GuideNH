@@ -16,7 +16,7 @@ public class InitializeFlow {
         flow.tokenize = (context, effects, ok, nok) -> new StateMachine(context, effects).initial;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

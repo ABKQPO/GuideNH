@@ -39,7 +39,7 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
  */
 public class PageJsonWriter {
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+    public static final Gson GSON = new GsonBuilder().setPrettyPrinting()
         .disableHtmlEscaping()
         .serializeNulls()
         .create();
@@ -66,7 +66,7 @@ public class PageJsonWriter {
         return root;
     }
 
-    private static Map<String, Object> frontmatterToJson(@Nullable Frontmatter fm) {
+    public static Map<String, Object> frontmatterToJson(@Nullable Frontmatter fm) {
         Map<String, Object> out = new LinkedHashMap<>();
         if (fm == null) {
             out.put("navigation", null);

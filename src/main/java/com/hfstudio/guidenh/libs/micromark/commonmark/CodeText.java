@@ -25,7 +25,7 @@ public class CodeText {
         codeText.previous = CodeText::previous;
     }
 
-    private static List<Tokenizer.Event> resolveCodeText(List<Tokenizer.Event> events, TokenizeContext context) {
+    public static List<Tokenizer.Event> resolveCodeText(List<Tokenizer.Event> events, TokenizeContext context) {
         var tailExitIndex = events.size() - 4;
         var headEnterIndex = 3;
         int index;
@@ -90,13 +90,13 @@ public class CodeText {
         return events;
     }
 
-    private static boolean previous(TokenizeContext context, int code) {
+    public static boolean previous(TokenizeContext context, int code) {
         // If there is a previous code, there will always be a tail.
         return (code != Codes.graveAccent || context.getLastEvent()
             .token().type.equals(Types.characterEscape));
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

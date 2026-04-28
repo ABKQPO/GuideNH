@@ -20,7 +20,7 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
  */
 public class CategoryIndex extends MultiValuedIndex<String, PageAnchor> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CategoryIndex.class);
+    public static final Logger LOG = LoggerFactory.getLogger(CategoryIndex.class);
 
     public CategoryIndex() {
         super(
@@ -30,7 +30,7 @@ public class CategoryIndex extends MultiValuedIndex<String, PageAnchor> {
             (writer, value) -> writer.value(value.toString()));
     }
 
-    private static List<Pair<String, PageAnchor>> getCategories(ParsedGuidePage page) {
+    public static List<Pair<String, PageAnchor>> getCategories(ParsedGuidePage page) {
         var categoriesNode = page.getFrontmatter()
             .additionalProperties()
             .get("categories");

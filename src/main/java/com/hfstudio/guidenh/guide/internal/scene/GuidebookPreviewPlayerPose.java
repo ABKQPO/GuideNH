@@ -70,7 +70,7 @@ public class GuidebookPreviewPlayerPose {
     }
 
     @Nullable
-    private static Vector3f copy(@Nullable Vector3f vector) {
+    public static Vector3f copy(@Nullable Vector3f vector) {
         return vector == null ? null : new Vector3f(vector);
     }
 }

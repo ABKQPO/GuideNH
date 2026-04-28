@@ -271,7 +271,7 @@ public class GuideBuilder {
         return builder.build();
     }
 
-    private static String getSystemPropertyName(ResourceLocation guideId, String property) {
+    public static String getSystemPropertyName(ResourceLocation guideId, String property) {
         return String
             .format(Locale.ROOT, "guideme.%s.%s.%s", guideId.getResourceDomain(), guideId.getResourcePath(), property);
     }

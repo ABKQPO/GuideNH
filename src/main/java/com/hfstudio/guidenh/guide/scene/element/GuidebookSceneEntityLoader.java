@@ -28,11 +28,11 @@ import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 
 public class GuidebookSceneEntityLoader {
 
-    private static final Map<String, String> VANILLA_ENTITY_ID_ALIASES = createVanillaEntityIdAliases();
-    private static final Set<String> PREVIEW_PLAYER_IDS = createPreviewPlayerIds();
-    private static final Map<String, GameProfile> PREVIEW_PLAYER_PROFILE_CACHE = Collections
+    public static final Map<String, String> VANILLA_ENTITY_ID_ALIASES = createVanillaEntityIdAliases();
+    public static final Set<String> PREVIEW_PLAYER_IDS = createPreviewPlayerIds();
+    public static final Map<String, GameProfile> PREVIEW_PLAYER_PROFILE_CACHE = Collections
         .synchronizedMap(new LinkedHashMap<String, GameProfile>());
-    private static volatile GameProfileRepository previewPlayerProfileRepository;
+    public static volatile GameProfileRepository previewPlayerProfileRepository;
 
     private GuidebookSceneEntityLoader() {}
 
@@ -127,7 +127,7 @@ public class GuidebookSceneEntityLoader {
         return new GameProfileSpec(uuid, resolvedName);
     }
 
-    private static Set<String> buildEntityIdCandidates(String entityId) {
+    public static Set<String> buildEntityIdCandidates(String entityId) {
         LinkedHashSet<String> candidates = new LinkedHashSet<>();
         addCandidateForms(candidates, entityId);
 
@@ -153,7 +153,7 @@ public class GuidebookSceneEntityLoader {
         return candidates;
     }
 
-    private static void appendRegisteredEntityMatches(Set<String> candidates, String entityId) {
+    public static void appendRegisteredEntityMatches(Set<String> candidates, String entityId) {
         String normalizedInput = normalizeEntityId(entityId);
         if (normalizedInput == null) {
             return;
@@ -186,7 +186,7 @@ public class GuidebookSceneEntityLoader {
         }
     }
 
-    private static void addCandidateForms(Set<String> candidates, @Nullable String candidate) {
+    public static void addCandidateForms(Set<String> candidates, @Nullable String candidate) {
         String trimmed = trimToNull(candidate);
         if (trimmed == null) {
             return;
@@ -205,19 +205,19 @@ public class GuidebookSceneEntityLoader {
         }
     }
 
-    private static boolean shouldUseSimpleRegisteredLookup(String entityId) {
+    public static boolean shouldUseSimpleRegisteredLookup(String entityId) {
         return entityId.indexOf(':') < 0 && entityId.indexOf('.') < 0;
     }
 
     @Nullable
-    private static String normalizeEntityId(@Nullable String entityId) {
+    public static String normalizeEntityId(@Nullable String entityId) {
         String trimmed = trimToNull(entityId);
         return trimmed == null ? null
             : trimmed.replace(':', '.')
                 .toLowerCase(Locale.ROOT);
     }
 
-    private static String extractSimpleEntityToken(String entityId) {
+    public static String extractSimpleEntityToken(String entityId) {
         int dot = entityId.lastIndexOf('.');
         int colon = entityId.lastIndexOf(':');
         int split = Math.max(dot, colon);
@@ -226,7 +226,7 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
-    private static Entity loadPreviewPlayer(@Nullable World world, NBTTagCompound data, @Nullable String playerName,
+    public static Entity loadPreviewPlayer(@Nullable World world, NBTTagCompound data, @Nullable String playerName,
         @Nullable String playerUuid) {
         GameProfileSpec profileSpec = resolvePreviewPlayerProfile(playerName, playerUuid);
         if (profileSpec == null) {
@@ -251,7 +251,7 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
-    private static Entity createPreviewPlayerEntity(World world, GameProfile gameProfile) {
+    public static Entity createPreviewPlayerEntity(World world, GameProfile gameProfile) {
         try {
             Class<?> entityClass = Class
                 .forName("com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity");
@@ -270,7 +270,7 @@ public class GuidebookSceneEntityLoader {
         }
     }
 
-    private static GameProfile resolveInitialPreviewPlayerGameProfile(GameProfileSpec profileSpec) {
+    public static GameProfile resolveInitialPreviewPlayerGameProfile(GameProfileSpec profileSpec) {
         if (profileSpec.getUuid() != null) {
             return new GameProfile(profileSpec.getUuid(), profileSpec.getName());
         }
@@ -306,7 +306,7 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
-    private static GameProfile lookupProfileFromServerCache(String playerName) {
+    public static GameProfile lookupProfileFromServerCache(String playerName) {
         try {
             MinecraftServer minecraftServer = MinecraftServer.getServer();
             if (minecraftServer == null || minecraftServer.func_152358_ax() == null) {
@@ -356,7 +356,7 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
-    private static GameProfileRepository getPreviewPlayerProfileRepository() {
+    public static GameProfileRepository getPreviewPlayerProfileRepository() {
         GameProfileRepository repository = previewPlayerProfileRepository;
         if (repository != null) {
             return repository;
@@ -381,7 +381,7 @@ public class GuidebookSceneEntityLoader {
         }
     }
 
-    private static Proxy resolveMinecraftProxy() {
+    public static Proxy resolveMinecraftProxy() {
         try {
             Class<?> minecraftClass = Class.forName("net.minecraft.client.Minecraft");
             Object minecraft = minecraftClass.getMethod("getMinecraft")
@@ -394,7 +394,7 @@ public class GuidebookSceneEntityLoader {
         }
     }
 
-    private static void cachePreviewPlayerProfile(String playerName, GameProfile profile) {
+    public static void cachePreviewPlayerProfile(String playerName, GameProfile profile) {
         String cacheKey = normalizeProfileCacheKey(playerName);
         if (cacheKey != null) {
             PREVIEW_PLAYER_PROFILE_CACHE.put(cacheKey, profile);
@@ -407,7 +407,7 @@ public class GuidebookSceneEntityLoader {
         }
     }
 
-    private static boolean isOfflineFallbackProfile(@Nullable GameProfile profile, String requestedName) {
+    public static boolean isOfflineFallbackProfile(@Nullable GameProfile profile, String requestedName) {
         if (profile == null || profile.getId() == null) {
             return false;
         }
@@ -416,12 +416,12 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
-    private static String normalizeProfileCacheKey(@Nullable String playerName) {
+    public static String normalizeProfileCacheKey(@Nullable String playerName) {
         String trimmedName = trimToNull(playerName);
         return trimmedName == null ? null : trimmedName.toLowerCase(Locale.ROOT);
     }
 
-    private static boolean hasTextures(GameProfile profile) {
+    public static boolean hasTextures(GameProfile profile) {
         try {
             return profile.getProperties() != null && profile.getProperties()
                 .containsKey("textures");
@@ -436,7 +436,7 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
-    private static String trimToNull(@Nullable String value) {
+    public static String trimToNull(@Nullable String value) {
         if (value == null) {
             return null;
         }
@@ -444,7 +444,7 @@ public class GuidebookSceneEntityLoader {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private static Set<String> createPreviewPlayerIds() {
+    public static Set<String> createPreviewPlayerIds() {
         LinkedHashSet<String> ids = new LinkedHashSet<>();
         ids.add("player");
         ids.add("minecraft.player");
@@ -453,7 +453,7 @@ public class GuidebookSceneEntityLoader {
         return ids;
     }
 
-    private static Map<String, String> createVanillaEntityIdAliases() {
+    public static Map<String, String> createVanillaEntityIdAliases() {
         Map<String, String> aliases = new LinkedHashMap<>();
         aliases.put("item", "Item");
         aliases.put("experience_orb", "XPOrb");

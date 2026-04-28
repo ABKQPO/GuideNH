@@ -92,80 +92,80 @@ import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 
 public class SceneEditorScreen extends GuiScreen {
 
-    private static final ResourceLocation BG_TEXTURE = new ResourceLocation(
+    public static final ResourceLocation BG_TEXTURE = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/background.png");
-    private static final String MARKDOWN_UNDO_MERGE_KEY = "markdown";
-    private static final long MARKDOWN_LIVE_SYNC_DEBOUNCE_MS = 120L;
+    public static final String MARKDOWN_UNDO_MERGE_KEY = "markdown";
+    public static final long MARKDOWN_LIVE_SYNC_DEBOUNCE_MS = 120L;
 
-    private static final int TOOLBAR_MARGIN_X = 10;
-    private static final int TOOLBAR_Y = SceneEditorScreenLayout.TOOLBAR_Y;
-    private static final int PANEL_COLOR = 0xB418181C;
-    private static final int PANEL_INNER_COLOR = 0x70121216;
-    private static final int PANEL_BORDER_COLOR = 0xFF5A5A5A;
-    private static final int PANEL_HEADER_COLOR = 0xFFDEE6F0;
-    private static final int PANEL_MUTED_TEXT = 0xFFB9C2CE;
-    private static final int PANEL_SUBTLE_TEXT = 0xFF8F98A3;
-    private static final int INPUT_BORDER_COLOR = 0xFF3E434A;
-    private static final int INPUT_FOCUSED_BORDER_COLOR = 0xFF7FC8FF;
-    private static final int INPUT_ERROR_BORDER_COLOR = 0xFFFF6767;
-    private static final int INPUT_BACKGROUND_COLOR = 0x80101012;
-    private static final int CHECKBOX_BACKGROUND_COLOR = 0xA0141418;
-    private static final int CHECKBOX_CHECK_COLOR = 0xFF00CAF2;
-    private static final int SETTINGS_BOX_PADDING = 8;
-    private static final int PARAMETER_ROW_HEIGHT = 18;
-    private static final int PARAMETER_LABEL_WIDTH = 52;
-    private static final int PARAMETER_INPUT_WIDTH = 46;
-    private static final int PARAMETER_INPUT_HEIGHT = 14;
-    private static final int PARAMETER_GAP = 4;
-    private static final int PARAMETER_SLIDER_HEIGHT = GuideSliderRenderer.TRACK_HEIGHT;
-    private static final int PARAMETER_SLIDER_THUMB_WIDTH = GuideSliderRenderer.THUMB_WIDTH;
-    private static final int PARAMETER_SLIDER_Y_OFFSET = 5;
-    private static final int SETTINGS_TAB_HEIGHT = 18;
-    private static final int SETTINGS_TAB_GAP = 4;
-    private static final int SETTINGS_TAB_ACTIVE_COLOR = 0xD6202C36;
-    private static final int SETTINGS_TAB_INACTIVE_COLOR = 0x6612181C;
-    private static final int SETTINGS_TAB_HOVER_COLOR = 0xA61C252E;
-    private static final int INTERACTIVE_ROW_HEIGHT = 18;
-    private static final int INTERACTIVE_CHECKBOX_SIZE = 12;
-    private static final int PREVIEW_FRAME_BUTTON_WIDTH = 74;
-    private static final int PREVIEW_FRAME_BUTTON_HEIGHT = 14;
-    private static final int ELEMENT_ROW_HEIGHT = 20;
-    private static final int ELEMENT_ROW_GAP = 4;
-    private static final int ELEMENT_EXPANDED_HEIGHT = 154;
-    private static final int ELEMENT_ICON_SIZE = 14;
-    private static final int ELEMENT_MENU_WIDTH = 102;
-    private static final int ELEMENT_MENU_ROW_HEIGHT = 18;
-    private static final int ELEMENT_ROW_BACKGROUND = 0x6A121418;
-    private static final int ELEMENT_ROW_SELECTED = 0x9A1C222A;
-    private static final int ELEMENT_ROW_EXPANDED = 0x7A101216;
-    private static final int ELEMENT_MENU_BACKGROUND = 0xEE121418;
-    private static final int ELEMENT_MENU_HOVER = 0xCC1A222A;
-    private static final int ELEMENT_FIELD_ROW_HEIGHT = 18;
-    private static final int ELEMENT_FIELD_LABEL_WIDTH = 62;
-    private static final int ELEMENT_TOOLTIP_HEIGHT = 44;
-    private static final int ELEMENT_VIEWPORT_TOP = 25;
-    private static final int ELEMENT_VIEWPORT_BOTTOM_PADDING = 6;
-    private static final int ELEMENT_SCROLLBAR_WIDTH = 5;
-    private static final int ELEMENT_CONTEXT_MENU_WIDTH = 132;
-    private static final int SNAP_MENU_WIDTH = 118;
-    private static final int CLOSE_DIALOG_WIDTH = 248;
-    private static final int CLOSE_DIALOG_HEIGHT = 104;
-    private static final int CLOSE_DIALOG_BUTTON_WIDTH = 68;
-    private static final int CLOSE_DIALOG_BUTTON_HEIGHT = 20;
-    private static final int CLOSE_DIALOG_BUTTON_GAP = 10;
-    private static final int CLOSE_DIALOG_OVERLAY_COLOR = 0x8A050608;
-    private static final int CLOSE_DIALOG_COLOR = 0xF0181C22;
-    private static final int CLOSE_DIALOG_HOVER = 0xCC24303A;
+    public static final int TOOLBAR_MARGIN_X = 10;
+    public static final int TOOLBAR_Y = SceneEditorScreenLayout.TOOLBAR_Y;
+    public static final int PANEL_COLOR = 0xB418181C;
+    public static final int PANEL_INNER_COLOR = 0x70121216;
+    public static final int PANEL_BORDER_COLOR = 0xFF5A5A5A;
+    public static final int PANEL_HEADER_COLOR = 0xFFDEE6F0;
+    public static final int PANEL_MUTED_TEXT = 0xFFB9C2CE;
+    public static final int PANEL_SUBTLE_TEXT = 0xFF8F98A3;
+    public static final int INPUT_BORDER_COLOR = 0xFF3E434A;
+    public static final int INPUT_FOCUSED_BORDER_COLOR = 0xFF7FC8FF;
+    public static final int INPUT_ERROR_BORDER_COLOR = 0xFFFF6767;
+    public static final int INPUT_BACKGROUND_COLOR = 0x80101012;
+    public static final int CHECKBOX_BACKGROUND_COLOR = 0xA0141418;
+    public static final int CHECKBOX_CHECK_COLOR = 0xFF00CAF2;
+    public static final int SETTINGS_BOX_PADDING = 8;
+    public static final int PARAMETER_ROW_HEIGHT = 18;
+    public static final int PARAMETER_LABEL_WIDTH = 52;
+    public static final int PARAMETER_INPUT_WIDTH = 46;
+    public static final int PARAMETER_INPUT_HEIGHT = 14;
+    public static final int PARAMETER_GAP = 4;
+    public static final int PARAMETER_SLIDER_HEIGHT = GuideSliderRenderer.TRACK_HEIGHT;
+    public static final int PARAMETER_SLIDER_THUMB_WIDTH = GuideSliderRenderer.THUMB_WIDTH;
+    public static final int PARAMETER_SLIDER_Y_OFFSET = 5;
+    public static final int SETTINGS_TAB_HEIGHT = 18;
+    public static final int SETTINGS_TAB_GAP = 4;
+    public static final int SETTINGS_TAB_ACTIVE_COLOR = 0xD6202C36;
+    public static final int SETTINGS_TAB_INACTIVE_COLOR = 0x6612181C;
+    public static final int SETTINGS_TAB_HOVER_COLOR = 0xA61C252E;
+    public static final int INTERACTIVE_ROW_HEIGHT = 18;
+    public static final int INTERACTIVE_CHECKBOX_SIZE = 12;
+    public static final int PREVIEW_FRAME_BUTTON_WIDTH = 74;
+    public static final int PREVIEW_FRAME_BUTTON_HEIGHT = 14;
+    public static final int ELEMENT_ROW_HEIGHT = 20;
+    public static final int ELEMENT_ROW_GAP = 4;
+    public static final int ELEMENT_EXPANDED_HEIGHT = 154;
+    public static final int ELEMENT_ICON_SIZE = 14;
+    public static final int ELEMENT_MENU_WIDTH = 102;
+    public static final int ELEMENT_MENU_ROW_HEIGHT = 18;
+    public static final int ELEMENT_ROW_BACKGROUND = 0x6A121418;
+    public static final int ELEMENT_ROW_SELECTED = 0x9A1C222A;
+    public static final int ELEMENT_ROW_EXPANDED = 0x7A101216;
+    public static final int ELEMENT_MENU_BACKGROUND = 0xEE121418;
+    public static final int ELEMENT_MENU_HOVER = 0xCC1A222A;
+    public static final int ELEMENT_FIELD_ROW_HEIGHT = 18;
+    public static final int ELEMENT_FIELD_LABEL_WIDTH = 62;
+    public static final int ELEMENT_TOOLTIP_HEIGHT = 44;
+    public static final int ELEMENT_VIEWPORT_TOP = 25;
+    public static final int ELEMENT_VIEWPORT_BOTTOM_PADDING = 6;
+    public static final int ELEMENT_SCROLLBAR_WIDTH = 5;
+    public static final int ELEMENT_CONTEXT_MENU_WIDTH = 132;
+    public static final int SNAP_MENU_WIDTH = 118;
+    public static final int CLOSE_DIALOG_WIDTH = 248;
+    public static final int CLOSE_DIALOG_HEIGHT = 104;
+    public static final int CLOSE_DIALOG_BUTTON_WIDTH = 68;
+    public static final int CLOSE_DIALOG_BUTTON_HEIGHT = 20;
+    public static final int CLOSE_DIALOG_BUTTON_GAP = 10;
+    public static final int CLOSE_DIALOG_OVERLAY_COLOR = 0x8A050608;
+    public static final int CLOSE_DIALOG_COLOR = 0xF0181C22;
+    public static final int CLOSE_DIALOG_HOVER = 0xCC24303A;
 
-    private static final int CLOSE_BUTTON_ID = 0;
-    private static final int RESET_PREVIEW_BUTTON_ID = 1;
-    private static final int SNAP_BUTTON_ID = 2;
-    private static final int AUTO_PICK_BUTTON_ID = 3;
-    private static final int EXPORT_BUTTON_ID = 4;
-    private static final int IMPORT_STRUCTURE_BUTTON_ID = 5;
-    private static final int ADD_ELEMENT_BUTTON_ID = 6;
-    private static final int SCREENSHOT_BUTTON_ID = 7;
+    public static final int CLOSE_BUTTON_ID = 0;
+    public static final int RESET_PREVIEW_BUTTON_ID = 1;
+    public static final int SNAP_BUTTON_ID = 2;
+    public static final int AUTO_PICK_BUTTON_ID = 3;
+    public static final int EXPORT_BUTTON_ID = 4;
+    public static final int IMPORT_STRUCTURE_BUTTON_ID = 5;
+    public static final int ADD_ELEMENT_BUTTON_ID = 6;
+    public static final int SCREENSHOT_BUTTON_ID = 7;
 
     private final SceneEditorSession session;
     private final SceneEditorTextSyncController textSyncController;
@@ -4311,12 +4311,12 @@ public class SceneEditorScreen extends GuiScreen {
         float getValue();
     }
 
-    private static boolean isCtrlKeyCombo(int keyCode, int expectedKeyCode) {
+    public static boolean isCtrlKeyCombo(int keyCode, int expectedKeyCode) {
         return keyCode == expectedKeyCode
             && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL));
     }
 
-    private static boolean isCtrlShiftKeyCombo(int keyCode, int expectedKeyCode) {
+    public static boolean isCtrlShiftKeyCombo(int keyCode, int expectedKeyCode) {
         return isCtrlKeyCombo(keyCode, expectedKeyCode) && GuiScreen.isShiftKeyDown();
     }
 

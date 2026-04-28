@@ -27,7 +27,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class GuideNhClientBridgeController {
 
-    private static final GuideNhClientBridgeController INSTANCE = new GuideNhClientBridgeController();
+    public static final GuideNhClientBridgeController INSTANCE = new GuideNhClientBridgeController();
 
     private final SceneEditorStructureImportService structureImportService;
     private final GuideStructureFileStore structureFileStore;
@@ -176,7 +176,7 @@ public class GuideNhClientBridgeController {
         }
     }
 
-    private static String getErrorMessage(Throwable throwable) {
+    public static String getErrorMessage(Throwable throwable) {
         return throwable.getMessage() != null ? throwable.getMessage()
             : throwable.getClass()
                 .getSimpleName();

@@ -29,7 +29,7 @@ public class InitializeDocument {
     @Desugar
     record StackItem(Construct construct, Tokenizer.ContainerState stackState) {}
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -402,7 +402,7 @@ public class InitializeDocument {
         }
     }
 
-    private static State tokenizeContainer(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
+    public static State tokenizeContainer(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
         return FactorySpace.create(
             effects,
             effects.attempt.hook(context.getParser().constructs.document, ok, nok),

@@ -33,7 +33,7 @@ public class HtmlFlow {
         nextBlankConstruct.partial = true;
     }
 
-    private static List<Tokenizer.Event> resolveToHtmlFlow(List<Tokenizer.Event> events, TokenizeContext context) {
+    public static List<Tokenizer.Event> resolveToHtmlFlow(List<Tokenizer.Event> events, TokenizeContext context) {
         var index = events.size();
 
         while (index-- > 0) {
@@ -67,7 +67,7 @@ public class HtmlFlow {
         return events;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -501,7 +501,7 @@ public class HtmlFlow {
         }
     }
 
-    private static class NextBlankStateMachine {
+    public static class NextBlankStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

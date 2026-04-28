@@ -26,7 +26,7 @@ public class SetextUnderline {
         setextUnderline.resolveTo = SetextUnderline::resolveToSetextUnderline;
     }
 
-    private static List<Tokenizer.Event> resolveToSetextUnderline(List<Tokenizer.Event> events,
+    public static List<Tokenizer.Event> resolveToSetextUnderline(List<Tokenizer.Event> events,
         TokenizeContext context) {
         var index = events.size();
         Integer content = null;
@@ -102,7 +102,7 @@ public class SetextUnderline {
         return events;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

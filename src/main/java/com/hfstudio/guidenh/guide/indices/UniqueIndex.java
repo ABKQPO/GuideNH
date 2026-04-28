@@ -24,7 +24,7 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
  */
 public class UniqueIndex<K, V> implements PageIndex {
 
-    private static final Logger LOG = LoggerFactory.getLogger(UniqueIndex.class);
+    public static final Logger LOG = LoggerFactory.getLogger(UniqueIndex.class);
 
     private final Map<K, Record<V>> index = new HashMap<>();
 

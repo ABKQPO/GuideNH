@@ -31,9 +31,9 @@ public class HtmlCompiler {
      * `<img>`) attributes. They are based on what is allowed on GitHub,
      * <https://github.com/syntax-tree/hast-util-sanitize/blob/9275b21/lib/github.json#L31>
      */
-    private static final Pattern protocolHref = Pattern
+    public static final Pattern protocolHref = Pattern
         .compile("^(https?|ircs?|mailto|xmpp)$", Pattern.CASE_INSENSITIVE);
-    private static final Pattern protocolSrc = Pattern.compile("^https?$", Pattern.CASE_INSENSITIVE);
+    public static final Pattern protocolSrc = Pattern.compile("^https?$", Pattern.CASE_INSENSITIVE);
     private final CompileOptions options;
 
     public static class Media {

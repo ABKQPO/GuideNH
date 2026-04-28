@@ -123,7 +123,7 @@ public class Subtokenize {
     /**
      * Tokenize embedded tokens.
      */
-    private static Map<Integer, Integer> subcontent(List<Tokenizer.Event> events, int eventIndex) {
+    public static Map<Integer, Integer> subcontent(List<Tokenizer.Event> events, int eventIndex) {
         var token = events.get(eventIndex)
             .token();
         var context = events.get(eventIndex)

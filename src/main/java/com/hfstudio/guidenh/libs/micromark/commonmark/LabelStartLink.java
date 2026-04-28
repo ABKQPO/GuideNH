@@ -20,7 +20,7 @@ public class LabelStartLink {
         labelStartLink.resolveAll = LabelEnd::resolveAll;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

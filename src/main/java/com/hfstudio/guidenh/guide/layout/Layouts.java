@@ -176,8 +176,7 @@ public class Layouts {
         return new LytRect(x, y, maxContentWidth + paddingRight, contentHeight + paddingBottom);
     }
 
-    private static void alignChildren(LytAxis axis, List<LytBlock> children, AlignItems alignItems, int start,
-        int end) {
+    public static void alignChildren(LytAxis axis, List<LytBlock> children, AlignItems alignItems, int start, int end) {
         var space = end - start;
 
         // Pass 2, align items
@@ -196,7 +195,7 @@ public class Layouts {
         }
     }
 
-    private static int size(LytRect rect, LytAxis axis) {
+    public static int size(LytRect rect, LytAxis axis) {
         return switch (axis) {
             case HORIZONTAL -> rect.width();
             case VERTICAL -> rect.height();
@@ -207,7 +206,7 @@ public class Layouts {
      * Offsets position on the given axis into the content area of the child by adding the appropriate margin, while
      * accounting for potential collapsing of the margin with the previous block element.
      */
-    private static int offsetIntoContentArea(LytAxis axis, int pos, LytBlock previousBlock, LytBlock child) {
+    public static int offsetIntoContentArea(LytAxis axis, int pos, LytBlock previousBlock, LytBlock child) {
         var previousMarginEnd = previousBlock != null ? previousBlock.getMarginEnd(axis) : 0;
         var childMarginStart = child.getMarginStart(axis);
 

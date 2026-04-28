@@ -44,7 +44,7 @@ public class ItemImageCompiler extends FlowTagCompiler {
         parent.append(inline);
     }
 
-    private static boolean parseBool(String raw) {
+    public static boolean parseBool(String raw) {
         if (raw == null) return false;
         if (raw.isEmpty()) return true;
         var v = raw.trim()

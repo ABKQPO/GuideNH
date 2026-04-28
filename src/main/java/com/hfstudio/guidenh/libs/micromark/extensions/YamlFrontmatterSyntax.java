@@ -19,7 +19,7 @@ public class YamlFrontmatterSyntax {
     /**
      * YAML Frontmatter Fence.
      */
-    private static final String FENCE = "---";
+    public static final String FENCE = "---";
 
     /**
      * Token type for the entire front-matter section.
@@ -29,12 +29,12 @@ public class YamlFrontmatterSyntax {
      * Token type for a value in the front-matter section.
      */
     public static final String VALUE_TYPE = "yamlValue";
-    private static final String fenceType = "yamlFence";
-    private static final String sequenceType = "yamlFenceSequence";
+    public static final String fenceType = "yamlFence";
+    public static final String sequenceType = "yamlFenceSequence";
 
     public static final Extension INSTANCE;
 
-    private static final Construct fenceConstruct;
+    public static final Construct fenceConstruct;
 
     static {
         fenceConstruct = new Construct();
@@ -49,7 +49,7 @@ public class YamlFrontmatterSyntax {
         INSTANCE.flow.put((int) FENCE.charAt(0), Collections.singletonList(construct));
     }
 
-    private static State tokenizeFrontmatter(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
+    public static State tokenizeFrontmatter(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
         class StateMachine {
 
             State start(int code) {
@@ -109,7 +109,7 @@ public class YamlFrontmatterSyntax {
         return new StateMachine()::start;
     }
 
-    private static State tokenizeFence(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
+    public static State tokenizeFence(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
         class StateMachine {
 
             int bufferIndex = 0;

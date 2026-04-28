@@ -122,7 +122,7 @@ public class GuideBlockBoundsResolver {
     }
 
     @Nullable
-    private static AxisAlignedBB resolveCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
+    public static AxisAlignedBB resolveCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
         try {
             return mergeCollisionBounds(collectCollisionBounds(level, block, x, y, z));
         } catch (Throwable ignored) {
@@ -130,7 +130,7 @@ public class GuideBlockBoundsResolver {
         }
     }
 
-    private static List<AxisAlignedBB> collectCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
+    public static List<AxisAlignedBB> collectCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
         List<AxisAlignedBB> collisionBoxes = new ArrayList<>();
         AxisAlignedBB fullBlockBounds = AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d);
         block.addCollisionBoxesToList(level.getOrCreateFakeWorld(), x, y, z, fullBlockBounds, collisionBoxes, null);
@@ -138,7 +138,7 @@ public class GuideBlockBoundsResolver {
     }
 
     @Nullable
-    private static AxisAlignedBB mergeCollisionBounds(List<AxisAlignedBB> collisionBoxes) {
+    public static AxisAlignedBB mergeCollisionBounds(List<AxisAlignedBB> collisionBoxes) {
         AxisAlignedBB merged = null;
         for (AxisAlignedBB collisionBox : collisionBoxes) {
             if (collisionBox == null || !isNonEmpty(collisionBox)) {
@@ -149,11 +149,11 @@ public class GuideBlockBoundsResolver {
         return merged;
     }
 
-    private static boolean isNonEmpty(AxisAlignedBB bounds) {
+    public static boolean isNonEmpty(AxisAlignedBB bounds) {
         return bounds != null && bounds.maxX > bounds.minX && bounds.maxY > bounds.minY && bounds.maxZ > bounds.minZ;
     }
 
-    private static AxisAlignedBB copyOf(AxisAlignedBB bounds) {
+    public static AxisAlignedBB copyOf(AxisAlignedBB bounds) {
         return AxisAlignedBB
             .getBoundingBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ);
     }

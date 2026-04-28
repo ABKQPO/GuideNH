@@ -19,8 +19,8 @@ import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 
 public class SceneEditorScreenshotExportService {
 
-    private static final int OPAQUE_BACKGROUND_RGB = 0x121216;
-    private static final DateTimeFormatter FILE_NAME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss");
+    public static final int OPAQUE_BACKGROUND_RGB = 0x121216;
+    public static final DateTimeFormatter FILE_NAME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss");
 
     private final Path rootDirectory;
     private final Renderer renderer;
@@ -182,7 +182,7 @@ public class SceneEditorScreenshotExportService {
         LocalDateTime get();
     }
 
-    private static final class OffscreenRenderer implements Renderer {
+    public static final class OffscreenRenderer implements Renderer {
 
         @Override
         public BufferedImage render(LytGuidebookScene scene, int width, int height) throws Exception {

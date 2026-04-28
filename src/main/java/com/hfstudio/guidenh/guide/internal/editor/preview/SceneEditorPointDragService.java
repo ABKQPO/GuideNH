@@ -481,7 +481,7 @@ public class SceneEditorPointDragService {
         }
 
         @Nullable
-        private static DragMode fromHandleId(String handleId) {
+        public static DragMode fromHandleId(String handleId) {
             for (DragMode mode : values()) {
                 if (mode.handleId.equals(handleId)) {
                     return mode;
@@ -555,7 +555,7 @@ public class SceneEditorPointDragService {
             this.fixedPoint = fixedPoint;
         }
 
-        private static DragState pointHandle(UUID elementId, SceneEditorElementType elementType, Vector3f originPoint,
+        public static DragState pointHandle(UUID elementId, SceneEditorElementType elementType, Vector3f originPoint,
             DragMode mode, @Nullable Vector3f axisDirection, @Nullable Vector3f planeNormal) {
             return new DragState(
                 elementId,
@@ -568,7 +568,7 @@ public class SceneEditorPointDragService {
                 null);
         }
 
-        private static DragState lineFrom(UUID elementId, Vector3f originPoint, Vector3f planeNormal) {
+        public static DragState lineFrom(UUID elementId, Vector3f originPoint, Vector3f planeNormal) {
             return new DragState(
                 elementId,
                 SceneEditorElementType.LINE,
@@ -580,7 +580,7 @@ public class SceneEditorPointDragService {
                 null);
         }
 
-        private static DragState lineTo(UUID elementId, Vector3f originPoint, Vector3f planeNormal) {
+        public static DragState lineTo(UUID elementId, Vector3f originPoint, Vector3f planeNormal) {
             return new DragState(
                 elementId,
                 SceneEditorElementType.LINE,
@@ -592,7 +592,7 @@ public class SceneEditorPointDragService {
                 null);
         }
 
-        private static DragState boxCorner(UUID elementId, Vector3f originPoint, Vector3f fixedPoint,
+        public static DragState boxCorner(UUID elementId, Vector3f originPoint, Vector3f fixedPoint,
             Vector3f planeNormal) {
             return new DragState(
                 elementId,

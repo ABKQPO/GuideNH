@@ -32,7 +32,7 @@ public class Definition {
         titleConstruct.partial = true;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -111,7 +111,7 @@ public class Definition {
 
     }
 
-    private static class TitleStateMachine {
+    public static class TitleStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

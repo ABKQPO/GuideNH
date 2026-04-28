@@ -24,7 +24,7 @@ public class CharacterReference {
         characterReference.tokenize = (context, effects, ok, nok) -> new StateMachine(context, effects, ok, nok)::start;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

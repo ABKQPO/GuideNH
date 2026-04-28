@@ -47,11 +47,11 @@ public class GuideEntityRayPicker {
         return bestHit;
     }
 
-    private static boolean intersectsVisibleLayer(AxisAlignedBB bounds, int visibleLayerY) {
+    public static boolean intersectsVisibleLayer(AxisAlignedBB bounds, int visibleLayerY) {
         return bounds.maxY > visibleLayerY && bounds.minY < visibleLayerY + 1.0D;
     }
 
-    private static AxisAlignedBB copyOf(AxisAlignedBB bounds) {
+    public static AxisAlignedBB copyOf(AxisAlignedBB bounds) {
         return AxisAlignedBB
             .getBoundingBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ);
     }

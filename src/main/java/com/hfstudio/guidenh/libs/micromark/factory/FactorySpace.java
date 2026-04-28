@@ -18,7 +18,7 @@ public class FactorySpace {
         return new StateMachine(effects, ok, type, limit)::start;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final Tokenizer.Effects effects;
         private final State ok;

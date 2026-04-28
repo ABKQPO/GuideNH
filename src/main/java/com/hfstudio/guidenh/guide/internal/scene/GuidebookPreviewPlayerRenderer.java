@@ -30,7 +30,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
 
-    private static final GuidebookPreviewPlayerRenderer INSTANCE = new GuidebookPreviewPlayerRenderer();
+    public static final GuidebookPreviewPlayerRenderer INSTANCE = new GuidebookPreviewPlayerRenderer();
 
     private GuidebookPreviewPlayerRenderer() {
         this.mainModel = new GuidebookPreviewPlayerModel(0.0F);
@@ -263,7 +263,7 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
         GL11.glPopMatrix();
     }
 
-    private static GuidebookPreviewPlayerPose resolvePose(AbstractClientPlayer player) {
+    public static GuidebookPreviewPlayerPose resolvePose(AbstractClientPlayer player) {
         if (player instanceof GuidebookPlayerPoseControllable poseControllable) {
             GuidebookPreviewPlayerPose pose = poseControllable.getGuidebookPreviewPlayerPose();
             if (pose != null) {

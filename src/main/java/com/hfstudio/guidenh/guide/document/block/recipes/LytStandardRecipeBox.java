@@ -15,15 +15,15 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class LytStandardRecipeBox extends LytBox {
 
-    private static final ResourceLocation CRAFTING_TEXTURE = new ResourceLocation(
+    public static final ResourceLocation CRAFTING_TEXTURE = new ResourceLocation(
         "minecraft",
         "textures/gui/container/crafting_table.png");
 
-    private static final int ARROW_U = 90;
-    private static final int ARROW_V = 35;
-    private static final int ARROW_W = 22;
-    private static final int ARROW_H = 15;
-    private static final int GAP = 4;
+    public static final int ARROW_U = 90;
+    public static final int ARROW_V = 35;
+    public static final int ARROW_W = 22;
+    public static final int ARROW_H = 15;
+    public static final int GAP = 4;
 
     private final LytSlotGrid inputs;
     private final LytSlot output;

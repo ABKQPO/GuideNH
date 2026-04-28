@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public class SceneEditorUndoUiState {
 
-    private static final SceneEditorUndoUiState EMPTY = new SceneEditorUndoUiState(Collections.emptyMap());
+    public static final SceneEditorUndoUiState EMPTY = new SceneEditorUndoUiState(Collections.emptyMap());
 
     private final Map<String, SceneEditorUndoFieldState> fieldStates;
 

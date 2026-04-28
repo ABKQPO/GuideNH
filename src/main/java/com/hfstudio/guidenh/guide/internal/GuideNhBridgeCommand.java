@@ -19,7 +19,7 @@ import com.hfstudio.guidenh.network.GuideNhNetwork;
 
 public class GuideNhBridgeCommand extends CommandBase {
 
-    private static final String[] ROOT_SUB_COMMANDS = { "importstructure", "placeallstructures" };
+    public static final String[] ROOT_SUB_COMMANDS = { "importstructure", "placeallstructures" };
 
     @Override
     public String getCommandName() {
@@ -118,7 +118,7 @@ public class GuideNhBridgeCommand extends CommandBase {
         throw new CommandException("commands.generic.player.notFound");
     }
 
-    private static void send(ICommandSender sender, GuidebookText key, Object... args) {
+    public static void send(ICommandSender sender, GuidebookText key, Object... args) {
         sender.addChatMessage(new ChatComponentTranslation(key.getTranslationKey(), args));
     }
 }

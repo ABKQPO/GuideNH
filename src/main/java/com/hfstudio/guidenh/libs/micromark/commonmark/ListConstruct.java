@@ -41,7 +41,7 @@ public class ListConstruct {
         indentConstruct.partial = true;
     }
 
-    private static class StartStateMachine {
+    public static class StartStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -163,7 +163,7 @@ public class ListConstruct {
         }
     }
 
-    private static class ContinuationStateMachine {
+    public static class ContinuationStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -237,7 +237,7 @@ public class ListConstruct {
 
     }
 
-    private static class IndentStateMachine {
+    public static class IndentStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -272,7 +272,7 @@ public class ListConstruct {
 
     }
 
-    private static class ItemPrefixWhitespaceStateMachine {
+    public static class ItemPrefixWhitespaceStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

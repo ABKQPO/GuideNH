@@ -13,7 +13,7 @@ public class JsxText {
         INSTANCE.tokenize = JsxText::tokenize;
     }
 
-    private static State tokenize(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
+    public static State tokenize(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
         return FactoryTag.create(
             context,
             effects,

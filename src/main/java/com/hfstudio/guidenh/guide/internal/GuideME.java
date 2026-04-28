@@ -12,7 +12,7 @@ public class GuideME {
     static GuideMEProxy PROXY = new GuideMEServerProxy();
 
     @Nullable
-    private static GuideSearch SEARCH = null;
+    public static GuideSearch SEARCH = null;
 
     private GuideME() {}
 

@@ -9,7 +9,7 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public class LytListItem extends LytVBox {
 
-    private static final int LEVEL_MARGIN = 10;
+    public static final int LEVEL_MARGIN = 10;
 
     private final ResolvedTextStyle style = DefaultStyles.BODY_TEXT.mergeWith(DefaultStyles.BASE_STYLE);
 

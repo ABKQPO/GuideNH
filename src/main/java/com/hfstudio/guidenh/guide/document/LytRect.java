@@ -5,7 +5,7 @@ import com.github.bsideup.jabel.Desugar;
 @Desugar
 public record LytRect(int x, int y, int width, int height) {
 
-    private static final LytRect EMPTY = new LytRect(0, 0, 0, 0);
+    public static final LytRect EMPTY = new LytRect(0, 0, 0, 0);
 
     public static LytRect empty() {
         return EMPTY;

@@ -57,17 +57,17 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public class LytGuidebookScene extends LytBlock {
 
-    private static final float DRAG_ROTATE_SENSITIVITY = 0.5f;
-    private static final float WHEEL_ZOOM_STEP = 1.1f;
-    private static final float MIN_ZOOM = 0.1f;
-    private static final float MAX_ZOOM = 10f;
-    private static final int SCENE_SLIDER_AREA_HEIGHT = 14;
-    private static final int SCENE_SLIDER_SIDE_PADDING = 8;
-    private static final ResolvedTextStyle VISIBLE_LAYER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
+    public static final float DRAG_ROTATE_SENSITIVITY = 0.5f;
+    public static final float WHEEL_ZOOM_STEP = 1.1f;
+    public static final float MIN_ZOOM = 0.1f;
+    public static final float MAX_ZOOM = 10f;
+    public static final int SCENE_SLIDER_AREA_HEIGHT = 14;
+    public static final int SCENE_SLIDER_SIDE_PADDING = 8;
+    public static final ResolvedTextStyle VISIBLE_LAYER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
-    private static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
+    public static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
-    private static final ResolvedTextStyle STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
+    public static final ResolvedTextStyle STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
 
     private int dragButton = -1;
@@ -87,20 +87,20 @@ public class LytGuidebookScene extends LytBlock {
     public static int SCENE_BG_COLOR = 0xFF0A0A10;
     public static int SCENE_BORDER_COLOR = 0xFF303040;
 
-    private static final ResourceLocation BUTTONS_TEXTURE = new ResourceLocation(
+    public static final ResourceLocation BUTTONS_TEXTURE = new ResourceLocation(
         "guidenh",
         "textures/guide/buttons.png");
 
-    private static final GuideIconButton.Role[] SCENE_BUTTONS_SHOWN = { GuideIconButton.Role.HIDE_ANNOTATIONS,
+    public static final GuideIconButton.Role[] SCENE_BUTTONS_SHOWN = { GuideIconButton.Role.HIDE_ANNOTATIONS,
         GuideIconButton.Role.ZOOM_IN, GuideIconButton.Role.ZOOM_OUT, GuideIconButton.Role.RESET_VIEW };
-    private static final GuideIconButton.Role[] SCENE_BUTTONS_HIDDEN = { GuideIconButton.Role.SHOW_ANNOTATIONS,
+    public static final GuideIconButton.Role[] SCENE_BUTTONS_HIDDEN = { GuideIconButton.Role.SHOW_ANNOTATIONS,
         GuideIconButton.Role.ZOOM_IN, GuideIconButton.Role.ZOOM_OUT, GuideIconButton.Role.RESET_VIEW };
     // Shown when the scene has no annotations at all: drop the annotation toggle entirely.
-    private static final GuideIconButton.Role[] SCENE_BUTTONS_NO_ANNOTATIONS = { GuideIconButton.Role.ZOOM_IN,
+    public static final GuideIconButton.Role[] SCENE_BUTTONS_NO_ANNOTATIONS = { GuideIconButton.Role.ZOOM_IN,
         GuideIconButton.Role.ZOOM_OUT, GuideIconButton.Role.RESET_VIEW };
 
-    private static final int DEFAULT_WIDTH = 256;
-    private static final int DEFAULT_HEIGHT = 192;
+    public static final int DEFAULT_WIDTH = 256;
+    public static final int DEFAULT_HEIGHT = 192;
 
     private GuidebookLevel level = new GuidebookLevel();
     private CameraSettings camera = new CameraSettings();
@@ -406,11 +406,11 @@ public class LytGuidebookScene extends LytBlock {
         return true;
     }
 
-    private static boolean isPointWithinVisibleLayer(float y, int visibleLayerY) {
+    public static boolean isPointWithinVisibleLayer(float y, int visibleLayerY) {
         return y >= visibleLayerY && y < visibleLayerY + 1f;
     }
 
-    private static boolean intersectsVisibleLayer(float fromY, float toY, int visibleLayerY) {
+    public static boolean intersectsVisibleLayer(float fromY, float toY, int visibleLayerY) {
         float minY = Math.min(fromY, toY);
         float maxY = Math.max(fromY, toY);
         return maxY >= visibleLayerY && minY < visibleLayerY + 1f;
@@ -654,8 +654,8 @@ public class LytGuidebookScene extends LytBlock {
         return hit;
     }
 
-    private static final int LINE_HOVER_TOLERANCE_PX = 4;
-    private static final int LINE_HOVER_TOLERANCE_PX_SQUARED = LINE_HOVER_TOLERANCE_PX * LINE_HOVER_TOLERANCE_PX;
+    public static final int LINE_HOVER_TOLERANCE_PX = 4;
+    public static final int LINE_HOVER_TOLERANCE_PX_SQUARED = LINE_HOVER_TOLERANCE_PX * LINE_HOVER_TOLERANCE_PX;
 
     private boolean boxScreenRectContains(InWorldBoxAnnotation box, LytRect viewport, int mouseX, int mouseY) {
         var min = box.min();
@@ -914,9 +914,9 @@ public class LytGuidebookScene extends LytBlock {
         }
     }
 
-    private static final int BTN_SIZE = 16;
-    private static final int BTN_GAP = 2;
-    private static final int BTN_OUTSIDE_GAP = 3;
+    public static final int BTN_SIZE = 16;
+    public static final int BTN_GAP = 2;
+    public static final int BTN_OUTSIDE_GAP = 3;
 
     private int lastAbsX, lastAbsY, lastW, lastH;
     private int lastOuterAbsX, lastOuterAbsY, lastOuterW, lastOuterH;
@@ -929,7 +929,7 @@ public class LytGuidebookScene extends LytBlock {
     private LytRect renderedContentClip;
 
     // Reuse rect records when geometry is unchanged.
-    private static LytRect updateCachedRect(@Nullable LytRect current, int x, int y, int w, int h) {
+    public static LytRect updateCachedRect(@Nullable LytRect current, int x, int y, int w, int h) {
         if (current != null && current.x() == x && current.y() == y && current.width() == w && current.height() == h) {
             return current;
         }
@@ -1411,7 +1411,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     @Nullable
-    private static MovingObjectPosition withBlockCoordinates(@Nullable MovingObjectPosition hit, int x, int y, int z) {
+    public static MovingObjectPosition withBlockCoordinates(@Nullable MovingObjectPosition hit, int x, int y, int z) {
         if (hit == null || hit.hitVec == null) {
             return hit;
         }
@@ -1421,7 +1421,7 @@ public class LytGuidebookScene extends LytBlock {
         return new MovingObjectPosition(x, y, z, hit.sideHit, hit.hitVec);
     }
 
-    private static float rayAabb(float ox, float oy, float oz, float dx, float dy, float dz, float minX, float minY,
+    public static float rayAabb(float ox, float oy, float oz, float dx, float dy, float dz, float minX, float minY,
         float minZ, float maxX, float maxY, float maxZ) {
         float tmin = Float.NEGATIVE_INFINITY;
         float tmax = Float.POSITIVE_INFINITY;
@@ -1521,11 +1521,11 @@ public class LytGuidebookScene extends LytBlock {
         this.dragLastY = mouseY;
     }
 
-    private static boolean isRotateButton(int button) {
+    public static boolean isRotateButton(int button) {
         return ModConfig.ui.sceneSwapMouseButtons ? button == 0 : button == 1;
     }
 
-    private static boolean isPanButton(int button) {
+    public static boolean isPanButton(int button) {
         return ModConfig.ui.sceneSwapMouseButtons ? button == 1 : button == 0;
     }
 
@@ -2176,7 +2176,7 @@ public class LytGuidebookScene extends LytBlock {
             label);
     }
 
-    private static String describeRect(@Nullable LytRect rect) {
+    public static String describeRect(@Nullable LytRect rect) {
         if (rect == null) {
             return "null-rect";
         }
@@ -2186,7 +2186,7 @@ public class LytGuidebookScene extends LytBlock {
         return "(" + rect.x() + "," + rect.y() + " " + rect.width() + "x" + rect.height() + ")";
     }
 
-    private static int clampChannelValue(int value, int minValue, int maxValue) {
+    public static int clampChannelValue(int value, int minValue, int maxValue) {
         if (value < minValue) {
             return minValue;
         }

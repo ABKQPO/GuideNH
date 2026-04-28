@@ -51,15 +51,15 @@ import cpw.mods.fml.common.registry.GameRegistry;
 
 public class StructureLibRuntimeFacade implements StructureLibFacade {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
-    private static final int CONTROLLER_X = 0;
-    private static final int CONTROLLER_Y = 64;
-    private static final int CONTROLLER_Z = 0;
-    private static final int MIN_TIER = 1;
-    private static final int MAX_TIER = 50;
-    private static final StructureLibPreviewMetadataFactory PREVIEW_METADATA_FACTORY = new StructureLibPreviewMetadataFactory(
+    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
+    public static final int CONTROLLER_X = 0;
+    public static final int CONTROLLER_Y = 64;
+    public static final int CONTROLLER_Z = 0;
+    public static final int MIN_TIER = 1;
+    public static final int MAX_TIER = 50;
+    public static final StructureLibPreviewMetadataFactory PREVIEW_METADATA_FACTORY = new StructureLibPreviewMetadataFactory(
         new StructureLibElementTooltipResolver());
-    private static final Map<AnalysisKey, ControlAnalysis> CONTROL_ANALYSIS_CACHE = new ConcurrentHashMap<>();
+    public static final Map<AnalysisKey, ControlAnalysis> CONTROL_ANALYSIS_CACHE = new ConcurrentHashMap<>();
 
     public StructureLibRuntimeFacade() {}
 
@@ -115,7 +115,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
     }
 
-    private static ControlAnalysis analyzeControls(StructureLibImportRequest request, ResolvedController controller) {
+    public static ControlAnalysis analyzeControls(StructureLibImportRequest request, ResolvedController controller) {
         AnalysisKey key = new AnalysisKey(
             request.getController(),
             request.getPiece(),
@@ -138,7 +138,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return created;
     }
 
-    private static int estimateMaxTotalTier(StructureLibImportRequest request, ResolvedController controller,
+    public static int estimateMaxTotalTier(StructureLibImportRequest request, ResolvedController controller,
         Set<String> discoveredChannels) {
         BuildSnapshot previous = buildSnapshot(
             request,
@@ -168,7 +168,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return MAX_TIER;
     }
 
-    private static LinkedHashMap<String, Integer> estimateChannelMaxTiers(StructureLibImportRequest request,
+    public static LinkedHashMap<String, Integer> estimateChannelMaxTiers(StructureLibImportRequest request,
         ResolvedController controller, Set<String> discoveredChannels) {
         LinkedHashMap<String, Integer> resolved = new LinkedHashMap<>();
         List<String> channelsToProcess = new ArrayList<>(discoveredChannels);
@@ -217,7 +217,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return resolved;
     }
 
-    private static void collectChannelIds(
+    public static void collectChannelIds(
         List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements,
         Set<String> discoveredChannels) {
         if (visitedElements == null || visitedElements.isEmpty()) {
@@ -231,7 +231,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
     }
 
-    private static BuildSnapshot buildSnapshot(StructureLibImportRequest request, ResolvedController controller,
+    public static BuildSnapshot buildSnapshot(StructureLibImportRequest request, ResolvedController controller,
         StructureLibPreviewSelection selection, List<String> warnings) {
         GuidebookLevel level = new GuidebookLevel();
         World world;
@@ -309,7 +309,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             fakePlayer);
     }
 
-    private static TileEntity placeController(GuidebookLevel level, World world, PreviewFakePlayer fakePlayer,
+    public static TileEntity placeController(GuidebookLevel level, World world, PreviewFakePlayer fakePlayer,
         ResolvedController controller, List<String> warnings) {
         Item item = Item.getItemFromBlock(controller.block);
         if (item != null) {
@@ -354,7 +354,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return world.getTileEntity(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z);
     }
 
-    private static void applyRequestedAlignment(TileEntity controllerTile, StructureLibImportRequest request,
+    public static void applyRequestedAlignment(TileEntity controllerTile, StructureLibImportRequest request,
         List<String> warnings) {
         if (!(controllerTile instanceof IAlignment alignment)) {
             if (request.getFacing() != null || request.getRotation() != null || request.getFlip() != null) {
@@ -375,7 +375,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     @Nullable
-    private static IConstructable resolveConstructable(TileEntity controllerTile) {
+    public static IConstructable resolveConstructable(TileEntity controllerTile) {
         if (controllerTile instanceof IConstructableProvider provider) {
             IConstructable constructable = provider.getConstructable();
             if (constructable != null) {
@@ -396,7 +396,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return null;
     }
 
-    private static ItemStack createTriggerStack(StructureLibPreviewSelection selection) {
+    public static ItemStack createTriggerStack(StructureLibPreviewSelection selection) {
         StructureLibPreviewSelection effectiveSelection = selection != null ? selection
             : StructureLibPreviewSelection.defaultSelection();
         ItemStack triggerStack = new ItemStack(
@@ -412,7 +412,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return triggerStack;
     }
 
-    private static SnapshotBlocksResult snapshotBlocks(GuidebookLevel level) {
+    public static SnapshotBlocksResult snapshotBlocks(GuidebookLevel level) {
         List<AbsolutePlacedBlock> absoluteBlocks = new ArrayList<>();
         int minX = Integer.MAX_VALUE;
         int minY = Integer.MAX_VALUE;
@@ -460,7 +460,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return new SnapshotBlocksResult(normalizedBlocks, previewBlocks);
     }
 
-    private static String buildFingerprint(List<StructureLibImportResult.PlacedBlock> blocks) {
+    public static String buildFingerprint(List<StructureLibImportResult.PlacedBlock> blocks) {
         StringBuilder builder = new StringBuilder(blocks.size() * 24);
         for (StructureLibImportResult.PlacedBlock block : blocks) {
             builder.append(block.getX())
@@ -478,7 +478,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     @Nullable
-    private static NBTTagCompound serializeTile(@Nullable TileEntity tile) {
+    public static NBTTagCompound serializeTile(@Nullable TileEntity tile) {
         if (tile == null) {
             return null;
         }
@@ -498,7 +498,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     @Nullable
-    private static String resolveBlockId(@Nullable Block block) {
+    public static String resolveBlockId(@Nullable Block block) {
         if (block == null) {
             return null;
         }
@@ -521,7 +521,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return normalizeBlockId(block.getUnlocalizedName());
     }
 
-    private static String sanitizeMessage(@Nullable String message) {
+    public static String sanitizeMessage(@Nullable String message) {
         if (message == null) {
             return "unknown error";
         }
@@ -529,7 +529,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return trimmed.isEmpty() ? "unknown error" : trimmed;
     }
 
-    private static ResolvedController resolveController(StructureLibImportRequest request) {
+    public static ResolvedController resolveController(StructureLibImportRequest request) {
         GuideBlockMatcher matcher = GuideBlockMatcher.parse(request.getController());
         Block block = (Block) Block.blockRegistry.getObject(matcher.getBlockId());
         if (block == null || block == Blocks.air) {
@@ -539,7 +539,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return new ResolvedController(matcher.getBlockId(), block, matcher.getMeta() != null ? matcher.getMeta() : 0);
     }
 
-    private static ForgeDirection parseDirection(@Nullable String rawFacing, List<String> warnings) {
+    public static ForgeDirection parseDirection(@Nullable String rawFacing, List<String> warnings) {
         if (rawFacing == null || rawFacing.trim()
             .isEmpty()) {
             return ForgeDirection.NORTH;
@@ -560,7 +560,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         };
     }
 
-    private static Rotation parseRotation(@Nullable String rawRotation, List<String> warnings) {
+    public static Rotation parseRotation(@Nullable String rawRotation, List<String> warnings) {
         if (rawRotation == null || rawRotation.trim()
             .isEmpty()) {
             return Rotation.NORMAL;
@@ -573,7 +573,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return Rotation.NORMAL;
     }
 
-    private static Flip parseFlip(@Nullable String rawFlip, List<String> warnings) {
+    public static Flip parseFlip(@Nullable String rawFlip, List<String> warnings) {
         if (rawFlip == null || rawFlip.trim()
             .isEmpty()) {
             return Flip.NONE;
@@ -586,7 +586,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return Flip.NONE;
     }
 
-    private static String normalizeRotation(String rawRotation) {
+    public static String normalizeRotation(String rawRotation) {
         String normalized = rawRotation.trim()
             .toLowerCase(Locale.ROOT)
             .replace('_', ' ')
@@ -599,7 +599,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         };
     }
 
-    private static String normalizeFlip(String rawFlip) {
+    public static String normalizeFlip(String rawFlip) {
         String normalized = rawFlip.trim()
             .toLowerCase(Locale.ROOT)
             .replace('_', ' ')
@@ -612,7 +612,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     @Nullable
-    private static String normalizeBlockId(@Nullable String blockId) {
+    public static String normalizeBlockId(@Nullable String blockId) {
         if (blockId == null) {
             return null;
         }
@@ -630,14 +630,14 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return trimmed.indexOf(':') >= 0 ? trimmed : "minecraft:" + trimmed;
     }
 
-    private static int clamp(int value, int minValue, int maxValue) {
+    public static int clamp(int value, int minValue, int maxValue) {
         if (value < minValue) {
             return minValue;
         }
         return Math.min(value, maxValue);
     }
 
-    private static class AnalysisKey {
+    public static class AnalysisKey {
 
         private final String controller;
         @Nullable
@@ -678,7 +678,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
     }
 
-    private static class ControlAnalysis {
+    public static class ControlAnalysis {
 
         private final int maxTotalTier;
         private final Map<String, Integer> channelMaxTierMap;
@@ -706,7 +706,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 clampedChannels);
         }
 
-        private static Map<String, Integer> immutableChannelMaxTierMap(@Nullable Map<String, Integer> source) {
+        public static Map<String, Integer> immutableChannelMaxTierMap(@Nullable Map<String, Integer> source) {
             if (source == null || source.isEmpty()) {
                 return Collections.emptyMap();
             }

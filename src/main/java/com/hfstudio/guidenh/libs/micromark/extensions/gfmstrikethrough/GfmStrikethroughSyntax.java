@@ -24,7 +24,7 @@ public class GfmStrikethroughSyntax extends Extension {
     public static final Extension INSTANCE = new GfmStrikethroughSyntax();
     public static final TokenProperty<Boolean> OPEN = new TokenProperty<>();
     public static final TokenProperty<Boolean> CLOSE = new TokenProperty<>();
-    private static final String TYPE_STRIKETHROUGH_SEQUENCE_TEMPORARY = "strikethroughSequenceTemporary";
+    public static final String TYPE_STRIKETHROUGH_SEQUENCE_TEMPORARY = "strikethroughSequenceTemporary";
     static final String TOKEN = "strikethroughSequence";
 
     private final boolean singleTilde;

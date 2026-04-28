@@ -13,7 +13,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class GuidebookPreviewPlayerModel extends ModelBiped {
 
-    private static final float DEGREES_TO_RADIANS = (float) Math.PI / 180.0f;
+    public static final float DEGREES_TO_RADIANS = (float) Math.PI / 180.0f;
 
     GuidebookPreviewPlayerModel(float modelSize) {
         super(modelSize);
@@ -43,7 +43,7 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
         applyRotationOverride(this.bipedRightLeg, pose.getRightLegRotationDegrees());
     }
 
-    private static void applyRotationOverride(net.minecraft.client.model.ModelRenderer renderer, Vector3f degrees) {
+    public static void applyRotationOverride(net.minecraft.client.model.ModelRenderer renderer, Vector3f degrees) {
         if (degrees == null) {
             return;
         }

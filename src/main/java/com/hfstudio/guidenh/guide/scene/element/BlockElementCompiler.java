@@ -55,7 +55,7 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
         level.setExplicitBlockId(x, y, z, explicitBlockId);
     }
 
-    private static int defaultMetaFor(Block block, String facing) {
+    public static int defaultMetaFor(Block block, String facing) {
         int facingMeta = parseFacing(facing);
         if (facingMeta >= 0) return facingMeta;
         if (block == Blocks.furnace || block == Blocks.lit_furnace
@@ -70,7 +70,7 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
         return 0;
     }
 
-    private static int parseFacing(String facing) {
+    public static int parseFacing(String facing) {
         if (facing == null || facing.isEmpty()) return -1;
         return switch (facing.toLowerCase(Locale.ROOT)) {
             case "down" -> 0;

@@ -47,14 +47,14 @@ public class GuideSliderRenderer {
         return clampFraction((mouseX - sliderX) / (float) sliderWidth);
     }
 
-    private static float clampFraction(float fraction) {
+    public static float clampFraction(float fraction) {
         if (fraction < 0f) {
             return 0f;
         }
         return fraction > 1f ? 1f : fraction;
     }
 
-    private static void drawRect(RectDrawer drawer, LytRect rect, int color) {
+    public static void drawRect(RectDrawer drawer, LytRect rect, int color) {
         if (rect == null || rect.width() <= 0 || rect.height() <= 0) {
             return;
         }

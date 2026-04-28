@@ -86,7 +86,7 @@ public class BlockQuote {
         }
     }
 
-    private static void exit(TokenizeContext context, Tokenizer.Effects effects) {
+    public static void exit(TokenizeContext context, Tokenizer.Effects effects) {
         effects.exit(Types.blockQuote);
     }
 

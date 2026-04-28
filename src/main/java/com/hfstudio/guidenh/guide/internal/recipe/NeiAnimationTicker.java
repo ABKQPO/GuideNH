@@ -13,8 +13,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  */
 public class NeiAnimationTicker {
 
-    private static final WeakHashMap<Object, Boolean> TRACKED = new WeakHashMap<>();
-    private static boolean registered;
+    public static final WeakHashMap<Object, Boolean> TRACKED = new WeakHashMap<>();
+    public static boolean registered;
 
     private NeiAnimationTicker() {}
 

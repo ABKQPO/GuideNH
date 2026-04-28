@@ -28,7 +28,7 @@ public class GuideStructureFileStore {
         return path.normalize();
     }
 
-    private static String sanitizePrefix(String prefix) {
+    public static String sanitizePrefix(String prefix) {
         if (prefix == null || prefix.isEmpty()) {
             return "structure";
         }

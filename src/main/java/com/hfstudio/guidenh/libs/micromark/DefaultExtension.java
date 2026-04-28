@@ -32,7 +32,7 @@ public class DefaultExtension {
 
     private DefaultExtension() {}
 
-    private static List<Construct> l(Construct... constructs) {
+    public static List<Construct> l(Construct... constructs) {
         return Arrays.asList(constructs);
     }
 

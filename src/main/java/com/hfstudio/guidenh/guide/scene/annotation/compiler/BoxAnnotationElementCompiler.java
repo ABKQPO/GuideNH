@@ -41,7 +41,7 @@ public class BoxAnnotationElementCompiler extends AnnotationTagCompiler {
         return ann;
     }
 
-    private static void ensureMinMax(Vector3f min, Vector3f max) {
+    public static void ensureMinMax(Vector3f min, Vector3f max) {
         if (min.x > max.x) {
             float t = min.x;
             min.x = max.x;

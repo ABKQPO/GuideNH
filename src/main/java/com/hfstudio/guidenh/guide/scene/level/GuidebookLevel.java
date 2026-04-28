@@ -424,7 +424,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         return block.isSideSolid(this, x, y, z, side);
     }
 
-    private static long packPos(int x, int y, int z) {
+    public static long packPos(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF)) | (((long) (z & 0x3FFFFFF)) << 26) | (((long) (y & 0xFF)) << 52);
     }
 
@@ -468,7 +468,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     @Nullable
-    private static String resolveBlockId(@Nullable Block block) {
+    public static String resolveBlockId(@Nullable Block block) {
         if (block == null || block == Blocks.air) {
             return null;
         }
@@ -494,7 +494,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     @Nullable
-    private static String normalizeBlockId(@Nullable String candidate) {
+    public static String normalizeBlockId(@Nullable String candidate) {
         if (candidate == null) {
             return null;
         }

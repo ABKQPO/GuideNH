@@ -12,9 +12,9 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 
 public class GuideSearchSnippetFormatter {
 
-    private static final String START = "<B>";
-    private static final String END = "</B>";
-    private static final String ELLIPSIS = "...";
+    public static final String START = "<B>";
+    public static final String END = "</B>";
+    public static final String ELLIPSIS = "...";
 
     private GuideSearchSnippetFormatter() {}
 
@@ -105,7 +105,7 @@ public class GuideSearchSnippetFormatter {
         return rebuilt.toString();
     }
 
-    private static List<IntRange> parseRanges(String markup, StringBuilder plain) {
+    public static List<IntRange> parseRanges(String markup, StringBuilder plain) {
         var ranges = new ArrayList<IntRange>();
         int rangeStart = -1;
         for (int i = 0; i < markup.length(); i++) {
@@ -125,11 +125,11 @@ public class GuideSearchSnippetFormatter {
         return ranges;
     }
 
-    private static boolean isTokenChar(char c) {
+    public static boolean isTokenChar(char c) {
         return Character.isLetterOrDigit(c) || c == '_';
     }
 
-    private static LytFlowContent buildFlowContent(String plainText, List<IntRange> ranges) {
+    public static LytFlowContent buildFlowContent(String plainText, List<IntRange> ranges) {
         var root = new LytFlowSpan();
         int cursor = 0;
         for (var range : ranges) {
@@ -148,7 +148,7 @@ public class GuideSearchSnippetFormatter {
         return root;
     }
 
-    private static int countVisibleChars(LytFlowContent content) {
+    public static int countVisibleChars(LytFlowContent content) {
         var count = new int[1];
         content.visit(new LytVisitor() {
 
@@ -160,7 +160,7 @@ public class GuideSearchSnippetFormatter {
         return count[0];
     }
 
-    private static String toPlainText(LytFlowContent content) {
+    public static String toPlainText(LytFlowContent content) {
         var text = new StringBuilder();
         content.visit(new LytVisitor() {
 
@@ -172,7 +172,7 @@ public class GuideSearchSnippetFormatter {
         return text.toString();
     }
 
-    private static LytFlowContent clipNode(LytFlowContent content, int remainingChars) {
+    public static LytFlowContent clipNode(LytFlowContent content, int remainingChars) {
         if (remainingChars <= 0) {
             return new LytFlowSpan();
         }

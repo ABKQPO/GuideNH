@@ -11,7 +11,7 @@ import java.util.Map;
  */
 public class ExtensionCollection {
 
-    private static final ExtensionCollection EMPTY = new ExtensionCollection(Collections.emptyMap());
+    public static final ExtensionCollection EMPTY = new ExtensionCollection(Collections.emptyMap());
 
     private final List<ExtensionPoint<?>> extensionPoints;
     private final Map<ExtensionPoint<?>, List<Object>> extensions;

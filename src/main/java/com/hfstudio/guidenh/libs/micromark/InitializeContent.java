@@ -14,7 +14,7 @@ public class InitializeContent {
         content.tokenize = (context, effects, ok, nok) -> new StateMachine(context, effects).contentStart;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

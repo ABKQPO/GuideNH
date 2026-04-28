@@ -54,7 +54,7 @@ import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
 public class MdastCompiler implements MdastContext {
 
-    private static final TokenProperty<Boolean> SPREAD = new TokenProperty<>();
+    public static final TokenProperty<Boolean> SPREAD = new TokenProperty<>();
 
     private final MdastExtension extension;
 
@@ -246,11 +246,11 @@ public class MdastCompiler implements MdastContext {
         return tree;
     }
 
-    private static UnistPoint makePoint(int line, int column, int offset) {
+    public static UnistPoint makePoint(int line, int column, int offset) {
         return new Point(line, column, offset, -1, -1);
     }
 
-    private static int prepareList(List<Tokenizer.Event> events, int start, int length) {
+    public static int prepareList(List<Tokenizer.Event> events, int start, int length) {
         var index = start - 1;
         var containerBalance = -1;
         var listSpread = false;
@@ -548,7 +548,7 @@ public class MdastCompiler implements MdastContext {
         flowCodeInside = true;
     }
 
-    private static final Pattern START_END_NEWLINE = Pattern.compile("^(\r?\n|\r)|(\r?\n|\r)\\z");
+    public static final Pattern START_END_NEWLINE = Pattern.compile("^(\r?\n|\r)|(\r?\n|\r)\\z");
 
     private void onexitcodefenced() {
         var data = this.resume();

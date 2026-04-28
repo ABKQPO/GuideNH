@@ -39,7 +39,7 @@ import io.methvin.watcher.DirectoryWatcher;
 
 class GuideSourceWatcher implements AutoCloseable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(GuideSourceWatcher.class);
+    public static final Logger LOG = LoggerFactory.getLogger(GuideSourceWatcher.class);
 
     private final String defaultLanguage;
 

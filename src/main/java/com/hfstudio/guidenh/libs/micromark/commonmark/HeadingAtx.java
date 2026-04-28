@@ -29,7 +29,7 @@ public class HeadingAtx {
         headingAtx.resolve = HeadingAtx::resolveHeadingAtx;
     }
 
-    private static List<Tokenizer.Event> resolveHeadingAtx(List<Tokenizer.Event> events, TokenizeContext context) {
+    public static List<Tokenizer.Event> resolveHeadingAtx(List<Tokenizer.Event> events, TokenizeContext context) {
         var contentEnd = events.size() - 2;
         var contentStart = 3;
 
@@ -82,7 +82,7 @@ public class HeadingAtx {
         return events;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

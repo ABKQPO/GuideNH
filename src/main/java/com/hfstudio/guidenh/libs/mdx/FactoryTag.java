@@ -22,7 +22,7 @@ public class FactoryTag {
 
     private FactoryTag() {}
 
-    private static final Construct lazyLineEnd;
+    public static final Construct lazyLineEnd;
 
     static {
         lazyLineEnd = new Construct();
@@ -673,7 +673,7 @@ public class FactoryTag {
         return new StateMachine()::start;
     }
 
-    private static State tokenizeLazyLineEnd(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
+    public static State tokenizeLazyLineEnd(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
         class StateMachine {
 
             State start(int code) {
@@ -692,7 +692,7 @@ public class FactoryTag {
         return new StateMachine()::start;
     }
 
-    private static String serializeCharCode(int code) {
+    public static String serializeCharCode(int code) {
         return String.format(Locale.ROOT, "U+%04X", code);
     }
 

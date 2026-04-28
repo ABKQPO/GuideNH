@@ -56,10 +56,10 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
  */
 public class GuideSearch implements AutoCloseable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(GuideSearch.class);
+    public static final Logger LOG = LoggerFactory.getLogger(GuideSearch.class);
 
     /** Maximum indexing time budget per tick. */
-    private static final long TIME_PER_TICK = TimeUnit.MILLISECONDS.toNanos(5);
+    public static final long TIME_PER_TICK = TimeUnit.MILLISECONDS.toNanos(5);
 
     private final ByteBuffersDirectory directory = new ByteBuffersDirectory();
 
@@ -331,7 +331,7 @@ public class GuideSearch implements AutoCloseable {
         return luceneLang;
     }
 
-    private static String getPageTitle(Guide guide, ParsedGuidePage page) {
+    public static String getPageTitle(Guide guide, ParsedGuidePage page) {
 
         // Frontmatter navigation title wins.
         var navigationEntry = page.getFrontmatter()
@@ -366,7 +366,7 @@ public class GuideSearch implements AutoCloseable {
             .toString();
     }
 
-    private static String getSearchableText(Guide guide, ParsedGuidePage page) {
+    public static String getSearchableText(Guide guide, ParsedGuidePage page) {
         var searchableText = new StringBuilder();
 
         var sink = new IndexingSink() {

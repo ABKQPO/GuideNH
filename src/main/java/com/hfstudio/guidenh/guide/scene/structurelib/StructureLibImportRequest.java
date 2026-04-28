@@ -76,7 +76,7 @@ public class StructureLibImportRequest {
         return previewSelection;
     }
 
-    private static String requireController(@Nullable String controller) {
+    public static String requireController(@Nullable String controller) {
         if (controller == null) {
             throw new IllegalArgumentException("StructureLib controller cannot be null");
         }
@@ -88,7 +88,7 @@ public class StructureLibImportRequest {
     }
 
     @Nullable
-    private static String normalizeOptional(@Nullable String value) {
+    public static String normalizeOptional(@Nullable String value) {
         if (value == null) {
             return null;
         }

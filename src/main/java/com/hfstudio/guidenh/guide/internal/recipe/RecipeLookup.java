@@ -23,12 +23,12 @@ import org.slf4j.LoggerFactory;
 
 public class RecipeLookup {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RecipeLookup.class);
+    public static final Logger LOG = LoggerFactory.getLogger(RecipeLookup.class);
 
-    private static Field SHAPED_ORE_INPUT;
-    private static Field SHAPED_ORE_WIDTH;
-    private static Field SHAPED_ORE_HEIGHT;
-    private static Field SHAPELESS_ORE_INPUT;
+    public static Field SHAPED_ORE_INPUT;
+    public static Field SHAPED_ORE_WIDTH;
+    public static Field SHAPED_ORE_HEIGHT;
+    public static Field SHAPELESS_ORE_INPUT;
 
     static {
         try {
@@ -82,7 +82,7 @@ public class RecipeLookup {
         return null;
     }
 
-    private static Entry fromShaped(ShapedRecipes r) {
+    public static Entry fromShaped(ShapedRecipes r) {
         Entry e = new Entry();
         e.result = r.getRecipeOutput();
         e.shapeless = false;
@@ -97,7 +97,7 @@ public class RecipeLookup {
         return e;
     }
 
-    private static Entry fromShapeless(ShapelessRecipes r) {
+    public static Entry fromShapeless(ShapelessRecipes r) {
         Entry e = new Entry();
         e.result = r.getRecipeOutput();
         e.shapeless = true;
@@ -108,7 +108,7 @@ public class RecipeLookup {
     }
 
     @Nullable
-    private static Entry fromShapedOre(ShapedOreRecipe r) {
+    public static Entry fromShapedOre(ShapedOreRecipe r) {
         if (SHAPED_ORE_INPUT == null) return null;
         try {
             Object[] input = (Object[]) SHAPED_ORE_INPUT.get(r);
@@ -133,7 +133,7 @@ public class RecipeLookup {
     }
 
     @Nullable
-    private static Entry fromShapelessOre(ShapelessOreRecipe r) {
+    public static Entry fromShapelessOre(ShapelessOreRecipe r) {
         if (SHAPELESS_ORE_INPUT == null) return null;
         try {
             @SuppressWarnings("unchecked")
@@ -151,7 +151,7 @@ public class RecipeLookup {
     }
 
     @Nullable
-    private static ItemStack resolveOre(Object o) {
+    public static ItemStack resolveOre(Object o) {
         if (o == null) return null;
         if (o instanceof ItemStack) {
             return copy((ItemStack) o);
@@ -165,7 +165,7 @@ public class RecipeLookup {
     }
 
     @Nullable
-    private static ItemStack copy(@Nullable ItemStack s) {
+    public static ItemStack copy(@Nullable ItemStack s) {
         if (s == null) return null;
         ItemStack c = s.copy();
         if (c.getItemDamage() == OreDictionary.WILDCARD_VALUE) {

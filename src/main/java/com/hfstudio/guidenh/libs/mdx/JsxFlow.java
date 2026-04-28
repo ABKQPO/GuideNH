@@ -19,7 +19,7 @@ public class JsxFlow {
         INSTANCE.concrete = true;
     }
 
-    private static State tokenize(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
+    public static State tokenize(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
         class StateMachine {
 
             State start(int code) {

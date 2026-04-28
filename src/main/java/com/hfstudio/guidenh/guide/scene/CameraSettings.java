@@ -153,7 +153,7 @@ public class CameraSettings {
         }
     }
 
-    private static final float DEG_TO_RAD = (float) (Math.PI / 180.0);
+    public static final float DEG_TO_RAD = (float) (Math.PI / 180.0);
 
     // Cached matrices: callers (renderer, worldToScreen, screenToWorldRay) consume the
     // result immediately or copy before mutating, so a single reusable instance per

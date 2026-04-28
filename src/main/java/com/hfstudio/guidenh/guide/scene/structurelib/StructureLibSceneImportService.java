@@ -13,8 +13,8 @@ import cpw.mods.fml.common.Loader;
 
 public class StructureLibSceneImportService {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
-    private static final String RUNTIME_FACADE_CLASS = "com.hfstudio.guidenh.guide.scene.structurelib.StructureLibRuntimeFacade";
+    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
+    public static final String RUNTIME_FACADE_CLASS = "com.hfstudio.guidenh.guide.scene.structurelib.StructureLibRuntimeFacade";
 
     private final StructureLibFacade facade;
 
@@ -56,7 +56,7 @@ public class StructureLibSceneImportService {
         }
     }
 
-    private static String resolveFailureMessage(Throwable throwable) {
+    public static String resolveFailureMessage(Throwable throwable) {
         String message = throwable.getMessage();
         if (message == null || message.trim()
             .isEmpty()) {
@@ -65,7 +65,7 @@ public class StructureLibSceneImportService {
         return "StructureLib import failed: " + message.trim();
     }
 
-    private static StructureLibFacade resolveFacade(@Nullable Supplier<StructureLibFacade> facadeFactory) {
+    public static StructureLibFacade resolveFacade(@Nullable Supplier<StructureLibFacade> facadeFactory) {
         if (facadeFactory == null) {
             return createDefaultFacade();
         }
@@ -78,7 +78,7 @@ public class StructureLibSceneImportService {
         }
     }
 
-    private static StructureLibFacade createDefaultFacade() {
+    public static StructureLibFacade createDefaultFacade() {
         if (!isStructureLibLoaded()) {
             return new StructureLibUnavailableFacade();
         }
@@ -100,7 +100,7 @@ public class StructureLibSceneImportService {
         return new StructureLibUnavailableFacade();
     }
 
-    private static boolean isStructureLibLoaded() {
+    public static boolean isStructureLibLoaded() {
         try {
             return Loader.isModLoaded("structurelib");
         } catch (Throwable ignored) {

@@ -18,7 +18,7 @@ public class FactoryTitle {
         return new StateMachine(effects, ok, nok, type, markerType, stringType)::start;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private Tokenizer.Effects effects;
         private State ok;

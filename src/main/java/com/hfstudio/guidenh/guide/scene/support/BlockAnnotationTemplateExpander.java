@@ -34,7 +34,7 @@ public class BlockAnnotationTemplateExpander {
         return expanded;
     }
 
-    private static SceneAnnotation translate(SceneAnnotation templateAnnotation, int x, int y, int z) {
+    public static SceneAnnotation translate(SceneAnnotation templateAnnotation, int x, int y, int z) {
         if (templateAnnotation instanceof DiamondAnnotation diamondAnnotation) {
             DiamondAnnotation translated = new DiamondAnnotation(
                 new Vector3f(diamondAnnotation.getPos()).add(x, y, z),
@@ -69,7 +69,7 @@ public class BlockAnnotationTemplateExpander {
                 .getName());
     }
 
-    private static void copyInWorldState(SceneAnnotation source, InWorldAnnotation target) {
+    public static void copyInWorldState(SceneAnnotation source, InWorldAnnotation target) {
         target.setTooltip(source.getTooltip());
         if (source instanceof InWorldAnnotation inWorldAnnotation) {
             target.setAlwaysOnTop(inWorldAnnotation.isAlwaysOnTop());

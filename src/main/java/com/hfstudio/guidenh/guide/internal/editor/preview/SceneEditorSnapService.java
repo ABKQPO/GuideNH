@@ -14,7 +14,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 
 public class SceneEditorSnapService {
 
-    private static final float DEFAULT_SNAP_DISTANCE = 0.2f;
+    public static final float DEFAULT_SNAP_DISTANCE = 0.2f;
     private final BlockBounds boundsScratch = new BlockBounds();
 
     public Vector3f snapBlockPosition(float x, float y, float z) {
@@ -398,7 +398,7 @@ public class SceneEditorSnapService {
         }
     }
 
-    private static void visitProjectedSegment(SnapCandidateVisitor visitor, float desiredX, float desiredY,
+    public static void visitProjectedSegment(SnapCandidateVisitor visitor, float desiredX, float desiredY,
         float desiredZ, float fromX, float fromY, float fromZ, float toX, float toY, float toZ,
         float distanceMultiplier) {
         float dx = toX - fromX;
@@ -418,14 +418,14 @@ public class SceneEditorSnapService {
         visitor.visit(fromX + dx * t, fromY + dy * t, fromZ + dz * t, distanceMultiplier);
     }
 
-    private static float clamp(float value, float min, float max) {
+    public static float clamp(float value, float min, float max) {
         if (value < min) {
             return min;
         }
         return Math.min(value, max);
     }
 
-    private static float squaredDistance(float ax, float ay, float az, float bx, float by, float bz) {
+    public static float squaredDistance(float ax, float ay, float az, float bx, float by, float bz) {
         float dx = ax - bx;
         float dy = ay - by;
         float dz = az - bz;

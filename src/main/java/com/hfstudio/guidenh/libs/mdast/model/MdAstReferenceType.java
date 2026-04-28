@@ -21,7 +21,7 @@ public enum MdAstReferenceType {
 
     private final String serializedName;
 
-    private static final Map<String, MdAstReferenceType> REVERSE_MAPPING = Stream.of(values())
+    public static final Map<String, MdAstReferenceType> REVERSE_MAPPING = Stream.of(values())
         .collect(Collectors.toMap(e -> e.serializedName, e -> e));
 
     MdAstReferenceType(String serializedName) {

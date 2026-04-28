@@ -32,7 +32,7 @@ public class Attention {
     /**
      * Take all events and resolve attention to emphasis or strong.
      */
-    private static List<Tokenizer.Event> resolveAllAttention(List<Tokenizer.Event> events, TokenizeContext context) {
+    public static List<Tokenizer.Event> resolveAllAttention(List<Tokenizer.Event> events, TokenizeContext context) {
         int index = -1;
         int open;
         Token group;
@@ -189,7 +189,7 @@ public class Attention {
      * Note: `move` only works inside lines! It’s not possible to move past other chunks (replacement characters, tabs,
      * or line endings).
      */
-    private static Point movePoint(Point point, int offset) {
+    public static Point movePoint(Point point, int offset) {
         return new Point(
             point.line(),
             point.column() + offset,

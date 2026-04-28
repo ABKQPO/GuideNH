@@ -27,12 +27,12 @@ public class LytStructureView extends LytBlock {
         }
     }
 
-    private static final int DEFAULT_WIDTH = 192;
-    private static final int DEFAULT_HEIGHT = 144;
-    private static final int ICON = 16;
-    private static final int TILE_W = 14;
-    private static final int TILE_H = 7;
-    private static final int LAYER_H = 12;
+    public static final int DEFAULT_WIDTH = 192;
+    public static final int DEFAULT_HEIGHT = 144;
+    public static final int ICON = 16;
+    public static final int TILE_W = 14;
+    public static final int TILE_H = 7;
+    public static final int LAYER_H = 12;
 
     private int viewWidth = DEFAULT_WIDTH;
     private int viewHeight = DEFAULT_HEIGHT;
@@ -119,11 +119,11 @@ public class LytStructureView extends LytBlock {
         }
     }
 
-    private static int projectX(int x, int z) {
+    public static int projectX(int x, int z) {
         return (x - z) * TILE_W;
     }
 
-    private static int projectY(int x, int y, int z) {
+    public static int projectY(int x, int y, int z) {
         return (x + z) * TILE_H - y * LAYER_H;
     }
 }

@@ -72,7 +72,7 @@ public class LabelEnd {
         return events;
     }
 
-    private static List<Tokenizer.Event> resolveToLabelEnd(List<Tokenizer.Event> events, TokenizeContext context) {
+    public static List<Tokenizer.Event> resolveToLabelEnd(List<Tokenizer.Event> events, TokenizeContext context) {
         var index = events.size();
         var offset = 0;
         Token token;
@@ -176,7 +176,7 @@ public class LabelEnd {
         return events;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -304,7 +304,7 @@ public class LabelEnd {
         }
     }
 
-    private static class ResourceStateMachine {
+    public static class ResourceStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -421,7 +421,7 @@ public class LabelEnd {
         }
     }
 
-    private static class FullReferenceStateMachine {
+    public static class FullReferenceStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;
@@ -477,7 +477,7 @@ public class LabelEnd {
         }
     }
 
-    private static class CollapsedReferenceStateMachine {
+    public static class CollapsedReferenceStateMachine {
 
         private final TokenizeContext context;
         private final Tokenizer.Effects effects;

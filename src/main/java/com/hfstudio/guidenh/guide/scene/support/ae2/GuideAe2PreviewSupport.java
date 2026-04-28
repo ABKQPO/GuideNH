@@ -29,12 +29,12 @@ import appeng.tile.networking.TileCableBus;
 
 public class GuideAe2PreviewSupport {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
-    private static final ForgeDirection[] PART_SIDES = ForgeDirection.values();
+    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
+    public static final ForgeDirection[] PART_SIDES = ForgeDirection.values();
 
-    private static final Field PROXY_NODE_FIELD = resolveField(AENetworkProxy.class, "node");
-    private static final Field PROXY_DATA_FIELD = resolveField(AENetworkProxy.class, "data");
-    private static volatile boolean nodeCreationFailureLogged;
+    public static final Field PROXY_NODE_FIELD = resolveField(AENetworkProxy.class, "node");
+    public static final Field PROXY_DATA_FIELD = resolveField(AENetworkProxy.class, "data");
+    public static volatile boolean nodeCreationFailureLogged;
 
     private GuideAe2PreviewSupport() {}
 
@@ -89,7 +89,7 @@ public class GuideAe2PreviewSupport {
         }
     }
 
-    private static void collectTileState(TileEntity tileEntity, IdentityHashMap<IGridNode, Boolean> seenNodes,
+    public static void collectTileState(TileEntity tileEntity, IdentityHashMap<IGridNode, Boolean> seenNodes,
         List<IGridNode> nodes, IdentityHashMap<CableBusContainer, Boolean> seenCableBuses,
         List<CableBusContainer> cableBuses, List<AEBaseTile> tilesToSync) {
         if (!(tileEntity instanceof AEBaseTile aeBaseTile)) {
@@ -116,7 +116,7 @@ public class GuideAe2PreviewSupport {
         }
     }
 
-    private static void collectCableBusNodes(TileCableBus cableBusTile, IdentityHashMap<IGridNode, Boolean> seenNodes,
+    public static void collectCableBusNodes(TileCableBus cableBusTile, IdentityHashMap<IGridNode, Boolean> seenNodes,
         List<IGridNode> nodes) {
         for (ForgeDirection side : PART_SIDES) {
             IPart part;
@@ -131,7 +131,7 @@ public class GuideAe2PreviewSupport {
         }
     }
 
-    private static void collectNode(AENetworkProxy proxy, IdentityHashMap<IGridNode, Boolean> seenNodes,
+    public static void collectNode(AENetworkProxy proxy, IdentityHashMap<IGridNode, Boolean> seenNodes,
         List<IGridNode> nodes) {
         IGridNode node = ensureNode(proxy);
         if (node != null && seenNodes.put(node, Boolean.TRUE) == null) {
@@ -139,7 +139,7 @@ public class GuideAe2PreviewSupport {
         }
     }
 
-    private static IGridNode ensureNode(AENetworkProxy proxy) {
+    public static IGridNode ensureNode(AENetworkProxy proxy) {
         if (proxy == null) {
             return null;
         }
@@ -185,7 +185,7 @@ public class GuideAe2PreviewSupport {
         }
     }
 
-    private static void updateOwningGrids(List<IGridNode> nodes) {
+    public static void updateOwningGrids(List<IGridNode> nodes) {
         IdentityHashMap<Grid, Boolean> seenGrids = new IdentityHashMap<>();
         ArrayList<Grid> grids = new ArrayList<>();
         for (IGridNode node : nodes) {
@@ -209,7 +209,7 @@ public class GuideAe2PreviewSupport {
         }
     }
 
-    private static void syncDescriptionPacket(AEBaseTile tile) {
+    public static void syncDescriptionPacket(AEBaseTile tile) {
         try {
             Packet packet = tile.getDescriptionPacket();
             if (packet instanceof S35PacketUpdateTileEntity updatePacket) {
@@ -218,7 +218,7 @@ public class GuideAe2PreviewSupport {
         } catch (Throwable ignored) {}
     }
 
-    private static NBTTagCompound readPendingProxyData(AENetworkProxy proxy) {
+    public static NBTTagCompound readPendingProxyData(AENetworkProxy proxy) {
         if (PROXY_DATA_FIELD == null) {
             return null;
         }
@@ -230,7 +230,7 @@ public class GuideAe2PreviewSupport {
         }
     }
 
-    private static Field resolveField(Class<?> owner, String name) {
+    public static Field resolveField(Class<?> owner, String name) {
         try {
             Field field = owner.getDeclaredField(name);
             field.setAccessible(true);

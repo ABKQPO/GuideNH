@@ -112,7 +112,7 @@ public class LayoutContext implements FontMetrics {
         return found ? OptionalInt.of(nextBottom) : OptionalInt.empty();
     }
 
-    private static OptionalInt getMaxBottom(List<LytRect> boundsList) {
+    public static OptionalInt getMaxBottom(List<LytRect> boundsList) {
         int maxBottom = Integer.MIN_VALUE;
         boolean found = false;
 
@@ -124,7 +124,7 @@ public class LayoutContext implements FontMetrics {
         return found ? OptionalInt.of(maxBottom) : OptionalInt.empty();
     }
 
-    private static OptionalInt getMaxBottom(List<LytRect> leftBounds, List<LytRect> rightBounds) {
+    public static OptionalInt getMaxBottom(List<LytRect> leftBounds, List<LytRect> rightBounds) {
         int maxBottom = Integer.MIN_VALUE;
         boolean found = false;
 

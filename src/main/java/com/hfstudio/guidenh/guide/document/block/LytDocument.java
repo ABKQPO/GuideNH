@@ -132,7 +132,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         return pick(this, x, y);
     }
 
-    private static HitTestResult pick(LytNode root, int x, int y) {
+    public static HitTestResult pick(LytNode root, int x, int y) {
         var node = root.pickNode(x, y);
         if (node != null) {
             LytFlowContent content = null;

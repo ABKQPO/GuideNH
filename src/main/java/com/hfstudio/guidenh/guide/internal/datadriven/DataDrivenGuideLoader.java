@@ -28,9 +28,9 @@ import cpw.mods.fml.common.ObfuscationReflectionHelper;
 
 public class DataDrivenGuideLoader {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DataDrivenGuideLoader.class);
-    private static final String AUTO_GUIDE_FOLDER = "guidenh";
-    private static final String LANGUAGE_FOLDER_PREFIX = "_";
+    public static final Logger LOG = LoggerFactory.getLogger(DataDrivenGuideLoader.class);
+    public static final String AUTO_GUIDE_FOLDER = "guidenh";
+    public static final String LANGUAGE_FOLDER_PREFIX = "_";
 
     private DataDrivenGuideLoader() {}
 
@@ -65,7 +65,7 @@ public class DataDrivenGuideLoader {
         return pagePaths;
     }
 
-    private static List<IResourcePack> getActiveResourcePacks() {
+    public static List<IResourcePack> getActiveResourcePacks() {
         var resourcePacks = new LinkedHashSet<IResourcePack>();
 
         try {
@@ -96,7 +96,7 @@ public class DataDrivenGuideLoader {
         return new ArrayList<>(resourcePacks);
     }
 
-    private static void scanResourcePack(IResourcePack resourcePack,
+    public static void scanResourcePack(IResourcePack resourcePack,
         Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
         var resourcePackFile = getResourcePackFile(resourcePack);
         if (resourcePackFile == null || !resourcePackFile.exists()) {
@@ -110,7 +110,7 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    private static void scanPagePaths(IResourcePack resourcePack, String prefix, Set<String> pagePaths) {
+    public static void scanPagePaths(IResourcePack resourcePack, String prefix, Set<String> pagePaths) {
         var resourcePackFile = getResourcePackFile(resourcePack);
         if (resourcePackFile == null || !resourcePackFile.exists()) {
             return;
@@ -123,7 +123,7 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    private static File getResourcePackFile(IResourcePack resourcePack) {
+    public static File getResourcePackFile(IResourcePack resourcePack) {
         if (!(resourcePack instanceof AbstractResourcePack)) {
             return null;
         }
@@ -140,7 +140,7 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    private static void scanResourcePackFolder(File resourcePackRoot,
+    public static void scanResourcePackFolder(File resourcePackRoot,
         Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
         var assetsDir = new File(resourcePackRoot, "assets");
         var namespaceDirs = assetsDir.listFiles(File::isDirectory);
@@ -176,7 +176,7 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    private static void scanResourcePackZip(File resourcePackFile,
+    public static void scanResourcePackZip(File resourcePackFile,
         Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
         try (var zip = new ZipFile(resourcePackFile)) {
             var entries = zip.entries();
@@ -205,7 +205,7 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    private static void scanFolderPagePaths(File resourcePackRoot, String prefix, Set<String> pagePaths) {
+    public static void scanFolderPagePaths(File resourcePackRoot, String prefix, Set<String> pagePaths) {
         var resourceRoot = new File(resourcePackRoot, prefix.replace('/', File.separatorChar));
         var languageDirs = resourceRoot.listFiles(File::isDirectory);
         if (languageDirs == null) {
@@ -220,7 +220,7 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    private static void scanZipPagePaths(File resourcePackFile, String prefix, Set<String> pagePaths) {
+    public static void scanZipPagePaths(File resourcePackFile, String prefix, Set<String> pagePaths) {
         try (var zip = new ZipFile(resourcePackFile)) {
             var entries = zip.entries();
             while (entries.hasMoreElements()) {
@@ -255,7 +255,7 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    private static void collectMarkdownPaths(File directory, String relativePath, Set<String> pagePaths) {
+    public static void collectMarkdownPaths(File directory, String relativePath, Set<String> pagePaths) {
         var children = directory.listFiles();
         if (children == null) {
             return;
@@ -273,7 +273,7 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    private static boolean containsMarkdownFiles(File directory) {
+    public static boolean containsMarkdownFiles(File directory) {
         var children = directory.listFiles();
         if (children == null) {
             return false;
@@ -292,15 +292,15 @@ public class DataDrivenGuideLoader {
         return false;
     }
 
-    private static boolean isLanguageFolder(String name) {
+    public static boolean isLanguageFolder(String name) {
         return name.startsWith(LANGUAGE_FOLDER_PREFIX) && LangUtil.isLanguageCode(name.substring(1));
     }
 
-    private static String toLanguageCode(String folderName) {
+    public static String toLanguageCode(String folderName) {
         return LangUtil.normalizeLanguage(folderName.substring(LANGUAGE_FOLDER_PREFIX.length()));
     }
 
-    private static String selectDefaultLanguage(Set<String> languages) {
+    public static String selectDefaultLanguage(Set<String> languages) {
         if (languages.contains("en_us")) {
             return "en_us";
         }
@@ -310,7 +310,7 @@ public class DataDrivenGuideLoader {
             .orElse("en_us");
     }
 
-    private static String toFolderPrefix(String namespace, String folder) {
+    public static String toFolderPrefix(String namespace, String folder) {
         return "assets/" + namespace + "/" + folder + "/";
     }
 }

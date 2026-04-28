@@ -11,8 +11,8 @@ import com.hfstudio.guidenh.libs.micromark.html.HtmlExtension;
 
 public class GfmTableHtml {
 
-    private static final HtmlContextProperty<List<Align>> TABLE_ALIGN = new HtmlContextProperty<>();
-    private static final HtmlContextProperty<Integer> TABLE_COLUMN = new HtmlContextProperty<>();
+    public static final HtmlContextProperty<List<Align>> TABLE_ALIGN = new HtmlContextProperty<>();
+    public static final HtmlContextProperty<Integer> TABLE_COLUMN = new HtmlContextProperty<>();
 
     public static final HtmlExtension EXTENSION = HtmlExtension.builder()
         .enter("table", GfmTableHtml::enterTable)
@@ -34,20 +34,20 @@ public class GfmTableHtml {
 
     private GfmTableHtml() {}
 
-    private static void enterTable(HtmlContext context, Token token) {
+    public static void enterTable(HtmlContext context, Token token) {
         var tableAlign = token.get(GfmTableSyntax.ALIGN);
         context.lineEndingIfNeeded();
         context.tag("<table>");
         context.set(TABLE_ALIGN, tableAlign);
     }
 
-    private static void enterTableBody(HtmlContext context, Token token) {
+    public static void enterTableBody(HtmlContext context, Token token) {
         // Clear slurping line ending from the delimiter row.
         context.setSlurpOneLineEnding(false);
         context.tag("<tbody>");
     }
 
-    private static void enterTableData(HtmlContext context, Token token) {
+    public static void enterTableData(HtmlContext context, Token token) {
         var tableAlign = context.get(TABLE_ALIGN);
         var tableColumn = context.get(TABLE_COLUMN);
 
@@ -61,12 +61,12 @@ public class GfmTableHtml {
         }
     }
 
-    private static void enterTableHead(HtmlContext context, Token token) {
+    public static void enterTableHead(HtmlContext context, Token token) {
         context.lineEndingIfNeeded();
         context.tag("<thead>");
     }
 
-    private static void enterTableHeader(HtmlContext context, Token token) {
+    public static void enterTableHeader(HtmlContext context, Token token) {
         var tableAlign = context.get(TABLE_ALIGN);
         var tableColumn = context.get(TABLE_COLUMN);
         var align = getAlignmentAttr(tableAlign.get(tableColumn));
@@ -75,17 +75,17 @@ public class GfmTableHtml {
         context.tag("<th" + align + '>');
     }
 
-    private static void enterTableRow(HtmlContext context, Token token) {
+    public static void enterTableRow(HtmlContext context, Token token) {
         context.set(TABLE_COLUMN, 0);
         context.lineEndingIfNeeded();
         context.tag("<tr>");
     }
 
-    private static final Pattern PIPE_PATTERN = Pattern.compile("\\\\([\\\\|])");
+    public static final Pattern PIPE_PATTERN = Pattern.compile("\\\\([\\\\|])");
 
     // Overwrite the default code text data handler to unescape escaped pipes when
     // they are in tables.
-    private static void exitCodeTextData(HtmlContext context, Token token) {
+    public static void exitCodeTextData(HtmlContext context, Token token) {
         var value = context.sliceSerialize(token);
 
         if (context.has(TABLE_ALIGN)) {
@@ -103,7 +103,7 @@ public class GfmTableHtml {
         context.raw(context.encode(value));
     }
 
-    private static void exitTable(HtmlContext context, Token token) {
+    public static void exitTable(HtmlContext context, Token token) {
         context.remove(TABLE_ALIGN);
         // If there was no table body, make sure the slurping from the delimiter row
         // is cleared.
@@ -112,12 +112,12 @@ public class GfmTableHtml {
         context.tag("</table>");
     }
 
-    private static void exitTableBody(HtmlContext context, Token token) {
+    public static void exitTableBody(HtmlContext context, Token token) {
         context.lineEndingIfNeeded();
         context.tag("</tbody>");
     }
 
-    private static void exitTableData(HtmlContext context, Token token) {
+    public static void exitTableData(HtmlContext context, Token token) {
         var tableAlign = context.get(TABLE_ALIGN);
         var tableColumn = context.get(TABLE_COLUMN);
 
@@ -130,20 +130,20 @@ public class GfmTableHtml {
         }
     }
 
-    private static void exitTableHead(HtmlContext context, Token token) {
+    public static void exitTableHead(HtmlContext context, Token token) {
         context.lineEndingIfNeeded();
         context.tag("</thead>");
         context.setSlurpOneLineEnding(true);
         // Slurp the line ending from the delimiter row.
     }
 
-    private static void exitTableHeader(HtmlContext context, Token token) {
+    public static void exitTableHeader(HtmlContext context, Token token) {
         var tableColumn = context.get(TABLE_COLUMN);
         context.tag("</th>");
         context.set(TABLE_COLUMN, tableColumn + 1);
     }
 
-    private static void exitTableRow(HtmlContext context, Token token) {
+    public static void exitTableRow(HtmlContext context, Token token) {
         var tableAlign = context.get(TABLE_ALIGN);
         var tableColumn = context.get(TABLE_COLUMN);
 
@@ -158,7 +158,7 @@ public class GfmTableHtml {
         context.tag("</tr>");
     }
 
-    private static String getAlignmentAttr(Align align) {
+    public static String getAlignmentAttr(Align align) {
         return switch (align) {
             case NONE -> "";
             case LEFT -> " align=\"left\"";

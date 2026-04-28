@@ -19,7 +19,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 public class FloatingImageCompiler extends FlowTagCompiler {
 
     public static final String TAG_NAME = "FloatingImage";
-    private static final Logger LOG = LoggerFactory.getLogger(FloatingImageCompiler.class);
+    public static final Logger LOG = LoggerFactory.getLogger(FloatingImageCompiler.class);
 
     @Override
     public Set<String> getTagNames() {
@@ -84,7 +84,7 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         }
     }
 
-    private static int parseIntAttr(MdxJsxElementFields el, String name, int def) {
+    public static int parseIntAttr(MdxJsxElementFields el, String name, int def) {
         var s = el.getAttributeString(name, null);
         if (s == null || s.isEmpty()) return def;
         try {

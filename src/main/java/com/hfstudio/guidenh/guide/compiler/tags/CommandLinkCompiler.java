@@ -18,7 +18,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class CommandLinkCompiler extends FlowTagCompiler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CommandLinkCompiler.class);
+    public static final Logger LOG = LoggerFactory.getLogger(CommandLinkCompiler.class);
 
     @Override
     public Set<String> getTagNames() {
@@ -54,7 +54,7 @@ public class CommandLinkCompiler extends FlowTagCompiler {
         parent.append(link);
     }
 
-    private static TextTooltip buildTooltip(String title, String command) {
+    public static TextTooltip buildTooltip(String title, String command) {
         var sb = new StringBuilder();
         if (!title.isEmpty()) {
             sb.append(title)

@@ -30,7 +30,7 @@ public class GuideResourceAccess {
         return bytes != null ? new ByteArrayInputStream(bytes) : null;
     }
 
-    private static byte[] readFully(InputStream input) throws IOException {
+    public static byte[] readFully(InputStream input) throws IOException {
         var out = new ByteArrayOutputStream();
         var buffer = new byte[8192];
         int read;

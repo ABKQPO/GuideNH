@@ -16,7 +16,7 @@ import com.hfstudio.guidenh.libs.micromark.extensions.gfm.GfmTableSyntax;
 
 public class GfmTableMdastExtension {
 
-    private static final MdastContextProperty<Boolean> IN_TABLE = new MdastContextProperty<>();
+    public static final MdastContextProperty<Boolean> IN_TABLE = new MdastContextProperty<>();
 
     public static final MdastExtension INSTANCE = MdastExtension.builder()
         .enter("table", GfmTableMdastExtension::enterTable)
@@ -32,7 +32,7 @@ public class GfmTableMdastExtension {
 
     private GfmTableMdastExtension() {}
 
-    private static void enterTable(MdastContext context, Token token) {
+    public static void enterTable(MdastContext context, Token token) {
         var align = token.get(GfmTableSyntax.ALIGN);
 
         var table = new GfmTable();
@@ -42,28 +42,28 @@ public class GfmTableMdastExtension {
         context.set(IN_TABLE, true);
     }
 
-    private static void exitTable(MdastContext context, Token token) {
+    public static void exitTable(MdastContext context, Token token) {
         context.exit(token);
         context.remove(IN_TABLE);
     }
 
-    private static void enterRow(MdastContext context, Token token) {
+    public static void enterRow(MdastContext context, Token token) {
         context.enter(new GfmTableRow(), token);
     }
 
-    private static void exit(MdastContext context, Token token) {
+    public static void exit(MdastContext context, Token token) {
         context.exit(token);
     }
 
-    private static void enterCell(MdastContext context, Token token) {
+    public static void enterCell(MdastContext context, Token token) {
         context.enter(new GfmTableCell(), token);
     }
 
-    private static final Pattern ESCAPED_PIPE_PATERN = Pattern.compile("\\\\([\\\\|])");
+    public static final Pattern ESCAPED_PIPE_PATERN = Pattern.compile("\\\\([\\\\|])");
 
     // Overwrite the default code text data handler to unescape escaped pipes when
     // they are in tables.
-    private static void exitCodeText(MdastContext context, Token token) {
+    public static void exitCodeText(MdastContext context, Token token) {
         var value = context.resume();
 
         if (Boolean.TRUE.equals(context.get(IN_TABLE))) {
@@ -82,7 +82,7 @@ public class GfmTableMdastExtension {
         context.exit(token);
     }
 
-    private static String replace(MatchResult result) {
+    public static String replace(MatchResult result) {
         // Pipes work, backslashes don’t (but can’t escape pipes).
         return result.group(1)
             .equals("|") ? "|" : result.group();

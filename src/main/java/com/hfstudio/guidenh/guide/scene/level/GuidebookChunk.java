@@ -20,7 +20,7 @@ public class GuidebookChunk {
         this.chunkZ = chunkZ;
     }
 
-    private static int index(int x, int y, int z) {
+    public static int index(int x, int y, int z) {
         return ((x & 15) << 12) | ((z & 15) << 8) | (y & 255);
     }
 

@@ -88,7 +88,7 @@ public class GuideBlockMatcher {
     }
 
     @Nullable
-    private static String resolveUniqueIdentifier(Block block) {
+    public static String resolveUniqueIdentifier(Block block) {
         try {
             GameRegistry.UniqueIdentifier uniqueIdentifier = GameRegistry.findUniqueIdentifierFor(block);
             if (uniqueIdentifier != null) {
@@ -101,7 +101,7 @@ public class GuideBlockMatcher {
     }
 
     @Nullable
-    private static String normalizeResolvedBlockId(@Nullable String candidate) {
+    public static String normalizeResolvedBlockId(@Nullable String candidate) {
         if (candidate == null) {
             return null;
         }
@@ -129,7 +129,7 @@ public class GuideBlockMatcher {
     }
 
     @Nullable
-    private static String normalizeRegistryName(@Nullable String registryName) {
+    public static String normalizeRegistryName(@Nullable String registryName) {
         if (registryName == null) {
             return null;
         }
@@ -143,7 +143,7 @@ public class GuideBlockMatcher {
     }
 
     @Nullable
-    private static String normalizeUnlocalizedName(@Nullable String unlocalizedName) {
+    public static String normalizeUnlocalizedName(@Nullable String unlocalizedName) {
         if (unlocalizedName == null || !unlocalizedName.startsWith("tile.") || unlocalizedName.length() <= 5) {
             return null;
         }

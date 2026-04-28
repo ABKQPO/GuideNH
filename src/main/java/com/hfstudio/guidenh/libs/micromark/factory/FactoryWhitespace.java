@@ -13,7 +13,7 @@ public class FactoryWhitespace {
         return new StateMachine(effects, ok)::start;
     }
 
-    private static class StateMachine {
+    public static class StateMachine {
 
         private final Tokenizer.Effects effects;
         private final State ok;

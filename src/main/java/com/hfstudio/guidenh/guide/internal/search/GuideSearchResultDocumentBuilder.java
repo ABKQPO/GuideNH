@@ -25,11 +25,11 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 
 public class GuideSearchResultDocumentBuilder {
 
-    private static final ConstantColor SEARCH_TITLE_COLOR = new ConstantColor(0xFF00D2FC);
-    private static final ConstantColor RESULT_DIVIDER_COLOR = new ConstantColor(0xFF3A3A3A);
-    private static final int RESULT_ICON_SIZE = 16;
-    private static final int RESULT_ICON_MARGIN_TOP = 2;
-    private static final int RESULT_ICON_GAP = 6;
+    public static final ConstantColor SEARCH_TITLE_COLOR = new ConstantColor(0xFF00D2FC);
+    public static final ConstantColor RESULT_DIVIDER_COLOR = new ConstantColor(0xFF3A3A3A);
+    public static final int RESULT_ICON_SIZE = 16;
+    public static final int RESULT_ICON_MARGIN_TOP = 2;
+    public static final int RESULT_ICON_GAP = 6;
 
     private GuideSearchResultDocumentBuilder() {}
 
@@ -63,7 +63,7 @@ public class GuideSearchResultDocumentBuilder {
                 .getClass() == CenteredStateBlock.class;
     }
 
-    private static CenteredStateBlock buildCenteredMessage(String message) {
+    public static CenteredStateBlock buildCenteredMessage(String message) {
         var stateBlock = new CenteredStateBlock();
         var paragraph = new LytParagraph();
         paragraph.modifyStyle(style -> style.alignment(TextAlignment.CENTER));
@@ -72,7 +72,7 @@ public class GuideSearchResultDocumentBuilder {
         return stateBlock;
     }
 
-    private static ResultRowBlock buildResultRow(SearchPageResult result) {
+    public static ResultRowBlock buildResultRow(SearchPageResult result) {
         var row = new ResultRowBlock();
 
         if (result.icon() != null) {
@@ -118,7 +118,7 @@ public class GuideSearchResultDocumentBuilder {
         return row;
     }
 
-    private static LytBlock buildResultIconSlot(GuidePageIcon icon) {
+    public static LytBlock buildResultIconSlot(GuidePageIcon icon) {
         var slot = new LytHBox();
         slot.setWrap(false);
         slot.setPaddingRight(RESULT_ICON_GAP);
@@ -126,7 +126,7 @@ public class GuideSearchResultDocumentBuilder {
         return slot;
     }
 
-    private static LytBlock buildResultIcon(GuidePageIcon icon) {
+    public static LytBlock buildResultIcon(GuidePageIcon icon) {
         if (icon.isTextureIcon()) {
             var image = new LytImage();
             image.setTexture(icon.textureId(), icon.texture());
@@ -142,7 +142,7 @@ public class GuideSearchResultDocumentBuilder {
         return item;
     }
 
-    private static LytFlowContent copySnippetContent(LytFlowContent content) {
+    public static LytFlowContent copySnippetContent(LytFlowContent content) {
         if (content.getClass() == LytFlowText.class) {
             var text = (LytFlowText) content;
             var copy = copyFlowContent(text, new LytFlowText());
@@ -165,7 +165,7 @@ public class GuideSearchResultDocumentBuilder {
                 + ". GuideSearchResultDocumentBuilder only supports exact LytFlowSpan and LytFlowText nodes.");
     }
 
-    private static <T extends LytFlowContent> T copyFlowContent(LytFlowContent source, T copy) {
+    public static <T extends LytFlowContent> T copyFlowContent(LytFlowContent source, T copy) {
         copy.setStyle(source.getStyle());
         copy.setHoverStyle(source.getHoverStyle());
         return copy;

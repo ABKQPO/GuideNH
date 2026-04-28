@@ -5,8 +5,8 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 
 public final class SceneEditorPreviewFrameOverlayLayout {
 
-    private static final int LABEL_PADDING = 4;
-    private static final int LABEL_ABOVE_OFFSET = 10;
+    public static final int LABEL_PADDING = 4;
+    public static final int LABEL_ABOVE_OFFSET = 10;
 
     private SceneEditorPreviewFrameOverlayLayout() {}
 

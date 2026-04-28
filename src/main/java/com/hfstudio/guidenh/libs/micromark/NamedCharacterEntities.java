@@ -7,7 +7,7 @@ import java.util.Set;
 
 public class NamedCharacterEntities {
 
-    private static final Map<String, String> ENTITIES = new HashMap<>();
+    public static final Map<String, String> ENTITIES = new HashMap<>();
 
     public static boolean isNamedReference(String refName) {
         return ENTITIES.containsKey(refName);

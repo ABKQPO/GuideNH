@@ -30,8 +30,8 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class RecipeCompiler extends BlockTagCompiler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RecipeCompiler.class);
-    private static final int MULTI_GAP = 4;
+    public static final Logger LOG = LoggerFactory.getLogger(RecipeCompiler.class);
+    public static final int MULTI_GAP = 4;
 
     @Override
     public Set<String> getTagNames() {
@@ -217,7 +217,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      * the available width runs out. Single recipes are appended directly so they keep their
      * original block flow (no extra wrapper overhead).
      */
-    private static void appendRecipes(LytBlockContainer parent,
+    public static void appendRecipes(LytBlockContainer parent,
         List<? extends com.hfstudio.guidenh.guide.document.block.LytBlock> boxes, boolean multi) {
         if (boxes.isEmpty()) return;
         if (!multi || boxes.size() == 1) {
@@ -236,7 +236,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      * overlay identifier equality) and {@code handlerOrder} (0-based index into the post-filter
      * list) in that order. Null / empty filters are no-ops.
      */
-    private static List<Object> filterHandlers(List<Object> raw, @Nullable String nameFilter, @Nullable String idFilter,
+    public static List<Object> filterHandlers(List<Object> raw, @Nullable String nameFilter, @Nullable String idFilter,
         int order) {
         if (raw.isEmpty()) return raw;
         List<Object> out = new ArrayList<>(raw.size());
@@ -277,7 +277,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         return out;
     }
 
-    private static @Nullable String trimToNull(@Nullable String s) {
+    public static @Nullable String trimToNull(@Nullable String s) {
         if (s == null) return null;
         String t = s.trim();
         return t.isEmpty() ? null : t;
@@ -319,7 +319,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      * dropped, and if every group is dropped the result is {@link FilterExpr#EMPTY} (i.e. "no
      * filter", which is safer than "always fail").
      */
-    private static FilterExpr parseFilterExpr(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el,
+    public static FilterExpr parseFilterExpr(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el,
         String attr, String defaultNs) {
         String raw = trimToNull(MdxAttrs.getString(compiler, parent, el, attr, null));
         if (raw == null) return FilterExpr.EMPTY;
@@ -359,7 +359,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      * when {@code ref} isn't wildcard-meta, plus NBT equality when {@code ref.nbt()} is non-null.
      * NBT comparison uses {@link net.minecraft.nbt.NBTBase#equals} which does structural compare.
      */
-    private static boolean stackMatches(@Nullable ItemStack stack, IdUtils.ParsedItemRef ref) {
+    public static boolean stackMatches(@Nullable ItemStack stack, IdUtils.ParsedItemRef ref) {
         if (stack == null) return false;
         Item refItem = (Item) Item.itemRegistry.getObject(
             ref.id()
@@ -375,7 +375,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     /** {@code true} when any stack inside any slot matches {@code ref}. */
-    private static boolean slotsContain(@Nullable List<NeiRecipeLookup.Slot> slots, IdUtils.ParsedItemRef ref) {
+    public static boolean slotsContain(@Nullable List<NeiRecipeLookup.Slot> slots, IdUtils.ParsedItemRef ref) {
         if (slots == null) return false;
         for (NeiRecipeLookup.Slot s : slots) {
             if (s == null || s.stacks == null) continue;
@@ -386,7 +386,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         return false;
     }
 
-    private static boolean resultSlotContains(@Nullable NeiRecipeLookup.Slot result, IdUtils.ParsedItemRef ref) {
+    public static boolean resultSlotContains(@Nullable NeiRecipeLookup.Slot result, IdUtils.ParsedItemRef ref) {
         if (result == null || result.stacks == null) return false;
         for (int i = 0, n = result.stacks.size(); i < n; i++) {
             if (stackMatches(result.stacks.get(i), ref)) return true;
@@ -395,7 +395,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     /** Evaluate a DNF expression against an ingredient-style slot list. */
-    private static boolean evalSlots(List<NeiRecipeLookup.Slot> slots, FilterExpr expr) {
+    public static boolean evalSlots(List<NeiRecipeLookup.Slot> slots, FilterExpr expr) {
         if (expr.isEmpty()) return true;
         if (slots == null) return false;
         for (List<FilterTerm> group : expr.orGroups()) {
@@ -413,7 +413,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     /** Evaluate a DNF expression against a single-result slot (positional-stack cycling). */
-    private static boolean evalResultSlot(@Nullable NeiRecipeLookup.Slot result, FilterExpr expr) {
+    public static boolean evalResultSlot(@Nullable NeiRecipeLookup.Slot result, FilterExpr expr) {
         if (expr.isEmpty()) return true;
         if (result == null) return false;
         for (List<FilterTerm> group : expr.orGroups()) {
@@ -431,7 +431,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     /** Evaluate a DNF expression against a single concrete stack (vanilla result). */
-    private static boolean evalStack(@Nullable ItemStack stack, FilterExpr expr) {
+    public static boolean evalStack(@Nullable ItemStack stack, FilterExpr expr) {
         if (expr.isEmpty()) return true;
         for (List<FilterTerm> group : expr.orGroups()) {
             boolean allOk = true;
@@ -448,7 +448,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     /** Evaluate a DNF expression against a flat ingredient array (vanilla 3x3). */
-    private static boolean evalArray(ItemStack[] stacks, FilterExpr expr) {
+    public static boolean evalArray(ItemStack[] stacks, FilterExpr expr) {
         if (expr.isEmpty()) return true;
         for (List<FilterTerm> group : expr.orGroups()) {
             boolean allOk = true;
@@ -470,7 +470,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         return false;
     }
 
-    private static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr) {
+    public static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr) {
         if (!outputExpr.isEmpty()) {
             if (!evalResultSlot(NeiRecipeLookup.readResultSlot(handler, recipeIndex), outputExpr)) return false;
         }
@@ -480,13 +480,13 @@ public class RecipeCompiler extends BlockTagCompiler {
         return true;
     }
 
-    private static boolean entryMatches(NeiRecipeLookup.Entry e, FilterExpr inputExpr, FilterExpr outputExpr) {
+    public static boolean entryMatches(NeiRecipeLookup.Entry e, FilterExpr inputExpr, FilterExpr outputExpr) {
         if (!outputExpr.isEmpty() && !evalResultSlot(e.result, outputExpr)) return false;
         if (!inputExpr.isEmpty() && !evalSlots(e.ingredients, inputExpr)) return false;
         return true;
     }
 
-    private static boolean vanillaEntryMatches(RecipeLookup.Entry e, FilterExpr inputExpr, FilterExpr outputExpr) {
+    public static boolean vanillaEntryMatches(RecipeLookup.Entry e, FilterExpr inputExpr, FilterExpr outputExpr) {
         if (!outputExpr.isEmpty() && !evalStack(e.result, outputExpr)) return false;
         if (!inputExpr.isEmpty() && !evalArray(e.input3x3, inputExpr)) return false;
         return true;

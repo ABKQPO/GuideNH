@@ -10,7 +10,7 @@ import net.minecraft.util.ResourceLocation;
 
 public class LangUtil {
 
-    private static final Pattern LANGUAGE_CODE_PATTERN = Pattern.compile("[a-z0-9][a-z0-9_\\-]*");
+    public static final Pattern LANGUAGE_CODE_PATTERN = Pattern.compile("[a-z0-9][a-z0-9_\\-]*");
 
     private LangUtil() {}
 
@@ -53,7 +53,7 @@ public class LangUtil {
     }
 
     @Nullable
-    private static String extractLangPrefix(String path) {
+    public static String extractLangPrefix(String path) {
         int firstSep = path.indexOf("/");
         if (firstSep <= 1 || path.charAt(0) != '_' || firstSep + 1 >= path.length()) {
             return null;

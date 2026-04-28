@@ -14,11 +14,11 @@ public class GfmStrikethroughMdastExtension {
 
     private GfmStrikethroughMdastExtension() {}
 
-    private static void enterStrikethrough(MdastContext context, Token token) {
+    public static void enterStrikethrough(MdastContext context, Token token) {
         context.enter(new MdAstDelete(), token);
     }
 
-    private static void exitStrikethrough(MdastContext context, Token token) {
+    public static void exitStrikethrough(MdastContext context, Token token) {
         context.exit(token);
     }
 }

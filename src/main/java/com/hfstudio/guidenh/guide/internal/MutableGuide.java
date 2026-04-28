@@ -39,7 +39,7 @@ import com.hfstudio.guidenh.guide.navigation.NavigationTree;
  */
 public class MutableGuide implements Guide {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MutableGuide.class);
+    public static final Logger LOG = LoggerFactory.getLogger(MutableGuide.class);
 
     private final ResourceLocation id;
     private final String defaultNamespace;

@@ -42,7 +42,7 @@ public class InWorldBlockFaceOverlayAnnotation extends InWorldAnnotation {
         return groupedPositions.contains(packBlockPos(x, y, z));
     }
 
-    private static long packBlockPos(int x, int y, int z) {
+    public static long packBlockPos(int x, int y, int z) {
         return (((long) x & 0x3FFFFFFL) << 38) | (((long) z & 0x3FFFFFFL) << 12) | ((long) y & 0xFFFL);
     }
 }

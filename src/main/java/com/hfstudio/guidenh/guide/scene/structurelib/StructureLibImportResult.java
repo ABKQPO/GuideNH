@@ -68,14 +68,14 @@ public class StructureLibImportResult {
         return metadata;
     }
 
-    private static <T> List<T> immutableCopy(@Nullable List<T> source) {
+    public static <T> List<T> immutableCopy(@Nullable List<T> source) {
         if (source == null || source.isEmpty()) {
             return Collections.emptyList();
         }
         return Collections.unmodifiableList(new ArrayList<>(source));
     }
 
-    private static String normalizeMessage(@Nullable String message) {
+    public static String normalizeMessage(@Nullable String message) {
         if (message == null) {
             return "Unknown StructureLib import error";
         }
@@ -137,7 +137,7 @@ public class StructureLibImportResult {
         }
 
         @Nullable
-        private static String normalizeBlockId(@Nullable String blockId) {
+        public static String normalizeBlockId(@Nullable String blockId) {
             if (blockId == null) {
                 return null;
             }

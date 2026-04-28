@@ -55,11 +55,11 @@ public class SceneEditorSaveService {
             this.error = error;
         }
 
-        private static SaveResult success(String savedText, Optional<Path> structurePath) {
+        public static SaveResult success(String savedText, Optional<Path> structurePath) {
             return new SaveResult(true, savedText, structurePath, null);
         }
 
-        private static SaveResult failure(Throwable error, Optional<Path> structurePath) {
+        public static SaveResult failure(Throwable error, Optional<Path> structurePath) {
             return new SaveResult(false, "", structurePath, error);
         }
 

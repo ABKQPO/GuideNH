@@ -9,7 +9,7 @@ import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 
 public class Preprocessor {
 
-    private static final Pattern SEARCH = Pattern.compile("[\0\t\n\r]");
+    public static final Pattern SEARCH = Pattern.compile("[\0\t\n\r]");
 
     private Preprocessor() {}
 

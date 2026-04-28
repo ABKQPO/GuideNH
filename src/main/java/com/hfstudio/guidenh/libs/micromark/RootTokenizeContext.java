@@ -23,7 +23,7 @@ class RootTokenizeContext implements TokenizeContext {
     @Nullable
     private Map<ContextProperty<?>, Object> data;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RootTokenizeContext.class);
+    public static final Logger LOGGER = LoggerFactory.getLogger(RootTokenizeContext.class);
 
     private final Tokenizer tokenizer;
 

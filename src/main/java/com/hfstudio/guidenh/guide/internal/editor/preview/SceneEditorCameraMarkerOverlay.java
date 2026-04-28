@@ -12,10 +12,10 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 
 public class SceneEditorCameraMarkerOverlay {
 
-    private static final int MARKER_SIZE = 16;
-    private static final int MARKER_HALF_SIZE = MARKER_SIZE / 2;
-    private static final int MARKER_SHADOW_COLOR = 0x70000000;
-    private static final int MARKER_TINT = 0xF8FFFFFF;
+    public static final int MARKER_SIZE = 16;
+    public static final int MARKER_HALF_SIZE = MARKER_SIZE / 2;
+    public static final int MARKER_SHADOW_COLOR = 0x70000000;
+    public static final int MARKER_TINT = 0xF8FFFFFF;
     private final Vector3f projectedScratch = new Vector3f();
 
     public LytRect getMarkerBounds(SceneEditorSceneModel model, CameraSettings camera, LytRect viewport) {

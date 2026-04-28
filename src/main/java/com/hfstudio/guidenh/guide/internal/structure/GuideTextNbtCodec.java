@@ -23,10 +23,10 @@ import net.minecraft.nbt.NBTTagString;
  */
 public class GuideTextNbtCodec {
 
-    private static final String ENCODED_KEYS_TAG = "__guidenh_encoded_keys_v1";
-    private static final String ENTRY_KEY_TAG = "k";
-    private static final String ENTRY_VALUE_TAG = "v";
-    private static final String BYTE_ARRAY_WRAPPER_TAG = "__guidenh_byte_array_v1";
+    public static final String ENCODED_KEYS_TAG = "__guidenh_encoded_keys_v1";
+    public static final String ENTRY_KEY_TAG = "k";
+    public static final String ENTRY_VALUE_TAG = "v";
+    public static final String BYTE_ARRAY_WRAPPER_TAG = "__guidenh_byte_array_v1";
 
     private GuideTextNbtCodec() {}
 
@@ -100,7 +100,7 @@ public class GuideTextNbtCodec {
         return decoded;
     }
 
-    private static void rewriteStructureTileTags(NBTTagCompound root, boolean encode) {
+    public static void rewriteStructureTileTags(NBTTagCompound root, boolean encode) {
         if (!root.hasKey("blocks", 9)) {
             return;
         }
@@ -117,7 +117,7 @@ public class GuideTextNbtCodec {
         }
     }
 
-    private static NBTTagCompound encodeCompound(NBTTagCompound tag) {
+    public static NBTTagCompound encodeCompound(NBTTagCompound tag) {
         NBTTagCompound encoded = new NBTTagCompound();
         NBTTagList encodedEntries = null;
         ArrayList<String> keys = new ArrayList<>(tag.func_150296_c());
@@ -145,7 +145,7 @@ public class GuideTextNbtCodec {
         return encoded;
     }
 
-    private static NBTBase encodeTag(NBTBase tag) {
+    public static NBTBase encodeTag(NBTBase tag) {
         if (tag instanceof NBTTagByteArray byteArray) {
             NBTTagCompound encoded = new NBTTagCompound();
             encoded.setIntArray(BYTE_ARRAY_WRAPPER_TAG, toIntArray(byteArray.func_150292_c()));
@@ -160,7 +160,7 @@ public class GuideTextNbtCodec {
         return tag.copy();
     }
 
-    private static NBTBase decodeTag(NBTBase tag) {
+    public static NBTBase decodeTag(NBTBase tag) {
         if (tag instanceof NBTTagCompound compound) {
             byte[] decodedByteArray = decodeWrappedByteArray(compound);
             if (decodedByteArray != null) {
@@ -174,19 +174,19 @@ public class GuideTextNbtCodec {
         return tag.copy();
     }
 
-    private static boolean isEncodedByteArray(NBTTagCompound compound) {
+    public static boolean isEncodedByteArray(NBTTagCompound compound) {
         return compound.func_150296_c()
             .size() == 1 && compound.hasKey(BYTE_ARRAY_WRAPPER_TAG);
     }
 
-    private static byte[] decodeWrappedByteArray(NBTTagCompound compound) {
+    public static byte[] decodeWrappedByteArray(NBTTagCompound compound) {
         if (!isEncodedByteArray(compound)) {
             return null;
         }
         return tryDecodeByteArrayTag(compound.getTag(BYTE_ARRAY_WRAPPER_TAG));
     }
 
-    private static int[] toIntArray(byte[] bytes) {
+    public static int[] toIntArray(byte[] bytes) {
         int[] ints = new int[bytes.length];
         for (int index = 0; index < bytes.length; index++) {
             ints[index] = bytes[index];
@@ -194,7 +194,7 @@ public class GuideTextNbtCodec {
         return ints;
     }
 
-    private static byte[] toByteArray(int[] ints) {
+    public static byte[] toByteArray(int[] ints) {
         byte[] bytes = new byte[ints.length];
         for (int index = 0; index < ints.length; index++) {
             bytes[index] = (byte) ints[index];
@@ -202,7 +202,7 @@ public class GuideTextNbtCodec {
         return bytes;
     }
 
-    private static NBTTagList transformList(NBTTagList list, boolean encode) {
+    public static NBTTagList transformList(NBTTagList list, boolean encode) {
         NBTTagList transformed = new NBTTagList();
         NBTTagList remaining = (NBTTagList) list.copy();
         int count = remaining.tagCount();
@@ -215,7 +215,7 @@ public class GuideTextNbtCodec {
         return transformed;
     }
 
-    private static byte[] tryDecodeByteArrayTag(NBTBase tag) {
+    public static byte[] tryDecodeByteArrayTag(NBTBase tag) {
         if (tag instanceof NBTTagByteArray byteArray) {
             return byteArray.func_150292_c();
         }
@@ -242,7 +242,7 @@ public class GuideTextNbtCodec {
         return null;
     }
 
-    private static byte[] parseByteArrayLiteral(String value) {
+    public static byte[] parseByteArrayLiteral(String value) {
         if (value == null) {
             return null;
         }
@@ -277,7 +277,7 @@ public class GuideTextNbtCodec {
         return result;
     }
 
-    private static String trimNumericSuffix(String value) {
+    public static String trimNumericSuffix(String value) {
         String trimmed = value != null ? value.trim() : "";
         if (trimmed.endsWith("b") || trimmed.endsWith("B")) {
             return trimmed.substring(0, trimmed.length() - 1);
@@ -285,7 +285,7 @@ public class GuideTextNbtCodec {
         return trimmed;
     }
 
-    private static boolean isDirectKeySafe(String key) {
+    public static boolean isDirectKeySafe(String key) {
         if (key == null || key.isEmpty() || ENCODED_KEYS_TAG.equals(key)) {
             return false;
         }
@@ -301,7 +301,7 @@ public class GuideTextNbtCodec {
         return true;
     }
 
-    private static boolean looksLikeText(byte[] data) {
+    public static boolean looksLikeText(byte[] data) {
         int index = 0;
         if (data.length >= 3 && (data[0] & 0xFF) == 0xEF && (data[1] & 0xFF) == 0xBB && (data[2] & 0xFF) == 0xBF) {
             index = 3;

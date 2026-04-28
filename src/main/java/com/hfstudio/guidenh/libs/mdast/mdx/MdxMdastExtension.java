@@ -23,8 +23,8 @@ import com.hfstudio.guidenh.libs.micromark.Token;
 
 public class MdxMdastExtension {
 
-    private static final MdastContextProperty<List<Tag>> TAG_STACK = new MdastContextProperty<>();
-    private static final MdastContextProperty<Tag> TAG = new MdastContextProperty<>();
+    public static final MdastContextProperty<List<Tag>> TAG_STACK = new MdastContextProperty<>();
+    public static final MdastContextProperty<Tag> TAG = new MdastContextProperty<>();
 
     public static final MdastExtension INSTANCE = MdastExtension.builder()
         .canContainEol("mdxJsxTextElement")
@@ -74,18 +74,18 @@ public class MdxMdastExtension {
 
     private MdxMdastExtension() {}
 
-    private static void buffer(MdastContext context, Token token) {
+    public static void buffer(MdastContext context, Token token) {
         context.buffer();
     }
 
-    private static void data(MdastContext context, Token token) {
+    public static void data(MdastContext context, Token token) {
         context.getExtension().enter.get("data")
             .handle(context, token);
         context.getExtension().exit.get("data")
             .handle(context, token);
     }
 
-    private static void enterMdxJsxTag(MdastContext context, Token token) {
+    public static void enterMdxJsxTag(MdastContext context, Token token) {
         var tag = new Tag(token);
         if (!context.has(TAG_STACK)) {
             context.set(TAG_STACK, new ArrayList<>());
@@ -94,7 +94,7 @@ public class MdxMdastExtension {
         context.buffer();
     }
 
-    private static void enterMdxJsxTagClosingMarker(MdastContext context, Token token) {
+    public static void enterMdxJsxTagClosingMarker(MdastContext context, Token token) {
         var stack = getStack(context);
 
         if (stack.isEmpty()) {
@@ -106,7 +106,7 @@ public class MdxMdastExtension {
         }
     }
 
-    private static void enterMdxJsxTagAnyAttribute(MdastContext context, Token token) {
+    public static void enterMdxJsxTagAnyAttribute(MdastContext context, Token token) {
         var tag = getTag(context);
 
         if (tag.close) {
@@ -118,7 +118,7 @@ public class MdxMdastExtension {
         }
     }
 
-    private static void enterMdxJsxTagSelfClosingMarker(MdastContext context, Token token) {
+    public static void enterMdxJsxTagSelfClosingMarker(MdastContext context, Token token) {
         var tag = getTag(context);
 
         if (tag.close) {
@@ -130,58 +130,58 @@ public class MdxMdastExtension {
         }
     }
 
-    private static void exitMdxJsxTagClosingMarker(MdastContext context, Token token) {
+    public static void exitMdxJsxTagClosingMarker(MdastContext context, Token token) {
         var tag = getTag(context);
         tag.close = true;
     }
 
-    private static void exitMdxJsxTagNamePrimary(MdastContext context, Token token) {
+    public static void exitMdxJsxTagNamePrimary(MdastContext context, Token token) {
         var tag = getTag(context);
         tag.name = context.sliceSerialize(token);
     }
 
-    private static void exitMdxJsxTagNameMember(MdastContext context, Token token) {
+    public static void exitMdxJsxTagNameMember(MdastContext context, Token token) {
         var tag = getTag(context);
         tag.name += '.' + context.sliceSerialize(token);
     }
 
-    private static void exitMdxJsxTagNameLocal(MdastContext context, Token token) {
+    public static void exitMdxJsxTagNameLocal(MdastContext context, Token token) {
         var tag = getTag(context);
         tag.name += ':' + context.sliceSerialize(token);
     }
 
-    private static void enterMdxJsxTagAttribute(MdastContext context, Token token) {
+    public static void enterMdxJsxTagAttribute(MdastContext context, Token token) {
         var tag = getTag(context);
         enterMdxJsxTagAnyAttribute(context, token);
         tag.attributes.add(new MdxJsxAttribute());
     }
 
-    private static void enterMdxJsxTagExpressionAttribute(MdastContext context, Token token) {
+    public static void enterMdxJsxTagExpressionAttribute(MdastContext context, Token token) {
         var tag = getTag(context);
         enterMdxJsxTagAnyAttribute(context, token);
         tag.attributes.add(new MdxJsxExpressionAttribute());
         context.buffer();
     }
 
-    private static void exitMdxJsxTagExpressionAttribute(MdastContext context, Token token) {
+    public static void exitMdxJsxTagExpressionAttribute(MdastContext context, Token token) {
         var tag = getTag(context);
         var tail = (MdxJsxExpressionAttribute) tag.attributes.get(tag.attributes.size() - 1);
         tail.value = context.resume();
     }
 
-    private static void exitMdxJsxTagAttributeNamePrimary(MdastContext context, Token token) {
+    public static void exitMdxJsxTagAttributeNamePrimary(MdastContext context, Token token) {
         var tag = getTag(context);
         var node = (MdxJsxAttribute) tag.attributes.get(tag.attributes.size() - 1);
         node.name = context.sliceSerialize(token);
     }
 
-    private static void exitMdxJsxTagAttributeNameLocal(MdastContext context, Token token) {
+    public static void exitMdxJsxTagAttributeNameLocal(MdastContext context, Token token) {
         var tag = getTag(context);
         var node = (MdxJsxAttribute) tag.attributes.get(tag.attributes.size() - 1);
         node.name += ':' + context.sliceSerialize(token);
     }
 
-    private static void exitMdxJsxTagAttributeValueLiteral(MdastContext context, Token token) {
+    public static void exitMdxJsxTagAttributeValueLiteral(MdastContext context, Token token) {
         var tag = getTag(context);
         var value = ParseEntities.parseEntities(context.resume());
 
@@ -195,19 +195,19 @@ public class MdxMdastExtension {
         }
     }
 
-    private static void exitMdxJsxTagAttributeValueExpression(MdastContext context, Token token) {
+    public static void exitMdxJsxTagAttributeValueExpression(MdastContext context, Token token) {
         var tag = getTag(context);
         var tail = (MdxJsxAttribute) tag.attributes.get(tag.attributes.size() - 1);
         tail.setExpression(context.resume());
     }
 
-    private static void exitMdxJsxTagSelfClosingMarker(MdastContext context, Token token) {
+    public static void exitMdxJsxTagSelfClosingMarker(MdastContext context, Token token) {
         var tag = getTag(context);
 
         tag.selfClosing = true;
     }
 
-    private static void exitMdxJsxTag(MdastContext context, Token token) {
+    public static void exitMdxJsxTag(MdastContext context, Token token) {
         var tag = getTag(context);
         var stack = getStack(context);
         var tail = stack.isEmpty() ? null : stack.get(stack.size() - 1);
@@ -248,7 +248,7 @@ public class MdxMdastExtension {
         }
     }
 
-    private static void onErrorRightIsTag(MdastContext context, @Nullable Token closing, Token open) {
+    public static void onErrorRightIsTag(MdastContext context, @Nullable Token closing, Token open) {
         var tag = getTag(context);
         var place = closing != null ? " before the end of `" + closing.type + '`' : "";
         MdAstPosition position = null;
@@ -263,7 +263,7 @@ public class MdxMdastExtension {
             "mdast-util-mdx-jsx:end-tag-mismatch");
     }
 
-    private static void onErrorLeftIsTag(MdastContext context, @Nullable Token a, Token b) {
+    public static void onErrorLeftIsTag(MdastContext context, @Nullable Token a, Token b) {
         var tag = getTag(context);
         throw new ParseException(
             "Expected the closing tag `" + serializeAbbreviatedTag(tag)
@@ -284,11 +284,11 @@ public class MdxMdastExtension {
     /**
      * Serialize a tag, excluding attributes. `self-closing` is not supported, because we don’t need it yet.
      */
-    private static String serializeAbbreviatedTag(Tag tag) {
+    public static String serializeAbbreviatedTag(Tag tag) {
         return "<" + (tag.close ? '/' : "") + ((tag.name != null ? (tag.name) : (""))) + ">";
     }
 
-    private static class Tag {
+    public static class Tag {
 
         @Nullable
         String name;
@@ -308,11 +308,11 @@ public class MdxMdastExtension {
         }
     }
 
-    private static List<Tag> getStack(MdastContext context) {
+    public static List<Tag> getStack(MdastContext context) {
         return Objects.requireNonNull(context.get(TAG_STACK), "stack is missing from context");
     }
 
-    private static Tag getTag(MdastContext context) {
+    public static Tag getTag(MdastContext context) {
         return Objects.requireNonNull(context.get(TAG), "tag is missing from context");
     }
 }

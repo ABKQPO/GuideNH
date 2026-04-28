@@ -62,7 +62,7 @@ public class RegionWandRenderer {
         GL11.glPopMatrix();
     }
 
-    private static void drawBox(double x0, double y0, double z0, double x1, double y1, double z1, float r, float g,
+    public static void drawBox(double x0, double y0, double z0, double x1, double y1, double z1, float r, float g,
         float b, float a) {
         GL11.glColor4f(r, g, b, a);
         GL11.glBegin(GL11.GL_LINES);
@@ -81,12 +81,12 @@ public class RegionWandRenderer {
         GL11.glEnd();
     }
 
-    private static void line(double x0, double y0, double z0, double x1, double y1, double z1) {
+    public static void line(double x0, double y0, double z0, double x1, double y1, double z1) {
         GL11.glVertex3d(x0, y0, z0);
         GL11.glVertex3d(x1, y1, z1);
     }
 
-    private static void drawFilled(double x0, double y0, double z0, double x1, double y1, double z1, float r, float g,
+    public static void drawFilled(double x0, double y0, double z0, double x1, double y1, double z1, float r, float g,
         float b, float a) {
         GL11.glColor4f(r, g, b, a);
         // Disable face culling so the translucent faces are visible both from outside and from

@@ -14,7 +14,7 @@ public class LytTable extends LytBlock {
     /**
      * Width of border around cells.
      */
-    private static final int CELL_BORDER = 1;
+    public static final int CELL_BORDER = 1;
     private final List<LytTableRow> rows = new ArrayList<>();
 
     private final List<LytTableColumn> columns = new ArrayList<>();

@@ -4,7 +4,7 @@ import java.util.regex.Pattern;
 
 public class NormalizeIdentifier {
 
-    private static final Pattern MARKDOWN_WHITESPACE = Pattern.compile("[\\t\\n\\r ]+");
+    public static final Pattern MARKDOWN_WHITESPACE = Pattern.compile("[\\t\\n\\r ]+");
 
     private NormalizeIdentifier() {}
 

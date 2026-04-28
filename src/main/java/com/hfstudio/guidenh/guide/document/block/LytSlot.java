@@ -16,12 +16,12 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class LytSlot extends LytBlock implements InteractiveElement {
 
-    private static final int ITEM_SIZE = 16;
-    private static final int PADDING = 1;
-    private static final int LARGE_PADDING = 5;
+    public static final int ITEM_SIZE = 16;
+    public static final int PADDING = 1;
+    public static final int LARGE_PADDING = 5;
     public static final int OUTER_SIZE = ITEM_SIZE + 2 * PADDING;
     public static final int OUTER_SIZE_LARGE = ITEM_SIZE + 2 * LARGE_PADDING;
-    private static final int CYCLE_TIME = 2000;
+    public static final int CYCLE_TIME = 2000;
 
     private boolean largeSlot;
     private boolean renderSlotBackground = true;

@@ -58,15 +58,15 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 public class GuideScreen extends GuiScreen implements GuideUiHost {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/GuideScreen");
+    public static final Logger LOG = LogManager.getLogger("GuideNH/GuideScreen");
 
-    private static final int PANEL_MARGIN = 20;
-    private static final int PANEL_PADDING = 8;
+    public static final int PANEL_MARGIN = 20;
+    public static final int PANEL_PADDING = 8;
 
-    private static final int BG_COLOR = 0xE0101010;
-    private static final int BG_BORDER = 0xFF5A5A5A;
+    public static final int BG_COLOR = 0xE0101010;
+    public static final int BG_BORDER = 0xFF5A5A5A;
 
-    private static final ResourceLocation BG_TEXTURE = new ResourceLocation(
+    public static final ResourceLocation BG_TEXTURE = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/background.png");
 
@@ -97,8 +97,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     private int scrollbarGrabOffsetY = 0;
 
     private GuideIconButton btnSearch, btnBack, btnForward, btnFullWidth, btnClose;
-    private static final int TOOLBAR_H = 16;
-    private static final int TOOLBAR_GAP = 3;
+    public static final int TOOLBAR_H = 16;
+    public static final int TOOLBAR_GAP = 3;
     private boolean fullWidth;
 
     private final GuideNavBar navBar = new GuideNavBar();
@@ -135,14 +135,14 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     @Nullable
     private LytDocument layoutDocument;
 
-    private static final int SEARCH_FIELD_H = 12;
-    private static final int SEARCH_FIELD_GAP = 6;
-    private static final int SEARCH_MAX_QUERY_LENGTH = 128;
-    private static final int SEARCH_RESULT_ICON_AND_GAP = 22;
-    private static final int SEARCH_RESULT_TITLE_GAP = 8;
-    private static final int SEARCH_PATH_MAX_CHARS = 20;
-    private static final String ASCII_ELLIPSIS = "...";
-    private static final int SEARCH_TOOLBAR_FIELD_Y_OFFSET = 5;
+    public static final int SEARCH_FIELD_H = 12;
+    public static final int SEARCH_FIELD_GAP = 6;
+    public static final int SEARCH_MAX_QUERY_LENGTH = 128;
+    public static final int SEARCH_RESULT_ICON_AND_GAP = 22;
+    public static final int SEARCH_RESULT_TITLE_GAP = 8;
+    public static final int SEARCH_PATH_MAX_CHARS = 20;
+    public static final String ASCII_ELLIPSIS = "...";
+    public static final int SEARCH_TOOLBAR_FIELD_Y_OFFSET = 5;
 
     public static class SceneButtonHit {
 
@@ -592,7 +592,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         }
     }
 
-    private static Optional<GuideTooltip> tryGetTooltip(Object obj, int x, int y) {
+    public static Optional<GuideTooltip> tryGetTooltip(Object obj, int x, int y) {
         try {
             if (obj instanceof InteractiveElement ie) {
                 var t = ie.getTooltip(x, y);
@@ -787,7 +787,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             .drawString(message, textX, textY, SymbolicColor.BODY_TEXT.resolve(LightDarkMode.LIGHT_MODE), false);
     }
 
-    private static LytRect cachedRect(@Nullable LytRect current, int x, int y, int w, int h) {
+    public static LytRect cachedRect(@Nullable LytRect current, int x, int y, int w, int h) {
         if (current != null && current.x() == x && current.y() == y && current.width() == w && current.height() == h) {
             return current;
         }
@@ -905,7 +905,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         return delayMillis > 0 && now - lastPageWheelScrollAtMillis < delayMillis;
     }
 
-    private static int resolveSceneWheelInteractionDelayMillis() {
+    public static int resolveSceneWheelInteractionDelayMillis() {
         try {
             return Math.max(0, ModConfig.ui.sceneWheelInteractionDelayMillis);
         } catch (Throwable ignored) {
@@ -1043,7 +1043,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         return interaction != null ? interaction.scene : null;
     }
 
-    private static SceneButtonHit findSceneButtonHit(LytNode node, int mouseX, int mouseY) {
+    public static SceneButtonHit findSceneButtonHit(LytNode node, int mouseX, int mouseY) {
         if (node instanceof LytGuidebookScene scene && scene.isInteractive()) {
             var role = scene.sceneButtonAt(mouseX, mouseY);
             if (role != null) {
@@ -1061,7 +1061,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     }
 
     @Nullable
-    private static LytGuidebookScene findSceneAncestor(@Nullable LytNode node) {
+    public static LytGuidebookScene findSceneAncestor(@Nullable LytNode node) {
         var cur = node;
         while (cur != null) {
             if (cur instanceof LytGuidebookScene scene) return scene;
@@ -1167,7 +1167,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     }
 
     @Nullable
-    private static String blockDisplayName(LytGuidebookScene scene, int x, int y, int z) {
+    public static String blockDisplayName(LytGuidebookScene scene, int x, int y, int z) {
         try {
             var hoveredHit = scene.getHoveredBlockHitResult();
             if (hoveredHit != null && hoveredHit.blockX == x && hoveredHit.blockY == y && hoveredHit.blockZ == z) {
@@ -1179,7 +1179,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         }
     }
 
-    private static boolean isShiftDown() {
+    public static boolean isShiftDown() {
         return Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
     }
 
@@ -1537,7 +1537,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             && mouseY < searchField.yPosition + SEARCH_FIELD_H;
     }
 
-    private static boolean shouldConsumeFocusedSearchKey(char typedChar, int keyCode, String before, String after) {
+    public static boolean shouldConsumeFocusedSearchKey(char typedChar, int keyCode, String before, String after) {
         return !Objects.equals(before, after) || isSearchEditingKey(typedChar, keyCode)
             || isCtrlKeyCombo(keyCode, Keyboard.KEY_A)
             || isCtrlKeyCombo(keyCode, Keyboard.KEY_C)
@@ -1545,7 +1545,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             || isCtrlKeyCombo(keyCode, Keyboard.KEY_X);
     }
 
-    private static boolean isSearchEditingKey(char typedChar, int keyCode) {
+    public static boolean isSearchEditingKey(char typedChar, int keyCode) {
         return typedChar >= 32 || keyCode == Keyboard.KEY_BACK
             || keyCode == Keyboard.KEY_DELETE
             || keyCode == Keyboard.KEY_LEFT
@@ -1557,11 +1557,11 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             || keyCode == Keyboard.KEY_SPACE;
     }
 
-    private static boolean isSearchTypingKey(char typedChar, int keyCode) {
+    public static boolean isSearchTypingKey(char typedChar, int keyCode) {
         return typedChar >= 32 || isCtrlKeyCombo(keyCode, Keyboard.KEY_V);
     }
 
-    private static boolean isCtrlKeyCombo(int keyCode, int expectedKeyCode) {
+    public static boolean isCtrlKeyCombo(int keyCode, int expectedKeyCode) {
         return keyCode == expectedKeyCode
             && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL));
     }

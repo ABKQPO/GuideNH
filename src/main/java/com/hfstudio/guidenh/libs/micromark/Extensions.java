@@ -43,7 +43,7 @@ public class Extensions {
         all.nullAttentionMarkers.addAll(extension.nullAttentionMarkers);
     }
 
-    private static Map<Integer, List<Construct>> mergeMap(Map<Integer, List<Construct>> left,
+    public static Map<Integer, List<Construct>> mergeMap(Map<Integer, List<Construct>> left,
         Map<Integer, List<Construct>> right) {
         left = new HashMap<>(left);
 
@@ -61,7 +61,7 @@ public class Extensions {
     /**
      * Merge `list` into `existing` (both lists of constructs). Mutates `existing`.
      */
-    private static List<Construct> constructs(List<Construct> existing, List<Construct> list) {
+    public static List<Construct> constructs(List<Construct> existing, List<Construct> list) {
         existing = new ArrayList<>(existing);
 
         var index = -1;

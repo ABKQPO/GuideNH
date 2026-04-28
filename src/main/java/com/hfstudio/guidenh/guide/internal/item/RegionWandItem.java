@@ -37,7 +37,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  */
 public class RegionWandItem extends Item {
 
-    private static final int MAX_EXPORT_BLOCKS = 4096;
+    public static final int MAX_EXPORT_BLOCKS = 4096;
 
     /** New default: SNBT structure compatible with {@code <ImportStructure>}. */
     public static final String MODE_SNBT = "snbt";
@@ -89,7 +89,7 @@ public class RegionWandItem extends Item {
         }
     }
 
-    private static void setPos(ItemStack stack, int which, int x, int y, int z) {
+    public static void setPos(ItemStack stack, int which, int x, int y, int z) {
         if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());
         var nbt = stack.getTagCompound();
         var sub = new NBTTagCompound();
@@ -127,11 +127,11 @@ public class RegionWandItem extends Item {
             .setString("ExportMode", mode);
     }
 
-    private static String nextMode(String current) {
+    public static String nextMode(String current) {
         return MODE_SNBT.equals(current) ? MODE_BLOCKS : MODE_SNBT;
     }
 
-    private static String modeDisplay(String mode) {
+    public static String modeDisplay(String mode) {
         return MODE_BLOCKS.equals(mode) ? "blocks" : "snbt";
     }
 
@@ -231,7 +231,7 @@ public class RegionWandItem extends Item {
             sizeZ).text();
     }
 
-    private static void exportToClipboard(ItemStack stack, EntityPlayer player, World world) {
+    public static void exportToClipboard(ItemStack stack, EntityPlayer player, World world) {
         int[] p1 = getPos(stack, 1);
         int[] p2 = getPos(stack, 2);
         if (p1 == null || p2 == null) {
@@ -278,7 +278,7 @@ public class RegionWandItem extends Item {
         }
     }
 
-    private static ExportResult exportBlocks(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+    public static ExportResult exportBlocks(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
         StringBuilder sb = new StringBuilder();
         sb.append("<GameScene zoom={4} interactive={true}>\n");
         int nonAir = 0;
@@ -341,12 +341,12 @@ public class RegionWandItem extends Item {
         return new ExportResult(sb.toString(), nonAir, teCount);
     }
 
-    private static ExportResult exportSnbt(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+    public static ExportResult exportSnbt(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
         int dx, int dy, int dz) {
         return exportSnbt(new WorldStructureExportAccess(world), minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz);
     }
 
-    private static ExportResult exportSnbt(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
+    public static ExportResult exportSnbt(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
         int maxY, int maxZ, int dx, int dy, int dz) {
         Map<String, Integer> paletteIndex = new HashMap<>();
         NBTTagList paletteList = new NBTTagList();
@@ -489,11 +489,11 @@ public class RegionWandItem extends Item {
         if (p2 != null) list.add(GuidebookText.RegionWandTooltipPos.text(2, p2[0], p2[1], p2[2]));
     }
 
-    private static void send(EntityPlayer player, GuidebookText key, Object... args) {
+    public static void send(EntityPlayer player, GuidebookText key, Object... args) {
         player.addChatMessage(new ChatComponentTranslation(key.getTranslationKey(), args));
     }
 
-    private static String getErrorMessage(Throwable throwable) {
+    public static String getErrorMessage(Throwable throwable) {
         return throwable.getMessage() != null ? throwable.getMessage()
             : throwable.getClass()
                 .getSimpleName();

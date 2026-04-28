@@ -25,12 +25,12 @@ import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 
 final class SceneEditorTooltipCompiler {
 
-    private static final String PREVIEW_SOURCE_PACK = "guidenh-scene-editor";
-    private static final ResourceLocation PREVIEW_PAGE_ID = new ResourceLocation(
+    public static final String PREVIEW_SOURCE_PACK = "guidenh-scene-editor";
+    public static final ResourceLocation PREVIEW_PAGE_ID = new ResourceLocation(
         "guidenh",
         "scene_editor/tooltip_preview");
-    private static final ExtensionCollection EXTENSIONS = buildExtensions();
-    private static final PreviewPageCollection PAGE_COLLECTION = new PreviewPageCollection();
+    public static final ExtensionCollection EXTENSIONS = buildExtensions();
+    public static final PreviewPageCollection PAGE_COLLECTION = new PreviewPageCollection();
 
     @Nullable
     GuideTooltip compile(@Nullable String tooltipMarkdown) {
@@ -54,13 +54,13 @@ final class SceneEditorTooltipCompiler {
         return new ContentTooltip(contentBox);
     }
 
-    private static ExtensionCollection buildExtensions() {
+    public static ExtensionCollection buildExtensions() {
         ExtensionCollection.Builder builder = ExtensionCollection.builder();
         DefaultExtensions.addAll(builder, Collections.emptySet());
         return builder.build();
     }
 
-    private static final class PreviewPageCollection implements PageCollection {
+    public static final class PreviewPageCollection implements PageCollection {
 
         @Override
         public <T extends PageIndex> T getIndex(Class<T> indexClass) {

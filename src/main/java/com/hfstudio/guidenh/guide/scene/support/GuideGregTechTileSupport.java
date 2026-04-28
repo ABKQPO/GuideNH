@@ -16,12 +16,12 @@ import org.apache.logging.log4j.Logger;
 
 public class GuideGregTechTileSupport {
 
-    private static final String GREGTECH_TILE_CLASS = "gregtech.api.interfaces.tileentity.IGregTechTileEntity";
-    private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
-    private static final Set<String> LOGGED_KEYS = Collections.synchronizedSet(new HashSet<>());
+    public static final String GREGTECH_TILE_CLASS = "gregtech.api.interfaces.tileentity.IGregTechTileEntity";
+    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
+    public static final Set<String> LOGGED_KEYS = Collections.synchronizedSet(new HashSet<>());
 
-    private static volatile Class<?> gregTechTileClass;
-    private static volatile boolean gregTechTileClassResolved;
+    public static volatile Class<?> gregTechTileClass;
+    public static volatile boolean gregTechTileClassResolved;
 
     private GuideGregTechTileSupport() {}
 
@@ -155,7 +155,7 @@ public class GuideGregTechTileSupport {
         return builder.toString();
     }
 
-    private static boolean tryRebindExistingMetaTile(TileEntity tileEntity, Object metaTileEntity) {
+    public static boolean tryRebindExistingMetaTile(TileEntity tileEntity, Object metaTileEntity) {
         try {
             Method setter = findBaseSetter(metaTileEntity.getClass());
             if (setter == null) {
@@ -169,7 +169,7 @@ public class GuideGregTechTileSupport {
     }
 
     @Nullable
-    private static Method findBaseSetter(Class<?> type) {
+    public static Method findBaseSetter(Class<?> type) {
         for (Method method : type.getMethods()) {
             if ("setBaseMetaTileEntity".equals(method.getName()) && method.getParameterTypes().length == 1) {
                 return method;
@@ -179,7 +179,7 @@ public class GuideGregTechTileSupport {
     }
 
     @Nullable
-    private static NBTTagCompound captureTileNbt(TileEntity tileEntity, int metaTileId) {
+    public static NBTTagCompound captureTileNbt(TileEntity tileEntity, int metaTileId) {
         try {
             NBTTagCompound snapshot = new NBTTagCompound();
             tileEntity.writeToNBT(snapshot);
@@ -193,7 +193,7 @@ public class GuideGregTechTileSupport {
     }
 
     @Nullable
-    private static Class<?> resolveGregTechTileClass() {
+    public static Class<?> resolveGregTechTileClass() {
         if (!gregTechTileClassResolved) {
             gregTechTileClassResolved = true;
             try {
@@ -223,11 +223,11 @@ public class GuideGregTechTileSupport {
             + hasValidMetaTileBinding(tileEntity);
     }
 
-    private static void logOnce(String key, String message, Object arg) {
+    public static void logOnce(String key, String message, Object arg) {
         logInfoOnce(key, message, arg);
     }
 
-    private static void appendTagValue(StringBuilder builder, NBTTagCompound tileTag, String key) {
+    public static void appendTagValue(StringBuilder builder, NBTTagCompound tileTag, String key) {
         if (!tileTag.hasKey(key)) {
             return;
         }

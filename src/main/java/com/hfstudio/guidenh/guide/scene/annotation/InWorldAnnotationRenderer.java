@@ -49,7 +49,7 @@ public class InWorldAnnotationRenderer {
         }
     }
 
-    private static void drawAll(Iterable<InWorldAnnotation> annotations, LightDarkMode mode, boolean occluded,
+    public static void drawAll(Iterable<InWorldAnnotation> annotations, LightDarkMode mode, boolean occluded,
         boolean pass2) {
         for (var a : annotations) {
             if (a.isAlwaysOnTop() != pass2) continue;
@@ -69,7 +69,7 @@ public class InWorldAnnotationRenderer {
         }
     }
 
-    private static int resolve(ColorValue cv, LightDarkMode mode, boolean hovered, boolean occluded) {
+    public static int resolve(ColorValue cv, LightDarkMode mode, boolean hovered, boolean occluded) {
         int argb = cv.resolve(mode);
         if (hovered) argb = lighter(argb, 50);
         if (occluded) {
@@ -80,7 +80,7 @@ public class InWorldAnnotationRenderer {
         return argb;
     }
 
-    private static int lighter(int argb, int percent) {
+    public static int lighter(int argb, int percent) {
         int a = (argb >>> 24) & 0xFF;
         int r = Math.min(255, ((argb >>> 16) & 0xFF) + percent * 255 / 100);
         int g = Math.min(255, ((argb >>> 8) & 0xFF) + percent * 255 / 100);
@@ -88,7 +88,7 @@ public class InWorldAnnotationRenderer {
         return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
-    private static int darker(int argb, int percent) {
+    public static int darker(int argb, int percent) {
         int a = (argb >>> 24) & 0xFF;
         int r = Math.max(0, ((argb >>> 16) & 0xFF) - percent * 255 / 100);
         int g = Math.max(0, ((argb >>> 8) & 0xFF) - percent * 255 / 100);
@@ -96,7 +96,7 @@ public class InWorldAnnotationRenderer {
         return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
-    private static void applyColor(int argb) {
+    public static void applyColor(int argb) {
         float a = ((argb >>> 24) & 0xFF) / 255f;
         float r = ((argb >>> 16) & 0xFF) / 255f;
         float g = ((argb >>> 8) & 0xFF) / 255f;
@@ -108,7 +108,7 @@ public class InWorldAnnotationRenderer {
         return multiplyRgb(argb, faceShade(nx, ny, nz));
     }
 
-    private static float faceShade(float nx, float ny, float nz) {
+    public static float faceShade(float nx, float ny, float nz) {
         float ax = Math.abs(nx);
         float ay = Math.abs(ny);
         float az = Math.abs(nz);
@@ -118,7 +118,7 @@ public class InWorldAnnotationRenderer {
         return ax >= az ? 0.6f : 0.8f;
     }
 
-    private static int multiplyRgb(int argb, float factor) {
+    public static int multiplyRgb(int argb, float factor) {
         int a = (argb >>> 24) & 0xFF;
         int r = Math.min(255, Math.round(((argb >>> 16) & 0xFF) * factor));
         int g = Math.min(255, Math.round(((argb >>> 8) & 0xFF) * factor));
@@ -126,7 +126,7 @@ public class InWorldAnnotationRenderer {
         return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
-    private static void drawBoxEdges(Vector3f min, Vector3f max, int argb, float thickness) {
+    public static void drawBoxEdges(Vector3f min, Vector3f max, int argb, float thickness) {
         // Render each edge as an extruded cuboid in world space. The cuboid is half-thickness on
         // each side perpendicular to the edge axis, and extends an extra half-thickness past both
         // corners along the edge axis. The three cuboids meeting at every box corner therefore
@@ -152,7 +152,7 @@ public class InWorldAnnotationRenderer {
         GL11.glEnd();
     }
 
-    private static void drawLine(Vector3f from, Vector3f to, int argb, float thickness) {
+    public static void drawLine(Vector3f from, Vector3f to, int argb, float thickness) {
         // Extrude the segment into a 4-sided square prism with two end caps. Both ends are pushed
         // outward by half-thickness along the segment direction so when several lines meet they
         // overlap into a clean corner.
@@ -240,7 +240,7 @@ public class InWorldAnnotationRenderer {
         GL11.glEnd();
     }
 
-    private static void sideQuad(int argb, float ax, float ay, float az, float bx, float by, float bz, float o1x,
+    public static void sideQuad(int argb, float ax, float ay, float az, float bx, float by, float bz, float o1x,
         float o1y, float o1z, float o2x, float o2y, float o2z) {
         quad(
             argb,
@@ -261,7 +261,7 @@ public class InWorldAnnotationRenderer {
             az + o2z);
     }
 
-    private static void fillCuboid(float x0, float y0, float z0, float x1, float y1, float z1, int argb) {
+    public static void fillCuboid(float x0, float y0, float z0, float x1, float y1, float z1, int argb) {
         // -X
         quad(argb, -1f, 0f, 0f, x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0);
         // +X
@@ -276,7 +276,7 @@ public class InWorldAnnotationRenderer {
         quad(argb, 0f, 0f, 1f, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1);
     }
 
-    private static void drawBlockFaceOverlay(InWorldBlockFaceOverlayAnnotation overlay, int argb) {
+    public static void drawBlockFaceOverlay(InWorldBlockFaceOverlayAnnotation overlay, int argb) {
         float x0 = overlay.getBlockX();
         float y0 = overlay.getBlockY();
         float z0 = overlay.getBlockZ();
@@ -307,7 +307,7 @@ public class InWorldAnnotationRenderer {
         GL11.glEnd();
     }
 
-    private static void quad(int argb, float nx, float ny, float nz, float x1, float y1, float z1, float x2, float y2,
+    public static void quad(int argb, float nx, float ny, float nz, float x1, float y1, float z1, float x2, float y2,
         float z2, float x3, float y3, float z3, float x4, float y4, float z4) {
         applyColor(shadeFaceColor(argb, nx, ny, nz));
         GL11.glVertex3f(x1, y1, z1);

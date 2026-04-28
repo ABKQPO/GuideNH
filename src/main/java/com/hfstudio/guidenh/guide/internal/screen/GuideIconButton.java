@@ -14,7 +14,7 @@ public class GuideIconButton extends GuiButton {
     public static final int WIDTH = 16;
     public static final int HEIGHT = 16;
 
-    private static final ResourceLocation TEX = new ResourceLocation("guidenh", "textures/guide/buttons.png");
+    public static final ResourceLocation TEX = new ResourceLocation("guidenh", "textures/guide/buttons.png");
 
     private Role role;
     private boolean active;

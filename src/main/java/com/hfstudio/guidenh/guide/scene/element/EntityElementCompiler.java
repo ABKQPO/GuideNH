@@ -109,7 +109,7 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
         level.addEntity(entity);
     }
 
-    private static Boolean getOptionalBoolean(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
+    public static Boolean getOptionalBoolean(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
         String name) {
         var attribute = el.getAttribute(name);
         if (attribute == null) {
@@ -128,7 +128,7 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
         return null;
     }
 
-    private static Vector3f getOptionalVector3(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
+    public static Vector3f getOptionalVector3(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
         String name) {
         if (el.getAttribute(name) == null) {
             return null;

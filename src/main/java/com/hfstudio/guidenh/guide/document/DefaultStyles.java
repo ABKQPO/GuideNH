@@ -11,7 +11,7 @@ public class DefaultStyles {
 
     private DefaultStyles() {}
 
-    private static final String UNIFORM_FONT = null;
+    public static final String UNIFORM_FONT = null;
 
     /**
      * The base style everything else is based on.

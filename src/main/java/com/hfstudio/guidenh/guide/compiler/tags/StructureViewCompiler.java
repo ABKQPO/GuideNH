@@ -59,7 +59,7 @@ public class StructureViewCompiler extends BlockTagCompiler {
         parent.append(view);
     }
 
-    private static void parseLine(PageCompiler compiler, LytBlockContainer parent, LytStructureView view, String line,
+    public static void parseLine(PageCompiler compiler, LytBlockContainer parent, LytStructureView view, String line,
         MdxJsxElementFields el) {
         var parts = line.split("\\s+");
         if (parts.length < 4) {
@@ -98,7 +98,7 @@ public class StructureViewCompiler extends BlockTagCompiler {
         view.addBlock(x, y, z, stack);
     }
 
-    private static ItemStack resolveStack(String resourceId, int meta) {
+    public static ItemStack resolveStack(String resourceId, int meta) {
         var item = (Item) Item.itemRegistry.getObject(resourceId);
         if (item != null) {
             return new ItemStack(item, 1, meta);

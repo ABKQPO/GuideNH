@@ -58,7 +58,7 @@ public class SceneEditorMarkdownPanelState {
         ModConfig.save();
     }
 
-    private static int clamp(int value, int minValue, int maxValue) {
+    public static int clamp(int value, int minValue, int maxValue) {
         if (value < minValue) {
             return minValue;
         }

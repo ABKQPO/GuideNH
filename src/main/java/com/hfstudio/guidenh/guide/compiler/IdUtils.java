@@ -20,7 +20,7 @@ import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 
 public class IdUtils {
 
-    private static final Logger LOG = LoggerFactory.getLogger(IdUtils.class);
+    public static final Logger LOG = LoggerFactory.getLogger(IdUtils.class);
 
     private IdUtils() {}
 
@@ -103,7 +103,7 @@ public class IdUtils {
         return new ParsedItemRef(id, meta, nbt);
     }
 
-    private static int parseMeta(String metaStr) {
+    public static int parseMeta(String metaStr) {
         if (metaStr.isEmpty()) return 0;
         if (metaStr.equals("*")) return OreDictionary.WILDCARD_VALUE;
         if (isAllAsciiUpper(metaStr)) return OreDictionary.WILDCARD_VALUE;
@@ -115,7 +115,7 @@ public class IdUtils {
         return 0;
     }
 
-    private static boolean isAllAsciiUpper(String s) {
+    public static boolean isAllAsciiUpper(String s) {
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             if (c < 'A' || c > 'Z') return false;
@@ -156,7 +156,7 @@ public class IdUtils {
         return stack;
     }
 
-    private static boolean isNonNegativeInt(String s) {
+    public static boolean isNonNegativeInt(String s) {
         if (s.isEmpty()) return false;
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);

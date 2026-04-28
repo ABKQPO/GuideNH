@@ -12,9 +12,9 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 
 public class SceneEditorMarkdownElementRangeIndex {
 
-    private static final Pattern ELEMENT_START_PATTERN = Pattern
+    public static final Pattern ELEMENT_START_PATTERN = Pattern
         .compile("<(BlockAnnotation|BoxAnnotation|LineAnnotation|DiamondAnnotation)\\b");
-    private static final SceneEditorMarkdownElementRangeIndex EMPTY = new SceneEditorMarkdownElementRangeIndex(
+    public static final SceneEditorMarkdownElementRangeIndex EMPTY = new SceneEditorMarkdownElementRangeIndex(
         Collections.emptyList());
 
     private final List<SceneEditorMarkdownElementRange> ranges;
@@ -84,7 +84,7 @@ public class SceneEditorMarkdownElementRangeIndex {
         return Optional.empty();
     }
 
-    private static List<MatchedTag> collectMatchedTags(String text) {
+    public static List<MatchedTag> collectMatchedTags(String text) {
         List<MatchedTag> matchedTags = new ArrayList<>();
         Matcher matcher = ELEMENT_START_PATTERN.matcher(text);
         while (matcher.find()) {
@@ -108,7 +108,7 @@ public class SceneEditorMarkdownElementRangeIndex {
         return matchedTags;
     }
 
-    private static boolean isSelfClosingTag(String text, int openTagEnd) {
+    public static boolean isSelfClosingTag(String text, int openTagEnd) {
         for (int i = openTagEnd - 1; i >= 0; i--) {
             char c = text.charAt(i);
             if (Character.isWhitespace(c)) {

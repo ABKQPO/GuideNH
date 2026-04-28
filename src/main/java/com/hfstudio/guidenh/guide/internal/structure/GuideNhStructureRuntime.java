@@ -2,14 +2,14 @@ package com.hfstudio.guidenh.guide.internal.structure;
 
 public class GuideNhStructureRuntime {
 
-    private static final GuideStructurePlacementService PLACEMENT_SERVICE = new GuideStructurePlacementService();
-    private static final GuideStructureMemoryStore CLIENT_MEMORY_STORE = new GuideStructureMemoryStore(
+    public static final GuideStructurePlacementService PLACEMENT_SERVICE = new GuideStructurePlacementService();
+    public static final GuideStructureMemoryStore CLIENT_MEMORY_STORE = new GuideStructureMemoryStore(
         PLACEMENT_SERVICE);
-    private static final GuideStructureServerSessionStore SERVER_SESSION_STORE = new GuideStructureServerSessionStore(
+    public static final GuideStructureServerSessionStore SERVER_SESSION_STORE = new GuideStructureServerSessionStore(
         PLACEMENT_SERVICE);
 
-    private static volatile boolean serverStructureCommandsAvailable = false;
-    private static volatile boolean clientStructureSyncNeeded = false;
+    public static volatile boolean serverStructureCommandsAvailable = false;
+    public static volatile boolean clientStructureSyncNeeded = false;
 
     private GuideNhStructureRuntime() {}
 

@@ -24,8 +24,8 @@ import net.minecraft.nbt.NBTTagCompound;
 
 public class SceneEditorStructureImportService {
 
-    private static final String SNBT_EXTENSION = ".snbt";
-    private static final Executor IMPORT_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
+    public static final String SNBT_EXTENSION = ".snbt";
+    public static final Executor IMPORT_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "GuideNH-SceneEditor-StructureImport");
         thread.setDaemon(true);
         return thread;

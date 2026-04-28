@@ -25,7 +25,7 @@ import com.hfstudio.guidenh.libs.unist.UnistPoint;
  */
 public class Tokenizer {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Tokenizer.class);
+    public static final Logger LOGGER = LoggerFactory.getLogger(Tokenizer.class);
 
     private final ParseContext parser;
     final InitialConstruct initialize;

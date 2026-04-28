@@ -20,11 +20,11 @@ import com.hfstudio.guidenh.guide.style.TextStyle;
 
 public class StructureLibTooltipContentBuilder {
 
-    private static final int DEFAULT_CANDIDATE_COLUMNS = 6;
-    private static final TextStyle HATCH_LABEL_STYLE = TextStyle.builder()
+    public static final int DEFAULT_CANDIDATE_COLUMNS = 6;
+    public static final TextStyle HATCH_LABEL_STYLE = TextStyle.builder()
         .color(new ConstantColor(0xFFFFCC55))
         .build();
-    private static final int[] HINT_DOT_COLORS = new int[] { 0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFFFFFF00, 0xFFFF00FF,
+    public static final int[] HINT_DOT_COLORS = new int[] { 0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFFFFFF00, 0xFFFF00FF,
         0xFF00FFFF, 0xFFFFA500, 0xFF800080, 0xFF006400, 0xFF8B0000, 0xFF00008B, 0xFF008B8B };
 
     private StructureLibTooltipContentBuilder() {}
@@ -57,7 +57,7 @@ public class StructureLibTooltipContentBuilder {
         return new ContentTooltip(root);
     }
 
-    private static void appendDescriptionLines(LytVBox root, @Nullable List<StructureLibHatchDescriptionLine> lines) {
+    public static void appendDescriptionLines(LytVBox root, @Nullable List<StructureLibHatchDescriptionLine> lines) {
         if (lines == null || lines.isEmpty()) {
             return;
         }
@@ -70,7 +70,7 @@ public class StructureLibTooltipContentBuilder {
     }
 
     @Nullable
-    private static LytParagraph createDescriptionParagraph(@Nullable StructureLibHatchDescriptionLine line) {
+    public static LytParagraph createDescriptionParagraph(@Nullable StructureLibHatchDescriptionLine line) {
         if (line == null) {
             return null;
         }
@@ -81,7 +81,7 @@ public class StructureLibTooltipContentBuilder {
     }
 
     @Nullable
-    private static LytParagraph createHintBlockParagraph(int hintDot) {
+    public static LytParagraph createHintBlockParagraph(int hintDot) {
         if (hintDot <= 0) {
             return null;
         }
@@ -97,7 +97,7 @@ public class StructureLibTooltipContentBuilder {
     }
 
     @Nullable
-    private static LytParagraph createValidHatchesParagraph(@Nullable String text) {
+    public static LytParagraph createValidHatchesParagraph(@Nullable String text) {
         String normalized = normalizeLine(text);
         if (normalized == null) {
             return null;
@@ -108,7 +108,7 @@ public class StructureLibTooltipContentBuilder {
         return paragraph;
     }
 
-    private static void appendStyledText(LytParagraph paragraph, @Nullable String text, @Nullable TextStyle style) {
+    public static void appendStyledText(LytParagraph paragraph, @Nullable String text, @Nullable TextStyle style) {
         if (paragraph == null || text == null || text.isEmpty()) {
             return;
         }
@@ -122,14 +122,14 @@ public class StructureLibTooltipContentBuilder {
         paragraph.append(span);
     }
 
-    private static int resolveHintDotColor(int hintDot) {
+    public static int resolveHintDotColor(int hintDot) {
         if (hintDot <= 0) {
             return HINT_DOT_COLORS[0];
         }
         return HINT_DOT_COLORS[(hintDot - 1) % HINT_DOT_COLORS.length];
     }
 
-    private static void appendCandidateGrid(LytVBox root, List<ItemStack> candidates) {
+    public static void appendCandidateGrid(LytVBox root, List<ItemStack> candidates) {
         if (candidates.isEmpty()) {
             return;
         }
@@ -145,7 +145,7 @@ public class StructureLibTooltipContentBuilder {
         root.append(grid);
     }
 
-    private static int resolveCandidateColumns() {
+    public static int resolveCandidateColumns() {
         try {
             return ModConfig.ui.sceneStructureLibCandidateColumns;
         } catch (Throwable ignored) {
@@ -153,7 +153,7 @@ public class StructureLibTooltipContentBuilder {
         }
     }
 
-    private static List<ItemStack> normalizeStacks(@Nullable List<ItemStack> candidates) {
+    public static List<ItemStack> normalizeStacks(@Nullable List<ItemStack> candidates) {
         if (candidates == null || candidates.isEmpty()) {
             return Collections.emptyList();
         }
@@ -166,7 +166,7 @@ public class StructureLibTooltipContentBuilder {
         return normalized.isEmpty() ? Collections.emptyList() : normalized;
     }
 
-    private static String requireBlockName(@Nullable String blockName) {
+    public static String requireBlockName(@Nullable String blockName) {
         String normalized = normalizeLine(blockName);
         if (normalized == null) {
             throw new IllegalArgumentException("StructureLib tooltip block name cannot be empty");
@@ -174,12 +174,12 @@ public class StructureLibTooltipContentBuilder {
         return normalized;
     }
 
-    private static boolean isGenericStructureLibDescription(String value) {
+    public static boolean isGenericStructureLibDescription(String value) {
         return "StructureLib".equalsIgnoreCase(value);
     }
 
     @Nullable
-    private static String normalizeLine(@Nullable String value) {
+    public static String normalizeLine(@Nullable String value) {
         if (value == null) {
             return null;
         }

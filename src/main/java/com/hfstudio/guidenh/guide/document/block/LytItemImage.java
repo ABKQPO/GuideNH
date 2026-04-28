@@ -17,7 +17,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class LytItemImage extends LytBlock implements InteractiveElement {
 
-    private static final int BASE_SIZE = 16;
+    public static final int BASE_SIZE = 16;
 
     /**
      * Base upward render offset, in pixels, applied to <em>inline</em> item icons so they sit

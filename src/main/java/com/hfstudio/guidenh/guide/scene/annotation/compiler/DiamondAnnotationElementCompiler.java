@@ -22,7 +22,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 public class DiamondAnnotationElementCompiler extends AnnotationTagCompiler {
 
     /** Default green used when the MDX tag omits the {@code color} attribute. */
-    private static final ConstantColor DEFAULT_DIAMOND_COLOR = new ConstantColor(0xFF00E000);
+    public static final ConstantColor DEFAULT_DIAMOND_COLOR = new ConstantColor(0xFF00E000);
 
     @Override
     public Set<String> getTagNames() {

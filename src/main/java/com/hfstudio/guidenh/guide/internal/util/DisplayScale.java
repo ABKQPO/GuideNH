@@ -5,16 +5,16 @@ import net.minecraft.client.gui.ScaledResolution;
 
 public class DisplayScale {
 
-    private static int cachedDW = -1;
-    private static int cachedDH = -1;
-    private static int cachedGuiScale = -1;
-    private static int cachedScaleFactor = 2;
-    private static int cachedScaledWidth = 0;
-    private static int cachedScaledHeight = 0;
+    public static int cachedDW = -1;
+    public static int cachedDH = -1;
+    public static int cachedGuiScale = -1;
+    public static int cachedScaleFactor = 2;
+    public static int cachedScaledWidth = 0;
+    public static int cachedScaledHeight = 0;
 
     private DisplayScale() {}
 
-    private static void refreshIfNeeded() {
+    public static void refreshIfNeeded() {
         Minecraft mc = Minecraft.getMinecraft();
         int dw = mc.displayWidth;
         int dh = mc.displayHeight;

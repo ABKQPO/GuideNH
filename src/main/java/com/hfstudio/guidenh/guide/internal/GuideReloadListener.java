@@ -23,7 +23,7 @@ import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
 public class GuideReloadListener implements IResourceManagerReloadListener {
 
-    private static final Logger LOG = LoggerFactory.getLogger(GuideReloadListener.class);
+    public static final Logger LOG = LoggerFactory.getLogger(GuideReloadListener.class);
 
     @Override
     public void onResourceManagerReload(IResourceManager resourceManager) {

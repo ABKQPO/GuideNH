@@ -15,9 +15,9 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class LytGenericRecipeBox extends LytBox {
 
-    private static final int TITLE_HEIGHT = 10;
-    private static final int TITLE_COLOR = 0xFFAAAAAA;
-    private static final int SLOT_INSET = (LytSlot.OUTER_SIZE - 16) / 2;
+    public static final int TITLE_HEIGHT = 10;
+    public static final int TITLE_COLOR = 0xFFAAAAAA;
+    public static final int SLOT_INSET = (LytSlot.OUTER_SIZE - 16) / 2;
 
     private final String title;
     private final int normX;
@@ -49,7 +49,7 @@ public class LytGenericRecipeBox extends LytBox {
         }
     }
 
-    private static List<NeiRecipeLookup.Slot> collect(NeiRecipeLookup.Entry entry) {
+    public static List<NeiRecipeLookup.Slot> collect(NeiRecipeLookup.Entry entry) {
         List<NeiRecipeLookup.Slot> all = new ArrayList<>(entry.ingredients.size() + entry.others.size() + 1);
         all.addAll(entry.ingredients);
         all.addAll(entry.others);

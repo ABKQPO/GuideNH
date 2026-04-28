@@ -33,18 +33,18 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class OpenGuideHotkey {
 
-    private static final int TICKS_TO_OPEN = 10;
+    public static final int TICKS_TO_OPEN = 10;
 
-    private static final KeyBinding OPEN_GUIDE_KEY = new KeyBinding(
+    public static final KeyBinding OPEN_GUIDE_KEY = new KeyBinding(
         "key.guidenh.open_guide",
         Keyboard.KEY_G,
         "key.categories.guidenh");
 
-    private static String previousItemId;
-    private static final List<FoundPage> guidebookPages = new ArrayList<>();
-    private static int ticksKeyHeld;
-    private static boolean holding;
-    private static boolean newTick = true;
+    public static String previousItemId;
+    public static final List<FoundPage> guidebookPages = new ArrayList<>();
+    public static int ticksKeyHeld;
+    public static boolean holding;
+    public static boolean newTick = true;
 
     private OpenGuideHotkey() {}
 
@@ -84,7 +84,7 @@ public class OpenGuideHotkey {
         handleTooltip(event.itemStack, event.toolTip);
     }
 
-    private static void handleTooltip(ItemStack itemStack, List<String> lines) {
+    public static void handleTooltip(ItemStack itemStack, List<String> lines) {
         if (newTick) {
             newTick = false;
             update(itemStack);
@@ -114,7 +114,7 @@ public class OpenGuideHotkey {
         }
     }
 
-    private static String renderHint(float progress) {
+    public static String renderHint(float progress) {
         var fr = Minecraft.getMinecraft().fontRenderer;
         String keyName = Keyboard.getKeyName(OPEN_GUIDE_KEY.getKeyCode());
         String holdLabel = GuidebookText.HoldToShow
@@ -144,7 +144,7 @@ public class OpenGuideHotkey {
         return sb.toString();
     }
 
-    private static void update(ItemStack stack) {
+    public static void update(ItemStack stack) {
         String itemId = resolveItemId(stack);
         if (!Objects.equals(itemId, previousItemId)) {
             previousItemId = itemId;
@@ -193,7 +193,7 @@ public class OpenGuideHotkey {
         }
     }
 
-    private static boolean isKeyHeld() {
+    public static boolean isKeyHeld() {
         int code = OPEN_GUIDE_KEY.getKeyCode();
         if (code <= 0) {
             return false;
@@ -201,7 +201,7 @@ public class OpenGuideHotkey {
         return Keyboard.isKeyDown(code);
     }
 
-    private static String resolveItemId(ItemStack stack) {
+    public static String resolveItemId(ItemStack stack) {
         if (stack == null) return null;
         Item item = stack.getItem();
         if (item == null) return null;

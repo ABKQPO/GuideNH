@@ -30,11 +30,11 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 final class GuidebookPreviewPlayerSkinResolver {
 
-    private static final ExecutorService LOOKUP_EXECUTOR = Executors
+    public static final ExecutorService LOOKUP_EXECUTOR = Executors
         .newSingleThreadExecutor(new GuidebookPreviewPlayerSkinThreadFactory());
-    private static final Map<String, ResolvedPreviewPlayerSkin> RESOLVED_SKINS = new ConcurrentHashMap<>();
-    private static final Map<String, List<WeakReference<GuidebookScenePreviewPlayerEntity>>> PENDING_ENTITIES = new ConcurrentHashMap<>();
-    private static final Set<String> INFLIGHT_LOOKUPS = Collections
+    public static final Map<String, ResolvedPreviewPlayerSkin> RESOLVED_SKINS = new ConcurrentHashMap<>();
+    public static final Map<String, List<WeakReference<GuidebookScenePreviewPlayerEntity>>> PENDING_ENTITIES = new ConcurrentHashMap<>();
+    public static final Set<String> INFLIGHT_LOOKUPS = Collections
         .newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     private GuidebookPreviewPlayerSkinResolver() {}
@@ -78,13 +78,13 @@ final class GuidebookPreviewPlayerSkinResolver {
         LOOKUP_EXECUTOR.submit(() -> resolveSkinInBackground(cacheKey, playerName, lookupProfile));
     }
 
-    private static void resolveSkinInBackground(String cacheKey, String playerName, GameProfile lookupProfile) {
+    public static void resolveSkinInBackground(String cacheKey, String playerName, GameProfile lookupProfile) {
         ResolvedPreviewPlayerSkin resolvedSkin = resolvePreviewPlayerSkin(playerName, lookupProfile);
         Minecraft minecraft = Minecraft.getMinecraft();
         minecraft.func_152344_a(() -> applyResolvedSkinOnMainThread(cacheKey, playerName, resolvedSkin));
     }
 
-    private static void applyResolvedSkinOnMainThread(String cacheKey, String playerName,
+    public static void applyResolvedSkinOnMainThread(String cacheKey, String playerName,
         ResolvedPreviewPlayerSkin resolvedSkin) {
         INFLIGHT_LOOKUPS.remove(cacheKey);
         if (resolvedSkin != null) {
@@ -112,7 +112,7 @@ final class GuidebookPreviewPlayerSkinResolver {
         }
     }
 
-    private static ResolvedPreviewPlayerSkin resolvePreviewPlayerSkin(String playerName, GameProfile lookupProfile) {
+    public static ResolvedPreviewPlayerSkin resolvePreviewPlayerSkin(String playerName, GameProfile lookupProfile) {
         ResolvedPreviewPlayerSkin resolvedFromProfile = resolveTexturesForProfile(lookupProfile);
         if (resolvedFromProfile != null && resolvedFromProfile.hasAnyTexture()) {
             return resolvedFromProfile;
@@ -122,7 +122,7 @@ final class GuidebookPreviewPlayerSkinResolver {
         return resolveTexturesForProfile(resolvedProfile);
     }
 
-    private static ResolvedPreviewPlayerSkin resolveTexturesForProfile(GameProfile profile) {
+    public static ResolvedPreviewPlayerSkin resolveTexturesForProfile(GameProfile profile) {
         if (profile == null || profile.getId() == null) {
             return null;
         }
@@ -151,7 +151,7 @@ final class GuidebookPreviewPlayerSkinResolver {
         return new ResolvedPreviewPlayerSkin(resolvedProfile, textures.get(Type.SKIN), textures.get(Type.CAPE));
     }
 
-    private static void applyResolvedSkin(GuidebookScenePreviewPlayerEntity entity,
+    public static void applyResolvedSkin(GuidebookScenePreviewPlayerEntity entity,
         ResolvedPreviewPlayerSkin resolvedSkin) {
         SkinManager skinManager = Minecraft.getMinecraft()
             .func_152342_ad();
@@ -166,7 +166,7 @@ final class GuidebookPreviewPlayerSkinResolver {
         }
     }
 
-    private static void registerPendingEntity(String cacheKey, GuidebookScenePreviewPlayerEntity entity) {
+    public static void registerPendingEntity(String cacheKey, GuidebookScenePreviewPlayerEntity entity) {
         PENDING_ENTITIES.compute(cacheKey, (ignored, existing) -> {
             List<WeakReference<GuidebookScenePreviewPlayerEntity>> pending = existing;
             if (pending == null) {
@@ -178,7 +178,7 @@ final class GuidebookPreviewPlayerSkinResolver {
         });
     }
 
-    private static GameProfile selectLookupProfile(GameProfile currentProfile, GameProfile cachedProfile,
+    public static GameProfile selectLookupProfile(GameProfile currentProfile, GameProfile cachedProfile,
         String playerName) {
         if (hasUsableTextures(currentProfile, playerName)) {
             return currentProfile;
@@ -195,30 +195,30 @@ final class GuidebookPreviewPlayerSkinResolver {
         return cachedProfile != null ? cachedProfile : currentProfile;
     }
 
-    private static boolean needsBackgroundLookup(GameProfile profile, String playerName) {
+    public static boolean needsBackgroundLookup(GameProfile profile, String playerName) {
         UUID profileId = profile == null ? null : profile.getId();
         return profileId == null || isOfflineFallbackProfile(profileId, playerName) || !hasTextures(profile);
     }
 
-    private static boolean hasUsableTextures(GameProfile profile, String playerName) {
+    public static boolean hasUsableTextures(GameProfile profile, String playerName) {
         return isUsableResolvedProfile(profile, playerName) && hasTextures(profile);
     }
 
-    private static boolean isUsableResolvedProfile(GameProfile profile, String playerName) {
+    public static boolean isUsableResolvedProfile(GameProfile profile, String playerName) {
         return profile != null && profile.getId() != null && !isOfflineFallbackProfile(profile.getId(), playerName);
     }
 
-    private static boolean isOfflineFallbackProfile(UUID profileId, String playerName) {
+    public static boolean isOfflineFallbackProfile(UUID profileId, String playerName) {
         UUID offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + playerName).getBytes(StandardCharsets.UTF_8));
         return offlineUuid.equals(profileId);
     }
 
-    private static String normalizeCacheKey(String playerName) {
+    public static String normalizeCacheKey(String playerName) {
         String trimmedName = trimToNull(playerName);
         return trimmedName == null ? null : trimmedName.toLowerCase(java.util.Locale.ROOT);
     }
 
-    private static String trimToNull(String value) {
+    public static String trimToNull(String value) {
         if (value == null) {
             return null;
         }
@@ -226,7 +226,7 @@ final class GuidebookPreviewPlayerSkinResolver {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private static boolean hasTextures(GameProfile profile) {
+    public static boolean hasTextures(GameProfile profile) {
         try {
             return profile != null && profile.getProperties() != null
                 && profile.getProperties()
@@ -236,7 +236,7 @@ final class GuidebookPreviewPlayerSkinResolver {
         }
     }
 
-    private static final class ResolvedPreviewPlayerSkin {
+    public static final class ResolvedPreviewPlayerSkin {
 
         private final GameProfile profile;
         private final MinecraftProfileTexture skinTexture;
@@ -254,7 +254,7 @@ final class GuidebookPreviewPlayerSkinResolver {
         }
     }
 
-    private static final class GuidebookPreviewPlayerSkinThreadFactory implements ThreadFactory {
+    public static final class GuidebookPreviewPlayerSkinThreadFactory implements ThreadFactory {
 
         @Override
         public Thread newThread(Runnable runnable) {

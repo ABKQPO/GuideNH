@@ -56,8 +56,8 @@ public class SanitizeUri {
         return "";
     }
 
-    private static final Pattern ASCII_PATTERN_RE = Pattern.compile("[!#$&-;=?-Z_a-z~]");
-    private static final Predicate<String> ASCII_PATTERN = s -> ASCII_PATTERN_RE.matcher(s)
+    public static final Pattern ASCII_PATTERN_RE = Pattern.compile("[!#$&-;=?-Z_a-z~]");
+    public static final Predicate<String> ASCII_PATTERN = s -> ASCII_PATTERN_RE.matcher(s)
         .matches();
 
     /**

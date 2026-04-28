@@ -17,13 +17,13 @@ public class SceneEditorScreenLayout {
     public static final int MAX_LEFT_OPEN_WIDTH = 420;
     public static final int MARKDOWN_RESIZE_HANDLE_WIDTH = 4;
 
-    private static final int MIN_RIGHT_WIDTH = 172;
-    private static final int MAX_RIGHT_WIDTH = 216;
-    private static final int MIN_PREVIEW_INTERACTION_WIDTH = 220;
-    private static final int MARKDOWN_TEXT_TOP = 56;
-    private static final int MARKDOWN_TEXT_BOTTOM_MARGIN = 64;
-    private static final int MARKDOWN_FOOTER_HEIGHT = 18;
-    private static final int MARKDOWN_FOOTER_BOTTOM_MARGIN = 10;
+    public static final int MIN_RIGHT_WIDTH = 172;
+    public static final int MAX_RIGHT_WIDTH = 216;
+    public static final int MIN_PREVIEW_INTERACTION_WIDTH = 220;
+    public static final int MARKDOWN_TEXT_TOP = 56;
+    public static final int MARKDOWN_TEXT_BOTTOM_MARGIN = 64;
+    public static final int MARKDOWN_FOOTER_HEIGHT = 18;
+    public static final int MARKDOWN_FOOTER_BOTTOM_MARGIN = 10;
 
     private SceneEditorScreenLayout() {}
 
@@ -104,7 +104,7 @@ public class SceneEditorScreenLayout {
             rightContent);
     }
 
-    private static int clamp(int value, int minValue, int maxValue) {
+    public static int clamp(int value, int minValue, int maxValue) {
         if (value < minValue) {
             return minValue;
         }

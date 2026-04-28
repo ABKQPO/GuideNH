@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.preview;
 
 public class SceneEditorSnapModes {
 
-    private static final SceneEditorSnapModes DEFAULT = new SceneEditorSnapModes(true, false, false, false);
+    public static final SceneEditorSnapModes DEFAULT = new SceneEditorSnapModes(true, false, false, false);
 
     private final boolean pointEnabled;
     private final boolean lineEnabled;

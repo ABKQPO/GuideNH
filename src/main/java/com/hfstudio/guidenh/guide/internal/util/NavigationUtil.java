@@ -16,7 +16,7 @@ import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
 public class NavigationUtil {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NavigationUtil.class);
+    public static final Logger LOG = LoggerFactory.getLogger(NavigationUtil.class);
 
     private NavigationUtil() {}
 
@@ -55,8 +55,7 @@ public class NavigationUtil {
     }
 
     @Nullable
-    private static GuidePageIcon createTextureIcon(ParsedGuidePage page, PageCollection pages,
-        ResourceLocation iconId) {
+    public static GuidePageIcon createTextureIcon(ParsedGuidePage page, PageCollection pages, ResourceLocation iconId) {
         var data = pages.loadAsset(iconId);
         if (data == null || data.length == 0) {
             LOG.error("Couldn't find icon texture {} for page {}", iconId, page.getId());
