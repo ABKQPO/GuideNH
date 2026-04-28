@@ -29,6 +29,7 @@ import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
@@ -105,6 +106,10 @@ public class LytGuidebookScene extends LytBlock {
     private CameraSettings camera = new CameraSettings();
     private int width = DEFAULT_WIDTH;
     private int height = DEFAULT_HEIGHT;
+    private int sceneBackgroundColor = SCENE_BG_COLOR;
+    private int sceneBorderColor = SCENE_BORDER_COLOR;
+    @Nullable
+    private LytSize cameraViewportOverride;
     private final List<SceneAnnotation> annotations = new ArrayList<>();
 
     // Reuse annotation partitions instead of allocating new lists every frame.
@@ -246,6 +251,30 @@ public class LytGuidebookScene extends LytBlock {
     public void setSceneSize(int width, int height) {
         this.width = Math.max(16, width);
         this.height = Math.max(16, height);
+    }
+
+    public int getSceneBackgroundColor() {
+        return sceneBackgroundColor;
+    }
+
+    public void setSceneBackgroundColor(int sceneBackgroundColor) {
+        this.sceneBackgroundColor = sceneBackgroundColor;
+    }
+
+    public int getSceneBorderColor() {
+        return sceneBorderColor;
+    }
+
+    public void setSceneBorderColor(int sceneBorderColor) {
+        this.sceneBorderColor = sceneBorderColor;
+    }
+
+    public void setCameraViewportOverride(int width, int height) {
+        this.cameraViewportOverride = new LytSize(Math.max(16, width), Math.max(16, height));
+    }
+
+    public void clearCameraViewportOverride() {
+        this.cameraViewportOverride = null;
     }
 
     public boolean isInteractive() {
@@ -730,13 +759,13 @@ public class LytGuidebookScene extends LytBlock {
             this.lastOuterW = outerRect.width();
             this.lastOuterH = outerRect.height();
             this.cachedScreenRect = sceneRect;
-            context.fillRect(sceneRect, SCENE_BG_COLOR);
+            context.fillRect(sceneRect, sceneBackgroundColor);
             drawBottomControls(context, outerRect);
-            context.drawBorder(sceneRect, SCENE_BORDER_COLOR, 1);
+            context.drawBorder(sceneRect, sceneBorderColor, 1);
             return;
         }
 
-        context.fillRect(sceneRect, SCENE_BG_COLOR);
+        context.fillRect(sceneRect, sceneBackgroundColor);
 
         int absX = sceneRect.x();
         int absY = sceneRect.y();
@@ -758,7 +787,11 @@ public class LytGuidebookScene extends LytBlock {
 
         int w = sceneRect.width();
         int h = sceneRect.height();
-        camera.setViewportSize(w, h);
+        if (cameraViewportOverride != null) {
+            camera.setViewportSize(cameraViewportOverride);
+        } else {
+            camera.setViewportSize(w, h);
+        }
         this.lastAbsX = absX;
         this.lastAbsY = absY;
         this.lastW = w;
@@ -874,7 +907,7 @@ public class LytGuidebookScene extends LytBlock {
         drawBottomControls(context, outerRect);
 
         // Draw border AFTER the 3D content so border pixels always sit on top.
-        context.drawBorder(sceneRect, SCENE_BORDER_COLOR, 1);
+        context.drawBorder(sceneRect, sceneBorderColor, 1);
 
         if (interactive && sceneButtonsVisible) {
             drawSceneButtons(sceneRect.x(), sceneRect.y(), w, h, absX, absY);
@@ -1128,12 +1161,12 @@ public class LytGuidebookScene extends LytBlock {
             return null;
         }
 
-        float relX = mouseAbsX - (lastAbsX + lastW * 0.5f);
-        float relY = mouseAbsY - (lastAbsY + lastH * 0.5f);
-        camera.setViewportSize(lastW, lastH);
-        float[] ray = camera.screenToWorldRay(relX, relY, pickRayScratch);
-        Vec3 rayStart = Vec3.createVectorHelper(ray[0], ray[1], ray[2]);
-        Vec3 rayEnd = Vec3.createVectorHelper(ray[0] + ray[3] * 512f, ray[1] + ray[4] * 512f, ray[2] + ray[5] * 512f);
+        PickRay pickRay = resolvePickRay(mouseAbsX, mouseAbsY);
+        if (pickRay == null) {
+            return null;
+        }
+        Vec3 rayStart = pickRay.start;
+        Vec3 rayEnd = pickRay.end;
 
         int[] best = null;
         double bestDistanceSq = Double.POSITIVE_INFINITY;
@@ -1286,27 +1319,28 @@ public class LytGuidebookScene extends LytBlock {
         float ox = ray[0], oy = ray[1], oz = ray[2];
         float dx = ray[3], dy = ray[4], dz = ray[5];
         int[] sceneBounds = level.getBounds();
-        if (Float.isNaN(
-            rayAabb(
-                ox,
-                oy,
-                oz,
-                dx,
-                dy,
-                dz,
-                sceneBounds[0],
-                sceneBounds[1],
-                sceneBounds[2],
-                sceneBounds[3] + 1f,
-                sceneBounds[4] + 1f,
-                sceneBounds[5] + 1f))) {
+        float entryDistance = rayAabb(
+            ox,
+            oy,
+            oz,
+            dx,
+            dy,
+            dz,
+            sceneBounds[0],
+            sceneBounds[1],
+            sceneBounds[2],
+            sceneBounds[3] + 1f,
+            sceneBounds[4] + 1f,
+            sceneBounds[5] + 1f);
+        if (Float.isNaN(entryDistance)) {
             return null;
         }
 
         float spanX = sceneBounds[3] - sceneBounds[0] + 1f;
         float spanY = sceneBounds[4] - sceneBounds[1] + 1f;
         float spanZ = sceneBounds[5] - sceneBounds[2] + 1f;
-        float rayReach = Math.max(64f, (float) Math.sqrt(spanX * spanX + spanY * spanY + spanZ * spanZ) + 8f);
+        float sceneSpan = (float) Math.sqrt(spanX * spanX + spanY * spanY + spanZ * spanZ) + 8f;
+        float rayReach = Math.max(64f, Math.max(0f, entryDistance) + sceneSpan);
         return new PickRay(
             Vec3.createVectorHelper(ox, oy, oz),
             Vec3.createVectorHelper(ox + dx * rayReach, oy + dy * rayReach, oz + dz * rayReach));

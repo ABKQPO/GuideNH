@@ -88,10 +88,8 @@ public class GuideBlockBoundsResolver {
             return null;
         }
 
-        AxisAlignedBB bestBounds = resolveNearestRayHitBounds(
-            collectCollisionBounds(level, block, x, y, z),
-            rayStart,
-            rayEnd);
+        List<AxisAlignedBB> collisionBounds = collectCollisionBounds(level, block, x, y, z);
+        AxisAlignedBB bestBounds = resolveNearestRayHitBounds(collisionBounds, rayStart, rayEnd);
 
         if (bestBounds != null) {
             return copyOf(bestBounds);
@@ -126,14 +124,7 @@ public class GuideBlockBoundsResolver {
     @Nullable
     private static AxisAlignedBB resolveCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
         try {
-            AxisAlignedBB merged = null;
-            for (AxisAlignedBB collisionBox : collectCollisionBounds(level, block, x, y, z)) {
-                if (collisionBox == null || !isNonEmpty(collisionBox)) {
-                    continue;
-                }
-                merged = merged == null ? copyOf(collisionBox) : merged.func_111270_a(collisionBox);
-            }
-            return merged;
+            return mergeCollisionBounds(collectCollisionBounds(level, block, x, y, z));
         } catch (Throwable ignored) {
             return null;
         }
@@ -144,6 +135,18 @@ public class GuideBlockBoundsResolver {
         AxisAlignedBB fullBlockBounds = AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d);
         block.addCollisionBoxesToList(level.getOrCreateFakeWorld(), x, y, z, fullBlockBounds, collisionBoxes, null);
         return collisionBoxes;
+    }
+
+    @Nullable
+    private static AxisAlignedBB mergeCollisionBounds(List<AxisAlignedBB> collisionBoxes) {
+        AxisAlignedBB merged = null;
+        for (AxisAlignedBB collisionBox : collisionBoxes) {
+            if (collisionBox == null || !isNonEmpty(collisionBox)) {
+                continue;
+            }
+            merged = merged == null ? copyOf(collisionBox) : merged.func_111270_a(collisionBox);
+        }
+        return merged;
     }
 
     private static boolean isNonEmpty(AxisAlignedBB bounds) {

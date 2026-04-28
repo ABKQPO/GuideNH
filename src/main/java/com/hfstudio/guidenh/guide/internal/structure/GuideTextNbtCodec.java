@@ -9,8 +9,11 @@ import java.util.zip.GZIPInputStream;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.JsonToNBT;
 import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagByteArray;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagIntArray;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
 
 /**
  * 1.7.10's text-NBT reader/writer cannot round-trip compound keys containing {@code :} (AE's
@@ -23,6 +26,7 @@ public class GuideTextNbtCodec {
     private static final String ENCODED_KEYS_TAG = "__guidenh_encoded_keys_v1";
     private static final String ENTRY_KEY_TAG = "k";
     private static final String ENTRY_VALUE_TAG = "v";
+    private static final String BYTE_ARRAY_WRAPPER_TAG = "__guidenh_byte_array_v1";
 
     private GuideTextNbtCodec() {}
 
@@ -142,6 +146,11 @@ public class GuideTextNbtCodec {
     }
 
     private static NBTBase encodeTag(NBTBase tag) {
+        if (tag instanceof NBTTagByteArray byteArray) {
+            NBTTagCompound encoded = new NBTTagCompound();
+            encoded.setIntArray(BYTE_ARRAY_WRAPPER_TAG, toIntArray(byteArray.func_150292_c()));
+            return encoded;
+        }
         if (tag instanceof NBTTagCompound compound) {
             return encodeCompound(compound);
         }
@@ -153,12 +162,44 @@ public class GuideTextNbtCodec {
 
     private static NBTBase decodeTag(NBTBase tag) {
         if (tag instanceof NBTTagCompound compound) {
+            byte[] decodedByteArray = decodeWrappedByteArray(compound);
+            if (decodedByteArray != null) {
+                return new NBTTagByteArray(decodedByteArray);
+            }
             return decodeCompound(compound);
         }
         if (tag instanceof NBTTagList list) {
             return transformList(list, false);
         }
         return tag.copy();
+    }
+
+    private static boolean isEncodedByteArray(NBTTagCompound compound) {
+        return compound.func_150296_c()
+            .size() == 1 && compound.hasKey(BYTE_ARRAY_WRAPPER_TAG);
+    }
+
+    private static byte[] decodeWrappedByteArray(NBTTagCompound compound) {
+        if (!isEncodedByteArray(compound)) {
+            return null;
+        }
+        return tryDecodeByteArrayTag(compound.getTag(BYTE_ARRAY_WRAPPER_TAG));
+    }
+
+    private static int[] toIntArray(byte[] bytes) {
+        int[] ints = new int[bytes.length];
+        for (int index = 0; index < bytes.length; index++) {
+            ints[index] = bytes[index];
+        }
+        return ints;
+    }
+
+    private static byte[] toByteArray(int[] ints) {
+        byte[] bytes = new byte[ints.length];
+        for (int index = 0; index < ints.length; index++) {
+            bytes[index] = (byte) ints[index];
+        }
+        return bytes;
     }
 
     private static NBTTagList transformList(NBTTagList list, boolean encode) {
@@ -172,6 +213,76 @@ public class GuideTextNbtCodec {
         }
 
         return transformed;
+    }
+
+    private static byte[] tryDecodeByteArrayTag(NBTBase tag) {
+        if (tag instanceof NBTTagByteArray byteArray) {
+            return byteArray.func_150292_c();
+        }
+        if (tag instanceof NBTTagIntArray intArray) {
+            return toByteArray(intArray.func_150302_c());
+        }
+        if (tag instanceof NBTTagString stringTag) {
+            return parseByteArrayLiteral(stringTag.func_150285_a_());
+        }
+        if (tag instanceof NBTTagList list) {
+            if (list.tagCount() <= 0) {
+                return new byte[0];
+            }
+            byte[] decoded = new byte[list.tagCount()];
+            for (int index = 0; index < list.tagCount(); index++) {
+                try {
+                    decoded[index] = Byte.parseByte(trimNumericSuffix(list.getStringTagAt(index)));
+                } catch (NumberFormatException ignored) {
+                    return null;
+                }
+            }
+            return decoded;
+        }
+        return null;
+    }
+
+    private static byte[] parseByteArrayLiteral(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+            return null;
+        }
+        String content = trimmed.substring(1, trimmed.length() - 1)
+            .trim();
+        if (content.isEmpty()) {
+            return new byte[0];
+        }
+
+        String[] parts = content.split(",");
+        ArrayList<Byte> decoded = new ArrayList<>(parts.length);
+        for (String part : parts) {
+            String numeric = trimNumericSuffix(part);
+            if (numeric.isEmpty()) {
+                continue;
+            }
+            try {
+                decoded.add((byte) Integer.parseInt(numeric));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+
+        byte[] result = new byte[decoded.size()];
+        for (int index = 0; index < decoded.size(); index++) {
+            result[index] = decoded.get(index);
+        }
+        return result;
+    }
+
+    private static String trimNumericSuffix(String value) {
+        String trimmed = value != null ? value.trim() : "";
+        if (trimmed.endsWith("b") || trimmed.endsWith("B")) {
+            return trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 
     private static boolean isDirectKeySafe(String key) {

@@ -76,6 +76,12 @@ public class ModConfig {
         @Comment("Maximum undo history entries kept by the scene editor.")
         public int sceneEditorUndoHistoryLimit = 15;
 
+        @Comment("Default screenshot format used by the scene editor screenshot button.")
+        public String sceneEditorScreenshotFormat = "png";
+
+        @Comment("Default screenshot scale used by the scene editor screenshot button.")
+        public int sceneEditorScreenshotScale = 8;
+
         @Comment("Expanded width of the markdown panel in the scene editor.")
         public int sceneEditorMarkdownPanelWidth = 208;
 

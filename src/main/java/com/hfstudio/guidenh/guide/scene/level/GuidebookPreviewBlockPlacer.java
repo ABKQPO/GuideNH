@@ -2,11 +2,20 @@ package com.hfstudio.guidenh.guide.scene.level;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagByteArray;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagIntArray;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -14,15 +23,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 
 public class GuidebookPreviewBlockPlacer {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
+    private static final String BYTE_ARRAY_WRAPPER_TAG = "__guidenh_byte_array_v1";
     private static final String GREGTECH_BLOCK_MACHINES_CLASS = "gregtech.common.blocks.BlockMachines";
     private static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS = "bartworks.system.material.BWMetaGeneratedBlocks";
     private static final String BARTWORKS_META_GENERATED_TILE_CLASS = "bartworks.system.material.TileEntityMetaGeneratedBlock";
     private static final String GREGTECH_API_CLASS = "gregtech.api.GregTechAPI";
+    private static final Set<String> KNOWN_GREGTECH_BYTE_ARRAY_KEYS = createKnownGregTechByteArrayKeys();
 
     private GuidebookPreviewBlockPlacer() {}
 
@@ -33,32 +45,38 @@ public class GuidebookPreviewBlockPlacer {
 
     public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
         @Nullable NBTTagCompound tileTag, @Nullable String explicitBlockId) {
-        PlacementData placementData = resolvePlacementData(block, meta, tileTag);
-        logPlacementRequest(x, y, z, block, meta, tileTag, explicitBlockId, placementData);
+        NBTTagCompound previewTileTag = sanitizeGregTechInitTag(tileTag);
+        PlacementData placementData = resolvePlacementData(block, meta, previewTileTag);
+        logPlacementRequest(x, y, z, block, meta, previewTileTag, explicitBlockId, placementData);
 
         // Place the block before loading its tile so world-aware tile initialization sees the correct block/meta.
         level.setBlock(x, y, z, block, placementData.blockMeta, null);
 
         TileEntity tileEntity = null;
-        if (tileTag != null || block.hasTileEntity(placementData.blockMeta)) {
+        NBTTagCompound tileSnapshot = null;
+        if (previewTileTag != null || block.hasTileEntity(placementData.blockMeta)) {
             try {
                 tileEntity = GuidebookTileEntityLoader
-                    .load(level.getOrCreateFakeWorld(), block, placementData.blockMeta, x, y, z, tileTag);
+                    .load(level.getOrCreateFakeWorld(), block, placementData.blockMeta, x, y, z, previewTileTag);
             } catch (Throwable t) {
                 LOG.warn("Preview tile entity load failed, falling back to block-only placement", t);
             }
         }
         if (tileEntity != null) {
             level.setTileEntity(x, y, z, tileEntity);
-            logLoadedTile("loaded", x, y, z, tileEntity, placementData.metaTileId, tileTag);
-            initializeGregTechMetaTile(tileEntity, placementData.metaTileId, tileTag);
-            logLoadedTile("gregtech-init", x, y, z, tileEntity, placementData.metaTileId, tileTag);
-            applyGregTechDefaultFacing(tileEntity, tileTag);
+            logLoadedTile("loaded", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
+            initializeGregTechMetaTile(tileEntity, placementData.metaTileId, previewTileTag);
+            logLoadedTile("gregtech-init", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
+            applyGregTechDefaultFacing(tileEntity, previewTileTag);
             applyBartWorksGeneratedBlockMeta(tileEntity, block, placementData.blockMeta);
-            logLoadedTile("post-facing-meta", x, y, z, tileEntity, placementData.metaTileId, tileTag);
-            TileEntity residentTile = resolveWorldResidentTile(level.getOrCreateFakeWorld(), x, y, z, tileEntity);
+            logLoadedTile("post-facing-meta", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
+            TileEntity residentTile = preferPreparedTileEntity(
+                tileEntity,
+                resolveWorldResidentTile(level.getOrCreateFakeWorld(), x, y, z, tileEntity));
             level.setTileEntity(x, y, z, residentTile);
-            logLoadedTile("resident", x, y, z, residentTile, placementData.metaTileId, tileTag);
+            residentTile = finalizeSpecialPreviewTile(level, x, y, z, residentTile);
+            tileSnapshot = captureTileSnapshot(residentTile);
+            logLoadedTile("resident", x, y, z, residentTile, placementData.metaTileId, previewTileTag);
         } else if (shouldLogPlacement(block, placementData)) {
             GuideGregTechTileSupport.logInfoOnce(
                 "preview-place-missing-tile:" + x
@@ -74,9 +92,20 @@ public class GuidebookPreviewBlockPlacer {
                 explicitBlockId,
                 placementData.blockMeta,
                 placementData.metaTileId,
-                GuideGregTechTileSupport.describeTileTag(tileTag));
+                GuideGregTechTileSupport.describeTileTag(previewTileTag));
         }
         invokeOnBlockAdded(block, level.getOrCreateFakeWorld(), x, y, z);
+        tileEntity = restoreTileAfterOnBlockAdded(
+            level,
+            x,
+            y,
+            z,
+            block,
+            placementData,
+            tileEntity,
+            tileSnapshot,
+            previewTileTag);
+        logLoadedTile("post-block-added", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
         level.setExplicitBlockId(x, y, z, explicitBlockId);
     }
 
@@ -164,7 +193,7 @@ public class GuidebookPreviewBlockPlacer {
         try {
             Method initializer = tileEntity.getClass()
                 .getMethod("setInitialValuesAsNBT", NBTTagCompound.class, short.class);
-            NBTTagCompound initTag = tileTag;
+            NBTTagCompound initTag = sanitizeGregTechInitTag(tileTag);
             if (initTag != null && (!initTag.hasKey("mID") || initTag.getInteger("mID") != metaTileId)) {
                 initTag = (NBTTagCompound) initTag.copy();
                 initTag.setInteger("mID", metaTileId);
@@ -173,6 +202,13 @@ public class GuidebookPreviewBlockPlacer {
         } catch (NoSuchMethodException ignored) {
             // Non-GregTech tiles do not expose this initializer.
         } catch (Throwable t) {
+            GuideGregTechTileSupport.logInfoOnce(
+                "preview-gregtech-init-bytearray-shapes:" + metaTileId
+                    + ":"
+                    + describeKnownGregTechByteArrayKeys(tileTag),
+                "Preview GregTech init byte-array key shapes for metaTileId={} are [{}]",
+                metaTileId,
+                describeKnownGregTechByteArrayKeys(tileTag));
             LOG.warn("Failed to initialize GregTech preview tile {}", metaTileId, t);
         }
     }
@@ -254,6 +290,380 @@ public class GuidebookPreviewBlockPlacer {
         }
     }
 
+    @Nullable
+    static NBTTagCompound sanitizeGregTechInitTag(@Nullable NBTTagCompound tileTag) {
+        if (tileTag == null) {
+            return tileTag;
+        }
+
+        NBTTagCompound sanitized = normalizeGregTechByteArrays(tileTag);
+        ArrayList<String> unresolvedWrappers = new ArrayList<>();
+        collectUnresolvedByteArrayWrappers(sanitized, "", unresolvedWrappers);
+        if (!unresolvedWrappers.isEmpty()) {
+            GuideGregTechTileSupport.logInfoOnce(
+                "preview-gregtech-bytearray-wrapper:" + unresolvedWrappers
+                    + ":"
+                    + GuideGregTechTileSupport.describeTileTag(tileTag),
+                "Preview GregTech init tag still contains unresolved byte-array wrappers at {} for tileTag=[{}]",
+                unresolvedWrappers,
+                GuideGregTechTileSupport.describeTileTag(tileTag));
+        }
+        if (!sanitized.hasKey("mRedstoneSided")) {
+            return sanitized;
+        }
+
+        NBTBase tag = sanitized.getTag("mRedstoneSided");
+        if (tag instanceof NBTTagByteArray) {
+            return sanitized;
+        }
+
+        byte[] normalized = tryDecodeLegacyByteArray(tag, true);
+        if (normalized == null) {
+            normalized = new byte[6];
+        }
+
+        sanitized.setByteArray("mRedstoneSided", normalized);
+        return sanitized;
+    }
+
+    private static NBTTagCompound normalizeGregTechByteArrays(NBTTagCompound tileTag) {
+        NBTTagCompound normalized = new NBTTagCompound();
+        ArrayList<String> keys = new ArrayList<>(tileTag.func_150296_c());
+        for (String key : keys) {
+            NBTBase value = tileTag.getTag(key);
+            if (value != null) {
+                byte[] knownByteArray = decodeKnownGregTechByteArray(key, value);
+                if (knownByteArray != null) {
+                    normalized.setByteArray(key, knownByteArray);
+                    continue;
+                }
+                normalized.setTag(key, normalizeGregTechTag(value));
+            }
+        }
+        return normalized;
+    }
+
+    private static NBTBase normalizeGregTechTag(NBTBase tag) {
+        if (tag instanceof NBTTagCompound compound) {
+            byte[] decoded = decodeWrappedByteArray(compound);
+            if (decoded != null) {
+                return new NBTTagByteArray(decoded);
+            }
+            return normalizeGregTechByteArrays(compound);
+        }
+        if (tag instanceof NBTTagList list) {
+            byte[] decoded = tryDecodeLegacyByteArray(list, false);
+            if (decoded != null) {
+                return new NBTTagByteArray(decoded);
+            }
+            return normalizeGregTechList(list);
+        }
+        return tag.copy();
+    }
+
+    private static NBTTagList normalizeGregTechList(NBTTagList list) {
+        NBTTagList normalized = new NBTTagList();
+        NBTTagList remaining = (NBTTagList) list.copy();
+        int count = remaining.tagCount();
+        for (int index = 0; index < count; index++) {
+            normalized.appendTag(normalizeGregTechTag(remaining.removeTag(0)));
+        }
+        return normalized;
+    }
+
+    private static boolean isEncodedByteArrayWrapper(NBTTagCompound compound) {
+        return compound.func_150296_c()
+            .size() == 1 && compound.hasKey(BYTE_ARRAY_WRAPPER_TAG);
+    }
+
+    @Nullable
+    private static byte[] decodeWrappedByteArray(NBTTagCompound compound) {
+        if (!isEncodedByteArrayWrapper(compound)) {
+            return null;
+        }
+        return tryDecodeLegacyByteArray(compound.getTag(BYTE_ARRAY_WRAPPER_TAG), true);
+    }
+
+    private static byte[] toByteArray(int[] ints) {
+        byte[] bytes = new byte[ints.length];
+        for (int index = 0; index < ints.length; index++) {
+            bytes[index] = (byte) ints[index];
+        }
+        return bytes;
+    }
+
+    @Nullable
+    private static byte[] tryDecodeLegacyByteArray(@Nullable NBTBase tag, boolean allowEmptyList) {
+        if (tag instanceof NBTTagByteArray byteArray) {
+            return byteArray.func_150292_c();
+        }
+        if (tag instanceof NBTTagIntArray intArray) {
+            int[] source = intArray.func_150302_c();
+            byte[] decoded = new byte[source.length];
+            for (int index = 0; index < source.length; index++) {
+                decoded[index] = (byte) source[index];
+            }
+            return decoded;
+        }
+        if (tag instanceof NBTTagString stringTag) {
+            return parseByteArrayLiteral(stringTag.func_150285_a_());
+        }
+        if (tag instanceof NBTTagList list) {
+            byte[] numeric = tryDecodeNumericByteList(list, allowEmptyList);
+            if (numeric != null) {
+                return numeric;
+            }
+            if (list.tagCount() == 1) {
+                Integer legacyLength = parseLegacyByteArrayLength(list.getStringTagAt(0));
+                if (legacyLength != null) {
+                    return new byte[legacyLength];
+                }
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static byte[] tryDecodeNumericByteList(NBTTagList list, boolean allowEmptyList) {
+        if (list.tagCount() <= 0) {
+            return allowEmptyList ? new byte[0] : null;
+        }
+        byte[] decoded = new byte[list.tagCount()];
+        for (int index = 0; index < list.tagCount(); index++) {
+            String value = list.getStringTagAt(index);
+            try {
+                decoded[index] = Byte.parseByte(trimNumericSuffix(value));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return decoded;
+    }
+
+    @Nullable
+    private static byte[] parseByteArrayLiteral(@Nullable String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+            return null;
+        }
+        String content = trimmed.substring(1, trimmed.length() - 1)
+            .trim();
+        if (content.isEmpty()) {
+            return new byte[0];
+        }
+
+        String[] parts = content.split(",");
+        ArrayList<Byte> decoded = new ArrayList<>(parts.length);
+        for (String part : parts) {
+            String numeric = trimNumericSuffix(part);
+            if (numeric.isEmpty()) {
+                continue;
+            }
+            try {
+                decoded.add((byte) Integer.parseInt(numeric));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+
+        byte[] result = new byte[decoded.size()];
+        for (int index = 0; index < decoded.size(); index++) {
+            result[index] = decoded.get(index);
+        }
+        return result;
+    }
+
+    @Nullable
+    private static Integer parseLegacyByteArrayLength(@Nullable String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (!trimmed.endsWith("bytes")) {
+            return null;
+        }
+        int space = trimmed.indexOf(' ');
+        if (space <= 0) {
+            return null;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(trimmed.substring(0, space)));
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static String trimNumericSuffix(String value) {
+        String trimmed = value != null ? value.trim() : "";
+        if (trimmed.endsWith("b") || trimmed.endsWith("B")) {
+            return trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
+    }
+
+    private static void collectUnresolvedByteArrayWrappers(NBTTagCompound tag, String path, ArrayList<String> issues) {
+        ArrayList<String> keys = new ArrayList<>(tag.func_150296_c());
+        for (String key : keys) {
+            String nextPath = path.isEmpty() ? key : path + "." + key;
+            NBTBase value = tag.getTag(key);
+            if (value instanceof NBTTagCompound compound) {
+                if (isEncodedByteArrayWrapper(compound)) {
+                    NBTBase wrappedValue = compound.getTag(BYTE_ARRAY_WRAPPER_TAG);
+                    if (!(wrappedValue instanceof NBTTagByteArray)) {
+                        issues.add(
+                            nextPath + "("
+                                + (wrappedValue != null ? wrappedValue.getClass()
+                                    .getSimpleName() : "null")
+                                + ")");
+                    }
+                }
+                collectUnresolvedByteArrayWrappers(compound, nextPath, issues);
+            } else if (value instanceof NBTTagList list) {
+                collectUnresolvedByteArrayWrappers(list, nextPath, issues);
+            }
+        }
+    }
+
+    private static void collectUnresolvedByteArrayWrappers(NBTTagList list, String path, ArrayList<String> issues) {
+        NBTTagList remaining = (NBTTagList) list.copy();
+        int count = remaining.tagCount();
+        for (int index = 0; index < count; index++) {
+            NBTBase entry = remaining.removeTag(0);
+            String nextPath = path + "[" + index + "]";
+            if (entry instanceof NBTTagCompound compound) {
+                if (isEncodedByteArrayWrapper(compound)) {
+                    NBTBase wrappedValue = compound.getTag(BYTE_ARRAY_WRAPPER_TAG);
+                    if (!(wrappedValue instanceof NBTTagByteArray)) {
+                        issues.add(
+                            nextPath + "("
+                                + (wrappedValue != null ? wrappedValue.getClass()
+                                    .getSimpleName() : "null")
+                                + ")");
+                    }
+                }
+                collectUnresolvedByteArrayWrappers(compound, nextPath, issues);
+            } else if (entry instanceof NBTTagList nestedList) {
+                collectUnresolvedByteArrayWrappers(nestedList, nextPath, issues);
+            }
+        }
+    }
+
+    @Nullable
+    private static byte[] decodeKnownGregTechByteArray(String key, NBTBase tag) {
+        if (!KNOWN_GREGTECH_BYTE_ARRAY_KEYS.contains(key)) {
+            return null;
+        }
+        if (tag instanceof NBTTagCompound compound) {
+            byte[] wrapped = decodeWrappedByteArray(compound);
+            if (wrapped != null) {
+                return wrapped;
+            }
+        }
+        return tryDecodeLegacyByteArray(tag, true);
+    }
+
+    private static String describeKnownGregTechByteArrayKeys(@Nullable NBTTagCompound tileTag) {
+        if (tileTag == null) {
+            return "null-tag";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (String key : KNOWN_GREGTECH_BYTE_ARRAY_KEYS) {
+            if (!tileTag.hasKey(key)) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append(", ");
+            }
+            NBTBase value = tileTag.getTag(key);
+            builder.append(key)
+                .append('=')
+                .append(
+                    value != null ? value.getClass()
+                        .getSimpleName() : "null");
+        }
+        return builder.length() > 0 ? builder.toString() : "no-known-byte-array-keys";
+    }
+
+    private static Set<String> createKnownGregTechByteArrayKeys() {
+        LinkedHashSet<String> keys = new LinkedHashSet<>();
+        keys.add("mRedstoneSided");
+        keys.add("eyeOfHarmonyOutputoutputEU_BigInt");
+        keys.add("eyeOfHarmonyOutputusedEU");
+        keys.add("powerTally");
+        return Collections.unmodifiableSet(keys);
+    }
+
+    @Nullable
+    private static TileEntity restoreTileAfterOnBlockAdded(GuidebookLevel level, int x, int y, int z, Block block,
+        PlacementData placementData, @Nullable TileEntity preparedTileEntity, @Nullable NBTTagCompound tileSnapshot,
+        @Nullable NBTTagCompound tileTag) {
+        if (preparedTileEntity == null) {
+            return null;
+        }
+
+        GuidebookFakeWorld world = level.getOrCreateFakeWorld();
+        TileEntity residentTile = resolveWorldResidentTile(world, x, y, z, preparedTileEntity);
+        if (residentTile == preparedTileEntity) {
+            return preparedTileEntity;
+        }
+
+        NBTTagCompound restoreTag = tileSnapshot != null ? tileSnapshot : tileTag;
+        TileEntity restoredTile = residentTile;
+        if (restoredTile == null || (restoreTag != null && !applyTileSnapshot(restoredTile, restoreTag, x, y, z))) {
+            restoredTile = preparedTileEntity;
+            if (restoreTag != null) {
+                applyTileSnapshot(restoredTile, restoreTag, x, y, z);
+            }
+        }
+
+        initializeGregTechMetaTile(restoredTile, placementData.metaTileId, restoreTag);
+        applyGregTechDefaultFacing(restoredTile, restoreTag);
+        applyBartWorksGeneratedBlockMeta(restoredTile, block, placementData.blockMeta);
+        level.setTileEntity(x, y, z, restoredTile);
+        restoredTile = finalizeSpecialPreviewTile(level, x, y, z, restoredTile);
+        return resolveWorldResidentTile(world, x, y, z, restoredTile);
+    }
+
+    @Nullable
+    private static TileEntity finalizeSpecialPreviewTile(GuidebookLevel level, int x, int y, int z,
+        @Nullable TileEntity tileEntity) {
+        TileEntity finalizedTile = GuideForgeMultipartSupport.finalizePreviewTile(tileEntity);
+        if (finalizedTile != null && finalizedTile != tileEntity) {
+            level.setTileEntity(x, y, z, finalizedTile);
+        }
+        return finalizedTile;
+    }
+
+    @Nullable
+    private static NBTTagCompound captureTileSnapshot(@Nullable TileEntity tileEntity) {
+        if (tileEntity == null) {
+            return null;
+        }
+        try {
+            NBTTagCompound snapshot = new NBTTagCompound();
+            tileEntity.writeToNBT(snapshot);
+            return snapshot;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static boolean applyTileSnapshot(@Nullable TileEntity tileEntity, @Nullable NBTTagCompound snapshot, int x,
+        int y, int z) {
+        if (tileEntity == null || snapshot == null) {
+            return false;
+        }
+        try {
+            tileEntity.readFromNBT(withWorldPosition(snapshot, x, y, z));
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
     private static boolean isInstanceOf(@Nullable Object instance, String className) {
         if (instance == null || className == null || className.isEmpty()) {
             return false;
@@ -270,6 +680,21 @@ public class GuidebookPreviewBlockPlacer {
         TileEntity fallback) {
         TileEntity resident = world.getTileEntity(x, y, z);
         return resident != null ? resident : fallback;
+    }
+
+    private static TileEntity preferPreparedTileEntity(TileEntity preparedTile, @Nullable TileEntity residentTile) {
+        if (residentTile == null || residentTile == preparedTile) {
+            return preparedTile;
+        }
+        return residentTile.getClass() == preparedTile.getClass() ? preparedTile : residentTile;
+    }
+
+    private static NBTTagCompound withWorldPosition(NBTTagCompound snapshot, int x, int y, int z) {
+        NBTTagCompound copy = (NBTTagCompound) snapshot.copy();
+        copy.setInteger("x", x);
+        copy.setInteger("y", y);
+        copy.setInteger("z", z);
+        return copy;
     }
 
     private static void logPlacementRequest(int x, int y, int z, Block block, int requestedMeta,

@@ -21,6 +21,7 @@ public class GuidebookScenePreviewPlayerEntity extends EntityOtherPlayerMP
 
     public GuidebookScenePreviewPlayerEntity(World world, GameProfile gameProfile) {
         super(world, gameProfile);
+        GuidebookPreviewPlayerSkinResolver.queueSkinRefresh(this);
     }
 
     @Override

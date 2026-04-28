@@ -20,7 +20,6 @@ class GuideMEClientProxy extends GuideMEServerProxy {
     public boolean reloadResources() {
         var mc = Minecraft.getMinecraft();
         if (mc == null) return false;
-        mc.refreshResources();
-        return true;
+        return GuideMEClientReloadDispatcher.dispatch(mc.func_152345_ab(), mc::func_152344_a, mc::refreshResources);
     }
 }

@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.element;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -238,7 +237,6 @@ public class GuidebookSceneEntityLoader {
         }
 
         GameProfile gameProfile = resolveInitialPreviewPlayerGameProfile(profileSpec);
-        gameProfile = hydratePreviewPlayerProfile(gameProfile);
         Entity entity = createPreviewPlayerEntity(world, gameProfile);
         if (entity == null) {
             throw new IllegalArgumentException("Failed to create preview player entity");
@@ -277,7 +275,7 @@ public class GuidebookSceneEntityLoader {
             return new GameProfile(profileSpec.getUuid(), profileSpec.getName());
         }
 
-        GameProfile resolvedNamedProfile = resolveNamedPreviewPlayerProfile(profileSpec.getName());
+        GameProfile resolvedNamedProfile = resolveCachedPreviewPlayerProfile(profileSpec.getName());
         if (resolvedNamedProfile != null && resolvedNamedProfile.getId() != null) {
             return resolvedNamedProfile;
         }
@@ -288,7 +286,7 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
-    private static GameProfile resolveNamedPreviewPlayerProfile(String playerName) {
+    public static GameProfile resolveCachedPreviewPlayerProfile(String playerName) {
         String cacheKey = normalizeProfileCacheKey(playerName);
         GameProfile cachedProfile = cacheKey == null ? null : PREVIEW_PLAYER_PROFILE_CACHE.get(cacheKey);
         if (cachedProfile != null) {
@@ -300,15 +298,11 @@ public class GuidebookSceneEntityLoader {
             profile = null;
         }
         if (profile == null) {
-            profile = lookupProfileFromRepository(playerName);
-        }
-        if (profile == null) {
             return null;
         }
 
-        GameProfile hydratedProfile = hydratePreviewPlayerProfile(profile);
-        cachePreviewPlayerProfile(playerName, hydratedProfile);
-        return hydratedProfile;
+        cachePreviewPlayerProfile(playerName, profile);
+        return profile;
     }
 
     @Nullable
@@ -326,7 +320,7 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
-    private static GameProfile lookupProfileFromRepository(String playerName) {
+    public static GameProfile lookupProfileFromRepository(String playerName) {
         GameProfileRepository repository = getPreviewPlayerProfileRepository();
         if (repository == null) {
             return null;
@@ -352,6 +346,13 @@ public class GuidebookSceneEntityLoader {
             return null;
         }
         return resolvedProfile[0];
+    }
+
+    public static void cacheResolvedPreviewPlayerProfile(String playerName, GameProfile profile) {
+        if (profile == null) {
+            return;
+        }
+        cachePreviewPlayerProfile(playerName, profile);
     }
 
     @Nullable
@@ -418,34 +419,6 @@ public class GuidebookSceneEntityLoader {
     private static String normalizeProfileCacheKey(@Nullable String playerName) {
         String trimmedName = trimToNull(playerName);
         return trimmedName == null ? null : trimmedName.toLowerCase(Locale.ROOT);
-    }
-
-    private static GameProfile hydratePreviewPlayerProfile(GameProfile originalProfile) {
-        if (originalProfile == null || hasTextures(originalProfile)) {
-            return originalProfile;
-        }
-
-        try {
-            Class<?> minecraftClass = Class.forName("net.minecraft.client.Minecraft");
-            Object minecraft = minecraftClass.getMethod("getMinecraft")
-                .invoke(null);
-            if (minecraft == null) {
-                return originalProfile;
-            }
-
-            Method sessionServiceAccessor = minecraftClass.getMethod("func_152347_ac");
-            Object sessionService = sessionServiceAccessor.invoke(minecraft);
-            if (sessionService == null) {
-                return originalProfile;
-            }
-
-            Method fillProfileProperties = sessionService.getClass()
-                .getMethod("fillProfileProperties", GameProfile.class, boolean.class);
-            Object hydrated = fillProfileProperties.invoke(sessionService, originalProfile, Boolean.TRUE);
-            return hydrated instanceof GameProfile ? (GameProfile) hydrated : originalProfile;
-        } catch (Throwable ignored) {
-            return originalProfile;
-        }
     }
 
     private static boolean hasTextures(GameProfile profile) {

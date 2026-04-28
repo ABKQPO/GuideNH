@@ -175,8 +175,6 @@ public class CameraSettings {
             viewDirty = false;
             var result = reusableView.identity();
             result.translate(offsetX, offsetY, 0f);
-            float s = 0.625f * 16f * zoom;
-            result.scale(s, s, s);
             result.translate(rotationCenter.x, rotationCenter.y, rotationCenter.z);
             result.rotateZ(DEG_TO_RAD * rotationZ);
             result.rotateX(DEG_TO_RAD * rotationX);
@@ -189,8 +187,14 @@ public class CameraSettings {
     public Matrix4f getProjectionMatrix() {
         if (projectionDirty) {
             projectionDirty = false;
+            float s = 0.625f * 16f * zoom;
             reusableProjection.identity()
-                .setOrtho(viewport.x(), viewport.z(), viewport.y(), viewport.w(), -1000f, 3000f);
+                .setOrtho(viewport.x(), viewport.z(), viewport.y(), viewport.w(), -1000f, 3000f)
+                // Keep zoom out of the model-view matrix so fixed-function lighting is not
+                // skewed by our orthographic preview scale.
+                .translate(offsetX, offsetY, 0f)
+                .scale(s, s, 1f)
+                .translate(-offsetX, -offsetY, 0f);
         }
         return reusableProjection;
     }
@@ -289,6 +293,7 @@ public class CameraSettings {
 
     private void markViewDirty() {
         viewDirty = true;
+        projectionDirty = true;
         combinedDirty = true;
         invertedDirty = true;
     }

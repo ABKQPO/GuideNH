@@ -156,6 +156,32 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         previewStateDirty = true;
     }
 
+    public boolean setBlockMetadata(int x, int y, int z, int meta) {
+        if (y < 0 || y >= 256) {
+            return false;
+        }
+
+        GuidebookChunk chunk = getChunk(x >> 4, z >> 4, false);
+        if (chunk == null) {
+            return false;
+        }
+
+        Block block = chunk.getBlock(x, y, z);
+        if (block == null || block == Blocks.air) {
+            return false;
+        }
+
+        chunk.setBlock(x, y, z, block, meta);
+
+        TileEntity tileEntity = tileEntities.get(packPos(x, y, z));
+        if (tileEntity != null) {
+            bindTileEntity(tileEntity, x, y, z, getOrCreateFakeWorld());
+        }
+
+        previewStateDirty = true;
+        return true;
+    }
+
     public void setExplicitBlockId(int x, int y, int z, @Nullable String blockId) {
         long key = packPos(x, y, z);
         if (blockId == null || blockId.trim()

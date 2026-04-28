@@ -1,4 +1,5 @@
 import java.io.File
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     id("com.gtnewhorizons.gtnhconvention")
@@ -14,6 +15,10 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+}
+
+configurations.matching { it.name.startsWith("test", ignoreCase = true) }.configureEach {
+    exclude(group = "com.github.GTNewHorizons", module = "ForgeMultipart")
 }
 
 tasks.named<Jar>("sourcesJar") {
@@ -62,13 +67,33 @@ tasks.named("processResources").configure {
     dependsOn(packageGuideTutorialResourcePack)
 }
 
-tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+tasks.named<ShadowJar>("shadowJar") {
     relocate("org.yaml.snakeyaml", "com.hfstudio.guidenh.shadow.snakeyaml")
     relocate("io.methvin", "com.hfstudio.guidenh.shadow.methvin")
     relocate("org.apache.lucene", "com.hfstudio.guidenh.shadow.lucene")
     relocate("org.apache.commons", "com.hfstudio.guidenh.shadow.commons")
     relocate("com.sun.jna", "com.hfstudio.guidenh.shadow.jna")
     relocate("net.java.dev.jna", "com.hfstudio.guidenh.shadow.jna2")
+    filesMatching(
+        listOf(
+            "META-INF/services/javax.imageio.spi.ImageReaderSpi",
+            "META-INF/services/javax.imageio.spi.ImageWriterSpi")) {
+        filter { line: String ->
+            line.replace(
+                "com.luciad.imageio.webp.",
+                "com.hfstudio.guidenh.shadow.com.luciad.imageio.webp.")
+        }
+    }
+    minimize {
+        exclude(dependency("org.sejda.imageio:webp-imageio:.*"))
+    }
+    from({
+        project.configurations.getByName("shadowImplementation")
+            .resolvedConfiguration
+            .resolvedArtifacts
+            .filter { it.moduleVersion.id.group == "org.sejda.imageio" && it.name == "webp-imageio" }
+            .map { zipTree(it.file) }
+    })
 }
 
 val runConfigs = listOf(

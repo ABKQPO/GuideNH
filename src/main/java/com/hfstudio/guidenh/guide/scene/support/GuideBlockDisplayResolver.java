@@ -32,6 +32,11 @@ public class GuideBlockDisplayResolver {
             return null;
         }
 
+        ItemStack carpentersStack = GuideCarpentersBlockSupport.resolveDisplayStack(level, block, x, y, z, target);
+        if (carpentersStack != null) {
+            return carpentersStack;
+        }
+
         ItemStack pickedStack = safeResolvePickedStack(level, block, x, y, z, target);
         if (pickedStack != null) {
             return pickedStack;
@@ -58,10 +63,46 @@ public class GuideBlockDisplayResolver {
             return null;
         }
 
+        if (GuideCarpentersBlockSupport.isCarpentersBlock(block)) {
+            String carpentersName = resolveIntrinsicBlockDisplayName(level, block, x, y, z);
+            if (carpentersName != null) {
+                return carpentersName;
+            }
+        }
+
         try {
             ItemStack stack = resolveDisplayStack(level, x, y, z, target);
             if (stack != null) {
                 return stack.getDisplayName();
+            }
+        } catch (Throwable ignored) {}
+
+        try {
+            String localizedName = block.getLocalizedName();
+            if (localizedName != null && !localizedName.trim()
+                .isEmpty()) {
+                return localizedName;
+            }
+        } catch (Throwable ignored) {}
+
+        try {
+            return block.getUnlocalizedName();
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    @Nullable
+    private static String resolveIntrinsicBlockDisplayName(GuidebookLevel level, Block block, int x, int y, int z) {
+        try {
+            Item item = Item.getItemFromBlock(block);
+            if (item != null) {
+                ItemStack stack = new ItemStack(item, 1, resolveDisplayMeta(level, block, x, y, z));
+                String displayName = stack.getDisplayName();
+                if (displayName != null && !displayName.trim()
+                    .isEmpty()) {
+                    return displayName;
+                }
             }
         } catch (Throwable ignored) {}
 

@@ -10,22 +10,26 @@ dependencies {
     shadowImplementation("org.apache.lucene:lucene-highlighter:8.11.4")
     shadowImplementation("org.apache.lucene:lucene-memory:8.11.4")
     shadowImplementation("org.apache.commons:commons-lang3:3.3.2") { transitive = false }
+    shadowImplementation("org.sejda.imageio:webp-imageio:0.1.6")
 
     devOnlyNonPublishable("com.github.GTNewHorizons:StructureLib:1.4.34:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.8.91-GTNH:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-911-GTNH:dev")
+    devOnlyNonPublishable("com.github.GTNewHorizons:CarpentersBlocks:3.7.2-GTNH:dev")
+    devOnlyNonPublishable("com.github.GTNewHorizons:ForgeMultipart:1.7.5:dev")
 
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Baubles-Expanded:2.2.13-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.16-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botanic-horizons:1.12.8-GTNH:dev")
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:CarpentersBlocks:3.7.2-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.12:dev")
+    runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))
 
     compileOnly("org.projectlombok:lombok:1.18.42") { transitive = false }
     annotationProcessor("org.projectlombok:lombok:1.18.42")
 
     implementation("com.google.auto.value:auto-value-annotations:1.10.4")
     annotationProcessor("com.google.auto.value:auto-value:1.10.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
 }
 
 configurations.configureEach {

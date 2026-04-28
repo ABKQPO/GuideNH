@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,7 +49,9 @@ import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextAr
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorNumericFieldController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorParameterController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
+import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPreviewFrameOverlayLayout;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorScreenLayout;
+import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorScreenshotMenuController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorScrollState;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorSettingsTab;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorTextSyncController;
@@ -58,6 +61,8 @@ import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorUndoUiState;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorVerticalScrollbar;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorClipboardExporter;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorSaveService;
+import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorScreenshotExportService;
+import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorScreenshotFormat;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureImportService;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;
@@ -160,6 +165,7 @@ public class SceneEditorScreen extends GuiScreen {
     private static final int EXPORT_BUTTON_ID = 4;
     private static final int IMPORT_STRUCTURE_BUTTON_ID = 5;
     private static final int ADD_ELEMENT_BUTTON_ID = 6;
+    private static final int SCREENSHOT_BUTTON_ID = 7;
 
     private final SceneEditorSession session;
     private final SceneEditorTextSyncController textSyncController;
@@ -177,6 +183,8 @@ public class SceneEditorScreen extends GuiScreen {
     private final SceneEditorCameraMarkerOverlay cameraMarkerOverlay;
     private final SceneEditorPointDragService pointDragService;
     private final SceneEditorSaveService saveService;
+    private final SceneEditorScreenshotExportService screenshotExportService;
+    private final SceneEditorScreenshotMenuController screenshotMenuController;
     private final SceneEditorStructureImportService structureImportService;
     private final LayoutContext previewLayoutContext;
     private final VanillaRenderContext previewRenderContext;
@@ -193,8 +201,11 @@ public class SceneEditorScreen extends GuiScreen {
     private GuideIconButton autoPickButton;
     private GuideIconButton exportButton;
     private GuideIconButton importStructureButton;
+    private GuideIconButton screenshotButton;
     private GuideIconButton addElementButton;
     private SceneEditorMultilineTextArea markdownTextArea;
+    @Nullable
+    private GuiTextField screenshotScaleField;
     @Nullable
     private CompletableFuture<SceneEditorStructureImportService.ImportResult> pendingStructureImport;
 
@@ -249,6 +260,7 @@ public class SceneEditorScreen extends GuiScreen {
     private List<ElementContextMenuAction> contextMenuActions;
     private boolean addElementMenuOpen;
     private boolean snapModeMenuOpen;
+    private boolean draggingScreenshotScaleSlider;
     private boolean elementListFocused;
     private boolean draggingMarkdownResize;
     private boolean draggingElementScrollbar;
@@ -300,6 +312,20 @@ public class SceneEditorScreen extends GuiScreen {
         this.pointDragService = new SceneEditorPointDragService(new SceneEditorSnapService());
         SceneEditorStructureCache structureCache = SceneEditorStructureCache.createDefault();
         this.saveService = new SceneEditorSaveService(structureCache, new SceneEditorClipboardExporter());
+        Minecraft minecraft = Minecraft.getMinecraft();
+        Path screenshotRoot = minecraft != null ? minecraft.mcDataDir.toPath() : Paths.get(".");
+        this.screenshotExportService = new SceneEditorScreenshotExportService(screenshotRoot);
+        this.screenshotMenuController = new SceneEditorScreenshotMenuController(
+            SceneEditorScreenshotFormat.fromConfigValue(ModConfig.ui.sceneEditorScreenshotFormat),
+            ModConfig.ui.sceneEditorScreenshotScale,
+            format -> {
+                ModConfig.ui.sceneEditorScreenshotFormat = format.configValue();
+                ModConfig.save();
+            },
+            scale -> {
+                ModConfig.ui.sceneEditorScreenshotScale = scale;
+                ModConfig.save();
+            });
         this.structureImportService = new SceneEditorStructureImportService(structureCache);
         this.previewLayoutContext = new LayoutContext(new MinecraftFontMetrics());
         this.previewRenderContext = new VanillaRenderContext(LightDarkMode.LIGHT_MODE, LytRect.empty(), 0);
@@ -321,6 +347,8 @@ public class SceneEditorScreen extends GuiScreen {
         this.contextMenuActions = Collections.emptyList();
         this.addElementMenuOpen = false;
         this.snapModeMenuOpen = false;
+        this.screenshotScaleField = null;
+        this.draggingScreenshotScaleSlider = false;
         this.elementListFocused = false;
         this.draggingMarkdownResize = false;
         this.draggingElementScrollbar = false;
@@ -402,6 +430,18 @@ public class SceneEditorScreen extends GuiScreen {
             toolbarX + 100,
             TOOLBAR_Y,
             GuideIconButton.Role.SCENE_EDITOR_EXPORT);
+        screenshotButton = new GuideIconButton(
+            SCREENSHOT_BUTTON_ID,
+            toolbarX + 120,
+            TOOLBAR_Y,
+            GuideIconButton.Role.SCENE_EDITOR_SCREENSHOT);
+
+        if (screenshotScaleField == null) {
+            screenshotScaleField = new GuiTextField(this.fontRendererObj, 0, 0, 0, PARAMETER_INPUT_HEIGHT);
+            screenshotScaleField.setEnableBackgroundDrawing(false);
+            screenshotScaleField.setMaxStringLength(2);
+        }
+        screenshotScaleField.setText(screenshotMenuController.getScaleDraftText());
 
         this.buttonList.add(closeButton);
         this.buttonList.add(resetPreviewButton);
@@ -409,6 +449,7 @@ public class SceneEditorScreen extends GuiScreen {
         this.buttonList.add(autoPickButton);
         this.buttonList.add(importStructureButton);
         this.buttonList.add(exportButton);
+        this.buttonList.add(screenshotButton);
         addElementButton = new GuideIconButton(
             ADD_ELEMENT_BUTTON_ID,
             elementsBoxX + elementsBoxWidth - GuideIconButton.WIDTH - 6,
@@ -431,6 +472,9 @@ public class SceneEditorScreen extends GuiScreen {
         }
         if (expandedElementEditor != null) {
             expandedElementEditor.updateCursorCounter();
+        }
+        if (screenshotScaleField != null) {
+            screenshotScaleField.updateCursorCounter();
         }
         processPendingStructureImport();
         processPendingMarkdownLiveSync();
@@ -466,6 +510,10 @@ public class SceneEditorScreen extends GuiScreen {
         }
         if (button.id == EXPORT_BUTTON_ID) {
             attemptSaveWithoutClose();
+            return;
+        }
+        if (button.id == SCREENSHOT_BUTTON_ID) {
+            exportPreviewScreenshot();
             return;
         }
         if (button.id == ADD_ELEMENT_BUTTON_ID) {
@@ -507,6 +555,9 @@ public class SceneEditorScreen extends GuiScreen {
         if (expandedElementEditor != null && expandedElementEditor.keyTyped(typedChar, keyCode)) {
             return;
         }
+        if (handleScreenshotScaleKeyTyped(typedChar, keyCode)) {
+            return;
+        }
         if (handleElementShortcutKey(keyCode)) {
             return;
         }
@@ -544,6 +595,9 @@ public class SceneEditorScreen extends GuiScreen {
         super.drawScreen(mouseX, mouseY, partialTicks);
         if (snapModeMenuOpen) {
             drawSnapModeMenu(mouseX, mouseY);
+        }
+        if (screenshotMenuController.isOpen()) {
+            drawScreenshotMenu(mouseX, mouseY);
         }
 
         if (closeConfirmDialogOpen) {
@@ -590,6 +644,14 @@ public class SceneEditorScreen extends GuiScreen {
         if (wheelDelta != 0 && markdownTextArea != null) {
             int mouseX = Mouse.getEventX() * this.width / this.mc.displayWidth;
             int mouseY = this.height - Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
+            if (screenshotMenuController.isOpen() && (isInsideScreenshotMenu(mouseX, mouseY)
+                || screenshotScaleField != null && screenshotScaleField.isFocused())) {
+                screenshotMenuController.nudgeScale(wheelDelta);
+                if (screenshotScaleField != null) {
+                    screenshotScaleField.setText(screenshotMenuController.getScaleDraftText());
+                }
+                return;
+            }
             if (focusedParameterRow != null && focusedParameterRow.applyMouseWheel(wheelDelta)) {
                 return;
             }
@@ -653,11 +715,20 @@ public class SceneEditorScreen extends GuiScreen {
         if (!commitExpandedElementEditor(mouseX, mouseY)) {
             return;
         }
+        if (handleScreenshotMenuClick(mouseX, mouseY, button)) {
+            return;
+        }
+        if (button == 1 && isInsideScreenshotButton(mouseX, mouseY)) {
+            screenshotMenuController.toggleOpen();
+            snapModeMenuOpen = false;
+            return;
+        }
         if (handleSnapModeMenuClick(mouseX, mouseY, button)) {
             return;
         }
         if (button == 1 && isInsideSnapButton(mouseX, mouseY)) {
             snapModeMenuOpen = !snapModeMenuOpen;
+            screenshotMenuController.close();
             return;
         }
         if (snapModeMenuOpen && !isInsideSnapButton(mouseX, mouseY) && !isInsideSnapModeMenu(mouseX, mouseY)) {
@@ -790,6 +861,15 @@ public class SceneEditorScreen extends GuiScreen {
             elementReorderController.updateDrag(mouseY, buildElementRowMetrics());
             return;
         }
+        if (clickedMouseButton == 0 && draggingScreenshotScaleSlider) {
+            LytRect sliderBounds = screenshotMenuController.scaleSliderBounds(getScreenshotMenuBounds());
+            screenshotMenuController.applyScaleFraction(
+                GuideSliderRenderer.fractionFromMouse(mouseX, sliderBounds.x(), sliderBounds.width()));
+            if (screenshotScaleField != null) {
+                screenshotScaleField.setText(screenshotMenuController.getScaleDraftText());
+            }
+            return;
+        }
         if (clickedMouseButton == 0 && activePointDrag != null && previewScene != null) {
             if (pointDragService.updateHandleDrag(
                 elementPropertyController,
@@ -825,6 +905,10 @@ public class SceneEditorScreen extends GuiScreen {
         }
         if (activeSliderRow != null && state != -1) {
             activeSliderRow = null;
+            return;
+        }
+        if (draggingScreenshotScaleSlider && state != -1) {
+            draggingScreenshotScaleSlider = false;
             return;
         }
         if (draggingMarkdownResize && state != -1) {
@@ -906,7 +990,7 @@ public class SceneEditorScreen extends GuiScreen {
         String structureSource = session.getSceneModel()
             .getStructureSource();
         boolean hasImportedStructure = structureSource != null && !structureSource.isEmpty();
-        int titleX = TOOLBAR_MARGIN_X + 132;
+        int titleX = TOOLBAR_MARGIN_X + 152;
         int sessionLabelY = TOOLBAR_Y + 16;
         this.drawString(this.fontRendererObj, GuidebookText.SceneEditorTitle.text(), titleX, TOOLBAR_Y + 4, 0xFFFFFF);
         String sessionLabel = hasImportedStructure ? GuidebookText.SceneEditorImportedSession.text()
@@ -1300,32 +1384,31 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private void drawPreviewFrameOverlay() {
-        LytRect interactionArea = screenLayout.previewInteraction();
-        if (interactionArea.isEmpty()) {
+        if (previewScene == null) {
             return;
         }
-        int frameWidth = Math.min(
+        SceneEditorPreviewFrameOverlayLayout.Layout overlayLayout = SceneEditorPreviewFrameOverlayLayout.resolve(
+            previewScene.getScreenRect(),
             session.getSceneModel()
                 .getPreviewWidth(),
-            interactionArea.width());
-        int frameHeight = Math.min(
             session.getSceneModel()
-                .getPreviewHeight(),
-            interactionArea.height());
-        int frameX = interactionArea.x() + Math.max(0, (interactionArea.width() - frameWidth) / 2);
-        int frameY = interactionArea.y() + Math.max(0, (interactionArea.height() - frameHeight) / 2);
-        drawRect(frameX, frameY, frameX + frameWidth, frameY + 1, 0xFF00CAF2);
-        drawRect(frameX, frameY + frameHeight - 1, frameX + frameWidth, frameY + frameHeight, 0xFF00CAF2);
-        drawRect(frameX, frameY, frameX + 1, frameY + frameHeight, 0xFF00CAF2);
-        drawRect(frameX + frameWidth - 1, frameY, frameX + frameWidth, frameY + frameHeight, 0xFF00CAF2);
+                .getPreviewHeight());
+        LytRect frameRect = overlayLayout.frameRect();
+        if (frameRect.isEmpty()) {
+            return;
+        }
+        drawRect(frameRect.x(), frameRect.y(), frameRect.right(), frameRect.y() + 1, 0xFF00CAF2);
+        drawRect(frameRect.x(), frameRect.bottom() - 1, frameRect.right(), frameRect.bottom(), 0xFF00CAF2);
+        drawRect(frameRect.x(), frameRect.y(), frameRect.x() + 1, frameRect.bottom(), 0xFF00CAF2);
+        drawRect(frameRect.right() - 1, frameRect.y(), frameRect.right(), frameRect.bottom(), 0xFF00CAF2);
         this.drawString(
             this.fontRendererObj,
             session.getSceneModel()
                 .getPreviewWidth() + " x "
                 + session.getSceneModel()
                     .getPreviewHeight(),
-            frameX + 4,
-            Math.max(interactionArea.y() + 4, frameY - 10),
+            overlayLayout.labelX(),
+            overlayLayout.labelY(),
             PANEL_HEADER_COLOR);
     }
 
@@ -1482,6 +1565,9 @@ public class SceneEditorScreen extends GuiScreen {
             && !expandedElementEditor.commitFocusedDraft(Integer.MIN_VALUE, Integer.MIN_VALUE)) {
             return false;
         }
+        if (!commitScreenshotScaleDraft()) {
+            return false;
+        }
         return true;
     }
 
@@ -1526,6 +1612,41 @@ public class SceneEditorScreen extends GuiScreen {
         return message != null && !message.isEmpty() ? message
             : throwable.getClass()
                 .getSimpleName();
+    }
+
+    private void exportPreviewScreenshot() {
+        if (!commitScreenshotScaleDraft()) {
+            return;
+        }
+        ensurePreviewScene();
+        if (previewScene == null) {
+            return;
+        }
+        SceneEditorScreenshotExportService.ExportResult result = screenshotExportService.export(
+            previewScene,
+            screenshotMenuController.getFormat(),
+            screenshotMenuController.getScale(),
+            session.getSceneModel()
+                .getPreviewWidth(),
+            session.getSceneModel()
+                .getPreviewHeight());
+        if (mc == null || mc.thePlayer == null) {
+            return;
+        }
+        if (result.isSuccess()) {
+            mc.thePlayer.addChatMessage(
+                new ChatComponentTranslation(
+                    GuidebookText.SceneEditorScreenshotSuccess.getTranslationKey(),
+                    result.getSavedPath()
+                        .toAbsolutePath()
+                        .normalize()
+                        .toString()));
+        } else {
+            mc.thePlayer.addChatMessage(
+                new ChatComponentTranslation(
+                    GuidebookText.SceneEditorScreenshotFailure.getTranslationKey(),
+                    extractErrorMessage(result.getError())));
+        }
     }
 
     private void importStructureFromFile() {
@@ -1589,6 +1710,7 @@ public class SceneEditorScreen extends GuiScreen {
 
     private boolean hasFocusedTextInput() {
         return markdownTextArea != null && markdownTextArea.isFocused() || focusedParameterRow != null
+            || screenshotScaleField != null && screenshotScaleField.isFocused()
             || expandedElementEditor != null && expandedElementEditor.hasFocusedInput();
     }
 
@@ -2911,6 +3033,170 @@ public class SceneEditorScreen extends GuiScreen {
                 rowY + 5,
                 PANEL_HEADER_COLOR);
         }
+    }
+
+    private boolean isInsideScreenshotButton(int mouseX, int mouseY) {
+        return screenshotButton != null && mouseX >= screenshotButton.xPosition
+            && mouseX < screenshotButton.xPosition + screenshotButton.width
+            && mouseY >= screenshotButton.yPosition
+            && mouseY < screenshotButton.yPosition + screenshotButton.height;
+    }
+
+    private LytRect getScreenshotMenuBounds() {
+        if (screenshotButton == null) {
+            return new LytRect(
+                TOOLBAR_MARGIN_X + 120,
+                TOOLBAR_Y + GuideIconButton.HEIGHT,
+                SceneEditorScreenshotMenuController.MENU_WIDTH,
+                0);
+        }
+        return SceneEditorPopupLayout.placeBelowAnchor(
+            new LytRect(
+                screenshotButton.xPosition,
+                screenshotButton.yPosition,
+                screenshotButton.width,
+                screenshotButton.height),
+            SceneEditorScreenshotMenuController.MENU_WIDTH,
+            screenshotMenuController.menuHeight(),
+            this.width,
+            this.height,
+            4);
+    }
+
+    private boolean isInsideScreenshotMenu(int mouseX, int mouseY) {
+        return screenshotMenuController.isOpen() && getScreenshotMenuBounds().contains(mouseX, mouseY);
+    }
+
+    private boolean commitScreenshotScaleDraft() {
+        if (screenshotScaleField == null) {
+            return true;
+        }
+        boolean committed = screenshotMenuController.commitScaleDraft(screenshotScaleField.getText());
+        screenshotScaleField.setText(screenshotMenuController.getScaleDraftText());
+        return committed;
+    }
+
+    private boolean handleScreenshotScaleKeyTyped(char typedChar, int keyCode) {
+        if (screenshotScaleField == null || !screenshotScaleField.isFocused()) {
+            return false;
+        }
+        if (keyCode == Keyboard.KEY_RETURN || keyCode == Keyboard.KEY_NUMPADENTER) {
+            return commitScreenshotScaleDraft();
+        }
+        boolean handled = screenshotScaleField.textboxKeyTyped(typedChar, keyCode);
+        if (handled) {
+            screenshotMenuController.setScaleDraftText(screenshotScaleField.getText());
+        }
+        return handled;
+    }
+
+    private boolean handleScreenshotMenuClick(int mouseX, int mouseY, int button) {
+        boolean insideButton = isInsideScreenshotButton(mouseX, mouseY);
+        boolean insideMenu = screenshotMenuController.isOpen() && getScreenshotMenuBounds().contains(mouseX, mouseY);
+        if (!screenshotMenuController.isOpen()) {
+            return false;
+        }
+        if (button == 0 && insideMenu) {
+            LytRect menuBounds = getScreenshotMenuBounds();
+            SceneEditorScreenshotFormat format = screenshotMenuController.formatAt(menuBounds, mouseX, mouseY);
+            if (format != null) {
+                screenshotMenuController.selectFormat(format);
+                return true;
+            }
+            if (screenshotScaleField != null) {
+                LytRect inputBounds = screenshotMenuController.scaleInputBounds(menuBounds);
+                if (inputBounds.contains(mouseX, mouseY)) {
+                    screenshotScaleField.xPosition = inputBounds.x() + 4;
+                    screenshotScaleField.yPosition = inputBounds.y() + 4;
+                    screenshotScaleField.width = Math.max(8, inputBounds.width() - 8);
+                    screenshotScaleField.height = inputBounds.height() - 4;
+                    screenshotScaleField.mouseClicked(mouseX, mouseY, button);
+                    return true;
+                }
+            }
+            LytRect sliderBounds = screenshotMenuController.scaleSliderBounds(menuBounds);
+            if (sliderBounds.contains(mouseX, mouseY)) {
+                screenshotMenuController.applyScaleFraction(
+                    GuideSliderRenderer.fractionFromMouse(mouseX, sliderBounds.x(), sliderBounds.width()));
+                if (screenshotScaleField != null) {
+                    screenshotScaleField.setText(screenshotMenuController.getScaleDraftText());
+                }
+                draggingScreenshotScaleSlider = true;
+                return true;
+            }
+        }
+        if (!insideMenu && screenshotScaleField != null && screenshotScaleField.isFocused()) {
+            if (!commitScreenshotScaleDraft()) {
+                return true;
+            }
+            screenshotScaleField.setFocused(false);
+        }
+        screenshotMenuController.handleOutsideClick(insideButton, insideMenu);
+        return false;
+    }
+
+    private void drawScreenshotMenu(int mouseX, int mouseY) {
+        LytRect menuBounds = getScreenshotMenuBounds();
+        drawRect(menuBounds.x(), menuBounds.y(), menuBounds.right(), menuBounds.bottom(), ELEMENT_MENU_BACKGROUND);
+        drawBorder(menuBounds.x(), menuBounds.y(), menuBounds.width(), menuBounds.height(), 0xFF3E434A);
+
+        int rowTop = menuBounds.y() + SceneEditorScreenshotMenuController.MENU_PADDING;
+        for (int i = 0; i < SceneEditorScreenshotFormat.values().length; i++) {
+            SceneEditorScreenshotFormat format = SceneEditorScreenshotFormat.values()[i];
+            int rowY = rowTop + i * SceneEditorScreenshotMenuController.FORMAT_ROW_HEIGHT;
+            boolean hovered = mouseX >= menuBounds.x() && mouseX < menuBounds.right()
+                && mouseY >= rowY
+                && mouseY < rowY + SceneEditorScreenshotMenuController.FORMAT_ROW_HEIGHT;
+            if (hovered) {
+                drawRect(
+                    menuBounds.x() + 1,
+                    rowY,
+                    menuBounds.right() - 1,
+                    rowY + SceneEditorScreenshotMenuController.FORMAT_ROW_HEIGHT,
+                    ELEMENT_MENU_HOVER);
+            }
+            boolean selected = format == screenshotMenuController.getFormat();
+            int boxX = menuBounds.x() + 6;
+            int boxY = rowY + 3;
+            drawRect(boxX, boxY, boxX + 10, boxY + 10, CHECKBOX_BACKGROUND_COLOR);
+            drawBorder(boxX, boxY, 10, 10, selected ? CHECKBOX_CHECK_COLOR : INPUT_BORDER_COLOR);
+            if (selected) {
+                drawRect(boxX + 2, boxY + 2, boxX + 8, boxY + 8, CHECKBOX_CHECK_COLOR);
+            }
+            this.drawString(this.fontRendererObj, format.name(), menuBounds.x() + 22, rowY + 5, PANEL_HEADER_COLOR);
+        }
+
+        this.drawString(
+            this.fontRendererObj,
+            GuidebookText.SceneEditorScreenshotScale.text(),
+            menuBounds.x() + SceneEditorScreenshotMenuController.MENU_PADDING,
+            rowTop + SceneEditorScreenshotFormat.values().length * SceneEditorScreenshotMenuController.FORMAT_ROW_HEIGHT
+                + SceneEditorScreenshotMenuController.SECTION_GAP,
+            PANEL_MUTED_TEXT);
+
+        LytRect inputBounds = screenshotMenuController.scaleInputBounds(menuBounds);
+        int borderColor = screenshotMenuController.hasScaleValidationError() ? INPUT_ERROR_BORDER_COLOR
+            : screenshotScaleField != null && screenshotScaleField.isFocused() ? INPUT_FOCUSED_BORDER_COLOR
+                : INPUT_BORDER_COLOR;
+        drawRect(inputBounds.x(), inputBounds.y(), inputBounds.right(), inputBounds.bottom(), INPUT_BACKGROUND_COLOR);
+        drawBorder(inputBounds.x(), inputBounds.y(), inputBounds.width(), inputBounds.height(), borderColor);
+        if (screenshotScaleField != null) {
+            screenshotScaleField.xPosition = inputBounds.x() + 4;
+            screenshotScaleField.yPosition = inputBounds.y() + 4;
+            screenshotScaleField.width = Math.max(8, inputBounds.width() - 8);
+            screenshotScaleField.height = inputBounds.height() - 4;
+            drawCompactTextFieldValue(screenshotScaleField, screenshotMenuController.getScaleDraftText());
+        }
+
+        LytRect sliderBounds = screenshotMenuController.scaleSliderBounds(menuBounds);
+        GuideSliderRenderer.render(
+            Gui::drawRect,
+            GuideSliderRenderer.layout(
+                sliderBounds.x(),
+                sliderBounds.y(),
+                sliderBounds.width(),
+                screenshotMenuController.scaleFraction()),
+            draggingScreenshotScaleSlider || sliderBounds.contains(mouseX, mouseY));
     }
 
     private boolean isInsideSnapButton(int mouseX, int mouseY) {

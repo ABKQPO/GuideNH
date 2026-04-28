@@ -63,7 +63,7 @@ navigation:
   <Entity
     id="player"
     y="1"
-    name="ArtherSnow"
+    name="Circulation_"
     headRotation="0 20 0"
     rightArmRotation="-35 0 0"
     leftArmRotation="10 0 -12"

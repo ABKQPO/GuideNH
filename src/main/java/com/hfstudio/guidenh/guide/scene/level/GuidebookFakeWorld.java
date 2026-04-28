@@ -2,7 +2,9 @@ package com.hfstudio.guidenh.guide.scene.level;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -38,6 +40,8 @@ public class GuidebookFakeWorld extends WorldClient {
     private static volatile boolean bartWorksMetaFieldResolved;
 
     private final GuidebookLevel level;
+    @Nullable
+    private Set<Long> markBlockForUpdateGuard;
 
     public GuidebookFakeWorld(GuidebookLevel level) {
         super(
@@ -210,7 +214,16 @@ public class GuidebookFakeWorld extends WorldClient {
         if (tileEntity == null) {
             return;
         }
-        applyDescriptionPacket(tileEntity);
+        long guardKey = packBlockPos(x, y, z);
+        Set<Long> inProgress = getOrCreateMarkBlockForUpdateGuard();
+        if (!inProgress.add(guardKey)) {
+            return;
+        }
+        try {
+            applyDescriptionPacket(tileEntity);
+        } finally {
+            inProgress.remove(guardKey);
+        }
     }
 
     @Override
@@ -278,16 +291,7 @@ public class GuidebookFakeWorld extends WorldClient {
 
     @Override
     public boolean setBlockMetadataWithNotify(int x, int y, int z, int metadata, int flags) {
-        Block block = level.getBlock(x, y, z);
-        if (block == null || block == Blocks.air) {
-            return false;
-        }
-        TileEntity tileEntity = level.getTileEntity(x, y, z);
-        if (tileEntity == null && block.hasTileEntity(metadata)) {
-            tileEntity = GuidebookTileEntityLoader.load(this, block, metadata, x, y, z, null);
-        }
-        level.setBlock(x, y, z, block, metadata, tileEntity);
-        return true;
+        return level != null && level.setBlockMetadata(x, y, z, metadata);
     }
 
     @Override
@@ -393,5 +397,16 @@ public class GuidebookFakeWorld extends WorldClient {
                 tileEntity.onDataPacket(null, updatePacket);
             }
         } catch (Throwable ignored) {}
+    }
+
+    private Set<Long> getOrCreateMarkBlockForUpdateGuard() {
+        if (markBlockForUpdateGuard == null) {
+            markBlockForUpdateGuard = new HashSet<>();
+        }
+        return markBlockForUpdateGuard;
+    }
+
+    private static long packBlockPos(int x, int y, int z) {
+        return ((long) (x & 0x3FFFFFF)) | (((long) (z & 0x3FFFFFF)) << 26) | (((long) (y & 0xFFF)) << 52);
     }
 }

@@ -43,12 +43,14 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 
 public class GuidebookLevelRenderer {
 
     private static final GuidebookLevelRenderer INSTANCE = new GuidebookLevelRenderer();
+    private static final int FULL_BRIGHTNESS = 15728880;
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
 
@@ -170,7 +172,8 @@ public class GuidebookLevelRenderer {
                 GL11.glEnable(GL_ALPHA_TEST);
                 GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
                 GL11.glEnable(GL_TEXTURE_2D);
-                GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+                GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+                GL11.glEnable(GL11.GL_NORMALIZE);
                 GL11.glColor4f(1f, 1f, 1f, 1f);
                 GL11.glNormal3f(0f, 1f, 0f);
 
@@ -190,30 +193,30 @@ public class GuidebookLevelRenderer {
                     var filledBlocks = level.getFilledBlocks();
                     var tileEntities = level.getTileEntities();
 
-                    mc.entityRenderer.disableLightmap(0);
-                    setRenderPass(0);
-                    GL11.glDisable(GL_BLEND);
-                    renderBlocksPass(level, filledBlocks, 0, visibleLayerY);
+                    mc.entityRenderer.enableLightmap(partialTicks);
+                    try {
+                        setRenderPass(0);
+                        GL11.glDisable(GL_BLEND);
+                        renderBlocksPass(level, filledBlocks, 0, visibleLayerY);
 
-                    setRenderPass(1);
-                    GL11.glEnable(GL_BLEND);
-                    GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                    GL11.glDepthMask(false);
-                    renderBlocksPass(level, filledBlocks, 1, visibleLayerY);
-                    GL11.glDepthMask(true);
-                    GL11.glDisable(GL_BLEND);
+                        setRenderPass(1);
+                        GL11.glEnable(GL_BLEND);
+                        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                        GL11.glDepthMask(false);
+                        renderBlocksPass(level, filledBlocks, 1, visibleLayerY);
+                        GL11.glDepthMask(true);
+                        GL11.glDisable(GL_BLEND);
 
-                    setRenderPass(-1);
+                        setRenderPass(-1);
 
-                    RenderHelper.enableStandardItemLighting();
-                    GL11.glEnable(GL_LIGHTING);
-                    renderBlockEntities(tileEntities, partialTicks, visibleLayerY);
-                    renderEntities(level.getEntities(), partialTicks, visibleLayerY);
-                    GL11.glDisable(GL_LIGHTING);
-                    RenderHelper.disableStandardItemLighting();
+                        renderBlockEntities(tileEntities, partialTicks, visibleLayerY);
+                        renderEntities(level.getEntities(), partialTicks, visibleLayerY);
 
-                    if (!annotations.isEmpty()) {
-                        InWorldAnnotationRenderer.render(annotations, lightDarkMode);
+                        if (!annotations.isEmpty()) {
+                            InWorldAnnotationRenderer.render(annotations, lightDarkMode);
+                        }
+                    } finally {
+                        mc.entityRenderer.disableLightmap(partialTicks);
                     }
                 } catch (Throwable t) {
                     log(t);
@@ -284,7 +287,10 @@ public class GuidebookLevelRenderer {
                         GuideGregTechTileSupport.repairMetaTileBinding(tileEntity);
                     }
                     resetRenderBlocksState(rb, fakeWorld, exactLayerMode);
-                    rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
+                    boolean rendered = rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
+                    if (!rendered && GuideForgeMultipartSupport.isForgeMultipartBlock(block)) {
+                        GuideForgeMultipartSupport.renderWorldBlock(rb, fakeWorld, block, p[0], p[1], p[2]);
+                    }
                 } catch (Throwable t) {
                     log(t);
                 }
@@ -322,6 +328,7 @@ public class GuidebookLevelRenderer {
         for (int pass = 0; pass < 2; pass++) {
             setRenderPass(pass);
             setTileEntityRenderPassState(pass);
+            preparePreviewModelLighting();
             for (TileEntity te : tileEntities) {
                 if (te == null) {
                     continue;
@@ -342,11 +349,7 @@ public class GuidebookLevelRenderer {
                     continue;
                 }
                 try {
-                    int brightness = te.getWorldObj()
-                        .getLightBrightnessForSkyBlocks(te.xCoord, te.yCoord, te.zCoord, 0);
-                    OpenGlHelper
-                        .setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, brightness % 65536, brightness / 65536);
-                    GL11.glColor4f(1f, 1f, 1f, 1f);
+                    preparePreviewModelLighting();
                     dispatcher.renderTileEntityAt(te, te.xCoord, te.yCoord, te.zCoord, partialTicks);
                 } catch (Throwable t) {
                     log(t);
@@ -354,6 +357,8 @@ public class GuidebookLevelRenderer {
             }
         }
         setRenderPass(-1);
+        RenderHelper.disableStandardItemLighting();
+        GL11.glDisable(GL_LIGHTING);
         GL11.glEnable(GL_DEPTH_TEST);
         GL11.glDisable(GL_BLEND);
         GL11.glDepthMask(true);
@@ -361,6 +366,7 @@ public class GuidebookLevelRenderer {
 
     private void renderEntities(Iterable<Entity> entities, float partialTicks, @Nullable Integer visibleLayerY) {
         RenderManager renderManager = RenderManager.instance;
+        preparePreviewModelLighting();
         for (Entity entity : entities) {
             if (entity == null || entity.isDead) {
                 continue;
@@ -373,12 +379,10 @@ public class GuidebookLevelRenderer {
                 }
             }
             try {
+                preparePreviewModelLighting();
                 GuideEntityRenderStateResolver.ResolvedEntityRenderState renderState = GuideEntityRenderStateResolver
                     .resolve(entity, partialTicks);
-                int brightness = entity.getBrightnessForRender(partialTicks);
-                if (entity.isBurning()) {
-                    brightness = 15728880;
-                }
+                int brightness = resolveEntityBrightnessForPreview(entity, partialTicks);
                 int lowerBits = brightness % 65536;
                 int upperBits = brightness / 65536;
                 OpenGlHelper.setLightmapTextureCoords(
@@ -400,6 +404,21 @@ public class GuidebookLevelRenderer {
                 log(t);
             }
         }
+        RenderHelper.disableStandardItemLighting();
+        GL11.glDisable(GL_LIGHTING);
+    }
+
+    private static int resolveEntityBrightnessForPreview(Entity entity, float partialTicks) {
+        return FULL_BRIGHTNESS;
+    }
+
+    private static void preparePreviewModelLighting() {
+        RenderHelper.enableStandardItemLighting();
+        GL11.glEnable(GL_LIGHTING);
+        GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+        GL11.glEnable(GL11.GL_NORMALIZE);
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
     }
 
     private void loadMatrix(Matrix4f m) {

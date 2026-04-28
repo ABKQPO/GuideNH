@@ -187,6 +187,12 @@ key.guidenh.open_scene_editor=打开场景编辑器
 
 guideme.guidebook.HighlightStructureLibHatches=切换仓室位置高亮
 
+guideme.guidebook.SceneEditorScreenshot=截图
+guideme.guidebook.SceneEditorScreenshotFormat=格式
+guideme.guidebook.SceneEditorScreenshotScale=倍率
+guideme.guidebook.SceneEditorScreenshotSuccess=场景截图已保存：%s
+guideme.guidebook.SceneEditorScreenshotFailure=场景截图保存失败：%s
+
 # Guide name
 guideme.guide_name=GuideNH 示例指南
 guideme.gui.config.ui.sceneWheelInteractionDelayMillis=3D 预览滚轮延迟

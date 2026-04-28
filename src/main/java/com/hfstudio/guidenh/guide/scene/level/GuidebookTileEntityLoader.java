@@ -7,19 +7,30 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
+import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
+
 public class GuidebookTileEntityLoader {
+
+    private static final String GREGTECH_BLOCK_MACHINES_CLASS = "gregtech.common.blocks.BlockMachines";
 
     private GuidebookTileEntityLoader() {}
 
     @Nullable
     public static TileEntity load(World world, Block block, int meta, int x, int y, int z,
         @Nullable NBTTagCompound tag) {
-        TileEntity tileEntity = tryCreateFromBlock(block, world, meta);
+        TileEntity tileEntity = GuideForgeMultipartSupport.loadPreviewTile(world, block, meta, x, y, z, tag);
         if (tileEntity != null) {
             bindTile(tileEntity, world, block, meta, x, y, z);
-            if (tag != null) {
+            return tileEntity;
+        }
+
+        tileEntity = tryCreateFromBlock(block, world, meta);
+        if (tileEntity != null) {
+            bindTile(tileEntity, world, block, meta, x, y, z);
+            if (tag != null && shouldApplyTagImmediately(block)) {
                 applyTag(tileEntity, tag, x, y, z);
-                tileEntity = resolveWorldReplacement(world, x, y, z, tileEntity);
+                tileEntity = selectLoadedTileEntity(tileEntity, resolveWorldReplacement(world, x, y, z, tileEntity));
                 bindTile(tileEntity, world, block, meta, x, y, z);
             }
             return tileEntity;
@@ -30,12 +41,16 @@ public class GuidebookTileEntityLoader {
             bindTile(tileEntity, world, block, meta, x, y, z);
             if (tag != null) {
                 applyTag(tileEntity, tag, x, y, z);
-                tileEntity = resolveWorldReplacement(world, x, y, z, tileEntity);
+                tileEntity = selectLoadedTileEntity(tileEntity, resolveWorldReplacement(world, x, y, z, tileEntity));
                 bindTile(tileEntity, world, block, meta, x, y, z);
             }
         }
 
         return tileEntity;
+    }
+
+    private static boolean shouldApplyTagImmediately(Block block) {
+        return !GuideBlockDisplayResolver.isBlockInstanceOf(block, GREGTECH_BLOCK_MACHINES_CLASS);
     }
 
     @Nullable
@@ -83,6 +98,13 @@ public class GuidebookTileEntityLoader {
             }
         } catch (Throwable ignored) {}
         return current;
+    }
+
+    private static TileEntity selectLoadedTileEntity(TileEntity loaded, @Nullable TileEntity replacement) {
+        if (replacement == null || replacement == loaded) {
+            return loaded;
+        }
+        return replacement.getClass() == loaded.getClass() ? loaded : replacement;
     }
 
     private static NBTTagCompound withWorldPosition(NBTTagCompound original, int x, int y, int z) {
