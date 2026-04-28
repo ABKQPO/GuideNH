@@ -18,7 +18,15 @@ navigation:
 
 欢迎来到 <ItemImage id="minecraft:stone" /> 的世界，<PlayerName />！
 
-按键测试：<KeyBind id="key.jump" />。未绑定的按键：<KeyBind id="key.attack" />。
+按键测试：跳跃 = <KeyBind id="key.jump" />，攻击 = <KeyBind id="key.attack" />，GuideNH 热键 = <KeyBind id="key.guidenh.open_guide" />。
+
+注释测试：前面的文字可见。{/* 这是一段会被忽略的行内注释 */}后面的文字也可见。
+
+注释块测试：
+{/*
+这整个注释块都会被解析器忽略。
+*/}
+多行注释之后的文字仍然会显示。
 
 你 ~~或许~~ 需要一扇 <Color color="#ff0000">门</Color> <Color id="RED">门</Color>！
 

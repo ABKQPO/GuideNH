@@ -25,6 +25,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
+import com.hfstudio.guidenh.libs.mdx.MdxCommentMasker;
 import com.hfstudio.guidenh.libs.mdx.MdxSyntax;
 import com.hfstudio.guidenh.libs.micromark.ParseException;
 import com.hfstudio.guidenh.libs.micromark.extensions.YamlFrontmatterSyntax;
@@ -83,10 +84,11 @@ public class SceneEditorMarkdownCodec {
 
     public SceneEditorMarkdownParseResult parse(String markdown) {
         String normalized = normalizeLineEndings(markdown);
+        String parseSource = MdxCommentMasker.mask(normalized);
 
         MdAstRoot root;
         try {
-            root = MdAst.fromMarkdown(normalized, PARSE_OPTIONS);
+            root = MdAst.fromMarkdown(parseSource, PARSE_OPTIONS);
         } catch (ParseException e) {
             return new SceneEditorMarkdownParseResult.SyntaxError(formatParseException(e));
         }

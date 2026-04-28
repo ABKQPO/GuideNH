@@ -16,7 +16,15 @@ navigation:
 
 Welcome to the world of <ItemImage id="minecraft:stone" />, <PlayerName />!
 
-Keybinding Test: <KeyBind id="key.jump" />. Unbound key: <KeyBind id="key.attack" />.
+Keybinding Test: jump = <KeyBind id="key.jump" />, attack = <KeyBind id="key.attack" />, GuideNH hotkey = <KeyBind id="key.guidenh.open_guide" />.
+
+Comment Test: visible before. {/* hidden inline comment */} visible after.
+
+Comment Block Test:
+{/*
+This whole block is ignored by the parser.
+*/}
+Still visible after the multiline comment.
 
 You may ~~need~~ a <Color color="#ff0000">door</Color> <Color id="RED">door</Color>!
 

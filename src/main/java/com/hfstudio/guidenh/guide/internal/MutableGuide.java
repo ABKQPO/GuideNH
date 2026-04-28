@@ -41,6 +41,7 @@ import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
 
     public static final Logger LOG = LoggerFactory.getLogger(MutableGuide.class);
+    public static final String ACTIVE_CLIENT_WORLD_REQUIRED_MESSAGE = "active client world";
 
     private final ResourceLocation id;
     private final String defaultNamespace;
@@ -424,8 +425,30 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
         }
         synchronized (compiledPages) {
             if (!compiledPages.containsKey(parsedPage)) {
-                compiledPages.put(parsedPage, PageCompiler.compile(this, extensions, parsedPage));
+                try {
+                    compiledPages.put(parsedPage, PageCompiler.compile(this, extensions, parsedPage));
+                } catch (RuntimeException e) {
+                    if (isDeferrableWarmPageFailure(e)) {
+                        LOG.debug(
+                            "Deferring warm compilation for page {} until an active client world is available",
+                            pageId);
+                        return;
+                    }
+                    throw e;
+                }
             }
         }
+    }
+
+    static boolean isDeferrableWarmPageFailure(Throwable throwable) {
+        for (Throwable current = throwable; current != null; current = current.getCause()) {
+            if ((current instanceof IllegalStateException || current instanceof IllegalArgumentException)
+                && current.getMessage() != null
+                && current.getMessage()
+                    .contains(ACTIVE_CLIENT_WORLD_REQUIRED_MESSAGE)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

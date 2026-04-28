@@ -8,6 +8,7 @@ GuideNH 的运行时页面是 Markdown 文件，支持以下内容：
 - YAML frontmatter
 - GFM 表格
 - 删除线
+- 使用 `{/* ... */}` 的 MDX 注释
 - MDX 风格的自定义标签
 
 ## 支持的 Markdown
@@ -23,8 +24,23 @@ GuideNH 页面支持示例指南中常用的 Markdown 能力：
 - 分隔线
 - 围栏代码块
 - GFM 表格
+- 页面正文中的 MDX 注释
 
 可参考 `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` 查看实际运行示例。
+
+## MDX 注释
+
+GuideNH 支持 MDX 注释写法，并会在真正编译 Markdown 之前将其忽略：
+
+````md
+Visible text. {/* hidden inline comment */}
+
+{/*
+multiline comment
+*/}
+
+More visible text.
+````
 
 ## Frontmatter
 

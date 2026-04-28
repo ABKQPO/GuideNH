@@ -5,6 +5,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 ## Usage Rules
 
 - Tags can appear either in block context or inline context depending on the compiler.
+- MDX comments using `{/* ... */}` are supported in page content and are ignored by the runtime parser.
 - Invalid tags or invalid attributes render guide errors inline instead of silently failing.
 - Large feature tags such as recipes and 3D scenes are documented in their own pages:
   - [Recipes](Recipes)
@@ -109,15 +110,31 @@ Welcome, <PlayerName />!
 
 ### `<KeyBind>`
 
-Looks up a keybinding by either:
+Looks up a keybinding by id and renders the player's current bound key name.
 
-- `category.description`
-- or just `description`
+Accepted ids:
+
+- the binding description id, such as `key.jump` or `key.guidenh.open_guide`
+- the legacy `category.description` form, such as `key.categories.movement.key.jump`
 
 Example:
 
 ````md
 Press <KeyBind id="key.jump" /> to jump.
+````
+
+### MDX Comments
+
+GuideNH ignores MDX comments in page content:
+
+````md
+Visible text. {/* hidden inline comment */}
+
+{/*
+multiline comment
+*/}
+
+More visible text.
 ````
 
 ### `<ItemImage>`

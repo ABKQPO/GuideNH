@@ -7,6 +7,7 @@
 ## 使用规则
 
 - 标签可以出现在块级上下文或行内上下文，具体取决于对应编译器。
+- 页面内容支持使用 `{/* ... */}` 形式的 MDX 注释，运行时解析器会忽略这些注释。
 - 无效标签或无效属性不会静默失败，而是以内联指南错误的形式显示。
 - 配方和 3D 场景这类大型功能标签会在独立页面中说明：
   - [配方](Recipes-zh-CN)
@@ -111,15 +112,31 @@ Welcome, <PlayerName />!
 
 ### `<KeyBind>`
 
-可以通过以下任一形式查找按键绑定：
+通过 id 查找按键绑定，并渲染玩家当前实际绑定的按键名称。
 
-- `category.description`
-- 或仅 `description`
+可接受的 id 形式：
+
+- 绑定本身的描述 id，例如 `key.jump` 或 `key.guidenh.open_guide`
+- 兼容旧写法的 `category.description` 形式，例如 `key.categories.movement.key.jump`
 
 示例：
 
 ````md
 Press <KeyBind id="key.jump" /> to jump.
+````
+
+### MDX 注释
+
+GuideNH 会忽略页面内容里的 MDX 注释：
+
+````md
+Visible text. {/* hidden inline comment */}
+
+{/*
+multiline comment
+*/}
+
+More visible text.
 ````
 
 ### `<ItemImage>`

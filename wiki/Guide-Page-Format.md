@@ -6,6 +6,7 @@ GuideNH runtime pages are markdown files parsed with:
 - YAML frontmatter
 - GFM tables
 - strikethrough
+- MDX comments using `{/* ... */}`
 - MDX-style custom tags
 
 ## Supported Markdown
@@ -21,8 +22,23 @@ GuideNH pages support the common markdown features used in the example guide:
 - horizontal rules
 - fenced code blocks
 - GFM tables
+- MDX comments in page text
 
 See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` for a live sample page.
+
+## MDX Comments
+
+GuideNH supports the MDX comment form and ignores it before markdown compilation:
+
+````md
+Visible text. {/* hidden inline comment */}
+
+{/*
+multiline comment
+*/}
+
+More visible text.
+````
 
 ## Frontmatter
 

@@ -82,6 +82,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstStrong;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstThematicBreak;
+import com.hfstudio.guidenh.libs.mdx.MdxCommentMasker;
 import com.hfstudio.guidenh.libs.mdx.MdxSyntax;
 import com.hfstudio.guidenh.libs.micromark.ParseException;
 import com.hfstudio.guidenh.libs.micromark.extensions.YamlFrontmatterSyntax;
@@ -153,10 +154,11 @@ public class PageCompiler {
     public static ParsedGuidePage parse(String sourcePack, String language, ResourceLocation id, String pageContent) {
         // Normalize line ending
         pageContent = normalizeLineEndings(pageContent);
+        String parseContent = MdxCommentMasker.mask(pageContent);
 
         MdAstRoot astRoot;
         try {
-            astRoot = MdAst.fromMarkdown(pageContent, PARSE_OPTIONS);
+            astRoot = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
         } catch (ParseException e) {
             var position = "";
             if (e.getFrom() != null) {
