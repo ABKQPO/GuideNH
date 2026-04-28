@@ -36,10 +36,11 @@ public class CameraSettings {
     public void setViewportSize(int width, int height) {
         if (viewportSize.width() != width || viewportSize.height() != height) {
             this.viewportSize = new LytSize(width, height);
+            var halfWidth = width / 2f;
+            var halfHeight = height / 2f;
+            viewport.set(-halfWidth, -halfHeight, halfWidth, halfHeight);
+            markProjectionDirty();
         }
-        var halfWidth = width / 2f;
-        var halfHeight = height / 2f;
-        viewport.set(-halfWidth, -halfHeight, halfWidth, halfHeight);
     }
 
     public LytSize getViewportSize() {
@@ -63,9 +64,12 @@ public class CameraSettings {
     }
 
     public void setIsometricYawPitchRoll(float yawDeg, float pitchDeg, float rollDeg) {
-        rotationY = yawDeg;
-        rotationX = pitchDeg;
-        rotationZ = rollDeg;
+        if (rotationY != yawDeg || rotationX != pitchDeg || rotationZ != rollDeg) {
+            rotationY = yawDeg;
+            rotationX = pitchDeg;
+            rotationZ = rollDeg;
+            markViewDirty();
+        }
     }
 
     public float getZoom() {
@@ -73,7 +77,10 @@ public class CameraSettings {
     }
 
     public void setZoom(float zoom) {
-        this.zoom = zoom;
+        if (this.zoom != zoom) {
+            this.zoom = zoom;
+            markViewDirty();
+        }
     }
 
     public float getRotationX() {
@@ -81,7 +88,10 @@ public class CameraSettings {
     }
 
     public void setRotationX(float rotationX) {
-        this.rotationX = rotationX;
+        if (this.rotationX != rotationX) {
+            this.rotationX = rotationX;
+            markViewDirty();
+        }
     }
 
     public float getRotationY() {
@@ -89,7 +99,10 @@ public class CameraSettings {
     }
 
     public void setRotationY(float rotationY) {
-        this.rotationY = rotationY;
+        if (this.rotationY != rotationY) {
+            this.rotationY = rotationY;
+            markViewDirty();
+        }
     }
 
     public float getRotationZ() {
@@ -97,15 +110,21 @@ public class CameraSettings {
     }
 
     public void setRotationZ(float rotationZ) {
-        this.rotationZ = rotationZ;
+        if (this.rotationZ != rotationZ) {
+            this.rotationZ = rotationZ;
+            markViewDirty();
+        }
     }
 
     public void setRotationCenter(Vector3fc rotationCenter) {
-        this.rotationCenter.set(rotationCenter);
+        setRotationCenter(rotationCenter.x(), rotationCenter.y(), rotationCenter.z());
     }
 
     public void setRotationCenter(float x, float y, float z) {
-        this.rotationCenter.set(x, y, z);
+        if (rotationCenter.x != x || rotationCenter.y != y || rotationCenter.z != z) {
+            this.rotationCenter.set(x, y, z);
+            markViewDirty();
+        }
     }
 
     public Vector3fc getRotationCenter() {
@@ -117,7 +136,10 @@ public class CameraSettings {
     }
 
     public void setOffsetX(float offsetX) {
-        this.offsetX = offsetX;
+        if (this.offsetX != offsetX) {
+            this.offsetX = offsetX;
+            markViewDirty();
+        }
     }
 
     public float getOffsetY() {
@@ -125,7 +147,10 @@ public class CameraSettings {
     }
 
     public void setOffsetY(float offsetY) {
-        this.offsetY = offsetY;
+        if (this.offsetY != offsetY) {
+            this.offsetY = offsetY;
+            markViewDirty();
+        }
     }
 
     private static final float DEG_TO_RAD = (float) (Math.PI / 180.0);
@@ -140,31 +165,43 @@ public class CameraSettings {
     private final Vector4f reusableWorldToScreen = new Vector4f();
     private final Vector4f reusableNear = new Vector4f();
     private final Vector4f reusableFar = new Vector4f();
+    private boolean viewDirty = true;
+    private boolean projectionDirty = true;
+    private boolean combinedDirty = true;
+    private boolean invertedDirty = true;
 
     public Matrix4f getViewMatrix() {
-        var result = reusableView.identity();
-        result.translate(offsetX, offsetY, 0f);
-        float s = 0.625f * 16f * zoom;
-        result.scale(s, s, s);
-        result.translate(rotationCenter.x, rotationCenter.y, rotationCenter.z);
-        result.rotateZ(DEG_TO_RAD * rotationZ);
-        result.rotateX(DEG_TO_RAD * rotationX);
-        result.rotateY(DEG_TO_RAD * rotationY);
-        result.translate(-rotationCenter.x, -rotationCenter.y, -rotationCenter.z);
-        return result;
+        if (viewDirty) {
+            viewDirty = false;
+            var result = reusableView.identity();
+            result.translate(offsetX, offsetY, 0f);
+            float s = 0.625f * 16f * zoom;
+            result.scale(s, s, s);
+            result.translate(rotationCenter.x, rotationCenter.y, rotationCenter.z);
+            result.rotateZ(DEG_TO_RAD * rotationZ);
+            result.rotateX(DEG_TO_RAD * rotationX);
+            result.rotateY(DEG_TO_RAD * rotationY);
+            result.translate(-rotationCenter.x, -rotationCenter.y, -rotationCenter.z);
+        }
+        return reusableView;
     }
 
     public Matrix4f getProjectionMatrix() {
-        var projection = reusableProjection.identity();
-        projection.setOrtho(viewport.x(), viewport.z(), viewport.y(), viewport.w(), -1000f, 3000f);
-        return projection;
+        if (projectionDirty) {
+            projectionDirty = false;
+            reusableProjection.identity()
+                .setOrtho(viewport.x(), viewport.z(), viewport.y(), viewport.w(), -1000f, 3000f);
+        }
+        return reusableProjection;
     }
 
     public Matrix4f getCombinedMatrix() {
-        // Build into a dedicated buffer so callers of getProjectionMatrix()/getViewMatrix()
-        // are not affected by the mul() mutation.
-        return reusableCombined.set(getProjectionMatrix())
-            .mul(getViewMatrix());
+        if (combinedDirty) {
+            combinedDirty = false;
+            reusableCombined.set(getProjectionMatrix())
+                .mul(getViewMatrix());
+        }
+        return reusableCombined;
     }
 
     public Vector3f worldToScreen(float worldX, float worldY, float worldZ) {
@@ -194,8 +231,7 @@ public class CameraSettings {
         float ndcX = halfW == 0f ? 0f : screenX / halfW;
         float ndcY = halfH == 0f ? 0f : -screenY / halfH;
 
-        var invMat = reusableInverted.set(getCombinedMatrix())
-            .invert();
+        var invMat = getInvertedCombinedMatrix();
         var near = reusableNear.set(ndcX, ndcY, -1f, 1f);
         var far = reusableFar.set(ndcX, ndcY, 1f, 1f);
         invMat.transform(near);
@@ -239,5 +275,27 @@ public class CameraSettings {
         offsetX = settings.offsetX();
         offsetY = settings.offsetY();
         zoom = settings.zoom();
+        markViewDirty();
+    }
+
+    private Matrix4f getInvertedCombinedMatrix() {
+        if (invertedDirty) {
+            invertedDirty = false;
+            reusableInverted.set(getCombinedMatrix())
+                .invert();
+        }
+        return reusableInverted;
+    }
+
+    private void markViewDirty() {
+        viewDirty = true;
+        combinedDirty = true;
+        invertedDirty = true;
+    }
+
+    private void markProjectionDirty() {
+        projectionDirty = true;
+        combinedDirty = true;
+        invertedDirty = true;
     }
 }

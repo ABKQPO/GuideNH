@@ -16,6 +16,12 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 public final class SceneEditorPointDragService {
 
     private final SceneEditorSnapService snapService;
+    private final float[] rayScratch = new float[6];
+    private final Vector3f dragPointScratch = new Vector3f();
+    private final Vector3f constrainedPointScratch = new Vector3f();
+    private final Vector3f projectedOriginScratch = new Vector3f();
+    private final Vector3f projectedAxisScratch = new Vector3f();
+    private final Vector3f projectedWorldScratch = new Vector3f();
 
     public SceneEditorPointDragService(SceneEditorSnapService snapService) {
         this.snapService = snapService;
@@ -111,7 +117,8 @@ public final class SceneEditorPointDragService {
             mouseX,
             mouseY,
             state.originPoint,
-            state.planeNormal);
+            state.planeNormal,
+            dragPointScratch);
         if (draggedPoint == null) {
             return false;
         }
@@ -128,16 +135,14 @@ public final class SceneEditorPointDragService {
         if (state.behavior == DragBehavior.BOX_CORNER && state.fixedPoint != null) {
             Vector3f resolvedPoint = snapService
                 .snapFreePointToRay(level, camera, viewport, mouseX, mouseY, draggedPoint, snapEnabled, snapModes);
-            Vector3f min = new Vector3f(
-                Math.min(resolvedPoint.x, state.fixedPoint.x),
-                Math.min(resolvedPoint.y, state.fixedPoint.y),
-                Math.min(resolvedPoint.z, state.fixedPoint.z));
-            Vector3f max = new Vector3f(
-                Math.max(resolvedPoint.x, state.fixedPoint.x),
-                Math.max(resolvedPoint.y, state.fixedPoint.y),
-                Math.max(resolvedPoint.z, state.fixedPoint.z));
-            boolean changedPrimary = controller.setPrimaryVector(state.elementId, min.x, min.y, min.z);
-            boolean changedSecondary = controller.setSecondaryVector(state.elementId, max.x, max.y, max.z);
+            float minX = Math.min(resolvedPoint.x, state.fixedPoint.x);
+            float minY = Math.min(resolvedPoint.y, state.fixedPoint.y);
+            float minZ = Math.min(resolvedPoint.z, state.fixedPoint.z);
+            float maxX = Math.max(resolvedPoint.x, state.fixedPoint.x);
+            float maxY = Math.max(resolvedPoint.y, state.fixedPoint.y);
+            float maxZ = Math.max(resolvedPoint.z, state.fixedPoint.z);
+            boolean changedPrimary = controller.setPrimaryVector(state.elementId, minX, minY, minZ);
+            boolean changedSecondary = controller.setSecondaryVector(state.elementId, maxX, maxY, maxZ);
             return changedPrimary || changedSecondary;
         }
         return false;
@@ -194,13 +199,20 @@ public final class SceneEditorPointDragService {
         CameraSettings camera, LytRect viewport, DragState state, int mouseX, int mouseY, boolean snapEnabled,
         SceneEditorSnapModes snapModes) {
         Vector3f draggedPoint = state.mode.isAxis()
-            ? projectMouseToAxis(camera, viewport, mouseX, mouseY, state.originPoint, state.axisDirection)
-            : projectMouseToPlane(camera, viewport, mouseX, mouseY, state.originPoint, state.planeNormal);
+            ? projectMouseToAxis(
+                camera,
+                viewport,
+                mouseX,
+                mouseY,
+                state.originPoint,
+                state.axisDirection,
+                dragPointScratch)
+            : projectMouseToPlane(camera, viewport, mouseX, mouseY, state.originPoint, state.planeNormal, dragPointScratch);
         if (draggedPoint == null) {
             return false;
         }
 
-        Vector3f constrainedPoint = applyConstraint(draggedPoint, state.mode, state.originPoint);
+        Vector3f constrainedPoint = applyConstraint(draggedPoint, state.mode, state.originPoint, constrainedPointScratch);
         Vector3f resolvedPoint = state.elementType == SceneEditorElementType.BLOCK
             ? resolveBlockPoint(constrainedPoint, state.mode, state.originPoint)
             : state.mode == DragMode.CENTER ? snapService
@@ -212,9 +224,15 @@ public final class SceneEditorPointDragService {
     @Nullable
     private Vector3f projectMouseToPlane(CameraSettings camera, LytRect viewport, int mouseX, int mouseY,
         Vector3f planePoint, Vector3f planeNormal) {
+        return projectMouseToPlane(camera, viewport, mouseX, mouseY, planePoint, planeNormal, new Vector3f());
+    }
+
+    @Nullable
+    private Vector3f projectMouseToPlane(CameraSettings camera, LytRect viewport, int mouseX, int mouseY,
+        Vector3f planePoint, Vector3f planeNormal, Vector3f dest) {
         float relX = mouseX - (viewport.x() + viewport.width() * 0.5f);
         float relY = mouseY - (viewport.y() + viewport.height() * 0.5f);
-        float[] ray = camera.screenToWorldRay(relX, relY);
+        float[] ray = camera.screenToWorldRay(relX, relY, rayScratch);
         float denominator = ray[3] * planeNormal.x + ray[4] * planeNormal.y + ray[5] * planeNormal.z;
         if (Math.abs(denominator) < 1e-6f) {
             return null;
@@ -224,45 +242,64 @@ public final class SceneEditorPointDragService {
         float offsetY = planePoint.y - ray[1];
         float offsetZ = planePoint.z - ray[2];
         float distance = (offsetX * planeNormal.x + offsetY * planeNormal.y + offsetZ * planeNormal.z) / denominator;
-        return new Vector3f(ray[0] + ray[3] * distance, ray[1] + ray[4] * distance, ray[2] + ray[5] * distance);
+        return dest.set(ray[0] + ray[3] * distance, ray[1] + ray[4] * distance, ray[2] + ray[5] * distance);
     }
 
     private Vector3f getCameraForward(CameraSettings camera) {
-        float[] ray = camera.screenToWorldRay(0f, 0f);
+        float[] ray = camera.screenToWorldRay(0f, 0f, rayScratch);
         return new Vector3f(ray[3], ray[4], ray[5]);
     }
 
     @Nullable
     private Vector3f projectMouseToAxis(CameraSettings camera, LytRect viewport, int mouseX, int mouseY,
         Vector3f origin, Vector3f axisDirection) {
-        Vector3f originScreen = projectWorldPoint(camera, viewport, origin.x, origin.y, origin.z);
+        return projectMouseToAxis(camera, viewport, mouseX, mouseY, origin, axisDirection, new Vector3f());
+    }
+
+    @Nullable
+    private Vector3f projectMouseToAxis(CameraSettings camera, LytRect viewport, int mouseX, int mouseY,
+        Vector3f origin, Vector3f axisDirection, Vector3f dest) {
+        Vector3f originScreen = projectWorldPoint(
+            camera,
+            viewport,
+            origin.x,
+            origin.y,
+            origin.z,
+            projectedOriginScratch);
         Vector3f axisScreen = projectWorldPoint(
             camera,
             viewport,
             origin.x + axisDirection.x,
             origin.y + axisDirection.y,
-            origin.z + axisDirection.z);
+            origin.z + axisDirection.z,
+            projectedAxisScratch);
         float screenDx = axisScreen.x - originScreen.x;
         float screenDy = axisScreen.y - originScreen.y;
         float screenLengthSq = screenDx * screenDx + screenDy * screenDy;
         if (screenLengthSq >= 1e-4f) {
             float projectedDistance = ((mouseX - originScreen.x) * screenDx + (mouseY - originScreen.y) * screenDy)
                 / screenLengthSq;
-            return new Vector3f(
+            return dest.set(
                 origin.x + axisDirection.x * projectedDistance,
                 origin.y + axisDirection.y * projectedDistance,
                 origin.z + axisDirection.z * projectedDistance);
         }
 
-        return projectMouseToAxisByRay(camera, viewport, mouseX, mouseY, origin, axisDirection);
+        return projectMouseToAxisByRay(camera, viewport, mouseX, mouseY, origin, axisDirection, dest);
     }
 
     @Nullable
     private Vector3f projectMouseToAxisByRay(CameraSettings camera, LytRect viewport, int mouseX, int mouseY,
         Vector3f origin, Vector3f axisDirection) {
+        return projectMouseToAxisByRay(camera, viewport, mouseX, mouseY, origin, axisDirection, new Vector3f());
+    }
+
+    @Nullable
+    private Vector3f projectMouseToAxisByRay(CameraSettings camera, LytRect viewport, int mouseX, int mouseY,
+        Vector3f origin, Vector3f axisDirection, Vector3f dest) {
         float relX = mouseX - (viewport.x() + viewport.width() * 0.5f);
         float relY = mouseY - (viewport.y() + viewport.height() * 0.5f);
-        float[] ray = camera.screenToWorldRay(relX, relY);
+        float[] ray = camera.screenToWorldRay(relX, relY, rayScratch);
 
         float a = ray[3] * ray[3] + ray[4] * ray[4] + ray[5] * ray[5];
         float b = ray[3] * axisDirection.x + ray[4] * axisDirection.y + ray[5] * axisDirection.z;
@@ -279,22 +316,31 @@ public final class SceneEditorPointDragService {
         }
 
         float lineDistance = (a * e - b * d) / denominator;
-        return new Vector3f(
+        return dest.set(
             origin.x + axisDirection.x * lineDistance,
             origin.y + axisDirection.y * lineDistance,
             origin.z + axisDirection.z * lineDistance);
     }
 
     private Vector3f projectWorldPoint(CameraSettings camera, LytRect viewport, float x, float y, float z) {
-        Vector3f projected = camera.worldToScreen(x, y, z);
-        return new Vector3f(
+        return projectWorldPoint(camera, viewport, x, y, z, new Vector3f());
+    }
+
+    private Vector3f projectWorldPoint(CameraSettings camera, LytRect viewport, float x, float y, float z,
+        Vector3f dest) {
+        Vector3f projected = camera.worldToScreen(x, y, z, projectedWorldScratch);
+        return dest.set(
             viewport.x() + viewport.width() / 2f + projected.x,
             viewport.y() + viewport.height() / 2f + projected.y,
             projected.z);
     }
 
     private Vector3f applyConstraint(Vector3f point, DragMode mode, Vector3f origin) {
-        Vector3f constrained = new Vector3f(point);
+        return applyConstraint(point, mode, origin, new Vector3f());
+    }
+
+    private Vector3f applyConstraint(Vector3f point, DragMode mode, Vector3f origin, Vector3f constrained) {
+        constrained.set(point);
         if (mode.lockX()) {
             constrained.x = origin.x;
         }

@@ -56,6 +56,27 @@ You may ~~need~~ a <Color color="#ff0000">door</Color> <Color id="RED">door</Col
   <Entity id="minecraft:sheep" y="1" data="{Color:2}" />
 </GameScene>
 
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity
+    id="player"
+    y="1"
+    name="ArtherSnow"
+    headRotation="0 20 0"
+    rightArmRotation="-35 0 0"
+    leftArmRotation="10 0 -12"
+    rightLegRotation="8 0 0"
+    leftLegRotation="-8 0 0"
+    capeRotation="12 0 0"
+  />
+</GameScene>
+
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="player" y="1" name="Huan_F" showName={true} showCape={true} />
+  <Entity id="player" x="2" y="1" showName={false} showCape={false} />
+</GameScene>
+
 <GameScene zoom={2} interactive={true}>
   <Block id="minecraft:log" />
   <Block id="minecraft:log" x="1" />

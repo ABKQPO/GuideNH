@@ -27,6 +27,8 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
+import com.hfstudio.guidenh.guide.scene.support.GuidePreviewStateSupport;
+
 public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     private final LinkedHashMap<ChunkCoordIntPair, GuidebookChunk> chunks = new LinkedHashMap<>();
@@ -82,6 +84,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         previewStateDirty = false;
         rebindAllTileEntities();
+        GuidePreviewStateSupport.prepare(this);
         tickPreviewWorld();
     }
 

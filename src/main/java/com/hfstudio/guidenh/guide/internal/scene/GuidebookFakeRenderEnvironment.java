@@ -75,6 +75,7 @@ public final class GuidebookFakeRenderEnvironment implements AutoCloseable {
 
     public static GuidebookFakeRenderEnvironment enter(GuidebookLevel level, CameraSettings camera,
         float partialTicks) {
+        GuidebookPreviewPlayerRenderer.ensureRegistered();
         return new GuidebookFakeRenderEnvironment(level, camera, partialTicks);
     }
 

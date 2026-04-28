@@ -61,6 +61,20 @@ public final class SceneEditorHandleOverlay {
         BOX_CORNER_MIN_MIN_MAX_HANDLE_ID, BOX_CORNER_MIN_MAX_MIN_HANDLE_ID, BOX_CORNER_MIN_MAX_MAX_HANDLE_ID,
         BOX_CORNER_MAX_MIN_MIN_HANDLE_ID, BOX_CORNER_MAX_MIN_MAX_HANDLE_ID, BOX_CORNER_MAX_MAX_MIN_HANDLE_ID,
         BOX_CORNER_MAX_MAX_MAX_HANDLE_ID };
+    private final Vector3f projectedCenterScratch = new Vector3f();
+    private final Vector3f projectedXAxisScratch = new Vector3f();
+    private final Vector3f projectedYAxisScratch = new Vector3f();
+    private final Vector3f projectedZAxisScratch = new Vector3f();
+    private final Vector3f projectedPlaneXyScratch = new Vector3f();
+    private final Vector3f projectedPlaneYzScratch = new Vector3f();
+    private final Vector3f projectedPlaneZxScratch = new Vector3f();
+    private final Vector3f projectedWorldScratch = new Vector3f();
+    private final Vector3f handleWorldScratch = new Vector3f();
+    private final Vector3f planeArmAScratch = new Vector3f();
+    private final Vector3f planeArmBScratch = new Vector3f();
+    private final Vector3f axisBoundsCenterScratch = new Vector3f();
+    private final Vector3f axisBoundsTipScratch = new Vector3f();
+    private final AxisArrowGeometry axisArrowScratch = new AxisArrowGeometry();
 
     public boolean supportsPointHandle(@Nullable SceneEditorElementModel element) {
         return getHandleIds(element).length > 0;
@@ -94,16 +108,16 @@ public final class SceneEditorHandleOverlay {
 
     public LytRect getHandleBounds(SceneEditorElementModel element, CameraSettings camera, LytRect viewport,
         String handleId) {
-        Vector3f handleCenter = projectHandlePoint(element, camera, viewport, handleId);
+        if (isAxisHandle(handleId)) {
+            return getAxisHandleBounds(element, camera, viewport, handleId);
+        }
+        Vector3f handleCenter = projectHandlePoint(element, camera, viewport, handleId, projectedCenterScratch);
         if (CENTER_HANDLE_ID.equals(handleId)) {
             return new LytRect(
                 Math.round(handleCenter.x) - CENTER_HANDLE_RADIUS,
                 Math.round(handleCenter.y) - CENTER_HANDLE_RADIUS,
                 CENTER_HANDLE_DIAMETER,
                 CENTER_HANDLE_DIAMETER);
-        }
-        if (isAxisHandle(handleId)) {
-            return getAxisHandleBounds(element, camera, viewport, handleId);
         }
         if (isWorldPointHandle(handleId)) {
             return new LytRect(
@@ -121,17 +135,22 @@ public final class SceneEditorHandleOverlay {
 
     public Vector3f projectHandlePoint(SceneEditorElementModel element, CameraSettings camera, LytRect viewport,
         String handleId) {
+        return projectHandlePoint(element, camera, viewport, handleId, new Vector3f());
+    }
+
+    private Vector3f projectHandlePoint(SceneEditorElementModel element, CameraSettings camera, LytRect viewport,
+        String handleId, Vector3f dest) {
         if (XY_PLANE_HANDLE_ID.equals(handleId)) {
-            return projectPlaneHandlePoint(element, camera, viewport, X_AXIS_HANDLE_ID, Y_AXIS_HANDLE_ID);
+            return projectPlaneHandlePoint(element, camera, viewport, X_AXIS_HANDLE_ID, Y_AXIS_HANDLE_ID, dest);
         }
         if (YZ_PLANE_HANDLE_ID.equals(handleId)) {
-            return projectPlaneHandlePoint(element, camera, viewport, Y_AXIS_HANDLE_ID, Z_AXIS_HANDLE_ID);
+            return projectPlaneHandlePoint(element, camera, viewport, Y_AXIS_HANDLE_ID, Z_AXIS_HANDLE_ID, dest);
         }
         if (ZX_PLANE_HANDLE_ID.equals(handleId)) {
-            return projectPlaneHandlePoint(element, camera, viewport, Z_AXIS_HANDLE_ID, X_AXIS_HANDLE_ID);
+            return projectPlaneHandlePoint(element, camera, viewport, Z_AXIS_HANDLE_ID, X_AXIS_HANDLE_ID, dest);
         }
-        Vector3f worldPoint = getHandleWorldPoint(element, handleId);
-        return projectWorldPoint(camera, viewport, worldPoint.x, worldPoint.y, worldPoint.z);
+        Vector3f worldPoint = getHandleWorldPoint(element, handleId, handleWorldScratch);
+        return projectWorldPoint(camera, viewport, worldPoint.x, worldPoint.y, worldPoint.z, dest);
     }
 
     public void render(SceneEditorElementModel element, CameraSettings camera, LytRect viewport) {
@@ -159,13 +178,10 @@ public final class SceneEditorHandleOverlay {
     }
 
     private void renderPointHandles(SceneEditorElementModel element, CameraSettings camera, LytRect viewport) {
-        Vector3f center = projectHandlePoint(element, camera, viewport, CENTER_HANDLE_ID);
-        Vector3f xAxis = projectHandlePoint(element, camera, viewport, X_AXIS_HANDLE_ID);
-        Vector3f yAxis = projectHandlePoint(element, camera, viewport, Y_AXIS_HANDLE_ID);
-        Vector3f zAxis = projectHandlePoint(element, camera, viewport, Z_AXIS_HANDLE_ID);
-        Vector3f xyPlane = projectHandlePoint(element, camera, viewport, XY_PLANE_HANDLE_ID);
-        Vector3f yzPlane = projectHandlePoint(element, camera, viewport, YZ_PLANE_HANDLE_ID);
-        Vector3f zxPlane = projectHandlePoint(element, camera, viewport, ZX_PLANE_HANDLE_ID);
+        Vector3f center = projectHandlePoint(element, camera, viewport, CENTER_HANDLE_ID, projectedCenterScratch);
+        Vector3f xAxis = projectHandlePoint(element, camera, viewport, X_AXIS_HANDLE_ID, projectedXAxisScratch);
+        Vector3f yAxis = projectHandlePoint(element, camera, viewport, Y_AXIS_HANDLE_ID, projectedYAxisScratch);
+        Vector3f zAxis = projectHandlePoint(element, camera, viewport, Z_AXIS_HANDLE_ID, projectedZAxisScratch);
         drawLine(center, xAxis, X_AXIS_COLOR, AXIS_LINE_WIDTH);
         drawLine(center, yAxis, Y_AXIS_COLOR, AXIS_LINE_WIDTH);
         drawLine(center, zAxis, Z_AXIS_COLOR, AXIS_LINE_WIDTH);
@@ -214,48 +230,56 @@ public final class SceneEditorHandleOverlay {
     private float measureHitDistanceSq(SceneEditorElementModel element, CameraSettings camera, LytRect viewport,
         String handleId, int mouseX, int mouseY) {
         if (isAxisHandle(handleId)) {
-            Vector3f center = projectHandlePoint(element, camera, viewport, CENTER_HANDLE_ID);
-            Vector3f tip = projectHandlePoint(element, camera, viewport, handleId);
+            Vector3f center = projectHandlePoint(element, camera, viewport, CENTER_HANDLE_ID, projectedCenterScratch);
+            Vector3f tip = projectHandlePoint(element, camera, viewport, handleId, projectedXAxisScratch);
             return distanceSqToSegment(mouseX, mouseY, center.x, center.y, tip.x, tip.y);
         }
-        Vector3f handleCenter = projectHandlePoint(element, camera, viewport, handleId);
+        Vector3f handleCenter = projectHandlePoint(element, camera, viewport, handleId, projectedCenterScratch);
         float dx = mouseX - handleCenter.x;
         float dy = mouseY - handleCenter.y;
         return dx * dx + dy * dy;
     }
 
     private Vector3f getHandleWorldPoint(SceneEditorElementModel element, String handleId) {
+        return getHandleWorldPoint(element, handleId, new Vector3f());
+    }
+
+    private Vector3f getHandleWorldPoint(SceneEditorElementModel element, String handleId, Vector3f dest) {
         float x = element.getPrimaryX();
         float y = element.getPrimaryY();
         float z = element.getPrimaryZ();
         if (X_AXIS_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(x + AXIS_WORLD_LENGTH, y, z);
+            return dest.set(x + AXIS_WORLD_LENGTH, y, z);
         }
         if (Y_AXIS_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(x, y + AXIS_WORLD_LENGTH, z);
+            return dest.set(x, y + AXIS_WORLD_LENGTH, z);
         }
         if (Z_AXIS_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(x, y, z + AXIS_WORLD_LENGTH);
+            return dest.set(x, y, z + AXIS_WORLD_LENGTH);
         }
         if (XY_PLANE_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(x + PLANE_WORLD_OFFSET, y + PLANE_WORLD_OFFSET, z);
+            return dest.set(x + PLANE_WORLD_OFFSET, y + PLANE_WORLD_OFFSET, z);
         }
         if (YZ_PLANE_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(x, y + PLANE_WORLD_OFFSET, z + PLANE_WORLD_OFFSET);
+            return dest.set(x, y + PLANE_WORLD_OFFSET, z + PLANE_WORLD_OFFSET);
         }
         if (ZX_PLANE_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(x + PLANE_WORLD_OFFSET, y, z + PLANE_WORLD_OFFSET);
+            return dest.set(x + PLANE_WORLD_OFFSET, y, z + PLANE_WORLD_OFFSET);
         }
         if (LINE_TO_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ());
+            return dest.set(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ());
         }
         if (isBoxHandle(handleId)) {
-            return getBoxCornerPoint(element, handleId);
+            return getBoxCornerPoint(element, handleId, dest);
         }
-        return new Vector3f(x, y, z);
+        return dest.set(x, y, z);
     }
 
     private Vector3f getBoxCornerPoint(SceneEditorElementModel element, String handleId) {
+        return getBoxCornerPoint(element, handleId, new Vector3f());
+    }
+
+    private Vector3f getBoxCornerPoint(SceneEditorElementModel element, String handleId, Vector3f dest) {
         float minX = Math.min(element.getPrimaryX(), element.getSecondaryX());
         float minY = Math.min(element.getPrimaryY(), element.getSecondaryY());
         float minZ = Math.min(element.getPrimaryZ(), element.getSecondaryZ());
@@ -264,32 +288,37 @@ public final class SceneEditorHandleOverlay {
         float maxZ = Math.max(element.getPrimaryZ(), element.getSecondaryZ());
 
         if (BOX_CORNER_MIN_MIN_MIN_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(minX, minY, minZ);
+            return dest.set(minX, minY, minZ);
         }
         if (BOX_CORNER_MIN_MIN_MAX_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(minX, minY, maxZ);
+            return dest.set(minX, minY, maxZ);
         }
         if (BOX_CORNER_MIN_MAX_MIN_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(minX, maxY, minZ);
+            return dest.set(minX, maxY, minZ);
         }
         if (BOX_CORNER_MIN_MAX_MAX_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(minX, maxY, maxZ);
+            return dest.set(minX, maxY, maxZ);
         }
         if (BOX_CORNER_MAX_MIN_MIN_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(maxX, minY, minZ);
+            return dest.set(maxX, minY, minZ);
         }
         if (BOX_CORNER_MAX_MIN_MAX_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(maxX, minY, maxZ);
+            return dest.set(maxX, minY, maxZ);
         }
         if (BOX_CORNER_MAX_MAX_MIN_HANDLE_ID.equals(handleId)) {
-            return new Vector3f(maxX, maxY, minZ);
+            return dest.set(maxX, maxY, minZ);
         }
-        return new Vector3f(maxX, maxY, maxZ);
+        return dest.set(maxX, maxY, maxZ);
     }
 
     private Vector3f projectWorldPoint(CameraSettings camera, LytRect viewport, float x, float y, float z) {
-        Vector3f projected = camera.worldToScreen(x, y, z);
-        return new Vector3f(
+        return projectWorldPoint(camera, viewport, x, y, z, new Vector3f());
+    }
+
+    private Vector3f projectWorldPoint(CameraSettings camera, LytRect viewport, float x, float y, float z,
+        Vector3f dest) {
+        Vector3f projected = camera.worldToScreen(x, y, z, projectedWorldScratch);
+        return dest.set(
             viewport.x() + viewport.width() / 2f + projected.x,
             viewport.y() + viewport.height() / 2f + projected.y,
             projected.z);
@@ -297,9 +326,14 @@ public final class SceneEditorHandleOverlay {
 
     private LytRect getAxisHandleBounds(SceneEditorElementModel element, CameraSettings camera, LytRect viewport,
         String handleId) {
-        Vector3f center = projectHandlePoint(element, camera, viewport, CENTER_HANDLE_ID);
-        Vector3f tip = projectHandlePoint(element, camera, viewport, handleId);
-        AxisArrowGeometry geometry = createAxisArrowGeometry(center, tip);
+        Vector3f center = projectHandlePoint(
+            element,
+            camera,
+            viewport,
+            CENTER_HANDLE_ID,
+            axisBoundsCenterScratch);
+        Vector3f tip = projectHandlePoint(element, camera, viewport, handleId, axisBoundsTipScratch);
+        AxisArrowGeometry geometry = createAxisArrowGeometry(center, tip, axisArrowScratch);
         float minX = Math.min(tip.x, Math.min(geometry.leftX, geometry.rightX));
         float minY = Math.min(tip.y, Math.min(geometry.leftY, geometry.rightY));
         float maxX = Math.max(tip.x, Math.max(geometry.leftX, geometry.rightX));
@@ -313,10 +347,15 @@ public final class SceneEditorHandleOverlay {
 
     private Vector3f projectPlaneHandlePoint(SceneEditorElementModel element, CameraSettings camera, LytRect viewport,
         String axisHandleA, String axisHandleB) {
-        Vector3f center = projectHandlePoint(element, camera, viewport, CENTER_HANDLE_ID);
-        Vector3f axisA = projectHandlePoint(element, camera, viewport, axisHandleA);
-        Vector3f axisB = projectHandlePoint(element, camera, viewport, axisHandleB);
-        return createPlaneGuideCorner(center, axisA, axisB);
+        return projectPlaneHandlePoint(element, camera, viewport, axisHandleA, axisHandleB, new Vector3f());
+    }
+
+    private Vector3f projectPlaneHandlePoint(SceneEditorElementModel element, CameraSettings camera, LytRect viewport,
+        String axisHandleA, String axisHandleB, Vector3f dest) {
+        Vector3f center = projectHandlePoint(element, camera, viewport, CENTER_HANDLE_ID, projectedCenterScratch);
+        Vector3f axisA = projectHandlePoint(element, camera, viewport, axisHandleA, projectedXAxisScratch);
+        Vector3f axisB = projectHandlePoint(element, camera, viewport, axisHandleB, projectedYAxisScratch);
+        return createPlaneGuideCorner(center, axisA, axisB, dest);
     }
 
     private String[] getHandleIds(@Nullable SceneEditorElementModel element) {
@@ -344,21 +383,29 @@ public final class SceneEditorHandleOverlay {
     }
 
     private Vector3f createPlaneGuideCorner(Vector3f center, Vector3f axisA, Vector3f axisB) {
-        Vector3f armA = interpolate(center, axisA, PLANE_GUIDE_FACTOR);
-        Vector3f armB = interpolate(center, axisB, PLANE_GUIDE_FACTOR);
-        return new Vector3f(armA.x + armB.x - center.x, armA.y + armB.y - center.y, center.z);
+        return createPlaneGuideCorner(center, axisA, axisB, new Vector3f());
+    }
+
+    private Vector3f createPlaneGuideCorner(Vector3f center, Vector3f axisA, Vector3f axisB, Vector3f dest) {
+        Vector3f armA = interpolate(center, axisA, PLANE_GUIDE_FACTOR, planeArmAScratch);
+        Vector3f armB = interpolate(center, axisB, PLANE_GUIDE_FACTOR, planeArmBScratch);
+        return dest.set(armA.x + armB.x - center.x, armA.y + armB.y - center.y, center.z);
     }
 
     private void drawPlaneGuide(Vector3f center, Vector3f axisA, Vector3f axisB, int color) {
-        Vector3f armA = interpolate(center, axisA, PLANE_GUIDE_FACTOR);
-        Vector3f armB = interpolate(center, axisB, PLANE_GUIDE_FACTOR);
-        Vector3f corner = new Vector3f(armA.x + armB.x - center.x, armA.y + armB.y - center.y, center.z);
+        Vector3f armA = interpolate(center, axisA, PLANE_GUIDE_FACTOR, planeArmAScratch);
+        Vector3f armB = interpolate(center, axisB, PLANE_GUIDE_FACTOR, planeArmBScratch);
+        Vector3f corner = createPlaneGuideCorner(center, axisA, axisB, projectedPlaneXyScratch);
         drawLine(armA, corner, color, PLANE_LINE_WIDTH);
         drawLine(corner, armB, color, PLANE_LINE_WIDTH);
     }
 
     private Vector3f interpolate(Vector3f from, Vector3f to, float factor) {
-        return new Vector3f(
+        return interpolate(from, to, factor, new Vector3f());
+    }
+
+    private Vector3f interpolate(Vector3f from, Vector3f to, float factor, Vector3f dest) {
+        return dest.set(
             from.x + (to.x - from.x) * factor,
             from.y + (to.y - from.y) * factor,
             from.z + (to.z - from.z) * factor);
@@ -387,16 +434,16 @@ public final class SceneEditorHandleOverlay {
     }
 
     private void drawAxisArrow(Vector3f from, Vector3f to, int color) {
-        AxisArrowGeometry geometry = createAxisArrowGeometry(from, to);
+        AxisArrowGeometry geometry = createAxisArrowGeometry(from, to, axisArrowScratch);
         drawFilledTriangle(to.x, to.y, geometry.leftX, geometry.leftY, geometry.rightX, geometry.rightY, color);
     }
 
-    private AxisArrowGeometry createAxisArrowGeometry(Vector3f from, Vector3f to) {
+    private AxisArrowGeometry createAxisArrowGeometry(Vector3f from, Vector3f to, AxisArrowGeometry dest) {
         float dx = to.x - from.x;
         float dy = to.y - from.y;
         float length = (float) Math.sqrt(dx * dx + dy * dy);
         if (length < 1e-4f) {
-            return new AxisArrowGeometry(to.x, to.y, to.x, to.y, to.x, to.y);
+            return dest.set(to.x, to.y, to.x, to.y, to.x, to.y);
         }
         float ux = dx / length;
         float uy = dy / length;
@@ -409,7 +456,7 @@ public final class SceneEditorHandleOverlay {
         float arrowHalfWidth = Math.min(ARROW_HALF_WIDTH, Math.max(2f, arrowLength * 0.5f));
         float baseX = to.x - ux * arrowLength;
         float baseY = to.y - uy * arrowLength;
-        return new AxisArrowGeometry(
+        return dest.set(
             baseX + px * arrowHalfWidth,
             baseY + py * arrowHalfWidth,
             baseX - px * arrowHalfWidth,
@@ -465,22 +512,25 @@ public final class SceneEditorHandleOverlay {
 
     private static final class AxisArrowGeometry {
 
-        private final float leftX;
-        private final float leftY;
-        private final float rightX;
-        private final float rightY;
+        private float leftX;
+        private float leftY;
+        private float rightX;
+        private float rightY;
         @SuppressWarnings("unused")
-        private final float baseX;
+        private float baseX;
         @SuppressWarnings("unused")
-        private final float baseY;
+        private float baseY;
 
-        private AxisArrowGeometry(float leftX, float leftY, float rightX, float rightY, float baseX, float baseY) {
+        private AxisArrowGeometry() {}
+
+        private AxisArrowGeometry set(float leftX, float leftY, float rightX, float rightY, float baseX, float baseY) {
             this.leftX = leftX;
             this.leftY = leftY;
             this.rightX = rightX;
             this.rightY = rightY;
             this.baseX = baseX;
             this.baseY = baseY;
+            return this;
         }
     }
 }

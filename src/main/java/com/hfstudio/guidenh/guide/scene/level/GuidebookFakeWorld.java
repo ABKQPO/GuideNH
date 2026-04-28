@@ -12,6 +12,8 @@ import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.EnumDifficulty;
@@ -203,7 +205,13 @@ public class GuidebookFakeWorld extends WorldClient {
     }
 
     @Override
-    public void markBlockForUpdate(int x, int y, int z) {}
+    public void markBlockForUpdate(int x, int y, int z) {
+        TileEntity tileEntity = getTileEntity(x, y, z);
+        if (tileEntity == null) {
+            return;
+        }
+        applyDescriptionPacket(tileEntity);
+    }
 
     @Override
     public void markTileEntityChunkModified(int x, int y, int z, TileEntity tileEntity) {}
@@ -376,5 +384,14 @@ public class GuidebookFakeWorld extends WorldClient {
             }
         }
         return false;
+    }
+
+    private static void applyDescriptionPacket(TileEntity tileEntity) {
+        try {
+            Packet packet = tileEntity.getDescriptionPacket();
+            if (packet instanceof S35PacketUpdateTileEntity updatePacket) {
+                tileEntity.onDataPacket(null, updatePacket);
+            }
+        } catch (Throwable ignored) {}
     }
 }

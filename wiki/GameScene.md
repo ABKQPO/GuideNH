@@ -208,18 +208,37 @@ The attributes follow summon-style entity placement and SNBT data.
 
 | Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes | entity type id as used by `/summon`; modern vanilla ids like `minecraft:sheep` are accepted |
+| `id` | yes | entity type id; legacy names like `Sheep`, modern vanilla ids like `minecraft:sheep`, and registered mod entity ids in either `modid.entityName` or `modid:entityName` form are accepted |
 | `x` | no | float X coordinate the entity is centered on, default `0.5` |
 | `y` | no | float Y coordinate at the bottom of the entity, default `0` |
 | `z` | no | float Z coordinate the entity is centered on, default `0.5` |
 | `rotationY` | no | yaw in degrees, default `-45` |
 | `rotationX` | no | pitch in degrees, default `0` |
 | `data` | no | summon-style SNBT merged into the entity NBT before spawn |
+| `name` | no | preview player name when `id` is `player`, `fakeplayer`, `minecraft:player`, or `minecraft:fakeplayer` |
+| `uuid` | no | preview player UUID when using one of the player ids above |
+| `showName` | no | boolean expression controlling the preview player nameplate, default `true` for player preview ids |
+| `showCape` | no | boolean expression controlling the preview player cape, default `true` for player preview ids |
+| `headRotation` | no | preview player head rotation as `x y z` degrees |
+| `leftArmRotation` | no | preview player left arm rotation as `x y z` degrees |
+| `rightArmRotation` | no | preview player right arm rotation as `x y z` degrees |
+| `leftLegRotation` | no | preview player left leg rotation as `x y z` degrees |
+| `rightLegRotation` | no | preview player right leg rotation as `x y z` degrees |
+| `capeRotation` | no | preview player cape rotation as `x y z` degrees; defaults to the standing-still angle `6 0 0` |
 
 Notes:
 
 - entity bounds participate in scene auto-centering and visible-layer filtering
 - entity creation falls back gracefully when the preview world is not ready yet, then binds on first render
+- player preview ids create a client-side fake remote player so the normal player renderer and skin pipeline can be used
+- when both `name` and `uuid` are omitted for a player preview, GuideNH falls back to `Steve` and the vanilla default skin
+- when only `name` is given for a player preview, GuideNH first tries to resolve the real online profile so skins and capes can load; if lookup fails, it falls back to a stable offline UUID
+- when only `uuid` is given for a player preview, GuideNH generates a placeholder display name and still tries to resolve the skin from the profile
+- `showName={false}` hides the preview player's overhead name without bypassing the normal player renderer
+- `showCape={false}` hides the preview player's cape while still respecting the normal player render path and Forge hooks
+- player pose attributes use three space-separated floats mapped to model `X Y Z` rotation in degrees
+- omitted head and limb rotation attributes keep the normal vanilla idle pose; omitted `capeRotation` falls back to the standing-still cape angle `6 0 0`
+- player previews require an active client world at parse time because Minecraft's player entity constructor cannot be created worldless
 - hovering an entity shows its localized display name, or its custom name if one was provided
 
 Example:
@@ -228,6 +247,35 @@ Example:
 <GameScene zoom={4} interactive={true}>
   <Block id="minecraft:grass" />
   <Entity id="minecraft:sheep" y="1" data="{Color:2}" />
+</GameScene>
+````
+
+Preview player pose example:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity
+    id="player"
+    y="1"
+    name="ArtherSnow"
+    headRotation="0 20 0"
+    rightArmRotation="-35 0 0"
+    leftArmRotation="10 0 -12"
+    rightLegRotation="8 0 0"
+    leftLegRotation="-8 0 0"
+    capeRotation="12 0 0"
+  />
+</GameScene>
+````
+
+Preview player name and cape example:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="player" y="1" name="Huan_F" showName={true} showCape={true} />
+  <Entity id="player" x="2" y="1" showName={false} showCape={false} />
 </GameScene>
 ````
 
