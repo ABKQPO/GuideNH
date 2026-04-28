@@ -1,0 +1,229 @@
+[English](Tags-Reference)
+
+# 标签参考
+
+本页列出由 `DefaultExtensions` 注册的内置运行时标签。
+
+## 使用规则
+
+- 标签可以出现在块级上下文或行内上下文，具体取决于对应编译器。
+- 无效标签或无效属性不会静默失败，而是以内联指南错误的形式显示。
+- 配方和 3D 场景这类大型功能标签会在独立页面中说明：
+  - [配方](Recipes-zh-CN)
+  - [GameScene](GameScene-zh-CN)
+  - [注解](Annotations-zh-CN)
+
+## 行内与流式标签
+
+| 标签 | 用途 | 关键属性 |
+| --- | --- | --- |
+| `<a>` | 内部/外部链接，以及可选锚点名 | `href`, `title`, `name` |
+| `<br>` | 换行 | `clear="none\|left\|right\|all"` |
+| `<Color>` | 彩色行内文本 | `id` 或 `color` |
+| `<Tooltip>` | 带 Markdown/标签子内容的富悬浮提示 | `label` |
+| `<PlayerName>` | 插入当前玩家用户名 | 无 |
+| `<KeyBind>` | 插入按键绑定显示名 | `id` |
+| `<ItemImage>` | 行内物品图标 | `id`, `scale`, `noTooltip`, `yOffset` |
+| `<ItemLink>` | 物品 tooltip + 可选导航链接 | `id` |
+| `<CommandLink>` | 可点击的聊天命令链接 | `command`, `title`, `close` |
+
+## 块级标签
+
+| 标签 | 用途 | 关键属性 |
+| --- | --- | --- |
+| `<div>` | 透传块包装器 | 无 |
+| `<Row>` | 横向 flex 布局 | `gap`, `alignItems`, `fullWidth` |
+| `<Column>` | 纵向 flex 布局 | `gap`, `alignItems`, `fullWidth` |
+| `<ItemGrid>` | 紧凑物品图标网格 | 子元素必须是 `<ItemIcon id="..."/>` |
+| `<BlockImage>` | 方块的物品形态图标 | `id`, `scale` |
+| `<FloatingImage>` | 浮动图片块 | `src`, `align`, `title`, `width`, `height` |
+| `<SubPages>` | 导航子页面列表 | `id`, `alphabetical` |
+| `<CategoryIndex>` | 分类页面列表 | `category` |
+| `<Structure>` | 2.5D 等轴方块布局预览 | `width`, `height` |
+| `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | 配方渲染器 | 详见 [配方](Recipes-zh-CN) |
+| `<GameScene>`, `<Scene>` | 3D 指南场景 | 详见 [GameScene](GameScene-zh-CN) |
+
+## 标签细节
+
+### `<a>`
+
+其行为类似 HTML 风格锚点标签：
+
+````md
+<a href="subpage.md" title="Go to subpage">Open Subpage</a>
+<a href="https://example.com">External Link</a>
+<a name="details" />
+````
+
+- `href` 可以是相对路径、根路径、显式 `modid:path`，或 HTTP/HTTPS 链接
+- `title` 会作为 tooltip 使用
+- `name` 会插入一个页面锚点目标
+
+### `<br>`
+
+GuideNH 也支持带浮动清理能力的 MDX 风格换行标签：
+
+````md
+Text before.<br clear="all" />Text after.
+````
+
+可接受的 `clear` 值：
+
+- `none`
+- `left`
+- `right`
+- `all`
+
+### `<Color>`
+
+可使用符号颜色 id，或显式十六进制颜色值：
+
+````md
+<Color id="RED">Symbolic red</Color>
+<Color color="#FF00D2FC">ARGB or RGB color</Color>
+````
+
+规则：
+
+- `id` 和 `color` 在实际使用中应二选一
+- `color` 支持 `#RRGGBB`、`#AARRGGBB` 或 `transparent`
+
+### `<Tooltip>`
+
+创建带下划线的文本，并在悬停时显示富内容 tooltip。
+
+````md
+<Tooltip label="Hover me">
+  **Bold text**
+  <ItemImage id="minecraft:diamond" />
+</Tooltip>
+````
+
+若省略 `label`，默认触发文字为 `tooltip`。
+
+### `<PlayerName>`
+
+插入当前 Minecraft 会话用户名：
+
+````md
+Welcome, <PlayerName />!
+````
+
+### `<KeyBind>`
+
+可以通过以下任一形式查找按键绑定：
+
+- `category.description`
+- 或仅 `description`
+
+示例：
+
+````md
+Press <KeyBind id="key.jump" /> to jump.
+````
+
+### `<ItemImage>`
+
+显示行内物品图标。
+
+| 属性 | 含义 |
+| --- | --- |
+| `id` | 必填，物品引用 |
+| `scale` | float，默认 `1` |
+| `noTooltip` | 传入真值字符串或空属性时禁用 tooltip |
+| `yOffset` | scale 为 `1` 时的像素偏移覆盖值 |
+
+示例：
+
+````md
+<ItemImage id="minecraft:diamond" scale="2" />
+<ItemImage id="minecraft:diamond_sword" noTooltip="true" />
+````
+
+### `<ItemLink>`
+
+使用物品显示名创建文本链接，并附带物品 tooltip。若 `item_ids` 把该物品映射到了某一页面，点击后还会导航过去。
+
+````md
+<ItemLink id="minecraft:compass" />
+````
+
+### `<CommandLink>`
+
+点击后发送聊天命令。
+
+| 属性 | 含义 |
+| --- | --- |
+| `command` | 必填，且必须以 `/` 开头 |
+| `title` | 可选 tooltip 标题 |
+| `close` | 布尔属性；当前会被解析，但不会实际关闭指南 |
+
+示例：
+
+````md
+<CommandLink command="/tp @s 0 90 0" title="Teleport">Teleport!</CommandLink>
+````
+
+### `<Row>` 与 `<Column>`
+
+用于块内容的 flex 风格容器。
+
+| 属性 | 含义 |
+| --- | --- |
+| `gap` | 子元素间距，整数，默认 `5` |
+| `alignItems` | `start`、`center`、`end` |
+| `fullWidth` | boolean expression，默认 `false` |
+
+示例：
+
+````md
+<Row gap="8" alignItems="center">
+  <ItemImage id="minecraft:iron_ingot" />
+  <ItemImage id="minecraft:gold_ingot" />
+</Row>
+````
+
+### `<ItemGrid>`
+
+渲染紧凑的物品图标网格。其子元素必须是原始 `<ItemIcon>` 元素，由网格编译器直接解析。
+
+````md
+<ItemGrid>
+  <ItemIcon id="minecraft:iron_ingot" />
+  <ItemIcon id="minecraft:gold_ingot" />
+  <ItemIcon id="minecraft:redstone" />
+</ItemGrid>
+````
+
+### `<BlockImage>`
+
+渲染方块的物品形态：
+
+````md
+<BlockImage id="minecraft:crafting_table" scale="3" />
+````
+
+### `<FloatingImage>`
+
+完整行为请参见 [图片与资源](Images-And-Assets-zh-CN)。
+
+### `<SubPages>` 与 `<CategoryIndex>`
+
+完整导航行为请参见 [导航](Navigation-zh-CN)。
+
+### `<Structure>`
+
+当你在静态结构预览和完整 3D 场景之间做选择时，可结合 [示例](Examples-zh-CN) 和 [GameScene](GameScene-zh-CN) 参考。
+
+### 场景运行时标签
+
+这些标签仅能在 `<GameScene>` / `<Scene>` 内部工作：
+
+| 标签 | 用途 | 关键属性 |
+| --- | --- | --- |
+| `<ImportStructure>` | 导入外部 SNBT/NBT 结构资源 | `src`, `x`, `y`, `z` |
+| `<ImportStructureLib>` | 通过控制器 id 导入 StructureLib 多方块 | `controller`, `piece`, `facing`, `rotation`, `flip`, `channel` |
+| `<RemoveBlocks>` | 移除已放置且匹配指定方块匹配器的方块 | `id` |
+| `<BlockAnnotationTemplate>` | 把同一组子注解扩展到场景中所有匹配方块上 | `id` |
+
+关于场景导入/移除行为，请参见 [GameScene](GameScene-zh-CN)；关于注解模板规则，请参见 [注解](Annotations-zh-CN)。
