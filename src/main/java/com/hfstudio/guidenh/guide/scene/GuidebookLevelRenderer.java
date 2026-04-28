@@ -25,8 +25,8 @@ import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.entity.Entity;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
+import net.minecraft.entity.Entity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.ForgeHooksClient;
@@ -373,7 +373,29 @@ public class GuidebookLevelRenderer {
                 }
             }
             try {
-                renderManager.renderEntityStatic(entity, partialTicks, false);
+                GuideEntityRenderStateResolver.ResolvedEntityRenderState renderState = GuideEntityRenderStateResolver
+                    .resolve(entity, partialTicks);
+                int brightness = entity.getBrightnessForRender(partialTicks);
+                if (entity.isBurning()) {
+                    brightness = 15728880;
+                }
+                int lowerBits = brightness % 65536;
+                int upperBits = brightness / 65536;
+                OpenGlHelper.setLightmapTextureCoords(
+                    OpenGlHelper.lightmapTexUnit,
+                    (float) lowerBits / 1.0F,
+                    (float) upperBits / 1.0F);
+                GL11.glColor4f(1f, 1f, 1f, 1f);
+                // Our guidebook camera already supplies world-space transforms, so pass raw
+                // interpolated coordinates here instead of letting RenderManager subtract the
+                // preview player position a second time via renderEntityStatic().
+                renderManager.renderEntityWithPosYaw(
+                    entity,
+                    renderState.x,
+                    renderState.y,
+                    renderState.z,
+                    renderState.yaw,
+                    partialTicks);
             } catch (Throwable t) {
                 log(t);
             }

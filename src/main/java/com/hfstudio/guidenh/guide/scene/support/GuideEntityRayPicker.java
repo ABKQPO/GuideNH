@@ -24,7 +24,7 @@ public final class GuideEntityRayPicker {
                 continue;
             }
 
-            AxisAlignedBB bounds = copyOf(entity.boundingBox);
+            AxisAlignedBB bounds = entity.boundingBox;
             if (visibleLayerY != null && !intersectsVisibleLayer(bounds, visibleLayerY.intValue())) {
                 continue;
             }
@@ -40,7 +40,7 @@ public final class GuideEntityRayPicker {
                 MovingObjectPosition hitResult = new MovingObjectPosition(entity, intercept.hitVec);
                 hitResult.sideHit = intercept.sideHit;
                 hitResult.hitInfo = intercept.hitInfo;
-                bestHit = new Hit(entity, bounds, hitResult, distanceSq);
+                bestHit = new Hit(entity, copyOf(bounds), hitResult, distanceSq);
             }
         }
 
@@ -52,7 +52,8 @@ public final class GuideEntityRayPicker {
     }
 
     private static AxisAlignedBB copyOf(AxisAlignedBB bounds) {
-        return AxisAlignedBB.getBoundingBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ);
+        return AxisAlignedBB
+            .getBoundingBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ);
     }
 
     public static final class Hit {

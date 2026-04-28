@@ -71,7 +71,8 @@ final class GuidebookSceneEntityLoader {
         String normalized = entityId.toLowerCase(Locale.ROOT);
         int namespaceSeparator = normalized.indexOf(':');
         if (namespaceSeparator >= 0) {
-            candidates.add(entityId.substring(0, namespaceSeparator) + "." + entityId.substring(namespaceSeparator + 1));
+            candidates
+                .add(entityId.substring(0, namespaceSeparator) + "." + entityId.substring(namespaceSeparator + 1));
 
             String namespace = normalized.substring(0, namespaceSeparator);
             String path = normalized.substring(namespaceSeparator + 1);

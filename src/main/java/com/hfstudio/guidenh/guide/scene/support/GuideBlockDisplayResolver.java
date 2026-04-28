@@ -131,8 +131,8 @@ public final class GuideBlockDisplayResolver {
     }
 
     @Nullable
-    static ItemStack resolvePickedStackForTarget(Block block, @Nullable World world, @Nullable EntityPlayer player, int x,
-        int y, int z, @Nullable MovingObjectPosition target) {
+    static ItemStack resolvePickedStackForTarget(Block block, @Nullable World world, @Nullable EntityPlayer player,
+        int x, int y, int z, @Nullable MovingObjectPosition target) {
         if (block == null || target == null) {
             return null;
         }

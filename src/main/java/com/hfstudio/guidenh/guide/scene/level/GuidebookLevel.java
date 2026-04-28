@@ -293,9 +293,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (!Double.isFinite(minCenterX) || !Double.isFinite(maxCenterX)) {
             return new float[] { 0f, 0f, 0f };
         }
-        return new float[] {
-            (float) ((minCenterX + maxCenterX) * 0.5D),
-            (float) ((minCenterY + maxCenterY) * 0.5D),
+        return new float[] { (float) ((minCenterX + maxCenterX) * 0.5D), (float) ((minCenterY + maxCenterY) * 0.5D),
             (float) ((minCenterZ + maxCenterZ) * 0.5D) };
     }
 

@@ -88,7 +88,10 @@ public final class GuideBlockBoundsResolver {
             return null;
         }
 
-        AxisAlignedBB bestBounds = resolveNearestRayHitBounds(collectCollisionBounds(level, block, x, y, z), rayStart, rayEnd);
+        AxisAlignedBB bestBounds = resolveNearestRayHitBounds(
+            collectCollisionBounds(level, block, x, y, z),
+            rayStart,
+            rayEnd);
 
         if (bestBounds != null) {
             return copyOf(bestBounds);

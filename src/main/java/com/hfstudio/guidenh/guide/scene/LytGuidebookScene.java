@@ -12,9 +12,9 @@ import javax.annotation.Nullable;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.entity.Entity;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MovingObjectPosition;
@@ -1795,7 +1795,12 @@ public class LytGuidebookScene extends LytBlock {
     private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect) {
         int rowIndex = resolveVisibleLayerRowIndex();
         LytRect screenTrackRect = resolveVisibleLayerSliderTrackRect();
-        LytRect renderTrackRect = resolveSliderTrackRect(outerRect.x(), outerRect.y(), outerRect.width(), outerRect.height(), rowIndex);
+        LytRect renderTrackRect = resolveSliderTrackRect(
+            outerRect.x(),
+            outerRect.y(),
+            outerRect.width(),
+            outerRect.height(),
+            rowIndex);
         if (screenTrackRect.isEmpty() || renderTrackRect.isEmpty()) {
             logSliderSkipped("visible-layer", resolveVisibleLayerRowIndex(), outerRect);
             return;
@@ -1813,12 +1818,7 @@ public class LytGuidebookScene extends LytBlock {
             highlighted = mouse != null && screenGeometry.hitRect()
                 .contains(mouse[0], mouse[1]);
         }
-        logSliderGeometry(
-            "visible-layer",
-            screenGeometry,
-            rowIndex,
-            getVisibleLayerSliderLabel(),
-            outerRect);
+        logSliderGeometry("visible-layer", screenGeometry, rowIndex, getVisibleLayerSliderLabel(), outerRect);
         drawSlider(
             context,
             renderGeometry,
@@ -1872,7 +1872,12 @@ public class LytGuidebookScene extends LytBlock {
     private void drawStructureLibTierSlider(RenderContext context, LytRect outerRect) {
         int rowIndex = resolveStructureLibTierRowIndex();
         LytRect screenTrackRect = resolveStructureLibTierSliderTrackRect();
-        LytRect renderTrackRect = resolveSliderTrackRect(outerRect.x(), outerRect.y(), outerRect.width(), outerRect.height(), rowIndex);
+        LytRect renderTrackRect = resolveSliderTrackRect(
+            outerRect.x(),
+            outerRect.y(),
+            outerRect.width(),
+            outerRect.height(),
+            rowIndex);
         if (screenTrackRect.isEmpty() || renderTrackRect.isEmpty()) {
             logSliderSkipped("structurelib-tier", resolveStructureLibTierRowIndex(), outerRect);
             return;
@@ -1890,12 +1895,7 @@ public class LytGuidebookScene extends LytBlock {
             highlighted = mouse != null && screenGeometry.hitRect()
                 .contains(mouse[0], mouse[1]);
         }
-        logSliderGeometry(
-            "structurelib-tier",
-            screenGeometry,
-            rowIndex,
-            getStructureLibTierSliderLabel(),
-            outerRect);
+        logSliderGeometry("structurelib-tier", screenGeometry, rowIndex, getStructureLibTierSliderLabel(), outerRect);
         drawSlider(
             context,
             renderGeometry,
@@ -1978,7 +1978,12 @@ public class LytGuidebookScene extends LytBlock {
         StructureLibSceneMetadata.ChannelData channelData) {
         int rowIndex = resolveStructureLibChannelRowIndex(channelData.getChannelId());
         LytRect screenTrackRect = resolveStructureLibChannelSliderTrackRect(channelData.getChannelId());
-        LytRect renderTrackRect = resolveSliderTrackRect(outerRect.x(), outerRect.y(), outerRect.width(), outerRect.height(), rowIndex);
+        LytRect renderTrackRect = resolveSliderTrackRect(
+            outerRect.x(),
+            outerRect.y(),
+            outerRect.width(),
+            outerRect.height(),
+            rowIndex);
         if (screenTrackRect.isEmpty() || renderTrackRect.isEmpty()) {
             logSliderSkipped(
                 "structurelib-channel:" + channelData.getChannelId(),
@@ -1987,16 +1992,10 @@ public class LytGuidebookScene extends LytBlock {
             return;
         }
         float fraction = getStructureLibChannelFraction(channelData);
-        GuideSliderRenderer.SliderGeometry screenGeometry = GuideSliderRenderer.layout(
-            screenTrackRect.x(),
-            screenTrackRect.y(),
-            screenTrackRect.width(),
-            fraction);
-        GuideSliderRenderer.SliderGeometry renderGeometry = GuideSliderRenderer.layout(
-            renderTrackRect.x(),
-            renderTrackRect.y(),
-            renderTrackRect.width(),
-            fraction);
+        GuideSliderRenderer.SliderGeometry screenGeometry = GuideSliderRenderer
+            .layout(screenTrackRect.x(), screenTrackRect.y(), screenTrackRect.width(), fraction);
+        GuideSliderRenderer.SliderGeometry renderGeometry = GuideSliderRenderer
+            .layout(renderTrackRect.x(), renderTrackRect.y(), renderTrackRect.width(), fraction);
         cachedChannelSliderRects.put(channelData.getChannelId(), screenGeometry.trackRect());
         cachedChannelSliderHitRects.put(channelData.getChannelId(), screenGeometry.hitRect());
         boolean highlighted = channelData.getChannelId()
