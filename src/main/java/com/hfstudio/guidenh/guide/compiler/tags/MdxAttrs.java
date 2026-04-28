@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;

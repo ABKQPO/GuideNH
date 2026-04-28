@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.libs.mdast.MdastContext;
 import com.hfstudio.guidenh.libs.mdast.MdastContextProperty;

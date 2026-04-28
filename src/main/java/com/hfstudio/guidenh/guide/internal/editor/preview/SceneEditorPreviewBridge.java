@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.preview;
 
 import java.nio.file.Path;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;

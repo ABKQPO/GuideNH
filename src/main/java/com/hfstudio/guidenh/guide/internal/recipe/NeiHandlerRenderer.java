@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.recipe;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -30,7 +30,8 @@ public class NeiHandlerRenderer {
      * item on top. Returns the stack under {@code (mouseX, mouseY)} if any, else {@code null}.
      */
     public static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int mouseX,
-        int mouseY) {
+        int mouseY, List<NeiRecipeLookup.Slot> ingredientSlots, List<NeiRecipeLookup.Slot> otherSlots,
+        @Nullable NeiRecipeLookup.Slot result) {
         if (handler == null || !NeiRecipeLookup.isAvailable()) return null;
 
         // Phase 1: NEI-native background + foreground + extras at translated origin.
@@ -47,22 +48,9 @@ public class NeiHandlerRenderer {
 
         // Phase 2: draw every positioned stack on top.
         ItemStack hovered = null;
-        hovered = drawSlots(
-            NeiRecipeLookup.readIngredientSlots(handler, recipeIndex),
-            screenX,
-            screenY,
-            mouseX,
-            mouseY,
-            hovered);
-        hovered = drawSlots(
-            NeiRecipeLookup.readOtherSlots(handler, recipeIndex),
-            screenX,
-            screenY,
-            mouseX,
-            mouseY,
-            hovered);
+        hovered = drawSlots(ingredientSlots, screenX, screenY, mouseX, mouseY, hovered);
+        hovered = drawSlots(otherSlots, screenX, screenY, mouseX, mouseY, hovered);
 
-        NeiRecipeLookup.Slot result = NeiRecipeLookup.readResultSlot(handler, recipeIndex);
         if (result != null) {
             ItemStack shown = pickVisibleStack(result);
             if (shown != null) {

@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorScreenshotFormat;

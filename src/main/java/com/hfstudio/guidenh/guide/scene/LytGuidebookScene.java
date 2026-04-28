@@ -7,12 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
@@ -949,6 +950,7 @@ public class LytGuidebookScene extends LytBlock {
             }
         }
 
+        restoreGuiRenderState();
         drawBottomControls(context, outerRect);
 
         // Draw border AFTER the 3D content so border pixels always sit on top.
@@ -979,6 +981,23 @@ public class LytGuidebookScene extends LytBlock {
             return current;
         }
         return new LytRect(x, y, w, h);
+    }
+
+    private static void restoreGuiRenderState() {
+        // Scene overlays can temporarily change alpha/depth state. Restore the standard GUI state
+        // before the document continues rendering blocks below this scene.
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glEnable(GL11.GL_ALPHA_TEST);
+        GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDepthMask(true);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+        RenderHelper.disableStandardItemLighting();
     }
 
     private void drawSceneButtons(int drawX, int drawY, int w, int h, int absX, int absY) {

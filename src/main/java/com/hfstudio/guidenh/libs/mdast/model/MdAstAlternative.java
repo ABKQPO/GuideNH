@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.libs.mdast.model;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a node with a fallback.

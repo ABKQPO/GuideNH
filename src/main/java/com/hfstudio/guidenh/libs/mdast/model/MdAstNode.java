@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.libs.mdast.model;
 import java.io.IOException;
 import java.util.function.Predicate;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;

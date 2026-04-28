@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The main unit in the state machine: a function that gets a character code and has certain effects.

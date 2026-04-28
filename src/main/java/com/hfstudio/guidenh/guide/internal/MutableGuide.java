@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.WeakHashMap;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;

@@ -1,9 +1,11 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
@@ -47,6 +49,8 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     public static final int SLOT_SIZE = 16;
     public static final int DEFAULT_BODY_HEIGHT = 65;
     public static final int FALLBACK_BODY_WIDTH = 166;
+    private static final String GREGTECH_DEFAULT_NEI_HANDLER = "gregtech.nei.GTNEIDefaultHandler";
+    private static final int GREGTECH_WINDOW_TOP_BLEED = 11;
 
     private final Object handler;
     private final int recipeIndex;
@@ -58,8 +62,10 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     private final int iconImageH;
     private final int bodyWidth;
     private final int bodyHeight;
+    private final int bodyTopInset;
     private final int bodyYShift;
     private final int titleHeight;
+    private final RecipeSlotCache slotCache;
 
     public LytNeiRecipeBox(Object handler, int recipeIndex) {
         this.handler = handler;
@@ -84,7 +90,15 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         // caused visible clipping for some handlers and was reverted.
         this.bodyWidth = handlerW;
         this.bodyYShift = Math.max(0, NeiRecipeLookup.lookupHandlerYShift(handler));
-        this.bodyHeight = NeiRecipeLayoutMetrics.resolveBodyHeight(handlerH, recipeH, DEFAULT_BODY_HEIGHT);
+        this.bodyTopInset = resolveBodyTopInset(
+            handler.getClass()
+                .getName(),
+            bodyYShift);
+        this.bodyHeight = resolveBodyHeight(handlerH, recipeH, DEFAULT_BODY_HEIGHT);
+        this.slotCache = new RecipeSlotCache(
+            () -> NeiRecipeLookup.readIngredientSlots(handler, recipeIndex),
+            () -> NeiRecipeLookup.readOtherSlots(handler, recipeIndex),
+            () -> NeiRecipeLookup.readResultSlot(handler, recipeIndex));
 
         int fh = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
         this.titleHeight = Math.max(ICON_SIZE, fh) + TITLE_PAD_TOP + TITLE_PAD_BOTTOM;
@@ -106,7 +120,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int innerW = Math.max(bodyWidth, iconSize() + (iconSize() > 0 ? TITLE_GAP_AFTER_ICON : 0) + titleTextWidth());
         int w = FRAME_BORDER + innerW + FRAME_BORDER;
-        int h = FRAME_BORDER + titleHeight + BODY_MARGIN + bodyHeight + bodyYShift + FRAME_BORDER;
+        int h = FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset + bodyHeight + bodyYShift + FRAME_BORDER;
         return new LytRect(x, y, w, h);
     }
 
@@ -150,9 +164,18 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         }
 
         int bodyX = innerLeft;
-        int bodyY = innerTop + titleHeight + BODY_MARGIN;
+        int bodyY = innerTop + titleHeight + BODY_MARGIN + bodyTopInset;
         NeiAnimationTicker.ensureUpdating(handler);
-        NeiHandlerRenderer.render(handler, recipeIndex, bodyX, bodyY + bodyYShift, -1, -1);
+        NeiHandlerRenderer.render(
+            handler,
+            recipeIndex,
+            bodyX,
+            bodyY + bodyYShift,
+            -1,
+            -1,
+            slotCache.ingredients(),
+            slotCache.others(),
+            slotCache.result());
     }
 
     public static void drawScaledItem(RenderContext context, ItemStack stack, int x, int y, int size) {
@@ -201,14 +224,14 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         int py = (int) my;
 
         int bodyX = bounds.x() + FRAME_BORDER;
-        int bodyY = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyYShift;
+        int bodyY = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset + bodyYShift;
 
-        ItemStack hit = findSlotHit(NeiRecipeLookup.readIngredientSlots(handler, recipeIndex), bodyX, bodyY, px, py);
+        ItemStack hit = findSlotHit(slotCache.ingredients(), bodyX, bodyY, px, py);
         if (hit == null) {
-            hit = findSlotHit(NeiRecipeLookup.readOtherSlots(handler, recipeIndex), bodyX, bodyY, px, py);
+            hit = findSlotHit(slotCache.others(), bodyX, bodyY, px, py);
         }
         if (hit == null) {
-            NeiRecipeLookup.Slot result = NeiRecipeLookup.readResultSlot(handler, recipeIndex);
+            NeiRecipeLookup.Slot result = slotCache.result();
             if (result != null) {
                 ItemStack shown = pickVisibleStack(result);
                 if (shown != null && isOver(bodyX + result.relx, bodyY + result.rely, SLOT_SIZE, SLOT_SIZE, px, py)) {
@@ -241,5 +264,62 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
     public static boolean isOver(int x, int y, int w, int h, int px, int py) {
         return px >= x && px < x + w && py >= y && py < y + h;
+    }
+
+    private static int resolveBodyHeight(int handlerHeight, int recipeHeight, int defaultBodyHeight) {
+        int resolvedHandlerHeight = handlerHeight > 0 ? handlerHeight : defaultBodyHeight;
+        int resolvedRecipeHeight = Math.max(recipeHeight, 0);
+        return Math.max(1, Math.max(resolvedHandlerHeight, resolvedRecipeHeight));
+    }
+
+    private static int resolveBodyTopInset(String handlerClassName, int bodyYShift) {
+        if (!GREGTECH_DEFAULT_NEI_HANDLER.equals(handlerClassName)) return 0;
+        return Math.max(0, GREGTECH_WINDOW_TOP_BLEED - Math.max(bodyYShift, 0));
+    }
+
+    private static final class RecipeSlotCache {
+
+        private final Supplier<List<NeiRecipeLookup.Slot>> ingredientsSupplier;
+        private final Supplier<List<NeiRecipeLookup.Slot>> othersSupplier;
+        private final Supplier<NeiRecipeLookup.Slot> resultSupplier;
+
+        private boolean loaded;
+        private List<NeiRecipeLookup.Slot> ingredients = Collections.emptyList();
+        private List<NeiRecipeLookup.Slot> others = Collections.emptyList();
+        private @Nullable NeiRecipeLookup.Slot result;
+
+        private RecipeSlotCache(Supplier<List<NeiRecipeLookup.Slot>> ingredientsSupplier,
+            Supplier<List<NeiRecipeLookup.Slot>> othersSupplier, Supplier<NeiRecipeLookup.Slot> resultSupplier) {
+            this.ingredientsSupplier = ingredientsSupplier;
+            this.othersSupplier = othersSupplier;
+            this.resultSupplier = resultSupplier;
+        }
+
+        private List<NeiRecipeLookup.Slot> ingredients() {
+            ensureLoaded();
+            return ingredients;
+        }
+
+        private List<NeiRecipeLookup.Slot> others() {
+            ensureLoaded();
+            return others;
+        }
+
+        private @Nullable NeiRecipeLookup.Slot result() {
+            ensureLoaded();
+            return result;
+        }
+
+        private void ensureLoaded() {
+            if (loaded) return;
+            ingredients = normalize(ingredientsSupplier.get());
+            others = normalize(othersSupplier.get());
+            result = resultSupplier.get();
+            loaded = true;
+        }
+
+        private static List<NeiRecipeLookup.Slot> normalize(@Nullable List<NeiRecipeLookup.Slot> slots) {
+            return slots == null ? Collections.emptyList() : slots;
+        }
     }
 }
