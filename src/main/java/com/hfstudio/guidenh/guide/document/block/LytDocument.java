@@ -47,7 +47,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     }
 
     @Override
-    public LytRect getBounds() {
+    public @Nullable LytRect getBounds() {
         return layout != null ? layout.bounds() : null;
     }
 
