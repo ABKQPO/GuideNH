@@ -17,7 +17,7 @@ dependencies {
     devOnlyNonPublishable("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-911-GTNH:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:CarpentersBlocks:3.7.2-GTNH:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:ForgeMultipart:1.7.5:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:nei-custom-diagram:1.8.20:dev")
+    //devOnlyNonPublishable("com.github.GTNewHorizons:nei-custom-diagram:1.8.20:dev")
 
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Baubles-Expanded:2.2.13-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.16-GTNH:dev")
@@ -25,6 +25,7 @@ dependencies {
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.12:dev")
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))
 
+    compileOnly('org.jetbrains:annotations:26.0.1')
     compileOnly("org.projectlombok:lombok:1.18.42") { transitive = false }
     annotationProcessor("org.projectlombok:lombok:1.18.42")
 
