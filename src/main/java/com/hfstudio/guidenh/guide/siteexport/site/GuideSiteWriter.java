@@ -7,8 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -61,6 +63,7 @@ public class GuideSiteWriter {
         writeResource(
             outDir.resolve("_site/model-viewer/vendor/diamond_colored-LGQLQFTB.png"),
             "/assets/guidenh/siteexport/model-viewer/vendor/diamond_colored-LGQLQFTB.png");
+        GuideSiteLocalServerJarWriter.writeTo(outDir.resolve("_site/guidenh-site-server.jar"));
         writeStartScripts(outDir);
     }
 
@@ -74,6 +77,10 @@ public class GuideSiteWriter {
         deleteRecursively(normalizedOutDir.resolve("index.html"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("start.bat"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("start.sh"), normalizedOutDir);
+        deleteRecursively(normalizedOutDir.resolve("stop.bat"), normalizedOutDir);
+        deleteRecursively(normalizedOutDir.resolve("stop.sh"), normalizedOutDir);
+        deleteRecursively(normalizedOutDir.resolve(".guidenh-site-server.pid"), normalizedOutDir);
+        deleteRecursively(normalizedOutDir.resolve(".guidenh-site-server"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("export-report.json"), normalizedOutDir);
     }
 
@@ -178,50 +185,167 @@ public class GuideSiteWriter {
     }
 
     private void writeStartScripts(Path outDir) throws Exception {
-        Files.write(
-            outDir.resolve("start.bat"),
-            ("@echo off\r\n" + "set \"PORT=8734\"\r\n"
-                + "set \"SITE_DIR=%~dp0.\"\r\n"
-                + "where py >nul 2>nul\r\n"
-                + "if not errorlevel 1 (\r\n"
-                + "  start \"GuideNH Static Site\" /D \"%SITE_DIR%\" /min py -3 -m http.server %PORT% --bind 127.0.0.1\r\n"
-                + "  timeout /t 1 /nobreak >nul\r\n"
-                + "  start \"\" \"http://127.0.0.1:%PORT%/index.html\"\r\n"
-                + "  exit /b 0\r\n"
-                + ")\r\n"
-                + "where python >nul 2>nul\r\n"
-                + "if not errorlevel 1 (\r\n"
-                + "  start \"GuideNH Static Site\" /D \"%SITE_DIR%\" /min python -m http.server %PORT% --bind 127.0.0.1\r\n"
-                + "  timeout /t 1 /nobreak >nul\r\n"
-                + "  start \"\" \"http://127.0.0.1:%PORT%/index.html\"\r\n"
-                + "  exit /b 0\r\n"
-                + ")\r\n"
-                + "start \"\" \"%SITE_DIR%\\index.html\"\r\n").getBytes(StandardCharsets.UTF_8));
-        Files.write(
-            outDir.resolve("start.sh"),
-            ("#!/usr/bin/env sh\n" + "DIR=\"$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\"\n"
-                + "PORT=8734\n"
-                + "if command -v python3 >/dev/null 2>&1; then\n"
-                + "  (cd \"$DIR\" && python3 -m http.server \"$PORT\" --bind 127.0.0.1) >/dev/null 2>&1 &\n"
-                + "  sleep 1\n"
-                + "  if command -v xdg-open >/dev/null 2>&1; then\n"
-                + "    xdg-open \"http://127.0.0.1:$PORT/index.html\" >/dev/null 2>&1\n"
-                + "  else\n"
-                + "    open \"http://127.0.0.1:$PORT/index.html\"\n"
-                + "  fi\n"
-                + "elif command -v python >/dev/null 2>&1; then\n"
-                + "  (cd \"$DIR\" && python -m http.server \"$PORT\" --bind 127.0.0.1) >/dev/null 2>&1 &\n"
-                + "  sleep 1\n"
-                + "  if command -v xdg-open >/dev/null 2>&1; then\n"
-                + "    xdg-open \"http://127.0.0.1:$PORT/index.html\" >/dev/null 2>&1\n"
-                + "  else\n"
-                + "    open \"http://127.0.0.1:$PORT/index.html\"\n"
-                + "  fi\n"
-                + "elif command -v xdg-open >/dev/null 2>&1; then\n"
-                + "  xdg-open \"$DIR/index.html\" >/dev/null 2>&1\n"
-                + "else\n"
-                + "  open \"$DIR/index.html\"\n"
-                + "fi\n").getBytes(StandardCharsets.UTF_8));
+        Files.write(outDir.resolve("start.bat"), windowsStartScript().getBytes(StandardCharsets.UTF_8));
+        Files.write(outDir.resolve("stop.bat"), windowsStopScript().getBytes(StandardCharsets.UTF_8));
+        Path startSh = outDir.resolve("start.sh");
+        Path stopSh = outDir.resolve("stop.sh");
+        Files.write(startSh, unixStartScript().getBytes(StandardCharsets.UTF_8));
+        Files.write(stopSh, unixStopScript().getBytes(StandardCharsets.UTF_8));
+        trySetExecutable(startSh);
+        trySetExecutable(stopSh);
+    }
+
+    private String windowsStartScript() {
+        return "@echo off\r\n" + "setlocal\r\n"
+            + "set \"PORT=8734\"\r\n"
+            + "set \"SITE_DIR=%~dp0.\"\r\n"
+            + "set \"SERVER_JAR=%SITE_DIR%\\_site\\guidenh-site-server.jar\"\r\n"
+            + "set \"PID_FILE=%SITE_DIR%\\.guidenh-site-server.pid\"\r\n"
+            + "set \"LOG_DIR=%SITE_DIR%\\.guidenh-site-server\"\r\n"
+            + "set \"STDOUT_LOG=%LOG_DIR%\\stdout.log\"\r\n"
+            + "set \"STDERR_LOG=%LOG_DIR%\\stderr.log\"\r\n"
+            + "if not exist \"%SERVER_JAR%\" (\r\n"
+            + "  echo Missing bundled server jar: \"%SERVER_JAR%\"\r\n"
+            + "  exit /b 1\r\n"
+            + ")\r\n"
+            + "where java >nul 2>nul\r\n"
+            + "if errorlevel 1 (\r\n"
+            + "  echo Java runtime not found. Install Java and run this script again.\r\n"
+            + "  exit /b 1\r\n"
+            + ")\r\n"
+            + "if exist \"%PID_FILE%\" (\r\n"
+            + "  set \"SERVER_PID=\"\r\n"
+            + "  for /f \"usebackq delims=\" %%P in (\"%PID_FILE%\") do if not defined SERVER_PID set \"SERVER_PID=%%P\"\r\n"
+            + "  if defined SERVER_PID (\r\n"
+            + "    powershell -NoProfile -Command \"if (Get-Process -Id $env:SERVER_PID -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }\"\r\n"
+            + "    if not errorlevel 1 (\r\n"
+            + "      start \"\" \"http://127.0.0.1:%PORT%/index.html\"\r\n"
+            + "      exit /b 0\r\n"
+            + "    )\r\n"
+            + "  )\r\n"
+            + "  del /f /q \"%PID_FILE%\" >nul 2>nul\r\n"
+            + ")\r\n"
+            + "if not exist \"%LOG_DIR%\" mkdir \"%LOG_DIR%\"\r\n"
+            + "powershell -NoProfile -ExecutionPolicy Bypass -Command ^\r\n"
+            + "  \"$jar = $env:SERVER_JAR; $dir = $env:SITE_DIR; $pid = $env:PID_FILE; $out = $env:STDOUT_LOG; $err = $env:STDERR_LOG; \" ^\r\n"
+            + "  \"Start-Process -FilePath 'java' -ArgumentList @('-jar', $jar, $dir, $env:PORT, '127.0.0.1', $pid) -WorkingDirectory $dir -WindowStyle Hidden -RedirectStandardOutput $out -RedirectStandardError $err | Out-Null\"\r\n"
+            + "if errorlevel 1 (\r\n"
+            + "  echo Failed to start bundled Java site server.\r\n"
+            + "  exit /b 1\r\n"
+            + ")\r\n"
+            + "timeout /t 1 /nobreak >nul\r\n"
+            + "start \"\" \"http://127.0.0.1:%PORT%/index.html\"\r\n";
+    }
+
+    private String windowsStopScript() {
+        return "@echo off\r\n" + "setlocal\r\n"
+            + "set \"SITE_DIR=%~dp0.\"\r\n"
+            + "set \"PID_FILE=%SITE_DIR%\\.guidenh-site-server.pid\"\r\n"
+            + "if not exist \"%PID_FILE%\" (\r\n"
+            + "  echo GuideNH static site server is not running.\r\n"
+            + "  exit /b 0\r\n"
+            + ")\r\n"
+            + "set \"SERVER_PID=\"\r\n"
+            + "for /f \"usebackq delims=\" %%P in (\"%PID_FILE%\") do if not defined SERVER_PID set \"SERVER_PID=%%P\"\r\n"
+            + "if not defined SERVER_PID (\r\n"
+            + "  del /f /q \"%PID_FILE%\" >nul 2>nul\r\n"
+            + "  echo Removed empty pid file.\r\n"
+            + "  exit /b 0\r\n"
+            + ")\r\n"
+            + "powershell -NoProfile -Command \"if (Get-Process -Id $env:SERVER_PID -ErrorAction SilentlyContinue) { Stop-Process -Id $env:SERVER_PID -Force; exit 0 } else { exit 1 }\"\r\n"
+            + "del /f /q \"%PID_FILE%\" >nul 2>nul\r\n"
+            + "if errorlevel 1 (\r\n"
+            + "  echo Removed stale pid file.\r\n"
+            + ") else (\r\n"
+            + "  echo GuideNH static site server stopped.\r\n"
+            + ")\r\n";
+    }
+
+    private String unixStartScript() {
+        return "#!/usr/bin/env sh\n" + "DIR=\"$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\"\n"
+            + "PORT=8734\n"
+            + "SERVER_JAR=\"$DIR/_site/guidenh-site-server.jar\"\n"
+            + "PID_FILE=\"$DIR/.guidenh-site-server.pid\"\n"
+            + "LOG_DIR=\"$DIR/.guidenh-site-server\"\n"
+            + "STDOUT_LOG=\"$LOG_DIR/stdout.log\"\n"
+            + "STDERR_LOG=\"$LOG_DIR/stderr.log\"\n"
+            + "\n"
+            + "open_browser() {\n"
+            + "  URL=\"http://127.0.0.1:$PORT/index.html\"\n"
+            + "  if command -v xdg-open >/dev/null 2>&1; then\n"
+            + "    xdg-open \"$URL\" >/dev/null 2>&1\n"
+            + "  elif command -v open >/dev/null 2>&1; then\n"
+            + "    open \"$URL\" >/dev/null 2>&1\n"
+            + "  fi\n"
+            + "}\n"
+            + "\n"
+            + "if [ ! -f \"$SERVER_JAR\" ]; then\n"
+            + "  echo \"Missing bundled server jar: $SERVER_JAR\"\n"
+            + "  exit 1\n"
+            + "fi\n"
+            + "if ! command -v java >/dev/null 2>&1; then\n"
+            + "  echo \"Java runtime not found. Install Java and run this script again.\"\n"
+            + "  exit 1\n"
+            + "fi\n"
+            + "if [ -f \"$PID_FILE\" ]; then\n"
+            + "  SERVER_PID=\"$(sed -n '1p' \"$PID_FILE\")\"\n"
+            + "  if [ -n \"$SERVER_PID\" ] && kill -0 \"$SERVER_PID\" >/dev/null 2>&1; then\n"
+            + "    open_browser\n"
+            + "    exit 0\n"
+            + "  fi\n"
+            + "  rm -f \"$PID_FILE\"\n"
+            + "fi\n"
+            + "mkdir -p \"$LOG_DIR\"\n"
+            + "if command -v nohup >/dev/null 2>&1; then\n"
+            + "  (cd \"$DIR\" && nohup java -jar \"$SERVER_JAR\" \"$DIR\" \"$PORT\" \"127.0.0.1\" \"$PID_FILE\" >\"$STDOUT_LOG\" 2>\"$STDERR_LOG\" </dev/null &)\n"
+            + "else\n"
+            + "  (cd \"$DIR\" && java -jar \"$SERVER_JAR\" \"$DIR\" \"$PORT\" \"127.0.0.1\" \"$PID_FILE\" >\"$STDOUT_LOG\" 2>\"$STDERR_LOG\" </dev/null &)\n"
+            + "fi\n"
+            + "sleep 1\n"
+            + "open_browser\n";
+    }
+
+    private String unixStopScript() {
+        return "#!/usr/bin/env sh\n" + "DIR=\"$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\"\n"
+            + "PID_FILE=\"$DIR/.guidenh-site-server.pid\"\n"
+            + "if [ ! -f \"$PID_FILE\" ]; then\n"
+            + "  echo \"GuideNH static site server is not running.\"\n"
+            + "  exit 0\n"
+            + "fi\n"
+            + "SERVER_PID=\"$(sed -n '1p' \"$PID_FILE\")\"\n"
+            + "if [ -z \"$SERVER_PID\" ]; then\n"
+            + "  rm -f \"$PID_FILE\"\n"
+            + "  echo \"Removed empty pid file.\"\n"
+            + "  exit 0\n"
+            + "fi\n"
+            + "if kill -0 \"$SERVER_PID\" >/dev/null 2>&1; then\n"
+            + "  kill \"$SERVER_PID\" >/dev/null 2>&1 || true\n"
+            + "  sleep 1\n"
+            + "  if kill -0 \"$SERVER_PID\" >/dev/null 2>&1; then\n"
+            + "    kill -9 \"$SERVER_PID\" >/dev/null 2>&1 || true\n"
+            + "  fi\n"
+            + "  echo \"GuideNH static site server stopped.\"\n"
+            + "else\n"
+            + "  echo \"Removed stale pid file.\"\n"
+            + "fi\n"
+            + "rm -f \"$PID_FILE\"\n";
+    }
+
+    private void trySetExecutable(Path script) {
+        try {
+            Files.setPosixFilePermissions(
+                script,
+                EnumSet.of(
+                    PosixFilePermission.OWNER_READ,
+                    PosixFilePermission.OWNER_WRITE,
+                    PosixFilePermission.OWNER_EXECUTE,
+                    PosixFilePermission.GROUP_READ,
+                    PosixFilePermission.GROUP_EXECUTE,
+                    PosixFilePermission.OTHERS_READ,
+                    PosixFilePermission.OTHERS_EXECUTE));
+        } catch (UnsupportedOperationException ignored) {
+            // Non-POSIX file systems such as Windows ignore executable bits.
+        } catch (Exception ignored) {}
     }
 
     private void appendLanguageSwitcher(StringBuilder html, String currentLanguage,
