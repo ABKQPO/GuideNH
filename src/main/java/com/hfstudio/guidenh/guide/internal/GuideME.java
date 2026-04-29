@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.util.ResourceLocation;
 

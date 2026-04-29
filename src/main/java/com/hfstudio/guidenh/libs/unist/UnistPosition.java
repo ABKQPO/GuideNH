@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.libs.unist;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents the location of a node in a source file.

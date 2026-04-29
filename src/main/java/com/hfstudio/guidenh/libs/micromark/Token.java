@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.libs.micromark;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A token: a span of chunks. Tokens are what the core of micromark produces: the built-in HTML compiler or other tools

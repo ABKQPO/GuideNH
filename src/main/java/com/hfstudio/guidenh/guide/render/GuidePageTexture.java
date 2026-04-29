@@ -5,7 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;

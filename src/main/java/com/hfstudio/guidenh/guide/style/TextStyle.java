@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.style;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.color.ColorValue;

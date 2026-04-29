@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.libs.mdast;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;

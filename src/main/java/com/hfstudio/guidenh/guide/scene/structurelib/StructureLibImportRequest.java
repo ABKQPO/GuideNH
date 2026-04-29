@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.structurelib;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class StructureLibImportRequest {
 

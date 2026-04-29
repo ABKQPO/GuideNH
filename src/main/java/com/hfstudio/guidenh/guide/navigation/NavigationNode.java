@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.navigation;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.util.ResourceLocation;
 

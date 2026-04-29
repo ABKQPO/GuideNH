@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.recipe;
 import java.util.List;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;

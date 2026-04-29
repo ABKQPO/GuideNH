@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.document.flow;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 import com.hfstudio.guidenh.guide.style.Styleable;

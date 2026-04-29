@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 
 import java.util.UUID;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownElementRangeIndex;
 

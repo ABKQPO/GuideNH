@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;

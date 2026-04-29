@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.scene.support;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;

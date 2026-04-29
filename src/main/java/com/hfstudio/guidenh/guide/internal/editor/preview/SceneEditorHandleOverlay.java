@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.client.gui.Gui;
 
