@@ -26,7 +26,7 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
     private static final int ICON_SIZE = 32;
 
     private final GuideSiteAssetRegistry assets;
-    private final Map<String, String> exportedIcons = new LinkedHashMap<String, String>();
+    private final Map<String, String> exportedIcons = new LinkedHashMap<>();
 
     public GuideSiteItemIconExporter(GuideSiteAssetRegistry assets) {
         this.assets = assets;

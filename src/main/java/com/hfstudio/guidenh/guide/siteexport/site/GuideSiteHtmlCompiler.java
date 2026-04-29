@@ -113,13 +113,7 @@ public class GuideSiteHtmlCompiler {
     }
 
     public String compileBody(ParsedGuidePage parsed, GuideSiteTemplateRegistry templates) {
-        return compileBody(parsed, templates, new SceneResolver() {
-
-            @Override
-            public GuideSiteExportedScene nextScene() {
-                return null;
-            }
-        });
+        return compileBody(parsed, templates, () -> null);
     }
 
     public String compileBody(ParsedGuidePage parsed, GuideSiteTemplateRegistry templates,
@@ -141,13 +135,7 @@ public class GuideSiteHtmlCompiler {
 
     public String compileFragment(List<? extends MdAstAnyContent> children, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId) {
-        return compileFragment(children, templates, defaultNamespace, new SceneResolver() {
-
-            @Override
-            public GuideSiteExportedScene nextScene() {
-                return null;
-            }
-        }, currentPageId);
+        return compileFragment(children, templates, defaultNamespace, () -> null, currentPageId);
     }
 
     public String compileFragment(List<? extends MdAstAnyContent> children, GuideSiteTemplateRegistry templates,
@@ -557,7 +545,7 @@ public class GuideSiteHtmlCompiler {
         }
         try {
             int value = Integer.parseInt(raw.trim());
-            return value > 0 ? Integer.valueOf(value) : null;
+            return value > 0 ? value : null;
         } catch (NumberFormatException ignored) {
             return null;
         }
@@ -598,25 +586,11 @@ public class GuideSiteHtmlCompiler {
     }
 
     private static ImageResolver passthroughImageResolver() {
-        return new ImageResolver() {
-
-            @Override
-            public String resolve(String rawUrl, @Nullable ResourceLocation currentPageId) {
-                return rawUrl != null ? rawUrl : "";
-            }
-        };
+        return (rawUrl, currentPageId) -> rawUrl != null ? rawUrl : "";
     }
 
     private static MdxTagRenderer noopMdxTagRenderer() {
-        return new MdxTagRenderer() {
-
-            @Override
-            public String render(MdxJsxElementFields element, String defaultNamespace,
-                @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
-                SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
-                return null;
-            }
-        };
+        return (element, defaultNamespace, currentPageId, templates, sceneResolver, compiler) -> null;
     }
 
     private String escapeAttribute(String text) {

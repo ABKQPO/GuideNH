@@ -6,15 +6,15 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-final class GuideSiteItemSupport {
+public class GuideSiteItemSupport {
 
     private GuideSiteItemSupport() {}
 
-    static GuideSiteExportedItem export(@Nullable ItemStack stack, GuideSiteItemIconResolver iconResolver) {
+    public static GuideSiteExportedItem export(@Nullable ItemStack stack, GuideSiteItemIconResolver iconResolver) {
         return export(null, stack, iconResolver, "");
     }
 
-    static GuideSiteExportedItem export(@Nullable ResourceLocation registryId, @Nullable ItemStack stack,
+    public static GuideSiteExportedItem export(@Nullable ResourceLocation registryId, @Nullable ItemStack stack,
         GuideSiteItemIconResolver iconResolver, String fallbackItemId) {
         String itemId = registryId != null ? registryId.toString() : itemId(stack);
         if (itemId.isEmpty()) {
@@ -43,7 +43,7 @@ final class GuideSiteItemSupport {
             return "";
         }
         Item item = stack.getItem();
-        String registryName = (String) Item.itemRegistry.getNameForObject(item);
+        String registryName = Item.itemRegistry.getNameForObject(item);
         return registryName != null ? registryName : "";
     }
 

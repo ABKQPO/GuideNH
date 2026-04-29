@@ -197,156 +197,168 @@ public class GuideSiteWriter {
     }
 
     private String windowsStartScript() {
-        return "@echo off\r\n" + "setlocal\r\n"
-            + "set \"PORT=8734\"\r\n"
-            + "set \"SITE_DIR=%~dp0.\"\r\n"
-            + "set \"SERVER_JAR=%SITE_DIR%\\_site\\guidenh-site-server.jar\"\r\n"
-            + "set \"STATE_FILE=%SITE_DIR%\\.guidenh-site-server.state\"\r\n"
-            + "set \"LEGACY_PID_FILE=%SITE_DIR%\\.guidenh-site-server.pid\"\r\n"
-            + "set \"LOG_DIR=%SITE_DIR%\\.guidenh-site-server\"\r\n"
-            + "set \"STDOUT_LOG=%LOG_DIR%\\stdout.log\"\r\n"
-            + "set \"STDERR_LOG=%LOG_DIR%\\stderr.log\"\r\n"
-            + "if not exist \"%SERVER_JAR%\" (\r\n"
-            + "  echo Missing bundled server jar: \"%SERVER_JAR%\"\r\n"
-            + "  exit /b 1\r\n"
-            + ")\r\n"
-            + "set \"JAVA_EXE=\"\r\n"
-            + "if defined JAVA_HOME if exist \"%JAVA_HOME%\\bin\\java.exe\" set \"JAVA_EXE=%JAVA_HOME%\\bin\\java.exe\"\r\n"
-            + "if not defined JAVA_EXE for /f \"usebackq delims=\" %%J in (`where java 2^>nul`) do if not defined JAVA_EXE set \"JAVA_EXE=%%J\"\r\n"
-            + "if not defined JAVA_EXE (\r\n"
-            + "  echo Java runtime not found. Install Java and run this script again.\r\n"
-            + "  exit /b 1\r\n"
-            + ")\r\n"
-            + "if not exist \"%STATE_FILE%\" if exist \"%LEGACY_PID_FILE%\" set \"STATE_FILE=%LEGACY_PID_FILE%\"\r\n"
-            + "\"%JAVA_EXE%\" -jar \"%SERVER_JAR%\" status \"%STATE_FILE%\" >nul 2>nul\r\n"
-            + "if not errorlevel 1 (\r\n"
-            + "  start \"\" \"http://127.0.0.1:%PORT%/index.html\"\r\n"
-            + "  exit /b 0\r\n"
-            + ")\r\n"
-            + "if not exist \"%LOG_DIR%\" mkdir \"%LOG_DIR%\"\r\n"
-            + "powershell -NoProfile -ExecutionPolicy Bypass -Command ^\r\n"
-            + "  \"$javaExe = $env:JAVA_EXE; $jar = $env:SERVER_JAR; $dir = $env:SITE_DIR; $stateFile = $env:STATE_FILE; $stdoutLog = $env:STDOUT_LOG; $stderrLog = $env:STDERR_LOG; \" ^\r\n"
-            + "  \"Start-Process -FilePath $javaExe -ArgumentList @('-jar', $jar, 'serve', $dir, $env:PORT, '127.0.0.1', $stateFile) -WorkingDirectory $dir -WindowStyle Hidden -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog | Out-Null\"\r\n"
-            + "if errorlevel 1 (\r\n"
-            + "  echo Failed to start bundled Java site server.\r\n"
-            + "  exit /b 1\r\n"
-            + ")\r\n"
-            + "set /a WAIT_COUNT=0\r\n"
-            + ":wait_for_server\r\n"
-            + "\"%JAVA_EXE%\" -jar \"%SERVER_JAR%\" status \"%STATE_FILE%\" >nul 2>nul\r\n"
-            + "if not errorlevel 1 goto server_ready\r\n"
-            + "if %WAIT_COUNT% GEQ 10 goto server_failed\r\n"
-            + "set /a WAIT_COUNT+=1\r\n"
-            + "timeout /t 1 /nobreak >nul\r\n"
-            + "goto wait_for_server\r\n"
-            + ":server_ready\r\n"
-            + "start \"\" \"http://127.0.0.1:%PORT%/index.html\"\r\n"
-            + "exit /b 0\r\n"
-            + ":server_failed\r\n"
-            + "echo Failed to confirm bundled Java site server startup.\r\n"
-            + "echo Check logs under \"%LOG_DIR%\".\r\n"
-            + "exit /b 1\r\n";
+        return """
+            @echo off\r
+            setlocal\r
+            set "PORT=8734"\r
+            set "SITE_DIR=%~dp0."\r
+            set "SERVER_JAR=%SITE_DIR%\\_site\\guidenh-site-server.jar"\r
+            set "STATE_FILE=%SITE_DIR%\\.guidenh-site-server.state"\r
+            set "LEGACY_PID_FILE=%SITE_DIR%\\.guidenh-site-server.pid"\r
+            set "LOG_DIR=%SITE_DIR%\\.guidenh-site-server"\r
+            set "STDOUT_LOG=%LOG_DIR%\\stdout.log"\r
+            set "STDERR_LOG=%LOG_DIR%\\stderr.log"\r
+            if not exist "%SERVER_JAR%" (\r
+              echo Missing bundled server jar: "%SERVER_JAR%"\r
+              exit /b 1\r
+            )\r
+            set "JAVA_EXE="\r
+            if defined JAVA_HOME if exist "%JAVA_HOME%\\bin\\java.exe" set "JAVA_EXE=%JAVA_HOME%\\bin\\java.exe"\r
+            if not defined JAVA_EXE for /f "usebackq delims=" %%J in (`where java 2^>nul`) do if not defined JAVA_EXE set "JAVA_EXE=%%J"\r
+            if not defined JAVA_EXE (\r
+              echo Java runtime not found. Install Java and run this script again.\r
+              exit /b 1\r
+            )\r
+            if not exist "%STATE_FILE%" if exist "%LEGACY_PID_FILE%" set "STATE_FILE=%LEGACY_PID_FILE%"\r
+            "%JAVA_EXE%" -jar "%SERVER_JAR%" status "%STATE_FILE%" >nul 2>nul\r
+            if not errorlevel 1 (\r
+              start "" "http://127.0.0.1:%PORT%/index.html"\r
+              exit /b 0\r
+            )\r
+            if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"\r
+            powershell -NoProfile -ExecutionPolicy Bypass -Command ^\r
+              "$javaExe = $env:JAVA_EXE; $jar = $env:SERVER_JAR; $dir = $env:SITE_DIR; $stateFile = $env:STATE_FILE; $stdoutLog = $env:STDOUT_LOG; $stderrLog = $env:STDERR_LOG; " ^\r
+              "Start-Process -FilePath $javaExe -ArgumentList @('-jar', $jar, 'serve', $dir, $env:PORT, '127.0.0.1', $stateFile) -WorkingDirectory $dir -WindowStyle Hidden -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog | Out-Null"\r
+            if errorlevel 1 (\r
+              echo Failed to start bundled Java site server.\r
+              exit /b 1\r
+            )\r
+            set /a WAIT_COUNT=0\r
+            :wait_for_server\r
+            "%JAVA_EXE%" -jar "%SERVER_JAR%" status "%STATE_FILE%" >nul 2>nul\r
+            if not errorlevel 1 goto server_ready\r
+            if %WAIT_COUNT% GEQ 10 goto server_failed\r
+            set /a WAIT_COUNT+=1\r
+            timeout /t 1 /nobreak >nul\r
+            goto wait_for_server\r
+            :server_ready\r
+            start "" "http://127.0.0.1:%PORT%/index.html"\r
+            exit /b 0\r
+            :server_failed\r
+            echo Failed to confirm bundled Java site server startup.\r
+            echo Check logs under "%LOG_DIR%".\r
+            exit /b 1\r
+            """;
     }
 
     private String windowsStopScript() {
-        return "@echo off\r\n" + "setlocal\r\n"
-            + "set \"SITE_DIR=%~dp0.\"\r\n"
-            + "set \"SERVER_JAR=%SITE_DIR%\\_site\\guidenh-site-server.jar\"\r\n"
-            + "set \"STATE_FILE=%SITE_DIR%\\.guidenh-site-server.state\"\r\n"
-            + "set \"LEGACY_PID_FILE=%SITE_DIR%\\.guidenh-site-server.pid\"\r\n"
-            + "if not exist \"%SERVER_JAR%\" (\r\n"
-            + "  echo Missing bundled server jar: \"%SERVER_JAR%\"\r\n"
-            + "  exit /b 1\r\n"
-            + ")\r\n"
-            + "set \"JAVA_EXE=\"\r\n"
-            + "if defined JAVA_HOME if exist \"%JAVA_HOME%\\bin\\java.exe\" set \"JAVA_EXE=%JAVA_HOME%\\bin\\java.exe\"\r\n"
-            + "if not defined JAVA_EXE for /f \"usebackq delims=\" %%J in (`where java 2^>nul`) do if not defined JAVA_EXE set \"JAVA_EXE=%%J\"\r\n"
-            + "if not defined JAVA_EXE (\r\n"
-            + "  echo Java runtime not found. Install Java and run this script again.\r\n"
-            + "  exit /b 1\r\n"
-            + ")\r\n"
-            + "if not exist \"%STATE_FILE%\" if exist \"%LEGACY_PID_FILE%\" set \"STATE_FILE=%LEGACY_PID_FILE%\"\r\n"
-            + "if not exist \"%STATE_FILE%\" (\r\n"
-            + "  echo GuideNH static site server is not running.\r\n"
-            + "  exit /b 0\r\n"
-            + ")\r\n"
-            + "\"%JAVA_EXE%\" -jar \"%SERVER_JAR%\" stop \"%STATE_FILE%\"\r\n";
+        return """
+            @echo off\r
+            setlocal\r
+            set "SITE_DIR=%~dp0."\r
+            set "SERVER_JAR=%SITE_DIR%\\_site\\guidenh-site-server.jar"\r
+            set "STATE_FILE=%SITE_DIR%\\.guidenh-site-server.state"\r
+            set "LEGACY_PID_FILE=%SITE_DIR%\\.guidenh-site-server.pid"\r
+            if not exist "%SERVER_JAR%" (\r
+              echo Missing bundled server jar: "%SERVER_JAR%"\r
+              exit /b 1\r
+            )\r
+            set "JAVA_EXE="\r
+            if defined JAVA_HOME if exist "%JAVA_HOME%\\bin\\java.exe" set "JAVA_EXE=%JAVA_HOME%\\bin\\java.exe"\r
+            if not defined JAVA_EXE for /f "usebackq delims=" %%J in (`where java 2^>nul`) do if not defined JAVA_EXE set "JAVA_EXE=%%J"\r
+            if not defined JAVA_EXE (\r
+              echo Java runtime not found. Install Java and run this script again.\r
+              exit /b 1\r
+            )\r
+            if not exist "%STATE_FILE%" if exist "%LEGACY_PID_FILE%" set "STATE_FILE=%LEGACY_PID_FILE%"\r
+            if not exist "%STATE_FILE%" (\r
+              echo GuideNH static site server is not running.\r
+              exit /b 0\r
+            )\r
+            "%JAVA_EXE%" -jar "%SERVER_JAR%" stop "%STATE_FILE%"\r
+            """;
     }
 
     private String unixStartScript() {
-        return "#!/usr/bin/env sh\n" + "DIR=\"$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\"\n"
-            + "PORT=8734\n"
-            + "SERVER_JAR=\"$DIR/_site/guidenh-site-server.jar\"\n"
-            + "STATE_FILE=\"$DIR/.guidenh-site-server.state\"\n"
-            + "LEGACY_PID_FILE=\"$DIR/.guidenh-site-server.pid\"\n"
-            + "LOG_DIR=\"$DIR/.guidenh-site-server\"\n"
-            + "STDOUT_LOG=\"$LOG_DIR/stdout.log\"\n"
-            + "STDERR_LOG=\"$LOG_DIR/stderr.log\"\n"
-            + "\n"
-            + "open_browser() {\n"
-            + "  URL=\"http://127.0.0.1:$PORT/index.html\"\n"
-            + "  if command -v xdg-open >/dev/null 2>&1; then\n"
-            + "    xdg-open \"$URL\" >/dev/null 2>&1\n"
-            + "  elif command -v open >/dev/null 2>&1; then\n"
-            + "    open \"$URL\" >/dev/null 2>&1\n"
-            + "  fi\n"
-            + "}\n"
-            + "\n"
-            + "if [ ! -f \"$SERVER_JAR\" ]; then\n"
-            + "  echo \"Missing bundled server jar: $SERVER_JAR\"\n"
-            + "  exit 1\n"
-            + "fi\n"
-            + "if ! command -v java >/dev/null 2>&1; then\n"
-            + "  echo \"Java runtime not found. Install Java and run this script again.\"\n"
-            + "  exit 1\n"
-            + "fi\n"
-            + "if [ ! -f \"$STATE_FILE\" ] && [ -f \"$LEGACY_PID_FILE\" ]; then\n"
-            + "  STATE_FILE=\"$LEGACY_PID_FILE\"\n"
-            + "fi\n"
-            + "if java -jar \"$SERVER_JAR\" status \"$STATE_FILE\" >/dev/null 2>&1; then\n"
-            + "  open_browser\n"
-            + "  exit 0\n"
-            + "fi\n"
-            + "mkdir -p \"$LOG_DIR\"\n"
-            + "if command -v nohup >/dev/null 2>&1; then\n"
-            + "  (cd \"$DIR\" && nohup java -jar \"$SERVER_JAR\" serve \"$DIR\" \"$PORT\" \"127.0.0.1\" \"$STATE_FILE\" >\"$STDOUT_LOG\" 2>\"$STDERR_LOG\" </dev/null &)\n"
-            + "else\n"
-            + "  (cd \"$DIR\" && java -jar \"$SERVER_JAR\" serve \"$DIR\" \"$PORT\" \"127.0.0.1\" \"$STATE_FILE\" >\"$STDOUT_LOG\" 2>\"$STDERR_LOG\" </dev/null &)\n"
-            + "fi\n"
-            + "attempt=0\n"
-            + "while ! java -jar \"$SERVER_JAR\" status \"$STATE_FILE\" >/dev/null 2>&1; do\n"
-            + "  attempt=$((attempt + 1))\n"
-            + "  if [ \"$attempt\" -ge 10 ]; then\n"
-            + "    echo \"Failed to confirm bundled Java site server startup.\"\n"
-            + "    echo \"Check logs under $LOG_DIR\"\n"
-            + "    exit 1\n"
-            + "  fi\n"
-            + "  sleep 1\n"
-            + "done\n"
-            + "open_browser\n";
+        return """
+            #!/usr/bin/env sh
+            DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+            PORT=8734
+            SERVER_JAR="$DIR/_site/guidenh-site-server.jar"
+            STATE_FILE="$DIR/.guidenh-site-server.state"
+            LEGACY_PID_FILE="$DIR/.guidenh-site-server.pid"
+            LOG_DIR="$DIR/.guidenh-site-server"
+            STDOUT_LOG="$LOG_DIR/stdout.log"
+            STDERR_LOG="$LOG_DIR/stderr.log"
+
+            open_browser() {
+              URL="http://127.0.0.1:$PORT/index.html"
+              if command -v xdg-open >/dev/null 2>&1; then
+                xdg-open "$URL" >/dev/null 2>&1
+              elif command -v open >/dev/null 2>&1; then
+                open "$URL" >/dev/null 2>&1
+              fi
+            }
+
+            if [ ! -f "$SERVER_JAR" ]; then
+              echo "Missing bundled server jar: $SERVER_JAR"
+              exit 1
+            fi
+            if ! command -v java >/dev/null 2>&1; then
+              echo "Java runtime not found. Install Java and run this script again."
+              exit 1
+            fi
+            if [ ! -f "$STATE_FILE" ] && [ -f "$LEGACY_PID_FILE" ]; then
+              STATE_FILE="$LEGACY_PID_FILE"
+            fi
+            if java -jar "$SERVER_JAR" status "$STATE_FILE" >/dev/null 2>&1; then
+              open_browser
+              exit 0
+            fi
+            mkdir -p "$LOG_DIR"
+            if command -v nohup >/dev/null 2>&1; then
+              (cd "$DIR" && nohup java -jar "$SERVER_JAR" serve "$DIR" "$PORT" "127.0.0.1" "$STATE_FILE" >"$STDOUT_LOG" 2>"$STDERR_LOG" </dev/null &)
+            else
+              (cd "$DIR" && java -jar "$SERVER_JAR" serve "$DIR" "$PORT" "127.0.0.1" "$STATE_FILE" >"$STDOUT_LOG" 2>"$STDERR_LOG" </dev/null &)
+            fi
+            attempt=0
+            while ! java -jar "$SERVER_JAR" status "$STATE_FILE" >/dev/null 2>&1; do
+              attempt=$((attempt + 1))
+              if [ "$attempt" -ge 10 ]; then
+                echo "Failed to confirm bundled Java site server startup."
+                echo "Check logs under $LOG_DIR"
+                exit 1
+              fi
+              sleep 1
+            done
+            open_browser
+            """;
     }
 
     private String unixStopScript() {
-        return "#!/usr/bin/env sh\n" + "DIR=\"$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\"\n"
-            + "SERVER_JAR=\"$DIR/_site/guidenh-site-server.jar\"\n"
-            + "STATE_FILE=\"$DIR/.guidenh-site-server.state\"\n"
-            + "LEGACY_PID_FILE=\"$DIR/.guidenh-site-server.pid\"\n"
-            + "if [ ! -f \"$SERVER_JAR\" ]; then\n"
-            + "  echo \"Missing bundled server jar: $SERVER_JAR\"\n"
-            + "  exit 1\n"
-            + "fi\n"
-            + "if ! command -v java >/dev/null 2>&1; then\n"
-            + "  echo \"Java runtime not found. Install Java and run this script again.\"\n"
-            + "  exit 1\n"
-            + "fi\n"
-            + "if [ ! -f \"$STATE_FILE\" ] && [ -f \"$LEGACY_PID_FILE\" ]; then\n"
-            + "  STATE_FILE=\"$LEGACY_PID_FILE\"\n"
-            + "fi\n"
-            + "if [ ! -f \"$STATE_FILE\" ]; then\n"
-            + "  echo \"GuideNH static site server is not running.\"\n"
-            + "  exit 0\n"
-            + "fi\n"
-            + "java -jar \"$SERVER_JAR\" stop \"$STATE_FILE\"\n";
+        return """
+            #!/usr/bin/env sh
+            DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+            SERVER_JAR="$DIR/_site/guidenh-site-server.jar"
+            STATE_FILE="$DIR/.guidenh-site-server.state"
+            LEGACY_PID_FILE="$DIR/.guidenh-site-server.pid"
+            if [ ! -f "$SERVER_JAR" ]; then
+              echo "Missing bundled server jar: $SERVER_JAR"
+              exit 1
+            fi
+            if ! command -v java >/dev/null 2>&1; then
+              echo "Java runtime not found. Install Java and run this script again."
+              exit 1
+            fi
+            if [ ! -f "$STATE_FILE" ] && [ -f "$LEGACY_PID_FILE" ]; then
+              STATE_FILE="$LEGACY_PID_FILE"
+            fi
+            if [ ! -f "$STATE_FILE" ]; then
+              echo "GuideNH static site server is not running."
+              exit 0
+            fi
+            java -jar "$SERVER_JAR" stop "$STATE_FILE"
+            """;
     }
 
     private void trySetExecutable(Path script) {
@@ -415,7 +427,7 @@ public class GuideSiteWriter {
     private Map<String, Object> navigationNodeData(MutableGuide guide, String language, NavigationNode node) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("title", node.title());
-        data.put("position", Integer.valueOf(node.position()));
+        data.put("position", node.position());
         if (node.pageId() != null) {
             data.put(
                 "pageId",
@@ -549,7 +561,7 @@ public class GuideSiteWriter {
         String normalized = normalizeLanguage(language);
         boolean chineseUi = normalizeLanguage(currentLanguage).startsWith("zh");
         return switch (normalized) {
-            case "en_us" -> chineseUi ? "English" : "English";
+            case "en_us" -> "English";
             case "zh_cn" -> chineseUi ? "简体中文" : "Simplified Chinese";
             case "zh_tw" -> chineseUi ? "繁體中文" : "Traditional Chinese";
             case "ja_jp" -> chineseUi ? "日本語" : "Japanese";
