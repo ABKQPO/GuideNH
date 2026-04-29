@@ -55,6 +55,8 @@ public interface RenderContext {
 
     void popScissor();
 
+    default void restoreExternalRenderState() {}
+
     default void fillRect(LytRect rect, ColorValue color) {
         fillRect(rect, resolveColor(color));
     }

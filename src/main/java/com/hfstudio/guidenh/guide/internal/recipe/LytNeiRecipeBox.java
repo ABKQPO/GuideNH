@@ -149,6 +149,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         NeiAnimationTicker.ensureUpdating(handler);
         NeiHandlerRenderer
             .render(handler, recipeIndex, bodyX, bodyY + bodyYShift, bodyX, bodyY, bodyWidth, bodyHeight, -1, -1);
+        context.restoreExternalRenderState();
         drawWindowChromeOverlay(context, x, y, w, h, bodyX, bodyY, bodyWidth, bodyHeight);
         drawTitleRow(context, innerLeft, titleRowTop, fh);
     }

@@ -666,6 +666,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             LOG.warn("Error rendering ContentTooltip", t);
         } finally {
             GL11.glPopMatrix();
+            ctx.restoreExternalRenderState();
         }
     }
 
@@ -740,6 +741,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             LOG.error("Error rendering guide document {}", currentAnchor.pageId(), t);
         } finally {
             GL11.glPopMatrix();
+            ctx.restoreExternalRenderState();
             ctx.popScissor();
         }
     }

@@ -307,6 +307,29 @@ public class VanillaRenderContext implements RenderContext {
         }
     }
 
+    @Override
+    public void restoreExternalRenderState() {
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glEnable(GL11.GL_ALPHA_TEST);
+        GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDepthMask(true);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+        RenderHelper.disableStandardItemLighting();
+
+        if (!scissorStack.isEmpty()) {
+            applyScissor(scissorStack.peek());
+            GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        } else {
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        }
+    }
+
     private void applyScissor(LytRect rect) {
         var mc = Minecraft.getMinecraft();
         int scale = DisplayScale.scaleFactor();

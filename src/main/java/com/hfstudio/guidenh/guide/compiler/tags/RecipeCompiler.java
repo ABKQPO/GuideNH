@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
-import com.hfstudio.guidenh.guide.document.block.LytBalancedColumns;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
+import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
@@ -223,10 +223,10 @@ public class RecipeCompiler extends BlockTagCompiler {
             for (var b : boxes) parent.append(b);
             return;
         }
-        LytBalancedColumns columns = new LytBalancedColumns();
-        columns.setGap(MULTI_GAP);
-        for (var b : boxes) columns.append(b);
-        parent.append(columns);
+        LytHBox row = new LytHBox();
+        row.setGap(MULTI_GAP);
+        for (var b : boxes) row.append(b);
+        parent.append(row);
     }
 
     /**
