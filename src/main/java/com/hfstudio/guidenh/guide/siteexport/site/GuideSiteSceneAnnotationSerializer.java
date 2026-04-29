@@ -57,6 +57,8 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 
 public final class GuideSiteSceneAnnotationSerializer {
 
+    private static final float ANNOTATION_THICKNESS_SCALE = 32.0f;
+    private static final float MIN_EXPORTED_WORLD_THICKNESS = 1.0f / 256.0f;
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
         .serializeNulls()
         .create();
@@ -192,7 +194,7 @@ public final class GuideSiteSceneAnnotationSerializer {
         Map<String, Object> data = new LinkedHashMap<String, Object>();
         data.put("type", type);
         data.put("color", toCssColor(color));
-        data.put("thickness", Float.valueOf(thickness));
+        data.put("thickness", Float.valueOf(exportAnnotationThickness(thickness)));
         data.put("alwaysOnTop", Boolean.valueOf(alwaysOnTop));
         String templateId = createTemplateId(tooltip, templates, currentPageId, assetExporter, itemIconResolver);
         if (templateId != null) {
@@ -201,11 +203,16 @@ public final class GuideSiteSceneAnnotationSerializer {
         return data;
     }
 
+    private static float exportAnnotationThickness(float thickness) {
+        return Math.max(thickness / ANNOTATION_THICKNESS_SCALE, MIN_EXPORTED_WORLD_THICKNESS);
+    }
+
     @Nullable
     private static String createTemplateId(@Nullable GuideTooltip tooltip, GuideSiteTemplateRegistry templates,
         @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
-        String html = TooltipHtmlRenderer.render(tooltip, currentPageId, assetExporter, itemIconResolver);
+        String html = TooltipHtmlRenderer
+            .render(tooltip, currentPageId, assetExporter, itemIconResolver, templates, true);
         if (html == null || html.trim()
             .isEmpty()) {
             return null;
@@ -224,7 +231,14 @@ public final class GuideSiteSceneAnnotationSerializer {
 
     public static String renderTooltipHtml(@Nullable GuideTooltip tooltip, @Nullable ResourceLocation currentPageId,
         @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
-        return TooltipHtmlRenderer.render(tooltip, currentPageId, assetExporter, itemIconResolver);
+        return renderTooltipHtml(tooltip, currentPageId, assetExporter, itemIconResolver, null);
+    }
+
+    public static String renderTooltipHtml(@Nullable GuideTooltip tooltip, @Nullable ResourceLocation currentPageId,
+        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
+        @Nullable GuideSiteTemplateRegistry templates) {
+        return TooltipHtmlRenderer
+            .render(tooltip, currentPageId, assetExporter, itemIconResolver, templates, templates != null);
     }
 
     private static float[] toVector(Vector3f vector) {
@@ -264,7 +278,8 @@ public final class GuideSiteSceneAnnotationSerializer {
         private TooltipHtmlRenderer() {}
 
         private static String render(@Nullable GuideTooltip tooltip, @Nullable ResourceLocation currentPageId,
-            @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+            @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
+            @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
             if (tooltip == null) {
                 return "";
             }
@@ -275,7 +290,13 @@ public final class GuideSiteSceneAnnotationSerializer {
                 return renderItemTooltip(itemTooltip, itemIconResolver);
             }
             if (tooltip instanceof ContentTooltip contentTooltip) {
-                return renderBlock(contentTooltip.getContent(), currentPageId, assetExporter, itemIconResolver);
+                return renderBlock(
+                    contentTooltip.getContent(),
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
             }
             return "";
         }
@@ -328,24 +349,40 @@ public final class GuideSiteSceneAnnotationSerializer {
         }
 
         private static String renderBlock(@Nullable LytBlock block, @Nullable ResourceLocation currentPageId,
-            @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+            @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
+            @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
             if (block == null) {
                 return "";
             }
             StringBuilder html = new StringBuilder();
-            appendBlock(html, block, currentPageId, assetExporter, itemIconResolver);
+            appendBlock(
+                html,
+                block,
+                currentPageId,
+                assetExporter,
+                itemIconResolver,
+                templates,
+                allowNestedItemTooltips);
             return html.toString();
         }
 
         private static void appendBlock(StringBuilder html, @Nullable LytNode node,
             @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-            GuideSiteItemIconResolver itemIconResolver) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
             if (node == null) {
                 return;
             }
             if (node instanceof LytDocument document) {
                 for (LytBlock child : document.getBlocks()) {
-                    appendBlock(html, child, currentPageId, assetExporter, itemIconResolver);
+                    appendBlock(
+                        html,
+                        child,
+                        currentPageId,
+                        assetExporter,
+                        itemIconResolver,
+                        templates,
+                        allowNestedItemTooltips);
                 }
                 return;
             }
@@ -356,19 +393,43 @@ public final class GuideSiteSceneAnnotationSerializer {
                     "h" + clampHeadingDepth(heading.getDepth()),
                     currentPageId,
                     assetExporter,
-                    itemIconResolver);
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
             if (node instanceof LytParagraph paragraph) {
-                appendParagraph(html, paragraph, "p", currentPageId, assetExporter, itemIconResolver);
+                appendParagraph(
+                    html,
+                    paragraph,
+                    "p",
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
             if (node instanceof LytList list) {
-                appendList(html, list, currentPageId, assetExporter, itemIconResolver);
+                appendList(
+                    html,
+                    list,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
             if (node instanceof LytListItem listItem) {
-                appendListItem(html, listItem, currentPageId, assetExporter, itemIconResolver);
+                appendListItem(
+                    html,
+                    listItem,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
             if (node instanceof LytThematicBreak) {
@@ -376,19 +437,47 @@ public final class GuideSiteSceneAnnotationSerializer {
                 return;
             }
             if (node instanceof LytTable table) {
-                appendTable(html, table, currentPageId, assetExporter, itemIconResolver);
+                appendTable(
+                    html,
+                    table,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
             if (node instanceof LytSlotGrid slotGrid) {
-                appendSlotGrid(html, slotGrid, itemIconResolver);
+                appendSlotGrid(
+                    html,
+                    slotGrid,
+                    itemIconResolver,
+                    currentPageId,
+                    assetExporter,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
             if (node instanceof LytItemGrid itemGrid) {
-                appendItemGrid(html, itemGrid, itemIconResolver);
+                appendItemGrid(
+                    html,
+                    itemGrid,
+                    itemIconResolver,
+                    currentPageId,
+                    assetExporter,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
             if (node instanceof LytItemImage itemImage) {
-                appendItemStacks(html, itemImage.getStacks(), itemIconResolver);
+                appendItemStacks(
+                    html,
+                    itemImage.getStacks(),
+                    itemIconResolver,
+                    currentPageId,
+                    assetExporter,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
             if (node instanceof LytImage image) {
@@ -396,21 +485,36 @@ public final class GuideSiteSceneAnnotationSerializer {
                 return;
             }
             if (node instanceof LytSlot slot) {
-                appendSlot(html, slot, itemIconResolver);
+                appendSlot(
+                    html,
+                    slot,
+                    itemIconResolver,
+                    currentPageId,
+                    assetExporter,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
 
             List<? extends LytNode> children = node.getChildren();
             if (children != null) {
                 for (LytNode child : children) {
-                    appendBlock(html, child, currentPageId, assetExporter, itemIconResolver);
+                    appendBlock(
+                        html,
+                        child,
+                        currentPageId,
+                        assetExporter,
+                        itemIconResolver,
+                        templates,
+                        allowNestedItemTooltips);
                 }
             }
         }
 
         private static void appendParagraph(StringBuilder html, LytParagraph paragraph, String tagName,
             @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-            GuideSiteItemIconResolver itemIconResolver) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
             html.append("<")
                 .append(tagName);
             appendParagraphStyleAttribute(html, paragraph.resolveStyle());
@@ -424,7 +528,14 @@ public final class GuideSiteSceneAnnotationSerializer {
             }
             html.append(">");
             for (LytFlowContent content : paragraph.getContent()) {
-                appendFlowContent(html, content, currentPageId, assetExporter, itemIconResolver);
+                appendFlowContent(
+                    html,
+                    content,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
             }
             html.append("</")
                 .append(tagName)
@@ -432,7 +543,8 @@ public final class GuideSiteSceneAnnotationSerializer {
         }
 
         private static void appendList(StringBuilder html, LytList list, @Nullable ResourceLocation currentPageId,
-            @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+            @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
+            @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
             String tagName = list.isOrdered() ? "ol" : "ul";
             html.append("<")
                 .append(tagName);
@@ -443,7 +555,14 @@ public final class GuideSiteSceneAnnotationSerializer {
             }
             html.append(">");
             for (LytNode child : list.getChildren()) {
-                appendBlock(html, child, currentPageId, assetExporter, itemIconResolver);
+                appendBlock(
+                    html,
+                    child,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
             }
             html.append("</")
                 .append(tagName)
@@ -452,27 +571,52 @@ public final class GuideSiteSceneAnnotationSerializer {
 
         private static void appendListItem(StringBuilder html, LytListItem listItem,
             @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-            GuideSiteItemIconResolver itemIconResolver) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
             html.append("<li>");
             for (LytNode child : listItem.getChildren()) {
-                appendBlock(html, child, currentPageId, assetExporter, itemIconResolver);
+                appendBlock(
+                    html,
+                    child,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
             }
             html.append("</li>");
         }
 
         private static void appendTable(StringBuilder html, LytTable table, @Nullable ResourceLocation currentPageId,
-            @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+            @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
+            @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
             html.append("<table>");
             List<LytTableRow> rows = table.getChildren();
             if (!rows.isEmpty()) {
                 html.append("<thead>");
-                appendTableRow(html, rows.get(0), "th", currentPageId, assetExporter, itemIconResolver);
+                appendTableRow(
+                    html,
+                    rows.get(0),
+                    "th",
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
                 html.append("</thead>");
             }
             if (rows.size() > 1) {
                 html.append("<tbody>");
                 for (int i = 1; i < rows.size(); i++) {
-                    appendTableRow(html, rows.get(i), "td", currentPageId, assetExporter, itemIconResolver);
+                    appendTableRow(
+                        html,
+                        rows.get(i),
+                        "td",
+                        currentPageId,
+                        assetExporter,
+                        itemIconResolver,
+                        templates,
+                        allowNestedItemTooltips);
                 }
                 html.append("</tbody>");
             }
@@ -481,14 +625,22 @@ public final class GuideSiteSceneAnnotationSerializer {
 
         private static void appendTableRow(StringBuilder html, LytTableRow row, String cellTagName,
             @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-            GuideSiteItemIconResolver itemIconResolver) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
             html.append("<tr>");
             for (LytTableCell cell : row.getChildren()) {
                 html.append("<")
                     .append(cellTagName)
                     .append(">");
                 for (LytNode child : cell.getChildren()) {
-                    appendBlock(html, child, currentPageId, assetExporter, itemIconResolver);
+                    appendBlock(
+                        html,
+                        child,
+                        currentPageId,
+                        assetExporter,
+                        itemIconResolver,
+                        templates,
+                        allowNestedItemTooltips);
                 }
                 html.append("</")
                     .append(cellTagName)
@@ -513,7 +665,8 @@ public final class GuideSiteSceneAnnotationSerializer {
 
         private static void appendFlowContent(StringBuilder html, @Nullable LytFlowContent content,
             @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-            GuideSiteItemIconResolver itemIconResolver) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
             if (content == null) {
                 return;
             }
@@ -532,35 +685,67 @@ public final class GuideSiteSceneAnnotationSerializer {
                 return;
             }
             if (content instanceof LytFlowInlineBlock inlineBlock) {
-                appendInlineBlock(html, inlineBlock, currentPageId, assetExporter, itemIconResolver);
+                appendInlineBlock(
+                    html,
+                    inlineBlock,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
             if (content instanceof LytFlowLink link) {
-                appendLink(html, link, currentPageId, itemIconResolver);
+                appendLink(html, link, currentPageId, itemIconResolver, templates, allowNestedItemTooltips);
                 return;
             }
             if (content instanceof LytFlowSpan span) {
-                appendStyledFlowContainer(html, span, "span", currentPageId, assetExporter, itemIconResolver, null);
+                appendStyledFlowContainer(
+                    html,
+                    span,
+                    "span",
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips,
+                    null);
             }
         }
 
         private static void appendInlineBlock(StringBuilder html, LytFlowInlineBlock inlineBlock,
             @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-            GuideSiteItemIconResolver itemIconResolver) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
             LytBlock block = inlineBlock.getBlock();
             if (block instanceof LytItemImage itemImage) {
-                appendItemStacks(html, itemImage.getStacks(), itemIconResolver);
+                appendItemStacks(
+                    html,
+                    itemImage.getStacks(),
+                    itemIconResolver,
+                    currentPageId,
+                    assetExporter,
+                    templates,
+                    allowNestedItemTooltips);
                 return;
             }
             if (block instanceof LytImage image) {
                 appendImage(html, image, assetExporter);
                 return;
             }
-            appendBlock(html, block, currentPageId, assetExporter, itemIconResolver);
+            appendBlock(
+                html,
+                block,
+                currentPageId,
+                assetExporter,
+                itemIconResolver,
+                templates,
+                allowNestedItemTooltips);
         }
 
         private static void appendLink(StringBuilder html, LytFlowLink link, @Nullable ResourceLocation currentPageId,
-            GuideSiteItemIconResolver itemIconResolver) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
             String href = null;
             PageAnchor pageAnchor = link.getPageAnchor();
             if (pageAnchor != null) {
@@ -577,12 +762,15 @@ public final class GuideSiteSceneAnnotationSerializer {
                 currentPageId,
                 null,
                 itemIconResolver,
+                templates,
+                allowNestedItemTooltips,
                 href);
         }
 
         private static void appendStyledFlowContainer(StringBuilder html, LytFlowSpan span, String tagName,
             @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-            GuideSiteItemIconResolver itemIconResolver, @Nullable String href) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips, @Nullable String href) {
             html.append("<")
                 .append(tagName);
             if ("a".equals(tagName) && href != null && !href.isEmpty()) {
@@ -593,7 +781,14 @@ public final class GuideSiteSceneAnnotationSerializer {
             appendInlineStyleAttribute(html, span.resolveStyle());
             html.append(">");
             for (LytFlowContent child : span.getChildren()) {
-                appendFlowContent(html, child, currentPageId, assetExporter, itemIconResolver);
+                appendFlowContent(
+                    html,
+                    child,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
             }
             html.append("</")
                 .append(tagName)
@@ -664,7 +859,9 @@ public final class GuideSiteSceneAnnotationSerializer {
         }
 
         private static void appendSlotGrid(StringBuilder html, LytSlotGrid grid,
-            GuideSiteItemIconResolver itemIconResolver) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable ResourceLocation currentPageId,
+            @Nullable GuideSitePageAssetExporter assetExporter, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
             html.append("<div class=\"guide-tooltip-item-grid\">");
             for (int row = 0; row < grid.getHeight(); row++) {
                 for (int col = 0; col < grid.getWidth(); col++) {
@@ -673,7 +870,14 @@ public final class GuideSiteSceneAnnotationSerializer {
                         continue;
                     }
                     html.append("<div class=\"ingredient-box\">");
-                    appendSlot(html, slot, itemIconResolver);
+                    appendSlot(
+                        html,
+                        slot,
+                        itemIconResolver,
+                        currentPageId,
+                        assetExporter,
+                        templates,
+                        allowNestedItemTooltips);
                     html.append("</div>");
                 }
             }
@@ -681,33 +885,53 @@ public final class GuideSiteSceneAnnotationSerializer {
         }
 
         private static void appendItemGrid(StringBuilder html, LytItemGrid grid,
-            GuideSiteItemIconResolver itemIconResolver) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable ResourceLocation currentPageId,
+            @Nullable GuideSitePageAssetExporter assetExporter, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
             html.append("<div class=\"guide-tooltip-item-grid\">");
             for (LytNode child : grid.getChildren()) {
                 if (!(child instanceof LytSlot slot)) {
                     continue;
                 }
                 html.append("<div class=\"ingredient-box\">");
-                appendSlot(html, slot, itemIconResolver);
+                appendSlot(
+                    html,
+                    slot,
+                    itemIconResolver,
+                    currentPageId,
+                    assetExporter,
+                    templates,
+                    allowNestedItemTooltips);
                 html.append("</div>");
             }
             html.append("</div>");
         }
 
-        private static void appendSlot(StringBuilder html, LytSlot slot, GuideSiteItemIconResolver itemIconResolver) {
+        private static void appendSlot(StringBuilder html, LytSlot slot, GuideSiteItemIconResolver itemIconResolver,
+            @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
+            @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
             Optional<GuideTooltip> tooltip = slot.getTooltip(0, 0);
             if (tooltip.isPresent() && tooltip.get() instanceof ItemTooltip itemTooltip) {
                 ItemStack stack = itemTooltip.getStack();
                 if (stack != null) {
                     List<ItemStack> stacks = new ArrayList<ItemStack>(1);
                     stacks.add(stack);
-                    appendItemStacks(html, stacks, itemIconResolver);
+                    appendItemStacks(
+                        html,
+                        stacks,
+                        itemIconResolver,
+                        currentPageId,
+                        assetExporter,
+                        templates,
+                        allowNestedItemTooltips);
                 }
             }
         }
 
         private static void appendItemStacks(StringBuilder html, List<ItemStack> stacks,
-            GuideSiteItemIconResolver itemIconResolver) {
+            GuideSiteItemIconResolver itemIconResolver, @Nullable ResourceLocation currentPageId,
+            @Nullable GuideSitePageAssetExporter assetExporter, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
             if (stacks == null || stacks.isEmpty()) {
                 return;
             }
@@ -716,8 +940,61 @@ public final class GuideSiteSceneAnnotationSerializer {
                 if (item.isEmpty()) {
                     continue;
                 }
-                GuideSiteItemHtml.appendIcon(html, item, null);
+                appendTooltipCapableItemIcon(
+                    html,
+                    stack,
+                    item,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    allowNestedItemTooltips);
             }
+        }
+
+        private static void appendTooltipCapableItemIcon(StringBuilder html, ItemStack stack,
+            GuideSiteExportedItem item, @Nullable ResourceLocation currentPageId,
+            @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
+            @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
+            if (!allowNestedItemTooltips || templates == null || stack == null || stack.stackSize <= 0) {
+                GuideSiteItemHtml.appendIcon(html, item, null);
+                return;
+            }
+
+            String templateId = createNestedItemTemplateId(
+                stack,
+                currentPageId,
+                assetExporter,
+                itemIconResolver,
+                templates);
+            if (templateId == null || templateId.isEmpty()) {
+                GuideSiteItemHtml.appendIcon(html, item, null);
+                return;
+            }
+
+            html.append("<span class=\"guide-tooltip\" data-template=\"")
+                .append(escapeAttribute(templateId))
+                .append("\">");
+            GuideSiteItemHtml.appendIcon(html, item, null);
+            html.append("</span>");
+        }
+
+        @Nullable
+        private static String createNestedItemTemplateId(ItemStack stack, @Nullable ResourceLocation currentPageId,
+            @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
+            GuideSiteTemplateRegistry templates) {
+            String html = render(
+                new ItemTooltip(stack.copy()),
+                currentPageId,
+                assetExporter,
+                itemIconResolver,
+                templates,
+                false);
+            if (html == null || html.trim()
+                .isEmpty()) {
+                return null;
+            }
+            return templates.create(html);
         }
 
         private static int clampHeadingDepth(int depth) {

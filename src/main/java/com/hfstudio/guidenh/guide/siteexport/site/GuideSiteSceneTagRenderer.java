@@ -118,6 +118,13 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                 .append(escapeAttribute(payload.overlayJson))
                 .append("\"");
         }
+        if (exportedScene != null && exportedScene.hoverTargetsJson() != null
+            && !exportedScene.hoverTargetsJson()
+                .isEmpty()) {
+            html.append(" data-scene-hover-targets=\"")
+                .append(escapeAttribute(exportedScene.hoverTargetsJson()))
+                .append("\"");
+        }
 
         for (String attributeName : FORWARDED_ATTRIBUTES) {
             String attributeValue = readOptional(element, attributeName);

@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,6 +13,9 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3f;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
@@ -25,6 +29,12 @@ public final class GuideSiteSceneTessellatorCapture {
     private static final ThreadLocal<GuideSiteSceneTessellatorCapture> ACTIVE = new ThreadLocal<GuideSiteSceneTessellatorCapture>();
 
     private final GuideSiteAssetRegistry assets;
+    private final Matrix4f inverseViewMatrix;
+    private final Matrix4f currentWorldMatrix = new Matrix4f();
+    private final Matrix3f currentNormalMatrix = new Matrix3f();
+    private final FloatBuffer modelViewBuffer = BufferUtils.createFloatBuffer(16);
+    private final Vector3f transformedPosition = new Vector3f();
+    private final Vector3f transformedNormal = new Vector3f();
     private final List<CapturedMesh> meshes = new ArrayList<CapturedMesh>();
     private final Map<Integer, TextureExport> textures = new LinkedHashMap<Integer, TextureExport>();
     private final ArrayList<RecordedVertex> currentVertices = new ArrayList<RecordedVertex>();
@@ -36,17 +46,20 @@ public final class GuideSiteSceneTessellatorCapture {
     private boolean hasBrightness;
     private boolean hasNormals;
     private boolean colorDisabled;
+    private float normalX;
+    private float normalY;
+    private float normalZ;
     private float textureU;
     private float textureV;
     private int color = 0xFFFFFFFF;
     private int brightness;
-    private int normal;
     private double xOffset;
     private double yOffset;
     private double zOffset;
 
-    public GuideSiteSceneTessellatorCapture(GuideSiteAssetRegistry assets) {
+    public GuideSiteSceneTessellatorCapture(GuideSiteAssetRegistry assets, Matrix4f inverseViewMatrix) {
         this.assets = assets;
+        this.inverseViewMatrix = new Matrix4f(inverseViewMatrix);
     }
 
     public static void activate(GuideSiteSceneTessellatorCapture capture) {
@@ -89,10 +102,13 @@ public final class GuideSiteSceneTessellatorCapture {
         textureV = 0.0f;
         color = 0xFFFFFFFF;
         brightness = 0;
-        normal = 0;
+        normalX = 0.0f;
+        normalY = 0.0f;
+        normalZ = 0.0f;
         xOffset = 0.0D;
         yOffset = 0.0D;
         zOffset = 0.0D;
+        captureCurrentWorldTransform();
     }
 
     public int draw() {
@@ -163,10 +179,9 @@ public final class GuideSiteSceneTessellatorCapture {
 
     public void setNormal(float x, float y, float z) {
         hasNormals = true;
-        byte nx = (byte) ((int) (x * 127.0F));
-        byte ny = (byte) ((int) (y * 127.0F));
-        byte nz = (byte) ((int) (z * 127.0F));
-        normal = nx & 255 | (ny & 255) << 8 | (nz & 255) << 16;
+        normalX = x;
+        normalY = y;
+        normalZ = z;
     }
 
     public void setTranslation(double x, double y, double z) {
@@ -183,14 +198,32 @@ public final class GuideSiteSceneTessellatorCapture {
 
     public void addVertex(double x, double y, double z) {
         int rgba = hasColor ? color : 0xFFFFFFFF;
-        byte nx = hasNormals ? (byte) (normal & 255) : 0;
-        byte ny = hasNormals ? (byte) ((normal >> 8) & 255) : 0;
-        byte nz = hasNormals ? (byte) ((normal >> 16) & 255) : 0;
+        float px = (float) (x + xOffset);
+        float py = (float) (y + yOffset);
+        float pz = (float) (z + zOffset);
+
+        transformedPosition.set(px, py, pz);
+        currentWorldMatrix.transformPosition(transformedPosition);
+
+        byte nx = 0;
+        byte ny = 0;
+        byte nz = 0;
+        if (hasNormals) {
+            transformedNormal.set(normalX, normalY, normalZ);
+            currentNormalMatrix.transform(transformedNormal);
+            if (transformedNormal.lengthSquared() > 1.0e-12f) {
+                transformedNormal.normalize();
+            }
+            nx = packNormalComponent(transformedNormal.x);
+            ny = packNormalComponent(transformedNormal.y);
+            nz = packNormalComponent(transformedNormal.z);
+        }
+
         currentVertices.add(
             new RecordedVertex(
-                (float) (x + xOffset),
-                (float) (y + yOffset),
-                (float) (z + zOffset),
+                transformedPosition.x,
+                transformedPosition.y,
+                transformedPosition.z,
                 hasTexture ? textureU : 0.0f,
                 hasTexture ? textureV : 0.0f,
                 rgba & 255,
@@ -200,6 +233,24 @@ public final class GuideSiteSceneTessellatorCapture {
                 nx,
                 ny,
                 nz));
+    }
+
+    private void captureCurrentWorldTransform() {
+        modelViewBuffer.clear();
+        GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelViewBuffer);
+        modelViewBuffer.flip();
+
+        Matrix4f modelViewMatrix = new Matrix4f().set(modelViewBuffer);
+        currentWorldMatrix.set(inverseViewMatrix)
+            .mul(modelViewMatrix);
+
+        try {
+            currentNormalMatrix.set(currentWorldMatrix)
+                .invert()
+                .transpose();
+        } catch (ArithmeticException ignored) {
+            currentNormalMatrix.identity();
+        }
     }
 
     private void captureCurrentMesh() throws Exception {
@@ -266,8 +317,7 @@ public final class GuideSiteSceneTessellatorCapture {
         int magFilter = GL11.glGetTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER);
         int minFilter = GL11.glGetTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER);
         boolean linearFiltering = magFilter == GL11.GL_LINEAR;
-        boolean useMipmaps = minFilter == GL11.GL_NEAREST_MIPMAP_NEAREST
-            || minFilter == GL11.GL_LINEAR_MIPMAP_NEAREST
+        boolean useMipmaps = minFilter == GL11.GL_NEAREST_MIPMAP_NEAREST || minFilter == GL11.GL_LINEAR_MIPMAP_NEAREST
             || minFilter == GL11.GL_NEAREST_MIPMAP_LINEAR
             || minFilter == GL11.GL_LINEAR_MIPMAP_LINEAR;
 
@@ -288,8 +338,7 @@ public final class GuideSiteSceneTessellatorCapture {
         if (texture == null) {
             shaderName = "position_color";
         } else if (blendEnabled) {
-            shaderName = hasNormals && !hasBrightness ? "rendertype_entity_translucent_cull"
-                : "rendertype_translucent";
+            shaderName = hasNormals && !hasBrightness ? "rendertype_entity_translucent_cull" : "rendertype_translucent";
         } else if (hasNormals && !hasBrightness) {
             shaderName = "rendertype_entity_cutout";
         } else {
@@ -443,6 +492,16 @@ public final class GuideSiteSceneTessellatorCapture {
             return 255;
         }
         return value;
+    }
+
+    private static byte packNormalComponent(float value) {
+        int packed = Math.round(Math.max(-1.0f, Math.min(1.0f, value)) * 127.0f);
+        if (packed < -128) {
+            packed = -128;
+        } else if (packed > 127) {
+            packed = 127;
+        }
+        return (byte) packed;
     }
 
     private static byte[] toByteArray(ByteBuffer buffer) {

@@ -21,6 +21,7 @@ import net.minecraft.client.shader.Framebuffer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
@@ -124,7 +125,10 @@ public class GuideSiteSceneRuntimeExporter {
     }
 
     private byte[] exportScenePayload(LytGuidebookScene scene) throws Exception {
-        GuideSiteSceneTessellatorCapture recorder = new GuideSiteSceneTessellatorCapture(assets);
+        Matrix4f inverseViewMatrix = new Matrix4f(
+            scene.getCamera()
+                .getViewMatrix()).invert();
+        GuideSiteSceneTessellatorCapture recorder = new GuideSiteSceneTessellatorCapture(assets, inverseViewMatrix);
         int width = Math.max(16, scene.getSceneWidth());
         int height = Math.max(16, scene.getSceneHeight());
 
@@ -183,10 +187,8 @@ public class GuideSiteSceneRuntimeExporter {
         throws Exception {
         FlatBufferBuilder builder = new FlatBufferBuilder(1024);
 
-        Map<GuideSiteSceneTessellatorCapture.VertexFormatKey, Integer> vertexFormats =
-            new LinkedHashMap<GuideSiteSceneTessellatorCapture.VertexFormatKey, Integer>();
-        Map<GuideSiteSceneTessellatorCapture.MaterialKey, Integer> materials =
-            new LinkedHashMap<GuideSiteSceneTessellatorCapture.MaterialKey, Integer>();
+        Map<GuideSiteSceneTessellatorCapture.VertexFormatKey, Integer> vertexFormats = new LinkedHashMap<GuideSiteSceneTessellatorCapture.VertexFormatKey, Integer>();
+        Map<GuideSiteSceneTessellatorCapture.MaterialKey, Integer> materials = new LinkedHashMap<GuideSiteSceneTessellatorCapture.MaterialKey, Integer>();
         List<Integer> meshOffsets = new ArrayList<Integer>(result.meshes.size());
 
         for (GuideSiteSceneTessellatorCapture.CapturedMesh mesh : result.meshes) {
