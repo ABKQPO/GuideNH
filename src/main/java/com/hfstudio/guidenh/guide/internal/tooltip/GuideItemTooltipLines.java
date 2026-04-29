@@ -25,9 +25,10 @@ public final class GuideItemTooltipLines {
 
         if (lines.isEmpty()) {
             lines.add(stack.getDisplayName());
-        } else if (lines.get(0) == null || lines.get(0).isEmpty()) {
-            lines.set(0, stack.getDisplayName());
-        }
+        } else if (lines.get(0) == null || lines.get(0)
+            .isEmpty()) {
+                lines.set(0, stack.getDisplayName());
+            }
 
         var rarity = stack.getRarity();
         if (!lines.isEmpty() && rarity != null) {

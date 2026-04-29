@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.scene;
 
+import java.util.UUID;
+
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.crash.CrashReport;
 import net.minecraft.crash.CrashReportCategory;
@@ -12,8 +14,6 @@ import com.hfstudio.guidenh.guide.scene.element.GuidebookCapeControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookNameplateControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookPlayerPoseControllable;
 import com.mojang.authlib.GameProfile;
-
-import java.util.UUID;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;

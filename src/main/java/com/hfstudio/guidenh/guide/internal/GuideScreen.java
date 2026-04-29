@@ -15,7 +15,6 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 
 import org.apache.logging.log4j.LogManager;
@@ -541,7 +540,11 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             }
             var hoveredHatch = scene.getHoveredStructureLibHatch();
             if (hoveredHatch != null) {
-                GuideTooltip tooltip = resolveSceneBlockTooltip(scene, hoveredHatch[0], hoveredHatch[1], hoveredHatch[2]);
+                GuideTooltip tooltip = resolveSceneBlockTooltip(
+                    scene,
+                    hoveredHatch[0],
+                    hoveredHatch[1],
+                    hoveredHatch[2]);
                 if (tooltip != null) {
                     renderGuideTooltip(tooltip, mouseX, mouseY);
                     return;

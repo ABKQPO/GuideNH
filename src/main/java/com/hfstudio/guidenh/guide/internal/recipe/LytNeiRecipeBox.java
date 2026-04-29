@@ -137,13 +137,24 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         int w = bounds.width();
         int h = bounds.height();
 
-        WindowNinePatch.drawWindow(context.lightDarkMode(), x, y, w, h);
-
         int fh = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
         int innerLeft = x + FRAME_BORDER;
         int innerTop = y + FRAME_BORDER;
         int titleRowTop = innerTop + TITLE_PAD_TOP;
-        int iconY = titleRowTop + (Math.max(ICON_SIZE, fh) - ICON_SIZE) / 2;
+        int bodyX = innerLeft;
+        int bodyY = innerTop + titleHeight + BODY_MARGIN + bodyTopInset;
+
+        WindowNinePatch.drawWindow(context.lightDarkMode(), x, y, w, h);
+
+        NeiAnimationTicker.ensureUpdating(handler);
+        NeiHandlerRenderer
+            .render(handler, recipeIndex, bodyX, bodyY + bodyYShift, bodyX, bodyY, bodyWidth, bodyHeight, -1, -1);
+        drawWindowChromeOverlay(context, x, y, w, h, bodyX, bodyY, bodyWidth, bodyHeight);
+        drawTitleRow(context, innerLeft, titleRowTop, fh);
+    }
+
+    private void drawTitleRow(RenderContext context, int innerLeft, int titleRowTop, int fontHeight) {
+        int iconY = titleRowTop + (Math.max(ICON_SIZE, fontHeight) - ICON_SIZE) / 2;
         if (iconStack != null) {
             drawScaledItem(context, iconStack, innerLeft, iconY, ICON_SIZE);
         } else if (iconImage != null) {
@@ -151,24 +162,61 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         }
         if (!handlerName.isEmpty()) {
             int textX = innerLeft + iconSize() + (iconSize() > 0 ? TITLE_GAP_AFTER_ICON : 0);
-            int textY = titleRowTop + (Math.max(ICON_SIZE, fh) - fh) / 2;
+            int textY = titleRowTop + (Math.max(ICON_SIZE, fontHeight) - fontHeight) / 2;
             Minecraft.getMinecraft().fontRenderer.drawString(handlerName, textX, textY, 0xFF000000);
         }
+    }
 
-        int bodyX = innerLeft;
-        int bodyY = innerTop + titleHeight + BODY_MARGIN + bodyTopInset;
-        NeiAnimationTicker.ensureUpdating(handler);
-        NeiHandlerRenderer.render(
-            handler,
-            recipeIndex,
-            bodyX,
-            bodyY + bodyYShift,
-            bodyX,
-            bodyY,
-            bodyWidth,
-            bodyHeight,
-            -1,
-            -1);
+    private void drawWindowChromeOverlay(RenderContext context, int windowX, int windowY, int windowW, int windowH,
+        int bodyX, int bodyY, int bodyW, int bodyH) {
+        int topHeight = Math.max(0, bodyY - windowY);
+        int bottomY = bodyY + bodyH;
+        int bottomHeight = Math.max(0, windowY + windowH - bottomY);
+        int leftWidth = Math.max(0, bodyX - windowX);
+        int rightX = bodyX + bodyW;
+        int rightWidth = Math.max(0, windowX + windowW - rightX);
+
+        drawWindowOverlayStrip(
+            context,
+            windowX,
+            windowY,
+            windowW,
+            windowH,
+            new LytRect(windowX, windowY, windowW, topHeight));
+        drawWindowOverlayStrip(
+            context,
+            windowX,
+            windowY,
+            windowW,
+            windowH,
+            new LytRect(windowX, bottomY, windowW, bottomHeight));
+        drawWindowOverlayStrip(
+            context,
+            windowX,
+            windowY,
+            windowW,
+            windowH,
+            new LytRect(windowX, bodyY, leftWidth, bodyH));
+        drawWindowOverlayStrip(
+            context,
+            windowX,
+            windowY,
+            windowW,
+            windowH,
+            new LytRect(rightX, bodyY, rightWidth, bodyH));
+    }
+
+    private void drawWindowOverlayStrip(RenderContext context, int windowX, int windowY, int windowW, int windowH,
+        LytRect strip) {
+        if (strip.width() <= 0 || strip.height() <= 0) {
+            return;
+        }
+        context.pushScissor(strip);
+        try {
+            WindowNinePatch.drawWindow(context.lightDarkMode(), windowX, windowY, windowW, windowH);
+        } finally {
+            context.popScissor();
+        }
     }
 
     public static void drawScaledItem(RenderContext context, ItemStack stack, int x, int y, int size) {
@@ -220,11 +268,8 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         int bodyTop = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset;
         int bodyY = bodyTop + bodyYShift;
 
-        GuideTooltip customDiagramTooltip = NeiCustomDiagramBridge.getEmbeddedTooltip(
-            handler,
-            recipeIndex,
-            px - bodyX,
-            py - bodyY);
+        GuideTooltip customDiagramTooltip = NeiCustomDiagramBridge
+            .getEmbeddedTooltip(handler, recipeIndex, px - bodyX, py - bodyY);
         if (customDiagramTooltip != null) {
             return Optional.of(customDiagramTooltip);
         }

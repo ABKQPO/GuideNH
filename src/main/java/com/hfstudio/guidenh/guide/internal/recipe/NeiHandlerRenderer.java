@@ -116,6 +116,8 @@ public class NeiHandlerRenderer {
             GL11.glDisable(GL11.GL_BLEND);
             GL11.glColor4f(1f, 1f, 1f, 1f);
             RenderHelper.enableGUIStandardItemLighting();
+            OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
+            OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
             GL11.glEnable(GL11.GL_LIGHTING);
             GL11.glEnable(GL11.GL_NORMALIZE);
             GL11.glEnable(GL11.GL_DEPTH_TEST);

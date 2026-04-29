@@ -221,6 +221,18 @@ The small icon in the top-left shows which "recipe pool" the entry belongs to (s
 - Concrete meta: <ItemImage id="minecraft:wool:14" /> red wool
 - Carrying NBT (bare identifiers can skip quotes in SNBT): <ItemImage id="minecraft:written_book:0:{title:TestBook,author:GuideNH}" />
 
+**Ore dictionary attribute samples:**
+
+- First match item: <ItemImage ore="ingotIron" /> iron ingot via ore name
+- First match text link: <ItemLink ore="stickWood" />
+- Block item form: <BlockImage ore="logWood" scale="3" />
+- `ore` takes precedence over `id`: <ItemImage id="minecraft:apple" ore="gemDiamond" />
+
+<GameScene width="192" height="128" zoom={5} interactive={true}>
+  <Block ore="logWood" />
+  <Block ore="logWood" x="2" meta="1" />
+</GameScene>
+
 ***
 
 <Row>

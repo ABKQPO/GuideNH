@@ -24,8 +24,8 @@
 | `<Tooltip>` | 带 Markdown/标签子内容的富悬浮提示 | `label` |
 | `<PlayerName>` | 插入当前玩家用户名 | 无 |
 | `<KeyBind>` | 插入按键绑定显示名 | `id` |
-| `<ItemImage>` | 行内物品图标 | `id`, `scale`, `noTooltip`, `yOffset` |
-| `<ItemLink>` | 物品 tooltip + 可选导航链接 | `id` |
+| `<ItemImage>` | 行内物品图标 | `id` 或 `ore`，`scale`，`noTooltip`，`yOffset` |
+| `<ItemLink>` | 物品 tooltip + 可选导航链接 | `id` 或 `ore` |
 | `<CommandLink>` | 可点击的聊天命令链接 | `command`, `title`, `close` |
 
 ## 块级标签
@@ -35,8 +35,8 @@
 | `<div>` | 透传块包装器 | 无 |
 | `<Row>` | 横向 flex 布局 | `gap`, `alignItems`, `fullWidth` |
 | `<Column>` | 纵向 flex 布局 | `gap`, `alignItems`, `fullWidth` |
-| `<ItemGrid>` | 紧凑物品图标网格 | 子元素必须是 `<ItemIcon id="..."/>` |
-| `<BlockImage>` | 方块的物品形态图标 | `id`, `scale` |
+| `<ItemGrid>` | 紧凑物品图标网格 | 子元素必须是 `<ItemIcon id="..."/>` 或 `<ItemIcon ore="..."/>` |
+| `<BlockImage>` | 方块的物品形态图标 | `id` 或 `ore`，`scale` |
 | `<FloatingImage>` | 浮动图片块 | `src`, `align`, `title`, `width`, `height` |
 | `<SubPages>` | 导航子页面列表 | `id`, `alphabetical` |
 | `<CategoryIndex>` | 分类页面列表 | `category` |
@@ -145,24 +145,32 @@ More visible text.
 
 | 属性 | 含义 |
 | --- | --- |
-| `id` | 必填，物品引用 |
+| `ore` | 矿辞名；默认取第一个匹配结果 |
+| `id` | 当未提供 `ore` 时使用的物品引用 |
 | `scale` | float，默认 `1` |
 | `noTooltip` | 传入真值字符串或空属性时禁用 tooltip |
 | `yOffset` | scale 为 `1` 时的像素偏移覆盖值 |
+
+说明：
+
+- 同时提供 `ore` 和 `id` 时，优先使用 `ore`
+- 若安装了 GregTech，选中的矿辞结果会先经过 `GTOreDictUnificator.setStack(...)` 统一化
 
 示例：
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
+<ItemImage ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 ````
 
 ### `<ItemLink>`
 
-使用物品显示名创建文本链接，并附带物品 tooltip。若 `item_ids` 把该物品映射到了某一页面，点击后还会导航过去。
+使用物品显示名创建文本链接，并附带物品 tooltip。若 `item_ids` 把该物品映射到了某一页面，点击后还会导航过去。也可以用 `ore` 通过矿辞的第一个匹配结果来决定显示的物品。
 
 ````md
 <ItemLink id="minecraft:compass" />
+<ItemLink ore="stickWood" />
 ````
 
 ### `<CommandLink>`
@@ -202,11 +210,12 @@ More visible text.
 
 ### `<ItemGrid>`
 
-渲染紧凑的物品图标网格。其子元素必须是原始 `<ItemIcon>` 元素，由网格编译器直接解析。
+渲染紧凑的物品图标网格。其子元素必须是原始 `<ItemIcon>` 元素，由网格编译器直接解析。每个子元素都可以使用 `id` 或 `ore`。
 
 ````md
 <ItemGrid>
   <ItemIcon id="minecraft:iron_ingot" />
+  <ItemIcon ore="ingotGold" />
   <ItemIcon id="minecraft:gold_ingot" />
   <ItemIcon id="minecraft:redstone" />
 </ItemGrid>
@@ -214,10 +223,11 @@ More visible text.
 
 ### `<BlockImage>`
 
-渲染方块的物品形态：
+渲染方块的物品形态。若使用 `ore`，该矿辞必须解析到一个方块物品。
 
 ````md
 <BlockImage id="minecraft:crafting_table" scale="3" />
+<BlockImage ore="logWood" scale="3" />
 ````
 
 ### `<FloatingImage>`

@@ -223,6 +223,18 @@ navigation:
 - 具体 meta：<ItemImage id="minecraft:wool:14" /> 红色羊毛
 - 携带 NBT（SNBT 中裸标识符可省略引号）：<ItemImage id="minecraft:written_book:0:{title:TestBook,author:GuideNH}" />
 
+**矿辞 `ore` 属性测试：**
+
+- 第一个匹配到的物品：<ItemImage ore="ingotIron" /> 铁锭
+- 第一个匹配到的文本链接：<ItemLink ore="stickWood" />
+- 方块物品形态：<BlockImage ore="logWood" scale="3" />
+- `ore` 优先于 `id`：<ItemImage id="minecraft:apple" ore="gemDiamond" />
+
+<GameScene width="192" height="128" zoom={5} interactive={true}>
+  <Block ore="logWood" />
+  <Block ore="logWood" x="2" meta="1" />
+</GameScene>
+
 ***
 
 <Row>

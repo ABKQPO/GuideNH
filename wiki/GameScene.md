@@ -59,7 +59,8 @@ Places a block into the preview world.
 
 | Attribute | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes | block id |
+| `id` | yes, unless `ore` is used | block id |
+| `ore` | no | ore dictionary name; the first matching stack must resolve to a block item |
 | `x` | no | integer world X, default `0` |
 | `y` | no | integer world Y, default `0` |
 | `z` | no | integer world Z, default `0` |
@@ -69,6 +70,8 @@ Places a block into the preview world.
 
 Notes:
 
+- `ore` takes precedence over `id`; if GregTech is installed, the chosen stack is unified through `GTOreDictUnificator.setStack(...)`
+- if `meta` is omitted and an `ore` match carries concrete non-wildcard item damage, that damage is used before the `facing` fallback
 - if `meta` is omitted, some blocks derive a sensible default from `facing`
 - if `nbt` creates a TileEntity successfully, the preview uses it
 
@@ -76,6 +79,7 @@ Example:
 
 ````md
 <Block id="minecraft:furnace" x="2" facing="south" />
+<Block ore="logWood" x="3" />
 <Block id="minecraft:chest" x="4" nbt="{id:\"Chest\",Items:[{Slot:0b,id:\"minecraft:diamond\",Count:1b,Damage:0s}]}" />
 ````
 

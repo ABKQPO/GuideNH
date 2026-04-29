@@ -7,6 +7,7 @@ import java.util.Set;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.oredict.OreDictionary;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
@@ -27,9 +28,9 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
     @Override
     public void compile(GuidebookLevel level, CameraSettings camera, PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el) {
-        var pair = MdxAttrs.getRequiredBlockAndId(compiler, errorSink, el, "id");
-        if (pair == null) return;
-        Block block = pair.getRight();
+        var blockReference = MdxAttrs.getRequiredBlockReference(compiler, errorSink, el, "id");
+        if (blockReference == null) return;
+        Block block = blockReference.block();
 
         int x = MdxAttrs.getInt(compiler, errorSink, el, "x", 0);
         int y = MdxAttrs.getInt(compiler, errorSink, el, "y", 0);
@@ -37,7 +38,13 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
         int meta = MdxAttrs.getInt(compiler, errorSink, el, "meta", Integer.MIN_VALUE);
         String facing = MdxAttrs.getString(compiler, errorSink, el, "facing", null);
         if (meta == Integer.MIN_VALUE) {
-            meta = defaultMetaFor(block, facing);
+            int stackMeta = blockReference.stack() != null ? blockReference.stack()
+                .getItemDamage() : 0;
+            if (stackMeta != 0 && stackMeta != OreDictionary.WILDCARD_VALUE) {
+                meta = stackMeta;
+            } else {
+                meta = defaultMetaFor(block, facing);
+            }
         }
 
         NBTTagCompound tileTag = null;
@@ -49,7 +56,7 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
                 errorSink.appendError(compiler, "Bad NBT: " + e.getMessage(), el);
             }
         }
-        String explicitBlockId = pair.getLeft()
+        String explicitBlockId = blockReference.registryId()
             .toString();
         GuidebookPreviewBlockPlacer.place(level, x, y, z, block, meta, tileTag, explicitBlockId);
         level.setExplicitBlockId(x, y, z, explicitBlockId);

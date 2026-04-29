@@ -61,7 +61,8 @@ GuideNH 当前注册了以下场景子标签：
 
 | 属性 | 必需 | 含义 |
 | --- | --- | --- |
-| `id` | 是 | 方块 id |
+| `id` | 是，除非提供了 `ore` | 方块 id |
+| `ore` | 否 | 矿辞名；第一个匹配结果必须能解析成方块物品 |
 | `x` | 否 | 世界坐标 X，整数，默认 `0` |
 | `y` | 否 | 世界坐标 Y，整数，默认 `0` |
 | `z` | 否 | 世界坐标 Z，整数，默认 `0` |
@@ -71,6 +72,8 @@ GuideNH 当前注册了以下场景子标签：
 
 说明：
 
+- 同时提供 `ore` 和 `id` 时，优先使用 `ore`；若安装了 GregTech，选中的结果还会先经过 `GTOreDictUnificator.setStack(...)` 统一化
+- 若省略 `meta`，且 `ore` 解析出的物品携带具体且非通配符的 damage，则会先使用该值，再回退到 `facing`
 - 若省略 `meta`，部分方块会根据 `facing` 推导合理默认值
 - 若 `nbt` 能成功创建 TileEntity，预览中会使用该实体
 
@@ -78,6 +81,7 @@ GuideNH 当前注册了以下场景子标签：
 
 ````md
 <Block id="minecraft:furnace" x="2" facing="south" />
+<Block ore="logWood" x="3" />
 <Block id="minecraft:chest" x="4" nbt="{id:\"Chest\",Items:[{Slot:0b,id:\"minecraft:diamond\",Count:1b,Damage:0s}]}" />
 ````
 

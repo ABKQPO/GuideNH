@@ -22,8 +22,8 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` |
-| `<ItemImage>` | inline item icon | `id`, `scale`, `noTooltip`, `yOffset` |
-| `<ItemLink>` | item tooltip + optional navigation link | `id` |
+| `<ItemImage>` | inline item icon | `id` or `ore`, `scale`, `noTooltip`, `yOffset` |
+| `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
 
 ## Block Tags
@@ -33,8 +33,8 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<div>` | pass-through block wrapper | none |
 | `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth` |
 | `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth` |
-| `<ItemGrid>` | compact grid of item icons | children must be `<ItemIcon id="..."/>` |
-| `<BlockImage>` | block item-form icon | `id`, `scale` |
+| `<ItemGrid>` | compact grid of item icons | children must be `<ItemIcon id="..."/>` or `<ItemIcon ore="..."/>` |
+| `<BlockImage>` | block item-form icon | `id` or `ore`, `scale` |
 | `<FloatingImage>` | floated image block | `src`, `align`, `title`, `width`, `height` |
 | `<SubPages>` | navigation child listing | `id`, `alphabetical` |
 | `<CategoryIndex>` | list pages from a category | `category` |
@@ -143,24 +143,32 @@ Shows an inline item icon.
 
 | Attribute | Meaning |
 | --- | --- |
-| `id` | required item reference |
+| `ore` | ore dictionary name; the first match wins |
+| `id` | item reference used when `ore` is absent |
 | `scale` | float, default `1` |
 | `noTooltip` | truthy string or empty attribute suppresses tooltip |
 | `yOffset` | integer pixel offset override at scale `1` |
+
+Notes:
+
+- `ore` takes precedence over `id` when both are provided
+- if GregTech is installed, the selected ore match is passed through `GTOreDictUnificator.setStack(...)`
 
 Example:
 
 ````md
 <ItemImage id="minecraft:diamond" scale="2" />
+<ItemImage ore="ingotIron" />
 <ItemImage id="minecraft:diamond_sword" noTooltip="true" />
 ````
 
 ### `<ItemLink>`
 
-Creates a text link using the item's display name and item tooltip. If `item_ids` points to a guide page, clicking navigates to it.
+Creates a text link using the item's display name and item tooltip. If `item_ids` points to a guide page, clicking navigates to it. `ore` can be used to resolve the display stack from the first ore dictionary match instead of a fixed registry id.
 
 ````md
 <ItemLink id="minecraft:compass" />
+<ItemLink ore="stickWood" />
 ````
 
 ### `<CommandLink>`
@@ -200,11 +208,12 @@ Example:
 
 ### `<ItemGrid>`
 
-Renders a compact item grid. Children must be raw `<ItemIcon>` elements, which are parsed directly by the grid compiler.
+Renders a compact item grid. Children must be raw `<ItemIcon>` elements, which are parsed directly by the grid compiler. Each child can use either `id` or `ore`.
 
 ````md
 <ItemGrid>
   <ItemIcon id="minecraft:iron_ingot" />
+  <ItemIcon ore="ingotGold" />
   <ItemIcon id="minecraft:gold_ingot" />
   <ItemIcon id="minecraft:redstone" />
 </ItemGrid>
@@ -212,10 +221,11 @@ Renders a compact item grid. Children must be raw `<ItemIcon>` elements, which a
 
 ### `<BlockImage>`
 
-Renders the item form of a block:
+Renders the item form of a block. `ore` must resolve to a block item stack.
 
 ````md
 <BlockImage id="minecraft:crafting_table" scale="3" />
+<BlockImage ore="logWood" scale="3" />
 ````
 
 ### `<FloatingImage>`

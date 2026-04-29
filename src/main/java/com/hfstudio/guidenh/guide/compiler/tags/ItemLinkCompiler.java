@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Collections;
 import java.util.Set;
 
+import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
@@ -24,6 +25,7 @@ public class ItemLinkCompiler extends FlowTagCompiler {
         if (itemAndId == null) {
             return;
         }
+        String oreName = GuideItemReferenceResolver.trimToNull(MdxAttrs.getString(compiler, parent, el, "ore", null));
         var id = itemAndId.getLeft();
         var stack = itemAndId.getRight();
 
@@ -31,10 +33,11 @@ public class ItemLinkCompiler extends FlowTagCompiler {
             .findByStack(stack);
         // We'll error out for item-links to our own mod because we expect them to have a page
         // while we don't have pages for Vanilla items or items from other mods.
-        if (linksTo == null && id.getResourceDomain()
-            .equals(
-                compiler.getPageId()
-                    .getResourceDomain())) {
+        if (linksTo == null && oreName == null
+            && id.getResourceDomain()
+                .equals(
+                    compiler.getPageId()
+                        .getResourceDomain())) {
             parent.append(compiler.createErrorFlowContent("No page found for item " + id, el));
             return;
         }
