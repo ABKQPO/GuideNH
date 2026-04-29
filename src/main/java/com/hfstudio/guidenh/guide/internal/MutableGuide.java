@@ -401,7 +401,10 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
 
         rebuildIndices();
         navigationTree = buildNavigation();
-        warmPage(startPage);
+        // Do not eagerly compile the start page here. Some packs register or rewrite recipes
+        // during FMLLoadComplete, after the initial resource reload has already parsed the guide.
+        // Deferring compilation until first display avoids caching stale "missing recipe" error
+        // blocks for pages like index.md.
 
         var guideScreen = GuideScreen.current();
         if (guideScreen != null && guideScreen.isShowingGuide(getId())) {

@@ -14,6 +14,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 
@@ -41,12 +42,12 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
-import com.hfstudio.guidenh.guide.internal.recipe.NeiItemTooltip;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchResultDocumentBuilder;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchSnippetFormatter;
+import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
@@ -540,15 +541,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             }
             var hoveredHatch = scene.getHoveredStructureLibHatch();
             if (hoveredHatch != null) {
-                String name = blockDisplayName(scene, hoveredHatch[0], hoveredHatch[1], hoveredHatch[2]);
-                if (name != null) {
-                    GuideTooltip structureLibTooltip = scene
-                        .createStructureLibTooltipForHoveredBlock(name, isShiftDown());
-                    if (structureLibTooltip != null) {
-                        renderGuideTooltip(structureLibTooltip, mouseX, mouseY);
-                        return;
-                    }
-                    drawTooltipText(name, mouseX, mouseY);
+                GuideTooltip tooltip = resolveSceneBlockTooltip(scene, hoveredHatch[0], hoveredHatch[1], hoveredHatch[2]);
+                if (tooltip != null) {
+                    renderGuideTooltip(tooltip, mouseX, mouseY);
                     return;
                 }
             }
@@ -562,15 +557,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
                 }
             }
             if (hb != null) {
-                String name = blockDisplayName(scene, hb[0], hb[1], hb[2]);
-                if (name != null) {
-                    GuideTooltip structureLibTooltip = scene
-                        .createStructureLibTooltipForHoveredBlock(name, isShiftDown());
-                    if (structureLibTooltip != null) {
-                        renderGuideTooltip(structureLibTooltip, mouseX, mouseY);
-                        return;
-                    }
-                    drawTooltipText(name, mouseX, mouseY);
+                GuideTooltip tooltip = resolveSceneBlockTooltip(scene, hb[0], hb[1], hb[2]);
+                if (tooltip != null) {
+                    renderGuideTooltip(tooltip, mouseX, mouseY);
                     return;
                 }
             }
@@ -608,23 +597,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         if (tooltip instanceof ItemTooltip it) {
             var stack = it.getStack();
             if (stack == null || stack.stackSize == 0) return;
-            List<String> lines;
-            try {
-                lines = stack.getTooltip(mc.thePlayer, mc.gameSettings.advancedItemTooltips);
-            } catch (Throwable t) {
-                lines = new ArrayList<>();
-                lines.add(stack.getDisplayName());
-            }
-            var rarity = stack.getRarity();
-            if (!lines.isEmpty() && rarity != null) {
-                lines.set(0, rarity.rarityColor.toString() + lines.get(0));
-            }
-            for (int i = 1; i < lines.size(); i++) {
-                lines.set(i, EnumChatFormatting.GRAY + lines.get(i));
-            }
-            if (tooltip instanceof NeiItemTooltip nit) {
-                nit.appendExtraLines(lines);
-            }
+            List<String> lines = GuideItemTooltipLines.build(it, mc);
             drawHoveringText(lines, mouseX, mouseY, mc.fontRenderer);
             return;
         }
@@ -635,6 +608,29 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         if (tooltip instanceof ContentTooltip ct) {
             drawContentTooltip(ct, mouseX, mouseY);
         }
+    }
+
+    @Nullable
+    private GuideTooltip resolveSceneBlockTooltip(LytGuidebookScene scene, int x, int y, int z) {
+        String name = blockDisplayName(scene, x, y, z);
+        if (name == null) {
+            return null;
+        }
+
+        GuideTooltip structureLibTooltip = scene.createStructureLibTooltipForHoveredBlock(name, isShiftDown());
+        if (structureLibTooltip != null && isShiftDown()) {
+            return structureLibTooltip;
+        }
+
+        ItemStack stack = blockDisplayStack(scene, x, y, z);
+        if (stack != null && stack.stackSize > 0) {
+            return new ItemTooltip(stack);
+        }
+
+        if (structureLibTooltip != null) {
+            return structureLibTooltip;
+        }
+        return new TextTooltip(name);
     }
 
     private void drawContentTooltip(ContentTooltip ct, int mouseX, int mouseY) {
@@ -1184,6 +1180,19 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
                 return GuideBlockDisplayResolver.resolveDisplayName(scene.getLevel(), x, y, z, hoveredHit);
             }
             return GuideBlockDisplayResolver.resolveDisplayName(scene.getLevel(), x, y, z);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    @Nullable
+    public static ItemStack blockDisplayStack(LytGuidebookScene scene, int x, int y, int z) {
+        try {
+            var hoveredHit = scene.getHoveredBlockHitResult();
+            if (hoveredHit != null && hoveredHit.blockX == x && hoveredHit.blockY == y && hoveredHit.blockZ == z) {
+                return GuideBlockDisplayResolver.resolveDisplayStack(scene.getLevel(), x, y, z, hoveredHit);
+            }
+            return GuideBlockDisplayResolver.resolveDisplayStack(scene.getLevel(), x, y, z);
         } catch (Throwable t) {
             return null;
         }

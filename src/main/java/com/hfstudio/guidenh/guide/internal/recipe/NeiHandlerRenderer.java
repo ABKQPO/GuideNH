@@ -28,9 +28,15 @@ public class NeiHandlerRenderer {
      * {@code (screenX, screenY)} and draw every {@link codechicken.nei.PositionedStack} as a 16x16
      * item on top. Returns the stack under {@code (mouseX, mouseY)} if any, else {@code null}.
      */
-    public static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int mouseX,
-        int mouseY) {
+    public static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int clipX,
+        int clipY, int clipWidth, int clipHeight, int mouseX, int mouseY) {
         if (handler == null || !NeiRecipeLookup.isAvailable()) return null;
+
+        if (NeiCustomDiagramBridge.isDiagramGroupHandler(handler)) {
+            NeiCustomDiagramBridge
+                .renderEmbedded(handler, recipeIndex, screenX, screenY, clipX, clipY, clipWidth, clipHeight);
+            return null;
+        }
 
         // Phase 1: NEI-native background + foreground + extras at translated origin.
         GL11.glPushMatrix();

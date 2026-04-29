@@ -41,6 +41,7 @@ public class NeiRecipeLookup {
     public static final @Nullable Method H_GET_INGREDIENTS;
     public static final @Nullable Method H_GET_RESULT;
     public static final @Nullable Method H_GET_OTHERS;
+    public static final @Nullable Method H_GET_HANDLER_ID;
     public static final @Nullable Method H_GET_RECIPE_NAME;
     public static final @Nullable Method H_DRAW_BACKGROUND;
     public static final @Nullable Method H_DRAW_FOREGROUND;
@@ -67,7 +68,7 @@ public class NeiRecipeLookup {
     public static final @Nullable Class<?> CLASS_TEMPLATE_HANDLER;
 
     static {
-        Method gch = null, guh = null, nr = null, gi = null, gr = null, go = null, grn = null;
+        Method gch = null, guh = null, nr = null, gi = null, gr = null, go = null, ghd = null, grn = null;
         Method drawBg = null, drawFg = null, onUp = null, getRecipeHeight = null, getOverlay = null,
             handleItemTt = null;
         Method drawExtras = null, getGuiTexture = null;
@@ -101,6 +102,7 @@ public class NeiRecipeLookup {
             gi = recipeHandler.getMethod("getIngredientStacks", int.class);
             gr = recipeHandler.getMethod("getResultStack", int.class);
             go = recipeHandler.getMethod("getOtherStacks", int.class);
+            ghd = recipeHandler.getMethod("getHandlerId");
             grn = recipeHandler.getMethod("getRecipeName");
             drawBg = recipeHandler.getMethod("drawBackground", int.class);
             drawFg = recipeHandler.getMethod("drawForeground", int.class);
@@ -150,6 +152,7 @@ public class NeiRecipeLookup {
         H_GET_INGREDIENTS = gi;
         H_GET_RESULT = gr;
         H_GET_OTHERS = go;
+        H_GET_HANDLER_ID = ghd;
         H_GET_RECIPE_NAME = grn;
         H_DRAW_BACKGROUND = drawBg;
         H_DRAW_FOREGROUND = drawFg;
@@ -286,6 +289,16 @@ public class NeiRecipeLookup {
         }
     }
 
+    private static @Nullable String lookupHandlerId(Object handler) {
+        if (!AVAILABLE || handler == null || H_GET_HANDLER_ID == null) return null;
+        try {
+            Object v = H_GET_HANDLER_ID.invoke(handler);
+            return v == null ? null : v.toString();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     public static @Nullable String lookupOverlayIdentifier(Object handler) {
         if (!AVAILABLE || handler == null || H_GET_OVERLAY_IDENTIFIER == null) return null;
         try {
@@ -296,7 +309,7 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** Reflective access to {@code GuiRecipeTab.handlerMap.get(handlerClassName).getItemStack()}. */
+    /** Reflective access to the NEI {@code HandlerInfo} display stack for a handler. */
     public static @Nullable ItemStack lookupHandlerIcon(Object handler) {
         if (!AVAILABLE || handler == null || TAB_HANDLER_MAP == null || INFO_GET_ITEMSTACK == null) return null;
         try {
@@ -396,18 +409,32 @@ public class NeiRecipeLookup {
     }
 
     @SuppressWarnings("unchecked")
-    public static @Nullable Object lookupHandlerInfo(Object handler) throws IllegalAccessException {
+    private static @Nullable Object lookupHandlerInfo(Object handler) throws IllegalAccessException {
         if (TAB_HANDLER_MAP == null) return null;
         Object rawMap = TAB_HANDLER_MAP.get(null);
         if (!(rawMap instanceof Map)) return null;
         Map<String, Object> map = (Map<String, Object>) rawMap;
-        String className = handler.getClass()
-            .getName();
-        Object info = map.get(className);
-        if (info != null) return info;
-        return map.get(
+        Object info = resolveHandlerInfo(
+            map,
+            lookupHandlerId(handler),
+            lookupOverlayIdentifier(handler),
+            handler.getClass()
+                .getName(),
             handler.getClass()
                 .getSimpleName());
+        if (info != null) return info;
+        return null;
+    }
+
+    private static @Nullable Object resolveHandlerInfo(Map<String, Object> handlerMap, @Nullable String handlerId,
+        @Nullable String overlayId, String className, String simpleName) {
+        Object info = handlerId == null ? null : handlerMap.get(handlerId);
+        if (info != null) return info;
+        info = overlayId == null ? null : handlerMap.get(overlayId);
+        if (info != null) return info;
+        info = handlerMap.get(className);
+        if (info != null) return info;
+        return handlerMap.get(simpleName);
     }
 
     public static void callOnUpdate(Object handler) {

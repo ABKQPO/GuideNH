@@ -76,8 +76,8 @@ import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorPreviewBrid
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorPreviewCameraController;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapModes;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapService;
-import com.hfstudio.guidenh.guide.internal.recipe.NeiItemTooltip;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
+import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -1250,23 +1250,7 @@ public class SceneEditorScreen extends GuiScreen {
             if (stack == null || stack.stackSize == 0) {
                 return;
             }
-            List<String> lines;
-            try {
-                lines = stack.getTooltip(mc.thePlayer, mc.gameSettings.advancedItemTooltips);
-            } catch (Throwable t) {
-                lines = new ArrayList<>();
-                lines.add(stack.getDisplayName());
-            }
-            var rarity = stack.getRarity();
-            if (!lines.isEmpty() && rarity != null) {
-                lines.set(0, rarity.rarityColor.toString() + lines.get(0));
-            }
-            for (int i = 1; i < lines.size(); i++) {
-                lines.set(i, EnumChatFormatting.GRAY + lines.get(i));
-            }
-            if (tooltip instanceof NeiItemTooltip neiItemTooltip) {
-                neiItemTooltip.appendExtraLines(lines);
-            }
+            List<String> lines = GuideItemTooltipLines.build(itemTooltip, mc);
             drawHoveringText(lines, mouseX, mouseY, mc.fontRenderer);
             return;
         }

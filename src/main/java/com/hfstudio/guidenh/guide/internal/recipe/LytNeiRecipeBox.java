@@ -158,7 +158,17 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         int bodyX = innerLeft;
         int bodyY = innerTop + titleHeight + BODY_MARGIN + bodyTopInset;
         NeiAnimationTicker.ensureUpdating(handler);
-        NeiHandlerRenderer.render(handler, recipeIndex, bodyX, bodyY + bodyYShift, -1, -1);
+        NeiHandlerRenderer.render(
+            handler,
+            recipeIndex,
+            bodyX,
+            bodyY + bodyYShift,
+            bodyX,
+            bodyY,
+            bodyWidth,
+            bodyHeight,
+            -1,
+            -1);
     }
 
     public static void drawScaledItem(RenderContext context, ItemStack stack, int x, int y, int size) {
@@ -207,7 +217,17 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         int py = (int) my;
 
         int bodyX = bounds.x() + FRAME_BORDER;
-        int bodyY = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset + bodyYShift;
+        int bodyTop = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset;
+        int bodyY = bodyTop + bodyYShift;
+
+        GuideTooltip customDiagramTooltip = NeiCustomDiagramBridge.getEmbeddedTooltip(
+            handler,
+            recipeIndex,
+            px - bodyX,
+            py - bodyY);
+        if (customDiagramTooltip != null) {
+            return Optional.of(customDiagramTooltip);
+        }
 
         ItemStack hit = findSlotHit(NeiRecipeLookup.readIngredientSlots(handler, recipeIndex), bodyX, bodyY, px, py);
         if (hit == null) {

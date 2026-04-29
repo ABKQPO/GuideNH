@@ -12,8 +12,6 @@ import com.hfstudio.guidenh.guide.layout.Layouts;
 public class LytBalancedColumns extends LytBox {
 
     private static final int DEFAULT_COLUMN_COUNT = 2;
-    private static final int MIN_LEFT_PRIORITY_SLACK = 8;
-    private static final int LEFT_PRIORITY_HEIGHT_DIVISOR = 4;
 
     private int gap;
 
@@ -33,33 +31,46 @@ public class LytBalancedColumns extends LytBox {
         LytBlock[] previousBlocks = new LytBlock[DEFAULT_COLUMN_COUNT];
         int contentWidth = 0;
         int contentHeight = 0;
-        int placedCount = 0;
-        int totalPlacedHeight = 0;
 
         for (LytBlock child : children) {
-            int columnIndex = selectColumn(
-                columnBottoms,
-                columnCounts,
-                resolveLeftPrioritySlack(totalPlacedHeight, placedCount, gap));
-            int columnX = x + columnIndex * (columnWidth + gap);
-            int columnY = Layouts.offsetIntoContentArea(
-                LytAxis.VERTICAL,
-                y + columnBottoms[columnIndex],
-                previousBlocks[columnIndex],
-                child);
             int blockWidth = Math.max(1, columnWidth - child.getMarginLeft() - child.getMarginRight());
-            LytRect childBounds = child.layout(context, columnX + child.getMarginLeft(), columnY, blockWidth);
+
+            int leftColumnX = x + child.getMarginLeft();
+            int leftColumnY = Layouts
+                .offsetIntoContentArea(LytAxis.VERTICAL, y + columnBottoms[0], previousBlocks[0], child);
+            LytRect childBounds = child.layout(context, leftColumnX, leftColumnY, blockWidth);
             int occupiedWidth = childBounds.width() + child.getMarginLeft() + child.getMarginRight();
             if (occupiedWidth > columnWidth) {
                 return verticalFallback(context, x, y, availableWidth);
             }
-            columnBottoms[columnIndex] = childBounds.bottom() - y + child.getMarginBottom() + gap;
+
+            int leftProjectedBottom = childBounds.bottom() - y + child.getMarginBottom() + gap;
+
+            int rightColumnX = x + columnWidth + gap + child.getMarginLeft();
+            int rightColumnY = Layouts
+                .offsetIntoContentArea(LytAxis.VERTICAL, y + columnBottoms[1], previousBlocks[1], child);
+            int rightProjectedBottom = rightColumnY - y + childBounds.height() + child.getMarginBottom() + gap;
+
+            int columnIndex = selectColumn(
+                columnBottoms[0],
+                columnBottoms[1],
+                leftProjectedBottom,
+                rightProjectedBottom,
+                columnCounts[0],
+                columnCounts[1]);
+
+            if (columnIndex == 1) {
+                child.setLayoutPos(
+                    childBounds.point()
+                        .add(rightColumnX - leftColumnX, rightColumnY - leftColumnY));
+                childBounds = child.getBounds();
+            }
+
+            columnBottoms[columnIndex] = columnIndex == 0 ? leftProjectedBottom : rightProjectedBottom;
             columnCounts[columnIndex]++;
             previousBlocks[columnIndex] = child;
             contentWidth = Math.max(contentWidth, childBounds.right() - x);
             contentHeight = Math.max(contentHeight, childBounds.bottom() - y);
-            placedCount++;
-            totalPlacedHeight += childBounds.height();
         }
 
         return new LytRect(x, y, contentWidth, contentHeight);
@@ -77,24 +88,33 @@ public class LytBalancedColumns extends LytBox {
         return Layouts.verticalLayout(context, children, x, y, availableWidth, 0, 0, 0, 0, gap, AlignItems.START);
     }
 
-    private static int selectColumn(int[] columnBottoms, int[] columnCounts, int leftPrioritySlack) {
-        int leftBottom = columnBottoms[0];
-        int rightBottom = columnBottoms[1];
-        if (leftBottom <= rightBottom) {
+    private static int selectColumn(int leftBottom, int rightBottom, int leftProjectedBottom, int rightProjectedBottom,
+        int leftCount, int rightCount) {
+        int leftProjectedHeight = Math.max(leftProjectedBottom, rightBottom);
+        int rightProjectedHeight = Math.max(leftBottom, rightProjectedBottom);
+        if (leftProjectedHeight < rightProjectedHeight) {
             return 0;
         }
-        boolean startsFreshRowOnLeft = columnCounts[0] == columnCounts[1];
-        if (startsFreshRowOnLeft && leftBottom - rightBottom <= leftPrioritySlack) {
-            return 0;
+        if (rightProjectedHeight < leftProjectedHeight) {
+            return 1;
         }
-        return 1;
-    }
 
-    private static int resolveLeftPrioritySlack(int totalPlacedHeight, int placedCount, int gap) {
-        if (placedCount <= 0) {
-            return Math.max(MIN_LEFT_PRIORITY_SLACK, gap * 2);
+        int leftProjectedGap = Math.abs(leftProjectedBottom - rightBottom);
+        int rightProjectedGap = Math.abs(leftBottom - rightProjectedBottom);
+        if (leftProjectedGap < rightProjectedGap) {
+            return 0;
         }
-        int averageHeight = Math.max(1, totalPlacedHeight / placedCount);
-        return Math.max(MIN_LEFT_PRIORITY_SLACK, Math.max(gap * 2, averageHeight / LEFT_PRIORITY_HEIGHT_DIVISOR));
+        if (rightProjectedGap < leftProjectedGap) {
+            return 1;
+        }
+
+        if (leftCount < rightCount) {
+            return 0;
+        }
+        if (rightCount < leftCount) {
+            return 1;
+        }
+
+        return 0;
     }
 }
