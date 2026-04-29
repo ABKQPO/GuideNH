@@ -171,4 +171,14 @@ public abstract class MixinTessellatorSceneExportCapture {
         capture.addVertex(x, y, z);
         ci.cancel();
     }
+
+    @Inject(method = "addVertexWithUV", at = @At("HEAD"), cancellable = true)
+    private void guidenh$captureVertexWithUv(double x, double y, double z, double u, double v, CallbackInfo ci) {
+        GuideSiteSceneTessellatorCapture capture = GuideSiteSceneTessellatorCapture.getActive();
+        if (capture == null) {
+            return;
+        }
+        capture.addVertexWithUV(x, y, z, u, v);
+        ci.cancel();
+    }
 }

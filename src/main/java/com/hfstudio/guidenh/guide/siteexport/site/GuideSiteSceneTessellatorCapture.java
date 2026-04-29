@@ -136,6 +136,11 @@ public final class GuideSiteSceneTessellatorCapture {
         textureV = (float) v;
     }
 
+    public void addVertexWithUV(double x, double y, double z, double u, double v) {
+        setTextureUV(u, v);
+        addVertex(x, y, z);
+    }
+
     public void setBrightness(int brightness) {
         hasBrightness = true;
         this.brightness = brightness;

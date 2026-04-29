@@ -61,30 +61,16 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     }
 
     public GuideSiteRecipeTagRenderer(GuideSiteItemIconResolver itemIconResolver) {
-        this(new GuideSiteRecipeExporter(), itemIconResolver, new TargetStackResolver() {
-
-            @Override
-            public ItemStack resolve(String recipeId, String defaultNamespace) {
-                return IdUtils.resolveItemStack(recipeId, defaultNamespace);
+        this(new GuideSiteRecipeExporter(), itemIconResolver, IdUtils::resolveItemStack, targetStack -> {
+            if (targetStack == null || targetStack.getItem() == null) {
+                return Collections.emptyList();
             }
-        }, new VanillaRecipeFinder() {
-
-            @Override
-            public List<RecipeLookup.Entry> findByOutput(ItemStack targetStack) {
-                if (targetStack == null || targetStack.getItem() == null) {
-                    return Collections.emptyList();
-                }
-                return RecipeLookup.findByOutput(targetStack.getItem());
+            return RecipeLookup.findByOutput(targetStack.getItem());
+        }, targetStack -> {
+            if (targetStack == null) {
+                return Collections.emptyList();
             }
-        }, new NeiRecipeFinder() {
-
-            @Override
-            public List<NeiRecipeLookup.Entry> findCraftingRecipes(ItemStack targetStack) {
-                if (targetStack == null) {
-                    return Collections.emptyList();
-                }
-                return NeiRecipeLookup.findCraftingRecipes(targetStack);
-            }
+            return NeiRecipeLookup.findCraftingRecipes(targetStack);
         }, new RawHandlerFinder() {
 
             @Override
@@ -282,8 +268,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
         boolean multi = "RecipesFor".equals(element.name());
         int limit = multi ? Integer.MAX_VALUE : 1;
-        if (parsedLimit != null && parsedLimit.intValue() > 0) {
-            limit = parsedLimit.intValue();
+        if (parsedLimit != null && parsedLimit > 0) {
+            limit = parsedLimit;
         }
 
         return renderInternal(
@@ -294,7 +280,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 defaultNamespace,
                 RecipeCompiler.trimToNull(element.getAttributeString("handlerName", null)),
                 RecipeCompiler.trimToNull(element.getAttributeString("handlerId", null)),
-                parsedHandlerOrder != null ? parsedHandlerOrder.intValue() : -1,
+                parsedHandlerOrder != null ? parsedHandlerOrder : -1,
                 RecipeCompiler.parseFilterExpr(
                     RecipeCompiler.trimToNull(element.getAttributeString("input", null)),
                     defaultNamespace),
@@ -316,8 +302,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 null,
                 null,
                 -1,
-                RecipeCompiler.parseFilterExpr((String) null, defaultNamespace),
-                RecipeCompiler.parseFilterExpr((String) null, defaultNamespace),
+                RecipeCompiler.parseFilterExpr(null, defaultNamespace),
+                RecipeCompiler.parseFilterExpr(null, defaultNamespace),
                 1,
                 false));
     }
@@ -379,7 +365,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             request.handlerOrder,
             handlerRuntime);
         if (handlers.isEmpty()) {
-            return new RawHandlerRenderResult(Collections.<String>emptyList(), false);
+            return new RawHandlerRenderResult(Collections.emptyList(), false);
         }
 
         List<String> renderedRecipes = new ArrayList<>();
@@ -490,7 +476,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     }
 
     private List<Object> safeHandlers(List<Object> handlers) {
-        return handlers != null ? handlers : Collections.<Object>emptyList();
+        return handlers != null ? handlers : Collections.emptyList();
     }
 
     @Nullable
@@ -500,7 +486,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             return null;
         }
         try {
-            return Integer.valueOf(Integer.parseInt(raw.trim()));
+            return Integer.parseInt(raw.trim());
         } catch (NumberFormatException ignored) {
             return null;
         }

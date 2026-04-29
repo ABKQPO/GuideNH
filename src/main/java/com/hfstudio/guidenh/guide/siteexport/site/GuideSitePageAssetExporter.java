@@ -14,8 +14,7 @@ public class GuideSitePageAssetExporter {
 
     public interface AssetLoader {
 
-        @Nullable
-        byte[] load(ResourceLocation assetId) throws Exception;
+        byte @Nullable [] load(ResourceLocation assetId) throws Exception;
     }
 
     private final GuideSiteAssetRegistry assets;

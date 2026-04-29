@@ -18,11 +18,11 @@ public class GuideSiteRecipeExporter {
             unresolvedItems(ingredients),
             GuideSiteItemSupport.unresolved(resultItemId),
             "html-grid",
-            Collections.<List<GuideSiteExportedItem>>emptyList());
+            Collections.emptyList());
     }
 
     public String renderNeiOverlayGrid(List<List<String>> ingredients, String resultItemId) {
-        return renderNeiOverlayGrid(ingredients, resultItemId, Collections.<List<String>>emptyList());
+        return renderNeiOverlayGrid(ingredients, resultItemId, Collections.emptyList());
     }
 
     public String renderNeiOverlayGrid(List<List<String>> ingredients, String resultItemId,
@@ -35,12 +35,12 @@ public class GuideSiteRecipeExporter {
     }
 
     public String renderHtmlGridItems(List<List<GuideSiteExportedItem>> ingredients, GuideSiteExportedItem resultItem) {
-        return renderGrid(ingredients, resultItem, "html-grid", Collections.<List<GuideSiteExportedItem>>emptyList());
+        return renderGrid(ingredients, resultItem, "html-grid", Collections.emptyList());
     }
 
     public String renderNeiOverlayGridItems(List<List<GuideSiteExportedItem>> ingredients,
         GuideSiteExportedItem resultItem) {
-        return renderNeiOverlayGridItems(ingredients, resultItem, Collections.<List<GuideSiteExportedItem>>emptyList());
+        return renderNeiOverlayGridItems(ingredients, resultItem, Collections.emptyList());
     }
 
     public String renderNeiOverlayGridItems(List<List<GuideSiteExportedItem>> ingredients,
@@ -100,7 +100,7 @@ public class GuideSiteRecipeExporter {
         }
         for (List<GuideSiteExportedItem> candidates : slots) {
             List<GuideSiteExportedItem> safeCandidates = candidates != null ? candidates
-                : Collections.<GuideSiteExportedItem>emptyList();
+                : Collections.emptyList();
             html.append("<div class=\"ingredient-box");
             if (safeCandidates.size() > 1) {
                 html.append(" cycling");
@@ -118,7 +118,7 @@ public class GuideSiteRecipeExporter {
         for (int i = 0; i < entry.input3x3.length; i++) {
             ItemStack stack = entry.input3x3[i];
             if (stack == null) {
-                ingredients.add(new ArrayList<String>());
+                ingredients.add(new ArrayList<>());
             } else {
                 List<String> candidates = new ArrayList<>();
                 candidates.add(itemId(stack));
@@ -130,16 +130,16 @@ public class GuideSiteRecipeExporter {
 
     public List<List<GuideSiteExportedItem>> ingredientItemsFromVanillaEntry(RecipeLookup.Entry entry,
         GuideSiteItemIconResolver itemIconResolver) {
-        List<List<GuideSiteExportedItem>> ingredients = new ArrayList<List<GuideSiteExportedItem>>();
+        List<List<GuideSiteExportedItem>> ingredients = new ArrayList<>();
         if (entry == null) {
             return ingredients;
         }
         for (int i = 0; i < entry.input3x3.length; i++) {
             ItemStack stack = entry.input3x3[i];
             if (stack == null) {
-                ingredients.add(new ArrayList<GuideSiteExportedItem>());
+                ingredients.add(new ArrayList<>());
             } else {
-                List<GuideSiteExportedItem> candidates = new ArrayList<GuideSiteExportedItem>(1);
+                List<GuideSiteExportedItem> candidates = new ArrayList<>(1);
                 candidates.add(itemInfo(stack, itemIconResolver));
                 ingredients.add(candidates);
             }
@@ -149,13 +149,13 @@ public class GuideSiteRecipeExporter {
 
     public List<List<String>> ingredientsFromNeiEntry(NeiRecipeLookup.Entry entry) {
         return ingredientsFromNeiSlots(
-            entry != null ? entry.ingredients : Collections.<NeiRecipeLookup.Slot>emptyList());
+            entry != null ? entry.ingredients : Collections.emptyList());
     }
 
     public List<List<GuideSiteExportedItem>> ingredientItemsFromNeiEntry(NeiRecipeLookup.Entry entry,
         GuideSiteItemIconResolver itemIconResolver) {
         return ingredientItemsFromNeiSlots(
-            entry != null ? entry.ingredients : Collections.<NeiRecipeLookup.Slot>emptyList(),
+            entry != null ? entry.ingredients : Collections.emptyList(),
             itemIconResolver);
     }
 
@@ -180,12 +180,12 @@ public class GuideSiteRecipeExporter {
 
     public List<List<GuideSiteExportedItem>> ingredientItemsFromNeiSlots(List<NeiRecipeLookup.Slot> slots,
         GuideSiteItemIconResolver itemIconResolver) {
-        List<List<GuideSiteExportedItem>> ingredients = new ArrayList<List<GuideSiteExportedItem>>();
+        List<List<GuideSiteExportedItem>> ingredients = new ArrayList<>();
         if (slots == null) {
             return ingredients;
         }
         for (NeiRecipeLookup.Slot slot : slots) {
-            List<GuideSiteExportedItem> candidates = new ArrayList<GuideSiteExportedItem>();
+            List<GuideSiteExportedItem> candidates = new ArrayList<>();
             if (slot != null && slot.stacks != null) {
                 for (ItemStack stack : slot.stacks) {
                     if (stack != null) {
@@ -199,13 +199,13 @@ public class GuideSiteRecipeExporter {
     }
 
     public List<List<String>> supportingSlotsFromNeiEntry(NeiRecipeLookup.Entry entry) {
-        return ingredientsFromNeiSlots(entry != null ? entry.others : Collections.<NeiRecipeLookup.Slot>emptyList());
+        return ingredientsFromNeiSlots(entry != null ? entry.others : Collections.emptyList());
     }
 
     public List<List<GuideSiteExportedItem>> supportingSlotItemsFromNeiEntry(NeiRecipeLookup.Entry entry,
         GuideSiteItemIconResolver itemIconResolver) {
         return ingredientItemsFromNeiSlots(
-            entry != null ? entry.others : Collections.<NeiRecipeLookup.Slot>emptyList(),
+            entry != null ? entry.others : Collections.emptyList(),
             itemIconResolver);
     }
 
@@ -261,12 +261,12 @@ public class GuideSiteRecipeExporter {
     }
 
     private List<List<GuideSiteExportedItem>> unresolvedItems(List<List<String>> items) {
-        List<List<GuideSiteExportedItem>> resolved = new ArrayList<List<GuideSiteExportedItem>>();
+        List<List<GuideSiteExportedItem>> resolved = new ArrayList<>();
         if (items == null) {
             return resolved;
         }
         for (List<String> candidates : items) {
-            List<GuideSiteExportedItem> resolvedCandidates = new ArrayList<GuideSiteExportedItem>();
+            List<GuideSiteExportedItem> resolvedCandidates = new ArrayList<>();
             if (candidates != null) {
                 for (String candidate : candidates) {
                     resolvedCandidates.add(GuideSiteItemSupport.unresolved(candidate));

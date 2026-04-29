@@ -84,11 +84,8 @@ public class GuideSitePageCollector {
                 }
 
                 Optional<ParsedGuidePage> fallback = pageLoader.load(defaultLanguage, pagePath);
-                if (fallback.isPresent()) {
-                    ParsedGuidePage page = fallback.get();
-                    variants
-                        .add(new GuideSitePageVariant(guideId, page.getId(), language, defaultLanguage, true, page));
-                }
+                fallback.ifPresent(page -> variants
+                        .add(new GuideSitePageVariant(guideId, page.getId(), language, defaultLanguage, true, page)));
             }
         }
 
@@ -100,7 +97,7 @@ public class GuideSitePageCollector {
         for (var resourcePack : DataDrivenGuideLoader.getActiveResourcePacks()) {
             DataDrivenGuideLoader.scanResourcePack(resourcePack, discovered);
         }
-        return new ArrayList<>(discovered.getOrDefault(guideId, new LinkedHashSet<String>()));
+        return new ArrayList<>(discovered.getOrDefault(guideId, new LinkedHashSet<>()));
     }
 
     private static Optional<ParsedGuidePage> tryLoadPage(MutableGuide guide, IResourceManager resourceManager,
