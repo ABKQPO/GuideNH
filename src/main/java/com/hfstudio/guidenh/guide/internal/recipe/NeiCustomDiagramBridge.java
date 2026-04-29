@@ -397,7 +397,7 @@ public final class NeiCustomDiagramBridge {
         Object stackObject = METHOD_DISPLAY_COMPONENT_STACK.invoke(displayComponent);
         if (stackObject instanceof ItemStack stack) {
             reapplyClipState(clipX, clipY, clipWidth, clipHeight);
-            NeiHandlerRenderer.drawItem(stack, pointX(position) - 8, pointY(position) - 8);
+            NeiHandlerRenderer.drawItemIcon(stack, pointX(position) - 8, pointY(position) - 8);
             renderDisplayComponentDecorations(displayComponent, position);
             return;
         }
@@ -410,7 +410,7 @@ public final class NeiCustomDiagramBridge {
         Object stackObject = METHOD_COMPONENT_STACK.invoke(component);
         if (stackObject instanceof ItemStack stack) {
             reapplyClipState(clipX, clipY, clipWidth, clipHeight);
-            NeiHandlerRenderer.drawItem(stack, pointX(position) - 8, pointY(position) - 8);
+            NeiHandlerRenderer.drawItemIcon(stack, pointX(position) - 8, pointY(position) - 8);
             return;
         }
 
@@ -632,8 +632,8 @@ public final class NeiCustomDiagramBridge {
         int scale = DisplayScale.scaleFactor();
         int sx = x * scale;
         int sy = Minecraft.getMinecraft().displayHeight - (y + height) * scale;
-        int sw = width * scale;
-        int sh = height * scale;
-        GL11.glScissor(sx, Math.max(0, sy), Math.max(0, sw), Math.max(0, sh));
+        int sw = (width + 18) * scale;
+        int sh = (height + 20) * scale;
+        GL11.glScissor(sx, Math.max(25, sy), Math.max(0, sw), Math.max(0, sh));
     }
 }

@@ -80,7 +80,7 @@ public class NeiHandlerRenderer {
         return hovered;
     }
 
-    public static @Nullable ItemStack drawSlots(List<NeiRecipeLookup.Slot> slots, int screenX, int screenY, int mouseX,
+    private static @Nullable ItemStack drawSlots(List<NeiRecipeLookup.Slot> slots, int screenX, int screenY, int mouseX,
         int mouseY, @Nullable ItemStack currentHovered) {
         ItemStack hovered = currentHovered;
         for (NeiRecipeLookup.Slot s : slots) {
@@ -110,6 +110,14 @@ public class NeiHandlerRenderer {
     }
 
     public static void drawItem(ItemStack stack, int x, int y) {
+        drawItemInternal(stack, x, y, true);
+    }
+
+    public static void drawItemIcon(ItemStack stack, int x, int y) {
+        drawItemInternal(stack, x, y, false);
+    }
+
+    private static void drawItemInternal(ItemStack stack, int x, int y, boolean drawOverlay) {
         Minecraft mc = Minecraft.getMinecraft();
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_LIGHTING_BIT);
         try {
@@ -124,7 +132,9 @@ public class NeiHandlerRenderer {
             GL11.glEnable(GL11.GL_ALPHA_TEST);
             ITEM_RENDERER.zLevel = 100f;
             ITEM_RENDERER.renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, x, y);
-            ITEM_RENDERER.renderItemOverlayIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, x, y);
+            if (drawOverlay) {
+                ITEM_RENDERER.renderItemOverlayIntoGUI(mc.fontRenderer, mc.getTextureManager(), stack, x, y);
+            }
             ITEM_RENDERER.zLevel = 0f;
             RenderHelper.disableStandardItemLighting();
         } finally {
