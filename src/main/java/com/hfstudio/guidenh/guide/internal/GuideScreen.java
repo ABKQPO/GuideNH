@@ -387,7 +387,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     private void ensureLayout() {
         var activeDocument = getActiveDocument();
         if (activeDocument == null) return;
-        if (layoutDocument != activeDocument || lastLayoutWidth != contentW) {
+        if (!activeDocument.hasLayout() || layoutDocument != activeDocument || lastLayoutWidth != contentW) {
+            clearInteractionState();
             activeDocument.updateLayout(new LayoutContext(layoutFontMetrics), contentW);
             layoutDocument = activeDocument;
             lastLayoutWidth = contentW;
@@ -1109,6 +1110,10 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     private DocumentInteractionState getDocumentInteractionState(int mouseX, int mouseY) {
         var activeDocument = getActiveDocument();
         if (activeDocument == null || !isInsideDocument(mouseX, mouseY)) {
+            return null;
+        }
+        if (!activeDocument.hasLayout()) {
+            cachedInteractionState = null;
             return null;
         }
         var interaction = cachedInteractionState;

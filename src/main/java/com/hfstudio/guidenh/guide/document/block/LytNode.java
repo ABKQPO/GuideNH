@@ -51,7 +51,7 @@ public abstract class LytNode implements Styleable {
         return parent;
     }
 
-    public abstract LytRect getBounds();
+    public abstract @Nullable LytRect getBounds();
 
     public void onMouseEnter(@Nullable LytFlowContent hoveredContent) {}
 
@@ -61,7 +61,8 @@ public abstract class LytNode implements Styleable {
 
     @Nullable
     public LytNode pickNode(int x, int y) {
-        if (!getBounds().contains(x, y)) {
+        var bounds = getBounds();
+        if (bounds == null || !bounds.contains(x, y)) {
             return null;
         }
 
