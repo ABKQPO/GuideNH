@@ -3413,13 +3413,14 @@ void main() {
 
 function Tm(s,e,t){
   tc.setFromCamera(s,e);
-  let n=tc.intersectObjects(t.children,!0);
-  for(let i of n){
-    let r=i.object.userData.hoverRuntimeTarget;
-    if(r)return{templateId:r.contentTemplateId,hoverRuntimeTarget:r};
-    let o=i.object.userData.annotation;
-    if(o&&o.contentTemplateId)return{templateId:o.contentTemplateId};
+  let n=tc.intersectObjects(t.children,!0),i;
+  for(let r of n){
+    let o=r.object.userData.hoverRuntimeTarget;
+    if(o)return{templateId:o.contentTemplateId,hoverRuntimeTarget:o};
+    let a=r.object.userData.annotation;
+    !i&&a&&a.contentTemplateId&&(i={templateId:a.contentTemplateId});
   }
+  return i;
 }
 
 function guidenhNormalizeBoxTarget(s){

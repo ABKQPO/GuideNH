@@ -12,7 +12,15 @@ function cycleChildren(container) {
   }
 }
 
+function stopIngredientCycling(root) {
+  if (root?.__guideIngredientCyclingTimer) {
+    window.clearInterval(root.__guideIngredientCyclingTimer);
+    delete root.__guideIngredientCyclingTimer;
+  }
+}
+
 function installIngredientCycling(root) {
+  stopIngredientCycling(root);
   const cyclingBoxes = root.querySelectorAll(".ingredient-box.cycling");
   if (!cyclingBoxes.length) {
     return;
@@ -25,7 +33,7 @@ function installIngredientCycling(root) {
     }
   });
 
-  window.setInterval(() => {
+  root.__guideIngredientCyclingTimer = window.setInterval(() => {
     cyclingBoxes.forEach((box) => {
       cycleChildren(box);
     });
@@ -90,6 +98,7 @@ function installTooltips(root) {
     restoreStack = [];
     tooltipRoot.hidden = true;
     tooltipRoot.innerHTML = "";
+    stopIngredientCycling(tooltipRoot);
     delete tooltipRoot.dataset.externalTooltipOwner;
     delete tooltipRoot.dataset.externalTooltipTemplate;
   }
@@ -105,6 +114,8 @@ function installTooltips(root) {
     activeState = nextState;
     tooltipRoot.innerHTML = nextState.html;
     tooltipRoot.hidden = false;
+    installIngredientCycling(tooltipRoot);
+    hydrateVisibleScenes(tooltipRoot);
     if (nextState.sourceType === "external") {
       tooltipRoot.dataset.externalTooltipOwner = String(nextState.sourceRef ?? "");
       tooltipRoot.dataset.externalTooltipTemplate = nextState.templateId ?? "";
@@ -113,6 +124,7 @@ function installTooltips(root) {
       delete tooltipRoot.dataset.externalTooltipTemplate;
     }
     position(pointer);
+    window.requestAnimationFrame(() => position(pointer));
   }
 
   function captureState() {
