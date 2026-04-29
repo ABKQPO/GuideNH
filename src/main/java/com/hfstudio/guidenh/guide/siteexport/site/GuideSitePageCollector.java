@@ -62,7 +62,9 @@ public class GuideSitePageCollector {
             pagePathSet = new LinkedHashSet<>();
         }
         for (ParsedGuidePage page : guide.getPages()) {
-            pagePathSet.add(page.getId().getResourcePath());
+            pagePathSet.add(
+                page.getId()
+                    .getResourcePath());
         }
         List<String> pagePaths = new ArrayList<>(pagePathSet);
         return collect(guide.getId(), guide.getDefaultLanguage(), languages, pagePaths);
@@ -84,8 +86,8 @@ public class GuideSitePageCollector {
                 Optional<ParsedGuidePage> fallback = pageLoader.load(defaultLanguage, pagePath);
                 if (fallback.isPresent()) {
                     ParsedGuidePage page = fallback.get();
-                    variants.add(
-                        new GuideSitePageVariant(guideId, page.getId(), language, defaultLanguage, true, page));
+                    variants
+                        .add(new GuideSitePageVariant(guideId, page.getId(), language, defaultLanguage, true, page));
                 }
             }
         }
@@ -103,9 +105,13 @@ public class GuideSitePageCollector {
 
     private static Optional<ParsedGuidePage> tryLoadPage(MutableGuide guide, IResourceManager resourceManager,
         String language, String pagePath) {
-        ResourceLocation pageId = new ResourceLocation(guide.getId().getResourceDomain(), pagePath);
+        ResourceLocation pageId = new ResourceLocation(
+            guide.getId()
+                .getResourceDomain(),
+            pagePath);
         ResourceLocation localizedSource = new ResourceLocation(
-            guide.getId().getResourceDomain(),
+            guide.getId()
+                .getResourceDomain(),
             guide.getContentRootFolder() + "/_" + language + "/" + pagePath);
 
         try (var stream = GuideResourceAccess.openStream(resourceManager, localizedSource)) {
@@ -113,7 +119,12 @@ public class GuideSitePageCollector {
                 return Optional.empty();
             }
             return Optional.of(
-                PageCompiler.parse("resources:" + guide.getId().getResourceDomain(), language, pageId, stream));
+                PageCompiler.parse(
+                    "resources:" + guide.getId()
+                        .getResourceDomain(),
+                    language,
+                    pageId,
+                    stream));
         } catch (Exception e) {
             return Optional.empty();
         }

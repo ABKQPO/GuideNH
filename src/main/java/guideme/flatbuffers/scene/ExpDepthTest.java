@@ -4,8 +4,8 @@ package guideme.flatbuffers.scene;
 
 @SuppressWarnings("unused")
 public final class ExpDepthTest {
-    private ExpDepthTest() {
-    }
+
+    private ExpDepthTest() {}
 
     public static final int DISABLED = 0;
     public static final int EQUAL = 1;

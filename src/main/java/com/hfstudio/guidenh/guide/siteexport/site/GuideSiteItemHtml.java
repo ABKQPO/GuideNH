@@ -8,7 +8,8 @@ final class GuideSiteItemHtml {
 
     static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass) {
         String classes = classes("item-icon", extraClass);
-        String label = item.displayName().isEmpty() ? item.itemId() : item.displayName();
+        String label = item.displayName()
+            .isEmpty() ? item.itemId() : item.displayName();
         if (item.hasIcon()) {
             html.append("<img class=\"")
                 .append(escapeHtml(classes))
@@ -39,7 +40,10 @@ final class GuideSiteItemHtml {
         html.append("<span class=\"")
             .append(escapeHtml(textClass))
             .append("\">")
-            .append(escapeHtml(item.displayName().isEmpty() ? item.itemId() : item.displayName()))
+            .append(
+                escapeHtml(
+                    item.displayName()
+                        .isEmpty() ? item.itemId() : item.displayName()))
             .append("</span>");
     }
 

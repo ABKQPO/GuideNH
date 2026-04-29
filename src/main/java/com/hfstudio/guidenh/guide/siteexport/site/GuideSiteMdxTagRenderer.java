@@ -16,8 +16,8 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
+import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
@@ -40,18 +40,20 @@ import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLiteral;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
-import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
-import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRenderer {
 
     private static final Comparator<StructureBlockView> STRUCTURE_DRAW_ORDER = Comparator
         .comparingInt((StructureBlockView block) -> block.y)
-        .thenComparing(Comparator.comparingInt((StructureBlockView block) -> block.z).reversed())
+        .thenComparing(
+            Comparator.comparingInt((StructureBlockView block) -> block.z)
+                .reversed())
         .thenComparingInt(block -> block.x);
 
     private final MutableGuide guide;
@@ -121,7 +123,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         if ("div".equals(name)) {
             return "<div>"
-                + compiler.compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
+                + compiler
+                    .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
                 + "</div>";
         }
         return null;
@@ -135,8 +138,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderError("Malformed color value");
         }
 
-        return "<span class=\"guide-inline-color\" style=\"color:"
-            + escapeAttribute(color)
+        return "<span class=\"guide-inline-color\" style=\"color:" + escapeAttribute(color)
             + ";\">"
             + compiler.compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
             + "</span>";
@@ -156,9 +158,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             style.append("width:100%;");
         }
 
-        String body = compiler.compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId);
-        return "<div class=\"guide-layout guide-layout-"
-            + (row ? "row" : "column")
+        String body = compiler
+            .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId);
+        return "<div class=\"guide-layout guide-layout-" + (row ? "row" : "column")
             + "\" style=\""
             + escapeAttribute(style.toString())
             + "\">"
@@ -285,10 +287,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates, boolean inline) {
         String rawId = readOptional(element, "id");
         String rawOre = readOptional(element, "ore");
-        GuideItemReferenceResolver.ResolvedItemReference item = GuideItemReferenceResolver.resolveItemReference(
-            defaultNamespace,
-            rawId,
-            rawOre);
+        GuideItemReferenceResolver.ResolvedItemReference item = GuideItemReferenceResolver
+            .resolveItemReference(defaultNamespace, rawId, rawOre);
         String itemId = resolveItemLabelKey(defaultNamespace, rawId, rawOre, item);
         if (item == null || item.stack() == null) {
             return renderFallbackItemLabel(itemId, currentPageId, templates, inline, readFloat(element, "scale"));
@@ -311,11 +311,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderError("Missing item");
         }
 
-        GuideSiteExportedItem exportedItem = GuideSiteItemSupport.export(
-            registryId,
-            stack,
-            itemIconResolver,
-            registryId.toString());
+        GuideSiteExportedItem exportedItem = GuideSiteItemSupport
+            .export(registryId, stack, itemIconResolver, registryId.toString());
         String templateId = null;
         if (includeTooltip) {
             templateId = createTooltipTemplate(new ItemTooltip(stack), templates, currentPageId);
@@ -369,11 +366,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates) {
         String rawId = readOptional(element, "id");
         String rawOre = readOptional(element, "ore");
-        GuideItemReferenceResolver.ResolvedBlockReference block = GuideItemReferenceResolver.resolveBlockReference(
-            defaultNamespace,
-            rawId,
-            rawOre);
-        if (block == null || block.stack() == null || block.stack().getItem() == null) {
+        GuideItemReferenceResolver.ResolvedBlockReference block = GuideItemReferenceResolver
+            .resolveBlockReference(defaultNamespace, rawId, rawOre);
+        if (block == null || block.stack() == null
+            || block.stack()
+                .getItem() == null) {
             return renderFallbackItemLabel(
                 resolveItemLabelKey(defaultNamespace, rawId, rawOre, null),
                 currentPageId,
@@ -401,10 +398,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             }
             String rawId = readOptional(itemChild, "id");
             String rawOre = readOptional(itemChild, "ore");
-            GuideItemReferenceResolver.ResolvedItemReference item = GuideItemReferenceResolver.resolveItemReference(
-                defaultNamespace,
-                rawId,
-                rawOre);
+            GuideItemReferenceResolver.ResolvedItemReference item = GuideItemReferenceResolver
+                .resolveItemReference(defaultNamespace, rawId, rawOre);
             String itemId = resolveItemLabelKey(defaultNamespace, rawId, rawOre, item);
             GuideSiteExportedItem exportedItem = item != null && item.stack() != null
                 ? GuideSiteItemSupport.export(item.registryId(), item.stack(), itemIconResolver, itemId)
@@ -426,11 +421,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                     .append("\"");
             }
             html.append(">");
-            GuideSiteItemHtml.appendSummaryContent(
-                html,
-                exportedItem,
-                "guide-item-label-icon",
-                "guide-item-label-text");
+            GuideSiteItemHtml
+                .appendSummaryContent(html, exportedItem, "guide-item-label-icon", "guide-item-label-text");
             html.append("</span></div>");
         }
         html.append("</div>");
@@ -441,10 +433,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates) {
         String rawId = readOptional(element, "id");
         String rawOre = readOptional(element, "ore");
-        GuideItemReferenceResolver.ResolvedItemReference item = GuideItemReferenceResolver.resolveItemReference(
-            defaultNamespace,
-            rawId,
-            rawOre);
+        GuideItemReferenceResolver.ResolvedItemReference item = GuideItemReferenceResolver
+            .resolveItemReference(defaultNamespace, rawId, rawOre);
         String itemId = resolveItemLabelKey(defaultNamespace, rawId, rawOre, item);
         GuideSiteExportedItem exportedItem = item != null && item.stack() != null
             ? GuideSiteItemSupport.export(item.registryId(), item.stack(), itemIconResolver, itemId)
@@ -463,7 +453,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             linksTo = findPageAnchorByItemId(itemId);
         }
 
-        boolean samePageLink = linksTo != null && linksTo.anchor() == null && currentPageId != null
+        boolean samePageLink = linksTo != null && linksTo.anchor() == null
+            && currentPageId != null
             && currentPageId.equals(linksTo.pageId());
         if (linksTo == null || samePageLink) {
             return buildTaggedSpanHtml(
@@ -490,8 +481,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         } else {
             ResourceLocation pageId;
             try {
-                pageId = pageIdStr == null || pageIdStr.isEmpty()
-                    ? currentPageId
+                pageId = pageIdStr == null || pageIdStr.isEmpty() ? currentPageId
                     : new ResourceLocation(pageIdStr.contains(":") ? pageIdStr : defaultNamespace + ":" + pageIdStr);
             } catch (Exception e) {
                 return renderError("Invalid page id");
@@ -537,7 +527,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderError("Missing command");
         }
 
-        String content = compiler.compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId);
+        String content = compiler
+            .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId);
         if (content == null || content.isEmpty()) {
             content = escapeHtml(stripLegacyFormatting(command));
         }
@@ -545,8 +536,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             GuideSiteSceneAnnotationSerializer.renderTooltipHtml(
                 CommandLinkCompiler.buildTooltip(readOptional(element, "title"), command),
                 currentPageId));
-        return "<span class=\"guide-command-link guide-tooltip\" data-template=\""
-            + escapeAttribute(templateId)
+        return "<span class=\"guide-command-link guide-tooltip\" data-template=\"" + escapeAttribute(templateId)
             + "\">"
             + content
             + "</span>";
@@ -560,7 +550,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 continue;
             }
             html.append("<li><a href=\"")
-                .append(escapeAttribute(GuideSiteHrefResolver.resolvePageAnchor(currentPageId, PageAnchor.page(node.pageId()))))
+                .append(
+                    escapeAttribute(
+                        GuideSiteHrefResolver.resolvePageAnchor(currentPageId, PageAnchor.page(node.pageId()))))
                 .append("\">")
                 .append(buildGuideLinkContent(node.title(), node.icon()))
                 .append("</a></li>");
@@ -578,8 +570,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 continue;
             }
             ParsedGuidePage page = parsedPagesById.get(anchor.pageId());
-            FrontmatterNavigation navigation = page != null ? page.getFrontmatter().navigationEntry() : null;
-            String title = navigation != null ? navigation.title() : anchor.pageId().toString();
+            FrontmatterNavigation navigation = page != null ? page.getFrontmatter()
+                .navigationEntry() : null;
+            String title = navigation != null ? navigation.title()
+                : anchor.pageId()
+                    .toString();
             String href = GuideSiteHrefResolver.resolvePageAnchor(currentPageId, anchor);
             if (!seen.add(href)) {
                 continue;
@@ -680,12 +675,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     @Nullable
     private String createTooltipTemplate(ItemTooltip tooltip, GuideSiteTemplateRegistry templates,
         @Nullable ResourceLocation currentPageId) {
-        String html = GuideSiteSceneAnnotationSerializer.renderTooltipHtml(
-            tooltip,
-            currentPageId,
-            null,
-            itemIconResolver);
-        if (html == null || html.trim().isEmpty()) {
+        String html = GuideSiteSceneAnnotationSerializer
+            .renderTooltipHtml(tooltip, currentPageId, null, itemIconResolver);
+        if (html == null || html.trim()
+            .isEmpty()) {
             return null;
         }
         return templates.create(html);
@@ -697,19 +690,18 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if (text == null || text.isEmpty()) {
             return null;
         }
-        String html = GuideSiteSceneAnnotationSerializer.renderTooltipHtml(
-            new TextTooltip(text),
-            currentPageId,
-            null,
-            itemIconResolver);
-        return html == null || html.trim().isEmpty() ? null : templates.create(html);
+        String html = GuideSiteSceneAnnotationSerializer
+            .renderTooltipHtml(new TextTooltip(text), currentPageId, null, itemIconResolver);
+        return html == null || html.trim()
+            .isEmpty() ? null : templates.create(html);
     }
 
     private String resolvePlayerName() {
         try {
             Minecraft minecraft = Minecraft.getMinecraft();
             if (minecraft != null && minecraft.getSession() != null) {
-                String username = minecraft.getSession().getUsername();
+                String username = minecraft.getSession()
+                    .getUsername();
                 if (username != null && !username.isEmpty()) {
                     return username;
                 }
@@ -743,13 +735,15 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private String resolveItemLabelKey(String defaultNamespace, @Nullable String rawId, @Nullable String rawOre,
         @Nullable GuideItemReferenceResolver.ResolvedItemReference item) {
         if (item != null && item.registryId() != null) {
-            return item.registryId().toString();
+            return item.registryId()
+                .toString();
         }
         if (rawId != null && !rawId.isEmpty()) {
             try {
                 IdUtils.ParsedItemRef ref = IdUtils.parseItemRef(rawId, defaultNamespace);
                 if (ref != null) {
-                    return ref.id().toString();
+                    return ref.id()
+                        .toString();
                 }
             } catch (IllegalArgumentException ignored) {}
             return rawId;
@@ -785,7 +779,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return null;
         }
 
-        for (SymbolicColorResolver resolver : guide.getExtensions().get(SymbolicColorResolver.EXTENSION_POINT)) {
+        for (SymbolicColorResolver resolver : guide.getExtensions()
+            .get(SymbolicColorResolver.EXTENSION_POINT)) {
             ColorValue color = resolver.resolve(colorId);
             if (color != null) {
                 return color;
@@ -854,7 +849,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         collectStructureText(rawText, element.children());
 
         List<StructureBlockView> blocks = new ArrayList<StructureBlockView>();
-        for (String rawLine : rawText.toString().split("\\R")) {
+        for (String rawLine : rawText.toString()
+            .split("\\R")) {
             String line = rawLine.trim();
             if (line.isEmpty() || line.startsWith("#")) {
                 continue;
@@ -880,7 +876,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 text.append('\n');
                 continue;
             }
-            if (child instanceof MdAstParent<?> parent) {
+            if (child instanceof MdAstParent<?>parent) {
                 collectStructureText(text, parent.children());
             }
         }
@@ -1060,8 +1056,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return null;
         }
         for (ParsedGuidePage page : parsedPagesById.values()) {
-            Object rawItemIds = page.getFrontmatter().additionalProperties().get("item_ids");
-            if (!(rawItemIds instanceof List<?> values)) {
+            Object rawItemIds = page.getFrontmatter()
+                .additionalProperties()
+                .get("item_ids");
+            if (!(rawItemIds instanceof List<?>values)) {
                 continue;
             }
             for (Object value : values) {
@@ -1069,7 +1067,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                     continue;
                 }
                 String normalized = resolveItemLabelKey(
-                    page.getId().getResourceDomain(),
+                    page.getId()
+                        .getResourceDomain(),
                     rawValue,
                     null,
                     null);
@@ -1101,8 +1100,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if (attribute == null) {
             return fallback;
         }
-        String value = attribute.hasExpressionValue()
-            ? attribute.getExpressionValue()
+        String value = attribute.hasExpressionValue() ? attribute.getExpressionValue()
             : attribute.hasStringValue() ? attribute.getStringValue() : "";
         if ("true".equalsIgnoreCase(value)) {
             return true;

@@ -4,8 +4,8 @@ package guideme.flatbuffers.scene;
 
 @SuppressWarnings("unused")
 public final class ExpVertexElementType {
-    private ExpVertexElementType() {
-    }
+
+    private ExpVertexElementType() {}
 
     public static final int FLOAT = 0;
     public static final int UBYTE = 1;

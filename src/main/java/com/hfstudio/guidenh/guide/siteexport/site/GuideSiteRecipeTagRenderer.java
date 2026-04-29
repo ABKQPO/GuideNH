@@ -61,133 +61,134 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     }
 
     public GuideSiteRecipeTagRenderer(GuideSiteItemIconResolver itemIconResolver) {
+        this(new GuideSiteRecipeExporter(), itemIconResolver, new TargetStackResolver() {
+
+            @Override
+            public ItemStack resolve(String recipeId, String defaultNamespace) {
+                return IdUtils.resolveItemStack(recipeId, defaultNamespace);
+            }
+        }, new VanillaRecipeFinder() {
+
+            @Override
+            public List<RecipeLookup.Entry> findByOutput(ItemStack targetStack) {
+                if (targetStack == null || targetStack.getItem() == null) {
+                    return Collections.emptyList();
+                }
+                return RecipeLookup.findByOutput(targetStack.getItem());
+            }
+        }, new NeiRecipeFinder() {
+
+            @Override
+            public List<NeiRecipeLookup.Entry> findCraftingRecipes(ItemStack targetStack) {
+                if (targetStack == null) {
+                    return Collections.emptyList();
+                }
+                return NeiRecipeLookup.findCraftingRecipes(targetStack);
+            }
+        }, new RawHandlerFinder() {
+
+            @Override
+            public List<Object> findCraftingHandlers(ItemStack targetStack) {
+                if (targetStack == null) {
+                    return Collections.emptyList();
+                }
+                return RecipeCache.getCraftingHandlers(targetStack);
+            }
+
+            @Override
+            public List<Object> findUsageHandlers(ItemStack targetStack) {
+                if (targetStack == null) {
+                    return Collections.emptyList();
+                }
+                return RecipeCache.getUsageHandlers(targetStack);
+            }
+        }, new HandlerRuntime() {
+
+            @Override
+            public @Nullable String handlerName(Object handler) {
+                return NeiRecipeLookup.lookupHandlerName(handler);
+            }
+
+            @Override
+            public @Nullable String overlayIdentifier(Object handler) {
+                return NeiRecipeLookup.lookupOverlayIdentifier(handler);
+            }
+
+            @Override
+            public int recipeCount(Object handler) {
+                return NeiRecipeLookup.lookupNumRecipes(handler);
+            }
+
+            @Override
+            public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
+                return NeiRecipeLookup.readIngredientSlots(handler, recipeIndex);
+            }
+
+            @Override
+            public @Nullable NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex) {
+                return NeiRecipeLookup.readResultSlot(handler, recipeIndex);
+            }
+
+            @Override
+            public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
+                return NeiRecipeLookup.readOtherSlots(handler, recipeIndex);
+            }
+        });
+    }
+
+    GuideSiteRecipeTagRenderer(GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
+        TargetStackResolver targetStackResolver, VanillaRecipeFinder vanillaRecipeFinder,
+        NeiRecipeFinder neiRecipeFinder) {
         this(
-            new GuideSiteRecipeExporter(),
+            exporter,
             itemIconResolver,
-            new TargetStackResolver() {
-
-                @Override
-                public ItemStack resolve(String recipeId, String defaultNamespace) {
-                    return IdUtils.resolveItemStack(recipeId, defaultNamespace);
-                }
-            },
-            new VanillaRecipeFinder() {
-
-                @Override
-                public List<RecipeLookup.Entry> findByOutput(ItemStack targetStack) {
-                    if (targetStack == null || targetStack.getItem() == null) {
-                        return Collections.emptyList();
-                    }
-                    return RecipeLookup.findByOutput(targetStack.getItem());
-                }
-            },
-            new NeiRecipeFinder() {
-
-                @Override
-                public List<NeiRecipeLookup.Entry> findCraftingRecipes(ItemStack targetStack) {
-                    if (targetStack == null) {
-                        return Collections.emptyList();
-                    }
-                    return NeiRecipeLookup.findCraftingRecipes(targetStack);
-                }
-            },
+            targetStackResolver,
+            vanillaRecipeFinder,
+            neiRecipeFinder,
             new RawHandlerFinder() {
 
                 @Override
                 public List<Object> findCraftingHandlers(ItemStack targetStack) {
-                    if (targetStack == null) {
-                        return Collections.emptyList();
-                    }
-                    return RecipeCache.getCraftingHandlers(targetStack);
+                    return Collections.emptyList();
                 }
 
                 @Override
                 public List<Object> findUsageHandlers(ItemStack targetStack) {
-                    if (targetStack == null) {
-                        return Collections.emptyList();
-                    }
-                    return RecipeCache.getUsageHandlers(targetStack);
+                    return Collections.emptyList();
                 }
             },
             new HandlerRuntime() {
 
                 @Override
                 public @Nullable String handlerName(Object handler) {
-                    return NeiRecipeLookup.lookupHandlerName(handler);
+                    return null;
                 }
 
                 @Override
                 public @Nullable String overlayIdentifier(Object handler) {
-                    return NeiRecipeLookup.lookupOverlayIdentifier(handler);
+                    return null;
                 }
 
                 @Override
                 public int recipeCount(Object handler) {
-                    return NeiRecipeLookup.lookupNumRecipes(handler);
+                    return 0;
                 }
 
                 @Override
                 public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
-                    return NeiRecipeLookup.readIngredientSlots(handler, recipeIndex);
+                    return Collections.emptyList();
                 }
 
                 @Override
                 public @Nullable NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex) {
-                    return NeiRecipeLookup.readResultSlot(handler, recipeIndex);
+                    return null;
                 }
 
                 @Override
                 public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
-                    return NeiRecipeLookup.readOtherSlots(handler, recipeIndex);
+                    return Collections.emptyList();
                 }
             });
-    }
-
-    GuideSiteRecipeTagRenderer(GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
-        TargetStackResolver targetStackResolver, VanillaRecipeFinder vanillaRecipeFinder, NeiRecipeFinder neiRecipeFinder) {
-        this(exporter, itemIconResolver, targetStackResolver, vanillaRecipeFinder, neiRecipeFinder, new RawHandlerFinder() {
-
-            @Override
-            public List<Object> findCraftingHandlers(ItemStack targetStack) {
-                return Collections.emptyList();
-            }
-
-            @Override
-            public List<Object> findUsageHandlers(ItemStack targetStack) {
-                return Collections.emptyList();
-            }
-        }, new HandlerRuntime() {
-
-            @Override
-            public @Nullable String handlerName(Object handler) {
-                return null;
-            }
-
-            @Override
-            public @Nullable String overlayIdentifier(Object handler) {
-                return null;
-            }
-
-            @Override
-            public int recipeCount(Object handler) {
-                return 0;
-            }
-
-            @Override
-            public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
-                return Collections.emptyList();
-            }
-
-            @Override
-            public @Nullable NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex) {
-                return null;
-            }
-
-            @Override
-            public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
-                return Collections.emptyList();
-            }
-        });
     }
 
     GuideSiteRecipeTagRenderer(GuideSiteRecipeExporter exporter, TargetStackResolver targetStackResolver,
@@ -223,39 +224,45 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     GuideSiteRecipeTagRenderer(GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
         TargetStackResolver targetStackResolver, VanillaRecipeFinder vanillaRecipeFinder,
         NeiRecipeFinder neiRecipeFinder, RawHandlerFinder rawHandlerFinder) {
-        this(exporter, itemIconResolver, targetStackResolver, vanillaRecipeFinder, neiRecipeFinder, rawHandlerFinder,
+        this(
+            exporter,
+            itemIconResolver,
+            targetStackResolver,
+            vanillaRecipeFinder,
+            neiRecipeFinder,
+            rawHandlerFinder,
             new HandlerRuntime() {
 
-            @Override
-            public @Nullable String handlerName(Object handler) {
-                return null;
-            }
+                @Override
+                public @Nullable String handlerName(Object handler) {
+                    return null;
+                }
 
-            @Override
-            public @Nullable String overlayIdentifier(Object handler) {
-                return null;
-            }
+                @Override
+                public @Nullable String overlayIdentifier(Object handler) {
+                    return null;
+                }
 
-            @Override
-            public int recipeCount(Object handler) {
-                return 0;
-            }
+                @Override
+                public int recipeCount(Object handler) {
+                    return 0;
+                }
 
-            @Override
-            public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
-                return Collections.emptyList();
-            }
+                @Override
+                public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
+                    return Collections.emptyList();
+                }
 
-            @Override
-            public @Nullable NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex) {
-                return null;
-            }
+                @Override
+                public @Nullable NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex) {
+                    return null;
+                }
 
-            @Override
-            public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
-                return Collections.emptyList();
-            }
-        });
+                @Override
+                public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
+                    return Collections.emptyList();
+                }
+            });
     }
 
     @Override
@@ -379,14 +386,10 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         for (int hi = 0; hi < handlers.size() && renderedRecipes.size() < request.limit; hi++) {
             Object handler = handlers.get(hi);
             int recipeCount = handlerRuntime.recipeCount(handler);
-            for (int recipeIndex = 0; recipeIndex < recipeCount && renderedRecipes.size() < request.limit; recipeIndex++) {
-                if (hasRecipeFilter
-                    && !RecipeCompiler.recipeMatches(
-                        handler,
-                        recipeIndex,
-                        request.inputExpr,
-                        request.outputExpr,
-                        handlerRuntime)) {
+            for (int recipeIndex = 0; recipeIndex < recipeCount
+                && renderedRecipes.size() < request.limit; recipeIndex++) {
+                if (hasRecipeFilter && !RecipeCompiler
+                    .recipeMatches(handler, recipeIndex, request.inputExpr, request.outputExpr, handlerRuntime)) {
                     continue;
                 }
 
@@ -426,7 +429,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         return renderedRecipes;
     }
 
-    private List<String> renderFromVanillaEntries(RenderRequest request, ItemStack targetStack, boolean hasRecipeFilter) {
+    private List<String> renderFromVanillaEntries(RenderRequest request, ItemStack targetStack,
+        boolean hasRecipeFilter) {
         List<RecipeLookup.Entry> vanillaEntries = vanillaRecipeFinder.findByOutput(targetStack);
         if (vanillaEntries.isEmpty()) {
             return Collections.emptyList();
@@ -451,16 +455,12 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     }
 
     private String renderHandlerRecipe(Object handler, int recipeIndex, ItemStack targetStack) {
-        List<List<GuideSiteExportedItem>> ingredients = exporter.ingredientItemsFromNeiSlots(
-            handlerRuntime.readIngredientSlots(handler, recipeIndex),
-            itemIconResolver);
-        List<List<GuideSiteExportedItem>> supportingSlots = exporter.supportingSlotItemsFromNeiSlots(
-            handlerRuntime.readOtherSlots(handler, recipeIndex),
-            itemIconResolver);
-        GuideSiteExportedItem resultItem = exporter.resultItem(
-            handlerRuntime.readResultSlot(handler, recipeIndex),
-            targetStack,
-            itemIconResolver);
+        List<List<GuideSiteExportedItem>> ingredients = exporter
+            .ingredientItemsFromNeiSlots(handlerRuntime.readIngredientSlots(handler, recipeIndex), itemIconResolver);
+        List<List<GuideSiteExportedItem>> supportingSlots = exporter
+            .supportingSlotItemsFromNeiSlots(handlerRuntime.readOtherSlots(handler, recipeIndex), itemIconResolver);
+        GuideSiteExportedItem resultItem = exporter
+            .resultItem(handlerRuntime.readResultSlot(handler, recipeIndex), targetStack, itemIconResolver);
         if (ingredients.isEmpty() && supportingSlots.isEmpty() && resultItem.isEmpty()) {
             return "";
         }
@@ -495,7 +495,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
     @Nullable
     private Integer parseInteger(@Nullable String raw) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return null;
         }
         try {

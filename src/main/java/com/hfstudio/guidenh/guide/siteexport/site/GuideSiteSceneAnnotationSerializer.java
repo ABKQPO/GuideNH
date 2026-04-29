@@ -22,8 +22,8 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
-import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytItemGrid;
+import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytList;
 import com.hfstudio.guidenh.guide.document.block.LytListItem;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
@@ -60,6 +60,7 @@ public final class GuideSiteSceneAnnotationSerializer {
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
         .serializeNulls()
         .create();
+
     private GuideSiteSceneAnnotationSerializer() {}
 
     public static AnnotationPayload serialize(LytGuidebookScene scene, GuideSiteTemplateRegistry templates) {
@@ -160,7 +161,8 @@ public final class GuideSiteSceneAnnotationSerializer {
             new float[] { blockOverlay.getBlockX(), blockOverlay.getBlockY(), blockOverlay.getBlockZ() });
         data.put(
             "maxCorner",
-            new float[] { blockOverlay.getBlockX() + 1f, blockOverlay.getBlockY() + 1f, blockOverlay.getBlockZ() + 1f });
+            new float[] { blockOverlay.getBlockX() + 1f, blockOverlay.getBlockY() + 1f,
+                blockOverlay.getBlockZ() + 1f });
         return data;
     }
 
@@ -538,14 +540,7 @@ public final class GuideSiteSceneAnnotationSerializer {
                 return;
             }
             if (content instanceof LytFlowSpan span) {
-                appendStyledFlowContainer(
-                    html,
-                    span,
-                    "span",
-                    currentPageId,
-                    assetExporter,
-                    itemIconResolver,
-                    null);
+                appendStyledFlowContainer(html, span, "span", currentPageId, assetExporter, itemIconResolver, null);
             }
         }
 
@@ -624,7 +619,8 @@ public final class GuideSiteSceneAnnotationSerializer {
                 .append("\" alt=\"")
                 .append(escapeAttribute(image.getAlt() != null ? image.getAlt() : ""))
                 .append("\"");
-            if (image.getTitle() != null && !image.getTitle().isEmpty()) {
+            if (image.getTitle() != null && !image.getTitle()
+                .isEmpty()) {
                 html.append(" title=\"")
                     .append(escapeAttribute(image.getTitle()))
                     .append("\"");
@@ -667,7 +663,8 @@ public final class GuideSiteSceneAnnotationSerializer {
             }
         }
 
-        private static void appendSlotGrid(StringBuilder html, LytSlotGrid grid, GuideSiteItemIconResolver itemIconResolver) {
+        private static void appendSlotGrid(StringBuilder html, LytSlotGrid grid,
+            GuideSiteItemIconResolver itemIconResolver) {
             html.append("<div class=\"guide-tooltip-item-grid\">");
             for (int row = 0; row < grid.getHeight(); row++) {
                 for (int col = 0; col < grid.getWidth(); col++) {
@@ -683,7 +680,8 @@ public final class GuideSiteSceneAnnotationSerializer {
             html.append("</div>");
         }
 
-        private static void appendItemGrid(StringBuilder html, LytItemGrid grid, GuideSiteItemIconResolver itemIconResolver) {
+        private static void appendItemGrid(StringBuilder html, LytItemGrid grid,
+            GuideSiteItemIconResolver itemIconResolver) {
             html.append("<div class=\"guide-tooltip-item-grid\">");
             for (LytNode child : grid.getChildren()) {
                 if (!(child instanceof LytSlot slot)) {

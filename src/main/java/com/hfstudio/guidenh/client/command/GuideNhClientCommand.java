@@ -188,10 +188,8 @@ public class GuideNhClientCommand extends CommandBase {
     }
 
     private void exportSite(ICommandSender sender, String[] args) {
-        Path outDir = GuideSiteOutputPaths.resolveRequestedOrDefault(
-            args.length >= 2 ? args[1] : null,
-            Paths.get(""),
-            LocalDateTime.now());
+        Path outDir = GuideSiteOutputPaths
+            .resolveRequestedOrDefault(args.length >= 2 ? args[1] : null, Paths.get(""), LocalDateTime.now());
         send(sender, GuidebookText.CommandExportSiteStart, outDir);
         try {
             GuideSiteExportTask.Result result = new GuideSiteExportTask(outDir).run();

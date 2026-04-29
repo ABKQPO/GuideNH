@@ -2,13 +2,15 @@
 
 package guideme.flatbuffers.scene;
 
+import java.nio.ByteBuffer;
+
 import com.google.flatbuffers.BaseVector;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.Struct;
-import java.nio.ByteBuffer;
 
 @SuppressWarnings("unused")
 public final class ExpCameraSettings extends Struct {
+
     public void __init(int _i, ByteBuffer _bb) {
         __reset(_i, _bb);
     }
@@ -51,7 +53,7 @@ public final class ExpCameraSettings extends Struct {
     }
 
     public static int createExpCameraSettings(FlatBufferBuilder builder, float yaw, float pitch, float roll,
-            float zoom) {
+        float zoom) {
         builder.prep(4, 16);
         builder.putFloat(zoom);
         builder.putFloat(roll);
@@ -61,6 +63,7 @@ public final class ExpCameraSettings extends Struct {
     }
 
     public static final class Vector extends BaseVector {
+
         public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
             __reset(_vector, _element_size, _bb);
             return this;

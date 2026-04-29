@@ -4,8 +4,8 @@ package guideme.flatbuffers.scene;
 
 @SuppressWarnings("unused")
 public final class ExpIndexElementType {
-    private ExpIndexElementType() {
-    }
+
+    private ExpIndexElementType() {}
 
     public static final int UINT = 0;
     public static final int USHORT = 1;

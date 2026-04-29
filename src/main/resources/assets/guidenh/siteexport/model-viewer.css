@@ -1,3 +1,8 @@
+.guide-scene,
+.game-scene-wrapper {
+  --gui-scale: 1;
+}
+
 img.game-scene,
 .guide-scene {
   display: inline-block;
@@ -26,6 +31,7 @@ img.game-scene,
 
 .game-scene-wrapper .root,
 .game-scene-wrapper .viewport {
+  flex: 0 0 auto;
   width: var(--modelviewer-width);
   max-width: 100%;
   height: auto !important;

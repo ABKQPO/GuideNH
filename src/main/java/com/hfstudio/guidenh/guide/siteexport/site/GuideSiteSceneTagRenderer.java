@@ -21,19 +21,8 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         .serializeNulls()
         .create();
     private static final String TRANSPARENT_PIXEL = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-    private static final String[] FORWARDED_ATTRIBUTES = {
-        "zoom",
-        "perspective",
-        "rotateX",
-        "rotateY",
-        "rotateZ",
-        "offsetX",
-        "offsetY",
-        "centerX",
-        "centerY",
-        "centerZ",
-        "allowLayerSlider"
-    };
+    private static final String[] FORWARDED_ATTRIBUTES = { "zoom", "perspective", "rotateX", "rotateY", "rotateZ",
+        "offsetX", "offsetY", "centerX", "centerY", "centerZ", "allowLayerSlider" };
 
     private final GuideSiteHtmlCompiler fragmentCompiler;
 
@@ -58,8 +47,9 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             new GuideSiteHtmlCompiler.SceneTagRenderer() {
 
                 @Override
-                public String render(MdxJsxElementFields element, String defaultNamespace, ResourceLocation currentPageId,
-                    GuideSiteTemplateRegistry templates, GuideSiteExportedScene exportedScene) {
+                public String render(MdxJsxElementFields element, String defaultNamespace,
+                    ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+                    GuideSiteExportedScene exportedScene) {
                     return "";
                 }
             },
@@ -81,15 +71,16 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             templates,
             exportedScene);
 
-        String src = exportedScene != null
-            ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.placeholderPath()
+        String src = exportedScene != null ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.placeholderPath()
             : TRANSPARENT_PIXEL;
-        String sceneSrc = exportedScene != null
-            ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.scenePath()
+        String sceneSrc = exportedScene != null ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.scenePath()
             : null;
+        String cssClass = sceneSrc != null ? "game-scene guide-scene" : "guide-scene";
 
         StringBuilder html = new StringBuilder();
-        html.append("<img class=\"game-scene guide-scene\" src=\"")
+        html.append("<img class=\"")
+            .append(cssClass)
+            .append("\" src=\"")
             .append(escapeAttribute(src))
             .append("\" alt=\"3D scene preview\" loading=\"lazy\" decoding=\"async\" width=\"")
             .append(escapeAttribute(width))
@@ -264,8 +255,8 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         return data;
     }
 
-    private String createTemplateId(MdxJsxElementFields element, String defaultNamespace, ResourceLocation currentPageId,
-        GuideSiteTemplateRegistry templates) {
+    private String createTemplateId(MdxJsxElementFields element, String defaultNamespace,
+        ResourceLocation currentPageId, GuideSiteTemplateRegistry templates) {
         String html = fragmentCompiler.compileFragment(element.children(), templates, defaultNamespace, currentPageId);
         if (html == null || html.trim()
             .isEmpty()) {
@@ -409,9 +400,9 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         return new GuideSiteHtmlCompiler.MdxTagRenderer() {
 
             @Override
-            public String render(MdxJsxElementFields element, String defaultNamespace,
-                ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
-                GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+            public String render(MdxJsxElementFields element, String defaultNamespace, ResourceLocation currentPageId,
+                GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+                GuideSiteHtmlCompiler compiler) {
                 return null;
             }
         };

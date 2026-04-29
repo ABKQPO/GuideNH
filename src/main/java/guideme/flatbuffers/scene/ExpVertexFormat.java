@@ -2,15 +2,17 @@
 
 package guideme.flatbuffers.scene;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import com.google.flatbuffers.BaseVector;
 import com.google.flatbuffers.Constants;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.Table;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 @SuppressWarnings("unused")
 public final class ExpVertexFormat extends Table {
+
     public static void ValidateVersion() {
         Constants.FLATBUFFERS_23_5_26();
     }
@@ -38,7 +40,7 @@ public final class ExpVertexFormat extends Table {
     }
 
     public guideme.flatbuffers.scene.ExpVertexFormatElement elements(
-            guideme.flatbuffers.scene.ExpVertexFormatElement obj, int j) {
+        guideme.flatbuffers.scene.ExpVertexFormatElement obj, int j) {
         int o = __offset(4);
         return o != 0 ? obj.__assign(__vector(o) + j * 7, bb) : null;
     }
@@ -53,7 +55,7 @@ public final class ExpVertexFormat extends Table {
     }
 
     public guideme.flatbuffers.scene.ExpVertexFormatElement.Vector elementsVector(
-            guideme.flatbuffers.scene.ExpVertexFormatElement.Vector obj) {
+        guideme.flatbuffers.scene.ExpVertexFormatElement.Vector obj) {
         int o = __offset(4);
         return o != 0 ? obj.__assign(__vector(o), 7, bb) : null;
     }
@@ -73,9 +75,7 @@ public final class ExpVertexFormat extends Table {
         }
     }
 
-    public static int createExpVertexFormat(FlatBufferBuilder builder,
-            int elementsOffset,
-            int vertexSize) {
+    public static int createExpVertexFormat(FlatBufferBuilder builder, int elementsOffset, int vertexSize) {
         builder.startTable(2);
         ExpVertexFormat.addElements(builder, elementsOffset);
         ExpVertexFormat.addVertexSize(builder, vertexSize);
@@ -104,6 +104,7 @@ public final class ExpVertexFormat extends Table {
     }
 
     public static final class Vector extends BaseVector {
+
         public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
             __reset(_vector, _element_size, _bb);
             return this;

@@ -6,7 +6,7 @@ async function getModelViewerModule() {
 }
 
 export function hydrateVisibleScenes(root) {
-  const sceneNodes = root.querySelectorAll("img.game-scene, [data-scene-src]");
+  const sceneNodes = root.querySelectorAll("[data-scene-src]");
   if (!sceneNodes.length) {
     return;
   }

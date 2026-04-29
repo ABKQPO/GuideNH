@@ -421,8 +421,8 @@ public class RecipeCompiler extends BlockTagCompiler {
                     if (p != null) andTerms.add(new FilterTerm(p, negated));
                 } catch (IllegalArgumentException e) {
                     if (errorSink != null) {
-                        errorSink.accept(
-                            "Malformed " + filterAttrName(attr) + " filter '" + token + "': " + e.getMessage());
+                        errorSink
+                            .accept("Malformed " + filterAttrName(attr) + " filter '" + token + "': " + e.getMessage());
                     }
                 }
             }

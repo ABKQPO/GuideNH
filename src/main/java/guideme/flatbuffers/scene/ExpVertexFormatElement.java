@@ -2,13 +2,15 @@
 
 package guideme.flatbuffers.scene;
 
+import java.nio.ByteBuffer;
+
 import com.google.flatbuffers.BaseVector;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.Struct;
-import java.nio.ByteBuffer;
 
 @SuppressWarnings("unused")
 public final class ExpVertexFormatElement extends Struct {
+
     public void __init(int _i, ByteBuffer _bb) {
         __reset(_i, _bb);
     }
@@ -75,7 +77,7 @@ public final class ExpVertexFormatElement extends Struct {
     }
 
     public static int createExpVertexFormatElement(FlatBufferBuilder builder, int index, int type, int usage, int count,
-            int offset, int byteSize, boolean normalized) {
+        int offset, int byteSize, boolean normalized) {
         builder.prep(1, 7);
         builder.putBoolean(normalized);
         builder.putByte((byte) byteSize);
@@ -88,6 +90,7 @@ public final class ExpVertexFormatElement extends Struct {
     }
 
     public static final class Vector extends BaseVector {
+
         public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
             __reset(_vector, _element_size, _bb);
             return this;

@@ -16,12 +16,12 @@ import net.minecraft.util.ResourceLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hfstudio.guidenh.guide.GuidePageIcon;
-import com.hfstudio.guidenh.guide.GuidePage;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.GuidePage;
+import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
@@ -96,12 +96,19 @@ public class GuideSiteExportTask {
             for (Map.Entry<String, List<GuideSitePageVariant>> languageEntry : variantsByLanguage.entrySet()) {
                 String language = languageEntry.getKey();
                 List<GuideSitePageVariant> languageVariants = languageEntry.getValue();
-                GuideSitePageAssetExporter assetExporter = createPageAssetExporter(guide, resourceManager, language, assets);
+                GuideSitePageAssetExporter assetExporter = createPageAssetExporter(
+                    guide,
+                    resourceManager,
+                    language,
+                    assets);
                 List<ParsedGuidePage> parsedPages = new ArrayList<>();
                 Map<ResourceLocation, ParsedGuidePage> parsedPagesById = new LinkedHashMap<ResourceLocation, ParsedGuidePage>();
                 for (GuideSitePageVariant variant : languageVariants) {
                     parsedPages.add(variant.parsedPage());
-                    parsedPagesById.put(variant.parsedPage().getId(), variant.parsedPage());
+                    parsedPagesById.put(
+                        variant.parsedPage()
+                            .getId(),
+                        variant.parsedPage());
                 }
 
                 NavigationTree navigationTree = NavigationTree.build(parsedPages);
@@ -112,63 +119,79 @@ public class GuideSiteExportTask {
 
                 for (GuideSitePageVariant variant : languageVariants) {
                     try {
-                        GuideSiteTemplateRegistry templates = new GuideSiteTemplateRegistry();
-                        GuidePage compiledPage = PageCompiler.compile(guide, guide.getExtensions(), variant.parsedPage());
-                        List<GuideSiteExportedScene> exportedScenes = exportScenes(
-                            guide,
-                            variant.parsedPage(),
-                            compiledPage,
-                            templates,
-                            sceneExporter,
-                            assetExporter,
-                            itemIconExporter);
-                        String body = compiler.compileBody(
-                            variant.parsedPage(),
-                            templates,
-                            createSceneResolver(exportedScenes));
-                        String sidebarHtml = writer.renderSidebar(
-                            guide,
-                            language,
-                            navigationTree,
-                            variant.pageId(),
-                            assetExporter,
-                            itemIconExporter,
-                            languageLinksByPageId.get(variant.pageId()));
-                        String pageFile = toOutputPageFile(variant.parsedPage());
-                        String pageUrl = writer.pageUrl(
-                            guide.getId().getResourceDomain(),
-                            guide.getId().getResourcePath(),
-                            language,
-                            pageFile);
-                        String pageTitle = searchExtractor.title(guide, variant.parsedPage());
+                        try (GuideSiteHrefResolver.ContextScope ignored = GuideSiteHrefResolver.exportContext(
+                            guide.getId()
+                                .getResourceDomain(),
+                            guide.getId()
+                                .getResourcePath(),
+                            language)) {
+                            GuideSiteTemplateRegistry templates = new GuideSiteTemplateRegistry();
+                            GuidePage compiledPage = PageCompiler
+                                .compile(guide, guide.getExtensions(), variant.parsedPage());
+                            List<GuideSiteExportedScene> exportedScenes = exportScenes(
+                                guide,
+                                variant.parsedPage(),
+                                compiledPage,
+                                templates,
+                                sceneExporter,
+                                assetExporter,
+                                itemIconExporter);
+                            String body = compiler
+                                .compileBody(variant.parsedPage(), templates, createSceneResolver(exportedScenes));
+                            String sidebarHtml = writer.renderSidebar(
+                                guide,
+                                language,
+                                navigationTree,
+                                variant.pageId(),
+                                assetExporter,
+                                itemIconExporter,
+                                languageLinksByPageId.get(variant.pageId()));
+                            String pageFile = toOutputPageFile(variant.parsedPage());
+                            String pageUrl = writer.pageUrl(
+                                guide.getId()
+                                    .getResourceDomain(),
+                                guide.getId()
+                                    .getResourcePath(),
+                                language,
+                                pageFile);
+                            String pageTitle = searchExtractor.title(guide, variant.parsedPage());
 
-                        writer.writePage(
-                            outDir,
-                            guide.getId().getResourceDomain(),
-                            guide.getId().getResourcePath(),
-                            language,
-                            pageFile,
-                            sidebarHtml,
-                            body,
-                            templates.renderAll(),
-                            pageTitle);
+                            writer.writePage(
+                                outDir,
+                                guide.getId()
+                                    .getResourceDomain(),
+                                guide.getId()
+                                    .getResourcePath(),
+                                language,
+                                pageFile,
+                                sidebarHtml,
+                                body,
+                                templates.renderAll(),
+                                pageTitle);
 
-                        Map<String, Object> searchEntry = new LinkedHashMap<>();
-                        searchEntry.put("title", pageTitle);
-                        searchEntry.put("guideId", guide.getId().toString());
-                        searchEntry.put("pageId", variant.pageId().toString());
-                        searchEntry.put("url", pageUrl);
-                        searchEntry.put("text", searchExtractor.searchableText(guide, variant.parsedPage()));
-                        appendSearchIconData(
-                            searchEntry,
-                            navigationTree.getNodeById(variant.pageId()),
-                            assetExporter,
-                            itemIconExporter);
-                        searchEntriesByLanguage.computeIfAbsent(language, ignored -> new ArrayList<>())
-                            .add(searchEntry);
+                            Map<String, Object> searchEntry = new LinkedHashMap<>();
+                            searchEntry.put("title", pageTitle);
+                            searchEntry.put(
+                                "guideId",
+                                guide.getId()
+                                    .toString());
+                            searchEntry.put(
+                                "pageId",
+                                variant.pageId()
+                                    .toString());
+                            searchEntry.put("url", pageUrl);
+                            searchEntry.put("text", searchExtractor.searchableText(guide, variant.parsedPage()));
+                            appendSearchIconData(
+                                searchEntry,
+                                navigationTree.getNodeById(variant.pageId()),
+                                assetExporter,
+                                itemIconExporter);
+                            searchEntriesByLanguage.computeIfAbsent(language, ignored2 -> new ArrayList<>())
+                                .add(searchEntry);
 
-                        if (firstPageUrl == null) {
-                            firstPageUrl = pageUrl;
+                            if (firstPageUrl == null) {
+                                firstPageUrl = pageUrl;
+                            }
                         }
                         pagesExported++;
                     } catch (Throwable t) {
@@ -204,7 +227,8 @@ public class GuideSiteExportTask {
         for (Map.Entry<ResourceLocation, Map<String, GuideSitePageVariant>> entry : variantsByPageId.entrySet()) {
             List<GuideSiteLanguageLink> links = new ArrayList<>();
             for (String language : languageOrder) {
-                GuideSitePageVariant variant = entry.getValue().get(language);
+                GuideSitePageVariant variant = entry.getValue()
+                    .get(language);
                 if (variant == null) {
                     continue;
                 }
@@ -212,8 +236,10 @@ public class GuideSiteExportTask {
                     new GuideSiteLanguageLink(
                         language,
                         writer.pageUrl(
-                            guide.getId().getResourceDomain(),
-                            guide.getId().getResourcePath(),
+                            guide.getId()
+                                .getResourceDomain(),
+                            guide.getId()
+                                .getResourcePath(),
                             language,
                             toOutputPageFile(variant.parsedPage())),
                         variant.fallbackUsed(),
@@ -236,7 +262,8 @@ public class GuideSiteExportTask {
         }
 
         if (icon.isItemIcon() && icon.itemStack() != null) {
-            String iconUrl = GuideSitePageAssetExporter.toRootRelativePath(itemIconResolver.exportIcon(icon.itemStack()));
+            String iconUrl = GuideSitePageAssetExporter
+                .toRootRelativePath(itemIconResolver.exportIcon(icon.itemStack()));
             if (!iconUrl.isEmpty()) {
                 searchEntry.put("iconUrl", iconUrl);
                 searchEntry.put("iconKind", "item");
@@ -245,7 +272,8 @@ public class GuideSiteExportTask {
         }
 
         if (icon.textureId() != null) {
-            String iconUrl = GuideSitePageAssetExporter.toRootRelativePath(assetExporter.exportResource(icon.textureId()));
+            String iconUrl = GuideSitePageAssetExporter
+                .toRootRelativePath(assetExporter.exportResource(icon.textureId()));
             if (!iconUrl.isEmpty()) {
                 searchEntry.put("iconUrl", iconUrl);
                 searchEntry.put("iconKind", "texture");
@@ -270,7 +298,8 @@ public class GuideSiteExportTask {
     }
 
     private GuideSiteHtmlCompiler createHtmlCompiler(GuideSitePageAssetExporter assetExporter,
-        GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer) {
+        GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
+        GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer) {
         return new GuideSiteHtmlCompiler(recipeTagRenderer, new GuideSiteHtmlCompiler.ImageResolver() {
 
             @Override
@@ -285,13 +314,19 @@ public class GuideSiteExportTask {
         String normalizedLanguage = LangUtil.normalizeLanguage(language);
         String defaultLanguage = LangUtil.normalizeLanguage(guide.getDefaultLanguage());
 
-        byte[] content = loadGuideAssetVariant(guide, resourceManager, LangUtil.getTranslatedAsset(assetId, normalizedLanguage));
+        byte[] content = loadGuideAssetVariant(
+            guide,
+            resourceManager,
+            LangUtil.getTranslatedAsset(assetId, normalizedLanguage));
         if (content != null) {
             return content;
         }
 
         if (!normalizedLanguage.equals(defaultLanguage)) {
-            content = loadGuideAssetVariant(guide, resourceManager, LangUtil.getTranslatedAsset(assetId, defaultLanguage));
+            content = loadGuideAssetVariant(
+                guide,
+                resourceManager,
+                LangUtil.getTranslatedAsset(assetId, defaultLanguage));
             if (content != null) {
                 return content;
             }
@@ -314,7 +349,8 @@ public class GuideSiteExportTask {
     }
 
     private static String toOutputPageFile(ParsedGuidePage parsedPage) {
-        String path = parsedPage.getId().getResourcePath();
+        String path = parsedPage.getId()
+            .getResourcePath();
         if (path.endsWith(".md")) {
             return path.substring(0, path.length() - 3) + ".html";
         }
@@ -337,11 +373,7 @@ public class GuideSiteExportTask {
                         annotationPayload.inWorldJson(),
                         annotationPayload.overlayJson()));
             } catch (Throwable t) {
-                LOG.warn(
-                    "Failed to export scene for page {} in guide {}",
-                    parsedPage.getId(),
-                    guide.getId(),
-                    t);
+                LOG.warn("Failed to export scene for page {} in guide {}", parsedPage.getId(), guide.getId(), t);
                 scenes.add(null);
             }
         }

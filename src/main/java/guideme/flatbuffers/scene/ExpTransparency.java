@@ -4,8 +4,8 @@ package guideme.flatbuffers.scene;
 
 @SuppressWarnings("unused")
 public final class ExpTransparency {
-    private ExpTransparency() {
-    }
+
+    private ExpTransparency() {}
 
     public static final int DISABLED = 0;
     public static final int ADDITIVE = 1;
