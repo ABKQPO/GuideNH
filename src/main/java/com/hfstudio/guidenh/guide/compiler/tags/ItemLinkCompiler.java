@@ -53,7 +53,7 @@ public class ItemLinkCompiler extends FlowTagCompiler {
             parent.append(span);
         } else {
             var link = new LytFlowLink();
-            link.setClickCallback(screen -> screen.navigateTo(linksTo));
+            link.setPageLink(linksTo);
             link.appendText(stack.getDisplayName());
             link.setTooltip(new ItemTooltip(stack));
             parent.append(link);
