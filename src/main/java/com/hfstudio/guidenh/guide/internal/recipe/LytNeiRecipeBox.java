@@ -46,6 +46,8 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     public static final int SLOT_SIZE = 16;
     public static final int DEFAULT_BODY_HEIGHT = 65;
     public static final int FALLBACK_BODY_WIDTH = 166;
+    private static final String GREGTECH_DEFAULT_NEI_HANDLER = "gregtech.nei.GTNEIDefaultHandler";
+    private static final int GREGTECH_WINDOW_TOP_BLEED = 11;
 
     private final Object handler;
     private final int recipeIndex;
@@ -57,6 +59,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     private final int iconImageH;
     private final int bodyWidth;
     private final int bodyHeight;
+    private final int bodyTopInset;
     private final int bodyYShift;
     private final int titleHeight;
 
@@ -83,6 +86,10 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         // caused visible clipping for some handlers and was reverted.
         this.bodyWidth = handlerW;
         this.bodyYShift = Math.max(0, NeiRecipeLookup.lookupHandlerYShift(handler));
+        this.bodyTopInset = resolveBodyTopInset(
+            handler.getClass()
+                .getName(),
+            bodyYShift);
         this.bodyHeight = NeiRecipeLayoutMetrics.resolveBodyHeight(handlerH, recipeH, DEFAULT_BODY_HEIGHT);
 
         int fh = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
@@ -105,7 +112,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int innerW = Math.max(bodyWidth, iconSize() + (iconSize() > 0 ? TITLE_GAP_AFTER_ICON : 0) + titleTextWidth());
         int w = FRAME_BORDER + innerW + FRAME_BORDER;
-        int h = FRAME_BORDER + titleHeight + BODY_MARGIN + bodyHeight + bodyYShift + FRAME_BORDER;
+        int h = FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset + bodyHeight + bodyYShift + FRAME_BORDER;
         return new LytRect(x, y, w, h);
     }
 
@@ -149,7 +156,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         }
 
         int bodyX = innerLeft;
-        int bodyY = innerTop + titleHeight + BODY_MARGIN;
+        int bodyY = innerTop + titleHeight + BODY_MARGIN + bodyTopInset;
         NeiAnimationTicker.ensureUpdating(handler);
         NeiHandlerRenderer.render(handler, recipeIndex, bodyX, bodyY + bodyYShift, -1, -1);
     }
@@ -200,7 +207,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         int py = (int) my;
 
         int bodyX = bounds.x() + FRAME_BORDER;
-        int bodyY = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyYShift;
+        int bodyY = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset + bodyYShift;
 
         ItemStack hit = findSlotHit(NeiRecipeLookup.readIngredientSlots(handler, recipeIndex), bodyX, bodyY, px, py);
         if (hit == null) {
@@ -240,5 +247,10 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
     public static boolean isOver(int x, int y, int w, int h, int px, int py) {
         return px >= x && px < x + w && py >= y && py < y + h;
+    }
+
+    private static int resolveBodyTopInset(String handlerClassName, int bodyYShift) {
+        if (!GREGTECH_DEFAULT_NEI_HANDLER.equals(handlerClassName)) return 0;
+        return Math.max(0, GREGTECH_WINDOW_TOP_BLEED - Math.max(bodyYShift, 0));
     }
 }
