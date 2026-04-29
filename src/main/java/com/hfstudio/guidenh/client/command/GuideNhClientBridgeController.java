@@ -8,7 +8,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ChatComponentTranslation;
 
-import com.hfstudio.guidenh.guide.internal.GuideMEProxy;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureImportService;
@@ -90,15 +89,10 @@ public class GuideNhClientBridgeController {
     }
 
     public void onServerDisconnected() {
-        boolean shouldReloadGuides = GuideNhStructureRuntime.isServerStructureCommandsAvailable();
         GuideNhStructureRuntime.setServerStructureCommandsAvailable(false);
         GuideNhStructureRuntime.setClientStructureSyncNeeded(false);
         pendingImport = null;
         pendingImportRequest = null;
-        if (shouldReloadGuides) {
-            GuideMEProxy.instance()
-                .reloadResources();
-        }
     }
 
     @SubscribeEvent
