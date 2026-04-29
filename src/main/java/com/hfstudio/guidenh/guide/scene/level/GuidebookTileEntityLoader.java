@@ -1,11 +1,11 @@
 package com.hfstudio.guidenh.guide.scene.level;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;

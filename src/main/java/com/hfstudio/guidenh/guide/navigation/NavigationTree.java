@@ -11,11 +11,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.util.ResourceLocation;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

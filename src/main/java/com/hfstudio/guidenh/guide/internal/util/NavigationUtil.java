@@ -1,11 +1,10 @@
 package com.hfstudio.guidenh.guide.internal.util;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

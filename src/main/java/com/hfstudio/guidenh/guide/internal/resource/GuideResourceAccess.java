@@ -5,11 +5,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.client.resources.IResource;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 public class GuideResourceAccess {
 

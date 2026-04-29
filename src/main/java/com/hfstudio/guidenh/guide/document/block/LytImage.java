@@ -2,9 +2,9 @@ package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.Optional;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;

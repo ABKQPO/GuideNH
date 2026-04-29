@@ -3,12 +3,11 @@ package com.hfstudio.guidenh.guide.internal.recipe;
 import java.util.List;
 import java.util.Optional;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.document.LytRect;

@@ -15,8 +15,6 @@ import java.nio.FloatBuffer;
 import java.util.Collections;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -32,6 +30,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.ForgeHooksClient;
 
 import org.apache.logging.log4j.LogManager;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;

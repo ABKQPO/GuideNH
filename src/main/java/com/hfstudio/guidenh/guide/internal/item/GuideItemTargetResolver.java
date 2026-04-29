@@ -1,9 +1,9 @@
 package com.hfstudio.guidenh.guide.internal.item;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.PageAnchor;

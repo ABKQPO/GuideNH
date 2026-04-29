@@ -3,10 +3,10 @@ package com.hfstudio.guidenh.guide.internal.util;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 public class LangUtil {
 

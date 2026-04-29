@@ -5,11 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 

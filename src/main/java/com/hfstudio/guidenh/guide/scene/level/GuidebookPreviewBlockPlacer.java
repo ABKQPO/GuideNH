@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagByteArray;
@@ -23,6 +21,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;

@@ -2,14 +2,13 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.color.ARGB;

@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
+
+import org.jetbrains.annotations.Nullable;
 
 public class StructureLibImportResult {
 

@@ -2,12 +2,12 @@ package com.hfstudio.guidenh.guide;
 
 import java.util.Collection;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 

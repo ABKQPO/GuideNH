@@ -10,9 +10,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriter;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;

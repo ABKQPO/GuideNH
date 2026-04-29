@@ -14,13 +14,14 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import org.jetbrains.annotations.Nullable;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import net.minecraft.nbt.JsonToNBT;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
+
+import org.jetbrains.annotations.Nullable;
 
 public class SceneEditorStructureImportService {
 

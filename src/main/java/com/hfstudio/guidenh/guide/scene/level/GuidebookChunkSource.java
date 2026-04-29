@@ -1,9 +1,9 @@
 package com.hfstudio.guidenh.guide.scene.level;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
 import net.minecraft.world.ChunkCoordIntPair;
+
+import org.jetbrains.annotations.Nullable;
 
 public interface GuidebookChunkSource {
 

@@ -2,9 +2,8 @@ package com.hfstudio.guidenh.guide.scene.support;
 
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
 

@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.internal;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearch;

@@ -6,8 +6,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
@@ -16,6 +14,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.GuidePageIcon;

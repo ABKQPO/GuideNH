@@ -1,11 +1,11 @@
 package com.hfstudio.guidenh.guide.scene.support;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.entity.Entity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
+
+import org.jetbrains.annotations.Nullable;
 
 public class GuideEntityRayPicker {
 

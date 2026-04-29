@@ -2,9 +2,9 @@ package com.hfstudio.guidenh.guide;
 
 import java.util.Collection;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.indices.PageIndex;

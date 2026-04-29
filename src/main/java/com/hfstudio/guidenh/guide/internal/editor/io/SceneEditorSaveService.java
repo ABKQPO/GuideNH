@@ -3,9 +3,9 @@ package com.hfstudio.guidenh.guide.internal.editor.io;
 import java.nio.file.Path;
 import java.util.Optional;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.entity.player.EntityPlayer;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 

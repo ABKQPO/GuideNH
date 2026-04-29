@@ -3,9 +3,9 @@ package com.hfstudio.guidenh.guide.document.block;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.item.ItemStack;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;

@@ -10,13 +10,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.structurelib.structure.AutoPlaceEnvironment;
 import com.gtnewhorizon.structurelib.structure.IItemSource;

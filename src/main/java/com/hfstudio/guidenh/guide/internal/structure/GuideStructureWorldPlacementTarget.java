@@ -1,10 +1,10 @@
 package com.hfstudio.guidenh.guide.internal.structure;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
 
 public class GuideStructureWorldPlacementTarget implements GuideStructurePlacementTarget {
 

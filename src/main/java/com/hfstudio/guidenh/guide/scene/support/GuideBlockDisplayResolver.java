@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.support;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
@@ -10,6 +8,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 

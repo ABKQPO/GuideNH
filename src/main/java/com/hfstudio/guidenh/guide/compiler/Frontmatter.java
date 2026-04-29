@@ -4,10 +4,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;

@@ -1,12 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.editor;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.JsonToNBT;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;

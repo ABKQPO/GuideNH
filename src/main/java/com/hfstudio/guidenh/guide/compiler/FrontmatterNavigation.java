@@ -2,9 +2,9 @@ package com.hfstudio.guidenh.guide.compiler;
 
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 

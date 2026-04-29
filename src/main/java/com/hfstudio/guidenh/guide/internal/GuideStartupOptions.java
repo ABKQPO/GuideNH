@@ -3,10 +3,9 @@ package com.hfstudio.guidenh.guide.internal;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

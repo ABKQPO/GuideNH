@@ -2,14 +2,13 @@ package com.hfstudio.guidenh.guide.internal.recipe;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.item.ItemStack;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 /**

@@ -2,10 +2,10 @@ package com.hfstudio.guidenh.guide.internal;
 
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
 

@@ -1,9 +1,9 @@
 package com.hfstudio.guidenh.guide.scene.support;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
+
+import org.jetbrains.annotations.Nullable;
 
 public class GuideEntityDisplayResolver {
 

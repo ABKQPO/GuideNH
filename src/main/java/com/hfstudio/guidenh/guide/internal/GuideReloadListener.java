@@ -3,12 +3,11 @@ package com.hfstudio.guidenh.guide.internal;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.IResourceManagerReloadListener;
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

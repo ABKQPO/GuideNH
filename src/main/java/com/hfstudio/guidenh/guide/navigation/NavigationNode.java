@@ -2,9 +2,9 @@ package com.hfstudio.guidenh.guide.navigation;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePageIcon;

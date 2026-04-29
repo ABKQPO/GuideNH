@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.item;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -9,6 +7,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.GuideMEProxy;

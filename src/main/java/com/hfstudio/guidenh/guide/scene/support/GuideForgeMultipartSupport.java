@@ -3,14 +3,14 @@ package com.hfstudio.guidenh.guide.scene.support;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
 
 public class GuideForgeMultipartSupport {
 

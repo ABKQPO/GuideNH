@@ -11,13 +11,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.mojang.authlib.Agent;

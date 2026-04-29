@@ -2,9 +2,9 @@ package com.hfstudio.guidenh.guide.color;
 
 import java.util.Locale;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;

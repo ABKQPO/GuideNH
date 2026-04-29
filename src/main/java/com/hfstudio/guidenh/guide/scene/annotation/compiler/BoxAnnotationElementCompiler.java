@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
-
 import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;

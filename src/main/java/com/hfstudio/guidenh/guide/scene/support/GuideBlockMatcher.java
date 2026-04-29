@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.scene.support;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.block.Block;
+
+import org.jetbrains.annotations.Nullable;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
