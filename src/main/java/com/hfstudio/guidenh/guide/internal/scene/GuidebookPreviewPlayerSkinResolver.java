@@ -15,7 +15,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.AbstractClientPlayer;
+import net.minecraft.client.renderer.ThreadDownloadImageData;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.resources.SkinManager;
+import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.mojang.authlib.GameProfile;
@@ -28,8 +32,10 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-final class GuidebookPreviewPlayerSkinResolver {
+public class GuidebookPreviewPlayerSkinResolver {
 
+    private static final String PREVIEW_SKIN_RESOURCE_DOMAIN = "guidenh";
+    private static final String PREVIEW_SKIN_RESOURCE_PATH_PREFIX = "preview-skins/";
     public static final ExecutorService LOOKUP_EXECUTOR = Executors
         .newSingleThreadExecutor(new GuidebookPreviewPlayerSkinThreadFactory());
     public static final Map<String, ResolvedPreviewPlayerSkin> RESOLVED_SKINS = new ConcurrentHashMap<>();
@@ -60,10 +66,12 @@ final class GuidebookPreviewPlayerSkinResolver {
         GameProfile cachedProfile = GuidebookSceneEntityLoader.resolveCachedPreviewPlayerProfile(playerName);
         GameProfile lookupProfile = selectLookupProfile(currentProfile, cachedProfile, playerName);
         if (hasUsableTextures(lookupProfile, playerName)) {
-            Minecraft.getMinecraft()
-                .func_152342_ad()
-                .func_152790_a(lookupProfile, entity, true);
-            return;
+            ResolvedPreviewPlayerSkin resolvedSkin = resolveTexturesForProfile(lookupProfile);
+            if (resolvedSkin != null && resolvedSkin.hasAnyTexture()) {
+                RESOLVED_SKINS.put(cacheKey, resolvedSkin);
+                applyResolvedSkin(entity, resolvedSkin);
+                return;
+            }
         }
 
         if (!needsBackgroundLookup(lookupProfile, playerName)) {
@@ -156,14 +164,39 @@ final class GuidebookPreviewPlayerSkinResolver {
         SkinManager skinManager = Minecraft.getMinecraft()
             .func_152342_ad();
         if (resolvedSkin.skinTexture != null) {
-            skinManager.func_152789_a(resolvedSkin.skinTexture, Type.SKIN, entity);
+            entity.setGuidebookPreferredSkinLocation(loadPreviewSkinTexture(resolvedSkin.skinTexture));
         }
         if (resolvedSkin.capeTexture != null) {
-            skinManager.func_152789_a(resolvedSkin.capeTexture, Type.CAPE, entity);
+            ResourceLocation capeLocation = skinManager.func_152789_a(resolvedSkin.capeTexture, Type.CAPE, entity);
+            entity.func_152121_a(Type.CAPE, capeLocation);
         }
         if (!resolvedSkin.hasAnyTexture()) {
             skinManager.func_152790_a(resolvedSkin.profile, entity, true);
         }
+    }
+
+    static boolean isGuidebookManagedSkinLocation(ResourceLocation skinLoc) {
+        return skinLoc != null && PREVIEW_SKIN_RESOURCE_DOMAIN.equals(skinLoc.getResourceDomain())
+            && skinLoc.getResourcePath()
+                .startsWith(PREVIEW_SKIN_RESOURCE_PATH_PREFIX);
+    }
+
+    private static ResourceLocation loadPreviewSkinTexture(MinecraftProfileTexture skinTexture) {
+        ResourceLocation resourceLocation = new ResourceLocation(
+            PREVIEW_SKIN_RESOURCE_DOMAIN,
+            PREVIEW_SKIN_RESOURCE_PATH_PREFIX + skinTexture.getHash());
+        TextureManager textureManager = Minecraft.getMinecraft()
+            .getTextureManager();
+        if (textureManager.getTexture(resourceLocation) == null) {
+            textureManager.loadTexture(
+                resourceLocation,
+                new ThreadDownloadImageData(
+                    null,
+                    skinTexture.getUrl(),
+                    AbstractClientPlayer.locationStevePng,
+                    new GuidebookPreviewPlayerSkinImageBuffer()));
+        }
+        return resourceLocation;
     }
 
     public static void registerPendingEntity(String cacheKey, GuidebookScenePreviewPlayerEntity entity) {

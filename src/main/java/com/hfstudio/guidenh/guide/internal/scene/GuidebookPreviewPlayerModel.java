@@ -14,9 +14,19 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class GuidebookPreviewPlayerModel extends ModelBiped {
 
     public static final float DEGREES_TO_RADIANS = (float) Math.PI / 180.0f;
+    private static final int PLAYER_TEXTURE_WIDTH = 64;
+    private static final int LEGACY_TEXTURE_HEIGHT = 32;
+    private static final int MODERN_TEXTURE_HEIGHT = 64;
 
     GuidebookPreviewPlayerModel(float modelSize) {
-        super(modelSize);
+        this(modelSize, true);
+    }
+
+    GuidebookPreviewPlayerModel(float modelSize, boolean modernSkinLayout) {
+        super(modelSize, 0.0F, PLAYER_TEXTURE_WIDTH, modernSkinLayout ? MODERN_TEXTURE_HEIGHT : LEGACY_TEXTURE_HEIGHT);
+        if (modernSkinLayout) {
+            rebuildModernSkinLimbs(modelSize);
+        }
     }
 
     @Override
@@ -50,5 +60,17 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
         renderer.rotateAngleX = degrees.x * DEGREES_TO_RADIANS;
         renderer.rotateAngleY = degrees.y * DEGREES_TO_RADIANS;
         renderer.rotateAngleZ = degrees.z * DEGREES_TO_RADIANS;
+    }
+
+    private void rebuildModernSkinLimbs(float modelSize) {
+        this.bipedLeftArm = new net.minecraft.client.model.ModelRenderer(this, 32, 48);
+        this.bipedLeftArm.mirror = true;
+        this.bipedLeftArm.addBox(-1.0F, -2.0F, -2.0F, 4, 12, 4, modelSize);
+        this.bipedLeftArm.setRotationPoint(5.0F, 2.0F, 0.0F);
+
+        this.bipedLeftLeg = new net.minecraft.client.model.ModelRenderer(this, 16, 48);
+        this.bipedLeftLeg.mirror = true;
+        this.bipedLeftLeg.addBox(-2.0F, 0.0F, -2.0F, 4, 12, 4, modelSize);
+        this.bipedLeftLeg.setRotationPoint(1.9F, 12.0F, 0.0F);
     }
 }

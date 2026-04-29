@@ -33,10 +33,10 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
     public static final GuidebookPreviewPlayerRenderer INSTANCE = new GuidebookPreviewPlayerRenderer();
 
     private GuidebookPreviewPlayerRenderer() {
-        this.mainModel = new GuidebookPreviewPlayerModel(0.0F);
+        this.mainModel = new GuidebookPreviewPlayerModel(0.0F, true);
         this.modelBipedMain = (GuidebookPreviewPlayerModel) this.mainModel;
-        this.modelArmorChestplate = new GuidebookPreviewPlayerModel(1.0F);
-        this.modelArmor = new GuidebookPreviewPlayerModel(0.5F);
+        this.modelArmorChestplate = new GuidebookPreviewPlayerModel(1.0F, false);
+        this.modelArmor = new GuidebookPreviewPlayerModel(0.5F, false);
     }
 
     static void ensureRegistered() {

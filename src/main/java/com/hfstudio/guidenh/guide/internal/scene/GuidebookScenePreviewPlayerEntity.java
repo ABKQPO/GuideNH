@@ -8,12 +8,14 @@ import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ReportedException;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
 import com.hfstudio.guidenh.guide.scene.element.GuidebookCapeControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookNameplateControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookPlayerPoseControllable;
 import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.minecraft.MinecraftProfileTexture.Type;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -25,6 +27,7 @@ public class GuidebookScenePreviewPlayerEntity extends EntityOtherPlayerMP
     private boolean guidebookNameplateVisible = true;
     private boolean guidebookCapeVisible = true;
     private GuidebookPreviewPlayerPose guidebookPreviewPlayerPose = GuidebookPreviewPlayerPose.DEFAULT;
+    private ResourceLocation guidebookPreferredSkinLocation;
 
     public GuidebookScenePreviewPlayerEntity(World world, GameProfile gameProfile) {
         super(world, gameProfile);
@@ -125,5 +128,26 @@ public class GuidebookScenePreviewPlayerEntity extends EntityOtherPlayerMP
     @Override
     public GuidebookPreviewPlayerPose getGuidebookPreviewPlayerPose() {
         return guidebookPreviewPlayerPose;
+    }
+
+    public void setGuidebookPreferredSkinLocation(ResourceLocation skinLocation) {
+        this.guidebookPreferredSkinLocation = skinLocation;
+        if (skinLocation != null) {
+            super.func_152121_a(Type.SKIN, skinLocation);
+        }
+    }
+
+    @Override
+    public void func_152121_a(Type skinPart, ResourceLocation skinLoc) {
+        if (skinPart == Type.SKIN && shouldIgnoreVanillaSkinLocation(skinLoc)) {
+            return;
+        }
+        super.func_152121_a(skinPart, skinLoc);
+    }
+
+    private boolean shouldIgnoreVanillaSkinLocation(ResourceLocation skinLoc) {
+        return guidebookPreferredSkinLocation != null && skinLoc != null
+            && !guidebookPreferredSkinLocation.equals(skinLoc)
+            && !GuidebookPreviewPlayerSkinResolver.isGuidebookManagedSkinLocation(skinLoc);
     }
 }
