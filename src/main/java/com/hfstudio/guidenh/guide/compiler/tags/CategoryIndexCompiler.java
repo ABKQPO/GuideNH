@@ -42,7 +42,7 @@ public class CategoryIndexCompiler extends BlockTagCompiler {
                 listItemPar.appendText("Unknown page id: " + pageAnchor.pageId());
             } else {
                 var link = new LytFlowLink();
-                link.setClickCallback(guideScreen -> guideScreen.navigateTo(pageAnchor));
+                link.setPageLink(pageAnchor);
                 link.appendText(
                     page.getFrontmatter()
                         .navigationEntry()

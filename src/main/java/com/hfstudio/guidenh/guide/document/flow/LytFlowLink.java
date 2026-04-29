@@ -14,6 +14,10 @@ public class LytFlowLink extends LytTooltipSpan {
 
     @Nullable
     private Consumer<GuideUiHost> clickCallback;
+    @Nullable
+    private URI externalUrl;
+    @Nullable
+    private PageAnchor pageAnchor;
 
     @Nullable
     private String clickSound = "gui.button.press";
@@ -53,6 +57,8 @@ public class LytFlowLink extends LytTooltipSpan {
         if (!uri.isAbsolute()) {
             throw new IllegalArgumentException("External URLs must be absolute: " + uri);
         }
+        this.externalUrl = uri;
+        this.pageAnchor = null;
         setClickCallback(screen -> {
             try {
                 Desktop.getDesktop()
@@ -64,6 +70,18 @@ public class LytFlowLink extends LytTooltipSpan {
     }
 
     public void setPageLink(PageAnchor anchor) {
+        this.pageAnchor = anchor;
+        this.externalUrl = null;
         setClickCallback(screen -> screen.navigateTo(anchor));
+    }
+
+    @Nullable
+    public URI getExternalUrl() {
+        return externalUrl;
+    }
+
+    @Nullable
+    public PageAnchor getPageAnchor() {
+        return pageAnchor;
     }
 }

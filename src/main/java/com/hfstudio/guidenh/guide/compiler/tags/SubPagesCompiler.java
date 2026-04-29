@@ -72,7 +72,7 @@ public class SubPagesCompiler extends BlockTagCompiler {
             var listItemPar = new LytParagraph();
 
             var link = new LytFlowLink();
-            link.setClickCallback(guideScreen -> guideScreen.navigateTo(PageAnchor.page(childNode.pageId())));
+            link.setPageLink(PageAnchor.page(childNode.pageId()));
             link.appendText(childNode.title());
             listItemPar.append(link);
 
