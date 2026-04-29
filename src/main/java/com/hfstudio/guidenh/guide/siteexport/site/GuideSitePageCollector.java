@@ -84,7 +84,8 @@ public class GuideSitePageCollector {
                 }
 
                 Optional<ParsedGuidePage> fallback = pageLoader.load(defaultLanguage, pagePath);
-                fallback.ifPresent(page -> variants
+                fallback.ifPresent(
+                    page -> variants
                         .add(new GuideSitePageVariant(guideId, page.getId(), language, defaultLanguage, true, page)));
             }
         }

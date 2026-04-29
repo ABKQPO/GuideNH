@@ -27,13 +27,10 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
     private final GuideSiteHtmlCompiler fragmentCompiler;
 
     public GuideSiteSceneTagRenderer() {
-        this(new GuideSiteRecipeTagRenderer(), new GuideSiteHtmlCompiler.ImageResolver() {
-
-            @Override
-            public String resolve(String rawUrl, ResourceLocation currentPageId) {
-                return rawUrl != null ? rawUrl : "";
-            }
-        }, noopMdxTagRenderer());
+        this(
+            new GuideSiteRecipeTagRenderer(),
+            (rawUrl, currentPageId) -> rawUrl != null ? rawUrl : "",
+            noopMdxTagRenderer());
     }
 
     public GuideSiteSceneTagRenderer(GuideSiteHtmlCompiler.ImageResolver imageResolver) {
@@ -44,15 +41,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         GuideSiteHtmlCompiler.ImageResolver imageResolver, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer) {
         this.fragmentCompiler = new GuideSiteHtmlCompiler(
             recipeTagRenderer,
-            new GuideSiteHtmlCompiler.SceneTagRenderer() {
-
-                @Override
-                public String render(MdxJsxElementFields element, String defaultNamespace,
-                    ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
-                    GuideSiteExportedScene exportedScene) {
-                    return "";
-                }
-            },
+            (element, defaultNamespace, currentPageId, templates, exportedScene) -> "",
             imageResolver,
             mdxTagRenderer != null ? mdxTagRenderer : noopMdxTagRenderer());
     }
@@ -153,15 +142,13 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
 
     private AnnotationPayload collectAnnotations(MdxJsxElementFields element, String defaultNamespace,
         ResourceLocation currentPageId, GuideSiteTemplateRegistry templates) {
-        List<Map<String, Object>> inWorld = new ArrayList<Map<String, Object>>();
-        List<Map<String, Object>> overlay = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> inWorld = new ArrayList<>();
+        List<Map<String, Object>> overlay = new ArrayList<>();
 
         for (MdAstAnyContent child : element.children()) {
             if (!(child instanceof MdxJsxFlowElement flowElement)) {
-                if (child instanceof MdAstNode node && node.toText()
-                    .trim()
-                    .isEmpty()) {
-                    continue;
+                if (child instanceof MdAstNode node) {
+                    node.toText();
                 }
                 continue;
             }
@@ -222,7 +209,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
 
             if ("DiamondAnnotation".equals(name)) {
                 float[] pos = parseVector3(readOptional(flowElement, "pos"), new float[] { 0f, 0f, 0f });
-                Map<String, Object> data = new LinkedHashMap<String, Object>();
+                Map<String, Object> data = new LinkedHashMap<>();
                 data.put("type", "overlay");
                 data.put("position", pos);
                 data.put("color", normalizeColor(readOptional(flowElement, "color"), "#00e000"));
@@ -239,7 +226,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
 
     private Map<String, Object> buildInWorldAnnotation(String type, float[] min, float[] max, float[] from, float[] to,
         String color, float thickness, String templateId, boolean alwaysOnTop) {
-        Map<String, Object> data = new LinkedHashMap<String, Object>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("type", type);
         if (min != null) {
             data.put("minCorner", min);
@@ -254,11 +241,11 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             data.put("to", to);
         }
         data.put("color", color);
-        data.put("thickness", Float.valueOf(thickness));
+        data.put("thickness", thickness);
         if (templateId != null) {
             data.put("contentTemplateId", templateId);
         }
-        data.put("alwaysOnTop", Boolean.valueOf(alwaysOnTop));
+        data.put("alwaysOnTop", alwaysOnTop);
         return data;
     }
 
@@ -404,15 +391,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
     }
 
     private static GuideSiteHtmlCompiler.MdxTagRenderer noopMdxTagRenderer() {
-        return new GuideSiteHtmlCompiler.MdxTagRenderer() {
-
-            @Override
-            public String render(MdxJsxElementFields element, String defaultNamespace, ResourceLocation currentPageId,
-                GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
-                GuideSiteHtmlCompiler compiler) {
-                return null;
-            }
-        };
+        return (element, defaultNamespace, currentPageId, templates, sceneResolver, compiler) -> null;
     }
 
     private static final class AnnotationPayload {

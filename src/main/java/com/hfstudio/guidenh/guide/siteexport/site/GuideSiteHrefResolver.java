@@ -12,9 +12,9 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 
-final class GuideSiteHrefResolver {
+public class GuideSiteHrefResolver {
 
-    private static final ThreadLocal<ExportContext> EXPORT_CONTEXT = new ThreadLocal<ExportContext>();
+    private static final ThreadLocal<ExportContext> EXPORT_CONTEXT = new ThreadLocal<>();
 
     private GuideSiteHrefResolver() {}
 

@@ -99,8 +99,7 @@ public class GuideSiteRecipeExporter {
             return;
         }
         for (List<GuideSiteExportedItem> candidates : slots) {
-            List<GuideSiteExportedItem> safeCandidates = candidates != null ? candidates
-                : Collections.emptyList();
+            List<GuideSiteExportedItem> safeCandidates = candidates != null ? candidates : Collections.emptyList();
             html.append("<div class=\"ingredient-box");
             if (safeCandidates.size() > 1) {
                 html.append(" cycling");
@@ -148,8 +147,7 @@ public class GuideSiteRecipeExporter {
     }
 
     public List<List<String>> ingredientsFromNeiEntry(NeiRecipeLookup.Entry entry) {
-        return ingredientsFromNeiSlots(
-            entry != null ? entry.ingredients : Collections.emptyList());
+        return ingredientsFromNeiSlots(entry != null ? entry.ingredients : Collections.emptyList());
     }
 
     public List<List<GuideSiteExportedItem>> ingredientItemsFromNeiEntry(NeiRecipeLookup.Entry entry,
@@ -204,9 +202,7 @@ public class GuideSiteRecipeExporter {
 
     public List<List<GuideSiteExportedItem>> supportingSlotItemsFromNeiEntry(NeiRecipeLookup.Entry entry,
         GuideSiteItemIconResolver itemIconResolver) {
-        return ingredientItemsFromNeiSlots(
-            entry != null ? entry.others : Collections.emptyList(),
-            itemIconResolver);
+        return ingredientItemsFromNeiSlots(entry != null ? entry.others : Collections.emptyList(), itemIconResolver);
     }
 
     public List<List<String>> supportingSlotsFromNeiSlots(List<NeiRecipeLookup.Slot> slots) {

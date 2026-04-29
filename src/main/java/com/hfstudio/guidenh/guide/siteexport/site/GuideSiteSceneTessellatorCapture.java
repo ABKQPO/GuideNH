@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.imageio.ImageIO;
 
@@ -24,9 +25,9 @@ import guideme.flatbuffers.scene.ExpIndexElementType;
 import guideme.flatbuffers.scene.ExpPrimitiveType;
 import guideme.flatbuffers.scene.ExpTransparency;
 
-public final class GuideSiteSceneTessellatorCapture {
+public class GuideSiteSceneTessellatorCapture {
 
-    private static final ThreadLocal<GuideSiteSceneTessellatorCapture> ACTIVE = new ThreadLocal<GuideSiteSceneTessellatorCapture>();
+    private static final ThreadLocal<GuideSiteSceneTessellatorCapture> ACTIVE = new ThreadLocal<>();
 
     private final GuideSiteAssetRegistry assets;
     private final Matrix4f inverseViewMatrix;
@@ -35,9 +36,9 @@ public final class GuideSiteSceneTessellatorCapture {
     private final FloatBuffer modelViewBuffer = BufferUtils.createFloatBuffer(16);
     private final Vector3f transformedPosition = new Vector3f();
     private final Vector3f transformedNormal = new Vector3f();
-    private final List<CapturedMesh> meshes = new ArrayList<CapturedMesh>();
-    private final Map<Integer, TextureExport> textures = new LinkedHashMap<Integer, TextureExport>();
-    private final ArrayList<RecordedVertex> currentVertices = new ArrayList<RecordedVertex>();
+    private final List<CapturedMesh> meshes = new ArrayList<>();
+    private final Map<Integer, TextureExport> textures = new LinkedHashMap<>();
+    private final ArrayList<RecordedVertex> currentVertices = new ArrayList<>();
 
     private boolean drawing;
     private int drawMode;
@@ -83,7 +84,7 @@ public final class GuideSiteSceneTessellatorCapture {
     }
 
     public RecordingResult finish() {
-        return new RecordingResult(new ArrayList<CapturedMesh>(meshes));
+        return new RecordingResult(new ArrayList<>(meshes));
     }
 
     public void startDrawing(int drawMode) {
@@ -288,7 +289,7 @@ public final class GuideSiteSceneTessellatorCapture {
             return null;
         }
 
-        TextureExport existing = textures.get(Integer.valueOf(textureId));
+        TextureExport existing = textures.get(textureId);
         if (existing != null) {
             return existing;
         }
@@ -327,7 +328,7 @@ public final class GuideSiteSceneTessellatorCapture {
             || minFilter == GL11.GL_LINEAR_MIPMAP_LINEAR;
 
         TextureExport export = new TextureExport("gltex-" + textureId, texturePath, linearFiltering, useMipmaps);
-        textures.put(Integer.valueOf(textureId), export);
+        textures.put(textureId, export);
         return export;
     }
 
@@ -431,11 +432,11 @@ public final class GuideSiteSceneTessellatorCapture {
         boolean useUInt = currentVertices.size() > 0xFFFF;
         ByteBuffer buffer = ByteBuffer.allocate(indices.length * (useUInt ? 4 : 2))
             .order(ByteOrder.LITTLE_ENDIAN);
-        for (int i = 0; i < indices.length; i++) {
+        for (int index : indices) {
             if (useUInt) {
-                buffer.putInt(indices[i]);
+                buffer.putInt(index);
             } else {
-                buffer.putShort((short) indices[i]);
+                buffer.putShort((short) index);
             }
         }
         buffer.flip();
@@ -493,10 +494,7 @@ public final class GuideSiteSceneTessellatorCapture {
         if (value < 0) {
             return 0;
         }
-        if (value > 255) {
-            return 255;
-        }
-        return value;
+        return Math.min(value, 255);
     }
 
     private static byte packNormalComponent(float value) {
@@ -515,16 +513,16 @@ public final class GuideSiteSceneTessellatorCapture {
         return out;
     }
 
-    static final class RecordingResult {
+    public static class RecordingResult {
 
-        final List<CapturedMesh> meshes;
+        public final List<CapturedMesh> meshes;
 
         RecordingResult(List<CapturedMesh> meshes) {
             this.meshes = meshes;
         }
     }
 
-    static final class CapturedMesh {
+    public static class CapturedMesh {
 
         final byte[] vertexBuffer;
         final byte[] indexBuffer;
@@ -561,10 +559,9 @@ public final class GuideSiteSceneTessellatorCapture {
             if (this == obj) {
                 return true;
             }
-            if (!(obj instanceof VertexFormatKey)) {
+            if (!(obj instanceof VertexFormatKey other)) {
                 return false;
             }
-            VertexFormatKey other = (VertexFormatKey) obj;
             return hasUv == other.hasUv && hasNormal == other.hasNormal;
         }
 
@@ -607,10 +604,9 @@ public final class GuideSiteSceneTessellatorCapture {
             if (this == obj) {
                 return true;
             }
-            if (!(obj instanceof MaterialKey)) {
+            if (!(obj instanceof MaterialKey other)) {
                 return false;
             }
-            MaterialKey other = (MaterialKey) obj;
             if (linearFiltering != other.linearFiltering || useMipmaps != other.useMipmaps
                 || disableCulling != other.disableCulling
                 || transparency != other.transparency
@@ -620,10 +616,10 @@ public final class GuideSiteSceneTessellatorCapture {
             if (!name.equals(other.name) || !shaderName.equals(other.shaderName)) {
                 return false;
             }
-            if (textureId == null ? other.textureId != null : !textureId.equals(other.textureId)) {
+            if (!Objects.equals(textureId, other.textureId)) {
                 return false;
             }
-            return texturePath == null ? other.texturePath == null : texturePath.equals(other.texturePath);
+            return Objects.equals(texturePath, other.texturePath);
         }
 
         @Override

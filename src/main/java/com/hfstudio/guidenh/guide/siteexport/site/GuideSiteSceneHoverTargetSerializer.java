@@ -522,8 +522,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
     }
 
     private static boolean isVisibleEntity(AxisAlignedBB bounds, @Nullable Integer visibleLayerY) {
-        return visibleLayerY == null
-            || bounds.maxY > visibleLayerY.intValue() && bounds.minY < visibleLayerY + 1.0D;
+        return visibleLayerY == null || bounds.maxY > visibleLayerY.intValue() && bounds.minY < visibleLayerY + 1.0D;
     }
 
     @Nullable

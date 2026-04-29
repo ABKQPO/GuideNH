@@ -108,7 +108,7 @@ public final class GuideSiteLocalServer {
         }
 
         Long pid = resolveStatePid(state);
-        if (pid != null && isProcessAlive(pid.longValue())) {
+        if (pid != null && isProcessAlive(pid)) {
             System.out.println("GuideNH site server process is still alive (pid=" + pid + ").");
             return 0;
         }
@@ -137,7 +137,7 @@ public final class GuideSiteLocalServer {
         }
 
         Long pid = resolveStatePid(state);
-        if (pid != null && stopProcess(pid.longValue())) {
+        if (pid != null && stopProcess(pid)) {
             Files.deleteIfExists(stateFile);
             System.out.println("GuideNH static site server stopped.");
             return 0;
@@ -179,7 +179,7 @@ public final class GuideSiteLocalServer {
     }
 
     private void handleSiteExchange(HttpExchange exchange) throws IOException {
-        try {
+        try (exchange) {
             String method = exchange.getRequestMethod();
             if (!"GET".equalsIgnoreCase(method) && !"HEAD".equalsIgnoreCase(method)) {
                 exchange.getResponseHeaders()
@@ -214,33 +214,27 @@ public final class GuideSiteLocalServer {
             try (OutputStream body = exchange.getResponseBody()) {
                 Files.copy(target, body);
             }
-        } finally {
-            exchange.close();
         }
     }
 
     private void handleStatusExchange(HttpExchange exchange) throws IOException {
-        try {
+        try (exchange) {
             if (!isAuthorized(exchange)) {
                 sendText(exchange, 403, "Forbidden");
                 return;
             }
             sendText(exchange, 200, "OK");
-        } finally {
-            exchange.close();
         }
     }
 
     private void handleStopExchange(HttpExchange exchange) throws IOException {
-        try {
+        try (exchange) {
             if (!isAuthorized(exchange)) {
                 sendText(exchange, 403, "Forbidden");
                 return;
             }
             sendText(exchange, 200, "Stopping");
             new Thread(this::stopServer, "GuideNH-SiteServer-Stop").start();
-        } finally {
-            exchange.close();
         }
     }
 
@@ -251,7 +245,7 @@ public final class GuideSiteLocalServer {
         return token != null && token.equals(controlToken);
     }
 
-    private Path resolveTarget(HttpExchange exchange) throws IOException {
+    private Path resolveTarget(HttpExchange exchange) {
         String rawPath = exchange.getRequestURI()
             .getPath();
         if (rawPath == null || rawPath.isEmpty() || "/".equals(rawPath)) {
@@ -259,7 +253,7 @@ public final class GuideSiteLocalServer {
         }
 
         String relativePath = rawPath.startsWith("/") ? rawPath.substring(1) : rawPath;
-        relativePath = URLDecoder.decode(relativePath, UTF_8.name());
+        relativePath = URLDecoder.decode(relativePath, UTF_8);
         Path candidate = rootDir.resolve(relativePath)
             .normalize();
         if (!candidate.startsWith(rootDir)) {
@@ -291,7 +285,7 @@ public final class GuideSiteLocalServer {
             Files.createDirectories(parent);
         }
 
-        List<String> lines = new ArrayList<String>();
+        List<String> lines = new ArrayList<>();
         lines.add("pid=" + resolveProcessId());
         lines.add("host=" + host);
         lines.add("port=" + port);
@@ -346,7 +340,7 @@ public final class GuideSiteLocalServer {
         }
 
         List<String> lines = Files.readAllLines(stateFile, UTF_8);
-        Map<String, String> state = new LinkedHashMap<String, String>();
+        Map<String, String> state = new LinkedHashMap<>();
         for (String line : lines) {
             if (line == null) {
                 continue;
@@ -377,7 +371,7 @@ public final class GuideSiteLocalServer {
             return null;
         }
         try {
-            return Long.valueOf(Long.parseLong(trimmed));
+            return Long.parseLong(trimmed);
         } catch (NumberFormatException ignored) {
             return null;
         }
@@ -403,7 +397,7 @@ public final class GuideSiteLocalServer {
         }
 
         try {
-            String encodedToken = URLEncoder.encode(token, UTF_8.name());
+            String encodedToken = URLEncoder.encode(token, UTF_8);
             URL url = new URL("http", host, port, path + "?token=" + encodedToken);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setConnectTimeout(CONTROL_TIMEOUT_MILLIS);
@@ -551,7 +545,7 @@ public final class GuideSiteLocalServer {
             return Collections.emptyMap();
         }
 
-        Map<String, String> query = new LinkedHashMap<String, String>();
+        Map<String, String> query = new LinkedHashMap<>();
         String[] pairs = rawQuery.split("&");
         for (String pair : pairs) {
             if (pair == null || pair.isEmpty()) {
@@ -560,9 +554,7 @@ public final class GuideSiteLocalServer {
             int equals = pair.indexOf('=');
             String rawKey = equals >= 0 ? pair.substring(0, equals) : pair;
             String rawValue = equals >= 0 ? pair.substring(equals + 1) : "";
-            try {
-                query.put(URLDecoder.decode(rawKey, UTF_8.name()), URLDecoder.decode(rawValue, UTF_8.name()));
-            } catch (IOException ignored) {}
+            query.put(URLDecoder.decode(rawKey, UTF_8), URLDecoder.decode(rawValue, UTF_8));
         }
         return query;
     }
@@ -601,7 +593,7 @@ public final class GuideSiteLocalServer {
     }
 
     private static Map<String, String> createMimeTypes() {
-        Map<String, String> mimeTypes = new LinkedHashMap<String, String>();
+        Map<String, String> mimeTypes = new LinkedHashMap<>();
         mimeTypes.put("html", "text/html; charset=UTF-8");
         mimeTypes.put("css", "text/css; charset=UTF-8");
         mimeTypes.put("js", "text/javascript; charset=UTF-8");

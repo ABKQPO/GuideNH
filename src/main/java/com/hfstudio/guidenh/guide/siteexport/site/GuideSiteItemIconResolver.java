@@ -7,13 +7,7 @@ import org.jetbrains.annotations.Nullable;
 @FunctionalInterface
 public interface GuideSiteItemIconResolver {
 
-    GuideSiteItemIconResolver NONE = new GuideSiteItemIconResolver() {
-
-        @Override
-        public String exportIcon(@Nullable ItemStack stack) {
-            return "";
-        }
-    };
+    GuideSiteItemIconResolver NONE = stack -> "";
 
     String exportIcon(@Nullable ItemStack stack);
 }

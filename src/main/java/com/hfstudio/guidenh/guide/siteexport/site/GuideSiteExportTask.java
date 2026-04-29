@@ -102,7 +102,7 @@ public class GuideSiteExportTask {
                     language,
                     assets);
                 List<ParsedGuidePage> parsedPages = new ArrayList<>();
-                Map<ResourceLocation, ParsedGuidePage> parsedPagesById = new LinkedHashMap<ResourceLocation, ParsedGuidePage>();
+                Map<ResourceLocation, ParsedGuidePage> parsedPagesById = new LinkedHashMap<>();
                 for (GuideSitePageVariant variant : languageVariants) {
                     parsedPages.add(variant.parsedPage());
                     parsedPagesById.put(
@@ -293,25 +293,15 @@ public class GuideSiteExportTask {
 
     private GuideSitePageAssetExporter createPageAssetExporter(MutableGuide guide, IResourceManager resourceManager,
         String language, GuideSiteAssetRegistry assets) {
-        return new GuideSitePageAssetExporter(assets, new GuideSitePageAssetExporter.AssetLoader() {
-
-            @Override
-            public byte[] load(ResourceLocation assetId) throws Exception {
-                return loadGuideAsset(guide, resourceManager, language, assetId);
-            }
-        });
+        return new GuideSitePageAssetExporter(
+            assets,
+            assetId -> loadGuideAsset(guide, resourceManager, language, assetId));
     }
 
     private GuideSiteHtmlCompiler createHtmlCompiler(GuideSitePageAssetExporter assetExporter,
         GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
         GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer) {
-        return new GuideSiteHtmlCompiler(recipeTagRenderer, new GuideSiteHtmlCompiler.ImageResolver() {
-
-            @Override
-            public String resolve(String rawUrl, ResourceLocation currentPageId) {
-                return assetExporter.resolveImageSrc(rawUrl, currentPageId);
-            }
-        }, mdxTagRenderer);
+        return new GuideSiteHtmlCompiler(recipeTagRenderer, assetExporter::resolveImageSrc, mdxTagRenderer);
     }
 
     private byte[] loadGuideAsset(MutableGuide guide, IResourceManager resourceManager, String language,
@@ -365,7 +355,7 @@ public class GuideSiteExportTask {
     private List<GuideSiteExportedScene> exportScenes(MutableGuide guide, ParsedGuidePage parsedPage,
         GuidePage compiledPage, GuideSiteTemplateRegistry templates, GuideSiteSceneRuntimeExporter exporter,
         GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
-        List<GuideSiteExportedScene> scenes = new ArrayList<GuideSiteExportedScene>();
+        List<GuideSiteExportedScene> scenes = new ArrayList<>();
         for (LytGuidebookScene scene : compiledPage.scenes()) {
             try {
                 scene.getLevel()
