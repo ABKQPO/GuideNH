@@ -38,29 +38,42 @@ function installTooltips(root) {
     return;
   }
 
-  let activeTrigger = null;
+  let activeState = null;
+  let lastPointer = null;
+  let restoreStack = [];
 
-  const hide = () => {
-    activeTrigger = null;
-    tooltipRoot.hidden = true;
-    tooltipRoot.innerHTML = "";
-  };
+  function resolveTemplateHtml(templateId) {
+    if (!templateId) {
+      return "";
+    }
+    const template = document.getElementById(templateId);
+    return template ? template.innerHTML : "";
+  }
 
-  const position = (event) => {
-    if (tooltipRoot.hidden) {
+  function closestGuideTooltip(target) {
+    return target instanceof Element ? target.closest(".guide-tooltip") : null;
+  }
+
+  function isInsideTooltipRoot(target) {
+    return target instanceof Node && tooltipRoot.contains(target);
+  }
+
+  function position(pointer) {
+    const point = pointer || lastPointer;
+    if (!point || tooltipRoot.hidden) {
       return;
     }
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const rect = tooltipRoot.getBoundingClientRect();
     const margin = 14;
-    let left = event.clientX + 16;
-    let top = event.clientY + 18;
+    let left = point.clientX + 16;
+    let top = point.clientY + 18;
     if (left + rect.width > viewportWidth - margin) {
       left = viewportWidth - rect.width - margin;
     }
     if (top + rect.height > viewportHeight - margin) {
-      top = event.clientY - rect.height - 18;
+      top = point.clientY - rect.height - 18;
     }
     if (left < margin) {
       left = margin;
@@ -70,56 +83,209 @@ function installTooltips(root) {
     }
     tooltipRoot.style.left = `${left}px`;
     tooltipRoot.style.top = `${top}px`;
-  };
+  }
 
-  const resolveTooltipHtml = (trigger) => {
-    const templateId = trigger.dataset.template;
-    if (!templateId) {
-      return "";
-    }
-    const template = document.getElementById(templateId);
-    if (!template) {
-      return "";
-    }
-    return template.innerHTML;
-  };
+  function hideAll() {
+    activeState = null;
+    restoreStack = [];
+    tooltipRoot.hidden = true;
+    tooltipRoot.innerHTML = "";
+    delete tooltipRoot.dataset.externalTooltipOwner;
+    delete tooltipRoot.dataset.externalTooltipTemplate;
+  }
 
-  const show = (trigger, event) => {
-    const html = resolveTooltipHtml(trigger);
-    if (!html) {
-      hide();
+  function applyState(nextState, pointer, resetStack) {
+    if (!nextState || !nextState.html) {
+      hideAll();
       return;
     }
-    activeTrigger = trigger;
-    tooltipRoot.innerHTML = html;
+    if (resetStack) {
+      restoreStack = [];
+    }
+    activeState = nextState;
+    tooltipRoot.innerHTML = nextState.html;
     tooltipRoot.hidden = false;
-    position(event);
-  };
+    if (nextState.sourceType === "external") {
+      tooltipRoot.dataset.externalTooltipOwner = String(nextState.sourceRef ?? "");
+      tooltipRoot.dataset.externalTooltipTemplate = nextState.templateId ?? "";
+    } else {
+      delete tooltipRoot.dataset.externalTooltipOwner;
+      delete tooltipRoot.dataset.externalTooltipTemplate;
+    }
+    position(pointer);
+  }
 
-  root.querySelectorAll(".guide-tooltip").forEach((trigger) => {
-    trigger.addEventListener("mouseenter", (event) => {
-      show(trigger, event);
-    });
-    trigger.addEventListener("mousemove", (event) => {
-      if (activeTrigger === trigger) {
-        position(event);
+  function captureState() {
+    if (!activeState) {
+      return null;
+    }
+    return {
+      sourceType: activeState.sourceType,
+      sourceRef: activeState.sourceRef,
+      templateId: activeState.templateId,
+      html: activeState.html,
+    };
+  }
+
+  function restorePrevious(pointer) {
+    const previous = restoreStack.pop();
+    if (!previous) {
+      hideAll();
+      return;
+    }
+    applyState(previous, pointer, false);
+  }
+
+  function showTemplate(templateId, sourceType, sourceRef, pointer, preserveCurrent) {
+    const html = resolveTemplateHtml(templateId);
+    if (!html) {
+      if (preserveCurrent && restoreStack.length) {
+        restorePrevious(pointer);
+      } else {
+        hideAll();
       }
-    });
-    trigger.addEventListener("mouseleave", hide);
-    trigger.addEventListener("focus", () => {
-      const rect = trigger.getBoundingClientRect();
-      show(trigger, {
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.bottom,
-      });
-    });
-    trigger.addEventListener("blur", hide);
+      return;
+    }
+
+    if (preserveCurrent) {
+      const snapshot = captureState();
+      if (snapshot) {
+        restoreStack.push(snapshot);
+      }
+    }
+
+    applyState(
+      {
+        sourceType,
+        sourceRef,
+        templateId,
+        html,
+      },
+      pointer,
+      !preserveCurrent,
+    );
+  }
+
+  function showTrigger(trigger, pointer) {
+    if (!(trigger instanceof HTMLElement)) {
+      return;
+    }
+    const templateId = trigger.dataset.template;
+    const preserveCurrent = isInsideTooltipRoot(trigger) && activeState != null;
+    showTemplate(templateId, "trigger", trigger, pointer, preserveCurrent);
+  }
+
+  function syntheticPointerFor(element) {
+    const rect = element.getBoundingClientRect();
+    return {
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.bottom,
+    };
+  }
+
+  root.addEventListener("mouseover", (event) => {
+    const trigger = closestGuideTooltip(event.target);
+    if (trigger) {
+      showTrigger(trigger, event);
+    }
   });
 
-  window.addEventListener("scroll", hide, { passive: true });
+  root.addEventListener("mousemove", (event) => {
+    lastPointer = event;
+    if (!tooltipRoot.hidden) {
+      position(event);
+    }
+  });
+
+  root.addEventListener("mouseout", (event) => {
+    const fromTrigger = closestGuideTooltip(event.target);
+    const toTrigger = closestGuideTooltip(event.relatedTarget);
+
+    if (fromTrigger && activeState?.sourceType === "trigger" && activeState.sourceRef === fromTrigger) {
+      if (toTrigger && toTrigger !== fromTrigger) {
+        return;
+      }
+      if (isInsideTooltipRoot(event.relatedTarget)) {
+        return;
+      }
+      if (restoreStack.length && isInsideTooltipRoot(fromTrigger)) {
+        restorePrevious(event);
+        return;
+      }
+      hideAll();
+      return;
+    }
+
+    if (isInsideTooltipRoot(event.target)) {
+      if (isInsideTooltipRoot(event.relatedTarget)) {
+        return;
+      }
+      if (toTrigger) {
+        return;
+      }
+      if (activeState?.sourceType === "trigger"
+        && activeState.sourceRef instanceof Element
+        && activeState.sourceRef.contains(event.relatedTarget)) {
+        return;
+      }
+      if (restoreStack.length) {
+        restorePrevious(event);
+        return;
+      }
+      if (activeState?.sourceType !== "external") {
+        hideAll();
+      }
+    }
+  });
+
+  root.addEventListener("focusin", (event) => {
+    const trigger = closestGuideTooltip(event.target);
+    if (trigger) {
+      showTrigger(trigger, syntheticPointerFor(trigger));
+    }
+  });
+
+  root.addEventListener("focusout", (event) => {
+    const fromTrigger = closestGuideTooltip(event.target);
+    const toTrigger = closestGuideTooltip(event.relatedTarget);
+    if (!fromTrigger || activeState?.sourceType !== "trigger" || activeState.sourceRef !== fromTrigger) {
+      return;
+    }
+    if (toTrigger) {
+      return;
+    }
+    if (restoreStack.length && isInsideTooltipRoot(fromTrigger)) {
+      restorePrevious(syntheticPointerFor(fromTrigger));
+      return;
+    }
+    hideAll();
+  });
+
+  window.GuideNHTooltips = {
+    containsTooltip(target) {
+      return isInsideTooltipRoot(target);
+    },
+    updatePointer(pointer) {
+      lastPointer = pointer || lastPointer;
+      if (!tooltipRoot.hidden) {
+        position(pointer);
+      }
+    },
+    showExternalTemplate(templateId, owner, pointer) {
+      showTemplate(templateId, "external", owner, pointer || lastPointer, false);
+    },
+    hideExternal(owner) {
+      if (!activeState || activeState.sourceType !== "external" || activeState.sourceRef !== owner) {
+        return;
+      }
+      hideAll();
+    },
+  };
+
+  window.addEventListener("scroll", hideAll, { passive: true });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      hide();
+      hideAll();
     }
   });
 }

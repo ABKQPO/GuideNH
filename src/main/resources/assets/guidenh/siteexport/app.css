@@ -477,7 +477,7 @@ body {
   border-radius: 12px;
   box-shadow: var(--site-shadow);
   z-index: 9999;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .guide-tooltip-popup[hidden] {

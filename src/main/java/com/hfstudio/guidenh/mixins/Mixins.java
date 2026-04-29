@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 public enum Mixins implements IMixins {
 
     FORGE_HOOKS_CLIENT(Side.CLIENT, "forge.AccessorForgeHooksClient"),
+    MODEL_RENDERER_SCENE_EXPORT_CAPTURE(Side.CLIENT, "minecraft.MixinModelRendererSceneExportCapture"),
     TESSELLATOR_SCENE_EXPORT_CAPTURE(Side.CLIENT, "minecraft.MixinTessellatorSceneExportCapture"),
 
     ;

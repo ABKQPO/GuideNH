@@ -115,7 +115,12 @@ public class GuideSiteExportTask {
                 GuideSiteHtmlCompiler compiler = createHtmlCompiler(
                     assetExporter,
                     new GuideSiteRecipeTagRenderer(itemIconExporter),
-                    new GuideSiteMdxTagRenderer(guide, parsedPagesById, navigationTree, itemIconExporter));
+                    new GuideSiteMdxTagRenderer(
+                        guide,
+                        parsedPagesById,
+                        navigationTree,
+                        assetExporter,
+                        itemIconExporter));
 
                 for (GuideSitePageVariant variant : languageVariants) {
                     try {
@@ -365,13 +370,16 @@ public class GuideSiteExportTask {
             try {
                 GuideSiteSceneAnnotationSerializer.AnnotationPayload annotationPayload = GuideSiteSceneAnnotationSerializer
                     .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
+                String hoverTargetsJson = GuideSiteSceneHoverTargetSerializer
+                    .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
                 GuideSiteExportedScene exportedScene = exporter.exportScene(scene);
                 scenes.add(
                     new GuideSiteExportedScene(
                         exportedScene.placeholderPath(),
                         exportedScene.scenePath(),
                         annotationPayload.inWorldJson(),
-                        annotationPayload.overlayJson()));
+                        annotationPayload.overlayJson(),
+                        hoverTargetsJson));
             } catch (Throwable t) {
                 LOG.warn("Failed to export scene for page {} in guide {}", parsedPage.getId(), guide.getId(), t);
                 scenes.add(null);

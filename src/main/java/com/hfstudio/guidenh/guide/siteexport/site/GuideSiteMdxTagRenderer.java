@@ -59,18 +59,27 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private final MutableGuide guide;
     private final Map<ResourceLocation, ParsedGuidePage> parsedPagesById;
     private final NavigationTree navigationTree;
+    @Nullable
+    private final GuideSitePageAssetExporter assetExporter;
     private final GuideSiteItemIconResolver itemIconResolver;
 
     public GuideSiteMdxTagRenderer(MutableGuide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         NavigationTree navigationTree) {
-        this(guide, parsedPagesById, navigationTree, GuideSiteItemIconResolver.NONE);
+        this(guide, parsedPagesById, navigationTree, null, GuideSiteItemIconResolver.NONE);
     }
 
     public GuideSiteMdxTagRenderer(MutableGuide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         NavigationTree navigationTree, GuideSiteItemIconResolver itemIconResolver) {
+        this(guide, parsedPagesById, navigationTree, null, itemIconResolver);
+    }
+
+    public GuideSiteMdxTagRenderer(MutableGuide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
+        NavigationTree navigationTree, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver) {
         this.guide = guide;
         this.parsedPagesById = parsedPagesById;
         this.navigationTree = navigationTree;
+        this.assetExporter = assetExporter;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
     }
 
@@ -535,7 +544,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         String templateId = templates.create(
             GuideSiteSceneAnnotationSerializer.renderTooltipHtml(
                 CommandLinkCompiler.buildTooltip(readOptional(element, "title"), command),
-                currentPageId));
+                currentPageId,
+                null,
+                itemIconResolver,
+                templates));
         return "<span class=\"guide-command-link guide-tooltip\" data-template=\"" + escapeAttribute(templateId)
             + "\">"
             + content
@@ -597,6 +609,13 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 html,
                 GuideSiteItemSupport.export(icon.itemStack(), itemIconResolver),
                 "guide-nav-item-icon");
+        } else if (icon != null && icon.textureId() != null && assetExporter != null) {
+            String src = assetExporter.exportResource(icon.textureId());
+            if (!src.isEmpty()) {
+                html.append("<img class=\"item-icon guide-nav-item-icon\" src=\"")
+                    .append(escapeAttribute(src))
+                    .append("\" alt=\"\" width=\"32\" height=\"32\" decoding=\"async\">");
+            }
         }
         html.append("<span class=\"guide-generated-link-text\">")
             .append(escapeHtml(title))
@@ -676,7 +695,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private String createTooltipTemplate(ItemTooltip tooltip, GuideSiteTemplateRegistry templates,
         @Nullable ResourceLocation currentPageId) {
         String html = GuideSiteSceneAnnotationSerializer
-            .renderTooltipHtml(tooltip, currentPageId, null, itemIconResolver);
+            .renderTooltipHtml(tooltip, currentPageId, null, itemIconResolver, templates);
         if (html == null || html.trim()
             .isEmpty()) {
             return null;
@@ -691,7 +710,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return null;
         }
         String html = GuideSiteSceneAnnotationSerializer
-            .renderTooltipHtml(new TextTooltip(text), currentPageId, null, itemIconResolver);
+            .renderTooltipHtml(new TextTooltip(text), currentPageId, null, itemIconResolver, templates);
         return html == null || html.trim()
             .isEmpty() ? null : templates.create(html);
     }
