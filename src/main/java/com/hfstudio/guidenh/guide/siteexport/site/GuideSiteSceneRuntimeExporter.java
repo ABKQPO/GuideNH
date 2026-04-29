@@ -18,6 +18,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.shader.Framebuffer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -28,7 +30,6 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 
-import guideme.flatbuffers.scene.ExpAnimatedTexturePart;
 import guideme.flatbuffers.scene.ExpCameraSettings;
 import guideme.flatbuffers.scene.ExpDepthTest;
 import guideme.flatbuffers.scene.ExpIndexElementType;
@@ -46,6 +47,7 @@ import guideme.flatbuffers.scene.ExpVertexFormatElement;
 public class GuideSiteSceneRuntimeExporter {
 
     private static final int PLACEHOLDER_SCALE = 2;
+    private static final Logger LOGGER = LogManager.getLogger("GuideNH/SiteExportScene");
 
     private final GuideSiteAssetRegistry assets;
 
@@ -101,7 +103,9 @@ public class GuideSiteSceneRuntimeExporter {
             scene.setCameraViewportOverride(logicalWidth, logicalHeight);
 
             BufferedImage image;
-            try (SceneEditorOffscreenFramebuffer framebuffer = new SceneEditorOffscreenFramebuffer(renderWidth, renderHeight)) {
+            try (SceneEditorOffscreenFramebuffer framebuffer = new SceneEditorOffscreenFramebuffer(
+                renderWidth,
+                renderHeight)) {
                 image = framebuffer.render(scene);
             }
 
@@ -120,18 +124,25 @@ public class GuideSiteSceneRuntimeExporter {
     }
 
     private byte[] exportScenePayload(LytGuidebookScene scene) throws Exception {
-        RecordingTessellator recorder = new RecordingTessellator(assets);
-        Tessellator previous = swapTessellator(recorder);
+        GuideSiteSceneTessellatorCapture recorder = new GuideSiteSceneTessellatorCapture(assets);
         int width = Math.max(16, scene.getSceneWidth());
         int height = Math.max(16, scene.getSceneHeight());
 
         try {
+            GuideSiteSceneTessellatorCapture.activate(recorder);
             captureSceneMeshes(scene, width, height);
         } finally {
-            swapTessellator(previous);
+            GuideSiteSceneTessellatorCapture.deactivate();
         }
 
-        return encodeScene(scene.getCamera(), recorder.finish());
+        GuideSiteSceneTessellatorCapture.RecordingResult result = recorder.finish();
+        if (result.meshes.isEmpty()) {
+            LOGGER.warn(
+                "Scene site export captured no tessellated meshes for a {}x{} scene; exported 3D preview will be blank.",
+                Integer.valueOf(width),
+                Integer.valueOf(height));
+        }
+        return encodeScene(scene.getCamera(), result);
     }
 
     private void captureSceneMeshes(LytGuidebookScene scene, int width, int height) {
@@ -168,14 +179,17 @@ public class GuideSiteSceneRuntimeExporter {
         }
     }
 
-    private byte[] encodeScene(CameraSettings camera, RecordingResult result) throws Exception {
+    private byte[] encodeScene(CameraSettings camera, GuideSiteSceneTessellatorCapture.RecordingResult result)
+        throws Exception {
         FlatBufferBuilder builder = new FlatBufferBuilder(1024);
 
-        Map<VertexFormatKey, Integer> vertexFormats = new LinkedHashMap<VertexFormatKey, Integer>();
-        Map<MaterialKey, Integer> materials = new LinkedHashMap<MaterialKey, Integer>();
+        Map<GuideSiteSceneTessellatorCapture.VertexFormatKey, Integer> vertexFormats =
+            new LinkedHashMap<GuideSiteSceneTessellatorCapture.VertexFormatKey, Integer>();
+        Map<GuideSiteSceneTessellatorCapture.MaterialKey, Integer> materials =
+            new LinkedHashMap<GuideSiteSceneTessellatorCapture.MaterialKey, Integer>();
         List<Integer> meshOffsets = new ArrayList<Integer>(result.meshes.size());
 
-        for (CapturedMesh mesh : result.meshes) {
+        for (GuideSiteSceneTessellatorCapture.CapturedMesh mesh : result.meshes) {
             Integer vertexFormatOffset = vertexFormats.get(mesh.vertexFormatKey);
             if (vertexFormatOffset == null) {
                 vertexFormatOffset = writeVertexFormat(builder, mesh.vertexFormatKey);
@@ -225,7 +239,7 @@ public class GuideSiteSceneRuntimeExporter {
         return out.toByteArray();
     }
 
-    private int writeVertexFormat(FlatBufferBuilder builder, VertexFormatKey key) {
+    private int writeVertexFormat(FlatBufferBuilder builder, GuideSiteSceneTessellatorCapture.VertexFormatKey key) {
         int offset = 0;
 
         List<VertexFormatElementDef> elements = new ArrayList<VertexFormatElementDef>();
@@ -254,14 +268,7 @@ public class GuideSiteSceneRuntimeExporter {
         }
 
         elements.add(
-            new VertexFormatElementDef(
-                0,
-                ExpVertexElementType.UBYTE,
-                ExpVertexElementUsage.COLOR,
-                4,
-                offset,
-                4,
-                true));
+            new VertexFormatElementDef(0, ExpVertexElementType.UBYTE, ExpVertexElementUsage.COLOR, 4, offset, 4, true));
         offset += 4;
 
         if (key.hasNormal) {
@@ -297,7 +304,7 @@ public class GuideSiteSceneRuntimeExporter {
         return ExpVertexFormat.endExpVertexFormat(builder);
     }
 
-    private int writeMaterial(FlatBufferBuilder builder, MaterialKey key) {
+    private int writeMaterial(FlatBufferBuilder builder, GuideSiteSceneTessellatorCapture.MaterialKey key) {
         int nameOffset = builder.createString(key.name);
         int shaderNameOffset = builder.createString(key.shaderName);
 
@@ -305,12 +312,8 @@ public class GuideSiteSceneRuntimeExporter {
         if (key.texturePath != null) {
             int textureIdOffset = builder.createString(key.textureId);
             int texturePathOffset = builder.createString(key.texturePath);
-            int samplerOffset = ExpSampler.createExpSampler(
-                builder,
-                textureIdOffset,
-                texturePathOffset,
-                key.linearFiltering,
-                key.useMipmaps);
+            int samplerOffset = ExpSampler
+                .createExpSampler(builder, textureIdOffset, texturePathOffset, key.linearFiltering, key.useMipmaps);
             samplersOffset = ExpMaterial.createSamplersVector(builder, new int[] { samplerOffset });
         }
 
@@ -467,7 +470,8 @@ public class GuideSiteSceneRuntimeExporter {
             }
             MaterialKey other = (MaterialKey) obj;
             if (linearFiltering != other.linearFiltering || useMipmaps != other.useMipmaps
-                || disableCulling != other.disableCulling || transparency != other.transparency
+                || disableCulling != other.disableCulling
+                || transparency != other.transparency
                 || depthTest != other.depthTest) {
                 return false;
             }
@@ -638,11 +642,7 @@ public class GuideSiteSceneRuntimeExporter {
 
         @Override
         public void setColorRGBA_F(float red, float green, float blue, float alpha) {
-            setColorRGBA(
-                (int) (red * 255.0F),
-                (int) (green * 255.0F),
-                (int) (blue * 255.0F),
-                (int) (alpha * 255.0F));
+            setColorRGBA((int) (red * 255.0F), (int) (green * 255.0F), (int) (blue * 255.0F), (int) (alpha * 255.0F));
         }
 
         @Override
@@ -770,9 +770,8 @@ public class GuideSiteSceneRuntimeExporter {
 
             BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
             for (int y = 0; y < height; y++) {
-                int sourceY = height - 1 - y;
                 for (int x = 0; x < width; x++) {
-                    int index = (x + sourceY * width) * 4;
+                    int index = (x + y * width) * 4;
                     int r = pixels.get(index) & 0xFF;
                     int g = pixels.get(index + 1) & 0xFF;
                     int b = pixels.get(index + 2) & 0xFF;
@@ -794,11 +793,7 @@ public class GuideSiteSceneRuntimeExporter {
                 || minFilter == GL11.GL_NEAREST_MIPMAP_LINEAR
                 || minFilter == GL11.GL_LINEAR_MIPMAP_LINEAR;
 
-            TextureExport export = new TextureExport(
-                "gltex-" + textureId,
-                texturePath,
-                linearFiltering,
-                useMipmaps);
+            TextureExport export = new TextureExport("gltex-" + textureId, texturePath, linearFiltering, useMipmaps);
             textures.put(Integer.valueOf(textureId), export);
             return export;
         }
@@ -815,7 +810,8 @@ public class GuideSiteSceneRuntimeExporter {
             if (texture == null) {
                 shaderName = "position_color";
             } else if (blendEnabled) {
-                shaderName = hasNormals && !hasBrightness ? "rendertype_entity_translucent_cull" : "rendertype_translucent";
+                shaderName = hasNormals && !hasBrightness ? "rendertype_entity_translucent_cull"
+                    : "rendertype_translucent";
             } else if (hasNormals && !hasBrightness) {
                 shaderName = "rendertype_entity_cutout";
             } else {

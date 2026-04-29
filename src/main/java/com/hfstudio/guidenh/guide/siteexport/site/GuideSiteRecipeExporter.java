@@ -35,19 +35,12 @@ public class GuideSiteRecipeExporter {
     }
 
     public String renderHtmlGridItems(List<List<GuideSiteExportedItem>> ingredients, GuideSiteExportedItem resultItem) {
-        return renderGrid(
-            ingredients,
-            resultItem,
-            "html-grid",
-            Collections.<List<GuideSiteExportedItem>>emptyList());
+        return renderGrid(ingredients, resultItem, "html-grid", Collections.<List<GuideSiteExportedItem>>emptyList());
     }
 
     public String renderNeiOverlayGridItems(List<List<GuideSiteExportedItem>> ingredients,
         GuideSiteExportedItem resultItem) {
-        return renderNeiOverlayGridItems(
-            ingredients,
-            resultItem,
-            Collections.<List<GuideSiteExportedItem>>emptyList());
+        return renderNeiOverlayGridItems(ingredients, resultItem, Collections.<List<GuideSiteExportedItem>>emptyList());
     }
 
     public String renderNeiOverlayGridItems(List<List<GuideSiteExportedItem>> ingredients,
@@ -155,7 +148,8 @@ public class GuideSiteRecipeExporter {
     }
 
     public List<List<String>> ingredientsFromNeiEntry(NeiRecipeLookup.Entry entry) {
-        return ingredientsFromNeiSlots(entry != null ? entry.ingredients : Collections.<NeiRecipeLookup.Slot>emptyList());
+        return ingredientsFromNeiSlots(
+            entry != null ? entry.ingredients : Collections.<NeiRecipeLookup.Slot>emptyList());
     }
 
     public List<List<GuideSiteExportedItem>> ingredientItemsFromNeiEntry(NeiRecipeLookup.Entry entry,

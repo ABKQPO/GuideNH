@@ -128,13 +128,10 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
 
                 RenderItem itemRenderer = RenderItem.getInstance();
                 itemRenderer.zLevel = 100f;
-                itemRenderer.renderItemAndEffectIntoGUI(
-                    minecraft.fontRenderer,
-                    minecraft.getTextureManager(),
-                    stack,
-                    0,
-                    0);
-                itemRenderer.renderItemOverlayIntoGUI(minecraft.fontRenderer, minecraft.getTextureManager(), stack, 0, 0);
+                itemRenderer
+                    .renderItemAndEffectIntoGUI(minecraft.fontRenderer, minecraft.getTextureManager(), stack, 0, 0);
+                itemRenderer
+                    .renderItemOverlayIntoGUI(minecraft.fontRenderer, minecraft.getTextureManager(), stack, 0, 0);
                 itemRenderer.zLevel = 0f;
             } finally {
                 GL11.glPopMatrix();

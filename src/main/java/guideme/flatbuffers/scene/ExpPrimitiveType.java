@@ -4,8 +4,8 @@ package guideme.flatbuffers.scene;
 
 @SuppressWarnings("unused")
 public final class ExpPrimitiveType {
-    private ExpPrimitiveType() {
-    }
+
+    private ExpPrimitiveType() {}
 
     public static final int LINES = 0;
     public static final int LINE_STRIP = 1;
@@ -17,7 +17,7 @@ public final class ExpPrimitiveType {
     public static final int POINTS = 7;
 
     public static final String[] names = { "LINES", "LINE_STRIP", "DEBUG_LINES", "DEBUG_LINE_STRIP", "TRIANGLES",
-            "TRIANGLE_STRIP", "TRIANGLE_FAN", "POINTS", };
+        "TRIANGLE_STRIP", "TRIANGLE_FAN", "POINTS", };
 
     public static String name(int e) {
         return names[e];

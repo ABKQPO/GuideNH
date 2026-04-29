@@ -2,15 +2,17 @@
 
 package guideme.flatbuffers.scene;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import com.google.flatbuffers.BaseVector;
 import com.google.flatbuffers.Constants;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.Table;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 @SuppressWarnings("unused")
 public final class ExpMaterial extends Table {
+
     public static void ValidateVersion() {
         Constants.FLATBUFFERS_23_5_26();
     }
@@ -127,13 +129,8 @@ public final class ExpMaterial extends Table {
         return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
     }
 
-    public static int createExpMaterial(FlatBufferBuilder builder,
-            int nameOffset,
-            int shaderNameOffset,
-            boolean disableCulling,
-            int transparency,
-            int depthTest,
-            int samplersOffset) {
+    public static int createExpMaterial(FlatBufferBuilder builder, int nameOffset, int shaderNameOffset,
+        boolean disableCulling, int transparency, int depthTest, int samplersOffset) {
         builder.startTable(6);
         ExpMaterial.addSamplers(builder, samplersOffset);
         ExpMaterial.addShaderName(builder, shaderNameOffset);
@@ -174,8 +171,7 @@ public final class ExpMaterial extends Table {
 
     public static int createSamplersVector(FlatBufferBuilder builder, int[] data) {
         builder.startVector(4, data.length, 4);
-        for (int i = data.length - 1; i >= 0; i--)
-            builder.addOffset(data[i]);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
         return builder.endVector();
     }
 
@@ -189,6 +185,7 @@ public final class ExpMaterial extends Table {
     }
 
     public static final class Vector extends BaseVector {
+
         public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
             __reset(_vector, _element_size, _bb);
             return this;

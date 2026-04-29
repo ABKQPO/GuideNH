@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,8 +13,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Stream;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -46,11 +46,27 @@ public class GuideSiteWriter {
         writeResource(
             outDir.resolve("_site/model-viewer/modelViewer.js"),
             "/assets/guidenh/siteexport/model-viewer/modelViewer.js");
+        writeResource(
+            outDir.resolve("_site/model-viewer/vendor/modelViewer-A42QTX7N.js"),
+            "/assets/guidenh/siteexport/model-viewer/vendor/modelViewer-A42QTX7N.js");
+        writeResource(
+            outDir.resolve("_site/model-viewer/vendor/chunk-ZM3PKBJN.js"),
+            "/assets/guidenh/siteexport/model-viewer/vendor/chunk-ZM3PKBJN.js");
+        writeResource(
+            outDir.resolve("_site/model-viewer/vendor/decompressFallback-VGYIC7XH.js"),
+            "/assets/guidenh/siteexport/model-viewer/vendor/decompressFallback-VGYIC7XH.js");
+        writeResource(
+            outDir.resolve("_site/model-viewer/vendor/diamond-7X2HHREI.png"),
+            "/assets/guidenh/siteexport/model-viewer/vendor/diamond-7X2HHREI.png");
+        writeResource(
+            outDir.resolve("_site/model-viewer/vendor/diamond_colored-LGQLQFTB.png"),
+            "/assets/guidenh/siteexport/model-viewer/vendor/diamond_colored-LGQLQFTB.png");
         writeStartScripts(outDir);
     }
 
     public void cleanupGeneratedOutputs(Path outDir) throws Exception {
-        Path normalizedOutDir = outDir.toAbsolutePath().normalize();
+        Path normalizedOutDir = outDir.toAbsolutePath()
+            .normalize();
         deleteRecursively(normalizedOutDir.resolve("_site"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("_res"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("_data"), normalizedOutDir);
@@ -95,15 +111,13 @@ public class GuideSiteWriter {
     public void writeLandingPage(Path outDir, @Nullable String firstPageUrl, String title) throws Exception {
         String html;
         if (firstPageUrl == null || firstPageUrl.isEmpty()) {
-            html = "<!doctype html><html><head><meta charset=\"utf-8\"><title>"
-                + escapeHtml(title)
+            html = "<!doctype html><html><head><meta charset=\"utf-8\"><title>" + escapeHtml(title)
                 + "</title></head><body><main><h1>"
                 + escapeHtml(title)
                 + "</h1><p>No guide pages were exported.</p></main></body></html>";
         } else {
             String escapedUrl = escapeHtml(firstPageUrl);
-            html = "<!doctype html><html><head><meta charset=\"utf-8\"><title>"
-                + escapeHtml(title)
+            html = "<!doctype html><html><head><meta charset=\"utf-8\"><title>" + escapeHtml(title)
                 + "</title><meta http-equiv=\"refresh\" content=\"0; url="
                 + escapedUrl
                 + "\"></head><body><p><a href=\""
@@ -125,18 +139,20 @@ public class GuideSiteWriter {
         return GSON.toJson(rootNodes);
     }
 
-    public String renderSidebar(MutableGuide guide, String language, NavigationTree tree, ResourceLocation currentPageId) {
+    public String renderSidebar(MutableGuide guide, String language, NavigationTree tree,
+        ResourceLocation currentPageId) {
         return renderSidebar(guide, language, tree, currentPageId, null, GuideSiteItemIconResolver.NONE);
     }
 
-    public String renderSidebar(MutableGuide guide, String language, NavigationTree tree, ResourceLocation currentPageId,
-        GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+    public String renderSidebar(MutableGuide guide, String language, NavigationTree tree,
+        ResourceLocation currentPageId, GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver) {
         return renderSidebar(guide, language, tree, currentPageId, assetExporter, itemIconResolver, null);
     }
 
-    public String renderSidebar(MutableGuide guide, String language, NavigationTree tree, ResourceLocation currentPageId,
-        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
-        @Nullable List<GuideSiteLanguageLink> languageLinks) {
+    public String renderSidebar(MutableGuide guide, String language, NavigationTree tree,
+        ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver, @Nullable List<GuideSiteLanguageLink> languageLinks) {
         SiteUiText uiText = SiteUiText.forLanguage(language);
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-sidebar-tools\">");
@@ -145,9 +161,7 @@ public class GuideSiteWriter {
         html.append("<span class=\"guide-search-label\">")
             .append(escapeHtml(uiText.searchLabel()))
             .append("</span>");
-        html.append(
-            "<input type=\"search\" class=\"guide-search-input\" data-guide-search-input "
-                + "placeholder=\"")
+        html.append("<input type=\"search\" class=\"guide-search-input\" data-guide-search-input " + "placeholder=\"")
             .append(escapeHtml(uiText.searchPlaceholder()))
             .append("\" autocomplete=\"off\" spellcheck=\"false\">");
         html.append("</label>");
@@ -166,53 +180,48 @@ public class GuideSiteWriter {
     private void writeStartScripts(Path outDir) throws Exception {
         Files.write(
             outDir.resolve("start.bat"),
-            (
-                "@echo off\r\n"
-                    + "set \"PORT=8734\"\r\n"
-                    + "where py >nul 2>nul\r\n"
-                    + "if not errorlevel 1 (\r\n"
-                    + "  start \"GuideNH Static Site\" /min py -3 -m http.server %PORT% --bind 127.0.0.1 --directory \"%~dp0\"\r\n"
-                    + "  timeout /t 1 /nobreak >nul\r\n"
-                    + "  start \"\" \"http://127.0.0.1:%PORT%/\"\r\n"
-                    + "  exit /b 0\r\n"
-                    + ")\r\n"
-                    + "where python >nul 2>nul\r\n"
-                    + "if not errorlevel 1 (\r\n"
-                    + "  start \"GuideNH Static Site\" /min python -m http.server %PORT% --bind 127.0.0.1 --directory \"%~dp0\"\r\n"
-                    + "  timeout /t 1 /nobreak >nul\r\n"
-                    + "  start \"\" \"http://127.0.0.1:%PORT%/\"\r\n"
-                    + "  exit /b 0\r\n"
-                    + ")\r\n"
-                    + "start \"\" \"%~dp0index.html\"\r\n")
-                .getBytes(StandardCharsets.UTF_8));
+            ("@echo off\r\n" + "set \"PORT=8734\"\r\n"
+                + "set \"SITE_DIR=%~dp0.\"\r\n"
+                + "where py >nul 2>nul\r\n"
+                + "if not errorlevel 1 (\r\n"
+                + "  start \"GuideNH Static Site\" /D \"%SITE_DIR%\" /min py -3 -m http.server %PORT% --bind 127.0.0.1\r\n"
+                + "  timeout /t 1 /nobreak >nul\r\n"
+                + "  start \"\" \"http://127.0.0.1:%PORT%/index.html\"\r\n"
+                + "  exit /b 0\r\n"
+                + ")\r\n"
+                + "where python >nul 2>nul\r\n"
+                + "if not errorlevel 1 (\r\n"
+                + "  start \"GuideNH Static Site\" /D \"%SITE_DIR%\" /min python -m http.server %PORT% --bind 127.0.0.1\r\n"
+                + "  timeout /t 1 /nobreak >nul\r\n"
+                + "  start \"\" \"http://127.0.0.1:%PORT%/index.html\"\r\n"
+                + "  exit /b 0\r\n"
+                + ")\r\n"
+                + "start \"\" \"%SITE_DIR%\\index.html\"\r\n").getBytes(StandardCharsets.UTF_8));
         Files.write(
             outDir.resolve("start.sh"),
-            (
-                "#!/usr/bin/env sh\n"
-                    + "DIR=\"$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\"\n"
-                    + "PORT=8734\n"
-                    + "if command -v python3 >/dev/null 2>&1; then\n"
-                    + "  python3 -m http.server \"$PORT\" --bind 127.0.0.1 --directory \"$DIR\" >/dev/null 2>&1 &\n"
-                    + "  sleep 1\n"
-                    + "  if command -v xdg-open >/dev/null 2>&1; then\n"
-                    + "    xdg-open \"http://127.0.0.1:$PORT/\" >/dev/null 2>&1\n"
-                    + "  else\n"
-                    + "    open \"http://127.0.0.1:$PORT/\"\n"
-                    + "  fi\n"
-                    + "elif command -v python >/dev/null 2>&1; then\n"
-                    + "  python -m http.server \"$PORT\" --bind 127.0.0.1 --directory \"$DIR\" >/dev/null 2>&1 &\n"
-                    + "  sleep 1\n"
-                    + "  if command -v xdg-open >/dev/null 2>&1; then\n"
-                    + "    xdg-open \"http://127.0.0.1:$PORT/\" >/dev/null 2>&1\n"
-                    + "  else\n"
-                    + "    open \"http://127.0.0.1:$PORT/\"\n"
-                    + "  fi\n"
-                    + "elif command -v xdg-open >/dev/null 2>&1; then\n"
-                    + "  xdg-open \"$DIR/index.html\" >/dev/null 2>&1\n"
-                    + "else\n"
-                    + "  open \"$DIR/index.html\"\n"
-                    + "fi\n")
-                .getBytes(StandardCharsets.UTF_8));
+            ("#!/usr/bin/env sh\n" + "DIR=\"$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\"\n"
+                + "PORT=8734\n"
+                + "if command -v python3 >/dev/null 2>&1; then\n"
+                + "  (cd \"$DIR\" && python3 -m http.server \"$PORT\" --bind 127.0.0.1) >/dev/null 2>&1 &\n"
+                + "  sleep 1\n"
+                + "  if command -v xdg-open >/dev/null 2>&1; then\n"
+                + "    xdg-open \"http://127.0.0.1:$PORT/index.html\" >/dev/null 2>&1\n"
+                + "  else\n"
+                + "    open \"http://127.0.0.1:$PORT/index.html\"\n"
+                + "  fi\n"
+                + "elif command -v python >/dev/null 2>&1; then\n"
+                + "  (cd \"$DIR\" && python -m http.server \"$PORT\" --bind 127.0.0.1) >/dev/null 2>&1 &\n"
+                + "  sleep 1\n"
+                + "  if command -v xdg-open >/dev/null 2>&1; then\n"
+                + "    xdg-open \"http://127.0.0.1:$PORT/index.html\" >/dev/null 2>&1\n"
+                + "  else\n"
+                + "    open \"http://127.0.0.1:$PORT/index.html\"\n"
+                + "  fi\n"
+                + "elif command -v xdg-open >/dev/null 2>&1; then\n"
+                + "  xdg-open \"$DIR/index.html\" >/dev/null 2>&1\n"
+                + "else\n"
+                + "  open \"$DIR/index.html\"\n"
+                + "fi\n").getBytes(StandardCharsets.UTF_8));
     }
 
     private void appendLanguageSwitcher(StringBuilder html, String currentLanguage,
@@ -266,12 +275,17 @@ public class GuideSiteWriter {
         data.put("title", node.title());
         data.put("position", Integer.valueOf(node.position()));
         if (node.pageId() != null) {
-            data.put("pageId", node.pageId().toString());
+            data.put(
+                "pageId",
+                node.pageId()
+                    .toString());
             data.put(
                 "url",
                 pageUrl(
-                    guide.getId().getResourceDomain(),
-                    guide.getId().getResourcePath(),
+                    guide.getId()
+                        .getResourceDomain(),
+                    guide.getId()
+                        .getResourcePath(),
                     language,
                     toOutputPageFile(node.pageId())));
         }
@@ -290,14 +304,17 @@ public class GuideSiteWriter {
         html.append("<li>");
         if (node.pageId() != null) {
             String href = pageUrl(
-                guide.getId().getResourceDomain(),
-                guide.getId().getResourcePath(),
+                guide.getId()
+                    .getResourceDomain(),
+                guide.getId()
+                    .getResourcePath(),
                 language,
                 toOutputPageFile(node.pageId()));
             html.append("<a href=\"")
                 .append(escapeHtml(href))
                 .append("\"");
-            if (node.pageId().equals(currentPageId)) {
+            if (node.pageId()
+                .equals(currentPageId)) {
                 html.append(" aria-current=\"page\"");
             }
             html.append(">")
@@ -308,7 +325,8 @@ public class GuideSiteWriter {
                 .append(renderNavigationLinkContent(node.title(), node.icon(), assetExporter, itemIconResolver))
                 .append("</span>");
         }
-        if (!node.children().isEmpty()) {
+        if (!node.children()
+            .isEmpty()) {
             html.append("<ul>");
             for (NavigationNode child : node.children()) {
                 appendNavigationNode(html, guide, language, child, currentPageId, assetExporter, itemIconResolver);
@@ -480,7 +498,8 @@ public class GuideSiteWriter {
     }
 
     private void deleteRecursively(Path target, Path outDir) throws Exception {
-        Path normalizedTarget = target.toAbsolutePath().normalize();
+        Path normalizedTarget = target.toAbsolutePath()
+            .normalize();
         if (!normalizedTarget.startsWith(outDir)) {
             throw new IllegalArgumentException("Refusing to delete path outside export directory: " + normalizedTarget);
         }
@@ -490,7 +509,8 @@ public class GuideSiteWriter {
 
         if (Files.isDirectory(normalizedTarget)) {
             try (Stream<Path> stream = Files.walk(normalizedTarget)) {
-                for (Path path : stream.sorted(Comparator.reverseOrder()).collect(Collectors.toList())) {
+                for (Path path : stream.sorted(Comparator.reverseOrder())
+                    .collect(Collectors.toList())) {
                     Files.deleteIfExists(path);
                 }
             }

@@ -2,16 +2,18 @@
 
 package guideme.flatbuffers.scene;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import com.google.flatbuffers.BaseVector;
 import com.google.flatbuffers.ByteVector;
 import com.google.flatbuffers.Constants;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.Table;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 @SuppressWarnings("unused")
 public final class ExpMesh extends Table {
+
     public static void ValidateVersion() {
         Constants.FLATBUFFERS_23_5_26();
     }
@@ -171,14 +173,8 @@ public final class ExpMesh extends Table {
         }
     }
 
-    public static int createExpMesh(FlatBufferBuilder builder,
-            int materialOffset,
-            int vertexFormatOffset,
-            int primitiveType,
-            int indexBufferOffset,
-            int indexType,
-            long indexCount,
-            int vertexBufferOffset) {
+    public static int createExpMesh(FlatBufferBuilder builder, int materialOffset, int vertexFormatOffset,
+        int primitiveType, int indexBufferOffset, int indexType, long indexCount, int vertexBufferOffset) {
         builder.startTable(7);
         ExpMesh.addVertexBuffer(builder, vertexBufferOffset);
         ExpMesh.addIndexCount(builder, indexCount);
@@ -252,6 +248,7 @@ public final class ExpMesh extends Table {
     }
 
     public static final class Vector extends BaseVector {
+
         public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
             __reset(_vector, _element_size, _bb);
             return this;

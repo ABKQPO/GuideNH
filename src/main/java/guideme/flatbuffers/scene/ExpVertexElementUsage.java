@@ -4,8 +4,8 @@ package guideme.flatbuffers.scene;
 
 @SuppressWarnings("unused")
 public final class ExpVertexElementUsage {
-    private ExpVertexElementUsage() {
-    }
+
+    private ExpVertexElementUsage() {}
 
     public static final int POSITION = 0;
     public static final int NORMAL = 1;

@@ -14,7 +14,8 @@ public final class GuideSiteOutputPaths {
     private GuideSiteOutputPaths() {}
 
     public static Path resolveRequestedOrDefault(@Nullable String rawOutDir, Path workingRoot, LocalDateTime now) {
-        if (rawOutDir != null && !rawOutDir.trim().isEmpty()) {
+        if (rawOutDir != null && !rawOutDir.trim()
+            .isEmpty()) {
             return workingRoot.resolve(rawOutDir.trim())
                 .toAbsolutePath()
                 .normalize();

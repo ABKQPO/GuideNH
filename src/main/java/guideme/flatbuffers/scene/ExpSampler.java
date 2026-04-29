@@ -2,15 +2,17 @@
 
 package guideme.flatbuffers.scene;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import com.google.flatbuffers.BaseVector;
 import com.google.flatbuffers.Constants;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.Table;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 @SuppressWarnings("unused")
 public final class ExpSampler extends Table {
+
     public static void ValidateVersion() {
         Constants.FLATBUFFERS_23_5_26();
     }
@@ -89,11 +91,8 @@ public final class ExpSampler extends Table {
         }
     }
 
-    public static int createExpSampler(FlatBufferBuilder builder,
-            int textureIdOffset,
-            int textureOffset,
-            boolean linearFiltering,
-            boolean useMipmaps) {
+    public static int createExpSampler(FlatBufferBuilder builder, int textureIdOffset, int textureOffset,
+        boolean linearFiltering, boolean useMipmaps) {
         builder.startTable(4);
         ExpSampler.addTexture(builder, textureOffset);
         ExpSampler.addTextureId(builder, textureIdOffset);
@@ -128,6 +127,7 @@ public final class ExpSampler extends Table {
     }
 
     public static final class Vector extends BaseVector {
+
         public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
             __reset(_vector, _element_size, _bb);
             return this;

@@ -122,11 +122,14 @@ public class GuideSiteHtmlCompiler {
         });
     }
 
-    public String compileBody(ParsedGuidePage parsed, GuideSiteTemplateRegistry templates, SceneResolver sceneResolver) {
+    public String compileBody(ParsedGuidePage parsed, GuideSiteTemplateRegistry templates,
+        SceneResolver sceneResolver) {
         return compileChildren(
-            parsed.getAstRoot().children(),
+            parsed.getAstRoot()
+                .children(),
             templates,
-            parsed.getId().getResourceDomain(),
+            parsed.getId()
+                .getResourceDomain(),
             parsed.getId(),
             sceneResolver);
     }
@@ -221,8 +224,7 @@ public class GuideSiteHtmlCompiler {
             return "<br>";
         }
         if (node instanceof MdAstLink link) {
-            return "<a href=\""
-                + escapeAttribute(GuideSiteHrefResolver.resolveRawHref(currentPageId, link.url()))
+            return "<a href=\"" + escapeAttribute(GuideSiteHrefResolver.resolveRawHref(currentPageId, link.url()))
                 + "\">"
                 + compileChildren(link.children(), templates, defaultNamespace, currentPageId, sceneResolver)
                 + "</a>";
@@ -244,13 +246,8 @@ public class GuideSiteHtmlCompiler {
             return compileFloatingImage(flowElement, currentPageId);
         }
         if (node instanceof MdxJsxFlowElement flowElement) {
-            String rendered = mdxTagRenderer.render(
-                flowElement,
-                defaultNamespace,
-                currentPageId,
-                templates,
-                sceneResolver,
-                this);
+            String rendered = mdxTagRenderer
+                .render(flowElement, defaultNamespace, currentPageId, templates, sceneResolver, this);
             if (rendered != null) {
                 return rendered;
             }
@@ -271,13 +268,8 @@ public class GuideSiteHtmlCompiler {
             return compileFloatingImage(textElement, currentPageId);
         }
         if (node instanceof MdxJsxTextElement textElement) {
-            String rendered = mdxTagRenderer.render(
-                textElement,
-                defaultNamespace,
-                currentPageId,
-                templates,
-                sceneResolver,
-                this);
+            String rendered = mdxTagRenderer
+                .render(textElement, defaultNamespace, currentPageId, templates, sceneResolver, this);
             if (rendered != null) {
                 return rendered;
             }
@@ -291,11 +283,10 @@ public class GuideSiteHtmlCompiler {
             return compileTableRow(row, templates, defaultNamespace, currentPageId, sceneResolver, false, null);
         }
         if (node instanceof GfmTableCell cell) {
-            return "<td>"
-                + compileChildren(cell.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+            return "<td>" + compileChildren(cell.children(), templates, defaultNamespace, currentPageId, sceneResolver)
                 + "</td>";
         }
-        if (node instanceof MdAstParent<?> parent) {
+        if (node instanceof MdAstParent<?>parent) {
             return compileChildren(parent.children(), templates, defaultNamespace, currentPageId, sceneResolver);
         }
         return "";
@@ -308,10 +299,9 @@ public class GuideSiteHtmlCompiler {
             label = "tooltip";
         }
 
-        String templateId = templates.create(
-            compileChildren(element.children(), templates, defaultNamespace, currentPageId, sceneResolver));
-        return "<span class=\"guide-tooltip\" data-template=\""
-            + escapeAttribute(templateId)
+        String templateId = templates
+            .create(compileChildren(element.children(), templates, defaultNamespace, currentPageId, sceneResolver));
+        return "<span class=\"guide-tooltip\" data-template=\"" + escapeAttribute(templateId)
             + "\">"
             + escapeHtml(label)
             + "</span>";
@@ -326,7 +316,8 @@ public class GuideSiteHtmlCompiler {
     }
 
     private boolean isRecipeElement(MdxJsxElementFields element) {
-        return "Recipe".equals(element.name()) || "RecipeFor".equals(element.name()) || "RecipesFor".equals(element.name());
+        return "Recipe".equals(element.name()) || "RecipeFor".equals(element.name())
+            || "RecipesFor".equals(element.name());
     }
 
     private boolean isSceneElement(MdxJsxElementFields element) {
@@ -343,12 +334,7 @@ public class GuideSiteHtmlCompiler {
 
     private String compileScene(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
-        return sceneTagRenderer.render(
-            element,
-            defaultNamespace,
-            currentPageId,
-            templates,
-            sceneResolver.nextScene());
+        return sceneTagRenderer.render(element, defaultNamespace, currentPageId, templates, sceneResolver.nextScene());
     }
 
     private String compileMarkdownImage(MdAstImage image, @Nullable ResourceLocation currentPageId) {
@@ -478,27 +464,29 @@ public class GuideSiteHtmlCompiler {
         List<GfmTableRow> rows = table.children();
         if (!rows.isEmpty()) {
             html.append("<thead>");
-            html.append(compileTableRow(
-                rows.get(0),
-                templates,
-                defaultNamespace,
-                currentPageId,
-                sceneResolver,
-                true,
-                table.align));
+            html.append(
+                compileTableRow(
+                    rows.get(0),
+                    templates,
+                    defaultNamespace,
+                    currentPageId,
+                    sceneResolver,
+                    true,
+                    table.align));
             html.append("</thead>");
         }
         if (rows.size() > 1) {
             html.append("<tbody>");
             for (int i = 1; i < rows.size(); i++) {
-                html.append(compileTableRow(
-                    rows.get(i),
-                    templates,
-                    defaultNamespace,
-                    currentPageId,
-                    sceneResolver,
-                    false,
-                    table.align));
+                html.append(
+                    compileTableRow(
+                        rows.get(i),
+                        templates,
+                        defaultNamespace,
+                        currentPageId,
+                        sceneResolver,
+                        false,
+                        table.align));
             }
             html.append("</tbody>");
         }
@@ -507,7 +495,8 @@ public class GuideSiteHtmlCompiler {
     }
 
     private String compileTableRow(GfmTableRow row, GuideSiteTemplateRegistry templates, String defaultNamespace,
-        @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver, boolean header, @Nullable List<Align> align) {
+        @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver, boolean header,
+        @Nullable List<Align> align) {
         StringBuilder html = new StringBuilder();
         html.append("<tr>");
         List<GfmTableCell> cells = row.children();

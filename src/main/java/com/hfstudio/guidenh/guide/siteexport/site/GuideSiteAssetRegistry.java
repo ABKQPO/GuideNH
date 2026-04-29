@@ -21,7 +21,8 @@ public class GuideSiteAssetRegistry {
         if (!Files.exists(absolute)) {
             Files.write(absolute, content);
         }
-        return relative.toString().replace('\\', '/');
+        return relative.toString()
+            .replace('\\', '/');
     }
 
     private String sha256(byte[] content) throws Exception {

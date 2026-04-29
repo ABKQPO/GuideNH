@@ -14,7 +14,15 @@ import com.hfstudio.guidenh.guide.compiler.IdUtils;
 
 final class GuideSiteHrefResolver {
 
+    private static final ThreadLocal<ExportContext> EXPORT_CONTEXT = new ThreadLocal<ExportContext>();
+
     private GuideSiteHrefResolver() {}
+
+    public static ContextScope exportContext(String namespace, String guidePath, String language) {
+        ExportContext previous = EXPORT_CONTEXT.get();
+        EXPORT_CONTEXT.set(new ExportContext(namespace, guidePath, language));
+        return new ContextScope(previous);
+    }
 
     public static String resolveRawHref(@Nullable ResourceLocation currentPageId, String href) {
         if (href == null || href.isEmpty() || currentPageId == null) {
@@ -58,13 +66,14 @@ final class GuideSiteHrefResolver {
             return anchor.anchor() != null ? "#" + anchor.anchor() : "";
         }
 
-        if (currentPageId != null && currentPageId.equals(targetPageId) && anchor.anchor() != null
+        if (currentPageId != null && currentPageId.equals(targetPageId)
+            && anchor.anchor() != null
             && !anchor.anchor()
                 .isEmpty()) {
             return "#" + anchor.anchor();
         }
 
-        String relative = relativizePagePath(currentPageId, targetPageId);
+        String relative = resolvePagePath(currentPageId, targetPageId);
         if (anchor.anchor() != null && !anchor.anchor()
             .isEmpty()) {
             return relative + "#" + anchor.anchor();
@@ -89,6 +98,14 @@ final class GuideSiteHrefResolver {
         return path + ".html";
     }
 
+    private static String resolvePagePath(@Nullable ResourceLocation currentPageId, ResourceLocation targetPageId) {
+        ExportContext exportContext = EXPORT_CONTEXT.get();
+        if (exportContext != null) {
+            return exportContext.pageUrl(targetPageId);
+        }
+        return relativizePagePath(currentPageId, targetPageId);
+    }
+
     private static String relativizePagePath(@Nullable ResourceLocation currentPageId, ResourceLocation targetPageId) {
         Path target = Paths.get(outputPageFile(targetPageId));
         Path current = currentPageId != null ? Paths.get(outputPageFile(currentPageId)) : null;
@@ -96,5 +113,52 @@ final class GuideSiteHrefResolver {
         String relative = currentDir != null ? currentDir.relativize(target)
             .toString() : target.toString();
         return relative.replace('\\', '/');
+    }
+
+    public static final class ContextScope implements AutoCloseable {
+
+        @Nullable
+        private final ExportContext previous;
+        private boolean closed;
+
+        private ContextScope(@Nullable ExportContext previous) {
+            this.previous = previous;
+        }
+
+        @Override
+        public void close() {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            if (previous == null) {
+                EXPORT_CONTEXT.remove();
+            } else {
+                EXPORT_CONTEXT.set(previous);
+            }
+        }
+    }
+
+    private static final class ExportContext {
+
+        private final String namespace;
+        private final String guidePath;
+        private final String language;
+
+        private ExportContext(String namespace, String guidePath, String language) {
+            this.namespace = namespace;
+            this.guidePath = guidePath;
+            this.language = language;
+        }
+
+        private String pageUrl(ResourceLocation pageId) {
+            return "guides/" + namespace
+                + "/"
+                + guidePath
+                + "/"
+                + language
+                + "/"
+                + outputPageFile(pageId).replace('\\', '/');
+        }
     }
 }
