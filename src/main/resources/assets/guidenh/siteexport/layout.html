@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="{{lang}}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <base href="{{root}}/">
+    <title>{{title}}</title>
+    <link rel="stylesheet" href="{{root}}/_site/app.css">
+    <link rel="stylesheet" href="{{root}}/_site/model-viewer.css">
+  </head>
+  <body>
+    <main class="guide-site">
+      <aside class="guide-sidebar">{{sidebar}}</aside>
+      <section class="guide-content">
+        <article id="page-content" class="guide-page">{{content}}</article>
+      </section>
+    </main>
+    <div class="guide-tooltip-popup" data-guide-tooltip-root hidden></div>
+    <script type="module" src="{{root}}/_site/app.js"></script>
+  </body>
+</html>
