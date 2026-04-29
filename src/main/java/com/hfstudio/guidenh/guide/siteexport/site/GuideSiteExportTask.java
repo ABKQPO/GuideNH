@@ -368,6 +368,8 @@ public class GuideSiteExportTask {
         List<GuideSiteExportedScene> scenes = new ArrayList<GuideSiteExportedScene>();
         for (LytGuidebookScene scene : compiledPage.scenes()) {
             try {
+                scene.getLevel()
+                    .prepareForPreview();
                 GuideSiteSceneAnnotationSerializer.AnnotationPayload annotationPayload = GuideSiteSceneAnnotationSerializer
                     .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
                 String hoverTargetsJson = GuideSiteSceneHoverTargetSerializer

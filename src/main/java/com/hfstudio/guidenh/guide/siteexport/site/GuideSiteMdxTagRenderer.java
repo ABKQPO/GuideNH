@@ -220,7 +220,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         int offsetY = (height - contentHeight) / 2 - syMin;
 
         Collections.sort(blocks, STRUCTURE_DRAW_ORDER);
-        LinkedHashMap<String, StructureLegendEntry> legendEntries = new LinkedHashMap<String, StructureLegendEntry>();
+        LinkedHashMap<String, StructureLegendEntry> legendEntries = new LinkedHashMap<>();
 
         for (StructureBlockView block : blocks) {
             int left = block.projectedX + offsetX + LytStructureView.ICON / 2;
@@ -333,7 +333,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
 
         StringBuilder style = new StringBuilder();
-        if (scale != null && scale.floatValue() > 0f && scale.floatValue() != 1.0f) {
+        if (scale != null && scale > 0f && scale != 1.0f) {
             style.append("font-size:")
                 .append(scale)
                 .append("em;");
@@ -505,7 +505,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             nodes = node.children();
         }
 
-        List<NavigationNode> sorted = new ArrayList<NavigationNode>(nodes);
+        List<NavigationNode> sorted = new ArrayList<>(nodes);
         if (alphabetical) {
             sorted.sort(SubPagesCompiler.ALPHABETICAL_COMPARATOR);
         }
@@ -523,7 +523,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             anchors = guide.getIndex(CategoryIndex.class)
                 .get(category);
         } catch (Exception ignored) {
-            anchors = new ArrayList<PageAnchor>();
+            anchors = new ArrayList<>();
         }
         return renderPageAnchorList(anchors, currentPageId);
     }
@@ -576,7 +576,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private String renderPageAnchorList(List<PageAnchor> anchors, @Nullable ResourceLocation currentPageId) {
         StringBuilder html = new StringBuilder();
         html.append("<ul class=\"guide-generated-links\">");
-        LinkedHashSet<String> seen = new LinkedHashSet<String>();
+        LinkedHashSet<String> seen = new LinkedHashSet<>();
         for (PageAnchor anchor : anchors) {
             if (anchor == null || anchor.pageId() == null) {
                 continue;
@@ -867,7 +867,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         StringBuilder rawText = new StringBuilder();
         collectStructureText(rawText, element.children());
 
-        List<StructureBlockView> blocks = new ArrayList<StructureBlockView>();
+        List<StructureBlockView> blocks = new ArrayList<>();
         for (String rawLine : rawText.toString()
             .split("\\R")) {
             String line = rawLine.trim();
@@ -937,13 +937,12 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         String displayName;
         @Nullable
         String templateId;
+        String itemId = meta != 0 ? resourceId + ":" + meta : resourceId;
         if (stack != null) {
-            String fallbackItemId = meta != 0 ? resourceId + ":" + meta : resourceId;
-            exportedItem = GuideSiteItemSupport.export(null, stack, itemIconResolver, fallbackItemId);
+            exportedItem = GuideSiteItemSupport.export(null, stack, itemIconResolver, itemId);
             displayName = exportedItem.displayName();
             templateId = createTooltipTemplate(new ItemTooltip(stack), templates, currentPageId);
         } else {
-            String itemId = meta != 0 ? resourceId + ":" + meta : resourceId;
             exportedItem = GuideSiteItemSupport.unresolved(itemId);
             displayName = exportedItem.displayName();
             templateId = createTextTooltipTemplate(itemId, templates, currentPageId);
@@ -1026,7 +1025,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             classes.append(" guide-tooltip");
         }
         StringBuilder style = new StringBuilder();
-        if (scale != null && scale.floatValue() > 0f && scale.floatValue() != 1.0f) {
+        if (scale != null && scale > 0f && scale != 1.0f) {
             style.append("font-size:")
                 .append(scale)
                 .append("em;");
@@ -1149,7 +1148,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return null;
         }
         try {
-            return Float.valueOf(Float.parseFloat(raw));
+            return Float.parseFloat(raw);
         } catch (NumberFormatException ignored) {
             return null;
         }

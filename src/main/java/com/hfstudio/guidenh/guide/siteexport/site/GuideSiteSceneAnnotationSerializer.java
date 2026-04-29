@@ -82,8 +82,8 @@ public final class GuideSiteSceneAnnotationSerializer {
     public static AnnotationPayload serialize(LytGuidebookScene scene, GuideSiteTemplateRegistry templates,
         @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
-        List<Map<String, Object>> inWorld = new ArrayList<Map<String, Object>>();
-        List<Map<String, Object>> overlay = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> inWorld = new ArrayList<>();
+        List<Map<String, Object>> overlay = new ArrayList<>();
 
         if (scene != null) {
             for (SceneAnnotation annotation : scene.getAnnotations()) {
@@ -171,7 +171,7 @@ public final class GuideSiteSceneAnnotationSerializer {
     private static Map<String, Object> serializeDiamond(DiamondAnnotation diamond, GuideSiteTemplateRegistry templates,
         @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
-        Map<String, Object> data = new LinkedHashMap<String, Object>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("type", "overlay");
         data.put("position", toVector(diamond.getPos()));
         data.put("color", toCssColor(diamond.getColor()));
@@ -191,11 +191,11 @@ public final class GuideSiteSceneAnnotationSerializer {
         boolean alwaysOnTop, @Nullable GuideTooltip tooltip, GuideSiteTemplateRegistry templates,
         @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
-        Map<String, Object> data = new LinkedHashMap<String, Object>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("type", type);
         data.put("color", toCssColor(color));
-        data.put("thickness", Float.valueOf(exportAnnotationThickness(thickness)));
-        data.put("alwaysOnTop", Boolean.valueOf(alwaysOnTop));
+        data.put("thickness", exportAnnotationThickness(thickness));
+        data.put("alwaysOnTop", alwaysOnTop);
         String templateId = createTemplateId(tooltip, templates, currentPageId, assetExporter, itemIconResolver);
         if (templateId != null) {
             data.put("contentTemplateId", templateId);
@@ -320,7 +320,7 @@ public final class GuideSiteSceneAnnotationSerializer {
             ItemStack stack = tooltip.getStack();
             GuideSiteExportedItem item = GuideSiteItemSupport.export(stack, itemIconResolver);
 
-            List<String> lines = new ArrayList<String>();
+            List<String> lines = new ArrayList<>();
             try {
                 Minecraft minecraft = Minecraft.getMinecraft();
                 if (minecraft != null) {
@@ -914,7 +914,7 @@ public final class GuideSiteSceneAnnotationSerializer {
             if (tooltip.isPresent() && tooltip.get() instanceof ItemTooltip itemTooltip) {
                 ItemStack stack = itemTooltip.getStack();
                 if (stack != null) {
-                    List<ItemStack> stacks = new ArrayList<ItemStack>(1);
+                    List<ItemStack> stacks = new ArrayList<>(1);
                     stacks.add(stack);
                     appendItemStacks(
                         html,
