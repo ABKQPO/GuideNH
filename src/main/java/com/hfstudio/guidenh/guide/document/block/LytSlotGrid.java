@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.document.block;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.item.ItemStack;
 

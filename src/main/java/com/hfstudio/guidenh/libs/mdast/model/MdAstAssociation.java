@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.libs.mdast.model;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * Represents an internal relation from one node to another.

@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.libs.micromark;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * A context object that helps w/ tokenizing markdown constructs.

@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark.html;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.libs.micromark.Token;
 

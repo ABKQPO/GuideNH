@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.io;
 import java.nio.file.Path;
 import java.util.Optional;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.entity.player.EntityPlayer;
 

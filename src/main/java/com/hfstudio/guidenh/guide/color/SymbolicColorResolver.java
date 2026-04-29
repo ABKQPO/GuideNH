@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.color;
 
 import java.util.Locale;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.util.ResourceLocation;
 

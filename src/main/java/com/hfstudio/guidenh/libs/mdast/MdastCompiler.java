@@ -9,7 +9,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.libs.mdast.model.MdAstBlockquote;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;

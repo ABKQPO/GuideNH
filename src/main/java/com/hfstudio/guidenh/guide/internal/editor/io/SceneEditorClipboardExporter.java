@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.io;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ChatComponentTranslation;

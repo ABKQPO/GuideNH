@@ -2,15 +2,13 @@ package com.hfstudio.guidenh.guide.internal.recipe;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.item.ItemStack;
 
@@ -26,56 +24,54 @@ import org.slf4j.LoggerFactory;
  * <ul>
  * <li>{@code GuiCraftingRecipe.getCraftingHandlers(String, Object...)}</li>
  * <li>{@code IRecipeHandler} drawBackground / drawForeground / numRecipes /
- * get{Ingredient,Result,Other}Stacks / getHandlerId / getRecipeName / getOverlayIdentifier /
+ * get{Ingredient,Result,Other}Stacks / getRecipeName / getOverlayIdentifier /
  * handleItemTooltip / onUpdate</li>
  * <li>{@code TemplateRecipeHandler} drawExtras / getGuiTexture</li>
  * <li>{@code PositionedStack.relx/rely/items/item}</li>
- * <li>{@code GuiRecipeTab.handlerMap} + {@code HandlerInfo.getItemStack/getWidth/getHeight/getYShift}</li>
+ * <li>{@code GuiRecipeTab.handlerMap} + {@code HandlerInfo.getItemStack/getWidth/getHeight}</li>
  * </ul>
  */
 public class NeiRecipeLookup {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NeiRecipeLookup.class);
+    public static final Logger LOG = LoggerFactory.getLogger(NeiRecipeLookup.class);
 
-    private static final boolean AVAILABLE;
-    private static final @Nullable Method GET_CRAFTING_HANDLERS;
-    private static final @Nullable Method GET_USAGE_HANDLERS;
-    private static final @Nullable Method H_NUM_RECIPES;
-    private static final @Nullable Method H_GET_INGREDIENTS;
-    private static final @Nullable Method H_GET_RESULT;
-    private static final @Nullable Method H_GET_OTHERS;
-    private static final @Nullable Method H_GET_HANDLER_ID;
-    private static final @Nullable Method H_GET_RECIPE_NAME;
-    private static final @Nullable Method H_DRAW_BACKGROUND;
-    private static final @Nullable Method H_DRAW_FOREGROUND;
-    private static final @Nullable Method H_ON_UPDATE;
-    private static final @Nullable Method H_GET_RECIPE_HEIGHT;
-    private static final @Nullable Method H_GET_OVERLAY_IDENTIFIER;
-    private static final @Nullable Method H_HANDLE_ITEM_TOOLTIP;
-    private static final @Nullable Method TMPL_DRAW_EXTRAS;
-    private static final @Nullable Method TMPL_FIND_FUELS_ONCE;
-    private static final @Nullable Method TMPL_GET_GUI_TEXTURE;
-    private static final @Nullable Field PS_RELX;
-    private static final @Nullable Field PS_RELY;
-    private static final @Nullable Field PS_ITEMS;
-    private static final @Nullable Field PS_ITEM;
-    private static final @Nullable Field TAB_HANDLER_MAP;
-    private static final @Nullable Method INFO_GET_ITEMSTACK;
-    private static final @Nullable Method INFO_GET_IMAGE;
-    private static final @Nullable Method INFO_GET_WIDTH;
-    private static final @Nullable Method INFO_GET_HEIGHT;
-    private static final @Nullable Method INFO_GET_Y_SHIFT;
-    private static final @Nullable Method DRAWABLE_GET_WIDTH;
-    private static final @Nullable Method DRAWABLE_GET_HEIGHT;
-    private static final @Nullable Method DRAWABLE_DRAW;
-    private static final @Nullable Class<?> CLASS_GUI_RECIPE;
-    private static final @Nullable Class<?> CLASS_TEMPLATE_HANDLER;
+    public static final boolean AVAILABLE;
+    public static final @Nullable Method GET_CRAFTING_HANDLERS;
+    public static final @Nullable Method GET_USAGE_HANDLERS;
+    public static final @Nullable Method H_NUM_RECIPES;
+    public static final @Nullable Method H_GET_INGREDIENTS;
+    public static final @Nullable Method H_GET_RESULT;
+    public static final @Nullable Method H_GET_OTHERS;
+    public static final @Nullable Method H_GET_RECIPE_NAME;
+    public static final @Nullable Method H_DRAW_BACKGROUND;
+    public static final @Nullable Method H_DRAW_FOREGROUND;
+    public static final @Nullable Method H_ON_UPDATE;
+    public static final @Nullable Method H_GET_RECIPE_HEIGHT;
+    public static final @Nullable Method H_GET_OVERLAY_IDENTIFIER;
+    public static final @Nullable Method H_HANDLE_ITEM_TOOLTIP;
+    public static final @Nullable Method TMPL_DRAW_EXTRAS;
+    public static final @Nullable Method TMPL_GET_GUI_TEXTURE;
+    public static final @Nullable Field PS_RELX;
+    public static final @Nullable Field PS_RELY;
+    public static final @Nullable Field PS_ITEMS;
+    public static final @Nullable Field PS_ITEM;
+    public static final @Nullable Field TAB_HANDLER_MAP;
+    public static final @Nullable Method INFO_GET_ITEMSTACK;
+    public static final @Nullable Method INFO_GET_IMAGE;
+    public static final @Nullable Method INFO_GET_WIDTH;
+    public static final @Nullable Method INFO_GET_HEIGHT;
+    public static final @Nullable Method INFO_GET_Y_SHIFT;
+    public static final @Nullable Method DRAWABLE_GET_WIDTH;
+    public static final @Nullable Method DRAWABLE_GET_HEIGHT;
+    public static final @Nullable Method DRAWABLE_DRAW;
+    public static final @Nullable Class<?> CLASS_GUI_RECIPE;
+    public static final @Nullable Class<?> CLASS_TEMPLATE_HANDLER;
 
     static {
-        Method gch = null, guh = null, nr = null, gi = null, gr = null, go = null, ghd = null, grn = null;
+        Method gch = null, guh = null, nr = null, gi = null, gr = null, go = null, grn = null;
         Method drawBg = null, drawFg = null, onUp = null, getRecipeHeight = null, getOverlay = null,
             handleItemTt = null;
-        Method drawExtras = null, findFuelsOnce = null, getGuiTexture = null;
+        Method drawExtras = null, getGuiTexture = null;
         Method infoGetStack = null, infoGetImage = null, infoGetW = null, infoGetH = null, infoGetYShift = null;
         Method drawableGetW = null, drawableGetH = null, drawableDraw = null;
         Field prx = null, pry = null, pits = null, pit = null, handlerMap = null;
@@ -106,7 +102,6 @@ public class NeiRecipeLookup {
             gi = recipeHandler.getMethod("getIngredientStacks", int.class);
             gr = recipeHandler.getMethod("getResultStack", int.class);
             go = recipeHandler.getMethod("getOtherStacks", int.class);
-            ghd = recipeHandler.getMethod("getHandlerId");
             grn = recipeHandler.getMethod("getRecipeName");
             drawBg = recipeHandler.getMethod("drawBackground", int.class);
             drawFg = recipeHandler.getMethod("drawForeground", int.class);
@@ -117,7 +112,6 @@ public class NeiRecipeLookup {
                 .getMethod("handleItemTooltip", guiRecipe, ItemStack.class, List.class, int.class);
 
             drawExtras = templateHandler.getMethod("drawExtras", int.class);
-            findFuelsOnce = templateHandler.getMethod("findFuelsOnce");
             getGuiTexture = templateHandler.getMethod("getGuiTexture");
 
             prx = positioned.getField("relx");
@@ -157,7 +151,6 @@ public class NeiRecipeLookup {
         H_GET_INGREDIENTS = gi;
         H_GET_RESULT = gr;
         H_GET_OTHERS = go;
-        H_GET_HANDLER_ID = ghd;
         H_GET_RECIPE_NAME = grn;
         H_DRAW_BACKGROUND = drawBg;
         H_DRAW_FOREGROUND = drawFg;
@@ -166,7 +159,6 @@ public class NeiRecipeLookup {
         H_GET_OVERLAY_IDENTIFIER = getOverlay;
         H_HANDLE_ITEM_TOOLTIP = handleItemTt;
         TMPL_DRAW_EXTRAS = drawExtras;
-        TMPL_FIND_FUELS_ONCE = findFuelsOnce;
         TMPL_GET_GUI_TEXTURE = getGuiTexture;
         PS_RELX = prx;
         PS_RELY = pry;
@@ -295,16 +287,6 @@ public class NeiRecipeLookup {
         }
     }
 
-    private static @Nullable String lookupHandlerId(Object handler) {
-        if (!AVAILABLE || handler == null || H_GET_HANDLER_ID == null) return null;
-        try {
-            Object v = H_GET_HANDLER_ID.invoke(handler);
-            return v == null ? null : v.toString();
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
     public static @Nullable String lookupOverlayIdentifier(Object handler) {
         if (!AVAILABLE || handler == null || H_GET_OVERLAY_IDENTIFIER == null) return null;
         try {
@@ -315,7 +297,7 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** Reflective access to {@code GuiRecipeTab.getHandlerInfo(handler).getItemStack()}. */
+    /** Reflective access to {@code GuiRecipeTab.handlerMap.get(handlerClassName).getItemStack()}. */
     public static @Nullable ItemStack lookupHandlerIcon(Object handler) {
         if (!AVAILABLE || handler == null || TAB_HANDLER_MAP == null || INFO_GET_ITEMSTACK == null) return null;
         try {
@@ -402,7 +384,7 @@ public class NeiRecipeLookup {
         }
     }
 
-    private static int lookupHandlerDimension(Object handler, @Nullable Method getter, int fallback) {
+    public static int lookupHandlerDimension(Object handler, @Nullable Method getter, int fallback) {
         if (!AVAILABLE || handler == null || getter == null || TAB_HANDLER_MAP == null) return fallback;
         try {
             Object info = lookupHandlerInfo(handler);
@@ -415,31 +397,18 @@ public class NeiRecipeLookup {
     }
 
     @SuppressWarnings("unchecked")
-    private static @Nullable Object lookupHandlerInfo(Object handler) throws IllegalAccessException {
+    public static @Nullable Object lookupHandlerInfo(Object handler) throws IllegalAccessException {
         if (TAB_HANDLER_MAP == null) return null;
         Object rawMap = TAB_HANDLER_MAP.get(null);
         if (!(rawMap instanceof Map)) return null;
         Map<String, Object> map = (Map<String, Object>) rawMap;
-        return resolveHandlerInfo(
-            map,
-            lookupHandlerId(handler),
-            lookupOverlayIdentifier(handler),
-            handler.getClass()
-                .getName(),
+        String className = handler.getClass()
+            .getName();
+        Object info = map.get(className);
+        if (info != null) return info;
+        return map.get(
             handler.getClass()
                 .getSimpleName());
-    }
-
-    private static @Nullable Object resolveHandlerInfo(Map<String, Object> handlerMap, @Nullable String handlerId,
-        @Nullable String overlayId, String className, String simpleName) {
-        Object info = handlerId == null ? null : handlerMap.get(handlerId);
-        if (info != null) return info;
-        info = overlayId == null ? null : handlerMap.get(overlayId);
-        if (info != null) return info;
-        // Fallback for older/local tests that still key HandlerInfo by handler class name.
-        info = handlerMap.get(className);
-        if (info != null) return info;
-        return handlerMap.get(simpleName);
     }
 
     public static void callOnUpdate(Object handler) {
@@ -498,7 +467,6 @@ public class NeiRecipeLookup {
 
     public static List<Slot> readOtherSlots(Object handler, int recipeIndex) {
         if (!AVAILABLE || handler == null || H_GET_OTHERS == null) return Collections.emptyList();
-        if (shouldSkipOtherSlotLookup(handler)) return Collections.emptyList();
         try {
             return readSlotList(H_GET_OTHERS.invoke(handler, recipeIndex));
         } catch (Throwable t) {
@@ -516,7 +484,7 @@ public class NeiRecipeLookup {
     }
 
     @SuppressWarnings("unchecked")
-    private static List<Entry> queryHandlers(Method lookupMethod, String kind, Object[] args) {
+    public static List<Entry> queryHandlers(Method lookupMethod, String kind, Object[] args) {
         if (lookupMethod == null) return Collections.emptyList();
         try {
             Object handlers = lookupMethod.invoke(null, kind, args);
@@ -534,18 +502,18 @@ public class NeiRecipeLookup {
         }
     }
 
-    private static @Nullable Entry[] readHandler(Object handler) {
+    public static @Nullable Entry[] readHandler(Object handler) {
         try {
             int n = (int) H_NUM_RECIPES.invoke(handler);
             if (n <= 0) return new Entry[0];
             String recipeName = safeString(H_GET_RECIPE_NAME.invoke(handler));
             String handlerName = handler.getClass()
                 .getSimpleName();
-                Entry[] out = new Entry[n];
+            Entry[] out = new Entry[n];
             for (int i = 0; i < n; i++) {
-                List<Slot> ing = readIngredientSlots(handler, i);
-                List<Slot> oth = readOtherSlots(handler, i);
-                Slot res = readResultSlot(handler, i);
+                List<Slot> ing = readSlotList(H_GET_INGREDIENTS.invoke(handler, i));
+                List<Slot> oth = readSlotList(H_GET_OTHERS.invoke(handler, i));
+                Slot res = readSlot(H_GET_RESULT.invoke(handler, i));
                 out[i] = new Entry(handlerName, recipeName, ing, oth, res);
             }
             return out;
@@ -556,7 +524,7 @@ public class NeiRecipeLookup {
     }
 
     @SuppressWarnings("unchecked")
-    private static List<Slot> readSlotList(Object obj) {
+    public static List<Slot> readSlotList(Object obj) {
         if (!(obj instanceof List)) return Collections.emptyList();
         List<Slot> out = new ArrayList<>();
         for (Object ps : (List<Object>) obj) {
@@ -566,7 +534,7 @@ public class NeiRecipeLookup {
         return out;
     }
 
-    private static @Nullable Slot readSlot(@Nullable Object ps) {
+    public static @Nullable Slot readSlot(@Nullable Object ps) {
         if (ps == null) return null;
         try {
             int relx = PS_RELX.getInt(ps);
@@ -589,50 +557,7 @@ public class NeiRecipeLookup {
         }
     }
 
-    private static boolean shouldSkipOtherSlotLookup(Object handler) {
-        if (!isFurnaceRecipeHandler(handler)) return false;
-        ensureFurnaceFuelCacheInitialized();
-        return isStaticCollectionFieldEmpty(handler.getClass(), "afuels");
-    }
-
-    private static boolean isFurnaceRecipeHandler(Object handler) {
-        if (handler == null) return false;
-        for (Class<?> type = handler.getClass(); type != null; type = type.getSuperclass()) {
-            if ("FurnaceRecipeHandler".equals(type.getSimpleName())) return true;
-        }
-        return false;
-    }
-
-    private static void ensureFurnaceFuelCacheInitialized() {
-        if (TMPL_FIND_FUELS_ONCE == null) return;
-        try {
-            TMPL_FIND_FUELS_ONCE.invoke(null);
-        } catch (Throwable ignored) {}
-    }
-
-    private static boolean isStaticCollectionFieldEmpty(Class<?> type, String fieldName) {
-        Field field = findFieldInHierarchy(type, fieldName);
-        if (field == null || !Modifier.isStatic(field.getModifiers())) return false;
-        try {
-            field.setAccessible(true);
-            Object value = field.get(null);
-            if (value == null) return true;
-            return value instanceof Collection<?> collection && collection.isEmpty();
-        } catch (Throwable t) {
-            return false;
-        }
-    }
-
-    private static @Nullable Field findFieldInHierarchy(Class<?> type, String fieldName) {
-        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
-            try {
-                return current.getDeclaredField(fieldName);
-            } catch (NoSuchFieldException ignored) {}
-        }
-        return null;
-    }
-
-    private static String safeString(@Nullable Object o) {
+    public static String safeString(@Nullable Object o) {
         return o == null ? "" : o.toString();
     }
 }

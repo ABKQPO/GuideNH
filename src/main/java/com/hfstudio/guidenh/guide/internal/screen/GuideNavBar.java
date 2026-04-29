@@ -6,7 +6,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;

@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.libs.mdast.model;
 
 import java.io.IOException;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.google.gson.stream.JsonWriter;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;

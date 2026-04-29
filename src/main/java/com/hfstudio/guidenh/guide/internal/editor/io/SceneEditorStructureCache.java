@@ -8,7 +8,7 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 

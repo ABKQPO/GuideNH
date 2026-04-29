@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.document.flow;
 
 import java.util.Optional;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;

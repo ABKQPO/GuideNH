@@ -4,7 +4,7 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;

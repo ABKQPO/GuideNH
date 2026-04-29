@@ -5,7 +5,7 @@ import java.net.URLEncoder;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.libs.micromark.CharUtil;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;

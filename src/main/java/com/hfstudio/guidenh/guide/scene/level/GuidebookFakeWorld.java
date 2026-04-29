@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -23,8 +23,6 @@ import net.minecraft.world.WorldSettings;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.util.ForgeDirection;
-
-import com.hfstudio.guidenh.guide.internal.scene.GuidebookStandalonePreviewContext;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -54,15 +52,16 @@ public class GuidebookFakeWorld extends WorldClient {
             new Profiler());
         this.level = level;
         this.isRemote = true;
-        if (Minecraft.getMinecraft()
-            .getNetHandler() == null) {
-            GuidebookStandalonePreviewContext.resolveNetHandler(Minecraft.getMinecraft(), this);
-        }
         registerOptionalDummyWorldIntegrations();
     }
 
     public static NetHandlerPlayClient resolveNetHandler() {
-        return GuidebookStandalonePreviewContext.resolveNetHandler(Minecraft.getMinecraft());
+        var netHandler = Minecraft.getMinecraft()
+            .getNetHandler();
+        if (netHandler == null) {
+            throw new IllegalStateException("Guidebook preview requires an active client world");
+        }
+        return netHandler;
     }
 
     public static int resolveDimensionId() {

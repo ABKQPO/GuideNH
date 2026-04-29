@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.preview;
 
 import java.util.UUID;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import org.joml.Vector3f;
 

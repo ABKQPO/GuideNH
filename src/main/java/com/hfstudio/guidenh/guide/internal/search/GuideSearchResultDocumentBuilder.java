@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.search;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePageIcon;

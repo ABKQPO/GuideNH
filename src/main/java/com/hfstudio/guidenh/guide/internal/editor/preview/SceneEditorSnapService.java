@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.util.AxisAlignedBB;

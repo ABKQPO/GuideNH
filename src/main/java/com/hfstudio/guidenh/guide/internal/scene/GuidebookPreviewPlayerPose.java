@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.scene;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import org.joml.Vector3f;
 

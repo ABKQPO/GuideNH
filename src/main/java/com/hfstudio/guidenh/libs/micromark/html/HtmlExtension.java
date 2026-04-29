@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.libs.micromark.html;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.libs.micromark.Token;
 

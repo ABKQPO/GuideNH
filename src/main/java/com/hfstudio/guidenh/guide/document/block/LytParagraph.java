@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContainer;

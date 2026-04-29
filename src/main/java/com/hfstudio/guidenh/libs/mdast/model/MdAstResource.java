@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.libs.mdast.model;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * A reference to a resource.

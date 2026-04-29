@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.structure;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;

@@ -91,7 +91,10 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
     }
 
     public static GuidebookPreviewPlayer getOrCreatePreviewPlayer(Minecraft minecraft, WorldClient world) {
-        NetHandlerPlayClient netHandler = GuidebookStandalonePreviewContext.resolveNetHandler(minecraft, world);
+        NetHandlerPlayClient netHandler = minecraft.getNetHandler();
+        if (netHandler == null) {
+            throw new IllegalStateException("Guidebook preview requires an active client world");
+        }
         if (cachedPreviewPlayer == null || cachedNetHandler != netHandler) {
             cachedPreviewPlayer = new GuidebookPreviewPlayer(minecraft, world, netHandler);
             cachedNetHandler = netHandler;

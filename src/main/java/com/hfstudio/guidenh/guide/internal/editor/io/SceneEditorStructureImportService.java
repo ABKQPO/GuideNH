@@ -14,7 +14,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 

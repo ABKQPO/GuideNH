@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.libs.unist;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * A syntactic unit in unist syntax tree.

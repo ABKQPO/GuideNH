@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriter;
 

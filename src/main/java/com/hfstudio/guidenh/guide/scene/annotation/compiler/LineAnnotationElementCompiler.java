@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.scene.annotation.compiler;
 import java.util.Collections;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import org.joml.Vector3f;
 

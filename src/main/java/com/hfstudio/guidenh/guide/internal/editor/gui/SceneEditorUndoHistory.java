@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * Stores content-only history for the scene editor.

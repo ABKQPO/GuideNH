@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal;
 
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;

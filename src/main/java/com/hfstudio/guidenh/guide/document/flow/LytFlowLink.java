@@ -4,7 +4,7 @@ import java.awt.Desktop;
 import java.net.URI;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;

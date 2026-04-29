@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorTextSyncController.ValidationKind;

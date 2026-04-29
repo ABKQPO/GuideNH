@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.annotation.compiler;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;

@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.model;
 
 import java.util.UUID;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 public class SceneEditorSelectionState {
 

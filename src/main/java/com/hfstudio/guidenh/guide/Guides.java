@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide;
 
 import java.util.Collection;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;

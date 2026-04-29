@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.compiler;
 import java.util.Locale;
 import java.util.Stack;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;

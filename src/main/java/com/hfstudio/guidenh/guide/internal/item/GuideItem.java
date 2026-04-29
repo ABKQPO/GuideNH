@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.item;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;

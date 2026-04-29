@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.scene.support;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;

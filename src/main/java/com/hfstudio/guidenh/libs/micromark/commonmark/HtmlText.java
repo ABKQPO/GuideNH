@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.libs.micromark.commonmark;
 
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.libs.micromark.Assert;
 import com.hfstudio.guidenh.libs.micromark.CharUtil;

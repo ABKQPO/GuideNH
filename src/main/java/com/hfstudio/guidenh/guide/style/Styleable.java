@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.style;
 
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 

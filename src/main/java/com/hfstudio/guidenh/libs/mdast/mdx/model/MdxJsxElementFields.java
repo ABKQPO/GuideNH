@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.libs.mdast.mdx.model;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.unist.UnistNode;

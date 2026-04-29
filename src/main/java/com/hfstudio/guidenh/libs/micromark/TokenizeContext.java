@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.libs.micromark;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 public interface TokenizeContext {
 

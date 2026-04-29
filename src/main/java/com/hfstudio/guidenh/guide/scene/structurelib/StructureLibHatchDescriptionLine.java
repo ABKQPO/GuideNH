@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.scene.structurelib;
 
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 public class StructureLibHatchDescriptionLine {
 

@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.support;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.util.AxisAlignedBB;

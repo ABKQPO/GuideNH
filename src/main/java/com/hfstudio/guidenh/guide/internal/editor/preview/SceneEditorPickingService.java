@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.preview;
 import java.util.List;
 import java.util.UUID;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
