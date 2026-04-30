@@ -11,6 +11,8 @@ import net.minecraft.util.ReportedException;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.scene.element.GuidebookCapeControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookNameplateControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookPlayerPoseControllable;
@@ -24,10 +26,17 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class GuidebookScenePreviewPlayerEntity extends EntityOtherPlayerMP
     implements GuidebookNameplateControllable, GuidebookCapeControllable, GuidebookPlayerPoseControllable {
 
+    private static final float ADULT_PLAYER_WIDTH = 0.6F;
+    private static final float ADULT_PLAYER_HEIGHT = 1.8F;
+    private static final float BABY_SCALE = 0.5F;
+
     private boolean guidebookNameplateVisible = true;
     private boolean guidebookCapeVisible = true;
+    private boolean guidebookBaby;
     private GuidebookPreviewPlayerPose guidebookPreviewPlayerPose = GuidebookPreviewPlayerPose.DEFAULT;
     private ResourceLocation guidebookPreferredSkinLocation;
+    @Nullable
+    private Boolean guidebookSlimArms;
 
     public GuidebookScenePreviewPlayerEntity(World world, GameProfile gameProfile) {
         super(world, gameProfile);
@@ -130,11 +139,30 @@ public class GuidebookScenePreviewPlayerEntity extends EntityOtherPlayerMP
         return guidebookPreviewPlayerPose;
     }
 
+    public void setGuidebookBaby(boolean baby) {
+        this.guidebookBaby = baby;
+        updateGuidebookSize();
+    }
+
+    @Override
+    public boolean isChild() {
+        return guidebookBaby;
+    }
+
     public void setGuidebookPreferredSkinLocation(ResourceLocation skinLocation) {
         this.guidebookPreferredSkinLocation = skinLocation;
         if (skinLocation != null) {
             super.func_152121_a(Type.SKIN, skinLocation);
         }
+    }
+
+    public void setGuidebookSlimArms(@Nullable Boolean slimArms) {
+        this.guidebookSlimArms = slimArms;
+    }
+
+    @Nullable
+    public Boolean getGuidebookSlimArms() {
+        return guidebookSlimArms;
     }
 
     @Override
@@ -149,5 +177,11 @@ public class GuidebookScenePreviewPlayerEntity extends EntityOtherPlayerMP
         return guidebookPreferredSkinLocation != null && skinLoc != null
             && !guidebookPreferredSkinLocation.equals(skinLoc)
             && !GuidebookPreviewPlayerSkinResolver.isGuidebookManagedSkinLocation(skinLoc);
+    }
+
+    private void updateGuidebookSize() {
+        float scale = guidebookBaby ? BABY_SCALE : 1.0F;
+        this.setSize(ADULT_PLAYER_WIDTH * scale, ADULT_PLAYER_HEIGHT * scale);
+        this.setPosition(this.posX, this.posY, this.posZ);
     }
 }

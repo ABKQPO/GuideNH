@@ -1,10 +1,14 @@
 package com.hfstudio.guidenh.guide.scene.element;
 
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Set;
 
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.monster.EntityZombie;
 
 import org.joml.Vector3f;
 
@@ -12,6 +16,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerPose;
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -38,6 +43,7 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
         String playerUuid = MdxAttrs.getString(compiler, errorSink, el, "uuid", null);
         Boolean showName = getOptionalBoolean(compiler, errorSink, el, "showName");
         Boolean showCape = getOptionalBoolean(compiler, errorSink, el, "showCape");
+        Boolean baby = getOptionalBoolean(compiler, errorSink, el, "baby");
         Vector3f headRotation = getOptionalVector3(compiler, errorSink, el, "headRotation");
         Vector3f leftArmRotation = getOptionalVector3(compiler, errorSink, el, "leftArmRotation");
         Vector3f rightArmRotation = getOptionalVector3(compiler, errorSink, el, "rightArmRotation");
@@ -52,7 +58,7 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
             // the entity and bind it to the preview fake world on first render.
         }
 
-        net.minecraft.entity.Entity entity;
+        Entity entity;
         try {
             entity = GuidebookSceneEntityLoader.load(world, id, data, playerName, playerUuid);
         } catch (IllegalArgumentException e) {
@@ -84,15 +90,14 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
 
         if (entity instanceof GuidebookNameplateControllable nameplateControllable) {
             boolean defaultVisible = GuidebookSceneEntityLoader.isPreviewPlayerId(id);
-            nameplateControllable
-                .setGuidebookNameplateVisible(showName != null ? showName.booleanValue() : defaultVisible);
+            nameplateControllable.setGuidebookNameplateVisible(showName != null ? showName : defaultVisible);
         } else if (showName != null && entity instanceof EntityLiving living) {
-            living.setAlwaysRenderNameTag(showName.booleanValue());
+            living.setAlwaysRenderNameTag(showName);
         }
 
         if (entity instanceof GuidebookCapeControllable capeControllable) {
             boolean defaultVisible = GuidebookSceneEntityLoader.isPreviewPlayerId(id);
-            capeControllable.setGuidebookCapeVisible(showCape != null ? showCape.booleanValue() : defaultVisible);
+            capeControllable.setGuidebookCapeVisible(showCape != null ? showCape : defaultVisible);
         }
 
         if (entity instanceof GuidebookPlayerPoseControllable poseControllable) {
@@ -106,7 +111,41 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
                     capeRotation));
         }
 
+        applyBabyState(entity, baby);
         level.addEntity(entity);
+    }
+
+    public static void applyBabyState(Entity entity, Boolean baby) {
+        if (entity == null || baby == null) {
+            return;
+        }
+
+        boolean child = baby;
+        if (entity instanceof GuidebookScenePreviewPlayerEntity previewPlayer) {
+            previewPlayer.setGuidebookBaby(child);
+            return;
+        }
+
+        if (entity instanceof EntityAgeable ageable) {
+            ageable.setGrowingAge(child ? -24000 : 0);
+            realignEntityBounds(entity);
+            return;
+        }
+
+        if (entity instanceof EntityZombie zombie) {
+            zombie.setChild(child);
+            realignEntityBounds(entity);
+            return;
+        }
+
+        if (tryInvokeBooleanInstanceMethod(entity, "setChild", child)) {
+            realignEntityBounds(entity);
+            return;
+        }
+
+        if (tryInvokeBooleanInstanceMethod(entity, "setBaby", child)) {
+            realignEntityBounds(entity);
+        }
     }
 
     public static Boolean getOptionalBoolean(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
@@ -154,5 +193,20 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
             errorSink.appendError(compiler, "Malformed vector3 for " + name + ": '" + raw + "'", el);
             return null;
         }
+    }
+
+    public static boolean tryInvokeBooleanInstanceMethod(Object target, String methodName, boolean argument) {
+        try {
+            Method method = target.getClass()
+                .getMethod(methodName, Boolean.TYPE);
+            method.invoke(target, argument);
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private static void realignEntityBounds(Entity entity) {
+        entity.setPosition(entity.posX, entity.posY, entity.posZ);
     }
 }

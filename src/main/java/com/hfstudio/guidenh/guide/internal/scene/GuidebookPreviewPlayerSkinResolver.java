@@ -21,6 +21,9 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.resources.SkinManager;
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.InsecureTextureException;
@@ -40,8 +43,7 @@ public class GuidebookPreviewPlayerSkinResolver {
         .newSingleThreadExecutor(new GuidebookPreviewPlayerSkinThreadFactory());
     public static final Map<String, ResolvedPreviewPlayerSkin> RESOLVED_SKINS = new ConcurrentHashMap<>();
     public static final Map<String, List<WeakReference<GuidebookScenePreviewPlayerEntity>>> PENDING_ENTITIES = new ConcurrentHashMap<>();
-    public static final Set<String> INFLIGHT_LOOKUPS = Collections
-        .newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    public static final Set<String> INFLIGHT_LOOKUPS = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private GuidebookPreviewPlayerSkinResolver() {}
 
@@ -156,7 +158,12 @@ public class GuidebookPreviewPlayerSkinResolver {
             } catch (Throwable ignored) {}
         }
 
-        return new ResolvedPreviewPlayerSkin(resolvedProfile, textures.get(Type.SKIN), textures.get(Type.CAPE));
+        MinecraftProfileTexture skinTexture = textures.get(Type.SKIN);
+        return new ResolvedPreviewPlayerSkin(
+            resolvedProfile,
+            skinTexture,
+            textures.get(Type.CAPE),
+            GuidebookPreviewPlayerCompat.resolveSlimSkinModel(resolvedProfile, skinTexture));
     }
 
     public static void applyResolvedSkin(GuidebookScenePreviewPlayerEntity entity,
@@ -166,6 +173,7 @@ public class GuidebookPreviewPlayerSkinResolver {
         if (resolvedSkin.skinTexture != null) {
             entity.setGuidebookPreferredSkinLocation(loadPreviewSkinTexture(resolvedSkin.skinTexture));
         }
+        entity.setGuidebookSlimArms(resolvedSkin.slimArms);
         if (resolvedSkin.capeTexture != null) {
             ResourceLocation capeLocation = skinManager.func_152789_a(resolvedSkin.capeTexture, Type.CAPE, entity);
             entity.func_152121_a(Type.CAPE, capeLocation);
@@ -203,8 +211,7 @@ public class GuidebookPreviewPlayerSkinResolver {
         PENDING_ENTITIES.compute(cacheKey, (ignored, existing) -> {
             List<WeakReference<GuidebookScenePreviewPlayerEntity>> pending = existing;
             if (pending == null) {
-                pending = Collections
-                    .synchronizedList(new ArrayList<WeakReference<GuidebookScenePreviewPlayerEntity>>());
+                pending = Collections.synchronizedList(new ArrayList<>());
             }
             pending.add(new WeakReference<>(entity));
             return pending;
@@ -274,12 +281,15 @@ public class GuidebookPreviewPlayerSkinResolver {
         private final GameProfile profile;
         private final MinecraftProfileTexture skinTexture;
         private final MinecraftProfileTexture capeTexture;
+        @Nullable
+        private final Boolean slimArms;
 
         private ResolvedPreviewPlayerSkin(GameProfile profile, MinecraftProfileTexture skinTexture,
-            MinecraftProfileTexture capeTexture) {
+            MinecraftProfileTexture capeTexture, @Nullable Boolean slimArms) {
             this.profile = profile;
             this.skinTexture = skinTexture;
             this.capeTexture = capeTexture;
+            this.slimArms = slimArms;
         }
 
         private boolean hasAnyTexture() {
@@ -290,7 +300,7 @@ public class GuidebookPreviewPlayerSkinResolver {
     public static final class GuidebookPreviewPlayerSkinThreadFactory implements ThreadFactory {
 
         @Override
-        public Thread newThread(Runnable runnable) {
+        public Thread newThread(@NotNull Runnable runnable) {
             Thread thread = new Thread(runnable, "GuideNH-PreviewPlayerSkin");
             thread.setDaemon(true);
             return thread;

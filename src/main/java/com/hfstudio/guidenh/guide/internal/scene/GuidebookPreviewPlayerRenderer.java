@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.scene;
 
-import java.util.UUID;
-
 import net.minecraft.block.Block;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.renderer.RenderBlocks;
@@ -31,12 +29,16 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
 
     public static final GuidebookPreviewPlayerRenderer INSTANCE = new GuidebookPreviewPlayerRenderer();
+    private final GuidebookPreviewPlayerModel wideMainModel;
+    private final GuidebookPreviewPlayerModel slimMainModel;
 
     private GuidebookPreviewPlayerRenderer() {
-        this.mainModel = new GuidebookPreviewPlayerModel(0.0F, true);
-        this.modelBipedMain = (GuidebookPreviewPlayerModel) this.mainModel;
-        this.modelArmorChestplate = new GuidebookPreviewPlayerModel(1.0F, false);
-        this.modelArmor = new GuidebookPreviewPlayerModel(0.5F, false);
+        this.wideMainModel = new GuidebookPreviewPlayerModel(0.0F, true, false);
+        this.slimMainModel = new GuidebookPreviewPlayerModel(0.0F, true, true);
+        this.mainModel = this.wideMainModel;
+        this.modelBipedMain = this.wideMainModel;
+        this.modelArmorChestplate = new GuidebookPreviewPlayerModel(1.0F, false, false);
+        this.modelArmor = new GuidebookPreviewPlayerModel(0.5F, false, false);
     }
 
     static void ensureRegistered() {
@@ -57,7 +59,21 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
     }
 
     @Override
+    public void doRender(AbstractClientPlayer player, double x, double y, double z, float yaw, float partialTicks) {
+        useResolvedMainModel(player);
+        super.doRender(player, x, y, z, yaw, partialTicks);
+        setActiveMainModel(this.wideMainModel);
+    }
+
+    @Override
+    protected void preRenderCallback(AbstractClientPlayer player, float partialTicks) {
+        useResolvedMainModel(player);
+        super.preRenderCallback(player, partialTicks);
+    }
+
+    @Override
     protected void renderEquippedItems(AbstractClientPlayer p_77029_1_, float p_77029_2_) {
+        useResolvedMainModel(p_77029_1_);
         net.minecraftforge.client.event.RenderPlayerEvent.Specials.Pre event = new net.minecraftforge.client.event.RenderPlayerEvent.Specials.Pre(
             p_77029_1_,
             this,
@@ -102,7 +118,7 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
                         gameprofile = NBTUtil.func_152459_a(nbttagcompound.getCompoundTag("SkullOwner"));
                     } else if (nbttagcompound.hasKey("SkullOwner", 8)
                         && !StringUtils.isNullOrEmpty(nbttagcompound.getString("SkullOwner"))) {
-                            gameprofile = new GameProfile((UUID) null, nbttagcompound.getString("SkullOwner"));
+                            gameprofile = new GameProfile(null, nbttagcompound.getString("SkullOwner"));
                         }
                 }
 
@@ -151,7 +167,7 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
 
         if (itemstack1 != null && event.renderItem) {
             GL11.glPushMatrix();
-            this.modelBipedMain.bipedRightArm.postRender(0.0625F);
+            getActivePreviewMainModel().postRenderRightArm(0.0625F);
             GL11.glTranslatef(-0.0625F, 0.4375F, 0.0625F);
 
             if (p_77029_1_.fishEntity != null) {
@@ -271,5 +287,27 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
             }
         }
         return GuidebookPreviewPlayerPose.DEFAULT;
+    }
+
+    private void useResolvedMainModel(AbstractClientPlayer player) {
+        GuidebookPreviewPlayerModel selectedModel = GuidebookPreviewPlayerCompat.shouldUseSlimArms(player)
+            ? this.slimMainModel
+            : this.wideMainModel;
+        boolean child = player.isChild();
+        selectedModel.isChild = child;
+        this.modelArmorChestplate.isChild = child;
+        this.modelArmor.isChild = child;
+        setActiveMainModel(selectedModel);
+    }
+
+    private void setActiveMainModel(GuidebookPreviewPlayerModel model) {
+        if (this.mainModel != model) {
+            this.mainModel = model;
+            this.modelBipedMain = model;
+        }
+    }
+
+    private GuidebookPreviewPlayerModel getActivePreviewMainModel() {
+        return (GuidebookPreviewPlayerModel) this.modelBipedMain;
     }
 }

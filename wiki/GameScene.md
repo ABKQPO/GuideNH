@@ -219,6 +219,7 @@ The attributes follow summon-style entity placement and SNBT data.
 | `rotationY` | no | yaw in degrees, default `-45` |
 | `rotationX` | no | pitch in degrees, default `0` |
 | `data` | no | summon-style SNBT merged into the entity NBT before spawn |
+| `baby` | no | boolean expression forcing supported entities into baby form; omitted leaves the entity's normal age/state unchanged |
 | `name` | no | preview player name when `id` is `player`, `fakeplayer`, `minecraft:player`, or `minecraft:fakeplayer` |
 | `uuid` | no | preview player UUID when using one of the player ids above |
 | `showName` | no | boolean expression controlling the preview player nameplate, default `true` for player preview ids |
@@ -234,6 +235,8 @@ Notes:
 
 - entity bounds participate in scene auto-centering and visible-layer filtering
 - entity creation falls back gracefully when the preview world is not ready yet, then binds on first render
+- `baby={true}` currently supports preview players, ageable mobs, vanilla zombies, and modded entities that expose stable `setChild(boolean)` or `setBaby(boolean)` style APIs
+- child-state entities are re-aligned to their current position after resizing so hover and pick bounds stay centered on the rendered model
 - player preview ids create a client-side fake remote player so the normal player renderer and skin pipeline can be used
 - when both `name` and `uuid` are omitted for a player preview, GuideNH falls back to `Steve` and the vanilla default skin
 - when only `name` is given for a player preview, GuideNH first tries to resolve the real online profile so skins and capes can load; if lookup fails, it falls back to a stable offline UUID
@@ -251,6 +254,16 @@ Example:
 <GameScene zoom={4} interactive={true}>
   <Block id="minecraft:grass" />
   <Entity id="minecraft:sheep" y="1" data="{Color:2}" />
+</GameScene>
+````
+
+Baby entity example:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="minecraft:sheep" y="1" baby={true} data="{Color:14}" />
+  <Entity id="minecraft:zombie" x="1.5" y="1" baby={true} />
 </GameScene>
 ````
 

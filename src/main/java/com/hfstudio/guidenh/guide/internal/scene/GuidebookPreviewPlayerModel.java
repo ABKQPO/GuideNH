@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.scene;
 
 import net.minecraft.client.model.ModelBiped;
+import net.minecraft.client.model.ModelRenderer;
 import net.minecraft.entity.Entity;
 
 import org.joml.Vector3f;
@@ -17,15 +18,30 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
     private static final int PLAYER_TEXTURE_WIDTH = 64;
     private static final int LEGACY_TEXTURE_HEIGHT = 32;
     private static final int MODERN_TEXTURE_HEIGHT = 64;
+    public final boolean smallArms;
+    public ModelRenderer bipedLeftArmwear;
+    public ModelRenderer bipedRightArmwear;
+    public ModelRenderer bipedLeftLegwear;
+    public ModelRenderer bipedRightLegwear;
+    public ModelRenderer bipedBodyWear;
 
     GuidebookPreviewPlayerModel(float modelSize) {
-        this(modelSize, true);
+        this(modelSize, true, false);
     }
 
     GuidebookPreviewPlayerModel(float modelSize, boolean modernSkinLayout) {
-        super(modelSize, 0.0F, PLAYER_TEXTURE_WIDTH, modernSkinLayout ? MODERN_TEXTURE_HEIGHT : LEGACY_TEXTURE_HEIGHT);
+        this(modelSize, modernSkinLayout, false);
+    }
+
+    GuidebookPreviewPlayerModel(float modelSize, boolean modernSkinLayout, boolean smallArms) {
+        super(modelSize, 0.0F, PLAYER_TEXTURE_WIDTH, resolveBaseTextureHeight(modernSkinLayout));
+        this.smallArms = smallArms;
         if (modernSkinLayout) {
-            rebuildModernSkinLimbs(modelSize);
+            if (GuidebookPreviewPlayerCompat.tryInitializeSimpleSkinBackport64xModel(this)) {
+                return;
+            }
+
+            rebuildModernSkinModel(modelSize, smallArms);
         }
     }
 
@@ -53,7 +69,7 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
         applyRotationOverride(this.bipedRightLeg, pose.getRightLegRotationDegrees());
     }
 
-    public static void applyRotationOverride(net.minecraft.client.model.ModelRenderer renderer, Vector3f degrees) {
+    public static void applyRotationOverride(ModelRenderer renderer, Vector3f degrees) {
         if (degrees == null) {
             return;
         }
@@ -62,15 +78,81 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
         renderer.rotateAngleZ = degrees.z * DEGREES_TO_RADIANS;
     }
 
-    private void rebuildModernSkinLimbs(float modelSize) {
-        this.bipedLeftArm = new net.minecraft.client.model.ModelRenderer(this, 32, 48);
-        this.bipedLeftArm.mirror = true;
-        this.bipedLeftArm.addBox(-1.0F, -2.0F, -2.0F, 4, 12, 4, modelSize);
-        this.bipedLeftArm.setRotationPoint(5.0F, 2.0F, 0.0F);
+    public void postRenderRightArm(float scale) {
+        if (smallArms) {
+            ++this.bipedRightArm.rotationPointX;
+            this.bipedRightArm.postRender(scale);
+            --this.bipedRightArm.rotationPointX;
+            return;
+        }
 
-        this.bipedLeftLeg = new net.minecraft.client.model.ModelRenderer(this, 16, 48);
+        this.bipedRightArm.postRender(scale);
+    }
+
+    private static int resolveBaseTextureHeight(boolean modernSkinLayout) {
+        return modernSkinLayout && !GuidebookPreviewPlayerCompat.isSimpleSkinBackportAvailable() ? MODERN_TEXTURE_HEIGHT
+            : LEGACY_TEXTURE_HEIGHT;
+    }
+
+    private void rebuildModernSkinModel(float modelSize, boolean smallArms) {
+        this.bipedCloak = new ModelRenderer(this, 0, 0);
+        this.bipedCloak.setTextureSize(64, 32);
+        this.bipedCloak.addBox(-5.0F, 0.0F, -1.0F, 10, 16, 1, modelSize);
+
+        if (smallArms) {
+            this.bipedLeftArm = new ModelRenderer(this, 32, 48);
+            this.bipedLeftArm.mirror = true;
+            this.bipedLeftArm.addBox(-1.0F, -2.0F, -2.0F, 3, 12, 4, modelSize);
+            this.bipedLeftArm.setRotationPoint(5.0F, 2.5F, 0.0F);
+
+            this.bipedRightArm = new ModelRenderer(this, 40, 16);
+            this.bipedRightArm.addBox(-2.0F, -2.0F, -2.0F, 3, 12, 4, modelSize);
+            this.bipedRightArm.setRotationPoint(-5.0F, 2.5F, 0.0F);
+
+            this.bipedLeftArmwear = new ModelRenderer(this, 48, 48);
+            this.bipedLeftArmwear.mirror = true;
+            this.bipedLeftArmwear.addBox(-1.0F, -2.0F, -2.0F, 3, 12, 4, modelSize + 0.25F);
+            this.bipedLeftArm.addChild(this.bipedLeftArmwear);
+
+            this.bipedRightArmwear = new ModelRenderer(this, 40, 32);
+            this.bipedRightArmwear.addBox(-2.0F, -2.0F, -2.0F, 3, 12, 4, modelSize + 0.25F);
+            this.bipedRightArm.addChild(this.bipedRightArmwear);
+        } else {
+            this.bipedLeftArm = new ModelRenderer(this, 32, 48);
+            this.bipedLeftArm.mirror = true;
+            this.bipedLeftArm.addBox(-1.0F, -2.0F, -2.0F, 4, 12, 4, modelSize);
+            this.bipedLeftArm.setRotationPoint(5.0F, 2.0F, 0.0F);
+
+            this.bipedRightArm = new ModelRenderer(this, 40, 16);
+            this.bipedRightArm.addBox(-3.0F, -2.0F, -2.0F, 4, 12, 4, modelSize);
+            this.bipedRightArm.setRotationPoint(-5.0F, 2.0F, 0.0F);
+
+            this.bipedLeftArmwear = new ModelRenderer(this, 48, 48);
+            this.bipedLeftArmwear.mirror = true;
+            this.bipedLeftArmwear.addBox(-1.0F, -2.0F, -2.0F, 4, 12, 4, modelSize + 0.25F);
+            this.bipedLeftArm.addChild(this.bipedLeftArmwear);
+
+            this.bipedRightArmwear = new ModelRenderer(this, 40, 32);
+            this.bipedRightArmwear.addBox(-3.0F, -2.0F, -2.0F, 4, 12, 4, modelSize + 0.25F);
+            this.bipedRightArm.addChild(this.bipedRightArmwear);
+        }
+
+        this.bipedLeftLeg = new ModelRenderer(this, 16, 48);
         this.bipedLeftLeg.mirror = true;
         this.bipedLeftLeg.addBox(-2.0F, 0.0F, -2.0F, 4, 12, 4, modelSize);
         this.bipedLeftLeg.setRotationPoint(1.9F, 12.0F, 0.0F);
+
+        this.bipedLeftLegwear = new ModelRenderer(this, 0, 48);
+        this.bipedLeftLegwear.mirror = true;
+        this.bipedLeftLegwear.addBox(-2.0F, 0.0F, -2.0F, 4, 12, 4, modelSize + 0.25F);
+        this.bipedLeftLeg.addChild(this.bipedLeftLegwear);
+
+        this.bipedRightLegwear = new ModelRenderer(this, 0, 32);
+        this.bipedRightLegwear.addBox(-2.0F, 0.0F, -2.0F, 4, 12, 4, modelSize + 0.25F);
+        this.bipedRightLeg.addChild(this.bipedRightLegwear);
+
+        this.bipedBodyWear = new ModelRenderer(this, 16, 32);
+        this.bipedBodyWear.addBox(-4.0F, 0.0F, -2.0F, 8, 12, 4, modelSize + 0.25F);
+        this.bipedBody.addChild(this.bipedBodyWear);
     }
 }
