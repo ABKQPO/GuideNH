@@ -77,6 +77,7 @@ import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapModes;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
+import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipRenderSupport;
 import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -1245,12 +1246,7 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void renderPreviewGuideTooltip(GuideTooltip tooltip, int mouseX, int mouseY) {
         if (tooltip instanceof ItemTooltip itemTooltip) {
-            ItemStack stack = itemTooltip.getStack();
-            if (stack == null || stack.stackSize == 0) {
-                return;
-            }
-            List<String> lines = GuideItemTooltipLines.build(itemTooltip, mc);
-            drawHoveringText(lines, mouseX, mouseY, mc.fontRenderer);
+            renderPreviewItemTooltip(itemTooltip, mouseX, mouseY);
             return;
         }
 
@@ -1262,6 +1258,22 @@ public class SceneEditorScreen extends GuiScreen {
         if (tooltip instanceof ContentTooltip contentTooltip) {
             drawPreviewContentTooltip(contentTooltip, mouseX, mouseY);
         }
+    }
+
+    private void renderPreviewItemTooltip(ItemTooltip tooltip, int mouseX, int mouseY) {
+        ItemStack stack = tooltip.getStack();
+        if (stack == null || stack.stackSize == 0) {
+            return;
+        }
+
+        if (GuideItemTooltipRenderSupport.shouldUseVanillaRenderer(tooltip)) {
+            renderToolTip(stack, mouseX, mouseY);
+            return;
+        }
+
+        List<String> lines = GuideItemTooltipLines.build(tooltip, mc);
+        FontRenderer font = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
+        drawHoveringText(lines, mouseX, mouseY, font);
     }
 
     private void drawPreviewContentTooltip(ContentTooltip tooltip, int mouseX, int mouseY) {
