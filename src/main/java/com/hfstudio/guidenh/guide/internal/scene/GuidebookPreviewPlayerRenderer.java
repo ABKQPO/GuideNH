@@ -29,6 +29,11 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
 
     public static final GuidebookPreviewPlayerRenderer INSTANCE = new GuidebookPreviewPlayerRenderer();
+    private static final int CHEST_ARMOR_SLOT = 2;
+    private static final int CHEST_RENDER_PASS = 1;
+    private static final float MODEL_RENDER_SCALE = 0.0625F;
+    private static final float CHILD_BODY_SCALE = 0.5F;
+    private static final float CHILD_BODY_TRANSLATE_Y = 24.0F * MODEL_RENDER_SCALE;
     private final GuidebookPreviewPlayerModel wideMainModel;
     private final GuidebookPreviewPlayerModel slimMainModel;
 
@@ -72,6 +77,22 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
     }
 
     @Override
+    protected int shouldRenderPass(AbstractClientPlayer player, int pass, float partialTicks) {
+        useResolvedMainModel(player);
+        if (!shouldSuppressEtFuturumElytraAutoRender(player, pass)) {
+            return super.shouldRenderPass(player, pass, partialTicks);
+        }
+
+        ItemStack chestItem = player.inventory.armorItemInSlot(CHEST_ARMOR_SLOT);
+        player.inventory.armorInventory[CHEST_ARMOR_SLOT] = null;
+        try {
+            return super.shouldRenderPass(player, pass, partialTicks);
+        } finally {
+            player.inventory.armorInventory[CHEST_ARMOR_SLOT] = chestItem;
+        }
+    }
+
+    @Override
     protected void renderEquippedItems(AbstractClientPlayer p_77029_1_, float p_77029_2_) {
         useResolvedMainModel(p_77029_1_);
         net.minecraftforge.client.event.RenderPlayerEvent.Specials.Pre event = new net.minecraftforge.client.event.RenderPlayerEvent.Specials.Pre(
@@ -82,6 +103,8 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
         GL11.glColor3f(1.0F, 1.0F, 1.0F);
         super.renderArrowsStuckInEntity(p_77029_1_, p_77029_2_);
         ItemStack itemstack = p_77029_1_.inventory.armorItemInSlot(3);
+        ItemStack chestItem = p_77029_1_.inventory.armorItemInSlot(CHEST_ARMOR_SLOT);
+        boolean hasEtFuturumElytra = GuidebookPreviewPlayerCompat.isEtFuturumElytraStack(chestItem);
 
         if (itemstack != null && event.renderHelmet) {
             GL11.glPushMatrix();
@@ -159,8 +182,12 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
         boolean flag = p_77029_1_.func_152122_n();
         flag = event.renderCape && flag;
 
-        if (flag && !p_77029_1_.isInvisible() && !p_77029_1_.getHideCape()) {
+        if (flag && !p_77029_1_.isInvisible() && !p_77029_1_.getHideCape() && !hasEtFuturumElytra) {
             renderPreviewCape(p_77029_1_);
+        }
+
+        if (hasEtFuturumElytra) {
+            renderPreviewEtFuturumElytra(p_77029_1_, p_77029_2_);
         }
 
         ItemStack itemstack1 = p_77029_1_.inventory.getCurrentItem();
@@ -269,13 +296,17 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
     private void renderPreviewCape(AbstractClientPlayer player) {
         this.bindTexture(player.getLocationCape());
         GL11.glPushMatrix();
+        if (player.isChild()) {
+            GL11.glScalef(CHILD_BODY_SCALE, CHILD_BODY_SCALE, CHILD_BODY_SCALE);
+            GL11.glTranslatef(0.0F, CHILD_BODY_TRANSLATE_Y, 0.0F);
+        }
         GL11.glTranslatef(0.0F, 0.0F, 0.125F);
         Vector3f capeRotation = resolvePose(player).resolveCapeRotationDegrees();
         GL11.glRotatef(capeRotation.x, 1.0F, 0.0F, 0.0F);
         GL11.glRotatef(capeRotation.y, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(capeRotation.z, 0.0F, 0.0F, 1.0F);
         GL11.glRotatef(180.0F, 0.0F, 1.0F, 0.0F);
-        this.modelBipedMain.renderCloak(0.0625F);
+        this.modelBipedMain.renderCloak(MODEL_RENDER_SCALE);
         GL11.glPopMatrix();
     }
 
@@ -287,6 +318,27 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
             }
         }
         return GuidebookPreviewPlayerPose.DEFAULT;
+    }
+
+    private boolean shouldSuppressEtFuturumElytraAutoRender(AbstractClientPlayer player, int pass) {
+        return pass == CHEST_RENDER_PASS
+            && GuidebookPreviewPlayerCompat.isEtFuturumElytraStack(player.inventory.armorItemInSlot(CHEST_ARMOR_SLOT));
+    }
+
+    private void renderPreviewEtFuturumElytra(AbstractClientPlayer player, float partialTicks) {
+        GL11.glPushMatrix();
+        if (player.isChild()) {
+            GL11.glScalef(CHILD_BODY_SCALE, CHILD_BODY_SCALE, CHILD_BODY_SCALE);
+            GL11.glTranslatef(0.0F, CHILD_BODY_TRANSLATE_Y, 0.0F);
+        }
+        GuidebookPreviewPlayerCompat.tryRenderEtFuturumElytraLayer(
+            player,
+            player.limbSwing,
+            player.limbSwingAmount,
+            partialTicks,
+            player.getAge(),
+            MODEL_RENDER_SCALE);
+        GL11.glPopMatrix();
     }
 
     private void useResolvedMainModel(AbstractClientPlayer player) {

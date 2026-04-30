@@ -101,7 +101,6 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
 
         if (smallArms) {
             this.bipedLeftArm = new ModelRenderer(this, 32, 48);
-            this.bipedLeftArm.mirror = true;
             this.bipedLeftArm.addBox(-1.0F, -2.0F, -2.0F, 3, 12, 4, modelSize);
             this.bipedLeftArm.setRotationPoint(5.0F, 2.5F, 0.0F);
 
@@ -110,7 +109,6 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
             this.bipedRightArm.setRotationPoint(-5.0F, 2.5F, 0.0F);
 
             this.bipedLeftArmwear = new ModelRenderer(this, 48, 48);
-            this.bipedLeftArmwear.mirror = true;
             this.bipedLeftArmwear.addBox(-1.0F, -2.0F, -2.0F, 3, 12, 4, modelSize + 0.25F);
             this.bipedLeftArm.addChild(this.bipedLeftArmwear);
 
@@ -119,7 +117,6 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
             this.bipedRightArm.addChild(this.bipedRightArmwear);
         } else {
             this.bipedLeftArm = new ModelRenderer(this, 32, 48);
-            this.bipedLeftArm.mirror = true;
             this.bipedLeftArm.addBox(-1.0F, -2.0F, -2.0F, 4, 12, 4, modelSize);
             this.bipedLeftArm.setRotationPoint(5.0F, 2.0F, 0.0F);
 
@@ -128,7 +125,6 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
             this.bipedRightArm.setRotationPoint(-5.0F, 2.0F, 0.0F);
 
             this.bipedLeftArmwear = new ModelRenderer(this, 48, 48);
-            this.bipedLeftArmwear.mirror = true;
             this.bipedLeftArmwear.addBox(-1.0F, -2.0F, -2.0F, 4, 12, 4, modelSize + 0.25F);
             this.bipedLeftArm.addChild(this.bipedLeftArmwear);
 
@@ -138,12 +134,10 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
         }
 
         this.bipedLeftLeg = new ModelRenderer(this, 16, 48);
-        this.bipedLeftLeg.mirror = true;
         this.bipedLeftLeg.addBox(-2.0F, 0.0F, -2.0F, 4, 12, 4, modelSize);
         this.bipedLeftLeg.setRotationPoint(1.9F, 12.0F, 0.0F);
 
         this.bipedLeftLegwear = new ModelRenderer(this, 0, 48);
-        this.bipedLeftLegwear.mirror = true;
         this.bipedLeftLegwear.addBox(-2.0F, 0.0F, -2.0F, 4, 12, 4, modelSize + 0.25F);
         this.bipedLeftLeg.addChild(this.bipedLeftLegwear);
 

@@ -62,6 +62,11 @@ public class LytGuidebookScene extends LytBlock {
     public static final float MAX_ZOOM = 10f;
     public static final int SCENE_SLIDER_AREA_HEIGHT = 14;
     public static final int SCENE_SLIDER_SIDE_PADDING = 8;
+    public static final float ORIGIN_AXIS_LENGTH = 1.5f;
+    public static final float ORIGIN_AXIS_THICKNESS = 2.0f;
+    public static final int ORIGIN_X_AXIS_COLOR = 0xFFFF5A5A;
+    public static final int ORIGIN_Y_AXIS_COLOR = 0xFF67E26C;
+    public static final int ORIGIN_Z_AXIS_COLOR = 0xFF64A8FF;
     public static final ResolvedTextStyle VISIBLE_LAYER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
     public static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
@@ -82,6 +87,7 @@ public class LytGuidebookScene extends LytBlock {
     private boolean bottomControlsVisible = true;
     private boolean reserveBottomControlArea = true;
     private boolean visibleLayerSliderEnabled;
+    private boolean forceOriginAxesVisible;
 
     public static int SCENE_BG_COLOR = 0xFF0A0A10;
     public static int SCENE_BORDER_COLOR = 0xFF303040;
@@ -124,11 +130,23 @@ public class LytGuidebookScene extends LytBlock {
     private final float[] pickRayScratch = new float[6];
     private final ConstantColor hoverBoxColor = new ConstantColor(0xFFFFFFFF);
     private final ConstantColor structureLibHatchOverlayColor = new ConstantColor(0x66D9B44A);
+    private final ConstantColor originXAxisColor = new ConstantColor(ORIGIN_X_AXIS_COLOR);
+    private final ConstantColor originYAxisColor = new ConstantColor(ORIGIN_Y_AXIS_COLOR);
+    private final ConstantColor originZAxisColor = new ConstantColor(ORIGIN_Z_AXIS_COLOR);
     private final InWorldBoxAnnotation hoverBoxAnnotation = new InWorldBoxAnnotation(
         hoverBoxMin,
         hoverBoxMax,
         hoverBoxColor,
         1f);
+    private final InWorldLineAnnotation originXAxisAnnotation = createOriginAxisAnnotation(
+        new Vector3f(ORIGIN_AXIS_LENGTH, 0.0f, 0.0f),
+        originXAxisColor);
+    private final InWorldLineAnnotation originYAxisAnnotation = createOriginAxisAnnotation(
+        new Vector3f(0.0f, ORIGIN_AXIS_LENGTH, 0.0f),
+        originYAxisColor);
+    private final InWorldLineAnnotation originZAxisAnnotation = createOriginAxisAnnotation(
+        new Vector3f(0.0f, 0.0f, ORIGIN_AXIS_LENGTH),
+        originZAxisColor);
     private LytRect cachedOverlayViewport;
     private LytRect cachedScreenRect;
     private LytRect cachedSceneRect;
@@ -167,8 +185,7 @@ public class LytGuidebookScene extends LytBlock {
 
     private float[] initialCam = new float[] { 1f, 0f, 0f, 0f, 0f, 0f };
 
-    @Nullable
-    private int[] hoveredBlock;
+    private int @Nullable [] hoveredBlock;
     @Nullable
     private AxisAlignedBB hoveredBlockBounds;
     @Nullable
@@ -179,8 +196,7 @@ public class LytGuidebookScene extends LytBlock {
     private AxisAlignedBB hoveredEntityBounds;
     @Nullable
     private MovingObjectPosition hoveredEntityHitResult;
-    @Nullable
-    private int[] hoveredStructureLibHatch;
+    private int @Nullable [] hoveredStructureLibHatch;
 
     public static class PickRay {
 
@@ -359,6 +375,14 @@ public class LytGuidebookScene extends LytBlock {
 
     public void setVisibleLayerSliderEnabled(boolean visibleLayerSliderEnabled) {
         this.visibleLayerSliderEnabled = visibleLayerSliderEnabled;
+    }
+
+    public boolean isForceOriginAxesVisible() {
+        return forceOriginAxesVisible;
+    }
+
+    public void setForceOriginAxesVisible(boolean forceOriginAxesVisible) {
+        this.forceOriginAxesVisible = forceOriginAxesVisible;
     }
 
     public boolean hasVisibleLayerData() {
@@ -793,7 +817,7 @@ public class LytGuidebookScene extends LytBlock {
             outerRect.y(),
             outerRect.width(),
             sceneH);
-        if (level.isEmpty() && annotations.isEmpty()) {
+        if (level.isEmpty() && annotations.isEmpty() && !shouldRenderOriginAxes()) {
             this.lastAbsX = sceneRect.x();
             this.lastAbsY = sceneRect.y();
             this.lastW = sceneRect.width();
@@ -860,6 +884,7 @@ public class LytGuidebookScene extends LytBlock {
             }
         }
         appendStructureLibHatchOverlays(inWorld);
+        appendOriginAxesAnnotations(inWorld);
         if (hoveredEntity != null && hoveredEntityBounds != null && isEntityVisibleForCurrentLayer(hoveredEntity)) {
             float eps = 0.002f;
             hoverBoxMin.set(
@@ -979,6 +1004,29 @@ public class LytGuidebookScene extends LytBlock {
             return current;
         }
         return new LytRect(x, y, w, h);
+    }
+
+    private void appendOriginAxesAnnotations(List<InWorldAnnotation> inWorld) {
+        if (!shouldRenderOriginAxes()) {
+            return;
+        }
+        appendOriginAxisAnnotation(inWorld, originXAxisAnnotation);
+        appendOriginAxisAnnotation(inWorld, originYAxisAnnotation);
+        appendOriginAxisAnnotation(inWorld, originZAxisAnnotation);
+    }
+
+    private void appendOriginAxisAnnotation(List<InWorldAnnotation> inWorld, InWorldLineAnnotation annotation) {
+        if (isAnnotationVisibleForCurrentLayer(annotation)) {
+            inWorld.add(annotation);
+        }
+    }
+
+    private boolean shouldRenderOriginAxes() {
+        return forceOriginAxesVisible || ModConfig.debug.enableDebugMode;
+    }
+
+    private static InWorldLineAnnotation createOriginAxisAnnotation(Vector3f to, ConstantColor color) {
+        return new InWorldLineAnnotation(new Vector3f(), to, color, ORIGIN_AXIS_THICKNESS);
     }
 
     private void drawSceneButtons(int drawX, int drawY, int w, int h, int absX, int absY) {
@@ -1121,7 +1169,7 @@ public class LytGuidebookScene extends LytBlock {
         return null;
     }
 
-    public void setHoveredBlock(@Nullable int[] xyz) {
+    public void setHoveredBlock(int @Nullable [] xyz) {
         this.hoveredBlock = xyz;
         if (xyz == null) {
             this.hoveredBlockBounds = null;
@@ -1137,8 +1185,7 @@ public class LytGuidebookScene extends LytBlock {
         }
     }
 
-    @Nullable
-    public int[] getHoveredBlock() {
+    public int @Nullable [] getHoveredBlock() {
         return hoveredBlock;
     }
 
@@ -1157,12 +1204,11 @@ public class LytGuidebookScene extends LytBlock {
         return hoveredEntityHitResult;
     }
 
-    public void setHoveredStructureLibHatch(@Nullable int[] xyz) {
+    public void setHoveredStructureLibHatch(int @Nullable [] xyz) {
         this.hoveredStructureLibHatch = xyz;
     }
 
-    @Nullable
-    public int[] getHoveredStructureLibHatch() {
+    public int @Nullable [] getHoveredStructureLibHatch() {
         return hoveredStructureLibHatch;
     }
 
@@ -1195,8 +1241,7 @@ public class LytGuidebookScene extends LytBlock {
         hoveredBlockHitResult = blockHit.hitResult;
     }
 
-    @Nullable
-    public int[] pickStructureLibHatch(int mouseAbsX, int mouseAbsY) {
+    public int @Nullable [] pickStructureLibHatch(int mouseAbsX, int mouseAbsY) {
         if (!structureLibHatchHighlightEnabled || structureLibSceneMetadata == null || lastW <= 0 || lastH <= 0) {
             return null;
         }
@@ -1321,8 +1366,7 @@ public class LytGuidebookScene extends LytBlock {
         return containsSceneViewport(mouseX, mouseY) || containsBottomControlSlider(mouseX, mouseY);
     }
 
-    @Nullable
-    public int[] pickBlock(int mouseAbsX, int mouseAbsY) {
+    public int @Nullable [] pickBlock(int mouseAbsX, int mouseAbsY) {
         PickRay pickRay = resolvePickRay(mouseAbsX, mouseAbsY);
         if (pickRay == null) {
             hoveredBlockBounds = null;
@@ -1785,8 +1829,7 @@ public class LytGuidebookScene extends LytBlock {
             + getSelectableStructureLibChannels().size();
     }
 
-    @Nullable
-    private int[] resolveCurrentMousePosition() {
+    private int @Nullable [] resolveCurrentMousePosition() {
         try {
             Minecraft mc = Minecraft.getMinecraft();
             int scaledWidth = DisplayScale.scaledWidth();

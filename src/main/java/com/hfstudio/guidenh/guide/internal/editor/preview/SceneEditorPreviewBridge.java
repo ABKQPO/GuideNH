@@ -36,6 +36,7 @@ public class SceneEditorPreviewBridge {
         SceneEditorSceneModel model = session.getSceneModel();
         LytGuidebookScene scene = new LytGuidebookScene();
         scene.setInteractive(true);
+        scene.setForceOriginAxesVisible(true);
         scene.setSceneButtonsVisible(false);
         scene.setReserveBottomControlArea(false);
         scene.setVisibleLayerSliderEnabled(model.isAllowLayerSlider() || ModConfig.ui.sceneLayerSliderEnabled);
@@ -60,6 +61,7 @@ public class SceneEditorPreviewBridge {
         scene.setStructureLibSceneMetadata(null);
         scene.setLevel(new GuidebookLevel());
         scene.setReserveBottomControlArea(false);
+        scene.setForceOriginAxesVisible(true);
         scene.setVisibleLayerSliderEnabled(
             session.getSceneModel()
                 .isAllowLayerSlider() || ModConfig.ui.sceneLayerSliderEnabled);
