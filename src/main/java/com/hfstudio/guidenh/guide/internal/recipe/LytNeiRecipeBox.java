@@ -212,7 +212,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         if (strip.width() <= 0 || strip.height() <= 0) {
             return;
         }
-        context.pushScissor(strip);
+        context.pushLocalScissor(strip);
         try {
             WindowNinePatch.drawWindow(context.lightDarkMode(), windowX, windowY, windowW, windowH);
         } finally {

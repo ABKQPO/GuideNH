@@ -1142,8 +1142,11 @@ public class PageCompiler {
     private @Nullable LytMermaidMindmap tryCompileMermaidMindmap(String source) {
         try {
             String normalized = MermaidMindmapParser.normalize(source);
-            return new LytMermaidMindmap(MermaidMindmapParser.parse(normalized), normalized);
-        } catch (IllegalArgumentException ignored) {
+            LytMermaidMindmap block = new LytMermaidMindmap(MermaidMindmapParser.parse(normalized), normalized);
+            LOG.info("Compiled fenced Mermaid runtime block for page {} ({} chars)", pageId, normalized.length());
+            return block;
+        } catch (IllegalArgumentException e) {
+            LOG.warn("Failed to compile fenced Mermaid runtime block for page {} from source: {}", pageId, source, e);
             return null;
         }
     }

@@ -107,7 +107,7 @@ public class LytStructureView extends LytBlock {
                         .reversed())
                 .thenComparingInt(b -> b.x));
 
-        context.pushScissor(bounds);
+        context.pushLocalScissor(bounds);
         try {
             for (BlockEntry b : sorted) {
                 int px = projectX(b.x, b.z) + offsetX;

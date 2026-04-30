@@ -22,6 +22,26 @@ public interface RenderContext {
         return bounds.intersects(viewport());
     }
 
+    default int getDocumentOriginX() {
+        return 0;
+    }
+
+    default int getDocumentOriginY() {
+        return 0;
+    }
+
+    default int getScrollOffsetY() {
+        return 0;
+    }
+
+    default LytRect toScreenRect(LytRect rect) {
+        return new LytRect(
+            rect.x() + getDocumentOriginX(),
+            rect.y() + getDocumentOriginY() - getScrollOffsetY(),
+            rect.width(),
+            rect.height());
+    }
+
     int resolveColor(ColorValue ref);
 
     void fillRect(LytRect rect, int argbColor);
@@ -52,6 +72,10 @@ public interface RenderContext {
     }
 
     void pushScissor(LytRect rect);
+
+    default void pushLocalScissor(LytRect rect) {
+        pushScissor(toScreenRect(rect));
+    }
 
     void popScissor();
 

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.document.flow;
 
-import java.awt.Desktop;
 import java.net.URI;
 import java.util.function.Consumer;
 
@@ -53,14 +52,7 @@ public class LytFlowLink extends LytTooltipSpan {
         if (!uri.isAbsolute()) {
             throw new IllegalArgumentException("External URLs must be absolute: " + uri);
         }
-        setClickCallback(screen -> {
-            try {
-                Desktop.getDesktop()
-                    .browse(uri);
-            } catch (Exception e) {
-                // ignore
-            }
-        });
+        setClickCallback(screen -> screen.openExternalUrl(uri));
     }
 
     public void setPageLink(PageAnchor anchor) {

@@ -50,6 +50,10 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
         return canvas;
     }
 
+    public void setPreferredSize(int width, int height) {
+        canvas.setPreferredSize(width, height);
+    }
+
     @Override
     public boolean mouseClicked(GuideUiHost screen, int x, int y, int button, boolean doubleClick) {
         return toolbar.mouseClicked(screen, x, y, button, doubleClick);

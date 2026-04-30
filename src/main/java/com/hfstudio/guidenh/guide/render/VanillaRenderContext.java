@@ -65,6 +65,7 @@ public class VanillaRenderContext implements RenderContext {
         return documentOriginX;
     }
 
+    @Override
     public int getDocumentOriginY() {
         return documentOriginY;
     }
@@ -73,6 +74,7 @@ public class VanillaRenderContext implements RenderContext {
         this.scrollOffsetY = scrollOffsetY;
     }
 
+    @Override
     public int getScrollOffsetY() {
         return scrollOffsetY;
     }

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal;
 
+import java.awt.Desktop;
+import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -13,7 +15,10 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.client.gui.GuiYesNo;
+import net.minecraft.client.gui.GuiYesNoCallback;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
@@ -58,7 +63,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-public class GuideScreen extends GuiScreen implements GuideUiHost {
+public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallback {
 
     public static final Logger LOG = LogManager.getLogger("GuideNH/GuideScreen");
 
@@ -148,6 +153,10 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     public static final int SEARCH_PATH_MAX_CHARS = 20;
     public static final String ASCII_ELLIPSIS = "...";
     public static final int SEARCH_TOOLBAR_FIELD_Y_OFFSET = 5;
+    private static final int EXTERNAL_LINK_CONFIRM_ID = 1;
+
+    @Nullable
+    private URI pendingExternalUri;
 
     public static class SceneButtonHit {
 
@@ -274,6 +283,20 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     @Override
     public boolean doesGuiPauseGame() {
         return false;
+    }
+
+    @Override
+    public void confirmClicked(boolean result, int id) {
+        if (id != EXTERNAL_LINK_CONFIRM_ID) {
+            return;
+        }
+
+        URI uri = pendingExternalUri;
+        pendingExternalUri = null;
+        if (result && uri != null) {
+            browseExternalUrl(uri);
+        }
+        mc.displayGuiScreen(this);
     }
 
     private void recomputePanelBounds() {
@@ -1376,6 +1399,17 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     }
 
     @Override
+    public void openExternalUrl(URI uri) {
+        if (shouldConfirmExternalLinks()) {
+            pendingExternalUri = uri;
+            mc.displayGuiScreen(createExternalLinkConfirmScreen(uri));
+            return;
+        }
+
+        browseExternalUrl(uri);
+    }
+
+    @Override
     public boolean copyCodeBlock(String text) {
         try {
             codeBlockClipboardService.copy(text);
@@ -1389,6 +1423,43 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     @Override
     public boolean isCodeBlockWheelInteractionBlocked() {
         return isSceneWheelInteractionBlocked(System.currentTimeMillis());
+    }
+
+    private boolean shouldConfirmExternalLinks() {
+        try {
+            return ModConfig.ui.confirmExternalLinks;
+        } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
+    private void browseExternalUrl(URI uri) {
+        try {
+            Desktop.getDesktop()
+                .browse(uri);
+        } catch (Exception e) {
+            LOG.warn("Failed to open external guide link {}", uri, e);
+        }
+    }
+
+    private GuiYesNo createExternalLinkConfirmScreen(URI uri) {
+        return new GuiYesNo(
+            this,
+            I18n.format("chat.link.confirm", new Object[0]),
+            uri.toString(),
+            I18n.format("gui.yes", new Object[0]),
+            I18n.format("gui.no", new Object[0]),
+            EXTERNAL_LINK_CONFIRM_ID) {
+
+            @Override
+            protected void keyTyped(char typedChar, int keyCode) {
+                if (keyCode == Keyboard.KEY_ESCAPE) {
+                    GuideScreen.this.confirmClicked(false, EXTERNAL_LINK_CONFIRM_ID);
+                    return;
+                }
+                super.keyTyped(typedChar, keyCode);
+            }
+        };
     }
 
     private boolean isSearchPage() {

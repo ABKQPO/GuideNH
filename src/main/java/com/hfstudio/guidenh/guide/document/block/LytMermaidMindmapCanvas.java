@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTarget {
 
     private static final int CANVAS_PADDING = 10;
+    private static final int MIN_WIDTH = 96;
     private static final int MIN_HEIGHT = 170;
     private static final int MAX_HEIGHT = 320;
     private static final int NODE_PADDING_X = 10;
@@ -74,6 +75,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     private int contentOffsetX;
     private int contentOffsetY;
     private float zoom = 1f;
+    private int preferredWidth;
+    private int preferredHeight;
 
     private boolean dragging;
     private int dragLastDocumentX;
@@ -87,12 +90,19 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         return mindmap;
     }
 
+    public void setPreferredSize(int width, int height) {
+        preferredWidth = Math.max(0, width);
+        preferredHeight = Math.max(0, height);
+    }
+
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int safeWidth = Math.max(96, availableWidth);
+        int safeWidth = preferredWidth > 0 ? Math.max(MIN_WIDTH, Math.min(preferredWidth, availableWidth))
+            : Math.max(MIN_WIDTH, availableWidth);
         layout = buildLayout(context, safeWidth);
         int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
-        int viewportHeight = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, desiredHeight));
+        int viewportHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
+            : Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, desiredHeight));
         centerDiagram(safeWidth, viewportHeight);
         return new LytRect(x, y, safeWidth, viewportHeight);
     }
@@ -115,7 +125,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         int baseX = viewport.x() + contentOffsetX;
         int baseY = viewport.y() + contentOffsetY;
 
-        context.pushScissor(viewport);
+        context.pushLocalScissor(viewport);
         try {
             renderConnectors(context, layout.root(), baseX, baseY);
             renderNodes(context, layout.root(), baseX, baseY);

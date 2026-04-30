@@ -36,6 +36,11 @@ public class ModConfig {
         @DefaultBoolean(false)
         public boolean fullWidth = false;
 
+        @Comment("Whether clicking external links in guide markdown should show a confirmation dialog first. "
+            + "When false, external links open immediately. Default: true.")
+        @DefaultBoolean(true)
+        public boolean confirmExternalLinks = true;
+
         @Comment("Whether mouse wheel scroll zooms the 3D scene preview (while cursor is over it). "
             + "When false, scroll always goes to page scroll. Default: true.")
         @DefaultBoolean(true)

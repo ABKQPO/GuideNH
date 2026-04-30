@@ -248,7 +248,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         toolbar.render(context);
 
         LytRect bodyViewport = getBodyViewportBounds();
-        context.pushScissor(bodyViewport);
+        context.pushLocalScissor(bodyViewport);
         try {
             body.render(context);
         } finally {
