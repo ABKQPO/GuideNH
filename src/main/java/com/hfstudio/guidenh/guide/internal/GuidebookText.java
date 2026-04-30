@@ -159,6 +159,14 @@ public enum GuidebookText implements LocalizationEnum {
     Crafting,
     FullWidthView,
     CloseFullWidthView,
+    MarkdownAlertNote,
+    MarkdownAlertTip,
+    MarkdownAlertImportant,
+    MarkdownAlertWarning,
+    MarkdownAlertCaution,
+    CodeBlockCopy,
+    CodeBlockCopySuccess,
+    CodeBlockCopyFailure,
     RunsCommand;
 
     @Override

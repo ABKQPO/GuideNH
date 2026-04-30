@@ -9,6 +9,7 @@ import com.hfstudio.guidenh.guide.document.block.LytAxisBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
+import com.hfstudio.guidenh.guide.document.block.LytWidthBox;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class BoxTagCompiler extends BlockTagCompiler {
@@ -29,6 +30,7 @@ public class BoxTagCompiler extends BlockTagCompiler {
         var gap = MdxAttrs.getInt(compiler, parent, el, "gap", 5);
         var alignItems = MdxAttrs.getEnum(compiler, parent, el, "alignItems", AlignItems.START);
         var fullWidth = MdxAttrs.getBoolean(compiler, parent, el, "fullWidth", false);
+        var width = MdxAttrs.getInt(compiler, parent, el, "width", 0);
 
         LytAxisBox box = switch (this.direction) {
             case ROW -> {
@@ -46,8 +48,15 @@ public class BoxTagCompiler extends BlockTagCompiler {
         box.setAlignItems(alignItems);
         box.setFullWidth(fullWidth);
 
-        compiler.compileBlockContext(el.children(), box);
-
-        parent.append(box);
+        if (width > 0) {
+            LytWidthBox widthBox = new LytWidthBox();
+            widthBox.setPreferredWidth(width);
+            widthBox.append(box);
+            compiler.compileBlockTagChildren(el, box);
+            parent.append(widthBox);
+        } else {
+            compiler.compileBlockTagChildren(el, box);
+            parent.append(box);
+        }
     }
 }

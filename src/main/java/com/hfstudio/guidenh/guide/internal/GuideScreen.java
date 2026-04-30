@@ -37,16 +37,19 @@ import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
+import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchResultDocumentBuilder;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchSnippetFormatter;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
+import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipRenderSupport;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
@@ -91,6 +94,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
 
     @Nullable
     private LytGuidebookScene activeScene;
+    @Nullable
+    private DocumentDragTarget activeDocumentDragTarget;
 
     private boolean draggingScrollbar = false;
     private int scrollbarGrabOffsetY = 0;
@@ -102,6 +107,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
 
     private final GuideNavBar navBar = new GuideNavBar();
     private final MinecraftFontMetrics layoutFontMetrics = new MinecraftFontMetrics();
+    private final CodeBlockClipboardService codeBlockClipboardService = new CodeBlockClipboardService();
 
     private final VanillaRenderContext reusableRenderCtx = new VanillaRenderContext(
         LightDarkMode.LIGHT_MODE,
@@ -250,6 +256,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         document = null;
         lastLayoutWidth = -1;
         loadCurrentPage();
+        updateToolbarButtonState();
     }
 
     @Override
@@ -307,13 +314,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             isSearchPage() ? getSearchToolbarIconX() : getRightSearchButtonX(),
             btnY,
             GuideIconButton.Role.SEARCH);
-        btnBack.enabled = !history.isEmpty();
-        btnForward.enabled = !forwardHistory.isEmpty();
         this.buttonList.add(btnSearch);
         this.buttonList.add(btnBack);
         this.buttonList.add(btnForward);
         this.buttonList.add(btnFullWidth);
         this.buttonList.add(btnClose);
+        updateToolbarButtonState();
     }
 
     @Override
@@ -382,6 +388,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         }
         refreshCurrentPageTitle();
         scrollY = 0;
+        updateToolbarButtonState();
     }
 
     private void ensureLayout() {
@@ -487,7 +494,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         int navH = Math.max(20, panelH - TOOLBAR_H - 1);
         navBar.setBounds(navX, navY, navH);
         navBar.update(mouseX, mouseY, guide.getNavigationTree());
-        navBar.render(mc, currentAnchor != null ? currentAnchor.pageId() : null, mouseX, mouseY);
+        navBar.render(mc, currentAnchor != null ? currentAnchor.pageId() : null, mouseX, mouseY, guide);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 
@@ -579,8 +586,13 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             fc = fc.getFlowParent();
         }
         if (hit.node() != null) {
-            var tip = tryGetTooltip(hit.node(), interaction.docX, interaction.docY);
-            tip.ifPresent(t -> renderGuideTooltip(t, mouseX, mouseY));
+            for (LytNode current = hit.node(); current != null; current = current.getParent()) {
+                var tip = tryGetTooltip(current, interaction.docX, interaction.docY);
+                if (tip.isPresent()) {
+                    renderGuideTooltip(tip.get(), mouseX, mouseY);
+                    return;
+                }
+            }
         }
     }
 
@@ -599,10 +611,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
 
     private void renderGuideTooltip(GuideTooltip tooltip, int mouseX, int mouseY) {
         if (tooltip instanceof ItemTooltip it) {
-            var stack = it.getStack();
-            if (stack == null || stack.stackSize == 0) return;
-            List<String> lines = GuideItemTooltipLines.build(it, mc);
-            drawHoveringText(lines, mouseX, mouseY, mc.fontRenderer);
+            renderItemTooltip(it, mouseX, mouseY);
             return;
         }
         if (tooltip instanceof TextTooltip tt) {
@@ -612,6 +621,22 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         if (tooltip instanceof ContentTooltip ct) {
             drawContentTooltip(ct, mouseX, mouseY);
         }
+    }
+
+    private void renderItemTooltip(ItemTooltip tooltip, int mouseX, int mouseY) {
+        ItemStack stack = tooltip.getStack();
+        if (stack == null || stack.stackSize == 0) {
+            return;
+        }
+
+        if (GuideItemTooltipRenderSupport.shouldUseVanillaRenderer(tooltip)) {
+            renderToolTip(stack, mouseX, mouseY);
+            return;
+        }
+
+        List<String> lines = GuideItemTooltipLines.build(tooltip, mc);
+        FontRenderer font = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
+        drawHoveringText(lines, mouseX, mouseY, font);
     }
 
     @Nullable
@@ -802,6 +827,22 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         fr.drawStringWithShadow(msg, panelX + (panelW - tw) / 2, panelY + panelH / 2 - fr.FONT_HEIGHT / 2, 0xFFFF5555);
     }
 
+    private void updateToolbarButtonState() {
+        if (btnBack != null) {
+            btnBack.enabled = !history.isEmpty();
+        }
+        if (btnForward != null) {
+            btnForward.enabled = !forwardHistory.isEmpty();
+        }
+        if (btnSearch != null) {
+            btnSearch.enabled = canSearchCurrentView();
+        }
+    }
+
+    private boolean canSearchCurrentView() {
+        return isSearchPage() || currentAnchor == null || !guide.isPageFailed(currentAnchor.pageId());
+    }
+
     private void drawTiledBackground() {
         drawRect(0, 0, this.width, this.height, BACKGROUND_DIM_COLOR);
         mc.getTextureManager()
@@ -894,6 +935,19 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
                 return;
             }
 
+            var interaction = getDocumentInteractionState(mouseX, mouseY);
+            if (interaction != null && !isCodeBlockWheelInteractionBlocked()) {
+                var hit = interaction.hit;
+                if (hit != null) {
+                    for (LytNode current = hit.node(); current != null; current = current.getParent()) {
+                        if (current instanceof DocumentDragTarget dragTarget
+                            && dragTarget.scroll(interaction.docX, interaction.docY, dwheel)) {
+                            return;
+                        }
+                    }
+                }
+            }
+
             int step = GuiScreen.isShiftKeyDown() ? 60 : 20;
             scrollY -= Integer.signum(dwheel) * step;
             clampScroll();
@@ -978,8 +1032,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
                     }
                     fc = fc.getFlowParent();
                 }
-                if (!handled && hit.node() instanceof InteractiveElement ie) {
-                    handled = ie.mouseClicked(this, docX, docY, button, false);
+                if (!handled) {
+                    for (LytNode current = hit.node(); current != null && !handled; current = current.getParent()) {
+                        if (current instanceof InteractiveElement ie) {
+                            handled = ie.mouseClicked(this, docX, docY, button, false);
+                        }
+                    }
                 }
                 if (handled) {
                     mc.getSoundHandler()
@@ -988,6 +1046,13 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
                     return;
                 }
                 if (button == 0 || button == 1) {
+                    for (LytNode current = hit.node(); current != null; current = current.getParent()) {
+                        if (current instanceof DocumentDragTarget dragTarget
+                            && dragTarget.beginDrag(docX, docY, button)) {
+                            activeDocumentDragTarget = dragTarget;
+                            return;
+                        }
+                    }
                     LytGuidebookScene scene = interaction != null ? interaction.scene : findSceneAncestor(hit.node());
                     if (scene != null) {
                         if (button == 0) {
@@ -1017,6 +1082,11 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             updateScrollFromMouseY(mouseY);
             return;
         }
+        if (activeDocumentDragTarget != null) {
+            int[] docPoint = screenToDocumentPoint(mouseX, mouseY);
+            activeDocumentDragTarget.dragTo(docPoint[0], docPoint[1]);
+            return;
+        }
         if (activeScene != null) {
             activeScene.drag(mouseX, mouseY);
             return;
@@ -1028,6 +1098,11 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
     protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
         if (draggingScrollbar && state != -1) {
             draggingScrollbar = false;
+            return;
+        }
+        if (activeDocumentDragTarget != null && state != -1) {
+            activeDocumentDragTarget.endDrag();
+            activeDocumentDragTarget = null;
             return;
         }
         if (activeScene != null && state != -1) {
@@ -1173,6 +1248,10 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
 
     private void clearInteractionState() {
         clearHoveredScene();
+        if (activeDocumentDragTarget != null) {
+            activeDocumentDragTarget.endDrag();
+            activeDocumentDragTarget = null;
+        }
         if (document != null) {
             document.setHoveredElement(null);
         }
@@ -1180,6 +1259,14 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
             searchDocument.setHoveredElement(null);
         }
         cachedInteractionState = null;
+    }
+
+    private int[] screenToDocumentPoint(int mouseX, int mouseY) {
+        var activeDocument = getActiveDocument();
+        if (activeDocument == null) {
+            return new int[] { mouseX - contentX, mouseY - getDocumentViewportY() + scrollY };
+        }
+        return new int[] { mouseX - contentX, mouseY - getDocumentRenderY(activeDocument) + scrollY };
     }
 
     @Nullable
@@ -1286,6 +1373,22 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         if (mc.currentScreen == null) {
             mc.setIngameFocus();
         }
+    }
+
+    @Override
+    public boolean copyCodeBlock(String text) {
+        try {
+            codeBlockClipboardService.copy(text);
+            return true;
+        } catch (Exception e) {
+            LOG.error("Failed to copy code block", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isCodeBlockWheelInteractionBlocked() {
+        return isSceneWheelInteractionBlocked(System.currentTimeMillis());
     }
 
     private boolean isSearchPage() {

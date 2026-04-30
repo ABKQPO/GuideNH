@@ -18,6 +18,9 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | --- | --- | --- |
 | `<a>` | internal/external link and optional anchor name | `href`, `title`, `name` |
 | `<br>` | line break | `clear="none\|left\|right\|all"` |
+| `<kbd>` | keyboard-style inline emphasis | none |
+| `<sub>` | smaller inline subscript-style text | none |
+| `<sup>` | smaller inline superscript-style text | none |
 | `<Color>` | colored inline text | `id` or `color` |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<PlayerName>` | inserts current player username | none |
@@ -31,14 +34,18 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
-| `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth` |
-| `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth` |
+| `<details>` | collapsible runtime block | `open` |
+| `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of item icons | children must be `<ItemIcon id="..."/>` or `<ItemIcon ore="..."/>` |
 | `<BlockImage>` | block item-form icon | `id` or `ore`, `scale` |
 | `<FloatingImage>` | floated image block | `src`, `align`, `title`, `width`, `height` |
 | `<SubPages>` | navigation child listing | `id`, `alphabetical` |
 | `<CategoryIndex>` | list pages from a category | `category` |
 | `<Structure>` | 2.5D isometric block layout view | `width`, `height` |
+| `<Mermaid>` | runtime Mermaid graph import/inline | `src` |
+| `<CsvTable>` | runtime CSV file import table | `src`, `header`, `widths` |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
 
@@ -72,6 +79,27 @@ Accepted `clear` values:
 - `left`
 - `right`
 - `all`
+
+### `<kbd>`, `<sub>`, And `<sup>`
+
+GuideNH runtime supports a focused subset of lowercase documentation tags for inline use:
+
+````md
+Press <kbd>Shift</kbd> + <sub>1</sub>
+Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
+````
+
+### `<details>`
+
+Creates a collapsible runtime block with a summary row:
+
+````md
+<details open>
+<summary>More</summary>
+
+Hidden-by-default body text
+</details>
+````
 
 ### `<Color>`
 
@@ -196,6 +224,7 @@ Flex-style containers for block content.
 | `gap` | integer gap between children, default `5` |
 | `alignItems` | `start`, `center`, `end` |
 | `fullWidth` | boolean expression, default `false` |
+| `width` | integer preferred width; useful for constraining list line width |
 
 Example:
 
@@ -204,6 +233,26 @@ Example:
   <ItemImage id="minecraft:iron_ingot" />
   <ItemImage id="minecraft:gold_ingot" />
 </Row>
+````
+
+To constrain the width of normal markdown lists, wrap them in a container:
+
+````md
+<Column width="220">
+- narrow list item
+- another narrow item
+</Column>
+````
+
+### `<FootnoteList>`
+
+GuideNH uses this block tag internally when runtime markdown footnotes are expanded. It can also be written manually if needed.
+
+````md
+<FootnoteList width="220">
+1. First footnote
+2. Second footnote
+</FootnoteList>
 ````
 
 ### `<ItemGrid>`
@@ -239,6 +288,48 @@ See [Navigation](Navigation) for full navigation behavior.
 ### `<Structure>`
 
 See [Examples](Examples) and [GameScene](GameScene) when deciding whether to use a static structure preview or a full 3D scene.
+
+### `<Mermaid>`
+
+Used for runtime Mermaid content. Current runtime support is focused on `mindmap`, either inline or through a page-relative `src` import:
+
+````md
+<Mermaid src="./markdown-mindmap.mmd" />
+```
+
+### `<CsvTable>`
+
+Used to parse a CSV file into a runtime table:
+
+````md
+<CsvTable src="./markdown-table.csv" />
+```
+
+`src` resolves relative to the current page, the same way scene imports and normal asset links do.
+
+Optional attributes:
+
+- `header`
+  Defaults to `true`; set `header={false}` to keep the first row unbolded
+- `widths`
+  Comma-separated integer width hints such as `widths="120,80"`
+
+Examples:
+
+````md
+<CsvTable src="./markdown-table.csv" widths="120,80" />
+<CsvTable src="./markdown-table.csv" header={false} />
+```
+
+The related fenced runtime CSV form also supports matching metadata:
+
+````md
+```csv widths="120,80" header=false
+name,value
+iron,42
+gold,17
+```
+````
 
 ### Scene Runtime Tags
 

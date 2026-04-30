@@ -7,9 +7,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
@@ -17,34 +19,19 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeMode
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
-import com.hfstudio.guidenh.libs.mdast.YamlFrontmatterExtension;
-import com.hfstudio.guidenh.libs.mdast.gfm.GfmTableMdastExtension;
-import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.GfmStrikethroughMdastExtension;
-import com.hfstudio.guidenh.libs.mdast.mdx.MdxMdastExtension;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdx.MdxCommentMasker;
-import com.hfstudio.guidenh.libs.mdx.MdxSyntax;
 import com.hfstudio.guidenh.libs.micromark.ParseException;
-import com.hfstudio.guidenh.libs.micromark.extensions.YamlFrontmatterSyntax;
-import com.hfstudio.guidenh.libs.micromark.extensions.gfm.GfmTableSyntax;
-import com.hfstudio.guidenh.libs.micromark.extensions.gfmstrikethrough.GfmStrikethroughSyntax;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistParent;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 public class SceneEditorMarkdownCodec {
 
-    public static final MdastOptions PARSE_OPTIONS = new MdastOptions().withSyntaxExtension(MdxSyntax.INSTANCE)
-        .withSyntaxExtension(YamlFrontmatterSyntax.INSTANCE)
-        .withSyntaxExtension(GfmTableSyntax.INSTANCE)
-        .withSyntaxExtension(GfmStrikethroughSyntax.INSTANCE)
-        .withMdastExtension(MdxMdastExtension.INSTANCE)
-        .withMdastExtension(YamlFrontmatterExtension.INSTANCE)
-        .withMdastExtension(GfmTableMdastExtension.INSTANCE)
-        .withMdastExtension(GfmStrikethroughMdastExtension.INSTANCE);
+    public static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.sceneEditor();
 
     public static final Set<String> ROOT_TAG_NAMES = Collections
         .unmodifiableSet(new HashSet<>(Arrays.asList("GameScene", "Scene")));
@@ -383,7 +370,7 @@ public class SceneEditorMarkdownCodec {
             sceneNodes.add(0, importStructure);
         }
 
-        Set<java.util.UUID> annotationIds = new HashSet<>();
+        Set<UUID> annotationIds = new HashSet<>();
         for (SceneEditorSceneNodeModel sceneNode : sceneNodes) {
             if (sceneNode.getType() == SceneEditorSceneNodeType.ANNOTATION
                 && sceneNode.getAnnotationElement() != null) {

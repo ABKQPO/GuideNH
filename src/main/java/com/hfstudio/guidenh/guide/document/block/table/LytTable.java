@@ -25,18 +25,7 @@ public class LytTable extends LytBlock {
             return LytRect.empty();
         }
 
-        // Distribute available width evenly between columns
-        var cellWidth = (availableWidth - (columns.size() + 1) * CELL_BORDER) / columns.size();
-        var colX = x + CELL_BORDER;
-        for (var column : columns) {
-            column.x = colX;
-            column.width = cellWidth;
-            colX += column.width + CELL_BORDER;
-        }
-
-        // Ensure the last column fills the entire width (fixes rounding off-by-one issues)
-        var lastCol = columns.get(columns.size() - 1);
-        lastCol.width = (x + availableWidth) - lastCol.x - CELL_BORDER;
+        layoutColumns(x, availableWidth);
 
         // Layout each row
         var currentY = y + CELL_BORDER;
@@ -108,6 +97,48 @@ public class LytTable extends LytBlock {
             columns.add(new LytTableColumn());
         }
         return columns.get(index);
+    }
+
+    private void layoutColumns(int x, int availableWidth) {
+        int innerWidth = Math.max(0, availableWidth - (columns.size() + 1) * CELL_BORDER);
+        int totalPreferredWidth = 0;
+        int flexibleColumns = 0;
+        for (var column : columns) {
+            if (column.preferredWidth > 0) {
+                totalPreferredWidth += column.preferredWidth;
+            } else {
+                flexibleColumns++;
+            }
+        }
+
+        int colX = x + CELL_BORDER;
+        if (totalPreferredWidth > 0 && totalPreferredWidth <= innerWidth) {
+            int remainingWidth = innerWidth - totalPreferredWidth;
+            int flexibleWidth = flexibleColumns > 0 ? remainingWidth / flexibleColumns : 0;
+            int assignedWidth = 0;
+            for (var column : columns) {
+                column.x = colX;
+                column.width = column.preferredWidth > 0 ? column.preferredWidth : flexibleWidth;
+                assignedWidth += column.width;
+                colX += column.width + CELL_BORDER;
+            }
+
+            if (assignedWidth < innerWidth) {
+                var lastCol = columns.get(columns.size() - 1);
+                lastCol.width += innerWidth - assignedWidth;
+            }
+            return;
+        }
+
+        int cellWidth = columns.isEmpty() ? 0 : innerWidth / columns.size();
+        for (var column : columns) {
+            column.x = colX;
+            column.width = cellWidth;
+            colX += column.width + CELL_BORDER;
+        }
+
+        var lastCol = columns.get(columns.size() - 1);
+        lastCol.width = (x + availableWidth) - lastCol.x - CELL_BORDER;
     }
 
     @Override

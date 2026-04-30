@@ -20,6 +20,9 @@
 | --- | --- | --- |
 | `<a>` | 内部/外部链接，以及可选锚点名 | `href`, `title`, `name` |
 | `<br>` | 换行 | `clear="none\|left\|right\|all"` |
+| `<kbd>` | 键位风格行内强调 | 无 |
+| `<sub>` | 较小的下标风格行内文本 | 无 |
+| `<sup>` | 较小的上标风格行内文本 | 无 |
 | `<Color>` | 彩色行内文本 | `id` 或 `color` |
 | `<Tooltip>` | 带 Markdown/标签子内容的富悬浮提示 | `label` |
 | `<PlayerName>` | 插入当前玩家用户名 | 无 |
@@ -33,14 +36,18 @@
 | 标签 | 用途 | 关键属性 |
 | --- | --- | --- |
 | `<div>` | 透传块包装器 | 无 |
-| `<Row>` | 横向 flex 布局 | `gap`, `alignItems`, `fullWidth` |
-| `<Column>` | 纵向 flex 布局 | `gap`, `alignItems`, `fullWidth` |
+| `<details>` | 可折叠运行时块 | `open` |
+| `<Row>` | 横向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<Column>` | 纵向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<FootnoteList>` | 运行时 Markdown 脚注使用的限宽脚注容器 | `width` |
 | `<ItemGrid>` | 紧凑物品图标网格 | 子元素必须是 `<ItemIcon id="..."/>` 或 `<ItemIcon ore="..."/>` |
 | `<BlockImage>` | 方块的物品形态图标 | `id` 或 `ore`，`scale` |
 | `<FloatingImage>` | 浮动图片块 | `src`, `align`, `title`, `width`, `height` |
 | `<SubPages>` | 导航子页面列表 | `id`, `alphabetical` |
 | `<CategoryIndex>` | 分类页面列表 | `category` |
 | `<Structure>` | 2.5D 等轴方块布局预览 | `width`, `height` |
+| `<Mermaid>` | 运行时 Mermaid 图导入/内联 | `src` |
+| `<CsvTable>` | 运行时 CSV 文件导入表格 | `src`, `header`, `widths` |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | 配方渲染器 | 详见 [配方](Recipes-zh-CN) |
 | `<GameScene>`, `<Scene>` | 3D 指南场景 | 详见 [GameScene](GameScene-zh-CN) |
 
@@ -74,6 +81,27 @@ Text before.<br clear="all" />Text after.
 - `left`
 - `right`
 - `all`
+
+### `<kbd>`、`<sub>` 与 `<sup>`
+
+GuideNH 运行时支持一小组常见的小写文档标签：
+
+````md
+Press <kbd>Shift</kbd> + <sub>1</sub>
+Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
+````
+
+### `<details>`
+
+用于创建可折叠的运行时内容块：
+
+````md
+<details open>
+<summary>More</summary>
+
+Hidden-by-default body text
+</details>
+````
 
 ### `<Color>`
 
@@ -198,6 +226,7 @@ More visible text.
 | `gap` | 子元素间距，整数，默认 `5` |
 | `alignItems` | `start`、`center`、`end` |
 | `fullWidth` | boolean expression，默认 `false` |
+| `width` | 整数首选宽度，适合约束列表等块内容的行宽 |
 
 示例：
 
@@ -206,6 +235,26 @@ More visible text.
   <ItemImage id="minecraft:iron_ingot" />
   <ItemImage id="minecraft:gold_ingot" />
 </Row>
+````
+
+如果想约束普通 Markdown 列表的宽度，可以这样包一层：
+
+````md
+<Column width="220">
+- 较窄的列表项
+- 另一条较窄的列表项
+</Column>
+````
+
+### `<FootnoteList>`
+
+GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。必要时也可以手写：
+
+````md
+<FootnoteList width="220">
+1. 第一条脚注
+2. 第二条脚注
+</FootnoteList>
 ````
 
 ### `<ItemGrid>`
@@ -241,6 +290,48 @@ More visible text.
 ### `<Structure>`
 
 当你在静态结构预览和完整 3D 场景之间做选择时，可结合 [示例](Examples-zh-CN) 和 [GameScene](GameScene-zh-CN) 参考。
+
+### `<Mermaid>`
+
+用于运行时 Mermaid 图内容。当前运行时支持重点是 `mindmap`，可以直接写子内容，也可以通过 `src` 从同目录资源导入：
+
+````md
+<Mermaid src="./markdown-mindmap.mmd" />
+````
+
+### `<CsvTable>`
+
+用于在运行时把 CSV 文件解析成表格：
+
+````md
+<CsvTable src="./markdown-table.csv" />
+````
+
+`src` 路径会像场景导入和普通资源链接一样，相对当前页面解析。
+
+可选属性：
+
+- `header`
+  默认是 `true`；设置 `header={false}` 时，首行不会加粗
+- `widths`
+  逗号分隔的整数列宽 hint，例如 `widths="120,80"`
+
+示例：
+
+````md
+<CsvTable src="./markdown-table.csv" widths="120,80" />
+<CsvTable src="./markdown-table.csv" header={false} />
+````
+
+对应的围栏 CSV 运行时写法也支持相同语义的 `meta`：
+
+````md
+```csv widths="120,80" header=false
+name,value
+iron,42
+gold,17
+```
+````
 
 ### 场景运行时标签
 

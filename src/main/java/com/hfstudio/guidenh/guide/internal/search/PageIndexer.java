@@ -17,6 +17,8 @@ import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
 import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
@@ -25,11 +27,15 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstBlockquote;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstCode;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstEmphasis;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstHTML;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstHeading;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstImage;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstImageReference;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstInlineCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLink;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstLinkReference;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstListItem;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
@@ -86,9 +92,20 @@ public class PageIndexer implements IndexingContext {
         } else if (content instanceof MdAstHeading astHeading) {
             indexContent(astHeading.children(), sink);
         } else if (content instanceof MdAstBlockquote astBlockquote) {
-            indexContent(astBlockquote.children(), sink);
+            var alert = MarkdownRuntimeBlocks.extractGithubAlert(astBlockquote);
+            if (alert != null) {
+                sink.appendText(
+                    astBlockquote,
+                    alert.type()
+                        .displayText());
+                indexAlertChildren(alert, sink);
+            } else {
+                indexContent(astBlockquote.children(), sink);
+            }
         } else if (content instanceof MdAstParagraph astParagraph) {
             indexContent(astParagraph.children(), sink);
+        } else if (content instanceof MdAstDefinition) {
+            // Definitions contribute through references when used.
         } else if (content instanceof MdAstYamlFrontmatter) {
             // This is handled by compile directly
         } else if (content instanceof GfmTable astTable) {
@@ -107,8 +124,16 @@ public class PageIndexer implements IndexingContext {
             sink.appendBreak();
         } else if (content instanceof MdAstLink astLink) {
             indexLink(astLink, sink);
+        } else if (content instanceof MdAstLinkReference astLinkReference) {
+            indexContent(astLinkReference.children(), sink);
         } else if (content instanceof MdAstImage astImage) {
             indexImage(astImage, sink);
+        } else if (content instanceof MdAstImageReference astImageReference) {
+            if (astImageReference.alt != null && !astImageReference.alt.isEmpty()) {
+                sink.appendText(astImageReference, astImageReference.alt);
+            }
+        } else if (content instanceof MdAstHTML astHtml) {
+            sink.appendText(astHtml, stripHtmlTags(astHtml.value));
         } else if (content instanceof MdxJsxElementFields el) {
             var compiler = tagCompilers.get(el.name());
             if (compiler == null) {
@@ -125,10 +150,74 @@ public class PageIndexer implements IndexingContext {
     private void indexList(MdAstList astList, IndexingSink sink) {
         for (var listContent : astList.children()) {
             if (listContent instanceof MdAstListItem astListItem) {
-                indexContent(astListItem.children(), sink);
+                var taskMarker = MarkdownListSemantics.extractTaskMarker(astListItem.children());
+                if (taskMarker != null) {
+                    indexListItemChildren(astListItem, taskMarker, sink);
+                    for (int i = 1; i < astListItem.children()
+                        .size(); i++) {
+                        indexContent(
+                            astListItem.children()
+                                .get(i),
+                            sink);
+                    }
+                } else {
+                    indexContent(astListItem.children(), sink);
+                }
             } else {
                 LOG.warn("Cannot handle list content: {}", listContent);
             }
+        }
+    }
+
+    private void indexListItemChildren(MdAstListItem astListItem, MarkdownListSemantics.TaskMarker taskMarker,
+        IndexingSink sink) {
+        if (astListItem.children()
+            .isEmpty()
+            || !(astListItem.children()
+                .get(0) instanceof MdAstParagraph paragraph)) {
+            sink.appendText(astListItem, taskMarker.remainingText());
+            sink.appendBreak();
+            return;
+        }
+
+        indexParagraphWithLeadingTextOverride(paragraph, taskMarker.remainingText(), sink);
+    }
+
+    private void indexAlertChildren(MarkdownRuntimeBlocks.GithubAlertBlock alert, IndexingSink sink) {
+        if (!alert.children()
+            .isEmpty()
+            && alert.children()
+                .get(0) instanceof MdAstParagraph paragraph) {
+            if (!alert.remainingText()
+                .isEmpty()) {
+                indexParagraphWithLeadingTextOverride(paragraph, alert.remainingText(), sink);
+            }
+            for (int i = 1; i < alert.children()
+                .size(); i++) {
+                indexContent(
+                    alert.children()
+                        .get(i),
+                    sink);
+            }
+            return;
+        }
+
+        indexContent(alert.children(), sink);
+    }
+
+    private void indexParagraphWithLeadingTextOverride(MdAstParagraph paragraph, String leadingText,
+        IndexingSink sink) {
+        boolean replaced = false;
+        for (var child : paragraph.children()) {
+            if (!replaced && child instanceof MdAstText) {
+                if (!leadingText.isEmpty()) {
+                    sink.appendText(paragraph, leadingText);
+                    sink.appendBreak();
+                }
+                replaced = true;
+                continue;
+            }
+            indexContent(child, sink);
         }
     }
 
@@ -155,6 +244,29 @@ public class PageIndexer implements IndexingContext {
         if (astImage.alt != null && !astImage.alt.isEmpty()) {
             sink.appendText(astImage, astImage.alt);
         }
+    }
+
+    private String stripHtmlTags(String html) {
+        if (html == null || html.isEmpty()) {
+            return "";
+        }
+        StringBuilder stripped = new StringBuilder(html.length());
+        boolean inTag = false;
+        for (int i = 0; i < html.length(); i++) {
+            char current = html.charAt(i);
+            if (current == '<') {
+                inTag = true;
+                continue;
+            }
+            if (current == '>') {
+                inTag = false;
+                continue;
+            }
+            if (!inTag) {
+                stripped.append(current);
+            }
+        }
+        return stripped.toString();
     }
 
     /**

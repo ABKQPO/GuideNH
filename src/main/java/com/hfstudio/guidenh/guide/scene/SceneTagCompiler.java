@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.scene;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,6 +20,7 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistParent;
@@ -130,25 +132,33 @@ public class SceneTagCompiler extends BlockTagCompiler {
         MdxJsxFlowElement flow) {
         AnnotationTagCompiler.CURRENT_SCENE.set(scene);
         try {
-            for (var child : flow.children()) {
-                UnistNode childNode = child;
-                MdxJsxElementFields childEl = unwrapSceneElement(childNode);
-                if (childEl == null) {
-                    continue;
-                }
-                String name = childEl.name();
-                if (name == null) {
-                    continue;
-                }
-                var elCompiler = elementCompilers.get(name);
-                if (elCompiler == null) {
-                    errorSink.appendError(compiler, "Unknown scene element <" + name + ">", childNode);
-                    continue;
-                }
-                elCompiler.compile(scene.getLevel(), scene.getCamera(), compiler, errorSink, childEl);
-            }
+            List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(flow);
+            compiler.withBlockTagChildrenSourceContext(
+                flow,
+                () -> compileSceneChildren(scene, compiler, errorSink, children));
         } finally {
             AnnotationTagCompiler.CURRENT_SCENE.remove();
+        }
+    }
+
+    private void compileSceneChildren(LytGuidebookScene scene, PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children) {
+        for (var child : children) {
+            UnistNode childNode = child;
+            MdxJsxElementFields childEl = unwrapSceneElement(childNode);
+            if (childEl == null) {
+                continue;
+            }
+            String name = childEl.name();
+            if (name == null) {
+                continue;
+            }
+            var elCompiler = elementCompilers.get(name);
+            if (elCompiler == null) {
+                errorSink.appendError(compiler, "Unknown scene element <" + name + ">", childNode);
+                continue;
+            }
+            elCompiler.compile(scene.getLevel(), scene.getCamera(), compiler, errorSink, childEl);
         }
     }
 

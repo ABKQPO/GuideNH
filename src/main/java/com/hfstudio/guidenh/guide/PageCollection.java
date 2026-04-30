@@ -28,4 +28,8 @@ public interface PageCollection {
     NavigationTree getNavigationTree();
 
     boolean pageExists(ResourceLocation pageId);
+
+    default boolean isPageFailed(ResourceLocation pageId) {
+        return false;
+    }
 }

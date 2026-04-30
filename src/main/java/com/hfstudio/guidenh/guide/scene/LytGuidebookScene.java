@@ -1026,7 +1026,8 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private static InWorldLineAnnotation createOriginAxisAnnotation(Vector3f to, ConstantColor color) {
-        return new InWorldLineAnnotation(new Vector3f(), to, color, ORIGIN_AXIS_THICKNESS);
+        InWorldLineAnnotation annotation = new InWorldLineAnnotation(new Vector3f(), to, color, ORIGIN_AXIS_THICKNESS);
+        return annotation;
     }
 
     private void drawSceneButtons(int drawX, int drawY, int w, int h, int absX, int absY) {
@@ -1110,7 +1111,7 @@ public class LytGuidebookScene extends LytBlock {
         int g = (color >>> 8) & 0xFF;
         int b = color & 0xFF;
         GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
-        float texSize = 64f;
+        float texSize = GuideIconButton.TEXTURE_SIZE;
         float u0 = role.iconSrcX() / texSize;
         float v0 = role.iconSrcY() / texSize;
         float u1 = (role.iconSrcX() + 16) / texSize;

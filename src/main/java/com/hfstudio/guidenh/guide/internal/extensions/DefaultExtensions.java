@@ -16,16 +16,23 @@ import com.hfstudio.guidenh.guide.compiler.tags.BreakCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CategoryIndexCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ColorTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.DetailsTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DivTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FloatingImageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.FootnoteListCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemLinkCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.KbdTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PlayerNameTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.StructureViewCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SubPagesCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.SubscriptTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.SuperscriptTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.TooltipTagCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
@@ -73,10 +80,14 @@ public class DefaultExtensions {
         return Arrays.asList(
             new DivTagCompiler(),
             new ATagCompiler(),
+            new KbdTagCompiler(),
+            new SubscriptTagCompiler(),
+            new SuperscriptTagCompiler(),
             new ColorTagCompiler(),
             new ItemLinkCompiler(),
             new FloatingImageCompiler(),
             new BreakCompiler(),
+            new DetailsTagCompiler(),
             new RecipeCompiler(),
             new ItemGridCompiler(),
             new CategoryIndexCompiler(),
@@ -90,7 +101,10 @@ public class DefaultExtensions {
             new PlayerNameTagCompiler(),
             new KeyBindTagCompiler(),
             new TooltipTagCompiler(),
-            new StructureViewCompiler());
+            new FootnoteListCompiler(),
+            new StructureViewCompiler(),
+            new MermaidCompiler(),
+            new CsvTableCompiler());
     }
 
     public static List<SceneElementTagCompiler> sceneElementCompilers() {
