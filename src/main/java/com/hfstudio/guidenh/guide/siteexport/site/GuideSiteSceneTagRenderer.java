@@ -20,6 +20,8 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
         .serializeNulls()
         .create();
+    public static final int DEFAULT_WEB_SCENE_SCALE = 4;
+    public static final int TOOLTIP_WEB_SCENE_SCALE = 3;
     private static final String TRANSPARENT_PIXEL = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
     private static final String[] FORWARDED_ATTRIBUTES = { "zoom", "perspective", "rotateX", "rotateY", "rotateZ",
         "offsetX", "offsetY", "centerX", "centerY", "centerZ", "allowLayerSlider" };
@@ -49,9 +51,9 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
     @Override
     public String render(MdxJsxElementFields element, String defaultNamespace, ResourceLocation currentPageId,
         GuideSiteTemplateRegistry templates, GuideSiteExportedScene exportedScene) {
-        String width = readDimension(element, "width", 256);
-        String height = readDimension(element, "height", 192);
-        String interactive = readBoolean(element, "interactive", true);
+        int width = readDimension(element, "width", 256);
+        int height = readDimension(element, "height", 192);
+        boolean interactive = readBooleanValue(element, "interactive", true);
         String background = readOptional(element, "background");
         AnnotationPayload payload = resolveAnnotationPayload(
             element,
@@ -60,60 +62,16 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             templates,
             exportedScene);
 
-        String src = exportedScene != null ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.placeholderPath()
-            : TRANSPARENT_PIXEL;
-        String sceneSrc = exportedScene != null ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.scenePath()
-            : null;
-        String cssClass = sceneSrc != null ? "game-scene guide-scene" : "guide-scene";
-
-        StringBuilder html = new StringBuilder();
-        html.append("<img class=\"")
-            .append(cssClass)
-            .append("\" src=\"")
-            .append(escapeAttribute(src))
-            .append("\" alt=\"3D scene preview\" loading=\"lazy\" decoding=\"async\" width=\"")
-            .append(escapeAttribute(width))
-            .append("\" height=\"")
-            .append(escapeAttribute(height))
-            .append("\" data-scene-width=\"")
-            .append(escapeAttribute(width))
-            .append("\" data-scene-height=\"")
-            .append(escapeAttribute(height))
-            .append("\" data-scene-interactive=\"")
-            .append(escapeAttribute(interactive))
-            .append("\" data-scene-default-namespace=\"")
-            .append(escapeAttribute(defaultNamespace))
-            .append("\"");
-
-        if (sceneSrc != null) {
-            html.append(" data-scene-src=\"")
-                .append(escapeAttribute(sceneSrc))
-                .append("\" data-scene-asset-prefix=\"")
-                .append(escapeAttribute(GuideSitePageAssetExporter.ROOT_PREFIX))
-                .append("\"");
-        }
-        if (background != null && !background.isEmpty()) {
-            html.append(" data-scene-background=\"")
-                .append(escapeAttribute(background))
-                .append("\"");
-        }
-        if (!payload.inWorldJson.isEmpty()) {
-            html.append(" data-scene-in-world-annotations=\"")
-                .append(escapeAttribute(payload.inWorldJson))
-                .append("\"");
-        }
-        if (!payload.overlayJson.isEmpty()) {
-            html.append(" data-scene-overlay-annotations=\"")
-                .append(escapeAttribute(payload.overlayJson))
-                .append("\"");
-        }
-        if (exportedScene != null && exportedScene.hoverTargetsJson() != null
-            && !exportedScene.hoverTargetsJson()
-                .isEmpty()) {
-            html.append(" data-scene-hover-targets=\"")
-                .append(escapeAttribute(exportedScene.hoverTargetsJson()))
-                .append("\"");
-        }
+        StringBuilder html = new StringBuilder(
+            renderSceneHtml(
+                width,
+                height,
+                interactive,
+                defaultNamespace,
+                background,
+                exportedScene,
+                payload.inWorldJson,
+                payload.overlayJson));
 
         for (String attributeName : FORWARDED_ATTRIBUTES) {
             String attributeValue = readOptional(element, attributeName);
@@ -127,6 +85,127 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         }
 
         html.append(">");
+        return html.toString();
+    }
+
+    public static String renderSceneHtml(int logicalWidth, int logicalHeight, boolean interactive,
+        String defaultNamespace, String background, GuideSiteExportedScene exportedScene) {
+        return renderSceneHtml(
+            logicalWidth,
+            logicalHeight,
+            interactive,
+            defaultNamespace,
+            background,
+            exportedScene,
+            DEFAULT_WEB_SCENE_SCALE);
+    }
+
+    public static String renderSceneHtml(int logicalWidth, int logicalHeight, boolean interactive,
+        String defaultNamespace, String background, GuideSiteExportedScene exportedScene, int displayScale) {
+        String inWorldJson = exportedScene != null && exportedScene.inWorldJson() != null ? exportedScene.inWorldJson()
+            : "[]";
+        String overlayJson = exportedScene != null && exportedScene.overlayJson() != null ? exportedScene.overlayJson()
+            : "[]";
+        return renderSceneHtml(
+            logicalWidth,
+            logicalHeight,
+            interactive,
+            defaultNamespace,
+            background,
+            exportedScene,
+            inWorldJson,
+            overlayJson,
+            displayScale);
+    }
+
+    public static String renderSceneHtml(int logicalWidth, int logicalHeight, boolean interactive,
+        String defaultNamespace, String background, GuideSiteExportedScene exportedScene, String inWorldJson,
+        String overlayJson) {
+        return renderSceneHtml(
+            logicalWidth,
+            logicalHeight,
+            interactive,
+            defaultNamespace,
+            background,
+            exportedScene,
+            inWorldJson,
+            overlayJson,
+            DEFAULT_WEB_SCENE_SCALE);
+    }
+
+    public static String renderSceneHtml(int logicalWidth, int logicalHeight, boolean interactive,
+        String defaultNamespace, String background, GuideSiteExportedScene exportedScene, String inWorldJson,
+        String overlayJson, int displayScale) {
+        int normalizedWidth = Math.max(16, logicalWidth);
+        int normalizedHeight = Math.max(16, logicalHeight);
+        int normalizedDisplayScale = Math.max(1, displayScale);
+        int displayWidth = normalizedWidth * normalizedDisplayScale;
+        int displayHeight = normalizedHeight * normalizedDisplayScale;
+
+        String src = exportedScene != null ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.placeholderPath()
+            : TRANSPARENT_PIXEL;
+        String sceneSrc = exportedScene != null ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.scenePath()
+            : null;
+        String cssClass = sceneSrc != null ? "game-scene guide-scene" : "guide-scene";
+
+        StringBuilder html = new StringBuilder();
+        html.append("<img class=\"")
+            .append(cssClass)
+            .append("\" src=\"")
+            .append(escapeAttributeStatic(src))
+            .append("\" alt=\"3D scene preview\" loading=\"lazy\" decoding=\"async\" width=\"")
+            .append(displayWidth)
+            .append("\" height=\"")
+            .append(displayHeight)
+            .append("\" data-scene-width=\"")
+            .append(normalizedWidth)
+            .append("\" data-scene-height=\"")
+            .append(normalizedHeight)
+            .append("\" data-scene-interactive=\"")
+            .append(Boolean.toString(interactive))
+            .append("\" data-scene-default-namespace=\"")
+            .append(escapeAttributeStatic(defaultNamespace != null ? defaultNamespace : "guidenh"))
+            .append("\" data-scene-display-scale=\"")
+            .append(normalizedDisplayScale)
+            .append("\"");
+
+        if (sceneSrc != null) {
+            html.append(" data-scene-src=\"")
+                .append(escapeAttributeStatic(sceneSrc))
+                .append("\" data-scene-asset-prefix=\"")
+                .append(escapeAttributeStatic(GuideSitePageAssetExporter.ROOT_PREFIX))
+                .append("\"");
+        }
+        if (background != null && !background.isEmpty()) {
+            html.append(" data-scene-background=\"")
+                .append(escapeAttributeStatic(background))
+                .append("\"");
+        }
+        if (inWorldJson != null && !inWorldJson.isEmpty()) {
+            html.append(" data-scene-in-world-annotations=\"")
+                .append(escapeAttributeStatic(inWorldJson))
+                .append("\"");
+        }
+        if (overlayJson != null && !overlayJson.isEmpty()) {
+            html.append(" data-scene-overlay-annotations=\"")
+                .append(escapeAttributeStatic(overlayJson))
+                .append("\"");
+        }
+        if (exportedScene != null && exportedScene.hoverTargetsJson() != null
+            && !exportedScene.hoverTargetsJson()
+                .isEmpty()) {
+            html.append(" data-scene-hover-targets=\"")
+                .append(escapeAttributeStatic(exportedScene.hoverTargetsJson()))
+                .append("\"");
+        }
+        if (exportedScene != null && exportedScene.stateManifestPath() != null
+            && !exportedScene.stateManifestPath()
+                .isEmpty()) {
+            html.append(" data-scene-state-manifest-src=\"")
+                .append(
+                    escapeAttributeStatic(GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.stateManifestPath()))
+                .append("\"");
+        }
         return html.toString();
     }
 
@@ -310,17 +389,17 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         return trimmed;
     }
 
-    private String readDimension(MdxJsxElementFields element, String name, int fallback) {
+    private int readDimension(MdxJsxElementFields element, String name, int fallback) {
         String raw = readOptional(element, name);
         if (raw == null || raw.trim()
             .isEmpty()) {
-            return Integer.toString(fallback);
+            return fallback;
         }
         try {
             int parsed = Integer.parseInt(raw.trim());
-            return parsed > 0 ? Integer.toString(parsed) : Integer.toString(fallback);
+            return parsed > 0 ? parsed : fallback;
         } catch (NumberFormatException ignored) {
-            return Integer.toString(fallback);
+            return fallback;
         }
     }
 
@@ -384,6 +463,10 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
     }
 
     private String escapeAttribute(String text) {
+        return escapeAttributeStatic(text);
+    }
+
+    private static String escapeAttributeStatic(String text) {
         return text.replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")

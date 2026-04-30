@@ -179,7 +179,7 @@ public final class GuideSiteLocalServer {
     }
 
     private void handleSiteExchange(HttpExchange exchange) throws IOException {
-        try (exchange) {
+        try {
             String method = exchange.getRequestMethod();
             if (!"GET".equalsIgnoreCase(method) && !"HEAD".equalsIgnoreCase(method)) {
                 exchange.getResponseHeaders()
@@ -214,27 +214,33 @@ public final class GuideSiteLocalServer {
             try (OutputStream body = exchange.getResponseBody()) {
                 Files.copy(target, body);
             }
+        } finally {
+            exchange.close();
         }
     }
 
     private void handleStatusExchange(HttpExchange exchange) throws IOException {
-        try (exchange) {
+        try {
             if (!isAuthorized(exchange)) {
                 sendText(exchange, 403, "Forbidden");
                 return;
             }
             sendText(exchange, 200, "OK");
+        } finally {
+            exchange.close();
         }
     }
 
     private void handleStopExchange(HttpExchange exchange) throws IOException {
-        try (exchange) {
+        try {
             if (!isAuthorized(exchange)) {
                 sendText(exchange, 403, "Forbidden");
                 return;
             }
             sendText(exchange, 200, "Stopping");
             new Thread(this::stopServer, "GuideNH-SiteServer-Stop").start();
+        } finally {
+            exchange.close();
         }
     }
 
@@ -253,7 +259,7 @@ public final class GuideSiteLocalServer {
         }
 
         String relativePath = rawPath.startsWith("/") ? rawPath.substring(1) : rawPath;
-        relativePath = URLDecoder.decode(relativePath, UTF_8);
+        relativePath = urlDecode(relativePath);
         Path candidate = rootDir.resolve(relativePath)
             .normalize();
         if (!candidate.startsWith(rootDir)) {
@@ -397,7 +403,7 @@ public final class GuideSiteLocalServer {
         }
 
         try {
-            String encodedToken = URLEncoder.encode(token, UTF_8);
+            String encodedToken = urlEncode(token);
             URL url = new URL("http", host, port, path + "?token=" + encodedToken);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setConnectTimeout(CONTROL_TIMEOUT_MILLIS);
@@ -554,9 +560,25 @@ public final class GuideSiteLocalServer {
             int equals = pair.indexOf('=');
             String rawKey = equals >= 0 ? pair.substring(0, equals) : pair;
             String rawValue = equals >= 0 ? pair.substring(equals + 1) : "";
-            query.put(URLDecoder.decode(rawKey, UTF_8), URLDecoder.decode(rawValue, UTF_8));
+            query.put(urlDecode(rawKey), urlDecode(rawValue));
         }
         return query;
+    }
+
+    private static String urlDecode(String value) {
+        try {
+            return URLDecoder.decode(value, UTF_8.name());
+        } catch (IOException e) {
+            throw new IllegalStateException("UTF-8 is not available", e);
+        }
+    }
+
+    private static String urlEncode(String value) {
+        try {
+            return URLEncoder.encode(value, UTF_8.name());
+        } catch (IOException e) {
+            throw new IllegalStateException("UTF-8 is not available", e);
+        }
     }
 
     private static int parsePort(String value) {

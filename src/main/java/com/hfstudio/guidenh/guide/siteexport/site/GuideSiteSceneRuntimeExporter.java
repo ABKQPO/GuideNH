@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorOffscreenFramebuffer;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
@@ -150,8 +152,23 @@ public class GuideSiteSceneRuntimeExporter {
             GL11.glClearColor(0f, 0f, 0f, 0f);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
+            Integer visibleLayerY = resolveVisibleLayerY(scene);
             GuidebookLevelRenderer.getInstance()
-                .render(scene.getLevel(), scene.getCamera(), 0, 0, width, height, 0.0f);
+                .render(
+                    scene.getLevel(),
+                    scene.getCamera(),
+                    0,
+                    0,
+                    width,
+                    height,
+                    0,
+                    0,
+                    width,
+                    height,
+                    0.0f,
+                    Collections.emptyList(),
+                    LightDarkMode.LIGHT_MODE,
+                    visibleLayerY);
         } finally {
             framebuffer.unbindFramebuffer();
             framebuffer.deleteFramebuffer();
@@ -160,6 +177,22 @@ public class GuideSiteSceneRuntimeExporter {
             minecraft.gameSettings.guiScale = previousGuiScale;
             GL11.glViewport(0, 0, previousDisplayWidth, previousDisplayHeight);
         }
+    }
+
+    @Nullable
+    private Integer resolveVisibleLayerY(LytGuidebookScene scene) {
+        if (scene == null || scene.getLevel() == null
+            || scene.getLevel()
+                .isEmpty()) {
+            return null;
+        }
+        int currentLayer = scene.getCurrentVisibleLayer();
+        if (currentLayer <= 0) {
+            return null;
+        }
+        return scene.getLevel()
+            .getBounds()[1] + currentLayer
+            - 1;
     }
 
     private byte[] encodeScene(CameraSettings camera, GuideSiteSceneTessellatorCapture.RecordingResult result)

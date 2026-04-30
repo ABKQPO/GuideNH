@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,8 +63,17 @@ public final class GuideSiteSceneAnnotationSerializer {
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
         .serializeNulls()
         .create();
+    private static final ThreadLocal<Map<LytGuidebookScene, GuideSiteExportedScene>> EXPORTED_SCENE_LOOKUP = ThreadLocal
+        .withInitial(Collections::emptyMap);
 
     private GuideSiteSceneAnnotationSerializer() {}
+
+    public static ExportedSceneLookupScope pushExportedSceneLookup(
+        @Nullable Map<LytGuidebookScene, GuideSiteExportedScene> exportedScenesByScene) {
+        Map<LytGuidebookScene, GuideSiteExportedScene> previous = EXPORTED_SCENE_LOOKUP.get();
+        EXPORTED_SCENE_LOOKUP.set(exportedScenesByScene != null ? exportedScenesByScene : Collections.emptyMap());
+        return new ExportedSceneLookupScope(previous);
+    }
 
     public static AnnotationPayload serialize(LytGuidebookScene scene, GuideSiteTemplateRegistry templates) {
         return serialize(scene, templates, null, null, GuideSiteItemIconResolver.NONE);
@@ -254,6 +264,15 @@ public final class GuideSiteSceneAnnotationSerializer {
         return "rgba(" + red + "," + green + "," + blue + "," + alpha / 255.0f + ")";
     }
 
+    @Nullable
+    private static GuideSiteExportedScene resolveExportedScene(@Nullable LytGuidebookScene scene) {
+        if (scene == null) {
+            return null;
+        }
+        return EXPORTED_SCENE_LOOKUP.get()
+            .get(scene);
+    }
+
     public static final class AnnotationPayload {
 
         private final String inWorldJson;
@@ -270,6 +289,20 @@ public final class GuideSiteSceneAnnotationSerializer {
 
         public String overlayJson() {
             return overlayJson;
+        }
+    }
+
+    public static final class ExportedSceneLookupScope implements AutoCloseable {
+
+        private final Map<LytGuidebookScene, GuideSiteExportedScene> previous;
+
+        private ExportedSceneLookupScope(Map<LytGuidebookScene, GuideSiteExportedScene> previous) {
+            this.previous = previous;
+        }
+
+        @Override
+        public void close() {
+            EXPORTED_SCENE_LOOKUP.set(previous != null ? previous : Collections.emptyMap());
         }
     }
 
@@ -384,6 +417,19 @@ public final class GuideSiteSceneAnnotationSerializer {
                         templates,
                         allowNestedItemTooltips);
                 }
+                return;
+            }
+            if (node instanceof LytGuidebookScene scene) {
+                html.append(
+                    GuideSiteSceneTagRenderer.renderSceneHtml(
+                        scene.getSceneWidth(),
+                        scene.getSceneHeight(),
+                        scene.isInteractive(),
+                        currentPageId != null ? currentPageId.getResourceDomain() : "guidenh",
+                        null,
+                        resolveExportedScene(scene),
+                        GuideSiteSceneTagRenderer.TOOLTIP_WEB_SCENE_SCALE));
+                html.append(">");
                 return;
             }
             if (node instanceof LytHeading heading) {

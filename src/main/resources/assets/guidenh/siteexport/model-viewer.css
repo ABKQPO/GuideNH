@@ -1,6 +1,6 @@
 .guide-scene,
 .game-scene-wrapper {
-  --gui-scale: 1;
+  --gui-scale: 4;
 }
 
 img.game-scene,
@@ -54,6 +54,7 @@ img.game-scene,
   flex-direction: column;
   gap: 8px;
   padding: 12px 10px 12px 0;
+  min-width: 156px;
 }
 
 .game-scene-wrapper .controls button {
@@ -65,6 +66,45 @@ img.game-scene,
   font: inherit;
   min-width: 34px;
   min-height: 34px;
+  cursor: pointer;
+}
+
+.scene-state-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.scene-state-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #5a3412;
+}
+
+.scene-state-control-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.scene-state-control-label {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.scene-state-control-value {
+  color: rgba(63, 36, 16, 0.78);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-state-range {
+  width: 100%;
+  margin: 0;
+  accent-color: #8c4f20;
   cursor: pointer;
 }
 

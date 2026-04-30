@@ -58,11 +58,8 @@ public class GuideSiteWriter {
             outDir.resolve("_site/model-viewer/vendor/decompressFallback-VGYIC7XH.js"),
             "/assets/guidenh/siteexport/model-viewer/vendor/decompressFallback-VGYIC7XH.js");
         writeResource(
-            outDir.resolve("_site/model-viewer/vendor/diamond-7X2HHREI.png"),
-            "/assets/guidenh/siteexport/model-viewer/vendor/diamond-7X2HHREI.png");
-        writeResource(
-            outDir.resolve("_site/model-viewer/vendor/diamond_colored-LGQLQFTB.png"),
-            "/assets/guidenh/siteexport/model-viewer/vendor/diamond_colored-LGQLQFTB.png");
+            outDir.resolve("_site/model-viewer/vendor/diamond.png"),
+            "/assets/guidenh/textures/guide/diamond.png");
         GuideSiteLocalServerJarWriter.writeTo(outDir.resolve("_site/guidenh-site-server.jar"));
         writeStartScripts(outDir);
     }

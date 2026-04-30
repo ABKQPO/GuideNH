@@ -1,10 +1,12 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +25,15 @@ import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
+import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata;
 
 public class GuideSiteExportTask {
 
@@ -36,6 +41,7 @@ public class GuideSiteExportTask {
     public static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
         .serializeNulls()
         .create();
+    private static final int MAX_SCENE_STATE_VARIANTS = 256;
 
     private final Path outDir;
 
@@ -138,6 +144,7 @@ public class GuideSiteExportTask {
                                 variant.parsedPage(),
                                 compiledPage,
                                 templates,
+                                assets,
                                 sceneExporter,
                                 assetExporter,
                                 itemIconExporter);
@@ -353,31 +360,325 @@ public class GuideSiteExportTask {
     }
 
     private List<GuideSiteExportedScene> exportScenes(MutableGuide guide, ParsedGuidePage parsedPage,
-        GuidePage compiledPage, GuideSiteTemplateRegistry templates, GuideSiteSceneRuntimeExporter exporter,
-        GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
-        List<GuideSiteExportedScene> scenes = new ArrayList<>();
-        for (LytGuidebookScene scene : compiledPage.scenes()) {
-            try {
-                scene.getLevel()
-                    .prepareForPreview();
-                GuideSiteSceneAnnotationSerializer.AnnotationPayload annotationPayload = GuideSiteSceneAnnotationSerializer
-                    .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
-                String hoverTargetsJson = GuideSiteSceneHoverTargetSerializer
-                    .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
-                GuideSiteExportedScene exportedScene = exporter.exportScene(scene);
-                scenes.add(
-                    new GuideSiteExportedScene(
-                        exportedScene.placeholderPath(),
-                        exportedScene.scenePath(),
-                        annotationPayload.inWorldJson(),
-                        annotationPayload.overlayJson(),
-                        hoverTargetsJson));
+        GuidePage compiledPage, GuideSiteTemplateRegistry templates, GuideSiteAssetRegistry assets,
+        GuideSiteSceneRuntimeExporter exporter, GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver) {
+        GuideSiteCollectedScenes collectedScenes = GuideSiteSceneCollector.collect(compiledPage);
+        IdentityHashMap<LytGuidebookScene, GuideSiteExportedScene> exportedScenesByScene = new IdentityHashMap<>();
+        ArrayList<LytGuidebookScene> exportOrder = new ArrayList<>(collectedScenes.uniqueScenes());
+        Collections.reverse(exportOrder);
+
+        for (LytGuidebookScene scene : exportOrder) {
+            try (
+                GuideSiteSceneAnnotationSerializer.ExportedSceneLookupScope ignored = GuideSiteSceneAnnotationSerializer
+                    .pushExportedSceneLookup(exportedScenesByScene)) {
+                GuideSiteExportedScene exportedScene = exportScene(
+                    parsedPage,
+                    scene,
+                    templates,
+                    assets,
+                    exporter,
+                    assetExporter,
+                    itemIconResolver);
+                if (exportedScene != null) {
+                    exportedScenesByScene.put(scene, exportedScene);
+                }
             } catch (Throwable t) {
                 LOG.warn("Failed to export scene for page {} in guide {}", parsedPage.getId(), guide.getId(), t);
-                scenes.add(null);
             }
         }
-        return scenes;
+
+        List<GuideSiteExportedScene> htmlScenes = new ArrayList<>(
+            collectedScenes.htmlSceneSequence()
+                .size());
+        for (LytGuidebookScene scene : collectedScenes.htmlSceneSequence()) {
+            htmlScenes.add(exportedScenesByScene.get(scene));
+        }
+        return htmlScenes;
+    }
+
+    private GuideSiteExportedScene exportScene(ParsedGuidePage parsedPage, LytGuidebookScene scene,
+        GuideSiteTemplateRegistry templates, GuideSiteAssetRegistry assets, GuideSiteSceneRuntimeExporter exporter,
+        GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) throws Exception {
+        GuideSiteExportedScene baseScene = exportSceneState(
+            parsedPage,
+            scene,
+            templates,
+            exporter,
+            assetExporter,
+            itemIconResolver);
+        if (baseScene == null) {
+            return null;
+        }
+
+        String manifestPath = exportSceneStateManifest(
+            parsedPage,
+            scene,
+            templates,
+            assets,
+            exporter,
+            assetExporter,
+            itemIconResolver,
+            baseScene);
+        return new GuideSiteExportedScene(
+            baseScene.placeholderPath(),
+            baseScene.scenePath(),
+            baseScene.inWorldJson(),
+            baseScene.overlayJson(),
+            baseScene.hoverTargetsJson(),
+            manifestPath);
+    }
+
+    private GuideSiteExportedScene exportSceneState(ParsedGuidePage parsedPage, LytGuidebookScene scene,
+        GuideSiteTemplateRegistry templates, GuideSiteSceneRuntimeExporter exporter,
+        GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) throws Exception {
+        scene.getLevel()
+            .prepareForPreview();
+        GuideSiteSceneAnnotationSerializer.AnnotationPayload annotationPayload = GuideSiteSceneAnnotationSerializer
+            .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
+        String hoverTargetsJson = GuideSiteSceneHoverTargetSerializer
+            .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
+        GuideSiteExportedScene runtimeExport = exporter.exportScene(scene);
+        return new GuideSiteExportedScene(
+            runtimeExport.placeholderPath(),
+            runtimeExport.scenePath(),
+            annotationPayload.inWorldJson(),
+            annotationPayload.overlayJson(),
+            hoverTargetsJson);
+    }
+
+    private String exportSceneStateManifest(ParsedGuidePage parsedPage, LytGuidebookScene scene,
+        GuideSiteTemplateRegistry templates, GuideSiteAssetRegistry assets, GuideSiteSceneRuntimeExporter exporter,
+        GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
+        GuideSiteExportedScene baseScene) throws Exception {
+        SceneStateManifestPlan plan = buildSceneStateManifestPlan(scene);
+        if (plan == null || plan.states.size() <= 1) {
+            return null;
+        }
+
+        SceneVariantState initialState = SceneVariantState.capture(scene, plan.channelIds);
+        LinkedHashMap<String, Object> serializedStates = new LinkedHashMap<>(plan.states.size());
+
+        try {
+            for (SceneVariantState state : plan.states) {
+                GuideSiteExportedScene exportedVariant;
+                if (state.equals(initialState)) {
+                    exportedVariant = baseScene;
+                } else {
+                    applySceneVariantState(scene, state, plan.channelIds);
+                    exportedVariant = exportSceneState(
+                        parsedPage,
+                        scene,
+                        templates,
+                        exporter,
+                        assetExporter,
+                        itemIconResolver);
+                }
+                if (exportedVariant == null) {
+                    return null;
+                }
+                serializedStates.put(state.key(), serializeSceneVariant(exportedVariant));
+            }
+        } finally {
+            applySceneVariantState(scene, initialState, plan.channelIds);
+        }
+
+        LinkedHashMap<String, Object> manifest = new LinkedHashMap<>();
+        manifest.put("initialState", initialState.toMap());
+        manifest.put("controls", plan.controls);
+        manifest.put("states", serializedStates);
+        return assets.writeShared(
+            "scene-manifests",
+            ".json",
+            GSON.toJson(manifest)
+                .getBytes(StandardCharsets.UTF_8));
+    }
+
+    private SceneStateManifestPlan buildSceneStateManifestPlan(LytGuidebookScene scene) {
+        if (scene == null || !scene.isInteractive()) {
+            return null;
+        }
+
+        List<Integer> visibleLayers = buildVisibleLayerStates(scene);
+        StructureLibSceneMetadata metadata = scene.getStructureLibSceneMetadata();
+        List<Integer> tiers = buildTierStates(scene, metadata);
+        List<StructureLibSceneMetadata.ChannelData> selectableChannels = buildSelectableChannels(metadata);
+        List<String> channelIds = new ArrayList<>(selectableChannels.size());
+        List<List<Integer>> channelValues = new ArrayList<>(selectableChannels.size());
+        for (StructureLibSceneMetadata.ChannelData channelData : selectableChannels) {
+            channelIds.add(channelData.getChannelId());
+            channelValues.add(buildChannelStates(channelData));
+        }
+
+        long variantCount = (long) visibleLayers.size() * (long) tiers.size();
+        for (List<Integer> values : channelValues) {
+            variantCount *= values.size();
+            if (variantCount > MAX_SCENE_STATE_VARIANTS) {
+                LOG.warn(
+                    "Skipping scene state manifest export because {} variants exceed limit {}.",
+                    variantCount,
+                    MAX_SCENE_STATE_VARIANTS);
+                return null;
+            }
+        }
+        if (variantCount <= 1) {
+            return null;
+        }
+
+        LinkedHashMap<String, Object> controls = new LinkedHashMap<>();
+        if (visibleLayers.size() > 1) {
+            LinkedHashMap<String, Object> visibleLayerControl = new LinkedHashMap<>();
+            visibleLayerControl.put("label", GuidebookText.SceneVisibleLayerLabel.text());
+            visibleLayerControl.put("allLabel", GuidebookText.SceneAll.text());
+            visibleLayerControl.put("max", visibleLayers.get(visibleLayers.size() - 1));
+            controls.put("visibleLayer", visibleLayerControl);
+        }
+        if (tiers.size() > 1 && metadata != null && metadata.getTierData() != null) {
+            LinkedHashMap<String, Object> tierControl = new LinkedHashMap<>();
+            tierControl.put("label", GuidebookText.SceneStructureLibTierLabel.text());
+            tierControl.put(
+                "min",
+                metadata.getTierData()
+                    .getMinValue());
+            tierControl.put(
+                "max",
+                metadata.getTierData()
+                    .getMaxValue());
+            controls.put("tier", tierControl);
+        }
+        if (!selectableChannels.isEmpty()) {
+            ArrayList<Map<String, Object>> channelControls = new ArrayList<>(selectableChannels.size());
+            for (StructureLibSceneMetadata.ChannelData channelData : selectableChannels) {
+                LinkedHashMap<String, Object> channelControl = new LinkedHashMap<>();
+                channelControl.put("id", channelData.getChannelId());
+                channelControl.put("label", channelData.getLabel());
+                channelControl.put("min", channelData.getMinValue());
+                channelControl.put("max", channelData.getMaxValue());
+                channelControl.put("unsetLabel", GuidebookText.SceneNotSet.text());
+                channelControls.add(channelControl);
+            }
+            controls.put("channels", channelControls);
+        }
+
+        ArrayList<SceneVariantState> states = new ArrayList<>((int) variantCount);
+        appendSceneVariantStates(states, visibleLayers, tiers, channelIds, channelValues, 0, new ArrayList<>());
+        return new SceneStateManifestPlan(states, channelIds, controls);
+    }
+
+    private void appendSceneVariantStates(List<SceneVariantState> states, List<Integer> visibleLayers,
+        List<Integer> tiers, List<String> channelIds, List<List<Integer>> channelValues, int channelIndex,
+        List<Integer> currentChannels) {
+        if (channelIndex >= channelValues.size()) {
+            for (Integer visibleLayer : visibleLayers) {
+                for (Integer tier : tiers) {
+                    LinkedHashMap<String, Integer> channelState = new LinkedHashMap<>(channelIds.size());
+                    for (int i = 0; i < channelIds.size(); i++) {
+                        channelState.put(channelIds.get(i), currentChannels.get(i));
+                    }
+                    states.add(new SceneVariantState(visibleLayer, tier, channelState));
+                }
+            }
+            return;
+        }
+
+        for (Integer value : channelValues.get(channelIndex)) {
+            currentChannels.add(value);
+            appendSceneVariantStates(
+                states,
+                visibleLayers,
+                tiers,
+                channelIds,
+                channelValues,
+                channelIndex + 1,
+                currentChannels);
+            currentChannels.remove(currentChannels.size() - 1);
+        }
+    }
+
+    private void applySceneVariantState(LytGuidebookScene scene, SceneVariantState state, List<String> channelIds) {
+        if (scene == null || state == null) {
+            return;
+        }
+        scene.setStructureLibCurrentTier(state.tier);
+        for (String channelId : channelIds) {
+            int value = state.channels.containsKey(channelId) ? state.channels.get(channelId) : 0;
+            scene.setStructureLibChannelValue(channelId, value);
+        }
+        scene.setVisibleLayer(state.visibleLayer);
+    }
+
+    private Map<String, Object> serializeSceneVariant(GuideSiteExportedScene exportedScene) {
+        LinkedHashMap<String, Object> serialized = new LinkedHashMap<>();
+        serialized
+            .put("placeholderSrc", GuideSitePageAssetExporter.toRootRelativePath(exportedScene.placeholderPath()));
+        serialized.put("sceneSrc", GuideSitePageAssetExporter.toRootRelativePath(exportedScene.scenePath()));
+        serialized
+            .put("inWorldAnnotationsJson", exportedScene.inWorldJson() != null ? exportedScene.inWorldJson() : "[]");
+        serialized
+            .put("overlayAnnotationsJson", exportedScene.overlayJson() != null ? exportedScene.overlayJson() : "[]");
+        serialized.put(
+            "hoverTargetsJson",
+            exportedScene.hoverTargetsJson() != null ? exportedScene.hoverTargetsJson() : "[]");
+        return serialized;
+    }
+
+    private List<Integer> buildVisibleLayerStates(LytGuidebookScene scene) {
+        if (scene == null || !scene.isVisibleLayerSliderEnabled()
+            || scene.getLevel() == null
+            || scene.getLevel()
+                .isEmpty()) {
+            return Collections.singletonList(scene != null ? scene.getCurrentVisibleLayer() : Integer.valueOf(0));
+        }
+
+        int[] bounds = scene.getLevel()
+            .getBounds();
+        int layerCount = Math.max(1, bounds[4] - bounds[1] + 1);
+        ArrayList<Integer> layers = new ArrayList<>(layerCount + 1);
+        layers.add(Integer.valueOf(0));
+        for (int layer = 1; layer <= layerCount; layer++) {
+            layers.add(Integer.valueOf(layer));
+        }
+        return layers;
+    }
+
+    private List<Integer> buildTierStates(LytGuidebookScene scene, StructureLibSceneMetadata metadata) {
+        if (scene == null || metadata == null
+            || metadata.getTierData() == null
+            || !metadata.getTierData()
+                .isSelectable()) {
+            return Collections.singletonList(scene != null ? scene.getStructureLibCurrentTier() : Integer.valueOf(1));
+        }
+        ArrayList<Integer> tiers = new ArrayList<>();
+        for (int tier = metadata.getTierData()
+            .getMinValue(); tier <= metadata.getTierData()
+                .getMaxValue(); tier++) {
+            tiers.add(Integer.valueOf(tier));
+        }
+        return tiers;
+    }
+
+    private List<StructureLibSceneMetadata.ChannelData> buildSelectableChannels(StructureLibSceneMetadata metadata) {
+        if (metadata == null) {
+            return Collections.emptyList();
+        }
+        ArrayList<StructureLibSceneMetadata.ChannelData> channels = new ArrayList<>();
+        for (StructureLibSceneMetadata.ChannelData channelData : metadata.getChannelDataList()) {
+            if (channelData != null && channelData.isSelectable()) {
+                channels.add(channelData);
+            }
+        }
+        return channels;
+    }
+
+    private List<Integer> buildChannelStates(StructureLibSceneMetadata.ChannelData channelData) {
+        if (channelData == null || !channelData.isSelectable()) {
+            return Collections.singletonList(Integer.valueOf(0));
+        }
+        ArrayList<Integer> states = new ArrayList<>(channelData.getMaxValue() + 1);
+        for (int value = channelData.getMinValue(); value <= channelData.getMaxValue(); value++) {
+            states.add(Integer.valueOf(value));
+        }
+        return states;
     }
 
     private GuideSiteHtmlCompiler.SceneResolver createSceneResolver(List<GuideSiteExportedScene> exportedScenes) {
@@ -393,6 +694,85 @@ public class GuideSiteExportTask {
                 return exportedScenes.get(index++);
             }
         };
+    }
+
+    private static final class SceneStateManifestPlan {
+
+        private final List<SceneVariantState> states;
+        private final List<String> channelIds;
+        private final Map<String, Object> controls;
+
+        private SceneStateManifestPlan(List<SceneVariantState> states, List<String> channelIds,
+            Map<String, Object> controls) {
+            this.states = states;
+            this.channelIds = channelIds;
+            this.controls = controls;
+        }
+    }
+
+    private static final class SceneVariantState {
+
+        private final int visibleLayer;
+        private final int tier;
+        private final LinkedHashMap<String, Integer> channels;
+
+        private SceneVariantState(int visibleLayer, int tier, LinkedHashMap<String, Integer> channels) {
+            this.visibleLayer = Math.max(0, visibleLayer);
+            this.tier = Math.max(1, tier);
+            this.channels = channels != null ? new LinkedHashMap<>(channels) : new LinkedHashMap<>();
+        }
+
+        private static SceneVariantState capture(LytGuidebookScene scene, List<String> channelIds) {
+            LinkedHashMap<String, Integer> channels = new LinkedHashMap<>();
+            if (scene != null && channelIds != null) {
+                for (String channelId : channelIds) {
+                    channels.put(channelId, scene.getStructureLibChannelValue(channelId));
+                }
+            }
+            return new SceneVariantState(
+                scene != null ? scene.getCurrentVisibleLayer() : 0,
+                scene != null ? scene.getStructureLibCurrentTier() : StructureLibPreviewSelection.DEFAULT_MASTER_TIER,
+                channels);
+        }
+
+        private String key() {
+            StringBuilder key = new StringBuilder();
+            key.append("layer=")
+                .append(visibleLayer)
+                .append("|tier=")
+                .append(tier);
+            for (Map.Entry<String, Integer> channelEntry : channels.entrySet()) {
+                key.append("|channel:")
+                    .append(channelEntry.getKey())
+                    .append("=")
+                    .append(channelEntry.getValue());
+            }
+            return key.toString();
+        }
+
+        private Map<String, Object> toMap() {
+            LinkedHashMap<String, Object> state = new LinkedHashMap<>();
+            state.put("visibleLayer", visibleLayer);
+            state.put("tier", tier);
+            state.put("channels", new LinkedHashMap<>(channels));
+            return state;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof SceneVariantState other)) {
+                return false;
+            }
+            return visibleLayer == other.visibleLayer && tier == other.tier && channels.equals(other.channels);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * (31 * visibleLayer + tier) + channels.hashCode();
+        }
     }
 
     public static final class Result {

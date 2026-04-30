@@ -1,7 +1,15 @@
 let modelViewerModulePromise;
+let loadedModelViewerModule;
 
 async function getModelViewerModule() {
-  modelViewerModulePromise ||= import("./model-viewer/modelViewer.js");
+  if (loadedModelViewerModule) {
+    return loadedModelViewerModule;
+  }
+
+  modelViewerModulePromise ||= import("./model-viewer/modelViewer.js").then((module) => {
+    loadedModelViewerModule = module;
+    return module;
+  });
   return modelViewerModulePromise;
 }
 
@@ -21,6 +29,10 @@ export function hydrateVisibleScenes(root) {
       if (node.dataset.sceneHydrated === "true") {
         continue;
       }
+      if (!node.isConnected) {
+        observer.unobserve(node);
+        continue;
+      }
       node.dataset.sceneHydrated = "true";
       module.setupGameScene(node);
       observer.unobserve(node);
@@ -30,4 +42,11 @@ export function hydrateVisibleScenes(root) {
   for (const node of sceneNodes) {
     observer.observe(node);
   }
+}
+
+export function disposeHydratedScenes(root) {
+  if (!root || !loadedModelViewerModule) {
+    return;
+  }
+  loadedModelViewerModule.disposeHydratedScenes?.(root);
 }

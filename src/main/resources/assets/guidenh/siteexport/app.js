@@ -1,5 +1,5 @@
 import { installSearchUi } from "./search.js";
-import { hydrateVisibleScenes } from "./viewer.js";
+import { disposeHydratedScenes, hydrateVisibleScenes } from "./viewer.js";
 
 function cycleChildren(container) {
   const current = container.querySelector(".current");
@@ -96,6 +96,7 @@ function installTooltips(root) {
   function hideAll() {
     activeState = null;
     restoreStack = [];
+    disposeHydratedScenes(tooltipRoot);
     tooltipRoot.hidden = true;
     tooltipRoot.innerHTML = "";
     stopIngredientCycling(tooltipRoot);
@@ -112,6 +113,8 @@ function installTooltips(root) {
       restoreStack = [];
     }
     activeState = nextState;
+    disposeHydratedScenes(tooltipRoot);
+    stopIngredientCycling(tooltipRoot);
     tooltipRoot.innerHTML = nextState.html;
     tooltipRoot.hidden = false;
     installIngredientCycling(tooltipRoot);
