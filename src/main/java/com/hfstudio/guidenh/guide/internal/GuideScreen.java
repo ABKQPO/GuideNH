@@ -47,7 +47,6 @@ import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchResultDocumentBuilder;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchSnippetFormatter;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
-import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipRenderSupport;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
@@ -600,7 +599,10 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
 
     private void renderGuideTooltip(GuideTooltip tooltip, int mouseX, int mouseY) {
         if (tooltip instanceof ItemTooltip it) {
-            renderItemTooltip(it, mouseX, mouseY);
+            var stack = it.getStack();
+            if (stack == null || stack.stackSize == 0) return;
+            List<String> lines = GuideItemTooltipLines.build(it, mc);
+            drawHoveringText(lines, mouseX, mouseY, mc.fontRenderer);
             return;
         }
         if (tooltip instanceof TextTooltip tt) {
@@ -610,22 +612,6 @@ public class GuideScreen extends GuiScreen implements GuideUiHost {
         if (tooltip instanceof ContentTooltip ct) {
             drawContentTooltip(ct, mouseX, mouseY);
         }
-    }
-
-    private void renderItemTooltip(ItemTooltip tooltip, int mouseX, int mouseY) {
-        ItemStack stack = tooltip.getStack();
-        if (stack == null || stack.stackSize == 0) {
-            return;
-        }
-
-        if (GuideItemTooltipRenderSupport.shouldUseVanillaRenderer(tooltip)) {
-            renderToolTip(stack, mouseX, mouseY);
-            return;
-        }
-
-        List<String> lines = GuideItemTooltipLines.build(tooltip, mc);
-        FontRenderer font = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
-        drawHoveringText(lines, mouseX, mouseY, font);
     }
 
     @Nullable
