@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.scene.element;
 import java.lang.reflect.Constructor;
 import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -13,7 +14,10 @@ import java.util.UUID;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
+import net.minecraft.item.Item;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 
@@ -75,6 +79,7 @@ public class GuidebookSceneEntityLoader {
         }
 
         NBTTagCompound baseTag = data != null ? (NBTTagCompound) data.copy() : new NBTTagCompound();
+        normalizeSerializedItemStacks(baseTag);
         if (isPreviewPlayerId(trimmedId)) {
             return loadPreviewPlayer(world, baseTag, playerName, playerUuid);
         }
@@ -248,6 +253,87 @@ public class GuidebookSceneEntityLoader {
         entity.worldObj = world;
         entity.dimension = world.provider.dimensionId;
         return entity;
+    }
+
+    private static void normalizeSerializedItemStacks(NBTTagCompound tag) {
+        if (tag == null) {
+            return;
+        }
+
+        rewriteSerializedItemIdIfNeeded(tag);
+
+        ArrayList<String> keys = new ArrayList<>(tag.func_150296_c());
+        for (String key : keys) {
+            NBTBase child = tag.getTag(key);
+            if (child instanceof NBTTagCompound childCompound) {
+                normalizeSerializedItemStacks(childCompound);
+            } else if (child instanceof NBTTagList childList) {
+                normalizeSerializedItemStacks(childList);
+            }
+        }
+    }
+
+    private static void normalizeSerializedItemStacks(NBTTagList list) {
+        if (list == null || list.func_150303_d() != 10) {
+            return;
+        }
+
+        for (int index = 0; index < list.tagCount(); index++) {
+            normalizeSerializedItemStacks(list.getCompoundTagAt(index));
+        }
+    }
+
+    private static void rewriteSerializedItemIdIfNeeded(NBTTagCompound tag) {
+        if (!looksLikeSerializedItemStack(tag) || !tag.hasKey("id", 8)) {
+            return;
+        }
+
+        String serializedItemId = trimToNull(tag.getString("id"));
+        if (serializedItemId == null) {
+            return;
+        }
+
+        Item item = resolveSerializedItemId(serializedItemId);
+        if (item == null) {
+            return;
+        }
+
+        int numericId = Item.getIdFromItem(item);
+        if (numericId <= 0 || numericId > Short.MAX_VALUE) {
+            return;
+        }
+
+        tag.setShort("id", (short) numericId);
+    }
+
+    private static boolean looksLikeSerializedItemStack(NBTTagCompound tag) {
+        return tag.hasKey("Count", 99) || tag.hasKey("Damage", 99) || tag.hasKey("tag", 10);
+    }
+
+    @Nullable
+    private static Item resolveSerializedItemId(String serializedItemId) {
+        Item item = (Item) Item.itemRegistry.getObject(serializedItemId);
+        if (item != null) {
+            return item;
+        }
+
+        if (serializedItemId.startsWith("minecraft:")) {
+            item = (Item) Item.itemRegistry.getObject(serializedItemId.substring("minecraft:".length()));
+            if (item != null) {
+                return item;
+            }
+        } else if (serializedItemId.indexOf(':') < 0) {
+            item = (Item) Item.itemRegistry.getObject("minecraft:" + serializedItemId);
+            if (item != null) {
+                return item;
+            }
+        }
+
+        try {
+            return Item.getItemById(Integer.parseInt(serializedItemId));
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     @Nullable

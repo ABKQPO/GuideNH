@@ -36,6 +36,8 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
     private static final float CHILD_BODY_TRANSLATE_Y = 24.0F * MODEL_RENDER_SCALE;
     private final GuidebookPreviewPlayerModel wideMainModel;
     private final GuidebookPreviewPlayerModel slimMainModel;
+    private AbstractClientPlayer suppressedEtFuturumElytraPlayer;
+    private ItemStack suppressedEtFuturumElytraChestItem;
 
     private GuidebookPreviewPlayerRenderer() {
         this.wideMainModel = new GuidebookPreviewPlayerModel(0.0F, true, false);
@@ -66,8 +68,29 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
     @Override
     public void doRender(AbstractClientPlayer player, double x, double y, double z, float yaw, float partialTicks) {
         useResolvedMainModel(player);
-        super.doRender(player, x, y, z, yaw, partialTicks);
-        setActiveMainModel(this.wideMainModel);
+        ItemStack chestItem = player.inventory.armorItemInSlot(CHEST_ARMOR_SLOT);
+        if (!GuidebookPreviewPlayerCompat.isEtFuturumElytraStack(chestItem)) {
+            try {
+                super.doRender(player, x, y, z, yaw, partialTicks);
+            } finally {
+                setActiveMainModel(this.wideMainModel);
+            }
+            return;
+        }
+
+        AbstractClientPlayer previousSuppressedPlayer = this.suppressedEtFuturumElytraPlayer;
+        ItemStack previousSuppressedChestItem = this.suppressedEtFuturumElytraChestItem;
+        this.suppressedEtFuturumElytraPlayer = player;
+        this.suppressedEtFuturumElytraChestItem = chestItem;
+        player.inventory.armorInventory[CHEST_ARMOR_SLOT] = null;
+        try {
+            super.doRender(player, x, y, z, yaw, partialTicks);
+        } finally {
+            player.inventory.armorInventory[CHEST_ARMOR_SLOT] = chestItem;
+            this.suppressedEtFuturumElytraPlayer = previousSuppressedPlayer;
+            this.suppressedEtFuturumElytraChestItem = previousSuppressedChestItem;
+            setActiveMainModel(this.wideMainModel);
+        }
     }
 
     @Override
@@ -103,7 +126,7 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
         GL11.glColor3f(1.0F, 1.0F, 1.0F);
         super.renderArrowsStuckInEntity(p_77029_1_, p_77029_2_);
         ItemStack itemstack = p_77029_1_.inventory.armorItemInSlot(3);
-        ItemStack chestItem = p_77029_1_.inventory.armorItemInSlot(CHEST_ARMOR_SLOT);
+        ItemStack chestItem = getRenderableChestItem(p_77029_1_);
         boolean hasEtFuturumElytra = GuidebookPreviewPlayerCompat.isEtFuturumElytraStack(chestItem);
 
         if (itemstack != null && event.renderHelmet) {
@@ -187,7 +210,7 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
         }
 
         if (hasEtFuturumElytra) {
-            renderPreviewEtFuturumElytra(p_77029_1_, p_77029_2_);
+            renderPreviewEtFuturumElytra(p_77029_1_, chestItem, p_77029_2_);
         }
 
         ItemStack itemstack1 = p_77029_1_.inventory.getCurrentItem();
@@ -325,19 +348,37 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
             && GuidebookPreviewPlayerCompat.isEtFuturumElytraStack(player.inventory.armorItemInSlot(CHEST_ARMOR_SLOT));
     }
 
-    private void renderPreviewEtFuturumElytra(AbstractClientPlayer player, float partialTicks) {
+    private ItemStack getRenderableChestItem(AbstractClientPlayer player) {
+        if (player == this.suppressedEtFuturumElytraPlayer && this.suppressedEtFuturumElytraChestItem != null) {
+            return this.suppressedEtFuturumElytraChestItem;
+        }
+        return player.inventory.armorItemInSlot(CHEST_ARMOR_SLOT);
+    }
+
+    private void renderPreviewEtFuturumElytra(AbstractClientPlayer player, ItemStack chestItem, float partialTicks) {
         GL11.glPushMatrix();
         if (player.isChild()) {
             GL11.glScalef(CHILD_BODY_SCALE, CHILD_BODY_SCALE, CHILD_BODY_SCALE);
             GL11.glTranslatef(0.0F, CHILD_BODY_TRANSLATE_Y, 0.0F);
         }
-        GuidebookPreviewPlayerCompat.tryRenderEtFuturumElytraLayer(
-            player,
-            player.limbSwing,
-            player.limbSwingAmount,
-            partialTicks,
-            player.getAge(),
-            MODEL_RENDER_SCALE);
+        ItemStack originalChestItem = player.inventory.armorItemInSlot(CHEST_ARMOR_SLOT);
+        boolean restoreChestItem = chestItem != null && originalChestItem != chestItem;
+        if (restoreChestItem) {
+            player.inventory.armorInventory[CHEST_ARMOR_SLOT] = chestItem;
+        }
+        try {
+            GuidebookPreviewPlayerCompat.tryRenderEtFuturumElytraLayer(
+                player,
+                player.limbSwing,
+                player.limbSwingAmount,
+                partialTicks,
+                player.getAge(),
+                MODEL_RENDER_SCALE);
+        } finally {
+            if (restoreChestItem) {
+                player.inventory.armorInventory[CHEST_ARMOR_SLOT] = originalChestItem;
+            }
+        }
         GL11.glPopMatrix();
     }
 

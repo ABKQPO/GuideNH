@@ -87,6 +87,24 @@ You may ~~need~~ a <Color color="#ff0000">door</Color> <Color id="RED">door</Col
   <Entity id="player" x="2" y="1" showName={false} showCape={false} />
 </GameScene>
 
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity
+    id="player"
+    y="1"
+    name="Circulation_"
+    data='{Inventory:[{Slot:102b,id:"etfuturum:elytra",Count:1b}]}'
+  />
+  <Entity
+    id="player"
+    x="2"
+    y="1"
+    baby={true}
+    name="Circulation_"
+    data='{Inventory:[{Slot:102b,id:"etfuturum:elytra",Count:1b}]}'
+  />
+</GameScene>
+
 <GameScene zoom={2} interactive={true}>
   <Block id="minecraft:log" />
   <Block id="minecraft:log" x="1" />
