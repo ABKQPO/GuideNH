@@ -13,11 +13,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiConfirmOpenLink;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.client.gui.GuiYesNo;
 import net.minecraft.client.gui.GuiYesNoCallback;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
@@ -1464,8 +1465,14 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
     }
 
-    private GuiConfirmOpenLink createExternalLinkConfirmScreen(URI uri) {
-        return new GuiConfirmOpenLink(this, uri.toString(), EXTERNAL_LINK_CONFIRM_ID, false) {
+    private GuiYesNo createExternalLinkConfirmScreen(URI uri) {
+        return new GuiYesNo(
+            this,
+            I18n.format("chat.link.confirm", new Object[0]),
+            uri.toString(),
+            I18n.format("gui.yes", new Object[0]),
+            I18n.format("gui.no", new Object[0]),
+            EXTERNAL_LINK_CONFIRM_ID) {
 
             @Override
             protected void keyTyped(char typedChar, int keyCode) {
