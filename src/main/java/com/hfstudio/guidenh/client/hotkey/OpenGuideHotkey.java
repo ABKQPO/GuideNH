@@ -16,6 +16,7 @@ import org.lwjgl.input.Keyboard;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
+import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.internal.GuideMEProxy;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
@@ -160,6 +161,10 @@ public class OpenGuideHotkey {
                     try {
                         anchor = guide.getIndex(ItemIndex.class)
                             .findByStack(stack);
+                        if (anchor == null) {
+                            anchor = guide.getIndex(OreIndex.class)
+                                .findByStack(stack);
+                        }
                     } catch (IllegalArgumentException ignored) {
                         continue;
                     }

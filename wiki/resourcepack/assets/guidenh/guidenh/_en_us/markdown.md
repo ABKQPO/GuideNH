@@ -464,7 +464,7 @@ Line overlays share hover/tooltip behavior with the underlying columns/bars: hov
   <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
   <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
   <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
-  <PieInset size="60" position="topRight" title="Total share">
+  <PieInset size="60" position="right" title="Total share">
     <Slice label="Iron" value="225" color="#a0a0a0"/>
     <Slice label="Gold" value="110" color="#e0c060"/>
   </PieInset>
@@ -475,7 +475,7 @@ Line overlays share hover/tooltip behavior with the underlying columns/bars: hov
   <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
   <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
   <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
-  <PieInset size="60" position="topRight" title="Total share">
+  <PieInset size="60" position="right" title="Total share">
     <Slice label="Iron" value="225" color="#a0a0a0"/>
     <Slice label="Gold" value="110" color="#e0c060"/>
   </PieInset>

@@ -454,7 +454,7 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>` 簇状柱形图、`<
   <Series name="铁"  data="40,60,55,70"  color="#a0a0a0"/>
   <Series name="金"  data="20,30,25,35"  color="#e0c060"/>
   <LineSeries name="合计" data="60,90,80,105" color="#ff5050"/>
-  <PieInset size="60" position="topRight" title="合计占比">
+  <PieInset size="60" position="right" title="合计占比">
     <Slice label="铁" value="225" color="#a0a0a0"/>
     <Slice label="金" value="110" color="#e0c060"/>
   </PieInset>
@@ -465,7 +465,7 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>` 簇状柱形图、`<
   <Series name="铁"  data="40,60,55,70"  color="#a0a0a0"/>
   <Series name="金"  data="20,30,25,35"  color="#e0c060"/>
   <LineSeries name="合计" data="60,90,80,105" color="#ff5050"/>
-  <PieInset size="60" position="topRight" title="合计占比">
+  <PieInset size="60" position="right" title="合计占比">
     <Slice label="铁" value="225" color="#a0a0a0"/>
     <Slice label="金" value="110" color="#e0c060"/>
   </PieInset>

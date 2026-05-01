@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.flow.LytTooltipSpan;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
+import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class ItemLinkCompiler extends FlowTagCompiler {
@@ -29,8 +30,11 @@ public class ItemLinkCompiler extends FlowTagCompiler {
         var id = itemAndId.getLeft();
         var stack = itemAndId.getRight();
 
-        var linksTo = compiler.getIndex(ItemIndex.class)
+        var itemAnchor = compiler.getIndex(ItemIndex.class)
             .findByStack(stack);
+        final var linksTo = itemAnchor != null ? itemAnchor
+            : compiler.getIndex(OreIndex.class)
+                .findByStack(stack);
         // We'll error out for item-links to our own mod because we expect them to have a page
         // while we don't have pages for Vanilla items or items from other mods.
         if (linksTo == null && oreName == null
