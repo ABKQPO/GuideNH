@@ -46,7 +46,7 @@ public class CategoryIndex extends MultiValuedIndex<String, PageAnchor> {
         // The anchor to the current page
         var anchor = new PageAnchor(page.getId(), null);
 
-        var categories = new ArrayList<Pair<String, PageAnchor>>();
+        var categories = new ArrayList<Pair<String, PageAnchor>>(categoryList.size());
 
         for (var listEntry : categoryList) {
             if (listEntry instanceof String categoryString) {

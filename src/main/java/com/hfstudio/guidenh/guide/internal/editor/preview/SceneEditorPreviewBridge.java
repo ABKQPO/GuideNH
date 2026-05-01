@@ -4,14 +4,14 @@ import java.nio.file.Path;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneImportService;
 
 public class SceneEditorPreviewBridge {
 

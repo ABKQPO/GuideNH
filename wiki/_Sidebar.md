@@ -16,6 +16,7 @@
 - [Recipes](Recipes)
 - [Localization](Localization)
 - [Examples](Examples)
+- [Mod Compatibility](Mod-Compatibility)
 - [FAQ](FAQ)
 
 ### 中文
@@ -34,4 +35,5 @@
 - [配方](Recipes-zh-CN)
 - [本地化](Localization-zh-CN)
 - [示例](Examples-zh-CN)
+- [模组兼容](Mod-Compatibility-zh-CN)
 - [常见问题](FAQ-zh-CN)

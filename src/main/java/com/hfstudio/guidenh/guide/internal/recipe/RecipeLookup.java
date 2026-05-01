@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,29 +19,12 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hfstudio.guidenh.mixins.early.forge.AccessorShapedOreRecipe;
+import com.hfstudio.guidenh.mixins.early.forge.AccessorShapelessOreRecipe;
+
 public class RecipeLookup {
 
     public static final Logger LOG = LoggerFactory.getLogger(RecipeLookup.class);
-
-    public static Field SHAPED_ORE_INPUT;
-    public static Field SHAPED_ORE_WIDTH;
-    public static Field SHAPED_ORE_HEIGHT;
-    public static Field SHAPELESS_ORE_INPUT;
-
-    static {
-        try {
-            SHAPED_ORE_INPUT = ShapedOreRecipe.class.getDeclaredField("input");
-            SHAPED_ORE_INPUT.setAccessible(true);
-            SHAPED_ORE_WIDTH = ShapedOreRecipe.class.getDeclaredField("width");
-            SHAPED_ORE_WIDTH.setAccessible(true);
-            SHAPED_ORE_HEIGHT = ShapedOreRecipe.class.getDeclaredField("height");
-            SHAPED_ORE_HEIGHT.setAccessible(true);
-            SHAPELESS_ORE_INPUT = ShapelessOreRecipe.class.getDeclaredField("input");
-            SHAPELESS_ORE_INPUT.setAccessible(true);
-        } catch (NoSuchFieldException e) {
-            LOG.warn("Failed to reflect ShapedOreRecipe fields; OreDict recipes will be ignored", e);
-        }
-    }
 
     private RecipeLookup() {}
 
@@ -108,45 +90,35 @@ public class RecipeLookup {
 
     @Nullable
     public static Entry fromShapedOre(ShapedOreRecipe r) {
-        if (SHAPED_ORE_INPUT == null) return null;
-        try {
-            Object[] input = (Object[]) SHAPED_ORE_INPUT.get(r);
-            int w = SHAPED_ORE_WIDTH.getInt(r);
-            int h = SHAPED_ORE_HEIGHT.getInt(r);
-            Entry e = new Entry();
-            e.result = r.getRecipeOutput();
-            e.shapeless = false;
-            for (int row = 0; row < h; row++) {
-                for (int col = 0; col < w; col++) {
-                    int srcIdx = row * w + col;
-                    if (srcIdx < input.length) {
-                        e.input3x3[row * 3 + col] = resolveOre(input[srcIdx]);
-                    }
+        AccessorShapedOreRecipe accessor = (AccessorShapedOreRecipe) (Object) r;
+        Object[] input = accessor.guidenh$getInput();
+        if (input == null) return null;
+        int w = accessor.guidenh$getWidth();
+        int h = accessor.guidenh$getHeight();
+        Entry e = new Entry();
+        e.result = r.getRecipeOutput();
+        e.shapeless = false;
+        for (int row = 0; row < h; row++) {
+            for (int col = 0; col < w; col++) {
+                int srcIdx = row * w + col;
+                if (srcIdx < input.length) {
+                    e.input3x3[row * 3 + col] = resolveOre(input[srcIdx]);
                 }
             }
-            return e;
-        } catch (IllegalAccessException ex) {
-            LOG.warn("ShapedOreRecipe reflection failed", ex);
-            return null;
         }
+        return e;
     }
 
     @Nullable
     public static Entry fromShapelessOre(ShapelessOreRecipe r) {
-        if (SHAPELESS_ORE_INPUT == null) return null;
-        try {
-            @SuppressWarnings("unchecked")
-            List<Object> input = (List<Object>) SHAPELESS_ORE_INPUT.get(r);
-            Entry e = new Entry();
-            e.result = r.getRecipeOutput();
-            e.shapeless = true;
-            int n = Math.min(9, input.size());
-            for (int i = 0; i < n; i++) e.input3x3[i] = resolveOre(input.get(i));
-            return e;
-        } catch (IllegalAccessException ex) {
-            LOG.warn("ShapelessOreRecipe reflection failed", ex);
-            return null;
-        }
+        ArrayList<Object> input = ((AccessorShapelessOreRecipe) (Object) r).guidenh$getInput();
+        if (input == null) return null;
+        Entry e = new Entry();
+        e.result = r.getRecipeOutput();
+        e.shapeless = true;
+        int n = Math.min(9, input.size());
+        for (int i = 0; i < n; i++) e.input3x3[i] = resolveOre(input.get(i));
+        return e;
     }
 
     @Nullable

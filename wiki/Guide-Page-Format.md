@@ -256,6 +256,7 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | `categories` | list of strings | Adds the page to the category index |
 | `item_ids` | list of item references | Makes the page discoverable by `<ItemLink>` |
 | `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
+| `quest_ids` | list of BetterQuesting quest UUID strings | Makes the page discoverable by `<QuestLink>` / `<QuestCard>` and by the open-guide hotkey when a quest is hovered in the BQ GUI. Only consumed when BetterQuesting is loaded. See [Mod Compatibility](Mod-Compatibility) |
 | any other key | any YAML value | Preserved in `additionalProperties` for extensions or tooling |
 
 ### `navigation`
@@ -286,6 +287,8 @@ categories:
 ore_ids:
   - ingotIron
   - oreCopper
+quest_ids:
+  - 01234567-89ab-cdef-0123-456789abcdef
 ```
 
 ## Link Resolution

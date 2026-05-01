@@ -65,7 +65,7 @@ public class OreIndex extends UniqueIndex<String, PageAnchor> {
             return Collections.emptyList();
         }
 
-        var oreAnchors = new ArrayList<Pair<String, PageAnchor>>();
+        var oreAnchors = new ArrayList<Pair<String, PageAnchor>>(oreIdList.size());
 
         for (var listEntry : oreIdList) {
             if (listEntry instanceof String oreName) {

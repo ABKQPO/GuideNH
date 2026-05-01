@@ -1,14 +1,11 @@
 package com.hfstudio.guidenh.guide.internal.scene;
 
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collection;
 
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
@@ -16,6 +13,8 @@ import org.jetbrains.annotations.Nullable;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hfstudio.guidenh.compat.etfuturum.EtFuturumHelpers;
+import com.hfstudio.guidenh.compat.simpleskinbackport.SimpleSkinBackportHelpers;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import com.mojang.authlib.properties.Property;
@@ -28,16 +27,6 @@ public final class GuidebookPreviewPlayerCompat {
 
     private static final String TEXTURES_PROPERTY_NAME = "textures";
     private static final String SLIM_MODEL_NAME = "slim";
-    @Nullable
-    private static final Method SIMPLE_SKIN_BACKPORT_SLIM_GETTER = findSimpleSkinBackportSlimGetter();
-    @Nullable
-    private static final Method SIMPLE_SKIN_BACKPORT_SET_64X = findSimpleSkinBackportSet64xMethod();
-    @Nullable
-    private static final Method ET_FUTURUM_ALEX_CHECKER = findEtFuturumAlexChecker();
-    @Nullable
-    private static final Class<?> ET_FUTURUM_ELYTRA_ITEM_CLASS = findEtFuturumElytraItemClass();
-    @Nullable
-    private static final Method ET_FUTURUM_ELYTRA_RENDER_LAYER = findEtFuturumElytraRenderLayer();
 
     private GuidebookPreviewPlayerCompat() {}
 
@@ -64,12 +53,12 @@ public final class GuidebookPreviewPlayerCompat {
             }
         }
 
-        Boolean simpleSkinBackportSlim = resolveSimpleSkinBackportSlim(player);
+        Boolean simpleSkinBackportSlim = SimpleSkinBackportHelpers.resolveSlim(player);
         if (simpleSkinBackportSlim != null) {
             return simpleSkinBackportSlim;
         }
 
-        Boolean etFuturumSlim = resolveEtFuturumSlim(player);
+        Boolean etFuturumSlim = EtFuturumHelpers.resolveSlim(player);
         if (etFuturumSlim != null) {
             return etFuturumSlim;
         }
@@ -78,49 +67,21 @@ public final class GuidebookPreviewPlayerCompat {
     }
 
     public static boolean isSimpleSkinBackportAvailable() {
-        return SIMPLE_SKIN_BACKPORT_SET_64X != null;
+        return SimpleSkinBackportHelpers.isAvailable();
     }
 
     public static boolean tryInitializeSimpleSkinBackport64xModel(Object model) {
-        if (model == null || SIMPLE_SKIN_BACKPORT_SET_64X == null) {
-            return false;
-        }
-
-        Class<?> declaringType = SIMPLE_SKIN_BACKPORT_SET_64X.getDeclaringClass();
-        if (!declaringType.isInstance(model)) {
-            return false;
-        }
-
-        try {
-            SIMPLE_SKIN_BACKPORT_SET_64X.invoke(model);
-            return true;
-        } catch (Throwable ignored) {
-            return false;
-        }
+        return SimpleSkinBackportHelpers.tryInitialize64xModel(model);
     }
 
     public static boolean isEtFuturumElytraStack(@Nullable ItemStack stack) {
-        if (stack == null || ET_FUTURUM_ELYTRA_ITEM_CLASS == null) {
-            return false;
-        }
-
-        Item item = stack.getItem();
-        return ET_FUTURUM_ELYTRA_ITEM_CLASS.isInstance(item);
+        return EtFuturumHelpers.isElytraStack(stack);
     }
 
     public static boolean tryRenderEtFuturumElytraLayer(EntityLivingBase entity, float limbSwing, float limbSwingAmount,
         float partialTicks, float ageInTicks, float scale) {
-        if (entity == null || ET_FUTURUM_ELYTRA_RENDER_LAYER == null) {
-            return false;
-        }
-
-        try {
-            ET_FUTURUM_ELYTRA_RENDER_LAYER
-                .invoke(null, entity, limbSwing, limbSwingAmount, partialTicks, ageInTicks, scale);
-            return true;
-        } catch (Throwable ignored) {
-            return false;
-        }
+        return EtFuturumHelpers
+            .tryRenderElytraLayer(entity, limbSwing, limbSwingAmount, partialTicks, ageInTicks, scale);
     }
 
     @Nullable
@@ -214,89 +175,5 @@ public final class GuidebookPreviewPlayerCompat {
 
         JsonElement child = parent.get(fieldName);
         return child != null && child.isJsonObject() ? child.getAsJsonObject() : null;
-    }
-
-    @Nullable
-    private static Boolean resolveSimpleSkinBackportSlim(AbstractClientPlayer player) {
-        if (SIMPLE_SKIN_BACKPORT_SLIM_GETTER == null) {
-            return null;
-        }
-
-        try {
-            Object result = SIMPLE_SKIN_BACKPORT_SLIM_GETTER.invoke(player);
-            return result instanceof Boolean ? (Boolean) result : null;
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    @Nullable
-    private static Boolean resolveEtFuturumSlim(AbstractClientPlayer player) {
-        if (ET_FUTURUM_ALEX_CHECKER == null || player == null) {
-            return null;
-        }
-
-        try {
-            Object result = ET_FUTURUM_ALEX_CHECKER.invoke(null, player);
-            return result instanceof Boolean ? (Boolean) result : null;
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    @Nullable
-    private static Method findSimpleSkinBackportSlimGetter() {
-        try {
-            return Class.forName("roadhog360.simpleskinbackport.ducks.IArmsState")
-                .getMethod("ssb$isSlim");
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    @Nullable
-    private static Method findSimpleSkinBackportSet64xMethod() {
-        try {
-            return Class.forName("roadhog360.simpleskinbackport.ducks.INewBipedModel")
-                .getMethod("ssb$set64x");
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    @Nullable
-    private static Method findEtFuturumAlexChecker() {
-        try {
-            return Class.forName("ganymedes01.etfuturum.client.skins.PlayerModelManager")
-                .getMethod("isPlayerModelAlex", EntityPlayer.class);
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    @Nullable
-    private static Class<?> findEtFuturumElytraItemClass() {
-        try {
-            return Class.forName("ganymedes01.etfuturum.items.equipment.ItemArmorElytra");
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    @Nullable
-    private static Method findEtFuturumElytraRenderLayer() {
-        try {
-            return Class.forName("ganymedes01.etfuturum.client.renderer.entity.elytra.LayerBetterElytra")
-                .getMethod(
-                    "doRenderLayer",
-                    EntityLivingBase.class,
-                    Float.TYPE,
-                    Float.TYPE,
-                    Float.TYPE,
-                    Float.TYPE,
-                    Float.TYPE);
-        } catch (Throwable ignored) {
-            return null;
-        }
     }
 }

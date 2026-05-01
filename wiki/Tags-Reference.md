@@ -28,6 +28,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<ItemImage>` | inline item icon | `id` or `ore`, `scale`, `noTooltip`, `yOffset` |
 | `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
+| `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text` |
 
 ## Block Tags
 
@@ -53,6 +54,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<ScatterChart>` | XY scatter chart | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
+| `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc` |
 
 ## Tag Details
 
@@ -459,3 +461,48 @@ Extra attributes: `startAngle` (default `-90`, i.e. 12 o'clock); `clockwise={fal
 ### `<ScatterChart>`
 
 Renders points only; `<Series>` must use `points`. The X-axis is always numeric.
+
+## BetterQuesting Compatibility Tags
+
+`<QuestLink>` and `<QuestCard>` are only registered when the BetterQuesting mod is loaded. They are documented in detail on the [Mod Compatibility](Mod-Compatibility) page; the summary below covers the most common usage.
+
+### `<QuestLink>`
+
+Inline link to a BetterQuesting quest. Clicking opens the quest inside the BetterQuesting GUI, unless the quest UUID is also present in the current guide's `quest_ids` frontmatter — in that case the link navigates to that page instead.
+
+| Attribute | Meaning |
+| --- | --- |
+| `id` | required quest UUID |
+| `text` | optional override for the displayed text |
+
+Visibility behavior is decided per player at compile time:
+
+- visible / completed quests render as a clickable link (completed quests are tinted green and append a `✓` mark)
+- locked quests render as a non-clickable italic gray placeholder using the `guidenh.compat.bq.locked` translation
+- hidden / secret quests render as a darker italic placeholder using `guidenh.compat.bq.hidden`
+- unknown UUIDs render as a red placeholder using `guidenh.compat.bq.missing`
+
+Example:
+
+````md
+See <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" /> for the next step.
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="Stage 2 quest" />
+````
+
+### `<QuestCard>`
+
+Block-level summary card for a BetterQuesting quest. Renders the quest title with the same state-aware styling as `<QuestLink>`, plus the quest description as a body paragraph when the quest is visible to the player.
+
+| Attribute | Meaning |
+| --- | --- |
+| `id` | required quest UUID |
+| `show_desc` | optional boolean (default `true`); set to `false` to suppress the description body |
+
+The accent color of the card border follows the quest state: green for completed, gray for locked / hidden, red for missing, and the standard link color for visible quests.
+
+Example:
+
+````md
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
+````

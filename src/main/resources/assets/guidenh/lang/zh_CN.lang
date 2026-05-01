@@ -208,3 +208,9 @@ guideme.guidebook.SceneEditorMarkdownInvalidSaveHint=当前场景片段有语法
 
 # Guide name
 guideme.guide_name=GuideNH 示例指南
+
+# BetterQuesting 兼容
+guidenh.compat.bq.locked=[未解锁任务]
+guidenh.compat.bq.hidden=[隐藏任务]
+guidenh.compat.bq.missing=[未知任务]
+guidenh.compat.bq.open_in_guide=在指南中打开

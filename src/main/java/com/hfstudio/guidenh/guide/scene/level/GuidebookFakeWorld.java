@@ -24,6 +24,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -79,11 +81,7 @@ public class GuidebookFakeWorld extends WorldClient {
             return;
         }
         gregTechDummyWorldRegistrationAttempted = true;
-        try {
-            Class<?> gregTechApiClass = Class.forName("gregtech.api.GregTechAPI");
-            gregTechApiClass.getMethod("addDummyWorld", Class.class)
-                .invoke(null, GuidebookFakeWorld.class);
-        } catch (Throwable ignored) {}
+        GregTechHelpers.registerDummyWorld(GuidebookFakeWorld.class);
     }
 
     public GuidebookLevel getGuidebookLevel() {

@@ -16,8 +16,13 @@ import com.github.bsideup.jabel.Desugar;
 @Desugar
 public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<String, Object> additionalProperties) {
 
+    // SnakeYAML's Yaml is not thread-safe; use a per-thread cached instance to avoid
+    // re-allocating LoaderOptions/SafeConstructor for every page parsed.
+    private static final ThreadLocal<Yaml> YAML = ThreadLocal
+        .withInitial(() -> new Yaml(new SafeConstructor(new LoaderOptions())));
+
     public static Frontmatter parse(ResourceLocation pageId, String yamlText) {
-        var yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
+        var yaml = YAML.get();
 
         FrontmatterNavigation navigation = null;
         Map<String, Object> data = yaml.load(yamlText);

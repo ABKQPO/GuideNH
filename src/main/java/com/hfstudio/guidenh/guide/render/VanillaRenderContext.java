@@ -201,7 +201,8 @@ public class VanillaRenderContext implements RenderContext {
     public void renderItem(ItemStack stack, int x, int y) {
         if (stack == null) return;
         var mc = Minecraft.getMinecraft();
-        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_LIGHTING_BIT);
+        // Avoid glPushAttrib/glPopAttrib: those are slow on modern drivers (cause pipeline
+        // flushes). We instead explicitly restore every state we touch in the finally block.
         try {
             GL11.glDisable(GL11.GL_BLEND);
             GL11.glColor4f(1f, 1f, 1f, 1f);
@@ -218,11 +219,12 @@ public class VanillaRenderContext implements RenderContext {
             ITEM_RENDERER.zLevel = 0f;
             RenderHelper.disableStandardItemLighting();
         } finally {
-            GL11.glPopAttrib();
             OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glDisable(GL11.GL_LIGHTING);
+            GL11.glDisable(GL11.GL_NORMALIZE);
             GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glDisable(GL11.GL_ALPHA_TEST);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GL11.glColor4f(1f, 1f, 1f, 1f);

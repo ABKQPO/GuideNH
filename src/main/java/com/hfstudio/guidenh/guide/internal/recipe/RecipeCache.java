@@ -9,6 +9,8 @@ import java.util.Map;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
+import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+
 /**
  * Caches the raw {@link NeiRecipeLookup#queryRawCraftingHandlers(ItemStack)} result per target
  * (item + meta + NBT) for the lifetime of the currently-loaded guide set. Cleared via

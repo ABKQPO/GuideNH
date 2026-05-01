@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.compiler;
 
-import java.lang.reflect.Method;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -13,10 +12,9 @@ import net.minecraftforge.oredict.OreDictionary;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
 
 public final class GuideItemReferenceResolver {
-
-    public static final String GREGTECH_ORE_DICT_UNIFICATOR_CLASS = "gregtech.api.util.GTOreDictUnificator";
 
     private GuideItemReferenceResolver() {}
 
@@ -137,15 +135,7 @@ public final class GuideItemReferenceResolver {
         if (stack == null || stack.getItem() == null) {
             return stack;
         }
-
-        try {
-            Class<?> unificatorClass = Class.forName(GREGTECH_ORE_DICT_UNIFICATOR_CLASS);
-            Method setStackMethod = unificatorClass.getMethod("setStack", ItemStack.class);
-            Object unifiedStack = setStackMethod.invoke(null, stack.copy());
-            return unifiedStack instanceof ItemStack itemStack ? itemStack : stack;
-        } catch (Throwable ignored) {
-            return stack;
-        }
+        return GregTechHelpers.applyOreDictUnification(stack);
     }
 
     @Nullable

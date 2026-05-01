@@ -29,6 +29,14 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     @Nullable
     private HitTestResult hoveredElement;
 
+    // Cached list of blocks intersecting the last rendered viewport. Invalidated whenever the
+    // block list mutates or the layout is rebuilt; kept across frames otherwise so scrolling at
+    // a steady viewport position only pays the iteration cost once.
+    private final List<LytBlock> visibleCache = new ArrayList<>();
+    private int cachedViewportTop = Integer.MIN_VALUE;
+    private int cachedViewportBottom = Integer.MIN_VALUE;
+    private boolean visibleCacheValid;
+
     public int getAvailableWidth() {
         return layout != null ? layout.availableWidth() : 0;
     }
@@ -86,6 +94,12 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
     public void invalidateLayout() {
         layout = null;
+        invalidateVisibleCache();
+    }
+
+    private void invalidateVisibleCache() {
+        visibleCacheValid = false;
+        visibleCache.clear();
     }
 
     public void updateLayout(LayoutContext context, int availableWidth) {
@@ -104,11 +118,25 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     }
 
     public void render(RenderContext context) {
-        for (var block : blocks) {
-            if (block.isCulled(context.viewport())) {
-                continue;
+        var viewport = context.viewport();
+        var top = viewport.y();
+        var bottom = top + viewport.height();
+        if (!visibleCacheValid || top != cachedViewportTop || bottom != cachedViewportBottom) {
+            visibleCache.clear();
+            for (var block : blocks) {
+                if (!block.isCulled(viewport)) {
+                    visibleCache.add(block);
+                }
             }
-            block.render(context);
+            cachedViewportTop = top;
+            cachedViewportBottom = bottom;
+            visibleCacheValid = true;
+        }
+        // Render from the cached visible list. Each block's render is a stable function of its
+        // own state; viewport-dependent culling has already been factored out above.
+        for (var i = 0; i < visibleCache.size(); i++) {
+            visibleCache.get(i)
+                .render(context);
         }
     }
 

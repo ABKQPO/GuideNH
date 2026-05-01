@@ -245,6 +245,7 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `categories` | 字符串列表 | 将页面加入分类索引 |
 | `item_ids` | 物品引用列表 | 让页面可被 `<ItemLink>` 发现 |
 | `ore_ids` | 矿辞名列表 | 让页面可被矿辞物品（如 `ingotIron`、`oreCopper`）索引 |
+| `quest_ids` | BetterQuesting 任务 UUID 字符串列表 | 让页面可被 `<QuestLink>` / `<QuestCard>` 以及 BQ 任务 GUI 中的打开指南快捷键发现。仅在 BetterQuesting 加载时生效。参见 [模组兼容](Mod-Compatibility-zh-CN) |
 | 其他任意键 | 任意 YAML 值 | 保存在 `additionalProperties` 中，供扩展或工具使用 |
 
 ### `navigation`
@@ -275,6 +276,8 @@ categories:
 ore_ids:
   - ingotIron
   - oreCopper
+quest_ids:
+  - 01234567-89ab-cdef-0123-456789abcdef
 ```
 
 ## 链接解析规则

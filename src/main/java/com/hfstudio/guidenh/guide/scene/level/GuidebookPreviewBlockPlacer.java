@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.level;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -17,12 +15,12 @@ import net.minecraft.nbt.NBTTagIntArray;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraftforge.common.util.ForgeDirection;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
@@ -35,14 +33,9 @@ public class GuidebookPreviewBlockPlacer {
     public static final String GREGTECH_BLOCK_MACHINES_CLASS = "gregtech.common.blocks.BlockMachines";
     public static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS = "bartworks.system.material.BWMetaGeneratedBlocks";
     public static final String BARTWORKS_META_GENERATED_TILE_CLASS = "bartworks.system.material.TileEntityMetaGeneratedBlock";
-    public static final String GREGTECH_API_CLASS = "gregtech.api.GregTechAPI";
     public static final Set<String> KNOWN_GREGTECH_BYTE_ARRAY_KEYS = createKnownGregTechByteArrayKeys();
     private static final int MISSING_BASE_META = Integer.MIN_VALUE;
     private static final Map<Integer, Integer> GREGTECH_BASE_META_CACHE = new ConcurrentHashMap<>();
-    private static final Map<Class<?>, Method> GREGTECH_BASE_META_METHOD_CACHE = new ConcurrentHashMap<>();
-    @Nullable
-    private static volatile Object gregTechMetaTileEntities;
-    private static volatile boolean gregTechMetaTileEntitiesResolved;
 
     private GuidebookPreviewBlockPlacer() {}
 
@@ -178,57 +171,9 @@ public class GuidebookPreviewBlockPlacer {
     @Nullable
     private static Integer resolveGregTechBaseMetaUncached(int metaTileId) {
         try {
-            Object metaTileEntities = resolveGregTechMetaTileEntities();
-            if (metaTileEntities == null || !metaTileEntities.getClass()
-                .isArray()) {
-                return null;
-            }
-            int length = Array.getLength(metaTileEntities);
-            if (metaTileId >= length) {
-                return null;
-            }
-            Object metaTileEntity = Array.get(metaTileEntities, metaTileId);
-            if (metaTileEntity == null) {
-                return null;
-            }
-            Method getTileEntityBaseType = resolveGregTechBaseMetaMethod(metaTileEntity.getClass());
-            if (getTileEntityBaseType == null) {
-                return null;
-            }
-            Object baseMeta = getTileEntityBaseType.invoke(metaTileEntity);
-            return baseMeta instanceof Number number ? number.intValue() : null;
+            return GregTechHelpers.getMetaTileBaseType(metaTileId);
         } catch (Throwable t) {
             GuideDebugLog.warn(LOG, "Failed to resolve GregTech base meta for preview block {}", metaTileId, t);
-            return null;
-        }
-    }
-
-    @Nullable
-    private static Object resolveGregTechMetaTileEntities() throws ReflectiveOperationException {
-        if (!gregTechMetaTileEntitiesResolved) {
-            synchronized (GuidebookPreviewBlockPlacer.class) {
-                if (!gregTechMetaTileEntitiesResolved) {
-                    gregTechMetaTileEntities = Class.forName(GREGTECH_API_CLASS)
-                        .getField("METATILEENTITIES")
-                        .get(null);
-                    gregTechMetaTileEntitiesResolved = true;
-                }
-            }
-        }
-        return gregTechMetaTileEntities;
-    }
-
-    @Nullable
-    private static Method resolveGregTechBaseMetaMethod(Class<?> metaTileClass) {
-        Method cached = GREGTECH_BASE_META_METHOD_CACHE.get(metaTileClass);
-        if (cached != null) {
-            return cached;
-        }
-        try {
-            Method resolved = metaTileClass.getMethod("getTileEntityBaseType");
-            Method previous = GREGTECH_BASE_META_METHOD_CACHE.putIfAbsent(metaTileClass, resolved);
-            return previous != null ? previous : resolved;
-        } catch (NoSuchMethodException ignored) {
             return null;
         }
     }
@@ -239,16 +184,12 @@ public class GuidebookPreviewBlockPlacer {
             return;
         }
         try {
-            Method initializer = tileEntity.getClass()
-                .getMethod("setInitialValuesAsNBT", NBTTagCompound.class, short.class);
             NBTTagCompound initTag = sanitizeGregTechInitTag(tileTag);
             if (initTag != null && (!initTag.hasKey("mID") || initTag.getInteger("mID") != metaTileId)) {
                 initTag = (NBTTagCompound) initTag.copy();
                 initTag.setInteger("mID", metaTileId);
             }
-            initializer.invoke(tileEntity, initTag, (short) metaTileId.intValue());
-        } catch (NoSuchMethodException ignored) {
-            // Non-GregTech tiles do not expose this initializer.
+            GregTechHelpers.initializeMetaTile(tileEntity, metaTileId, initTag);
         } catch (Throwable t) {
             GuideGregTechTileSupport.logInfoOnce(
                 "preview-gregtech-init-bytearray-shapes:" + metaTileId
@@ -262,54 +203,7 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     public static void applyGregTechDefaultFacing(@Nullable TileEntity tileEntity, @Nullable NBTTagCompound tileTag) {
-        if (tileEntity == null || (tileTag != null && tileTag.hasKey("mFacing"))) {
-            return;
-        }
-        try {
-            Method getFrontFacing = tileEntity.getClass()
-                .getMethod("getFrontFacing");
-            Method isValidFacing = tileEntity.getClass()
-                .getMethod("isValidFacing", ForgeDirection.class);
-            Method setFrontFacing = tileEntity.getClass()
-                .getMethod("setFrontFacing", ForgeDirection.class);
-
-            Object currentFacingValue = getFrontFacing.invoke(tileEntity);
-            ForgeDirection currentFacing = currentFacingValue instanceof ForgeDirection direction ? direction
-                : ForgeDirection.UNKNOWN;
-            if (isFacingValid(isValidFacing, tileEntity, currentFacing)) {
-                return;
-            }
-
-            ForgeDirection preferredFacing = findPreferredFacing(isValidFacing, tileEntity);
-            if (preferredFacing != ForgeDirection.UNKNOWN) {
-                setFrontFacing.invoke(tileEntity, preferredFacing);
-            }
-        } catch (NoSuchMethodException ignored) {
-            // Non-GregTech tiles do not expose facing controls.
-        } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "Failed to assign a default GregTech preview facing", t);
-        }
-    }
-
-    public static boolean isFacingValid(Method isValidFacing, TileEntity tileEntity, ForgeDirection facing)
-        throws ReflectiveOperationException {
-        if (facing == null || facing == ForgeDirection.UNKNOWN) {
-            return false;
-        }
-        Object valid = isValidFacing.invoke(tileEntity, facing);
-        return valid instanceof Boolean && (Boolean) valid;
-    }
-
-    public static ForgeDirection findPreferredFacing(Method isValidFacing, TileEntity tileEntity)
-        throws ReflectiveOperationException {
-        ForgeDirection[] preferredOrder = new ForgeDirection[] { ForgeDirection.SOUTH, ForgeDirection.NORTH,
-            ForgeDirection.EAST, ForgeDirection.WEST, ForgeDirection.UP, ForgeDirection.DOWN };
-        for (ForgeDirection facing : preferredOrder) {
-            if (isFacingValid(isValidFacing, tileEntity, facing)) {
-                return facing;
-            }
-        }
-        return ForgeDirection.UNKNOWN;
+        GregTechHelpers.applyDefaultFacing(tileEntity, tileTag);
     }
 
     public static void applyBartWorksGeneratedBlockMeta(@Nullable TileEntity tileEntity, Block block, int blockMeta) {

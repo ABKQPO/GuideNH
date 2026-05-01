@@ -89,8 +89,8 @@ public final class ChartAttrParser {
         }
         String[] parts = s.trim()
             .split(",");
-        List<Double> xs = new ArrayList<>();
-        List<Double> ys = new ArrayList<>();
+        List<Double> xs = new ArrayList<>(parts.length);
+        List<Double> ys = new ArrayList<>(parts.length);
         for (String part : parts) {
             String p = part.trim();
             int colon = p.indexOf(':');

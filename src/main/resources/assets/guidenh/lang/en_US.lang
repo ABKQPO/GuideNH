@@ -208,3 +208,9 @@ guideme.guidebook.SceneEditorMarkdownInvalidSaveHint=Current markdown is invalid
 
 # Guide name
 guideme.guide_name=GuideNH Example Guide
+
+# BetterQuesting compatibility
+guidenh.compat.bq.locked=[Locked Quest]
+guidenh.compat.bq.hidden=[Hidden Quest]
+guidenh.compat.bq.missing=[Unknown Quest]
+guidenh.compat.bq.open_in_guide=Open in Guide

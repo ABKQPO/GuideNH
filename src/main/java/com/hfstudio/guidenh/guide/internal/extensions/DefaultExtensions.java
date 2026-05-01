@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.extensions;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -7,6 +8,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.compat.betterquesting.BqCompat;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ATagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler;
@@ -82,39 +85,46 @@ public class DefaultExtensions {
     }
 
     public static List<TagCompiler> tagCompilers() {
-        return Arrays.asList(
-            new DivTagCompiler(),
-            new ATagCompiler(),
-            new KbdTagCompiler(),
-            new SubscriptTagCompiler(),
-            new SuperscriptTagCompiler(),
-            new ColorTagCompiler(),
-            new ItemLinkCompiler(),
-            new FloatingImageCompiler(),
-            new BreakCompiler(),
-            new DetailsTagCompiler(),
-            new RecipeCompiler(),
-            new ItemGridCompiler(),
-            new CategoryIndexCompiler(),
-            new BlockImageCompiler(),
-            new ItemImageCompiler(),
-            new BoxTagCompiler(BoxFlowDirection.ROW),
-            new BoxTagCompiler(BoxFlowDirection.COLUMN),
-            new SceneTagCompiler(),
-            new SubPagesCompiler(),
-            new CommandLinkCompiler(),
-            new PlayerNameTagCompiler(),
-            new KeyBindTagCompiler(),
-            new TooltipTagCompiler(),
-            new FootnoteListCompiler(),
-            new StructureViewCompiler(),
-            new MermaidCompiler(),
-            new CsvTableCompiler(),
-            new ColumnChartCompiler(),
-            new BarChartCompiler(),
-            new LineChartCompiler(),
-            new PieChartCompiler(),
-            new ScatterChartCompiler());
+        var compilers = new ArrayList<TagCompiler>(
+            Arrays.asList(
+                new DivTagCompiler(),
+                new ATagCompiler(),
+                new KbdTagCompiler(),
+                new SubscriptTagCompiler(),
+                new SuperscriptTagCompiler(),
+                new ColorTagCompiler(),
+                new ItemLinkCompiler(),
+                new FloatingImageCompiler(),
+                new BreakCompiler(),
+                new DetailsTagCompiler(),
+                new RecipeCompiler(),
+                new ItemGridCompiler(),
+                new CategoryIndexCompiler(),
+                new BlockImageCompiler(),
+                new ItemImageCompiler(),
+                new BoxTagCompiler(BoxFlowDirection.ROW),
+                new BoxTagCompiler(BoxFlowDirection.COLUMN),
+                new SceneTagCompiler(),
+                new SubPagesCompiler(),
+                new CommandLinkCompiler(),
+                new PlayerNameTagCompiler(),
+                new KeyBindTagCompiler(),
+                new TooltipTagCompiler(),
+                new FootnoteListCompiler(),
+                new StructureViewCompiler(),
+                new MermaidCompiler(),
+                new CsvTableCompiler(),
+                new ColumnChartCompiler(),
+                new BarChartCompiler(),
+                new LineChartCompiler(),
+                new PieChartCompiler(),
+                new ScatterChartCompiler()));
+        // Conditionally append mod-compat tag compilers. BqCompat itself does not reference any
+        // BetterQuesting types, keeping this branch safe when BQ is absent.
+        if (Mods.BetterQuesting.isModLoaded()) {
+            BqCompat.appendCompilers(compilers);
+        }
+        return compilers;
     }
 
     public static List<SceneElementTagCompiler> sceneElementCompilers() {

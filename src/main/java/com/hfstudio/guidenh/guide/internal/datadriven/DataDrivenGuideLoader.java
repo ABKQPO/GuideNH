@@ -22,9 +22,10 @@ import org.slf4j.LoggerFactory;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.mixins.early.fml.AccessorFMLClientHandler;
+import com.hfstudio.guidenh.mixins.early.minecraft.AccessorAbstractResourcePack;
 
 import cpw.mods.fml.client.FMLClientHandler;
-import cpw.mods.fml.common.ObfuscationReflectionHelper;
 
 public class DataDrivenGuideLoader {
 
@@ -69,9 +70,8 @@ public class DataDrivenGuideLoader {
         var resourcePacks = new LinkedHashSet<IResourcePack>();
 
         try {
-            @SuppressWarnings("unchecked")
-            var basePacks = (List<IResourcePack>) ObfuscationReflectionHelper
-                .getPrivateValue(FMLClientHandler.class, FMLClientHandler.instance(), "resourcePackList");
+            var accessor = (AccessorFMLClientHandler) (Object) FMLClientHandler.instance();
+            var basePacks = accessor.guidenh$getResourcePackList();
             if (basePacks != null) {
                 resourcePacks.addAll(basePacks);
             }
@@ -129,11 +129,7 @@ public class DataDrivenGuideLoader {
         }
 
         try {
-            return ObfuscationReflectionHelper.getPrivateValue(
-                AbstractResourcePack.class,
-                (AbstractResourcePack) resourcePack,
-                "resourcePackFile",
-                "field_110597_b");
+            return ((AccessorAbstractResourcePack) resourcePack).guidenh$getResourcePackFile();
         } catch (RuntimeException e) {
             LOG.warn("Failed to resolve the backing file for resource pack {}", resourcePack.getPackName(), e);
             return null;

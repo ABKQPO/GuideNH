@@ -30,6 +30,7 @@
 | `<ItemImage>` | 行内物品图标 | `id` 或 `ore`，`scale`，`noTooltip`，`yOffset` |
 | `<ItemLink>` | 物品 tooltip + 可选导航链接 | `id` 或 `ore` |
 | `<CommandLink>` | 可点击的聊天命令链接 | `command`, `title`, `close` |
+| `<QuestLink>` | BetterQuesting 任务链接，按任务状态自动调整样式（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `text` |
 
 ## 块级标签
 
@@ -55,6 +56,7 @@
 | `<ScatterChart>` | XY 散点图 | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | 配方渲染器 | 详见 [配方](Recipes-zh-CN) |
 | `<GameScene>`, `<Scene>` | 3D 指南场景 | 详见 [GameScene](GameScene-zh-CN) |
+| `<QuestCard>` | 块级 BetterQuesting 任务摘要卡片（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `show_desc` |
 
 ## 标签细节
 
@@ -424,3 +426,48 @@ gold,17
 ### `<ScatterChart>`
 
 仅绘制数据点；`<Series>` 必须使用 `points` 属性。X 轴始终为数值轴。
+
+## BetterQuesting 兼容标签
+
+`<QuestLink>` 与 `<QuestCard>` 仅在 BetterQuesting 模组已加载时才会被注册。详细说明位于 [模组兼容](Mod-Compatibility-zh-CN) 页面，下面给出常用用法摘要。
+
+### `<QuestLink>`
+
+指向 BetterQuesting 任务的行内链接。点击时默认打开 BetterQuesting 任务 GUI；若该任务的 UUID 出现在某个指南页的 `quest_ids` 前言中，则改为跳转到该页面。
+
+| 属性 | 含义 |
+| --- | --- |
+| `id` | 必填，任务 UUID |
+| `text` | 可选，覆盖显示文本 |
+
+按玩家进度在编译时决定外观：
+
+- 已可见 / 已完成的任务渲染为可点击链接（已完成的会被染为绿色并追加 `✓`）
+- 已锁定的任务渲染为不可点击的斜体灰色占位符，使用本地化键 `guidenh.compat.bq.locked`
+- 隐藏 / 机密的任务渲染为更深的斜体占位符，使用 `guidenh.compat.bq.hidden`
+- 未知 UUID 渲染为红色占位符，使用 `guidenh.compat.bq.missing`
+
+示例：
+
+````md
+下一步请参考 <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" />。
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="第二阶段任务" />
+````
+
+### `<QuestCard>`
+
+块级任务摘要卡片。标题使用与 `<QuestLink>` 相同的状态相关样式；当任务对当前玩家可见时，会附带任务描述作为正文段落。
+
+| 属性 | 含义 |
+| --- | --- |
+| `id` | 必填，任务 UUID |
+| `show_desc` | 可选布尔，默认 `true`；设为 `false` 可隐藏描述正文 |
+
+卡片边框颜色随任务状态变化：已完成绿色、锁定 / 隐藏灰色、缺失红色、可见时使用标准链接色。
+
+示例：
+
+````md
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
+````
