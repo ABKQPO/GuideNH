@@ -11,7 +11,11 @@ public class GuidebookChunk {
 
     private final Block[] blocks = new Block[16 * 16 * 256];
 
-    private final byte[] metas = new byte[16 * 16 * 256];
+    // Use int[] instead of byte[] so that mods storing extended metadata in the block-meta
+    // (e.g. GregTech ores, where meta encodes material id + stone variant + small/natural flags
+    // and can reach ~24000) round-trip correctly. With NEID-style worlds the chunk storage uses
+    // a side array; for the synthetic preview chunk we just keep the full int.
+    private final int[] metas = new int[16 * 16 * 256];
 
     private int filledCount = 0;
 
@@ -31,7 +35,7 @@ public class GuidebookChunk {
 
     public int getMeta(int x, int y, int z) {
         if (y < 0 || y >= 256) return 0;
-        return metas[index(x, y, z)] & 0xFF;
+        return metas[index(x, y, z)];
     }
 
     public boolean setBlock(int x, int y, int z, Block block, int meta) {
@@ -41,7 +45,7 @@ public class GuidebookChunk {
         boolean prevFilled = prev != null && prev != Blocks.air;
         boolean nextFilled = block != null && block != Blocks.air;
         blocks[idx] = nextFilled ? block : null;
-        metas[idx] = (byte) (meta & 0xFF);
+        metas[idx] = meta;
         if (prevFilled && !nextFilled) {
             filledCount--;
             return true;
@@ -67,7 +71,7 @@ public class GuidebookChunk {
                     int idx = ((lx) << 12) | ((lz) << 8) | y;
                     Block b = blocks[idx];
                     if (b != null && b != Blocks.air) {
-                        it.accept(lx, y, lz, b, metas[idx] & 0xFF);
+                        it.accept(lx, y, lz, b, metas[idx]);
                     }
                 }
             }

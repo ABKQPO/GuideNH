@@ -27,6 +27,15 @@ public final class GuideForgeMultipartSupport {
         return ForgeMultipartHelpers.isMultipartTileEntity(tileEntity);
     }
 
+    public static boolean isClientMultipartTileEntity(@Nullable TileEntity tileEntity) {
+        return ForgeMultipartHelpers.isClientMultipartTileEntity(tileEntity);
+    }
+
+    @Nullable
+    public static TileEntity ensureClientMultipartTile(@Nullable TileEntity tileEntity) {
+        return ForgeMultipartHelpers.ensureClientMultipartTile(tileEntity);
+    }
+
     public static boolean isSavedMultipartTag(@Nullable NBTTagCompound tag) {
         return ForgeMultipartHelpers.isSavedMultipartTag(tag);
     }
