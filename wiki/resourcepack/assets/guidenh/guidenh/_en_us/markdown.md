@@ -69,6 +69,32 @@ Result:
 > [!CAUTION]
 > Caution alert with the red accent line and icon.
 
+Custom runtime quote directives:
+
+```markdown
+> {: title="Custom Quote" color="#638ef1" icon="i" }
+> Custom title, accent color and text icon.
+```
+
+> {: title="Custom Quote" color="#638ef1" icon="i" }
+> Custom title, accent color and text icon.
+
+```markdown
+> {: title="Item Quote" color="#61b75d" iconItem="minecraft:emerald" }
+> ItemStack icon in the quote header.
+```
+
+> {: title="Item Quote" color="#61b75d" iconItem="minecraft:emerald" }
+> ItemStack icon in the quote header.
+
+```markdown
+> {: title="PNG Quote" color="#c79d3e" iconPng="./diamond.png" }
+> PNG icon loaded from guide assets.
+```
+
+> {: title="PNG Quote" color="#c79d3e" iconPng="./diamond.png" }
+> PNG icon loaded from guide assets.
+
 ## Lists
 
 Markdown:
@@ -211,7 +237,7 @@ Indented code block:
 
 Forced code block viewport height with inner scrolling:
 
-```java height=96
+```java width=220 height=96
 line 01
 line 02
 line 03
@@ -224,6 +250,18 @@ line 09
 line 10
 line 11
 line 12
+line 13
+line 14
+line 15
+line 16
+line 17
+line 18
+line 19
+line 20
+line 21
+line 22
+line 23
+line 24
 ```
 
 ## CSV Runtime Tables
@@ -292,71 +330,153 @@ Imported Mermaid file:
 
 <Mermaid src="./markdown-mindmap.mmd" />
 
+Fixed runtime Mermaid viewport size:
+
+<Mermaid src="./markdown-mindmap.mmd" width="320" height="220" />
+
 ## Footnotes
 
 Footnote ref[^one]
 
 [^one]: tooltip text for the footnote
 
-## GameScene Runtime Parsing
+## Charts
 
-Basic block placement:
+GuideNH ships with five interactive chart tags: `<ColumnChart>` clustered columns, `<BarChart>` horizontal bars, `<LineChart>` line, `<PieChart>` pie, and `<ScatterChart>` XY scatter. All charts show value + percentage tooltips on hover, and highlight the hovered element (column/bar grows, line points pop along the normal, pie slices pop outward, scatter points enlarge).
 
-<GameScene zoom={4} interactive={true}>
-    <Block id="minecraft:water" />
-    <Block id="minecraft:water" x="-1" />
-    <Block id="minecraft:water" x="1" />
-    <Block id="minecraft:grass" z="1" />
-    <Block id="minecraft:grass" x="1" z="1" />
-    <Block id="minecraft:glass" z="2" />
-    <Block id="minecraft:glass" x="1" z="2" />
-</GameScene>
+### Common attributes
 
-Redstone sample:
+* `title`
+* `width` / `height` (defaults: 320 x 200)
+* `background` / `border` colors
+* `titleColor` / `labelColor`
+* `legend` position: `none` / `top` / `bottom` / `left` / `right` (default `top`)
+* `labelPosition`: `none` / `inside` / `outside` / `above` / `below` / `center`
 
-<GameScene zoom={4} interactive={true}>
-    <Block id="minecraft:stone" />
-    <Block id="minecraft:stone" x="1" />
-    <Block id="minecraft:stone" x="2" />
-    <Block id="minecraft:redstone_wire" y="1" />
-    <Block id="minecraft:redstone_wire" x="1" y="1" />
-    <Block id="minecraft:redstone_wire" x="2" y="1" />
-    <Block id="minecraft:lever" x="-1" y="1" />
-    <Block id="minecraft:redstone_lamp" x="3" y="1" />
-</GameScene>
+Color formats: `#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`.
 
-Block annotation template:
+### ColumnChart
 
-<GameScene zoom={2} interactive={true}>
-  <Block id="minecraft:log" />
-  <Block id="minecraft:log" x="1" />
-  <Block id="minecraft:log" z="1" />
-  <Block id="minecraft:log" x="1" z="1" />
+```mdx
+<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="Iron" data="120,180,150,210" color="#4E79A7"/>
+  <Series name="Gold" data="30,42,55,48" color="#F28E2B"/>
+</ColumnChart>
+```
 
-  <BlockAnnotationTemplate id="minecraft:log">
-    <DiamondAnnotation pos="0.5 0.5 0.5" color="#ff0000">
-      This text should appear on hover. <ItemImage id="minecraft:stone" />
-    </DiamondAnnotation>
-  </BlockAnnotationTemplate>
-</GameScene>
+<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="Iron" data="120,180,150,210" color="#4E79A7"/>
+  <Series name="Gold" data="30,42,55,48" color="#F28E2B"/>
+</ColumnChart>
 
-Nested markdown inside annotation tooltip:
+Extra attributes: `categories` (X-axis labels, comma separated), `barWidthRatio` (default 0.7), `xAxisLabel` / `yAxisLabel` / `yAxisMin` / `yAxisMax` / `yAxisStep` / `yAxisUnit` / `yAxisTickFormat`, `showXGrid={true}` / `showYGrid={true}`.
 
-<GameScene width="256" height="192" zoom={4} interactive={false}>
-  <Block id="minecraft:diamond_block" x="-1" />
-  <Block id="minecraft:diamond_block" />
-  <Block id="minecraft:diamond_block" x="1" />
-  <Block id="minecraft:beacon" y="1" />
-  <DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
-    ### Activated Beacon
-    <Color color="#FFD24C">**Effect**</Color>: grants nearby players continuous buffs.
+### BarChart
 
-    > [!TIP]
-    > More pyramid tiers unlock more options.
+```mdx
+<BarChart title="Mod downloads (10k)" categories="GTNH,IC2,Thermal,Mekanism" labelPosition="outside">
+  <Series data="320,210,180,150"/>
+</BarChart>
+```
 
-    ```markdown
-    * Hover tooltip markdown
-    * Nested code block sample
-    ```
-  </DiamondAnnotation>
-</GameScene>
+<BarChart title="Mod downloads (10k)" categories="GTNH,IC2,Thermal,Mekanism" labelPosition="outside">
+  <Series data="320,210,180,150"/>
+</BarChart>
+
+Same attributes as ColumnChart but categories are on the Y-axis.
+
+### LineChart
+
+Categorical X:
+
+```mdx
+<LineChart title="Temperature" categories="Mon,Tue,Wed,Thu,Fri" yAxisUnit="C">
+  <Series name="Outdoor" data="5,8,11,9,6" color="#4E79A7"/>
+  <Series name="Indoor" data="18,19,20,21,20" color="#E15759"/>
+</LineChart>
+```
+
+<LineChart title="Temperature" categories="Mon,Tue,Wed,Thu,Fri" yAxisUnit="C">
+  <Series name="Outdoor" data="5,8,11,9,6" color="#4E79A7"/>
+  <Series name="Indoor" data="18,19,20,21,20" color="#E15759"/>
+</LineChart>
+
+Numeric X:
+
+```mdx
+<LineChart title="Signal Decay" numericX={true} xAxisLabel="Distance (m)" yAxisLabel="Strength (dB)">
+  <Series name="Measured" points="0:0,5:-3,10:-7,20:-12,40:-20"/>
+</LineChart>
+```
+
+<LineChart title="Signal Decay" numericX={true} xAxisLabel="Distance (m)" yAxisLabel="Strength (dB)">
+  <Series name="Measured" points="0:0,5:-3,10:-7,20:-12,40:-20"/>
+</LineChart>
+
+Extra: `numericX={true}` enables a numeric X axis; `showPoints={false}` hides point markers.
+
+### PieChart
+
+```mdx
+<PieChart title="Resource Share" labelPosition="outside" legend="right">
+  <Slice label="Iron" value="45" color="#4E79A7"/>
+  <Slice label="Copper" value="25" color="#F28E2B"/>
+  <Slice label="Gold" value="15" color="#E15759"/>
+  <Slice label="Diamond" value="10"/>
+  <Slice label="Other" value="5"/>
+</PieChart>
+```
+
+<PieChart title="Resource Share" labelPosition="outside" legend="right">
+  <Slice label="Iron" value="45" color="#4E79A7"/>
+  <Slice label="Copper" value="25" color="#F28E2B"/>
+  <Slice label="Gold" value="15" color="#E15759"/>
+  <Slice label="Diamond" value="10"/>
+  <Slice label="Other" value="5"/>
+</PieChart>
+
+Extra: `startAngle` (default -90, i.e. 12 o'clock); `clockwise={false}` to reverse direction.
+
+### ScatterChart
+
+```mdx
+<ScatterChart title="Height-Weight" xAxisLabel="Height (cm)" yAxisLabel="Weight (kg)">
+  <Series name="Sample A" points="160:55,165:58,170:65,175:70,180:78" color="#4E79A7"/>
+  <Series name="Sample B" points="158:52,168:62,172:68,178:75" color="#59A14F"/>
+</ScatterChart>
+```
+
+<ScatterChart title="Height-Weight" xAxisLabel="Height (cm)" yAxisLabel="Weight (kg)">
+  <Series name="Sample A" points="160:55,165:58,170:65,175:70,180:78" color="#4E79A7"/>
+  <Series name="Sample B" points="158:52,168:62,172:68,178:75" color="#59A14F"/>
+</ScatterChart>
+
+### Combo: ColumnChart + LineSeries + PieInset
+
+`<ColumnChart>` and `<BarChart>` accept extra `<LineSeries>` (line overlay sharing the value axis) and `<PieInset>` (small corner pie) children, letting one chart combine several styles.
+
+The pie inset's `position` attribute accepts `topRight` / `topLeft` / `bottomRight` / `bottomLeft` (corner overlay) or `right` (the chart auto-extends its width and the pie occupies a dedicated outside column).
+
+Line overlays share hover/tooltip behavior with the underlying columns/bars: hovering a line point thickens its adjacent segments, enlarges the point, and shows a tooltip with the series name and value.
+
+```mdx
+<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
+  <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
+  <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
+  <PieInset size="60" position="topRight" title="Total share">
+    <Slice label="Iron" value="225" color="#a0a0a0"/>
+    <Slice label="Gold" value="110" color="#e0c060"/>
+  </PieInset>
+</ColumnChart>
+```
+
+<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
+  <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
+  <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
+  <PieInset size="60" position="topRight" title="Total share">
+    <Slice label="Iron" value="225" color="#a0a0a0"/>
+    <Slice label="Gold" value="110" color="#e0c060"/>
+  </PieInset>
+</ColumnChart>

@@ -104,6 +104,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     private boolean draggingScrollbar = false;
     private int scrollbarGrabOffsetY = 0;
+    private boolean draggingDocument = false;
+    private int dragLastMouseY = 0;
 
     private GuideIconButton btnSearch, btnBack, btnForward, btnFullWidth, btnClose;
     public static final int TOOLBAR_H = 16;
@@ -1093,7 +1095,16 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                         scene.startDrag(mouseX, mouseY, button);
                         return;
                     }
+                    if (button == 0 && getMaxScroll() > 0) {
+                        draggingDocument = true;
+                        dragLastMouseY = mouseY;
+                        return;
+                    }
                 }
+            } else if (button == 0 && getMaxScroll() > 0) {
+                draggingDocument = true;
+                dragLastMouseY = mouseY;
+                return;
             }
         }
         super.mouseClicked(mouseX, mouseY, button);
@@ -1114,6 +1125,13 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             activeScene.drag(mouseX, mouseY);
             return;
         }
+        if (draggingDocument) {
+            int deltaY = mouseY - dragLastMouseY;
+            dragLastMouseY = mouseY;
+            scrollY -= deltaY;
+            clampScroll();
+            return;
+        }
         super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
     }
 
@@ -1131,6 +1149,10 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (activeScene != null && state != -1) {
             activeScene.endDrag();
             activeScene = null;
+            return;
+        }
+        if (draggingDocument && state != -1) {
+            draggingDocument = false;
             return;
         }
         super.mouseMovedOrUp(mouseX, mouseY, state);
@@ -1275,6 +1297,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             activeDocumentDragTarget.endDrag();
             activeDocumentDragTarget = null;
         }
+        draggingDocument = false;
         if (document != null) {
             document.setHoveredElement(null);
         }

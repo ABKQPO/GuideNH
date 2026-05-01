@@ -34,6 +34,11 @@ import com.hfstudio.guidenh.guide.compiler.tags.SubPagesCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SubscriptTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SuperscriptTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.TooltipTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.chart.BarChartCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.chart.ColumnChartCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.chart.LineChartCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.chart.PieChartCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.chart.ScatterChartCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
@@ -104,7 +109,12 @@ public class DefaultExtensions {
             new FootnoteListCompiler(),
             new StructureViewCompiler(),
             new MermaidCompiler(),
-            new CsvTableCompiler());
+            new CsvTableCompiler(),
+            new ColumnChartCompiler(),
+            new BarChartCompiler(),
+            new LineChartCompiler(),
+            new PieChartCompiler(),
+            new ScatterChartCompiler());
     }
 
     public static List<SceneElementTagCompiler> sceneElementCompilers() {

@@ -44,8 +44,13 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<SubPages>` | navigation child listing | `id`, `alphabetical` |
 | `<CategoryIndex>` | list pages from a category | `category` |
 | `<Structure>` | 2.5D isometric block layout view | `width`, `height` |
-| `<Mermaid>` | runtime Mermaid graph import/inline | `src` |
+| `<Mermaid>` | runtime Mermaid graph import/inline | `src`, `width`, `height` |
 | `<CsvTable>` | runtime CSV file import table | `src`, `header`, `widths` |
+| `<ColumnChart>` | clustered column chart | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<BarChart>` | horizontal bar chart | same as `<ColumnChart>` |
+| `<LineChart>` | line chart with categorical or numeric X | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
+| `<PieChart>` | pie chart | `startAngle`, `clockwise`, `legend`, `labelPosition` |
+| `<ScatterChart>` | XY scatter chart | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
 
@@ -100,6 +105,32 @@ Creates a collapsible runtime block with a summary row:
 Hidden-by-default body text
 </details>
 ````
+
+### Runtime Blockquotes
+
+Normal markdown blockquotes render at runtime with a left accent line. GitHub alert syntax is supported:
+
+````md
+> [!NOTE]
+> Alert body
+````
+
+GuideNH also supports a runtime-only custom directive on the first quoted line:
+
+````md
+> {: title="Custom Quote" color="#638ef1" icon="i" }
+> Body text
+````
+
+Supported directive keys:
+
+- `title`
+- `color`
+- `icon` for plain text symbols
+- `iconItem` for an `ItemStack` id
+- `iconPng` for a guide asset png path
+
+Only one icon source should be provided.
 
 ### `<Color>`
 
@@ -235,6 +266,17 @@ Example:
 </Row>
 ````
 
+### `<Mermaid>`
+
+Runtime Mermaid currently supports mindmaps both inline and from `src`.
+
+````md
+<Mermaid src="./markdown-mindmap.mmd" width="320" height="220" />
+````
+
+- `width` and `height` constrain the runtime viewport box
+- inside the viewport, drag pans and the mouse wheel zooms
+
 To constrain the width of normal markdown lists, wrap them in a container:
 
 ````md
@@ -343,3 +385,77 @@ These tags only work inside `<GameScene>` / `<Scene>`:
 | `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
 
 See [GameScene](GameScene) for scene import/removal behavior and [Annotations](Annotations) for annotation template rules.
+
+
+## Charts
+
+`<ColumnChart>`, `<BarChart>`, `<LineChart>`, `<PieChart>`, and `<ScatterChart>` are interactive chart blocks. All charts share the following common attributes:
+
+| Attribute | Description | Default |
+| --- | --- | --- |
+| `title` | Chart title | none |
+| `width` / `height` | Explicit size | 320 / 200 |
+| `background` / `border` | Background and border colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`) | dark grey |
+| `titleColor` / `labelColor` | Title and value-label colors | light grey |
+| `legend` | Legend position: `none` / `top` / `bottom` / `left` / `right` | `top` |
+| `labelPosition` | Value-label position: `none` / `inside` / `outside` / `above` / `below` / `center` | `none` |
+
+Cartesian charts (Column / Bar / Line / Scatter) additionally accept axis attributes `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` and the matching `yAxis*` set, plus `showXGrid={true}` / `showYGrid={true}` to toggle gridlines.
+
+Children:
+
+* `<Series name="..." color="#..." data="10,20,30"/>` for category-based charts (Column / Bar / categorical Line).
+* `<Series name="..." color="#..." points="x:y,x:y,..."/>` for numeric X (Line `numericX={true}`, Scatter).
+* `<Slice label="..." value="..." color="#..."/>` for `<PieChart>` only.
+
+When `color` is omitted on a `<Series>` or `<Slice>`, GuideNH cycles through a built-in 16-color palette.
+
+`<Series>` and `<Slice>` also accept the following optional icon / tooltip attributes:
+
+* `icon="modid:item"` (same syntax as `<ItemImage>`'s `id`, may include `@meta` and inline NBT JSON) — binds an `ItemStack` to the entry; the legend swatch becomes the item icon and hovering the data point shows the vanilla item tooltip with the chart description appended at the end.
+* `iconImage="images/foo.png"` — use a PNG asset as the legend swatch (overridden by `icon`).
+* `tooltip="..."` — extra free-form text appended to the tooltip (use `\n` for multi-line).
+
+Example:
+
+```mdx
+<PieChart title="Output share">
+  <Slice label="Iron" value="40" icon="minecraft:iron_ingot" tooltip="From smelting" />
+  <Slice label="Gold" value="15" icon="minecraft:gold_ingot" />
+</PieChart>
+```
+
+### `<ColumnChart>` / `<BarChart>`
+
+Extra attributes: `categories` (X-axis or Y-axis labels, comma separated), `barWidthRatio` (default 0.7). `<BarChart>` puts the categories on the Y-axis and values on the X-axis.
+
+#### Combo extensions
+
+`<ColumnChart>` and `<BarChart>` accept two extra child element types so multiple chart styles can share one plot area:
+
+- `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a polyline overlay on top of the bars. Each line point sits at the cluster center of the matching category index; the overlay shares the host chart's value axis. You can declare multiple `<LineSeries>` to overlay several trends.
+- `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — a small pie chart drawn inside one of the four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of the plot area. Its `<Slice>` children share the same syntax as in `<PieChart>`.
+
+```mdx
+<ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">
+  <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
+  <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
+  <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
+  <PieInset size="60" position="topRight" title="Total share">
+    <Slice label="Iron" value="225" color="#a0a0a0"/>
+    <Slice label="Gold" value="110" color="#e0c060"/>
+  </PieInset>
+</ColumnChart>
+```
+
+### `<LineChart>`
+
+Extra attributes: `numericX={true}` to enable a numeric X-axis (children must use `points`); `showPoints={false}` hides point markers. The hovered point is pushed outward by 2px along the curve normal, enlarged, and outlined; the adjacent line segments thicken by 1px.
+
+### `<PieChart>`
+
+Extra attributes: `startAngle` (default `-90`, i.e. 12 o'clock); `clockwise={false}` to reverse direction. The hovered slice pops outward 4px along its bisector.
+
+### `<ScatterChart>`
+
+Renders points only; `<Series>` must use `points`. The X-axis is always numeric.

@@ -9,7 +9,7 @@ public enum GithubAlertType {
 
     NOTE(GuidebookText.MarkdownAlertNote, "\u24d8", new ConstantColor(0xFF638EF1)),
     TIP(GuidebookText.MarkdownAlertTip, "\u2726", new ConstantColor(0xFF61B75D)),
-    IMPORTANT(GuidebookText.MarkdownAlertImportant, "\u203c", new ConstantColor(0xFF8755DD)),
+    IMPORTANT(GuidebookText.MarkdownAlertImportant, "\u203b", new ConstantColor(0xFF8755DD)),
     WARNING(GuidebookText.MarkdownAlertWarning, "\u26a0", new ConstantColor(0xFFC79D3E)),
     CAUTION(GuidebookText.MarkdownAlertCaution, "\u2622", new ConstantColor(0xFFE46150));
 

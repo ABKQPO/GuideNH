@@ -120,10 +120,14 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         context.drawBorder(bounds, 0x66434C57, 1);
 
         LytRect viewport = getInnerViewport();
-        int scaledWidth = Math.max(1, Math.round(layout.diagramWidth() * zoom));
-        int scaledHeight = Math.max(1, Math.round(layout.diagramHeight() * zoom));
-        int baseX = viewport.x() + contentOffsetX;
-        int baseY = viewport.y() + contentOffsetY;
+        int baseX = viewport.x() + contentOffsetX
+            - Math.round(
+                layout.contentBounds()
+                    .x() * zoom);
+        int baseY = viewport.y() + contentOffsetY
+            - Math.round(
+                layout.contentBounds()
+                    .y() * zoom);
 
         context.pushLocalScissor(viewport);
         try {
@@ -194,7 +198,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         if (mindmap.getLayoutMode() == MermaidMindmapLayoutMode.TIDY_TREE) {
             measureTopDown(root);
             layoutTopDown(root, 0, 0);
-            return new DiagramLayout(root, root.subtreeWidth, root.subtreeHeight);
+            return buildDiagramLayout(root);
         }
 
         List<NodeLayout> leftChildren = new ArrayList<>();
@@ -254,7 +258,24 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             leftCursorY += child.subtreeHeight + NODE_GAP_Y;
         }
 
-        return new DiagramLayout(root, diagramWidth, diagramHeight);
+        return buildDiagramLayout(root);
+    }
+
+    private DiagramLayout buildDiagramLayout(NodeLayout root) {
+        LytRect contentBounds = collectContentBounds(root);
+        return new DiagramLayout(
+            root,
+            Math.max(1, contentBounds.width()),
+            Math.max(1, contentBounds.height()),
+            contentBounds);
+    }
+
+    private LytRect collectContentBounds(NodeLayout node) {
+        LytRect bounds = new LytRect(node.x, node.y, node.width, node.height);
+        for (NodeLayout child : node.children) {
+            bounds = LytRect.union(bounds, collectContentBounds(child));
+        }
+        return bounds;
     }
 
     private NodeLayout prepareLayout(LayoutContext context, MermaidMindmapNode node, int depth, int maxNodeTextWidth) {
@@ -683,6 +704,10 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         return base + Math.round(value * zoom);
     }
 
+    LytRect getContentBoundsForTesting() {
+        return layout != null ? layout.contentBounds() : LytRect.empty();
+    }
+
     public interface AdvanceFunction {
 
         float getAdvance(int codePoint, ResolvedTextStyle style);
@@ -693,11 +718,13 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         private final NodeLayout root;
         private final int diagramWidth;
         private final int diagramHeight;
+        private final LytRect contentBounds;
 
-        public DiagramLayout(NodeLayout root, int diagramWidth, int diagramHeight) {
+        public DiagramLayout(NodeLayout root, int diagramWidth, int diagramHeight, LytRect contentBounds) {
             this.root = root;
             this.diagramWidth = diagramWidth;
             this.diagramHeight = diagramHeight;
+            this.contentBounds = contentBounds;
         }
 
         public NodeLayout root() {
@@ -710,6 +737,10 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
         public int diagramHeight() {
             return diagramHeight;
+        }
+
+        public LytRect contentBounds() {
+            return contentBounds;
         }
     }
 

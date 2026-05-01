@@ -28,6 +28,7 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
     private String copyText = "";
     private boolean copied;
     private long copiedUntilMillis;
+    private int preferredWidth;
 
     public LytCodeBlockToolbar() {
         languageLabel.setMarginTop(0);
@@ -52,16 +53,21 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
         this.copyText = copyText != null ? copyText : "";
     }
 
+    public void setPreferredWidth(int preferredWidth) {
+        this.preferredWidth = Math.max(0, preferredWidth);
+    }
+
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int labelWidth = Math.max(1, availableWidth - 16 - 8);
+        int toolbarWidth = preferredWidth > 0 ? Math.min(availableWidth, preferredWidth) : availableWidth;
+        int labelWidth = Math.max(1, toolbarWidth - 16 - 8);
         LytRect labelBounds = languageLabel.layout(context, x, y, labelWidth);
-        LytRect buttonBounds = copyButton.layout(context, x + Math.max(0, availableWidth - 16), y, 16);
+        int buttonX = x + Math.max(0, toolbarWidth - 16);
+        LytRect buttonBounds = copyButton.layout(context, buttonX, y, 16);
         int height = Math.max(labelBounds.height(), buttonBounds.height());
         languageLabel.setLayoutPos(new LytPoint(labelBounds.x(), y + (height - labelBounds.height()) / 2f));
-        copyButton.setLayoutPos(
-            new LytPoint(x + Math.max(0, availableWidth - 16), y + (height - buttonBounds.height()) / 2f));
-        return new LytRect(x, y, availableWidth, height);
+        copyButton.setLayoutPos(new LytPoint(buttonX, y + (height - buttonBounds.height()) / 2f));
+        return new LytRect(x, y, toolbarWidth, height);
     }
 
     @Override

@@ -23,7 +23,6 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
 
         setPadding(6);
         setGap(4);
-        setFullWidth(true);
         setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);
         setBorder(new BorderStyle(SymbolicColor.TABLE_BORDER, 1));
 
@@ -52,6 +51,7 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
 
     public void setPreferredSize(int width, int height) {
         canvas.setPreferredSize(width, height);
+        toolbar.setPreferredWidth(width);
     }
 
     @Override

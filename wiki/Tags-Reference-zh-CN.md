@@ -48,6 +48,11 @@
 | `<Structure>` | 2.5D 等轴方块布局预览 | `width`, `height` |
 | `<Mermaid>` | 运行时 Mermaid 图导入/内联 | `src` |
 | `<CsvTable>` | 运行时 CSV 文件导入表格 | `src`, `header`, `widths` |
+| `<ColumnChart>` | 簇状柱形图 | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<BarChart>` | 横向条形图 | 同 `<ColumnChart>` |
+| `<LineChart>` | 折线图（类别或数值 X 轴） | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
+| `<PieChart>` | 饼图 | `startAngle`, `clockwise`, `legend`, `labelPosition` |
+| `<ScatterChart>` | XY 散点图 | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | 配方渲染器 | 详见 [配方](Recipes-zh-CN) |
 | `<GameScene>`, `<Scene>` | 3D 指南场景 | 详见 [GameScene](GameScene-zh-CN) |
 
@@ -345,3 +350,77 @@ gold,17
 | `<BlockAnnotationTemplate>` | 把同一组子注解扩展到场景中所有匹配方块上 | `id` |
 
 关于场景导入/移除行为，请参见 [GameScene](GameScene-zh-CN)；关于注解模板规则，请参见 [注解](Annotations-zh-CN)。
+
+
+## 数据图表
+
+`<ColumnChart>`、`<BarChart>`、`<LineChart>`、`<PieChart>`、`<ScatterChart>` 均为交互式图表块。所有图表共享下列通用属性：
+
+| 属性 | 说明 | 默认 |
+| --- | --- | --- |
+| `title` | 标题 | 无 |
+| `width` / `height` | 显式尺寸 | 320 / 200 |
+| `background` / `border` | 背景与边框颜色（支持 `#RGB`、`#RRGGBB`、`#AARRGGBB`、`0x...`） | 深灰 |
+| `titleColor` / `labelColor` | 标题与数据标签颜色 | 浅灰 |
+| `legend` | 图例位置：`none`/`top`/`bottom`/`left`/`right` | `top` |
+| `labelPosition` | 数据标签位置：`none`/`inside`/`outside`/`above`/`below`/`center` | `none` |
+
+笛卡尔系图表（柱形/条形/折线/散点）支持坐标轴属性 `xAxisLabel`、`xAxisMin`、`xAxisMax`、`xAxisStep`、`xAxisUnit`、`xAxisTickFormat`，以及对应的 `yAxis*`，外加 `showXGrid={true}` 与 `showYGrid={true}` 控制网格线。
+
+子元素：
+
+* `<Series name="..." color="#..." data="10,20,30"/>` — 用于按类别取值的图表（柱形/条形/类别 X 折线）。
+* `<Series name="..." color="#..." points="x:y,x:y,..."/>` — 用于数值 X（折线 `numericX={true}`、散点）。
+* `<Slice label="..." value="..." color="#..."/>` — 仅 `<PieChart>` 使用。
+
+未指定 `color` 时按内置 16 色调色板循环分配。
+
+`<Series>` 与 `<Slice>` 还接受以下可选图标/tooltip 属性：
+
+* `icon="modid:item"`（可带 `@meta` 或互动 NBT JSON，同 `<ItemImage>` 的 `id`）— 使用 `ItemStack` 作为图例色块与悬停图标；悬停时会显示原版物品 tooltip 并在末尾追加图表说明。
+* `iconImage="images/foo.png"` — 使用 PNG 资源作为图例色块（被 `icon` 覆盖）。
+* `tooltip="..."` — 额外追加到 tooltip 末尾的文本（多行用 `\n`）。
+
+示例：
+
+```mdx
+<PieChart title="产出占比">
+  <Slice label="铁錠" value="40" icon="minecraft:iron_ingot" tooltip="来自冶炼烉" />
+  <Slice label="金錠" value="15" icon="minecraft:gold_ingot" />
+</PieChart>
+```
+
+### `<ColumnChart>` / `<BarChart>`
+
+附加属性：`categories`（X 轴/Y 轴类别，逗号分隔）、`barWidthRatio`（默认 0.7）。`<BarChart>` 类别在 Y 轴、数值在 X 轴。
+
+#### 组合扩展
+
+`<ColumnChart>` 和 `<BarChart>` 额外支持两类子元素，便于在同一坐标系内叠加多种图形：
+
+- `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — 在柱簇上方再叠加一条折线。每个折点位于对应类别簇中心，与宿主图共享数值轴；可同时声明多条 `<LineSeries>`。
+- `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — 在绘图区四角之一（`topRight`/`topLeft`/`bottomRight`/`bottomLeft`）绘制小型饼图，内部 `<Slice>` 子元素与 `<PieChart>` 一致。
+
+```mdx
+<ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4">
+  <Series name="铁"  data="40,60,55,70"  color="#a0a0a0"/>
+  <Series name="金"  data="20,30,25,35"  color="#e0c060"/>
+  <LineSeries name="合计" data="60,90,80,105" color="#ff5050"/>
+  <PieInset size="60" position="topRight" title="合计占比">
+    <Slice label="铁" value="225" color="#a0a0a0"/>
+    <Slice label="金" value="110" color="#e0c060"/>
+  </PieInset>
+</ColumnChart>
+```
+
+### `<LineChart>`
+
+附加属性：`numericX={true}`（启用数值 X 轴，子元素改用 `points`）、`showPoints={false}`（隐藏点）。悬停某个数据点时该点沿曲线法向外推 2px、半径 +2 并加黑边，相邻线段加粗。
+
+### `<PieChart>`
+
+附加属性：`startAngle`（起始角度，默认 -90 即 12 点钟方向）、`clockwise={false}` 反向。悬停时被悬停扇区沿其角平分线方向外移 4px。
+
+### `<ScatterChart>`
+
+仅绘制数据点；`<Series>` 必须使用 `points` 属性。X 轴始终为数值轴。

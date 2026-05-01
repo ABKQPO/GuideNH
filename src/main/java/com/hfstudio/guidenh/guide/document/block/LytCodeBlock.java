@@ -6,6 +6,7 @@ import java.util.Locale;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.document.LytPoint;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
@@ -38,6 +39,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     private String languageFenceName = "";
     private String languageDisplayName = "Text";
     private String detectedLanguageId = "text";
+    private int preferredBodyWidth;
     private int forcedBodyHeight;
     private int bodyContentHeight;
     private int bodyViewportHeight;
@@ -117,6 +119,15 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         return forcedBodyHeight;
     }
 
+    public int getPreferredBodyWidth() {
+        return preferredBodyWidth;
+    }
+
+    public void setPreferredBodyWidth(int preferredBodyWidth) {
+        this.preferredBodyWidth = Math.max(0, preferredBodyWidth);
+        setFullWidth(this.preferredBodyWidth <= 0);
+    }
+
     public void setForcedBodyHeight(int forcedBodyHeight) {
         this.forcedBodyHeight = Math.max(0, forcedBodyHeight);
     }
@@ -139,21 +150,8 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     @Override
     public boolean mouseClicked(GuideUiHost screen, int x, int y, int button, boolean doubleClick) {
-        if (toolbar.mouseClicked(screen, x, y, button, doubleClick)) {
-            return true;
-        }
-        if (button == 0 && getScrollbarTrackBounds().contains(x, y)) {
-            LytRect thumbBounds = getScrollbarThumbBounds();
-            if (!thumbBounds.isEmpty() && thumbBounds.contains(x, y)) {
-                scrollbarGrabOffsetY = y - thumbBounds.y();
-            } else {
-                scrollbarGrabOffsetY = thumbBounds.isEmpty() ? 0 : thumbBounds.height() / 2;
-                updateScrollFromMouseY(y);
-            }
-            draggingScrollbar = true;
-            return true;
-        }
-        return false;
+        // Scrollbar-related interactions are handled by beginDrag/dragTo (mouseDown can start a drag directly).
+        return toolbar.mouseClicked(screen, x, y, button, doubleClick);
     }
 
     @Override
@@ -161,8 +159,20 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         if (button != 0) {
             return false;
         }
+        if (toolbar.getBounds()
+            .contains(documentX, documentY)) {
+            return false;
+        }
         if (getScrollbarTrackBounds().contains(documentX, documentY)) {
-            return draggingScrollbar;
+            LytRect thumbBounds = getScrollbarThumbBounds();
+            if (!thumbBounds.isEmpty() && thumbBounds.contains(documentX, documentY)) {
+                scrollbarGrabOffsetY = documentY - thumbBounds.y();
+            } else {
+                scrollbarGrabOffsetY = thumbBounds.isEmpty() ? 0 : thumbBounds.height() / 2;
+                updateScrollFromMouseY(documentY);
+            }
+            draggingScrollbar = true;
+            return true;
         }
         if (!getBodyViewportBounds().contains(documentX, documentY) || getMaxBodyScroll() <= 0) {
             return false;
@@ -192,6 +202,14 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         draggingScrollbar = false;
     }
 
+    public boolean isDraggingBody() {
+        return draggingBody;
+    }
+
+    public boolean isDraggingScrollbar() {
+        return draggingScrollbar;
+    }
+
     @Override
     public boolean scroll(int documentX, int documentY, int wheelDelta) {
         if (wheelDelta == 0 || !getBodyViewportBounds().contains(documentX, documentY) || getMaxBodyScroll() <= 0) {
@@ -204,18 +222,17 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int safeWidth = Math.max(1, availableWidth);
+        int safeWidth = preferredBodyWidth > 0 ? Math.max(1, Math.min(availableWidth, preferredBodyWidth))
+            : Math.max(1, availableWidth);
         LytRect toolbarBounds = toolbar.layout(context, x, y, safeWidth);
 
         int bodyY = toolbarBounds.bottom() + getGap();
         int bodyAvailableWidth = safeWidth;
-        boolean reserveScrollbar = false;
 
         LytRect measuredBody = body.layout(context, x, bodyY, bodyAvailableWidth);
         bodyContentHeight = measuredBody.height();
         bodyViewportHeight = forcedBodyHeight > 0 ? forcedBodyHeight : bodyContentHeight;
         if (forcedBodyHeight > 0 && bodyContentHeight > bodyViewportHeight) {
-            reserveScrollbar = true;
             bodyAvailableWidth = Math.max(1, safeWidth - SCROLLBAR_WIDTH - 4);
             measuredBody = body.layout(context, x, bodyY, bodyAvailableWidth);
             bodyContentHeight = measuredBody.height();
@@ -223,16 +240,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
         bodyViewportHeight = forcedBodyHeight > 0 ? forcedBodyHeight : bodyContentHeight;
         setBodyScrollOffset(bodyScrollOffsetY);
-
-        body.setLayoutPos(
-            body.getBounds()
-                .point()
-                .add(0, -bodyScrollOffsetY));
-        int totalHeight = toolbarBounds.height() + getGap() + bodyViewportHeight;
-        if (reserveScrollbar) {
-            totalHeight = Math.max(totalHeight, toolbarBounds.height() + getGap() + bodyViewportHeight);
-        }
-        return new LytRect(x, y, safeWidth, totalHeight);
+        return new LytRect(x, y, safeWidth, toolbarBounds.height() + getGap() + bodyViewportHeight);
     }
 
     @Override
@@ -355,6 +363,22 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     private void setBodyScrollOffset(int bodyScrollOffsetY) {
         this.bodyScrollOffsetY = SceneEditorVerticalScrollbar.clamp(bodyScrollOffsetY, 0, getMaxBodyScroll());
+        updateBodyPosition();
+    }
+
+    private void updateBodyPosition() {
+        if (!body.getBounds()
+            .isEmpty()
+            && !toolbar.getBounds()
+                .isEmpty()) {
+            int bodyViewportY = toolbar.getBounds()
+                .bottom() + getGap();
+            body.setLayoutPos(
+                new LytPoint(
+                    body.getBounds()
+                        .x(),
+                    bodyViewportY - bodyScrollOffsetY));
+        }
     }
 
     private void updateScrollFromMouseY(int mouseY) {

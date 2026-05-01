@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -37,10 +38,13 @@ import com.hfstudio.guidenh.guide.document.block.LytCodeBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
+import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytList;
 import com.hfstudio.guidenh.guide.document.block.LytListItem;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidMindmap;
+import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;
 import com.hfstudio.guidenh.guide.document.block.LytTaskListItem;
 import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
@@ -65,7 +69,11 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownHtmlRuntimeNormalize
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLiteralAutolink;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconKind;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -73,6 +81,7 @@ import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
+import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
 import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
@@ -115,6 +124,8 @@ public class PageCompiler {
      */
     public static final int DEFAULT_ELEMENT_SPACING = 5;
     public static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
+    private static final Pattern CODEBLOCK_META_WIDTH = Pattern
+        .compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|([^\\s]+))");
     private static final Pattern TABLE_ATTRIBUTE_LINE = Pattern.compile("^\\{:\\s*(.+?)\\s*}$");
     private static final Pattern CODEBLOCK_META_HEIGHT = Pattern
         .compile("(^|\\s)height=(\"([^\"]+)\"|'([^']+)'|([^\\s]+))");
@@ -495,18 +506,29 @@ public class PageCompiler {
     }
 
     private LytBlock compileBlockquote(MdAstBlockquote astBlockquote) {
-        var alert = MarkdownRuntimeBlocks.extractGithubAlert(astBlockquote);
-        if (alert != null) {
-            var alertBox = new LytAlertBox();
-            alertBox.setTitle(
-                alert.type()
-                    .displayText(),
-                alert.type());
-            alertBox.setMarginTop(DEFAULT_ELEMENT_SPACING);
-            alertBox.setMarginBottom(DEFAULT_ELEMENT_SPACING);
-            compileAlertBody(alert, alertBox);
-            normalizeBlockMargins(alertBox);
-            return alertBox;
+        BlockquoteDirective directive = MarkdownRuntimeBlocks.parseBlockquoteDirective(astBlockquote);
+        if (directive != null) {
+            if (directive.alertType() != null) {
+                var alertBox = new LytAlertBox();
+                alertBox.setTitle(
+                    directive.alertType()
+                        .displayText(),
+                    directive.alertType());
+                alertBox.setMarginTop(DEFAULT_ELEMENT_SPACING);
+                alertBox.setMarginBottom(DEFAULT_ELEMENT_SPACING);
+                compileDirectiveBody(directive, alertBox);
+                normalizeBlockMargins(alertBox);
+                return alertBox;
+            }
+
+            var quoteBox = new LytQuoteBox();
+            quoteBox.setQuoteStyle(directive.accentColor(), directive.title(), buildQuoteIcon(directive.icon()));
+            quoteBox.setMarginTop(DEFAULT_ELEMENT_SPACING);
+            quoteBox.setMarginBottom(DEFAULT_ELEMENT_SPACING);
+            compileDirectiveBody(directive, quoteBox);
+            normalizeBlockMargins(quoteBox);
+            shiftFirstParagraphDown(quoteBox, 1);
+            return quoteBox;
         }
 
         var blockquote = new LytVBox();
@@ -522,7 +544,7 @@ public class PageCompiler {
         return blockquote;
     }
 
-    private void normalizeBlockMargins(LytVBox box) {
+    private void normalizeBlockMargins(LytNode box) {
         var boxChildren = box.getChildren();
         if (!boxChildren.isEmpty()) {
             if (boxChildren.get(0) instanceof LytParagraph firstParagraph) {
@@ -534,7 +556,7 @@ public class PageCompiler {
         }
     }
 
-    private void shiftFirstParagraphDown(LytVBox box, int pixels) {
+    private void shiftFirstParagraphDown(LytNode box, int pixels) {
         var boxChildren = box.getChildren();
         if (!boxChildren.isEmpty() && boxChildren.get(0) instanceof LytParagraph firstParagraph) {
             firstParagraph.setPaddingTop(firstParagraph.getPaddingTop() + pixels);
@@ -561,20 +583,23 @@ public class PageCompiler {
         }
     }
 
-    private void compileAlertBody(MarkdownRuntimeBlocks.GithubAlertBlock alert, LytAlertBox alertBox) {
-        List<MdAstAnyContent> children = alert.children();
-        if (!children.isEmpty() && children.get(0) instanceof MdAstParagraph paragraph) {
-            var firstParagraph = cloneParagraphWithLeadingTextOverride(paragraph, alert.remainingText());
+    private void compileDirectiveBody(BlockquoteDirective directive, LytBlockContainer parent) {
+        List<? extends MdAstAnyContent> children = directive.children();
+        if (!children.isEmpty() && directive.firstParagraph() != null
+            && children.get(0) == directive.firstParagraph()) {
+            MdAstParagraph firstParagraph = cloneParagraphWithLeadingTextOverride(
+                directive.firstParagraph(),
+                directive.remainingText());
             if (!firstParagraph.children()
                 .isEmpty()) {
-                compileParagraphBlock(firstParagraph, alertBox);
+                compileParagraphBlock(firstParagraph, parent);
             }
             for (int i = 1; i < children.size(); i++) {
-                compileBlockContext(Collections.singletonList(children.get(i)), alertBox);
+                compileBlockContext(Collections.singletonList(children.get(i)), parent);
             }
             return;
         }
-        compileBlockContext(children, alertBox);
+        compileBlockContext(children, parent);
     }
 
     private MdAstParagraph cloneParagraphWithLeadingTextOverride(MdAstParagraph original, String leadingText) {
@@ -597,6 +622,56 @@ public class PageCompiler {
         return copy;
     }
 
+    private @Nullable LytFlowContent buildQuoteIcon(@Nullable QuoteIconSpec icon) {
+        if (icon == null || icon.value() == null
+            || icon.value()
+                .trim()
+                .isEmpty()) {
+            return null;
+        }
+
+        if (icon.kind() == QuoteIconKind.ITEM) {
+            ItemStack stack = IdUtils.resolveItemStack(
+                icon.value()
+                    .trim(),
+                pageId.getResourceDomain());
+            if (stack == null) {
+                return null;
+            }
+            var itemImage = new LytItemImage(stack);
+            itemImage.setInline(true);
+            itemImage.setTooltipSuppressed(true);
+            return LytFlowInlineBlock.of(itemImage);
+        }
+
+        if (icon.kind() == QuoteIconKind.PNG) {
+            try {
+                ResourceLocation imageId = IdUtils.resolveLink(
+                    icon.value()
+                        .trim(),
+                    pageId);
+                byte[] imageData = loadAsset(imageId);
+                if (imageData == null) {
+                    return null;
+                }
+                var image = new LytImage();
+                image.setTexture(imageId, GuidePageTexture.load(imageId, imageData));
+                image.setExplicitWidth(16);
+                image.setExplicitHeight(16);
+                return LytFlowInlineBlock.of(image);
+            } catch (IllegalArgumentException ignored) {
+                return null;
+            }
+        }
+
+        LytFlowSpan span = new LytFlowSpan();
+        span.append(
+            LytFlowText.of(
+                icon.value()
+                    .trim()));
+        return span;
+    }
+
     private void compileParagraphBlock(MdAstParagraph astParagraph, LytBlockContainer parent) {
         var paragraph = new LytParagraph();
         compileFlowContext(astParagraph, paragraph);
@@ -613,9 +688,30 @@ public class PageCompiler {
         var table = new LytTable();
         table.setMarginBottom(DEFAULT_ELEMENT_SPACING);
 
+        var astRows = astTable.children();
+        // The GFM table parser swallows a trailing kramdown attribute line such as
+        // `{: widths="..." }` as an extra row; drop it during rendering so it does
+        // not appear as the last visible row of the table.
+        int rowCount = astRows.size();
+        if (rowCount > 0) {
+            var lastRow = astRows.get(rowCount - 1);
+            String lastRowText = getTableRowText(lastRow);
+            if (lastRowText != null && TABLE_ATTRIBUTE_LINE.matcher(lastRowText.trim())
+                .matches()) {
+                if (widthHints == null || widthHints.isEmpty()) {
+                    Matcher matcher = TABLE_ATTRIBUTE_LINE.matcher(lastRowText.trim());
+                    if (matcher.matches()) {
+                        widthHints = parseWidthHintsFromMetaExpression(matcher.group(1));
+                    }
+                }
+                rowCount--;
+            }
+        }
+
         boolean firstRow = true;
         int rowIndex = 0;
-        for (var astRow : astTable.children()) {
+        for (int rowI = 0; rowI < rowCount; rowI++) {
+            var astRow = astRows.get(rowI);
             var row = table.appendRow();
             if (firstRow) {
                 row.modifyStyle(style -> style.bold(true));
@@ -643,6 +739,18 @@ public class PageCompiler {
         }
 
         return table;
+    }
+
+    private @Nullable String getTableRowText(GfmTableRow row) {
+        StringBuilder sb = new StringBuilder();
+        for (var cell : row.children()) {
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(cell.toText());
+        }
+        String text = sb.toString();
+        return text.isEmpty() ? null : text;
     }
 
     public void compileFlowContext(MdAstParent<?> markdownParent, LytFlowParent layoutParent) {
@@ -820,6 +928,10 @@ public class PageCompiler {
         codeBlock.setLanguageFenceName(astCode.lang != null ? astCode.lang : language.id());
         codeBlock.applyLanguage(language);
         codeBlock.setCodeText(astCode.value);
+        Integer preferredWidth = parseCodeBlockWidth(astCode.meta);
+        if (preferredWidth != null) {
+            codeBlock.setPreferredBodyWidth(preferredWidth);
+        }
         Integer forcedHeight = parseCodeBlockHeight(astCode.meta);
         if (forcedHeight != null) {
             codeBlock.setForcedBodyHeight(forcedHeight);
@@ -1022,6 +1134,28 @@ public class PageCompiler {
             return null;
         }
         Matcher matcher = CODEBLOCK_META_HEIGHT.matcher(meta);
+        if (!matcher.find()) {
+            return null;
+        }
+        String value = matcher.group(3) != null ? matcher.group(3)
+            : matcher.group(4) != null ? matcher.group(4) : matcher.group(5);
+        if (value == null || value.trim()
+            .isEmpty()) {
+            return null;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(value.trim()));
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private @Nullable Integer parseCodeBlockWidth(@Nullable String meta) {
+        if (meta == null || meta.trim()
+            .isEmpty()) {
+            return null;
+        }
+        Matcher matcher = CODEBLOCK_META_WIDTH.matcher(meta);
         if (!matcher.find()) {
             return null;
         }

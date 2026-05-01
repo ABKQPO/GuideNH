@@ -60,7 +60,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     public GuidebookFakeWorld getOrCreateFakeWorld() {
         if (fakeWorld == null) {
-            fakeWorld = new GuidebookFakeWorld(this);
+            try (var ignored = GuidebookDistantHorizonsCompat.suppressClientWorldLoadHooks()) {
+                fakeWorld = new GuidebookFakeWorld(this);
+            }
         }
         return fakeWorld;
     }

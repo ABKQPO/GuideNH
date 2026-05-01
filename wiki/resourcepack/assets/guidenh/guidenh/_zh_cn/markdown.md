@@ -69,6 +69,24 @@ Markdown：
 > [!CAUTION]
 > GitHub 风格的 CAUTION 提示块，检查左侧线、图标与标题颜色。
 
+自定义运行时引用块：
+
+```markdown
+> {: title="Custom Quote" color="#638ef1" icon="i" }
+> 自定义标题、颜色和文本图标。
+```
+
+> {: title="Custom Quote" color="#638ef1" icon="i" }
+> 自定义标题、颜色和文本图标。
+
+```markdown
+> {: title="Item Quote" color="#61b75d" iconItem="minecraft:emerald" }
+> 头部使用物品图标。
+```
+
+> {: title="Item Quote" color="#61b75d" iconItem="minecraft:emerald" }
+> 头部使用物品图标。
+
 ## 列表
 
 Markdown：
@@ -211,7 +229,7 @@ gold,17
 
 强制代码块视口高度，并在内部滚动：
 
-```java height=96
+```java width=220 height=96
 line 01
 line 02
 line 03
@@ -224,6 +242,18 @@ line 09
 line 10
 line 11
 line 12
+line 13
+line 14
+line 15
+line 16
+line 17
+line 18
+line 19
+line 20
+line 21
+line 22
+line 23
+line 24
 ```
 
 ## CSV 运行时表格
@@ -292,71 +322,151 @@ mindmap
 
 <Mermaid src="./markdown-mindmap.mmd" />
 
+<Mermaid src="./markdown-mindmap.mmd" width="320" height="220" />
+
 ## 脚注
 
 脚注引用[^one]
 
 [^one]: 这里是脚注的提示内容
 
-## GameScene 运行时解析
+## 图表
 
-基础方块摆放：
+GuideNH 内置五种交互式图表标签：`<ColumnChart>` 簇状柱形图、`<BarChart>` 横向条形图、`<LineChart>` 折线图、`<PieChart>` 饼图、`<ScatterChart>` XY 散点图。鼠标悬停时所有图表都会展示数值与百分比的提示框，并高亮当前元素（柱/条变长，折线点沿法线弹出，饼图扇区向外弹出，散点变大）。
 
-<GameScene zoom={4} interactive={true}>
-    <Block id="minecraft:water" />
-    <Block id="minecraft:water" x="-1" />
-    <Block id="minecraft:water" x="1" />
-    <Block id="minecraft:grass" z="1" />
-    <Block id="minecraft:grass" x="1" z="1" />
-    <Block id="minecraft:glass" z="2" />
-    <Block id="minecraft:glass" x="1" z="2" />
-</GameScene>
+### 通用属性
 
-红石示例：
+* `title`
+* `width` / `height`（默认 320 x 200）
+* `background` / `border` 颜色
+* `titleColor` / `labelColor`
+* `legend` 位置：`none` / `top` / `bottom` / `left` / `right`（默认 `top`）
+* `labelPosition`：`none` / `inside` / `outside` / `above` / `below` / `center`
 
-<GameScene zoom={4} interactive={true}>
-    <Block id="minecraft:stone" />
-    <Block id="minecraft:stone" x="1" />
-    <Block id="minecraft:stone" x="2" />
-    <Block id="minecraft:redstone_wire" y="1" />
-    <Block id="minecraft:redstone_wire" x="1" y="1" />
-    <Block id="minecraft:redstone_wire" x="2" y="1" />
-    <Block id="minecraft:lever" x="-1" y="1" />
-    <Block id="minecraft:redstone_lamp" x="3" y="1" />
-</GameScene>
+颜色支持 `#RGB`、`#RRGGBB`、`#AARRGGBB`、`0x...`。
 
-方块注解模板：
+### ColumnChart
 
-<GameScene zoom={2} interactive={true}>
-  <Block id="minecraft:log" />
-  <Block id="minecraft:log" x="1" />
-  <Block id="minecraft:log" z="1" />
-  <Block id="minecraft:log" x="1" z="1" />
+```mdx
+<ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="铁" data="120,180,150,210" color="#4E79A7"/>
+  <Series name="金" data="30,42,55,48" color="#F28E2B"/>
+</ColumnChart>
+```
 
-  <BlockAnnotationTemplate id="minecraft:log">
-    <DiamondAnnotation pos="0.5 0.5 0.5" color="#ff0000">
-      这段文字会在悬停时显示。<ItemImage id="minecraft:stone" />
-    </DiamondAnnotation>
-  </BlockAnnotationTemplate>
-</GameScene>
+<ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="铁" data="120,180,150,210" color="#4E79A7"/>
+  <Series name="金" data="30,42,55,48" color="#F28E2B"/>
+</ColumnChart>
 
-注解 tooltip 内的嵌套 Markdown：
+额外属性：`categories`（X 轴标签，逗号分隔）、`barWidthRatio`（默认 0.7）、`xAxisLabel` / `yAxisLabel` / `yAxisMin` / `yAxisMax` / `yAxisStep` / `yAxisUnit` / `yAxisTickFormat`、`showXGrid={true}` / `showYGrid={true}`。
 
-<GameScene width="256" height="192" zoom={4} interactive={false}>
-  <Block id="minecraft:diamond_block" x="-1" />
-  <Block id="minecraft:diamond_block" />
-  <Block id="minecraft:diamond_block" x="1" />
-  <Block id="minecraft:beacon" y="1" />
-  <DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
-    ### Activated Beacon
-    <Color color="#FFD24C">**Effect**</Color>: grants nearby players continuous buffs.
+### BarChart
 
-    > [!TIP]
-    > More pyramid tiers unlock more options.
+```mdx
+<BarChart title="模组下载量 (万)" categories="GTNH,IC2,Thermal,Mekanism" labelPosition="outside">
+  <Series data="320,210,180,150"/>
+</BarChart>
+```
 
-    ```markdown
-    * Hover tooltip markdown
-    * Nested code block sample
-    ```
-  </DiamondAnnotation>
-</GameScene>
+<BarChart title="模组下载量 (万)" categories="GTNH,IC2,Thermal,Mekanism" labelPosition="outside">
+  <Series data="320,210,180,150"/>
+</BarChart>
+
+属性同 ColumnChart，但 `categories` 在 Y 轴上。
+
+### LineChart
+
+类别 X 轴：
+
+```mdx
+<LineChart title="温度" categories="周一,周二,周三,周四,周五" yAxisUnit="℃">
+  <Series name="室外" data="5,8,11,9,6" color="#4E79A7"/>
+  <Series name="室内" data="18,19,20,21,20" color="#E15759"/>
+</LineChart>
+```
+
+<LineChart title="温度" categories="周一,周二,周三,周四,周五" yAxisUnit="℃">
+  <Series name="室外" data="5,8,11,9,6" color="#4E79A7"/>
+  <Series name="室内" data="18,19,20,21,20" color="#E15759"/>
+</LineChart>
+
+数值 X 轴：
+
+```mdx
+<LineChart title="信号衰减" numericX={true} xAxisLabel="距离 (m)" yAxisLabel="强度 (dB)">
+  <Series name="实测" points="0:0,5:-3,10:-7,20:-12,40:-20"/>
+</LineChart>
+```
+
+<LineChart title="信号衰减" numericX={true} xAxisLabel="距离 (m)" yAxisLabel="强度 (dB)">
+  <Series name="实测" points="0:0,5:-3,10:-7,20:-12,40:-20"/>
+</LineChart>
+
+额外属性：`numericX={true}` 启用数值 X 轴；`showPoints={false}` 隐藏数据点标记。
+
+### PieChart
+
+```mdx
+<PieChart title="资源占比" labelPosition="outside" legend="right">
+  <Slice label="铁" value="45" color="#4E79A7"/>
+  <Slice label="铜" value="25" color="#F28E2B"/>
+  <Slice label="金" value="15" color="#E15759"/>
+  <Slice label="钻石" value="10"/>
+  <Slice label="其它" value="5"/>
+</PieChart>
+```
+
+<PieChart title="资源占比" labelPosition="outside" legend="right">
+  <Slice label="铁" value="45" color="#4E79A7"/>
+  <Slice label="铜" value="25" color="#F28E2B"/>
+  <Slice label="金" value="15" color="#E15759"/>
+  <Slice label="钻石" value="10"/>
+  <Slice label="其它" value="5"/>
+</PieChart>
+
+额外属性：`startAngle`（默认 -90，即 12 点方向）；`clockwise={false}` 反转方向。
+
+### ScatterChart
+
+```mdx
+<ScatterChart title="身高-体重" xAxisLabel="身高 (cm)" yAxisLabel="体重 (kg)">
+  <Series name="样本 A" points="160:55,165:58,170:65,175:70,180:78" color="#4E79A7"/>
+  <Series name="样本 B" points="158:52,168:62,172:68,178:75" color="#59A14F"/>
+</ScatterChart>
+```
+
+<ScatterChart title="身高-体重" xAxisLabel="身高 (cm)" yAxisLabel="体重 (kg)">
+  <Series name="样本 A" points="160:55,165:58,170:65,175:70,180:78" color="#4E79A7"/>
+  <Series name="样本 B" points="158:52,168:62,172:68,178:75" color="#59A14F"/>
+</ScatterChart>
+
+### 组合：ColumnChart + LineSeries + PieInset
+
+`<ColumnChart>` 与 `<BarChart>` 支持 `<LineSeries>`（叠加共享数值轴的折线）和 `<PieInset>`（在角落显示小型饼图）子元素，可在一张图中组合多种图表样式。
+
+`<PieInset>` 的 `position` 取值：`topRight` / `topLeft` / `bottomRight` / `bottomLeft`（覆盖在绘图区角落）或 `right`（图表自动加宽，把饼图放到外侧独立区域）。
+
+折线叠加层与柱状/条形图共享悬停与提示：把鼠标移到折线点上，相邻线段会加粗、数据点放大，并弹出包含系列名和数值的提示。
+
+```mdx
+<ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="铁"  data="40,60,55,70"  color="#a0a0a0"/>
+  <Series name="金"  data="20,30,25,35"  color="#e0c060"/>
+  <LineSeries name="合计" data="60,90,80,105" color="#ff5050"/>
+  <PieInset size="60" position="topRight" title="合计占比">
+    <Slice label="铁" value="225" color="#a0a0a0"/>
+    <Slice label="金" value="110" color="#e0c060"/>
+  </PieInset>
+</ColumnChart>
+```
+
+<ColumnChart title="季度产量" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="铁"  data="40,60,55,70"  color="#a0a0a0"/>
+  <Series name="金"  data="20,30,25,35"  color="#e0c060"/>
+  <LineSeries name="合计" data="60,90,80,105" color="#ff5050"/>
+  <PieInset size="60" position="topRight" title="合计占比">
+    <Slice label="铁" value="225" color="#a0a0a0"/>
+    <Slice label="金" value="110" color="#e0c060"/>
+  </PieInset>
+</ColumnChart>

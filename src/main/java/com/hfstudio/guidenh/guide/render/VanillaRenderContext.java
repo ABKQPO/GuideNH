@@ -341,4 +341,148 @@ public class VanillaRenderContext implements RenderContext {
         int sh = rect.height() * scale;
         GL11.glScissor(sx, Math.max(0, sy), Math.max(0, sw), Math.max(0, sh));
     }
+
+    private static final int CIRCLE_SEGMENTS = 32;
+
+    private static void beginShapeDraw() {
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+    }
+
+    private static void endShapeDraw() {
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+        GL11.glPopAttrib();
+    }
+
+    private static void applyArgb(int argb) {
+        int a = (argb >>> 24) & 0xFF;
+        int r = (argb >>> 16) & 0xFF;
+        int g = (argb >>> 8) & 0xFF;
+        int b = argb & 0xFF;
+        if (a == 0) {
+            a = 0xFF;
+        }
+        GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
+    }
+
+    /**
+     * Apply color to the Tessellator's per-vertex color channel. Required because Tessellator.draw() in
+     * 1.7.10 ignores the global GL color when hasColor is false; we must explicitly set the vertex color
+     * via setColorRGBA_I (which is what vanilla Gui.drawRect does).
+     */
+    private static void tessColor(Tessellator tess, int argb) {
+        int a = (argb >>> 24) & 0xFF;
+        int r = (argb >>> 16) & 0xFF;
+        int g = (argb >>> 8) & 0xFF;
+        int b = argb & 0xFF;
+        if (a == 0) {
+            a = 0xFF;
+        }
+        tess.setColorRGBA_I((r << 16) | (g << 8) | b, a);
+    }
+
+    @Override
+    public void drawLine(float x1, float y1, float x2, float y2, float thickness, int argbColor) {
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float len = (float) Math.sqrt(dx * dx + dy * dy);
+        if (len < 1e-4f) {
+            return;
+        }
+        float half = Math.max(0.5f, thickness * 0.5f);
+        float nx = -dy / len * half;
+        float ny = dx / len * half;
+        beginShapeDraw();
+        applyArgb(argbColor);
+        var tess = Tessellator.instance;
+        tess.startDrawingQuads();
+        tessColor(tess, argbColor);
+        tess.addVertex(x1 - nx, y1 - ny, 0);
+        tess.addVertex(x2 - nx, y2 - ny, 0);
+        tess.addVertex(x2 + nx, y2 + ny, 0);
+        tess.addVertex(x1 + nx, y1 + ny, 0);
+        tess.draw();
+        endShapeDraw();
+    }
+
+    @Override
+    public void fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3, int argbColor) {
+        beginShapeDraw();
+        applyArgb(argbColor);
+        var tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_TRIANGLES);
+        tessColor(tess, argbColor);
+        tess.addVertex(x1, y1, 0);
+        tess.addVertex(x2, y2, 0);
+        tess.addVertex(x3, y3, 0);
+        tess.draw();
+        endShapeDraw();
+    }
+
+    @Override
+    public void fillPolygon(float[] xs, float[] ys, int argbColor) {
+        if (xs == null || ys == null || xs.length < 3 || ys.length < xs.length) {
+            return;
+        }
+        beginShapeDraw();
+        applyArgb(argbColor);
+        var tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_TRIANGLE_FAN);
+        tessColor(tess, argbColor);
+        tess.addVertex(xs[0], ys[0], 0);
+        for (int i = 0; i < xs.length; i++) {
+            tess.addVertex(xs[i], ys[i], 0);
+        }
+        tess.draw();
+        endShapeDraw();
+    }
+
+    @Override
+    public void fillCircle(float cx, float cy, float radius, int argbColor) {
+        if (radius <= 0f) {
+            return;
+        }
+        beginShapeDraw();
+        applyArgb(argbColor);
+        var tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_TRIANGLE_FAN);
+        tessColor(tess, argbColor);
+        tess.addVertex(cx, cy, 0);
+        for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
+            double a = (Math.PI * 2.0 * i) / CIRCLE_SEGMENTS;
+            tess.addVertex(cx + (float) (Math.cos(a) * radius), cy + (float) (Math.sin(a) * radius), 0);
+        }
+        tess.draw();
+        endShapeDraw();
+    }
+
+    @Override
+    public void drawCircleOutline(float cx, float cy, float radius, float thickness, int argbColor) {
+        if (radius <= 0f) {
+            return;
+        }
+        float half = Math.max(0.5f, thickness * 0.5f);
+        float inner = Math.max(0f, radius - half);
+        float outer = radius + half;
+        beginShapeDraw();
+        applyArgb(argbColor);
+        var tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_TRIANGLE_STRIP);
+        tessColor(tess, argbColor);
+        for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
+            double a = (Math.PI * 2.0 * i) / CIRCLE_SEGMENTS;
+            float cosA = (float) Math.cos(a);
+            float sinA = (float) Math.sin(a);
+            tess.addVertex(cx + cosA * inner, cy + sinA * inner, 0);
+            tess.addVertex(cx + cosA * outer, cy + sinA * outer, 0);
+        }
+        tess.draw();
+        endShapeDraw();
+    }
 }
