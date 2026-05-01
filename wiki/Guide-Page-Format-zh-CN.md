@@ -244,6 +244,7 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `navigation` | map | 将页面加入导航树 |
 | `categories` | 字符串列表 | 将页面加入分类索引 |
 | `item_ids` | 物品引用列表 | 让页面可被 `<ItemLink>` 发现 |
+| `ore_ids` | 矿辞名列表 | 让页面可被矿辞物品（如 `ingotIron`、`oreCopper`）索引 |
 | 其他任意键 | 任意 YAML 值 | 保存在 `additionalProperties` 中，供扩展或工具使用 |
 
 ### `navigation`
@@ -271,6 +272,9 @@ navigation:
 categories:
   - basics
   - examples
+ore_ids:
+  - ingotIron
+  - oreCopper
 ```
 
 ## 链接解析规则

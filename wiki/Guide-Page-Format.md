@@ -255,6 +255,7 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | `navigation` | map | Adds the page to the navigation tree |
 | `categories` | list of strings | Adds the page to the category index |
 | `item_ids` | list of item references | Makes the page discoverable by `<ItemLink>` |
+| `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
 | any other key | any YAML value | Preserved in `additionalProperties` for extensions or tooling |
 
 ### `navigation`
@@ -282,6 +283,9 @@ navigation:
 categories:
   - basics
   - examples
+ore_ids:
+  - ingotIron
+  - oreCopper
 ```
 
 ## Link Resolution
