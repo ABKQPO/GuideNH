@@ -395,10 +395,15 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             classes.append(" guide-tooltip");
         }
 
+        // The wrapper still receives a font-size hint so descendants that derive sizing from `em`
+        // continue to scale, but the actual icon size is now baked into the <img> width/height by
+        // GuideSiteItemHtml.appendIcon (see scale parameter below) so the resulting image really
+        // grows / shrinks with the MDX `scale` attribute.
+        float effectiveScale = scale != null && scale > 0f ? scale : 1f;
         StringBuilder style = new StringBuilder();
-        if (scale != null && scale > 0f && scale != 1.0f) {
+        if (effectiveScale != 1.0f) {
             style.append("font-size:")
-                .append(scale)
+                .append(effectiveScale)
                 .append("em;");
         }
 
@@ -423,8 +428,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         html.append(">");
         // ItemImage / BlockImage render as icon-only; the display name is exposed via the tooltip overlay.
-        GuideSiteItemHtml
-            .appendIcon(html, exportedItem, inline ? "guide-inline-item-icon" : "guide-block-item-icon");
+        GuideSiteItemHtml.appendIcon(
+            html,
+            exportedItem,
+            inline ? "guide-inline-item-icon" : "guide-block-item-icon",
+            effectiveScale);
         html.append("</span>");
         if (!inline) {
             html.append("</div>");

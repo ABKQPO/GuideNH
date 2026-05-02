@@ -908,6 +908,25 @@ p {
     color: rgb(210, 210, 210);
 }
 
+/* Tooltip 3D scene placeholder: a tooltip that originally embedded a <GameScene> is rendered
+   as a static screenshot here instead of a live WebGL viewer. Hydrating a second scene viewer
+   inside a popover would exhaust the browser's WebGL context cap and routinely crash the
+   page-level scenes. The placeholder mirrors the scene's reserved size so layout is stable. */
+.guide-tooltip-scene-placeholder {
+    display: inline-block;
+    background: #0c1117;
+    border: 1px solid #434c57;
+    overflow: hidden;
+    image-rendering: pixelated;
+}
+
+.guide-tooltip-scene-placeholder > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
 /* Mermaid Mindmap (SVG) — drawn as a self-contained scrollable canvas. The shapes,
    colors and connectors are produced by GuideSiteGraphRenderer.renderMermaidTree to
    match the in-game LytMermaidMindmapCanvas style. */

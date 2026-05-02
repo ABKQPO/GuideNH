@@ -33,9 +33,20 @@ public class NavigationUtil {
             if (textureIcon != null) {
                 return textureIcon;
             }
+            // Fallback: even if the page collection couldn't pre-load the texture bytes, still
+            // preserve `textureId` on the icon so the static-site exporter can resolve the file
+            // through its own asset loader (which has additional resource-pack lookups).
+            if (navigation.iconItemId() == null) {
+                return new GuidePageIcon(null, iconTextureId, null);
+            }
         }
 
         if (navigation.iconItemId() == null) {
+            // No item icon either: still expose textureId when frontmatter declared one so the
+            // exporter can attempt to resolve it lazily.
+            if (iconTextureId != null) {
+                return new GuidePageIcon(null, iconTextureId, null);
+            }
             return null;
         }
 

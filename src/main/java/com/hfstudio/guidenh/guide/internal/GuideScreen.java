@@ -564,11 +564,23 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
         var scene = interaction.scene;
         if (scene != null) {
+            // Annotation tooltips have absolute priority: when an annotation is hovered we
+            // MUST short-circuit the rest of the scene-tooltip cascade so the underlying block
+            // (whose hover detection uses screen-space AABBs and may overlap an annotation that
+            // sits inside a block) cannot steal the tooltip slot. Even if the annotation has no
+            // tooltip content of its own, we still want to suppress the block tooltip below.
+            boolean anyAnnotationHovered = false;
             for (var a : scene.getAnnotations()) {
-                if (a.isHovered() && a.getTooltip() != null) {
-                    renderGuideTooltip(a.getTooltip(), mouseX, mouseY);
-                    return;
+                if (a.isHovered()) {
+                    anyAnnotationHovered = true;
+                    if (a.getTooltip() != null) {
+                        renderGuideTooltip(a.getTooltip(), mouseX, mouseY);
+                        return;
+                    }
                 }
+            }
+            if (anyAnnotationHovered) {
+                return;
             }
             var hoveredHatch = scene.getHoveredStructureLibHatch();
             if (hoveredHatch != null) {

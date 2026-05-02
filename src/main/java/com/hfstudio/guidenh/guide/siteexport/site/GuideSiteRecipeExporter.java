@@ -85,7 +85,10 @@ public class GuideSiteRecipeExporter {
             html.append("</div>");
         }
         html.append("</div>");
-        html.append("<div class=\"recipe-result\" data-result-item-id=\"")
+        // Wrap the result icon in an `ingredient-box` so the output slot also receives the
+        // slot.png border-image background (previously the result was rendered as a bare
+        // `recipe-result` div with no slot frame, which made the output look unboxed).
+        html.append("<div class=\"recipe-result ingredient-box\" data-result-item-id=\"")
             .append(escapeHtml(resultItem.itemId()))
             .append("\">");
         GuideSiteItemHtml.appendIcon(html, resultItem, null);

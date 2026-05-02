@@ -4,12 +4,24 @@ import org.jetbrains.annotations.Nullable;
 
 final class GuideSiteItemHtml {
 
+    /** Default rendered icon size in pixels at scale=1.0 (matches the in-game 32px nav icon). */
+    static final int BASE_ICON_PX = 32;
+
     private GuideSiteItemHtml() {}
 
     static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass) {
+        appendIcon(html, item, extraClass, 1f);
+    }
+
+    static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass, float scale) {
         String classes = classes("item-icon", extraClass);
         String label = item.displayName()
             .isEmpty() ? item.itemId() : item.displayName();
+        // Honor the MDX `scale` attribute on <ItemImage>: the static export emits an explicit
+        // pixel size on the <img>/<span> so that scale="2" actually doubles the rendered icon
+        // instead of being silently ignored. Floor at 1px to avoid invisible icons.
+        float effectiveScale = scale > 0f ? scale : 1f;
+        int size = Math.max(1, Math.round(BASE_ICON_PX * effectiveScale));
         if (item.hasIcon()) {
             html.append("<img class=\"")
                 .append(escapeHtml(classes))
@@ -19,15 +31,30 @@ final class GuideSiteItemHtml {
                 .append(escapeHtml(label))
                 .append("\" data-item-id=\"")
                 .append(escapeHtml(item.itemId()))
-                .append("\" width=\"32\" height=\"32\" decoding=\"async\">");
+                .append("\" width=\"")
+                .append(size)
+                .append("\" height=\"")
+                .append(size)
+                .append("\" decoding=\"async\">");
             return;
         }
 
         html.append("<span class=\"")
             .append(escapeHtml(classes("item-icon item-icon-fallback", extraClass)))
             .append("\" data-item-id=\"")
-            .append(escapeHtml(item.itemId()))
-            .append("\">")
+            .append(escapeHtml(item.itemId()));
+        if (effectiveScale != 1f) {
+            html.append("\" style=\"width:")
+                .append(size)
+                .append("px;height:")
+                .append(size)
+                .append("px;font-size:")
+                .append(size)
+                .append("px;line-height:")
+                .append(size)
+                .append("px;");
+        }
+        html.append("\">")
             .append(escapeHtml(label))
             .append("</span>");
     }

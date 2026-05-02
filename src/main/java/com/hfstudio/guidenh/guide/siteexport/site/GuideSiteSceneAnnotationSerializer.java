@@ -420,16 +420,32 @@ public final class GuideSiteSceneAnnotationSerializer {
                 return;
             }
             if (node instanceof LytGuidebookScene scene) {
-                html.append(
-                    GuideSiteSceneTagRenderer.renderSceneHtml(
-                        scene.getSceneWidth(),
-                        scene.getSceneHeight(),
-                        scene.isInteractive(),
-                        currentPageId != null ? currentPageId.getResourceDomain() : "guidenh",
-                        null,
-                        resolveExportedScene(scene),
-                        GuideSiteSceneTagRenderer.TOOLTIP_WEB_SCENE_SCALE));
-                html.append(">");
+                // Inside a hover/content tooltip we MUST NOT spawn a second WebGL-backed scene
+                // viewer: rehydrating a live <GameScene> inside a popover blows past the
+                // browser's per-document WebGL context cap, which makes the page-level scenes
+                // forfeit their context (going transparent) and frequently hard-crashes the
+                // page on Firefox/Chromium. Render a static placeholder image instead so the
+                // tooltip still shows what the scene looks like without re-hydrating it.
+                GuideSiteExportedScene exportedScene = resolveExportedScene(scene);
+                int width = Math.max(16, scene.getSceneWidth());
+                int height = Math.max(16, scene.getSceneHeight());
+                html.append("<div class=\"guide-tooltip-scene-placeholder\" style=\"width:")
+                    .append(width)
+                    .append("px;height:")
+                    .append(height)
+                    .append("px;\">");
+                if (exportedScene != null && exportedScene.placeholderPath() != null
+                    && !exportedScene.placeholderPath()
+                        .isEmpty()) {
+                    html.append("<img src=\"")
+                        .append(escapeAttribute(exportedScene.placeholderPath()))
+                        .append("\" alt=\"\" width=\"")
+                        .append(width)
+                        .append("\" height=\"")
+                        .append(height)
+                        .append("\" decoding=\"async\">");
+                }
+                html.append("</div>");
                 return;
             }
             if (node instanceof LytHeading heading) {
