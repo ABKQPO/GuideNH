@@ -14,6 +14,16 @@ public final class GuideItemTooltipLines {
 
     private GuideItemTooltipLines() {}
 
+    private static String safeDisplayName(ItemStack stack) {
+        try {
+            return stack.getDisplayName();
+        } catch (Throwable t) {
+            return stack.getItem()
+                .getClass()
+                .getSimpleName();
+        }
+    }
+
     public static List<String> build(ItemTooltip tooltip, Minecraft mc) {
         ItemStack stack = tooltip.getStack();
         List<String> lines;
@@ -24,10 +34,10 @@ public final class GuideItemTooltipLines {
         }
 
         if (lines.isEmpty()) {
-            lines.add(stack.getDisplayName());
+            lines.add(safeDisplayName(stack));
         } else if (lines.get(0) == null || lines.get(0)
             .isEmpty()) {
-                lines.set(0, stack.getDisplayName());
+                lines.set(0, safeDisplayName(stack));
             }
 
         var rarity = stack.getRarity();
