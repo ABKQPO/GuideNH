@@ -8,7 +8,7 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.internal.recipe.NeiRecipeLookup;
+import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 
 public class GuideSiteRecipeExporter {
@@ -100,11 +100,11 @@ public class GuideSiteRecipeExporter {
         }
         for (List<GuideSiteExportedItem> candidates : slots) {
             List<GuideSiteExportedItem> safeCandidates = candidates != null ? candidates : Collections.emptyList();
-            html.append("<div class=\"ingredient-box");
+            html.append("<div class=\"ingredient-box\"");
             if (safeCandidates.size() > 1) {
-                html.append(" cycling");
+                html.append(" data-ingredient-cycling");
             }
-            html.append("\">");
+            html.append(">");
             for (GuideSiteExportedItem item : safeCandidates) {
                 GuideSiteItemHtml.appendIcon(html, item, null);
             }

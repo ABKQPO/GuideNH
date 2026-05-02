@@ -1,9 +1,12 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -13,6 +16,8 @@ import java.util.Map;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IResourceManager;
+import net.minecraft.client.resources.Language;
+import net.minecraft.client.resources.LanguageManager;
 import net.minecraft.util.ResourceLocation;
 
 import org.slf4j.Logger;
@@ -20,6 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -32,8 +39,6 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata;
 
 public class GuideSiteExportTask {
 
@@ -67,151 +72,175 @@ public class GuideSiteExportTask {
         Map<String, List<Map<String, Object>>> searchEntriesByLanguage = new LinkedHashMap<>();
         IResourceManager resourceManager = null;
 
-        for (MutableGuide guide : GuideRegistry.getAll()) {
-            guidesExported++;
+        // Capture the user's current Minecraft language so we can restore it after export.
+        // We switch the Minecraft locale per-language during export so that item display names,
+        // tooltips, and other StatCollector lookups resolve to the correct localization.
+        Language originalMcLanguage = null;
+        try {
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc != null && mc.getLanguageManager() != null) {
+                originalMcLanguage = mc.getLanguageManager()
+                    .getCurrentLanguage();
+            }
+        } catch (Throwable ignored) {}
 
-            if (resourceManager == null) {
-                resourceManager = resolveResourceManager();
+        try {
+            for (MutableGuide guide : GuideRegistry.getAll()) {
+                guidesExported++;
+
                 if (resourceManager == null) {
-                    throw new IllegalStateException("Minecraft resource manager is not available");
+                    resourceManager = resolveResourceManager();
+                    if (resourceManager == null) {
+                        throw new IllegalStateException("Minecraft resource manager is not available");
+                    }
                 }
-            }
 
-            GuideSitePageCollector collector = new GuideSitePageCollector(guide, resourceManager);
-            List<GuideSitePageVariant> variants;
-            try {
-                variants = collector.collect(guide);
-            } catch (Throwable t) {
-                LOG.warn("Failed to collect page variants for guide {}", guide.getId(), t);
-                pagesFailed++;
-                continue;
-            }
+                GuideSitePageCollector collector = new GuideSitePageCollector(guide, resourceManager);
+                List<GuideSitePageVariant> variants;
+                try {
+                    variants = collector.collect(guide);
+                } catch (Throwable t) {
+                    LOG.warn("Failed to collect page variants for guide {}", guide.getId(), t);
+                    recordFailure(outDir, "collect " + guide.getId(), t);
+                    pagesFailed++;
+                    continue;
+                }
 
-            Map<String, List<GuideSitePageVariant>> variantsByLanguage = new LinkedHashMap<>();
-            for (GuideSitePageVariant variant : variants) {
-                variantsByLanguage.computeIfAbsent(variant.language(), ignored -> new ArrayList<>())
-                    .add(variant);
-            }
-            List<String> languageOrder = new ArrayList<>(variantsByLanguage.keySet());
-            Map<ResourceLocation, List<GuideSiteLanguageLink>> languageLinksByPageId = buildLanguageLinks(
-                writer,
-                guide,
-                variants,
-                languageOrder);
-
-            for (Map.Entry<String, List<GuideSitePageVariant>> languageEntry : variantsByLanguage.entrySet()) {
-                String language = languageEntry.getKey();
-                List<GuideSitePageVariant> languageVariants = languageEntry.getValue();
-                GuideSitePageAssetExporter assetExporter = createPageAssetExporter(
+                Map<String, List<GuideSitePageVariant>> variantsByLanguage = new LinkedHashMap<>();
+                for (GuideSitePageVariant variant : variants) {
+                    variantsByLanguage.computeIfAbsent(variant.language(), ignored -> new ArrayList<>())
+                        .add(variant);
+                }
+                List<String> languageOrder = new ArrayList<>(variantsByLanguage.keySet());
+                Map<ResourceLocation, List<GuideSiteLanguageLink>> languageLinksByPageId = buildLanguageLinks(
+                    writer,
                     guide,
-                    resourceManager,
-                    language,
-                    assets);
-                List<ParsedGuidePage> parsedPages = new ArrayList<>();
-                Map<ResourceLocation, ParsedGuidePage> parsedPagesById = new LinkedHashMap<>();
-                for (GuideSitePageVariant variant : languageVariants) {
-                    parsedPages.add(variant.parsedPage());
-                    parsedPagesById.put(
-                        variant.parsedPage()
-                            .getId(),
-                        variant.parsedPage());
-                }
+                    variants,
+                    languageOrder);
 
-                NavigationTree navigationTree = NavigationTree.build(parsedPages);
-                GuideSiteHtmlCompiler compiler = createHtmlCompiler(
-                    assetExporter,
-                    new GuideSiteRecipeTagRenderer(itemIconExporter),
-                    new GuideSiteMdxTagRenderer(
+                for (Map.Entry<String, List<GuideSitePageVariant>> languageEntry : variantsByLanguage.entrySet()) {
+                    String language = languageEntry.getKey();
+                    List<GuideSitePageVariant> languageVariants = languageEntry.getValue();
+                    // Switch the active Minecraft locale so localized item display names and tooltips
+                    // resolve to this language while we render this language's pages.
+                    switchMinecraftLanguage(language);
+                    GuideSitePageAssetExporter assetExporter = createPageAssetExporter(
                         guide,
-                        parsedPagesById,
-                        navigationTree,
+                        resourceManager,
+                        language,
+                        assets);
+                    List<ParsedGuidePage> parsedPages = new ArrayList<>();
+                    Map<ResourceLocation, ParsedGuidePage> parsedPagesById = new LinkedHashMap<>();
+                    for (GuideSitePageVariant variant : languageVariants) {
+                        parsedPages.add(variant.parsedPage());
+                        parsedPagesById.put(
+                            variant.parsedPage()
+                                .getId(),
+                            variant.parsedPage());
+                    }
+
+                    NavigationTree navigationTree = NavigationTree.build(parsedPages);
+                    GuideSiteHtmlCompiler compiler = createHtmlCompiler(
                         assetExporter,
-                        itemIconExporter));
+                        new GuideSiteRecipeTagRenderer(itemIconExporter),
+                        new GuideSiteMdxTagRenderer(
+                            guide,
+                            parsedPagesById,
+                            navigationTree,
+                            assetExporter,
+                            itemIconExporter));
 
-                for (GuideSitePageVariant variant : languageVariants) {
-                    try {
-                        try (GuideSiteHrefResolver.ContextScope ignored = GuideSiteHrefResolver.exportContext(
-                            guide.getId()
-                                .getResourceDomain(),
-                            guide.getId()
-                                .getResourcePath(),
-                            language)) {
-                            GuideSiteTemplateRegistry templates = new GuideSiteTemplateRegistry();
-                            GuidePage compiledPage = PageCompiler
-                                .compile(guide, guide.getExtensions(), variant.parsedPage());
-                            List<GuideSiteExportedScene> exportedScenes = exportScenes(
-                                guide,
-                                variant.parsedPage(),
-                                compiledPage,
-                                templates,
-                                assets,
-                                sceneExporter,
-                                assetExporter,
-                                itemIconExporter);
-                            String body = compiler
-                                .compileBody(variant.parsedPage(), templates, createSceneResolver(exportedScenes));
-                            String sidebarHtml = writer.renderSidebar(
-                                guide,
-                                language,
-                                navigationTree,
-                                variant.pageId(),
-                                assetExporter,
-                                itemIconExporter,
-                                languageLinksByPageId.get(variant.pageId()));
-                            String pageFile = toOutputPageFile(variant.parsedPage());
-                            String pageUrl = writer.pageUrl(
+                    for (GuideSitePageVariant variant : languageVariants) {
+                        try {
+                            try (GuideSiteHrefResolver.ContextScope ignored = GuideSiteHrefResolver.exportContext(
                                 guide.getId()
                                     .getResourceDomain(),
                                 guide.getId()
                                     .getResourcePath(),
-                                language,
-                                pageFile);
-                            String pageTitle = searchExtractor.title(guide, variant.parsedPage());
+                                language)) {
+                                GuideSiteTemplateRegistry templates = new GuideSiteTemplateRegistry();
+                                GuidePage compiledPage = PageCompiler
+                                    .compile(guide, guide.getExtensions(), variant.parsedPage());
+                                List<GuideSiteExportedScene> exportedScenes = exportScenes(
+                                    guide,
+                                    variant.parsedPage(),
+                                    compiledPage,
+                                    templates,
+                                    assets,
+                                    sceneExporter,
+                                    assetExporter,
+                                    itemIconExporter);
+                                String body = compiler
+                                    .compileBody(variant.parsedPage(), templates, createSceneResolver(exportedScenes));
+                                List<GuideSiteLanguageLink> langLinks = languageLinksByPageId.get(variant.pageId());
+                                String langSwitcherHtml = writer.renderLanguageSwitcher(language, langLinks);
+                                String sidebarHtml = writer.renderSidebar(
+                                    guide,
+                                    language,
+                                    navigationTree,
+                                    variant.pageId(),
+                                    assetExporter,
+                                    itemIconExporter,
+                                    langLinks);
+                                String pageFile = toOutputPageFile(variant.parsedPage());
+                                String pageUrl = writer.pageUrl(
+                                    guide.getId()
+                                        .getResourceDomain(),
+                                    guide.getId()
+                                        .getResourcePath(),
+                                    language,
+                                    pageFile);
+                                String pageTitle = searchExtractor.title(guide, variant.parsedPage());
 
-                            writer.writePage(
-                                outDir,
-                                guide.getId()
-                                    .getResourceDomain(),
-                                guide.getId()
-                                    .getResourcePath(),
-                                language,
-                                pageFile,
-                                sidebarHtml,
-                                body,
-                                templates.renderAll(),
-                                pageTitle);
+                                writer.writePage(
+                                    outDir,
+                                    guide.getId()
+                                        .getResourceDomain(),
+                                    guide.getId()
+                                        .getResourcePath(),
+                                    language,
+                                    pageFile,
+                                    langSwitcherHtml,
+                                    sidebarHtml,
+                                    body,
+                                    templates.renderAll(),
+                                    pageTitle);
 
-                            Map<String, Object> searchEntry = new LinkedHashMap<>();
-                            searchEntry.put("title", pageTitle);
-                            searchEntry.put(
-                                "guideId",
-                                guide.getId()
-                                    .toString());
-                            searchEntry.put(
-                                "pageId",
-                                variant.pageId()
-                                    .toString());
-                            searchEntry.put("url", pageUrl);
-                            searchEntry.put("text", searchExtractor.searchableText(guide, variant.parsedPage()));
-                            appendSearchIconData(
-                                searchEntry,
-                                navigationTree.getNodeById(variant.pageId()),
-                                assetExporter,
-                                itemIconExporter);
-                            searchEntriesByLanguage.computeIfAbsent(language, ignored2 -> new ArrayList<>())
-                                .add(searchEntry);
+                                Map<String, Object> searchEntry = new LinkedHashMap<>();
+                                searchEntry.put("title", pageTitle);
+                                searchEntry.put(
+                                    "guideId",
+                                    guide.getId()
+                                        .toString());
+                                searchEntry.put(
+                                    "pageId",
+                                    variant.pageId()
+                                        .toString());
+                                searchEntry.put("url", pageUrl);
+                                searchEntry.put("text", searchExtractor.searchableText(guide, variant.parsedPage()));
+                                appendSearchIconData(
+                                    searchEntry,
+                                    navigationTree.getNodeById(variant.pageId()),
+                                    assetExporter,
+                                    itemIconExporter);
+                                searchEntriesByLanguage.computeIfAbsent(language, ignored2 -> new ArrayList<>())
+                                    .add(searchEntry);
 
-                            if (firstPageUrl == null) {
-                                firstPageUrl = pageUrl;
+                                if (firstPageUrl == null) {
+                                    firstPageUrl = pageUrl;
+                                }
                             }
+                            pagesExported++;
+                        } catch (Throwable t) {
+                            LOG.warn("Failed to export page {} for language {}", variant.pageId(), language, t);
+                            recordFailure(outDir, "page " + variant.pageId() + " (" + language + ")", t);
+                            pagesFailed++;
                         }
-                        pagesExported++;
-                    } catch (Throwable t) {
-                        LOG.warn("Failed to export page {} for language {}", variant.pageId(), language, t);
-                        pagesFailed++;
                     }
                 }
             }
+        } finally {
+            restoreMinecraftLanguage(originalMcLanguage);
         }
 
         for (Map.Entry<String, List<Map<String, Object>>> entry : searchEntriesByLanguage.entrySet()) {
@@ -221,6 +250,99 @@ public class GuideSiteExportTask {
         writer.writeLandingPage(outDir, firstPageUrl, "GuideNH Static Export");
 
         return new Result(guidesExported, pagesExported, pagesFailed, outDir);
+    }
+
+    private static void switchMinecraftLanguage(String requested) {
+        if (requested == null || requested.isEmpty()) {
+            return;
+        }
+        try {
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc == null) {
+                return;
+            }
+            LanguageManager manager = mc.getLanguageManager();
+            if (manager == null) {
+                return;
+            }
+            String requestedLower = requested.toLowerCase(java.util.Locale.ROOT);
+            Language target = null;
+            for (Language candidate : manager.getLanguages()) {
+                String code = candidate.getLanguageCode();
+                if (code == null) {
+                    continue;
+                }
+                if (code.toLowerCase(java.util.Locale.ROOT)
+                    .equals(requestedLower)) {
+                    target = candidate;
+                    break;
+                }
+            }
+            if (target == null) {
+                LOG.warn("Cannot switch Minecraft locale to {}: no matching Language registered", requested);
+                return;
+            }
+            Language current = manager.getCurrentLanguage();
+            if (current != null && current.getLanguageCode() != null
+                && requestedLower.equals(
+                    current.getLanguageCode()
+                        .toLowerCase(java.util.Locale.ROOT))) {
+                return;
+            }
+            manager.setCurrentLanguage(target);
+            IResourceManager rm = mc.getResourceManager();
+            if (rm != null) {
+                manager.onResourceManagerReload(rm);
+            }
+        } catch (Throwable t) {
+            LOG.warn("Failed to switch Minecraft locale to {}", requested, t);
+        }
+    }
+
+    private static void restoreMinecraftLanguage(Language original) {
+        if (original == null) {
+            return;
+        }
+        try {
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc == null) {
+                return;
+            }
+            LanguageManager manager = mc.getLanguageManager();
+            if (manager == null) {
+                return;
+            }
+            manager.setCurrentLanguage(original);
+            IResourceManager rm = mc.getResourceManager();
+            if (rm != null) {
+                manager.onResourceManagerReload(rm);
+            }
+        } catch (Throwable t) {
+            LOG.warn("Failed to restore original Minecraft locale", t);
+        }
+    }
+
+    private static void recordFailure(Path outDir, String label, Throwable t) {
+        // Print to stderr so the failure is visible even if SLF4J routing drops it.
+        System.err.println("[GuideNH] Static site export failure: " + label);
+        t.printStackTrace();
+        try {
+            StringWriter sw = new StringWriter();
+            try (PrintWriter pw = new PrintWriter(sw)) {
+                pw.println("=== " + label + " ===");
+                t.printStackTrace(pw);
+                pw.println();
+            }
+            Files.createDirectories(outDir);
+            Files.write(
+                outDir.resolve("export-failures.log"),
+                sw.toString()
+                    .getBytes(StandardCharsets.UTF_8),
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND);
+        } catch (IOException ioException) {
+            // best-effort logging only
+        }
     }
 
     private Map<ResourceLocation, List<GuideSiteLanguageLink>> buildLanguageLinks(GuideSiteWriter writer,
@@ -627,16 +749,16 @@ public class GuideSiteExportTask {
             || scene.getLevel() == null
             || scene.getLevel()
                 .isEmpty()) {
-            return Collections.singletonList(scene != null ? scene.getCurrentVisibleLayer() : Integer.valueOf(0));
+            return Collections.singletonList(scene != null ? scene.getCurrentVisibleLayer() : 0);
         }
 
         int[] bounds = scene.getLevel()
             .getBounds();
         int layerCount = Math.max(1, bounds[4] - bounds[1] + 1);
         ArrayList<Integer> layers = new ArrayList<>(layerCount + 1);
-        layers.add(Integer.valueOf(0));
+        layers.add(0);
         for (int layer = 1; layer <= layerCount; layer++) {
-            layers.add(Integer.valueOf(layer));
+            layers.add(layer);
         }
         return layers;
     }
@@ -646,13 +768,13 @@ public class GuideSiteExportTask {
             || metadata.getTierData() == null
             || !metadata.getTierData()
                 .isSelectable()) {
-            return Collections.singletonList(scene != null ? scene.getStructureLibCurrentTier() : Integer.valueOf(1));
+            return Collections.singletonList(scene != null ? scene.getStructureLibCurrentTier() : 1);
         }
         ArrayList<Integer> tiers = new ArrayList<>();
         for (int tier = metadata.getTierData()
             .getMinValue(); tier <= metadata.getTierData()
                 .getMaxValue(); tier++) {
-            tiers.add(Integer.valueOf(tier));
+            tiers.add(tier);
         }
         return tiers;
     }
@@ -672,11 +794,11 @@ public class GuideSiteExportTask {
 
     private List<Integer> buildChannelStates(StructureLibSceneMetadata.ChannelData channelData) {
         if (channelData == null || !channelData.isSelectable()) {
-            return Collections.singletonList(Integer.valueOf(0));
+            return Collections.singletonList(0);
         }
         ArrayList<Integer> states = new ArrayList<>(channelData.getMaxValue() + 1);
         for (int value = channelData.getMinValue(); value <= channelData.getMaxValue(); value++) {
-            states.add(Integer.valueOf(value));
+            states.add(value);
         }
         return states;
     }

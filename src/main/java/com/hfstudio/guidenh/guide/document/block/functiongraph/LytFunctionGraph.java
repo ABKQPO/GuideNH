@@ -172,6 +172,66 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         this.explicitQuadrantMask = mask & 0xF;
     }
 
+    public String getTitle() {
+        return title;
+    }
+
+    public int getExplicitWidth() {
+        return explicitWidth;
+    }
+
+    public int getExplicitHeight() {
+        return explicitHeight;
+    }
+
+    public int getBackgroundColor() {
+        return backgroundColor;
+    }
+
+    public int getBorderColor() {
+        return borderColor;
+    }
+
+    public int getAxisColor() {
+        return axisColor;
+    }
+
+    public int getGridColor() {
+        return gridColor;
+    }
+
+    public boolean isShowGrid() {
+        return showGrid;
+    }
+
+    public boolean isShowAxes() {
+        return showAxes;
+    }
+
+    public double getExplicitXMin() {
+        return explicitXMin;
+    }
+
+    public double getExplicitXMax() {
+        return explicitXMax;
+    }
+
+    public double getExplicitYMin() {
+        return explicitYMin;
+    }
+
+    public double getExplicitYMax() {
+        return explicitYMax;
+    }
+
+    public double getExplicitXStep() {
+        return explicitXStep;
+    }
+
+    public double getExplicitYStep() {
+        return explicitYStep;
+    }
+
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int width = explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH;

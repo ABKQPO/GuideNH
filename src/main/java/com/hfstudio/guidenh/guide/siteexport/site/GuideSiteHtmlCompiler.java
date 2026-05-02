@@ -1,12 +1,17 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.List;
+import java.util.Locale;
 
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableCell;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
@@ -432,6 +437,27 @@ public class GuideSiteHtmlCompiler {
     }
 
     private String compileCodeBlock(MdAstCode code) {
+        String lang = code.lang != null ? code.lang.toLowerCase(Locale.ROOT) : "";
+        if ("csv".equals(lang)) {
+            return GuideSiteGraphRenderer.renderCsvTable(code.value != null ? code.value : "", true);
+        }
+        if ("tree".equals(lang) || "filetree".equals(lang)) {
+            return GuideSiteGraphRenderer.renderFileTree(code.value != null ? code.value : "");
+        }
+        if ("mermaid".equals(lang)) {
+            String src = code.value != null ? code.value : "";
+            try {
+                MermaidMindmapDocument doc = MermaidMindmapParser.parse(src);
+                return GuideSiteGraphRenderer.renderMermaidTree(doc);
+            } catch (Exception ignored) {
+                return "<pre><code class=\"language-mermaid\">" + escapeHtml(src) + "</code></pre>";
+            }
+        }
+        if ("funcgraph".equals(lang) || "functiongraph".equals(lang)) {
+            String src = code.value != null ? code.value : "";
+            LytFunctionGraph graph = FunctionGraphFenceParser.parse(src);
+            return GuideSiteGraphRenderer.renderFunctionGraph(graph);
+        }
         StringBuilder html = new StringBuilder();
         html.append("<pre><code");
         if (code.lang != null && !code.lang.isEmpty()) {
@@ -440,7 +466,7 @@ public class GuideSiteHtmlCompiler {
                 .append("\"");
         }
         html.append(">")
-            .append(escapeHtml(code.value))
+            .append(escapeHtml(code.value != null ? code.value : ""))
             .append("</code></pre>");
         return html.toString();
     }

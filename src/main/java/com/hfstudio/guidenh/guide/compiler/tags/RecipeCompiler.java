@@ -15,11 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-<<<<<<< HEAD
-=======
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
->>>>>>> origin/master
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;

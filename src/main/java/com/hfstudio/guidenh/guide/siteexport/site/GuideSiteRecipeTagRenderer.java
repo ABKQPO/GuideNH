@@ -9,9 +9,9 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
-import com.hfstudio.guidenh.guide.internal.recipe.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;

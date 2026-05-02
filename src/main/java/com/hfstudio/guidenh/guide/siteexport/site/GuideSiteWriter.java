@@ -60,6 +60,46 @@ public class GuideSiteWriter {
         writeResource(
             outDir.resolve("_site/model-viewer/vendor/diamond.png"),
             "/assets/guidenh/textures/guide/diamond.png");
+        writeResource(
+            outDir.resolve("_site/fonts/PixeloidMono.woff2"),
+            "/assets/guidenh/siteexport/fonts/PixeloidMono.woff2");
+        writeResource(
+            outDir.resolve("_site/fonts/PixeloidMono.woff"),
+            "/assets/guidenh/siteexport/fonts/PixeloidMono.woff");
+        writeResource(
+            outDir.resolve("_site/fonts/PixeloidSans-Bold.woff2"),
+            "/assets/guidenh/siteexport/fonts/PixeloidSans-Bold.woff2");
+        writeResource(
+            outDir.resolve("_site/fonts/PixeloidSans-Bold.woff"),
+            "/assets/guidenh/siteexport/fonts/PixeloidSans-Bold.woff");
+        writeResource(
+            outDir.resolve("_site/fonts/PixeloidSans.woff2"),
+            "/assets/guidenh/siteexport/fonts/PixeloidSans.woff2");
+        writeResource(
+            outDir.resolve("_site/fonts/PixeloidSans.woff"),
+            "/assets/guidenh/siteexport/fonts/PixeloidSans.woff");
+        writeResource(
+            outDir.resolve("_site/textures/background.png"),
+            "/assets/guidenh/siteexport/textures/background.png");
+        writeResource(outDir.resolve("_site/textures/slot.png"), "/assets/guidenh/siteexport/textures/slot.png");
+        writeResource(
+            outDir.resolve("_site/textures/slot_cross.png"),
+            "/assets/guidenh/siteexport/textures/slot_cross.png");
+        writeResource(
+            outDir.resolve("_site/textures/sky_stone_block.png"),
+            "/assets/guidenh/siteexport/textures/sky_stone_block.png");
+        writeResource(
+            outDir.resolve("_site/textures/recipe_arrow_light.png"),
+            "/assets/guidenh/siteexport/textures/recipe_arrow_light.png");
+        writeResource(
+            outDir.resolve("_site/textures/recipe_arrow_filled_light.png"),
+            "/assets/guidenh/siteexport/textures/recipe_arrow_filled_light.png");
+        writeResource(
+            outDir.resolve("_site/textures/large_slot_light.png"),
+            "/assets/guidenh/siteexport/textures/large_slot_light.png");
+        writeResource(
+            outDir.resolve("_site/textures/listitem.svg"),
+            "/assets/guidenh/siteexport/textures/listitem.svg");
         GuideSiteLocalServerJarWriter.writeTo(outDir.resolve("_site/guidenh-site-server.jar"));
         writeStartScripts(outDir);
     }
@@ -83,13 +123,15 @@ public class GuideSiteWriter {
     }
 
     public void writePage(Path outDir, String namespace, String guidePath, String language, String pageRelativeFile,
-        String sidebarHtml, String contentHtml, List<String> templateHtml, String title) throws Exception {
+        String langSwitcherHtml, String sidebarHtml, String contentHtml, List<String> templateHtml, String title)
+        throws Exception {
         Path pagePath = outDir.resolve(Paths.get("guides", namespace, guidePath, language))
             .resolve(pageRelativeFile);
         Files.createDirectories(pagePath.getParent());
 
         String layout = loadText("/assets/guidenh/siteexport/layout.html").replace("{{lang}}", escapeHtml(language))
             .replace("{{title}}", escapeHtml(title))
+            .replace("{{lang_switcher}}", langSwitcherHtml)
             .replace("{{sidebar}}", sidebarHtml)
             .replace("{{content}}", contentHtml + String.join("", templateHtml))
             .replace("{{root}}", relativeRoot(outDir, pagePath));
@@ -153,6 +195,13 @@ public class GuideSiteWriter {
         ResourceLocation currentPageId, GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
         return renderSidebar(guide, language, tree, currentPageId, assetExporter, itemIconResolver, null);
+    }
+
+    public String renderLanguageSwitcher(String language, @Nullable List<GuideSiteLanguageLink> languageLinks) {
+        SiteUiText uiText = SiteUiText.forLanguage(language);
+        StringBuilder html = new StringBuilder();
+        appendLanguageSwitcher(html, language, languageLinks, uiText);
+        return html.toString();
     }
 
     public String renderSidebar(MutableGuide guide, String language, NavigationTree tree,

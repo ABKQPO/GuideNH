@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -32,12 +33,19 @@ import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.StructureViewCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SubPagesCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
 import com.hfstudio.guidenh.guide.document.block.LytStructureView;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.DomainPredicate;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionExprParser;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionGraphPalette;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionPlot;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -135,6 +143,60 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 + compiler
                     .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
                 + "</div>";
+        }
+        if ("kbd".equals(name)) {
+            return "<kbd>"
+                + compiler
+                    .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
+                + "</kbd>";
+        }
+        if ("sub".equals(name)) {
+            return "<sub>"
+                + compiler
+                    .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
+                + "</sub>";
+        }
+        if ("sup".equals(name)) {
+            return "<sup>"
+                + compiler
+                    .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
+                + "</sup>";
+        }
+        if ("details".equals(name)) {
+            return renderDetails(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+        }
+        if ("FileTree".equals(name)) {
+            return renderFileTree(element);
+        }
+        if ("FootnoteList".equals(name)) {
+            return "<div class=\"guide-footnote-list\">"
+                + compiler
+                    .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
+                + "</div>";
+        }
+        if ("Mermaid".equals(name)) {
+            return renderMermaid(element);
+        }
+        if ("CsvTable".equals(name)) {
+            return renderCsvTable(element, currentPageId);
+        }
+        if ("ColumnChart".equals(name)) {
+            return renderColumnChart(element);
+        }
+        if ("BarChart".equals(name)) {
+            return renderBarChart(element);
+        }
+        if ("LineChart".equals(name)) {
+            return renderLineChart(element);
+        }
+        if ("PieChart".equals(name)) {
+            return renderPieChart(element);
+        }
+        if ("ScatterChart".equals(name)) {
+            return renderScatterChart(element);
+        }
+        if ("FunctionGraph".equals(name) || "Function".equals(name)) {
+            return renderFunctionGraphTag(element);
         }
         return null;
     }
@@ -552,6 +614,355 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             + "\">"
             + content
             + "</span>";
+    }
+
+    private String renderDetails(MdxJsxElementFields element, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+        boolean open = readOptional(element, "open") != null;
+        StringBuilder html = new StringBuilder();
+        html.append("<details");
+        if (open) {
+            html.append(" open");
+        }
+        html.append(">");
+        List<? extends MdAstAnyContent> children = element.children();
+        int bodyStart = 0;
+        if (!children.isEmpty() && children.get(0) instanceof MdxJsxElementFields summaryEl
+            && "summary".equals(summaryEl.name())) {
+            String summaryBody = compiler
+                .compileFragment(summaryEl.children(), templates, defaultNamespace, sceneResolver, currentPageId);
+            html.append("<summary>")
+                .append(summaryBody)
+                .append("</summary>");
+            bodyStart = 1;
+        } else {
+            html.append("<summary>Details</summary>");
+        }
+        html.append(
+            compiler.compileFragment(
+                children.subList(bodyStart, children.size()),
+                templates,
+                defaultNamespace,
+                sceneResolver,
+                currentPageId));
+        html.append("</details>");
+        return html.toString();
+    }
+
+    private String renderFileTree(MdxJsxElementFields element) {
+        StringBuilder text = new StringBuilder();
+        collectStructureText(text, element.children());
+        return GuideSiteGraphRenderer.renderFileTree(
+            text.toString()
+                .trim());
+    }
+
+    private String renderMermaid(MdxJsxElementFields element) {
+        StringBuilder text = new StringBuilder();
+        collectStructureText(text, element.children());
+        String source = text.toString()
+            .trim();
+        if (source.isEmpty()) {
+            return renderError("Empty Mermaid diagram");
+        }
+        try {
+            MermaidMindmapDocument doc = MermaidMindmapParser.parse(source);
+            return GuideSiteGraphRenderer.renderMermaidTree(doc);
+        } catch (Exception ex) {
+            return "<pre><code class=\"language-mermaid\">" + escapeHtml(source) + "</code></pre>";
+        }
+    }
+
+    private String renderCsvTable(MdxJsxElementFields element, @Nullable ResourceLocation currentPageId) {
+        boolean hasHeader = !"false".equalsIgnoreCase(readOptional(element, "header"));
+        String src = readOptional(element, "src");
+        String csvText = null;
+        if (src != null && !src.isEmpty() && currentPageId != null) {
+            try {
+                ResourceLocation assetId = IdUtils.resolveLink(src, currentPageId);
+                byte[] data = guide.loadAsset(assetId);
+                if (data != null) {
+                    csvText = new String(data, StandardCharsets.UTF_8);
+                }
+            } catch (Exception ignored) {}
+        }
+        if (csvText == null) {
+            StringBuilder inline = new StringBuilder();
+            collectStructureText(inline, element.children());
+            csvText = inline.toString()
+                .trim();
+        }
+        if (csvText.isEmpty()) {
+            return "<table class=\"guide-csv-table\"></table>";
+        }
+        return GuideSiteGraphRenderer.renderCsvTable(csvText, hasHeader);
+    }
+
+    private String renderColumnChart(MdxJsxElementFields element) {
+        int w = readInt(element, "width", 320);
+        int h = readInt(element, "height", 200);
+        int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
+        int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
+        String title = readOptional(element, "title");
+        String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
+        boolean showLegend = readBoolean(element, "showLegend", true);
+        List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
+        return GuideSiteGraphRenderer
+            .renderColumnChart(w, h, bgColor, borderColor, title, categories, series, showLegend);
+    }
+
+    private String renderBarChart(MdxJsxElementFields element) {
+        int w = readInt(element, "width", 320);
+        int h = readInt(element, "height", 200);
+        int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
+        int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
+        String title = readOptional(element, "title");
+        String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
+        boolean showLegend = readBoolean(element, "showLegend", true);
+        List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
+        return GuideSiteGraphRenderer.renderBarChart(w, h, bgColor, borderColor, title, categories, series, showLegend);
+    }
+
+    private String renderLineChart(MdxJsxElementFields element) {
+        int w = readInt(element, "width", 320);
+        int h = readInt(element, "height", 200);
+        int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
+        int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
+        String title = readOptional(element, "title");
+        String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
+        boolean numericX = readBoolean(element, "numericX", false);
+        boolean showPoints = readBoolean(element, "showPoints", true);
+        boolean showLegend = readBoolean(element, "showLegend", true);
+        List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
+        return GuideSiteGraphRenderer
+            .renderLineChart(w, h, bgColor, borderColor, title, categories, series, numericX, showPoints, showLegend);
+    }
+
+    private String renderPieChart(MdxJsxElementFields element) {
+        int w = readInt(element, "width", 320);
+        int h = readInt(element, "height", 200);
+        int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
+        int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
+        String title = readOptional(element, "title");
+        boolean showLegend = readBoolean(element, "showLegend", true);
+        List<GuideSiteGraphRenderer.SliceData> slices = parseSliceChildren(element);
+        return GuideSiteGraphRenderer.renderPieChart(w, h, bgColor, borderColor, title, slices, showLegend);
+    }
+
+    private String renderScatterChart(MdxJsxElementFields element) {
+        int w = readInt(element, "width", 320);
+        int h = readInt(element, "height", 200);
+        int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
+        int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
+        String title = readOptional(element, "title");
+        boolean showLegend = readBoolean(element, "showLegend", true);
+        List<GuideSiteGraphRenderer.SeriesData> series = parseScatterSeriesChildren(element);
+        return GuideSiteGraphRenderer.renderScatterChart(w, h, bgColor, borderColor, title, series, showLegend);
+    }
+
+    private String renderFunctionGraphTag(MdxJsxElementFields element) {
+        int w = readInt(element, "width", 320);
+        int h = readInt(element, "height", 220);
+        int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
+        int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
+        int axisColor = parseArgbAttr(element, "axisColor", 0xFFB8C2CF);
+        int gridColor = parseArgbAttr(element, "gridColor", 0x33B8C2CF);
+        boolean showGrid = readBoolean(element, "showGrid", true);
+        boolean showAxes = readBoolean(element, "showAxes", true);
+        String title = readOptional(element, "title");
+        double xMin = parseDoubleAttr(element, "xMin", -10);
+        double xMax = parseDoubleAttr(element, "xMax", 10);
+        double yMin = parseDoubleAttr(element, "yMin", Double.NaN);
+        double yMax = parseDoubleAttr(element, "yMax", Double.NaN);
+        String xRange = readOptional(element, "xRange");
+        if (xRange != null && xRange.contains("..")) {
+            String[] parts = xRange.split("\\.\\.");
+            if (parts.length == 2) {
+                try {
+                    xMin = Double.parseDouble(parts[0].trim());
+                } catch (NumberFormatException ignored) {}
+                try {
+                    xMax = Double.parseDouble(parts[1].trim());
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        String yRange = readOptional(element, "yRange");
+        if (yRange != null && yRange.contains("..")) {
+            String[] parts = yRange.split("\\.\\.");
+            if (parts.length == 2) {
+                try {
+                    yMin = Double.parseDouble(parts[0].trim());
+                } catch (NumberFormatException ignored) {}
+                try {
+                    yMax = Double.parseDouble(parts[1].trim());
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        List<FunctionPlot> plots = parsePlotChildren(element);
+        // Auto Y range when not specified
+        if (Double.isNaN(yMin) || Double.isNaN(yMax)) {
+            double autoYMin = Double.MAX_VALUE;
+            double autoYMax = -Double.MAX_VALUE;
+            for (FunctionPlot plot : plots) {
+                for (int i = 0; i <= 256; i++) {
+                    double x = xMin + (xMax - xMin) * i / 256.0;
+                    double y = plot.evaluate(x);
+                    if (Double.isFinite(y)) {
+                        if (y < autoYMin) autoYMin = y;
+                        if (y > autoYMax) autoYMax = y;
+                    }
+                }
+            }
+            if (!Double.isFinite(autoYMin)) {
+                autoYMin = xMin;
+                autoYMax = xMax;
+            }
+            if (autoYMin == autoYMax) {
+                autoYMin -= 1;
+                autoYMax += 1;
+            }
+            double margin = (autoYMax - autoYMin) * 0.1;
+            if (Double.isNaN(yMin)) yMin = autoYMin - margin;
+            if (Double.isNaN(yMax)) yMax = autoYMax + margin;
+        }
+        return GuideSiteGraphRenderer.renderFunctionGraphSvg(
+            plots,
+            new ArrayList<>(),
+            w,
+            h,
+            title,
+            bgColor,
+            borderColor,
+            axisColor,
+            gridColor,
+            showGrid,
+            showAxes,
+            xMin,
+            xMax,
+            yMin,
+            yMax);
+    }
+
+    /** Parse {@code <Series name="..." data="1,2,3" color="...">} children for bar/column/line charts. */
+    private List<GuideSiteGraphRenderer.SeriesData> parseSeriesChildren(MdxJsxElementFields element) {
+        List<GuideSiteGraphRenderer.SeriesData> result = new ArrayList<>();
+        int idx = 0;
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields c)) {
+                continue;
+            }
+            if (!"Series".equals(c.name())) {
+                continue;
+            }
+            String name = readOptional(c, "name");
+            if (name == null) name = "Series " + (idx + 1);
+            int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
+            double[] ys = ChartAttrParser.parseDoubleArray(readOptional(c, "data"));
+            double[] xs = new double[ys.length];
+            for (int i = 0; i < xs.length; i++) xs[i] = i;
+            result.add(new GuideSiteGraphRenderer.SeriesData(name, color, xs, ys));
+            idx++;
+        }
+        return result;
+    }
+
+    /** Parse {@code <Series points="x1:y1,x2:y2,...">} children for scatter chart. */
+    private List<GuideSiteGraphRenderer.SeriesData> parseScatterSeriesChildren(MdxJsxElementFields element) {
+        List<GuideSiteGraphRenderer.SeriesData> result = new ArrayList<>();
+        int idx = 0;
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields c)) {
+                continue;
+            }
+            if (!"Series".equals(c.name())) {
+                continue;
+            }
+            String name = readOptional(c, "name");
+            if (name == null) name = "Series " + (idx + 1);
+            int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
+            double[][] pts = ChartAttrParser.parsePointArray(readOptional(c, "points"));
+            result.add(new GuideSiteGraphRenderer.SeriesData(name, color, pts[0], pts[1]));
+            idx++;
+        }
+        return result;
+    }
+
+    /** Parse {@code <Slice label="..." value="0.5" color="...">} children for pie chart. */
+    private List<GuideSiteGraphRenderer.SliceData> parseSliceChildren(MdxJsxElementFields element) {
+        List<GuideSiteGraphRenderer.SliceData> result = new ArrayList<>();
+        int idx = 0;
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields c)) {
+                continue;
+            }
+            if (!"Slice".equals(c.name())) {
+                continue;
+            }
+            String label = readOptional(c, "label");
+            if (label == null) label = "";
+            double value = parseDoubleAttr(c, "value", 1.0);
+            int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
+            result.add(new GuideSiteGraphRenderer.SliceData(label, value, color));
+            idx++;
+        }
+        return result;
+    }
+
+    /** Parse {@code <Plot>expr</Plot>} or {@code <Function>expr</Function>} children. */
+    private List<FunctionPlot> parsePlotChildren(MdxJsxElementFields element) {
+        List<FunctionPlot> result = new ArrayList<>();
+        int idx = 0;
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields c)) {
+                continue;
+            }
+            String cn = c.name();
+            if (!("Plot".equals(cn) || "Function".equals(cn))) {
+                continue;
+            }
+            StringBuilder exprBuf = new StringBuilder();
+            collectStructureText(exprBuf, c.children());
+            String exprText = exprBuf.toString()
+                .trim();
+            boolean inverse = readBoolean(c, "inverse", false);
+            int color = parseArgbAttr(c, "color", FunctionGraphPalette.color(idx));
+            String label = readOptional(c, "label");
+            DomainPredicate domain = DomainPredicate.parse(readOptional(c, "domain"));
+            result.add(
+                new FunctionPlot(
+                    exprText,
+                    FunctionExprParser.parse(exprText, inverse ? 1 : 0),
+                    inverse,
+                    domain,
+                    color,
+                    label != null ? label : exprText));
+            idx++;
+        }
+        return result;
+    }
+
+    /** Parse an ARGB color attribute (hex #rrggbb or #aarrggbb). */
+    private int parseArgbAttr(MdxJsxElementFields element, String attr, int def) {
+        String val = readOptional(element, attr);
+        if (val == null) {
+            return def;
+        }
+        return ChartAttrParser.parseColor(val, def);
+    }
+
+    /** Parse a double attribute, returning defaultValue on missing or invalid. */
+    private double parseDoubleAttr(MdxJsxElementFields element, String attr, double defaultValue) {
+        String val = readOptional(element, attr);
+        if (val == null || val.trim()
+            .isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            return Double.parseDouble(val.trim());
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
     }
 
     private String renderNavigationNodeList(List<NavigationNode> nodes, @Nullable ResourceLocation currentPageId) {

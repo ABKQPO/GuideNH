@@ -21,7 +21,7 @@ function stopIngredientCycling(root) {
 
 function installIngredientCycling(root) {
   stopIngredientCycling(root);
-  const cyclingBoxes = root.querySelectorAll(".ingredient-box.cycling");
+  const cyclingBoxes = root.querySelectorAll("[data-ingredient-cycling]");
   if (!cyclingBoxes.length) {
     return;
   }
@@ -59,7 +59,7 @@ function installTooltips(root) {
   }
 
   function closestGuideTooltip(target) {
-    return target instanceof Element ? target.closest(".guide-tooltip") : null;
+    return target instanceof Element ? target.closest("[data-template]") : null;
   }
 
   function isInsideTooltipRoot(target) {

@@ -11,13 +11,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum Mixins implements IMixins {
 
-<<<<<<< HEAD
-    FORGE_HOOKS_CLIENT(Side.CLIENT, "forge.AccessorForgeHooksClient"),
-    MODEL_RENDERER_SCENE_EXPORT_CAPTURE(Side.CLIENT, "minecraft.MixinModelRendererSceneExportCapture"),
-    TESSELLATOR_SCENE_EXPORT_CAPTURE(Side.CLIENT, "minecraft.MixinTessellatorSceneExportCapture"),
-=======
     EARLY(Side.CLIENT, "forge.AccessorForgeHooksClient", "fml.AccessorFMLClientHandler",
-        "minecraft.AccessorAbstractResourcePack", "forge.AccessorShapedOreRecipe", "forge.AccessorShapelessOreRecipe"),
+        "minecraft.AccessorAbstractResourcePack", "forge.AccessorShapedOreRecipe", "forge.AccessorShapelessOreRecipe",
+        "minecraft.MixinModelRendererSceneExportCapture", "minecraft.MixinTessellatorSceneExportCapture"),
 
     // Captures the BetterQuesting quest currently under the mouse cursor in the BQ quest line
     // GUI so the open-guide hotkey can navigate to the corresponding wiki page. Only applied
@@ -30,7 +26,6 @@ public enum Mixins implements IMixins {
     AE2_NETWORK_PROXY(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.AccessorAENetworkProxy"),
 
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder"),
->>>>>>> origin/master
 
     ;
 

@@ -56,20 +56,9 @@ public class LytFlowLink extends LytTooltipSpan {
         if (!uri.isAbsolute()) {
             throw new IllegalArgumentException("External URLs must be absolute: " + uri);
         }
-<<<<<<< HEAD
         this.externalUrl = uri;
         this.pageAnchor = null;
-        setClickCallback(screen -> {
-            try {
-                Desktop.getDesktop()
-                    .browse(uri);
-            } catch (Exception e) {
-                // ignore
-            }
-        });
-=======
         setClickCallback(screen -> screen.openExternalUrl(uri));
->>>>>>> origin/master
     }
 
     public void setPageLink(PageAnchor anchor) {

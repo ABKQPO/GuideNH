@@ -20,14 +20,14 @@ import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibTooltipContentBuilder;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibTooltipContentBuilder;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
@@ -366,7 +366,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
         }
 
         Integer inferredSide = inferPreferredSide(bounds, x, y, z);
-        return inferredSide != null ? createSyntheticTarget(x, y, z, bounds, inferredSide.intValue()) : null;
+        return inferredSide != null ? createSyntheticTarget(x, y, z, bounds, inferredSide) : null;
     }
 
     @Nullable
@@ -399,24 +399,24 @@ public final class GuideSiteSceneHoverTargetSerializer {
     }
 
     private static List<Integer> resolveCandidateSides(AxisAlignedBB bounds, int x, int y, int z) {
-        List<Integer> sides = new ArrayList<Integer>(6);
+        List<Integer> sides = new ArrayList<>(6);
         if (touches(bounds.minY, y)) {
-            sides.add(Integer.valueOf(0));
+            sides.add(0);
         }
         if (touches(bounds.maxY, y + 1d)) {
-            sides.add(Integer.valueOf(1));
+            sides.add(1);
         }
         if (touches(bounds.minZ, z)) {
-            sides.add(Integer.valueOf(2));
+            sides.add(2);
         }
         if (touches(bounds.maxZ, z + 1d)) {
-            sides.add(Integer.valueOf(3));
+            sides.add(3);
         }
         if (touches(bounds.minX, x)) {
-            sides.add(Integer.valueOf(4));
+            sides.add(4);
         }
         if (touches(bounds.maxX, x + 1d)) {
-            sides.add(Integer.valueOf(5));
+            sides.add(5);
         }
         Integer inferredSide = inferPreferredSide(bounds, x, y, z);
         if (inferredSide != null && !sides.contains(inferredSide)) {
@@ -435,7 +435,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
             double distance = distances[side];
             if (distance + BOUNDS_EPSILON < preferredDistance) {
                 preferredDistance = distance;
-                preferredSide = Integer.valueOf(side);
+                preferredSide = side;
             }
         }
         return preferredDistance <= 0.5d + BOUNDS_EPSILON ? preferredSide : null;
@@ -511,18 +511,17 @@ public final class GuideSiteSceneHoverTargetSerializer {
         if (currentLayer <= 0) {
             return null;
         }
-        return Integer.valueOf(
-            scene.getLevel()
-                .getBounds()[1] + currentLayer
-                - 1);
+        return scene.getLevel()
+            .getBounds()[1] + currentLayer
+            - 1;
     }
 
     private static boolean isVisibleBlock(int y, @Nullable Integer visibleLayerY) {
-        return visibleLayerY == null || y == visibleLayerY.intValue();
+        return visibleLayerY == null || y == visibleLayerY;
     }
 
     private static boolean isVisibleEntity(AxisAlignedBB bounds, @Nullable Integer visibleLayerY) {
-        return visibleLayerY == null || bounds.maxY > visibleLayerY.intValue() && bounds.minY < visibleLayerY + 1.0D;
+        return visibleLayerY == null || bounds.maxY > visibleLayerY && bounds.minY < visibleLayerY + 1.0D;
     }
 
     @Nullable
