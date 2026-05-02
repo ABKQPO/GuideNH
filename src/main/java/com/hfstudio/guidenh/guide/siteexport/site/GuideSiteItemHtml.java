@@ -2,23 +2,24 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 import org.jetbrains.annotations.Nullable;
 
-final class GuideSiteItemHtml {
+public final class GuideSiteItemHtml {
 
     /** Default rendered icon size in pixels at scale=1.0 (matches the in-game 32px nav icon). */
-    static final int BASE_ICON_PX = 32;
+    public static final int BASE_ICON_PX = 32;
 
     private GuideSiteItemHtml() {}
 
-    static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass) {
+    public static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass) {
         appendIcon(html, item, extraClass, 1f, false);
     }
 
-    static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass, float scale) {
+    public static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass,
+        float scale) {
         appendIcon(html, item, extraClass, scale, false);
     }
 
-    static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass, float scale,
-        boolean nativeTooltip) {
+    public static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass,
+        float scale, boolean nativeTooltip) {
         String classes = classes("item-icon", extraClass);
         String label = item.displayName()
             .isEmpty() ? item.itemId() : item.displayName();
@@ -29,9 +30,12 @@ final class GuideSiteItemHtml {
         int size = Math.max(1, Math.round(BASE_ICON_PX * effectiveScale));
         String titleAttr = nativeTooltip ? " title=\"" + escapeHtml(label) + "\"" : "";
         if (item.hasIcon()) {
-            // Emit both width/height attributes AND an inline `style` declaration so the chosen
-            // size actually wins against the global `.item-icon { width: calc(...) }` CSS rule
-            // (CSS class beats HTML width attributes by specificity, but inline style wins).
+            // Only emit an inline `style` override when the caller supplied an explicit non-default
+            // scale. At scale=1 we let the CSS `.item-icon { width: calc(16px * var(--gui-scale)) }`
+            // rule control the rendered size so that recipe-slot icons automatically match the
+            // gui-scale together with the surrounding slot border. An inline style would win over
+            // the class rule by specificity, overriding the GUI scale and making items appear
+            // smaller in high-DPI/scaled layouts.
             html.append("<img class=\"")
                 .append(escapeHtml(classes))
                 .append("\" src=\"")
@@ -44,12 +48,15 @@ final class GuideSiteItemHtml {
                 .append(size)
                 .append("\" height=\"")
                 .append(size)
-                .append("\" style=\"width:")
-                .append(size)
-                .append("px;height:")
-                .append(size)
-                .append("px;\"")
-                .append(titleAttr)
+                .append("\"");
+            if (effectiveScale != 1f) {
+                html.append(" style=\"width:")
+                    .append(size)
+                    .append("px;height:")
+                    .append(size)
+                    .append("px;\"");
+            }
+            html.append(titleAttr)
                 .append(" decoding=\"async\">");
             return;
         }
@@ -76,7 +83,7 @@ final class GuideSiteItemHtml {
             .append("</span>");
     }
 
-    static void appendSummaryContent(StringBuilder html, GuideSiteExportedItem item, @Nullable String iconClass,
+    public static void appendSummaryContent(StringBuilder html, GuideSiteExportedItem item, @Nullable String iconClass,
         String textClass) {
         if (item.hasIcon()) {
             appendIcon(html, item, iconClass);
@@ -91,7 +98,7 @@ final class GuideSiteItemHtml {
             .append("</span>");
     }
 
-    static String escapeHtml(String text) {
+    public static String escapeHtml(String text) {
         return text.replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")

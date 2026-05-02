@@ -471,6 +471,12 @@ function installChartHoverTooltips(root) {
           if (d < bestDist) { bestDist = d; best = { plot, svgY: y }; }
         }
         if (!best) { hide(); return; }
+        // Only show tooltip when the cursor is within a visual threshold of the nearest curve.
+        // We compare in SVG user-space then convert to CSS pixels so the sensitivity stays
+        // constant regardless of how the SVG is scaled by max-width / zoom.
+        const svgUPerCssPx = (svg.viewBox.baseVal.width || rect.width) / rect.width;
+        const THRESHOLD_CSS_PX = 10;
+        if (bestDist > THRESHOLD_CSS_PX * svgUPerCssPx) { hide(); return; }
         const dataY = dom.yMin + (dom.bottom - best.svgY) / (dom.bottom - dom.top) * (dom.yMax - dom.yMin);
         const expr = best.plot.label || "f(x)";
         showText(`${expr}\nx = ${dataX.toFixed(3)}\ny = ${dataY.toFixed(3)}`, ev);

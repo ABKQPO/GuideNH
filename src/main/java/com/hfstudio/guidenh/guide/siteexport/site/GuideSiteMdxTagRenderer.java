@@ -782,8 +782,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderFunctionGraphTag(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 880);
+        int w = readInt(element, "width", 5120);
+        int h = readInt(element, "height", 3520);
         int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
         int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
         int axisColor = parseArgbAttr(element, "axisColor", 0xFFB8C2CF);
@@ -901,9 +901,21 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             String name = readOptional(c, "name");
             if (name == null) name = "Series " + (idx + 1);
             int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
-            double[] ys = ChartAttrParser.parseDoubleArray(readOptional(c, "data"));
-            double[] xs = new double[ys.length];
-            for (int i = 0; i < xs.length; i++) xs[i] = i;
+            String rawData = readOptional(c, "data");
+            String rawPoints = readOptional(c, "points");
+            double[] xs;
+            double[] ys;
+            if ((rawData == null || rawData.isEmpty()) && rawPoints != null && !rawPoints.isEmpty()) {
+                // `points="x1:y1,x2:y2,..."` syntax — same as scatter but drawn as a line.
+                // This allows numericX line charts where each series carries its own X positions.
+                double[][] pts = ChartAttrParser.parsePointArray(rawPoints);
+                xs = pts[0];
+                ys = pts[1];
+            } else {
+                ys = ChartAttrParser.parseDoubleArray(rawData);
+                xs = new double[ys.length];
+                for (int i = 0; i < xs.length; i++) xs[i] = i;
+            }
             result.add(new GuideSiteGraphRenderer.SeriesData(name, color, xs, ys));
             idx++;
         }

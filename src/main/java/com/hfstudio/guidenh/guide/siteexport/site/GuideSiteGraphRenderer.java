@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionPlot;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.MarkedPoint;
@@ -16,7 +18,6 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Generates static HTML and SVG markup for chart, function-graph, file-tree,
@@ -40,7 +41,7 @@ public final class GuideSiteGraphRenderer {
     private static final int LEGEND_GAP = 6;
     private static final int LEGEND_ROW_H = 11;
     // Function graph sample count
-    private static final int N_SAMPLES = 256;
+    private static final int N_SAMPLES = 1024;
 
     private GuideSiteGraphRenderer() {}
 
@@ -1480,8 +1481,7 @@ public final class GuideSiteGraphRenderer {
         flushPolyline(svg, pts, stroke, null);
     }
 
-    private static void flushPolyline(StringBuilder svg, StringBuilder pts, String stroke,
-        @Nullable String tip) {
+    private static void flushPolyline(StringBuilder svg, StringBuilder pts, String stroke, @Nullable String tip) {
         svg.append("<polyline class=\"guide-chart-shape\" points=\"")
             .append(pts)
             .append("\" stroke=\"")
