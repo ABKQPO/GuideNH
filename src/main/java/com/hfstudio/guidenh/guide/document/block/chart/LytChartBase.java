@@ -254,6 +254,8 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
             false,
             false,
             false,
+            false,
+            false,
             null,
             new ConstantColor(argb),
             WhiteSpaceMode.NORMAL,

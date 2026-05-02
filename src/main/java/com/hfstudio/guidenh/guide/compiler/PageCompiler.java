@@ -85,6 +85,9 @@ import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
 import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
+import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstDottedUnderline;
+import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstUnderline;
+import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstWavyUnderline;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
@@ -831,6 +834,21 @@ public class PageCompiler {
             var span = new LytFlowSpan();
             span.modifyStyle(style -> style.strikethrough(true));
             compileFlowContext(astEmphasis, span);
+            layoutChild = span;
+        } else if (content instanceof MdAstUnderline astUnderline) {
+            var span = new LytFlowSpan();
+            span.modifyStyle(style -> style.underlined(true));
+            compileFlowContext(astUnderline, span);
+            layoutChild = span;
+        } else if (content instanceof MdAstWavyUnderline astWavy) {
+            var span = new LytFlowSpan();
+            span.modifyStyle(style -> style.wavyUnderline(true));
+            compileFlowContext(astWavy, span);
+            layoutChild = span;
+        } else if (content instanceof MdAstDottedUnderline astDotted) {
+            var span = new LytFlowSpan();
+            span.modifyStyle(style -> style.dottedUnderline(true));
+            compileFlowContext(astDotted, span);
             layoutChild = span;
         } else if (content instanceof MdAstBreak) {
             layoutChild = new LytFlowBreak();

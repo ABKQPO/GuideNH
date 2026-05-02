@@ -14,6 +14,9 @@ This page is a runtime sample sheet for checking what GuideNH currently renders 
 | `*Italic*`                          | `_Italic_`        | *Italic*                          |
 | `**Bold**`                          | `__Bold__`        | **Bold**                          |
 | `~~Strikethrough~~`                 | `~Strikethrough~` | ~~Strikethrough~~                 |
+| `++Underline++`                     |                   | ++Underline++                     |
+| `^^Wavy underline^^`                |                   | ^^Wavy underline^^                |
+| `::Emphasis dots::`                 |                   | ::Emphasis dots::                 |
 | `[Link](http://a.com)`              |                   | [Link](http://a.com)              |
 | `[Relative Link](./index.md)`       |                   | [Relative Link](./index.md)       |
 | `[Absolute Link](guidenh:index.md)` |                   | [Absolute Link](guidenh:index.md) |

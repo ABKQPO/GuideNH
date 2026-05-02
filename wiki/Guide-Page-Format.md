@@ -6,6 +6,7 @@ GuideNH runtime pages are markdown files parsed with:
 - YAML frontmatter
 - GFM tables
 - strikethrough
+- GuideNH inline underline extensions: `++text++` (straight underline), `^^text^^` (wavy underline), `::text::` (emphasis dots / dotted underline)
 - MDX comments using `{/* ... */}`
 - MDX-style custom tags
 
@@ -16,6 +17,7 @@ GuideNH pages support the common markdown features used in the example guide:
 - headings
 - paragraphs
 - inline emphasis, bold, strike, and code
+- inline underline (`++text++`), wavy underline (`^^text^^`), and emphasis dots (`::text::`)
 - links and images
 - literal autolinks for direct URLs, `www.` hosts, and email addresses
 - reference links and reference images

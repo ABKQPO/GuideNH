@@ -22,6 +22,9 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
 import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
+import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstDottedUnderline;
+import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstUnderline;
+import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstWavyUnderline;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstBlockquote;
@@ -120,6 +123,12 @@ public class PageIndexer implements IndexingContext {
             indexContent(astEmphasis.children(), sink);
         } else if (content instanceof MdAstDelete astDelete) {
             indexContent(astDelete.children(), sink);
+        } else if (content instanceof MdAstUnderline astUnderline) {
+            indexContent(astUnderline.children(), sink);
+        } else if (content instanceof MdAstWavyUnderline astWavy) {
+            indexContent(astWavy.children(), sink);
+        } else if (content instanceof MdAstDottedUnderline astDotted) {
+            indexContent(astDotted.children(), sink);
         } else if (content instanceof MdAstBreak) {
             sink.appendBreak();
         } else if (content instanceof MdAstLink astLink) {

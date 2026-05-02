@@ -14,6 +14,9 @@ navigation:
 | `*Italic*`                          | `_Italic_`        | *Italic*                          |
 | `**Bold**`                          | `__Bold__`        | **Bold**                          |
 | `~~Strikethrough~~`                 | `~Strikethrough~` | ~~Strikethrough~~                 |
+| `++下划线++`                          |                   | ++下划线++                          |
+| `^^波浪下划线^^`                      |                   | ^^波浪下划线^^                      |
+| `::着重号::`                          |                   | ::着重号::                          |
 | `[Link](http://a.com)`              |                   | [Link](http://a.com)              |
 | `[Relative Link](./index.md)`       |                   | [Relative Link](./index.md)       |
 | `[Absolute Link](guidenh:index.md)` |                   | [Absolute Link](guidenh:index.md) |

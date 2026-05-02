@@ -895,6 +895,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             false,
             false,
             false,
+            false,
+            false,
             null,
             new ConstantColor(argb),
             WhiteSpaceMode.NORMAL,
