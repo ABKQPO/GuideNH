@@ -166,6 +166,58 @@ blockquote {
     color: rgba(210, 210, 210, 0.75);
 }
 
+/* Custom + GFM-alert blockquotes. The accent color is applied via inline style
+   (--guide-quote-accent) so the same rules cover all variants. */
+.guide-quote {
+    --guide-quote-accent: rgba(124, 135, 149, 1);
+    border-left: calc(2px * var(--gui-scale)) solid var(--guide-quote-accent);
+    background: rgba(64, 64, 64, 0.25);
+    padding: 6px 10px;
+    margin: 0.6em 0;
+    color: rgba(220, 220, 220, 0.9);
+}
+
+.guide-quote-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--guide-quote-accent);
+    margin-bottom: 4px;
+}
+
+.guide-quote-icon {
+    font-size: 0.95em;
+}
+
+.guide-quote-body > :first-child {
+    margin-top: 0;
+}
+
+.guide-quote-body > :last-child {
+    margin-bottom: 0;
+}
+
+/* GuideNH inline underline extensions: ++text++ ^^text^^ ::text:: */
+.guide-underline {
+    text-decoration: underline;
+    text-decoration-skip-ink: none;
+}
+
+.guide-wavy-underline {
+    text-decoration: underline wavy;
+    text-decoration-skip-ink: none;
+    text-underline-offset: 0.18em;
+}
+
+.guide-emphasis-dot {
+    /* Per-character dot above the text (CJK 着重号). */
+    text-emphasis: dot;
+    -webkit-text-emphasis: dot;
+    text-emphasis-position: under;
+    -webkit-text-emphasis-position: under;
+}
+
 p {
     margin: 0 0 0.8em;
 }
@@ -409,6 +461,42 @@ p {
     position: fixed;
     z-index: 200;
     pointer-events: none;
+    /* Provide MC-style tooltip border + background for floating tooltips that
+       inject raw content (no inner .guide-tooltip-content wrapper). */
+    border-image-source: linear-gradient(rgba(80, 0, 255, 0.31), rgba(40, 0, 127, 0.31));
+    border-style: solid;
+    border-width: calc(1px * var(--gui-scale));
+    border-image-slice: 1;
+    background: rgba(16, 0, 16, 0.94);
+    padding: calc(2px * var(--gui-scale));
+    line-height: 1;
+    max-width: calc(220px * var(--gui-scale));
+}
+
+.guide-tooltip-popup::before {
+    content: "";
+    position: absolute;
+    border-top: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    border-bottom: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    box-sizing: content-box;
+    top: calc(-2px * var(--gui-scale));
+    left: calc(-1px * var(--gui-scale));
+    right: calc(-1px * var(--gui-scale));
+    bottom: calc(-2px * var(--gui-scale));
+    pointer-events: none;
+}
+
+.guide-tooltip-popup::after {
+    content: "";
+    position: absolute;
+    border-left: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    border-right: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    box-sizing: content-box;
+    top: calc(-1px * var(--gui-scale));
+    left: calc(-2px * var(--gui-scale));
+    right: calc(-2px * var(--gui-scale));
+    bottom: calc(-1px * var(--gui-scale));
+    pointer-events: none;
 }
 
 .guide-tooltip-popup[hidden] {
@@ -649,6 +737,17 @@ p {
 
 .ingredient-box:hover {
     background-color: rgba(170, 170, 170, 0.3);
+}
+
+/* Cycling ingredient slots: show only the candidate marked .current; all others stack at the same position. */
+.ingredient-box[data-ingredient-cycling] > * {
+    display: none;
+    position: absolute;
+    inset: 0;
+}
+
+.ingredient-box[data-ingredient-cycling] > .current {
+    display: inline-block;
 }
 
 .mc-frame {

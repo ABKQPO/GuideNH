@@ -100,13 +100,27 @@ public class GuideSiteRecipeExporter {
         }
         for (List<GuideSiteExportedItem> candidates : slots) {
             List<GuideSiteExportedItem> safeCandidates = candidates != null ? candidates : Collections.emptyList();
+            if (safeCandidates.isEmpty()) {
+                // Render an explicit empty slot so the layout grid stays aligned.
+                html.append("<div class=\"ingredient-box empty-ingredient-box\"></div>");
+                continue;
+            }
             html.append("<div class=\"ingredient-box\"");
             if (safeCandidates.size() > 1) {
                 html.append(" data-ingredient-cycling");
             }
             html.append(">");
-            for (GuideSiteExportedItem item : safeCandidates) {
-                GuideSiteItemHtml.appendIcon(html, item, null);
+            for (int i = 0; i < safeCandidates.size(); i++) {
+                int beforeIcon = html.length();
+                GuideSiteItemHtml.appendIcon(html, safeCandidates.get(i), null);
+                if (safeCandidates.size() > 1 && i == 0) {
+                    // Tag the first candidate as visible up-front; the JS cycler will rotate it on a timer.
+                    int classAttr = html.indexOf("class=\"", beforeIcon);
+                    if (classAttr >= 0) {
+                        int valueStart = classAttr + "class=\"".length();
+                        html.insert(valueStart, "current ");
+                    }
+                }
             }
             html.append("</div>");
         }

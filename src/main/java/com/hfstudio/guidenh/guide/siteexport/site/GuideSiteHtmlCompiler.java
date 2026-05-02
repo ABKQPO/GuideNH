@@ -7,15 +7,23 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorValue;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableCell;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
 import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
+import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstDottedUnderline;
+import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstUnderline;
+import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstWavyUnderline;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
@@ -173,9 +181,7 @@ public class GuideSiteHtmlCompiler {
             return compileHeading(heading, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if (node instanceof MdAstBlockquote blockquote) {
-            return "<blockquote>"
-                + compileChildren(blockquote.children(), templates, defaultNamespace, currentPageId, sceneResolver)
-                + "</blockquote>";
+            return compileBlockquote(blockquote, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if (node instanceof MdAstList list) {
             return compileList(list, templates, defaultNamespace, currentPageId, sceneResolver);
@@ -199,6 +205,21 @@ public class GuideSiteHtmlCompiler {
             return "<del>"
                 + compileChildren(deleted.children(), templates, defaultNamespace, currentPageId, sceneResolver)
                 + "</del>";
+        }
+        if (node instanceof MdAstUnderline underline) {
+            return "<span class=\"guide-underline\">"
+                + compileChildren(underline.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</span>";
+        }
+        if (node instanceof MdAstWavyUnderline wavy) {
+            return "<span class=\"guide-wavy-underline\">"
+                + compileChildren(wavy.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</span>";
+        }
+        if (node instanceof MdAstDottedUnderline dotted) {
+            return "<span class=\"guide-emphasis-dot\">"
+                + compileChildren(dotted.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</span>";
         }
         if (node instanceof MdAstStrong strong) {
             return "<strong>"
@@ -438,6 +459,7 @@ public class GuideSiteHtmlCompiler {
 
     private String compileCodeBlock(MdAstCode code) {
         String lang = code.lang != null ? code.lang.toLowerCase(Locale.ROOT) : "";
+        String meta = code.meta != null ? code.meta : "";
         if ("csv".equals(lang)) {
             return GuideSiteGraphRenderer.renderCsvTable(code.value != null ? code.value : "", true);
         }
@@ -458,8 +480,26 @@ public class GuideSiteHtmlCompiler {
             LytFunctionGraph graph = FunctionGraphFenceParser.parse(src);
             return GuideSiteGraphRenderer.renderFunctionGraph(graph);
         }
+        // Forced viewport: ```<lang> width=220 height=96 — emits a sized scrollable container.
+        Integer width = parseMetaInt(meta, "width");
+        Integer height = parseMetaInt(meta, "height");
         StringBuilder html = new StringBuilder();
-        html.append("<pre><code");
+        html.append("<pre");
+        if (width != null || height != null) {
+            html.append(" class=\"guide-code-sized\" style=\"");
+            if (width != null) {
+                html.append("width:")
+                    .append(width)
+                    .append("px;max-width:100%;");
+            }
+            if (height != null) {
+                html.append("height:")
+                    .append(height)
+                    .append("px;overflow:auto;");
+            }
+            html.append("\"");
+        }
+        html.append("><code");
         if (code.lang != null && !code.lang.isEmpty()) {
             html.append(" class=\"language-")
                 .append(escapeAttribute(code.lang))
@@ -469,6 +509,84 @@ public class GuideSiteHtmlCompiler {
             .append(escapeHtml(code.value != null ? code.value : ""))
             .append("</code></pre>");
         return html.toString();
+    }
+
+    private static @Nullable Integer parseMetaInt(String meta, String key) {
+        if (meta == null || meta.isEmpty()) {
+            return null;
+        }
+        // Accept tokens like `width=220`, `width="220"`, `width='220'`.
+        java.util.regex.Matcher m = java.util.regex.Pattern
+            .compile("(?:^|\\s)" + java.util.regex.Pattern.quote(key) + "\\s*=\\s*\"?'?([0-9]+)\"?'?")
+            .matcher(meta);
+        if (m.find()) {
+            try {
+                return Integer.parseInt(m.group(1));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private String compileBlockquote(MdAstBlockquote blockquote, GuideSiteTemplateRegistry templates,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        BlockquoteDirective directive = MarkdownRuntimeBlocks.parseBlockquoteDirective(blockquote);
+        if (directive == null) {
+            return "<blockquote>"
+                + compileChildren(blockquote.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</blockquote>";
+        }
+        StringBuilder cls = new StringBuilder("guide-quote");
+        if (directive.alertType() != null) {
+            cls.append(" guide-alert guide-alert-")
+                .append(directive.alertType()
+                    .name()
+                    .toLowerCase(Locale.ROOT));
+        }
+        StringBuilder style = new StringBuilder();
+        ColorValue accent = directive.accentColor();
+        if (accent != null) {
+            style.append("--guide-quote-accent:")
+                .append(toCssColor(accent))
+                .append(";");
+        }
+        StringBuilder html = new StringBuilder();
+        html.append("<blockquote class=\"")
+            .append(escapeAttribute(cls.toString()))
+            .append("\"");
+        if (style.length() > 0) {
+            html.append(" style=\"")
+                .append(escapeAttribute(style.toString()))
+                .append("\"");
+        }
+        html.append(">");
+        String title = directive.title();
+        if (title != null && !title.isEmpty()) {
+            html.append("<div class=\"guide-quote-title\">");
+            QuoteIconSpec icon = directive.icon();
+            if (icon != null && icon.kind() == MarkdownRuntimeBlocks.QuoteIconKind.TEXT) {
+                html.append("<span class=\"guide-quote-icon\">")
+                    .append(escapeHtml(icon.value()))
+                    .append("</span>");
+            }
+            html.append("<span class=\"guide-quote-title-text\">")
+                .append(escapeHtml(title))
+                .append("</span></div>");
+        }
+        html.append("<div class=\"guide-quote-body\">")
+            .append(compileChildren(blockquote.children(), templates, defaultNamespace, currentPageId, sceneResolver))
+            .append("</div></blockquote>");
+        return html.toString();
+    }
+
+    private static String toCssColor(ColorValue color) {
+        int argb = color.resolve(LightDarkMode.LIGHT_MODE);
+        int a = (argb >>> 24) & 0xFF;
+        int r = (argb >>> 16) & 0xFF;
+        int g = (argb >>> 8) & 0xFF;
+        int b = argb & 0xFF;
+        return "rgba(" + r + "," + g + "," + b + "," + (a / 255.0f) + ")";
     }
 
     private String compileTable(GfmTable table, GuideSiteTemplateRegistry templates, String defaultNamespace,

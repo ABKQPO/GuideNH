@@ -39,6 +39,7 @@ import com.hfstudio.guidenh.guide.document.block.functiongraph.DomainPredicate;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionExprParser;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionGraphPalette;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionPlot;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.MarkedPoint;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
@@ -175,7 +176,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 + "</div>";
         }
         if ("Mermaid".equals(name)) {
-            return renderMermaid(element);
+            return renderMermaid(element, currentPageId);
         }
         if ("CsvTable".equals(name)) {
             return renderCsvTable(element, currentPageId);
@@ -421,11 +422,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 .append("\"");
         }
         html.append(">");
-        GuideSiteItemHtml.appendSummaryContent(
-            html,
-            exportedItem,
-            inline ? "guide-inline-item-icon" : "guide-block-item-icon",
-            "guide-item-summary-text");
+        // ItemImage / BlockImage render as icon-only; the display name is exposed via the tooltip overlay.
+        GuideSiteItemHtml
+            .appendIcon(html, exportedItem, inline ? "guide-inline-item-icon" : "guide-block-item-icon");
         html.append("</span>");
         if (!inline) {
             html.append("</div>");
@@ -658,11 +657,24 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 .trim());
     }
 
-    private String renderMermaid(MdxJsxElementFields element) {
-        StringBuilder text = new StringBuilder();
-        collectStructureText(text, element.children());
-        String source = text.toString()
-            .trim();
+    private String renderMermaid(MdxJsxElementFields element, @Nullable ResourceLocation currentPageId) {
+        String src = readOptional(element, "src");
+        String source = null;
+        if (src != null && !src.isEmpty() && currentPageId != null) {
+            try {
+                ResourceLocation assetId = IdUtils.resolveLink(src, currentPageId);
+                byte[] data = guide.loadAsset(assetId);
+                if (data != null) {
+                    source = new String(data, StandardCharsets.UTF_8);
+                }
+            } catch (Exception ignored) {}
+        }
+        if (source == null) {
+            StringBuilder text = new StringBuilder();
+            collectStructureText(text, element.children());
+            source = text.toString();
+        }
+        source = source != null ? source.trim() : "";
         if (source.isEmpty()) {
             return renderError("Empty Mermaid diagram");
         }
@@ -700,8 +712,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderColumnChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 320);
-        int h = readInt(element, "height", 200);
+        int w = readInt(element, "width", 1280);
+        int h = readInt(element, "height", 800);
         int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
         int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
         String title = readOptional(element, "title");
@@ -713,8 +725,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderBarChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 320);
-        int h = readInt(element, "height", 200);
+        int w = readInt(element, "width", 1280);
+        int h = readInt(element, "height", 800);
         int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
         int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
         String title = readOptional(element, "title");
@@ -725,8 +737,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderLineChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 320);
-        int h = readInt(element, "height", 200);
+        int w = readInt(element, "width", 1280);
+        int h = readInt(element, "height", 800);
         int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
         int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
         String title = readOptional(element, "title");
@@ -740,8 +752,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderPieChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 320);
-        int h = readInt(element, "height", 200);
+        int w = readInt(element, "width", 1280);
+        int h = readInt(element, "height", 800);
         int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
         int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
         String title = readOptional(element, "title");
@@ -751,8 +763,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderScatterChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 320);
-        int h = readInt(element, "height", 200);
+        int w = readInt(element, "width", 1280);
+        int h = readInt(element, "height", 800);
         int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
         int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
         String title = readOptional(element, "title");
@@ -762,8 +774,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderFunctionGraphTag(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 320);
-        int h = readInt(element, "height", 220);
+        int w = readInt(element, "width", 1280);
+        int h = readInt(element, "height", 880);
         int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
         int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
         int axisColor = parseArgbAttr(element, "axisColor", 0xFFB8C2CF);
@@ -826,9 +838,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             if (Double.isNaN(yMin)) yMin = autoYMin - margin;
             if (Double.isNaN(yMax)) yMax = autoYMax + margin;
         }
+        List<MarkedPoint> points = parsePointChildren(element);
         return GuideSiteGraphRenderer.renderFunctionGraphSvg(
             plots,
-            new ArrayList<>(),
+            points,
             w,
             h,
             title,
@@ -921,10 +934,18 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             if (!("Plot".equals(cn) || "Function".equals(cn))) {
                 continue;
             }
-            StringBuilder exprBuf = new StringBuilder();
-            collectStructureText(exprBuf, c.children());
-            String exprText = exprBuf.toString()
-                .trim();
+            // Prefer the expr="..." attribute, fall back to inline child text.
+            String exprText = readOptional(c, "expr");
+            if (exprText == null || exprText.trim()
+                .isEmpty()) {
+                StringBuilder exprBuf = new StringBuilder();
+                collectStructureText(exprBuf, c.children());
+                exprText = exprBuf.toString();
+            }
+            exprText = exprText != null ? exprText.trim() : "";
+            if (exprText.isEmpty()) {
+                continue;
+            }
             boolean inverse = readBoolean(c, "inverse", false);
             int color = parseArgbAttr(c, "color", FunctionGraphPalette.color(idx));
             String label = readOptional(c, "label");
@@ -938,6 +959,73 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                     color,
                     label != null ? label : exprText));
             idx++;
+        }
+        return result;
+    }
+
+    /** Parse {@code <Point x="" y=""/>} or {@code <Point plot="0" atX="..."/>} children. */
+    private List<MarkedPoint> parsePointChildren(MdxJsxElementFields element) {
+        List<MarkedPoint> result = new ArrayList<>();
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields c)) {
+                continue;
+            }
+            if (!"Point".equals(c.name())) {
+                continue;
+            }
+            String label = readOptional(c, "label");
+            if (label == null) {
+                label = "";
+            }
+            String plotAttr = readOptional(c, "plot");
+            int color = parseArgbAttr(c, "color", 0);
+            boolean colorInherit = readOptional(c, "color") == null;
+            if (plotAttr != null) {
+                int plotIdx;
+                try {
+                    plotIdx = Integer.parseInt(plotAttr.trim());
+                } catch (NumberFormatException ignored) {
+                    continue;
+                }
+                String atX = readOptional(c, "atX");
+                String atY = readOptional(c, "atY");
+                if (atX != null) {
+                    try {
+                        result.add(
+                            new MarkedPoint(
+                                MarkedPoint.MODE_PLOT_AT_X,
+                                plotIdx,
+                                Double.parseDouble(atX.trim()),
+                                0,
+                                color,
+                                colorInherit,
+                                label));
+                    } catch (NumberFormatException ignored) {}
+                } else if (atY != null) {
+                    try {
+                        result.add(
+                            new MarkedPoint(
+                                MarkedPoint.MODE_PLOT_AT_Y,
+                                plotIdx,
+                                Double.parseDouble(atY.trim()),
+                                0,
+                                color,
+                                colorInherit,
+                                label));
+                    } catch (NumberFormatException ignored) {}
+                }
+                continue;
+            }
+            String xs = readOptional(c, "x");
+            String ys = readOptional(c, "y");
+            if (xs == null || ys == null) {
+                continue;
+            }
+            try {
+                double xv = Double.parseDouble(xs.trim());
+                double yv = Double.parseDouble(ys.trim());
+                result.add(new MarkedPoint(MarkedPoint.MODE_EXPLICIT, -1, xv, yv, color, colorInherit, label));
+            } catch (NumberFormatException ignored) {}
         }
         return result;
     }
