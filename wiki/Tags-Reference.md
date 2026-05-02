@@ -36,6 +36,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
 | `<details>` | collapsible runtime block | `open` |
+| `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
 | `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
@@ -107,6 +108,41 @@ Creates a collapsible runtime block with a summary row:
 Hidden-by-default body text
 </details>
 ````
+
+### `<FileTree>`
+
+Renders a directory-style outline with real connector lines drawn from the prefix glyphs on each row. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) forms are accepted and may be mixed. Payload text supports the usual inline markdown (links, **bold**, `code`, …). The same content can also be written as a fenced ` ```tree ` or ` ```filetree ` block.
+
+````md
+<FileTree indent="14" gap="0">
+project
+├── src
+│   ├── **main**
+│   │   └── [App.java](./index.md)
+│   └── *test*
+└── `README.md`
+</FileTree>
+````
+
+Optional per-row icons are introduced by a leading directive on the payload:
+
+- `{:icon=Text}` — short text label (single or double quotes optional)
+- `{:iconPng=path/to/file.png}` — PNG asset resolved against the current page
+- `{:iconItem=modid:item_id[:meta][:{snbt}]}` — Minecraft item icon. The optional `meta` segment is a damage value (or `*` for a wildcard); an optional trailing `:{snbt}` block carries SNBT to attach to the stack.
+
+````md
+```filetree
+world
+|-- {:iconItem=minecraft:grass} grass biome
+|   \-- {:icon=Tree} oak forest
+\-- {:iconPng=test1.png} sample asset
+```
+````
+
+Attributes:
+
+- `indent` — pixels per depth level (default `14`)
+- `gap` — extra pixels between rows (default `0`)
 
 ### Runtime Blockquotes
 

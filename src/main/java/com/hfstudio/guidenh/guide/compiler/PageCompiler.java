@@ -64,6 +64,7 @@ import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.csv.CsvTableParser;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguage;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguageDetector;
+import com.hfstudio.guidenh.guide.internal.markdown.FileTreeCompiler;
 import com.hfstudio.guidenh.guide.internal.markdown.FootnotePreprocessor;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownHtmlRuntimeNormalizer;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
@@ -390,6 +391,41 @@ public class PageCompiler {
         ParsedGuidePage parsed = parse(sourcePack, "en_us", pageId, reparsed.source());
         return parsed.getAstRoot()
             .children();
+    }
+
+    /**
+     * Returns the verbatim, dedented source text between the opening and closing tag of a block
+     * level MDX element, or {@code null} when the element has no source position information.
+     * Useful for tag compilers whose body is parsed by a non-Markdown grammar (file trees, etc.).
+     */
+    public @Nullable String getBlockTagChildrenSource(MdxJsxElementFields element) {
+        BlockTagChildSource reparsed = extractBlockTagChildrenSource(element);
+        return reparsed != null ? reparsed.source() : null;
+    }
+
+    /**
+     * Parses {@code source} as a standalone markdown fragment and appends the resulting inline
+     * (phrasing-level) content of its first paragraph into {@code layoutParent}. Block-level nodes
+     * other than the leading paragraph are flattened to their inline content. Used by tag
+     * compilers that need to render free-form rich-text fragments.
+     */
+    public void compileInlineMarkdown(String source, LytFlowParent layoutParent) {
+        if (source == null || source.isEmpty()) {
+            return;
+        }
+        ParsedGuidePage parsed = parse(sourcePack, "en_us", pageId, source);
+        for (MdAstAnyContent child : parsed.getAstRoot()
+            .children()) {
+            if (child instanceof MdAstParagraph paragraph) {
+                compileFlowContext(paragraph, layoutParent);
+            } else if (child instanceof MdAstParent<?>nestedParent) {
+                for (var nestedChild : nestedParent.children()) {
+                    compileFlowContent(layoutParent, nestedChild);
+                }
+            } else {
+                compileFlowContent(layoutParent, child);
+            }
+        }
     }
 
     public void compileBlockContextInSourceContext(List<? extends MdAstAnyContent> children,
@@ -917,6 +953,9 @@ public class PageCompiler {
         if (shouldRenderCsvTable(astCode, language)) {
             return compileCsvCodeBlock(astCode);
         }
+        if (isFileTreeFence(astCode.lang)) {
+            return FileTreeCompiler.compile(this, astCode.value);
+        }
         if ("mermaid".equals(language.id())) {
             LytMermaidMindmap mermaidBlock = tryCompileMermaidMindmap(astCode.value);
             if (mermaidBlock != null) {
@@ -941,6 +980,14 @@ public class PageCompiler {
 
     private boolean shouldRenderCsvTable(MdAstCode astCode, CodeBlockLanguage language) {
         return astCode.lang != null && "csv".equals(language.id());
+    }
+
+    private static boolean isFileTreeFence(@Nullable String fenceLanguage) {
+        if (fenceLanguage == null) {
+            return false;
+        }
+        String trimmed = fenceLanguage.trim();
+        return "tree".equalsIgnoreCase(trimmed) || "filetree".equalsIgnoreCase(trimmed);
     }
 
     private LytBlock compileCsvCodeBlock(MdAstCode astCode) {

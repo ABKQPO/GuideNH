@@ -38,6 +38,7 @@
 | --- | --- | --- |
 | `<div>` | 透传块包装器 | 无 |
 | `<details>` | 可折叠运行时块 | `open` |
+| `<FileTree>` | 目录树式大纲（带连接线） | `indent`、`gap` |
 | `<Row>` | 横向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | 纵向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | 运行时 Markdown 脚注使用的限宽脚注容器 | `width` |
@@ -109,6 +110,41 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 Hidden-by-default body text
 </details>
 ````
+
+### `<FileTree>`
+
+渲染目录树式大纲，并依据每行前缀符号绘制真实的连接线。前缀同时支持 Unicode 框线（`│ ├ └ ─`）与 ASCII 形式（`| +-- \-- ` / 4 个空格），可任意混用。每行的文本部分支持常规行内 Markdown（链接、**加粗**、`代码` 等）。等价语法是 ` ```tree ` / ` ```filetree ` 围栏代码块。
+
+````md
+<FileTree indent="14" gap="0">
+project
+├── src
+│   ├── **main**
+│   │   └── [App.java](./index.md)
+│   └── *test*
+└── `README.md`
+</FileTree>
+````
+
+可在每行开头加入可选图标指令：
+
+- `{:icon=文本}` — 简短的文本图标
+- `{:iconPng=path/to/file.png}` — PNG 资源（按当前页面解析路径）
+- `{:iconItem=modid:item_id[:meta][:{snbt}]}` — Minecraft 物品图标。可选 `meta` 为损词值（`*` 表示通配）；可选末尾 `:{snbt}` 能附加 SNBT 到物品。
+
+````md
+```filetree
+world
+|-- {:iconItem=minecraft:grass} 草地生物群系
+|   \-- {:icon=树} 橡木森林
+\-- {:iconPng=test1.png} 示例资源
+```
+````
+
+属性：
+
+- `indent` — 每层缩进像素数（默认 `14`）
+- `gap` — 行间额外像素数（默认 `0`）
 
 ### `<Color>`
 

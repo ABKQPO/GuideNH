@@ -298,6 +298,42 @@ Imported CSV with widths:
 
 <CsvTable src="./markdown-table.csv" widths="120,80" />
 
+## File Trees
+
+Fenced `tree` / `filetree` blocks render directory-style outlines with real connector lines. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) prefixes are accepted, mixed freely. Payload text supports the usual inline Markdown (links, **bold**, `code`, etc.).
+
+```tree
+project
+├── src
+│   ├── **main**
+│   │   └── [App.java](./index.md)
+│   └── *test*
+└── `README.md`
+```
+
+ASCII variant with optional per-row icons (`{:icon=…}` for plain text, `{:iconPng=path.png}` for an image, `{:iconItem=mod:item[:meta][:{snbt}]}` for an item stack):
+
+```filetree
+world
+|-- {:iconItem=minecraft:grass} grass biome
+|   |-- {:icon=Oak} oak forest
+|   \-- {:icon=Hill} rolling hills
+|-- {:iconItem=minecraft:wool:14} red wool patch
+\-- {:iconPng=test1.png} sample asset
+```
+
+Inside an MDX block tag, the same syntax works through `<FileTree>` with optional `indent` (px per depth, default `14`) and `gap` (extra px between rows, default `0`):
+
+```html
+<FileTree indent="16" gap="2">
+docs
+├── intro.md
+└── advanced
+    ├── tags.md
+    └── recipes.md
+</FileTree>
+```
+
 ## Mermaid Mindmaps
 
 Inline Mermaid fence:

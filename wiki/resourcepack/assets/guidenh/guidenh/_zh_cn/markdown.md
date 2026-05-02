@@ -290,6 +290,42 @@ diamond,9
 
 <CsvTable src="./markdown-table.csv" widths="120,80" />
 
+## 文件树
+
+`tree` / `filetree` 围栏代码块会渲染目录式大纲，并绘制真实的连接线。前缀字符同时支持 Unicode 框线（`│ ├ └ ─`）和 ASCII 形式（`| +-- \-- ` / 4 个空格），可任意混用。每行的文本部分支持常规行内 Markdown（链接、**加粗**、`代码` 等）。
+
+```tree
+project
+├── src
+│   ├── **main**
+│   │   └── [App.java](./index.md)
+│   └── *test*
+└── `README.md`
+```
+
+ASCII 形式，并演示按行图标（`{:icon=…}` 纯文本，`{:iconPng=path.png}` 图片，`{:iconItem=mod:item[:meta][:{snbt}]}` 物品）：
+
+```filetree
+world
+|-- {:iconItem=minecraft:grass} 草地生物群系
+|   |-- {:icon=橡} 橡木森林
+|   \-- {:icon=丘} 起伏丘陵
+|-- {:iconItem=minecraft:wool:14} 红色羊毛
+\-- {:iconPng=test1.png} 示例资源
+```
+
+在 MDX 块标签中也可使用 `<FileTree>`，可选属性 `indent`（每层缩进像素，默认 `14`）和 `gap`（行间额外像素，默认 `0`）：
+
+```html
+<FileTree indent="16" gap="2">
+docs
+├── intro.md
+└── advanced
+    ├── tags.md
+    └── recipes.md
+</FileTree>
+```
+
 ## Mermaid 思维导图
 
 内联 Mermaid 围栏：
