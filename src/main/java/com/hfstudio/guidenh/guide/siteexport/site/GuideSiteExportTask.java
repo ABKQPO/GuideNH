@@ -469,7 +469,13 @@ public class GuideSiteExportTask {
         ResourceLocation actualResource = new ResourceLocation(
             assetId.getResourceDomain(),
             guide.getContentRootFolder() + "/" + assetId.getResourcePath());
-        return GuideResourceAccess.readBytes(resourceManager, actualResource);
+        byte[] bytes = GuideResourceAccess.readBytes(resourceManager, actualResource);
+        if (bytes != null) {
+            return bytes;
+        }
+        // Fallback: try the raw resource path. This covers navigation icon textures that live
+        // under assets/<namespace>/textures/... rather than under the guide content root.
+        return GuideResourceAccess.readBytes(resourceManager, assetId);
     }
 
     private static String toOutputPageFile(ParsedGuidePage parsedPage) {

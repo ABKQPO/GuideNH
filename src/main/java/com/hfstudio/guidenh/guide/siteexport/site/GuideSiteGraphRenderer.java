@@ -114,61 +114,344 @@ final class GuideSiteGraphRenderer {
         return html.toString();
     }
 
-    // ===== Mermaid Mindmap Tree =====
+    // ===== Mermaid Mindmap (SVG) =====
+    //
+    // The HTML renderer here mirrors the in-game LytMermaidMindmapCanvas: rounded boxes
+    // with a colored accent stripe on the left, 1px L-shaped connectors, top-down layout.
+    // Text width is approximated (we don't have access to MC font metrics here).
+
+    private static final int MM_NODE_PAD_X = 10;
+    private static final int MM_NODE_PAD_Y = 6;
+    private static final int MM_GAP_X = 32;
+    private static final int MM_GAP_Y = 18;
+    private static final int MM_CANVAS_PAD = 12;
+    private static final int MM_LINE_HEIGHT = 14;
+    private static final int MM_ROOT_LINE_HEIGHT = 16;
+    private static final int MM_CHAR_WIDTH = 7;        // Approx Pixeloid Sans @ 12px
+    private static final int MM_ROOT_CHAR_WIDTH = 8;   // Bold root text
+    private static final int MM_ACCENT_STRIPE = 3;
+    private static final int MM_MIN_NODE_WIDTH = 64;
+
+    private static final int MM_BG_COLOR = 0xF00C1117;
+    private static final int MM_BORDER_COLOR = 0x66434C57;
+    private static final int MM_CONNECTOR_COLOR = 0xFF5D6C7C;
+    private static final int MM_ROOT_BG = 0xFF1F2A38;
+    private static final int MM_NODE_BG = 0xFF111922;
+    private static final int MM_ROOT_TEXT = 0xFFF1F6FB;
+    private static final int MM_NODE_TEXT = 0xFFD7DEE7;
+    private static final int MM_BADGE_TEXT = 0xFFB8C2CF;
+    private static final int MM_BADGE_BG = 0xFF262A33;
+    private static final int MM_DEFAULT_ACCENT = 0xFF7AA2F7;
+
+    private static final class MmLayoutNode {
+
+        final MermaidMindmapNode source;
+        final boolean isRoot;
+        final String[] lines;
+        final @org.jetbrains.annotations.Nullable String badge;
+        int width;
+        int height;
+        int subtreeWidth;
+        int subtreeHeight;
+        int x;
+        int y;
+        final List<MmLayoutNode> children = new ArrayList<>();
+
+        MmLayoutNode(MermaidMindmapNode source, boolean isRoot) {
+            this.source = source;
+            this.isRoot = isRoot;
+            String text = source.getText() != null ? source.getText() : "";
+            this.lines = text.isEmpty() ? new String[] { "" } : text.split("\n");
+            this.badge = source.getIcon();
+        }
+    }
 
     static String renderMermaidTree(MermaidMindmapDocument doc) {
         if (doc == null || doc.getRoot() == null) {
-            return "<div class=\"guide-mermaid-tree\"></div>";
+            return "<svg class=\"guide-mermaid-canvas\" width=\"100\" height=\"40\"></svg>";
         }
-        StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-mermaid-tree\">");
-        renderMermaidNode(html, doc.getRoot(), true);
-        html.append("</div>");
-        return html.toString();
+        MmLayoutNode root = buildMmLayout(doc.getRoot(), true);
+        measureMmTopDown(root);
+        layoutMmTopDown(root, 0, 0);
+
+        int contentW = root.subtreeWidth;
+        int contentH = root.subtreeHeight;
+        int totalW = contentW + MM_CANVAS_PAD * 2;
+        int totalH = contentH + MM_CANVAS_PAD * 2;
+
+        StringBuilder svg = new StringBuilder();
+        svg.append("<svg class=\"guide-mermaid-canvas\" xmlns=\"http://www.w3.org/2000/svg\" width=\"")
+            .append(totalW)
+            .append("\" height=\"")
+            .append(totalH)
+            .append("\" viewBox=\"0 0 ")
+            .append(totalW)
+            .append(" ")
+            .append(totalH)
+            .append("\">");
+        // Canvas background and border, mirroring the in-game LytMermaidMindmapCanvas frame.
+        svg.append("<rect x=\"0.5\" y=\"0.5\" width=\"")
+            .append(totalW - 1)
+            .append("\" height=\"")
+            .append(totalH - 1)
+            .append("\" fill=\"")
+            .append(argbToRgba(MM_BG_COLOR))
+            .append("\" stroke=\"")
+            .append(argbToRgba(MM_BORDER_COLOR))
+            .append("\" stroke-width=\"1\"/>");
+        // Translate the diagram into the padded interior.
+        svg.append("<g transform=\"translate(")
+            .append(MM_CANVAS_PAD)
+            .append(",")
+            .append(MM_CANVAS_PAD)
+            .append(")\">");
+        renderMmConnectors(svg, root);
+        renderMmNodes(svg, root);
+        svg.append("</g></svg>");
+        return svg.toString();
     }
 
-    private static void renderMermaidNode(StringBuilder html, MermaidMindmapNode node, boolean isRoot) {
-        String shape = shapeCssClass(node.getShape());
-        String cls = "guide-mermaid-node" + (isRoot ? " guide-mermaid-root" : "")
-            + (shape.isEmpty() ? "" : " " + shape);
-        html.append("<div class=\"guide-mermaid-item\">");
-        html.append("<span class=\"")
-            .append(cls)
-            .append("\">")
-            .append(esc(node.getText()))
-            .append("</span>");
-        List<MermaidMindmapNode> children = node.getChildren();
-        if (!children.isEmpty()) {
-            html.append("<ul class=\"guide-mermaid-children\">");
-            for (MermaidMindmapNode child : children) {
-                html.append("<li>");
-                renderMermaidNode(html, child, false);
-                html.append("</li>");
+    private static MmLayoutNode buildMmLayout(MermaidMindmapNode source, boolean isRoot) {
+        MmLayoutNode node = new MmLayoutNode(source, isRoot);
+        // Node width: longest line * approx char width, plus padding and the accent stripe.
+        int charW = isRoot ? MM_ROOT_CHAR_WIDTH : MM_CHAR_WIDTH;
+        int textWidth = 0;
+        for (String line : node.lines) {
+            textWidth = Math.max(textWidth, line.length() * charW);
+        }
+        if (node.badge != null) {
+            textWidth = Math.max(textWidth, node.badge.length() * MM_CHAR_WIDTH + 8);
+        }
+        int lineH = isRoot ? MM_ROOT_LINE_HEIGHT : MM_LINE_HEIGHT;
+        int textHeight = node.lines.length * lineH;
+        int badgeExtra = node.badge != null ? lineH + 4 : 0;
+        node.width = Math.max(MM_MIN_NODE_WIDTH, textWidth + MM_NODE_PAD_X * 2 + MM_ACCENT_STRIPE);
+        node.height = textHeight + badgeExtra + MM_NODE_PAD_Y * 2;
+        for (MermaidMindmapNode child : source.getChildren()) {
+            node.children.add(buildMmLayout(child, false));
+        }
+        return node;
+    }
+
+    private static void measureMmTopDown(MmLayoutNode node) {
+        if (node.children.isEmpty()) {
+            node.subtreeWidth = node.width;
+            node.subtreeHeight = node.height;
+            return;
+        }
+        int childrenW = 0;
+        int childrenH = 0;
+        for (MmLayoutNode child : node.children) {
+            measureMmTopDown(child);
+            childrenW += child.subtreeWidth;
+            childrenH = Math.max(childrenH, child.subtreeHeight);
+        }
+        childrenW += MM_GAP_X * (node.children.size() - 1);
+        node.subtreeWidth = Math.max(node.width, childrenW);
+        node.subtreeHeight = node.height + MM_GAP_Y + childrenH;
+    }
+
+    private static void layoutMmTopDown(MmLayoutNode node, int x, int y) {
+        node.x = x + (node.subtreeWidth - node.width) / 2;
+        node.y = y;
+        if (node.children.isEmpty()) {
+            return;
+        }
+        int childrenW = 0;
+        for (MmLayoutNode child : node.children) {
+            childrenW += child.subtreeWidth;
+        }
+        childrenW += MM_GAP_X * (node.children.size() - 1);
+        int cursorX = x + (node.subtreeWidth - childrenW) / 2;
+        int childY = y + node.height + MM_GAP_Y;
+        for (MmLayoutNode child : node.children) {
+            layoutMmTopDown(child, cursorX, childY);
+            cursorX += child.subtreeWidth + MM_GAP_X;
+        }
+    }
+
+    private static void renderMmConnectors(StringBuilder svg, MmLayoutNode node) {
+        String stroke = argbToRgba(MM_CONNECTOR_COLOR);
+        int parentCx = node.x + node.width / 2;
+        int parentBottom = node.y + node.height;
+        for (MmLayoutNode child : node.children) {
+            int childCx = child.x + child.width / 2;
+            int childTop = child.y;
+            int midY = (parentBottom + childTop) / 2;
+            // L-shaped 1px connector: parent bottom -> midY -> over child column -> child top.
+            svg.append("<path d=\"M")
+                .append(parentCx)
+                .append(" ")
+                .append(parentBottom)
+                .append(" V")
+                .append(midY)
+                .append(" H")
+                .append(childCx)
+                .append(" V")
+                .append(childTop)
+                .append("\" stroke=\"")
+                .append(stroke)
+                .append("\" stroke-width=\"1\" fill=\"none\" shape-rendering=\"crispEdges\"/>");
+            renderMmConnectors(svg, child);
+        }
+    }
+
+    private static void renderMmNodes(StringBuilder svg, MmLayoutNode node) {
+        int accent = resolveMmAccent(node);
+        int bg = node.isRoot ? MM_ROOT_BG : MM_NODE_BG;
+        renderMmNodeShape(svg, node, accent, bg);
+        // Accent stripe along the left edge (matches the in-game canvas).
+        svg.append("<rect x=\"")
+            .append(node.x)
+            .append("\" y=\"")
+            .append(node.y)
+            .append("\" width=\"")
+            .append(MM_ACCENT_STRIPE)
+            .append("\" height=\"")
+            .append(node.height)
+            .append("\" fill=\"")
+            .append(argbToRgba(accent))
+            .append("\"/>");
+
+        int textX = node.x + MM_ACCENT_STRIPE + MM_NODE_PAD_X;
+        int contentTop = node.y + MM_NODE_PAD_Y;
+        if (node.badge != null) {
+            int badgeWidth = node.badge.length() * MM_CHAR_WIDTH + 8;
+            int badgeHeight = MM_LINE_HEIGHT + 2;
+            svg.append("<rect x=\"")
+                .append(textX)
+                .append("\" y=\"")
+                .append(contentTop)
+                .append("\" width=\"")
+                .append(badgeWidth)
+                .append("\" height=\"")
+                .append(badgeHeight)
+                .append("\" fill=\"")
+                .append(argbToRgba(MM_BADGE_BG))
+                .append("\" stroke=\"")
+                .append(argbToRgba(MM_BORDER_COLOR))
+                .append("\" stroke-width=\"1\"/>");
+            svg.append("<text x=\"")
+                .append(textX + 4)
+                .append("\" y=\"")
+                .append(contentTop + badgeHeight - 4)
+                .append("\" font-size=\"10\" fill=\"")
+                .append(argbToRgba(MM_BADGE_TEXT))
+                .append("\" font-family=\"inherit\">")
+                .append(esc(node.badge))
+                .append("</text>");
+            contentTop += badgeHeight + 4;
+        }
+
+        int lineHeight = node.isRoot ? MM_ROOT_LINE_HEIGHT : MM_LINE_HEIGHT;
+        int fontSize = node.isRoot ? 13 : 12;
+        String textColor = argbToRgba(node.isRoot ? MM_ROOT_TEXT : MM_NODE_TEXT);
+        for (int i = 0; i < node.lines.length; i++) {
+            int ly = contentTop + (i + 1) * lineHeight - 3;
+            svg.append("<text x=\"")
+                .append(textX)
+                .append("\" y=\"")
+                .append(ly)
+                .append("\" font-size=\"")
+                .append(fontSize)
+                .append("\" fill=\"")
+                .append(textColor)
+                .append("\" font-family=\"inherit\"");
+            if (node.isRoot) {
+                svg.append(" font-weight=\"bold\"");
             }
-            html.append("</ul>");
+            svg.append(">")
+                .append(esc(node.lines[i]))
+                .append("</text>");
         }
-        html.append("</div>");
+
+        for (MmLayoutNode child : node.children) {
+            renderMmNodes(svg, child);
+        }
     }
 
-    private static String shapeCssClass(MermaidMindmapNodeShape shape) {
-        if (shape == null || shape == MermaidMindmapNodeShape.DEFAULT) {
-            return "";
+    private static void renderMmNodeShape(StringBuilder svg, MmLayoutNode node, int accent, int bg) {
+        String fill = argbToRgba(bg);
+        String stroke = argbToRgba(accent);
+        MermaidMindmapNodeShape shape = node.source.getShape();
+        if (shape == null) {
+            shape = MermaidMindmapNodeShape.DEFAULT;
         }
+        int strokeWidth = shape == MermaidMindmapNodeShape.BANG ? 2 : 1;
+        int rx;
         switch (shape) {
-            case CIRCLE:
-                return "guide-mermaid-circle";
             case ROUNDED:
-                return "guide-mermaid-rounded";
+            case CIRCLE:
+                rx = Math.min(node.height, node.width) / 2;
+                break;
             case BANG:
-                return "guide-mermaid-bang";
+                rx = 4;
+                break;
             case CLOUD:
-                return "guide-mermaid-cloud";
             case HEXAGON:
-                return "guide-mermaid-hexagon";
+                rx = 8;
+                break;
             case SQUARE:
-                return "guide-mermaid-square";
+                rx = 0;
+                break;
             default:
-                return "";
+                rx = 3;
+                break;
+        }
+        svg.append("<rect x=\"")
+            .append(node.x)
+            .append("\" y=\"")
+            .append(node.y)
+            .append("\" width=\"")
+            .append(node.width)
+            .append("\" height=\"")
+            .append(node.height)
+            .append("\" rx=\"")
+            .append(rx)
+            .append("\" ry=\"")
+            .append(rx)
+            .append("\" fill=\"")
+            .append(fill)
+            .append("\" stroke=\"")
+            .append(stroke)
+            .append("\" stroke-width=\"")
+            .append(strokeWidth)
+            .append("\"/>");
+    }
+
+    private static int resolveMmAccent(MmLayoutNode node) {
+        int accent = MM_DEFAULT_ACCENT;
+        for (String className : node.source.getClasses()) {
+            String lower = className.toLowerCase(java.util.Locale.ROOT);
+            if (lower.contains("danger") || lower.contains("error")
+                || lower.contains("urgent")
+                || lower.contains("red")) {
+                accent = 0xFFF7768E;
+                break;
+            }
+            if (lower.contains("success") || lower.contains("green") || lower.contains("done")) {
+                accent = 0xFF9ECE6A;
+                break;
+            }
+            if (lower.contains("warn") || lower.contains("yellow") || lower.contains("amber")) {
+                accent = 0xFFE0AF68;
+                break;
+            }
+            if (lower.contains("muted") || lower.contains("gray") || lower.contains("grey")) {
+                accent = 0xFF8B949E;
+            }
+        }
+        switch (node.source.getShape()) {
+            case CIRCLE:
+                return 0xFF7DCFFF;
+            case HEXAGON:
+                return 0xFFE0AF68;
+            case CLOUD:
+                return 0xFF73DACA;
+            case BANG:
+                return 0xFFF7768E;
+            default:
+                return accent;
         }
     }
 
@@ -325,7 +608,7 @@ final class GuideSiteGraphRenderer {
                 if (bh < 0.5) {
                     bh = 0.5;
                 }
-                svg.append("<rect x=\"")
+                svg.append("<rect class=\"guide-chart-shape\" x=\"")
                     .append(fmtD(bx))
                     .append("\" y=\"")
                     .append(fmtD(by))
@@ -335,7 +618,9 @@ final class GuideSiteGraphRenderer {
                     .append(fmtD(bh))
                     .append("\" fill=\"")
                     .append(fill)
-                    .append("\"/>");
+                    .append("\"><title>")
+                    .append(esc(buildChartTip(categories[ci], s.name, value)))
+                    .append("</title></rect>");
             }
         }
 
@@ -464,7 +749,7 @@ final class GuideSiteGraphRenderer {
                 if (bw < 0.5) {
                     bw = 0.5;
                 }
-                svg.append("<rect x=\"")
+                svg.append("<rect class=\"guide-chart-shape\" x=\"")
                     .append(fmtD(bx))
                     .append("\" y=\"")
                     .append(fmtD(by))
@@ -474,7 +759,9 @@ final class GuideSiteGraphRenderer {
                     .append(fmtD(barH))
                     .append("\" fill=\"")
                     .append(fill)
-                    .append("\"/>");
+                    .append("\"><title>")
+                    .append(esc(buildChartTip(ci < categories.length ? categories[ci] : "", s.name, value)))
+                    .append("</title></rect>");
             }
         }
 
@@ -649,22 +936,32 @@ final class GuideSiteGraphRenderer {
                     .append(",")
                     .append(py);
             }
-            svg.append("<polyline points=\"")
+            svg.append("<polyline class=\"guide-chart-shape\" points=\"")
                 .append(pts)
                 .append("\" stroke=\"")
                 .append(stroke)
-                .append("\" stroke-width=\"1.5\" fill=\"none\"/>");
+                .append("\" stroke-width=\"1.5\" fill=\"none\"><title>")
+                .append(esc(s.name))
+                .append("</title></polyline>");
             if (showPoints) {
                 for (int i = 0; i < len; i++) {
                     int px = left + (int) Math.round((s.xs[i] - xMin) / (xMax - xMin) * plotW);
                     int py = bottom - (int) Math.round((s.ys[i] - yMin) / (yMax - yMin) * plotH);
-                    svg.append("<circle cx=\"")
+                    String pointTip = buildChartTip(
+                        numericX ? formatNum(s.xs[i])
+                            : ((int) s.xs[i] >= 0 && (int) s.xs[i] < categories.length ? categories[(int) s.xs[i]]
+                                : ""),
+                        s.name,
+                        s.ys[i]);
+                    svg.append("<circle class=\"guide-chart-shape\" cx=\"")
                         .append(px)
                         .append("\" cy=\"")
                         .append(py)
                         .append("\" r=\"2\" fill=\"")
                         .append(stroke)
-                        .append("\"/>");
+                        .append("\"><title>")
+                        .append(esc(pointTip))
+                        .append("</title></circle>");
                 }
             }
         }
@@ -734,7 +1031,8 @@ final class GuideSiteGraphRenderer {
             double x2 = cx + r * Math.cos(endAngle);
             double y2 = cy + r * Math.sin(endAngle);
             int largeArc = sweep > Math.PI ? 1 : 0;
-            svg.append("<path d=\"M ")
+            double pct = total > 0 ? (s.value / total) * 100.0 : 0;
+            svg.append("<path class=\"guide-chart-shape\" d=\"M ")
                 .append(cx)
                 .append(" ")
                 .append(cy)
@@ -756,7 +1054,9 @@ final class GuideSiteGraphRenderer {
                 .append(argbToRgba(s.color))
                 .append("\" stroke=\"")
                 .append(argbToRgba(bgColor))
-                .append("\" stroke-width=\"0.5\"/>");
+                .append("\" stroke-width=\"0.5\"><title>")
+                .append(esc(s.label + ": " + formatNum(s.value) + " (" + String.format("%.1f", pct) + "%)"))
+                .append("</title></path>");
             startAngle = endAngle;
         }
 
@@ -868,13 +1168,16 @@ final class GuideSiteGraphRenderer {
             for (int i = 0; i < len; i++) {
                 int px = left + (int) Math.round((s.xs[i] - xMin) / (xMax - xMin) * plotW);
                 int py = bottom - (int) Math.round((s.ys[i] - yMin) / (yMax - yMin) * plotH);
-                svg.append("<circle cx=\"")
+                svg.append("<circle class=\"guide-chart-shape\" cx=\"")
                     .append(px)
                     .append("\" cy=\"")
                     .append(py)
                     .append("\" r=\"3\" fill=\"")
                     .append(fill)
-                    .append("\"/>");
+                    .append("\"><title>")
+                    .append(esc((s.name.isEmpty() ? "" : s.name + ": ") + "(" + formatNum(s.xs[i]) + ", "
+                        + formatNum(s.ys[i]) + ")"))
+                    .append("</title></circle>");
             }
         }
 
@@ -1090,6 +1393,8 @@ final class GuideSiteGraphRenderer {
         svg.append("<g clip-path=\"url(#gc)\">");
         for (FunctionPlot plot : plots) {
             String stroke = argbToRgba(plot.getColor());
+            String tip = plot.getLabel() != null && !plot.getLabel()
+                .isEmpty() ? plot.getLabel() : plot.getExpressionText();
             StringBuilder pts = new StringBuilder();
             boolean inSeg = false;
             for (int i = 0; i <= N_SAMPLES; i++) {
@@ -1097,7 +1402,7 @@ final class GuideSiteGraphRenderer {
                 double y = plot.evaluate(x);
                 if (!Double.isFinite(y)) {
                     if (inSeg && pts.length() > 0) {
-                        flushPolyline(svg, pts, stroke);
+                        flushPolyline(svg, pts, stroke, tip);
                         pts.setLength(0);
                         inSeg = false;
                     }
@@ -1114,7 +1419,7 @@ final class GuideSiteGraphRenderer {
                 inSeg = true;
             }
             if (inSeg && pts.length() > 0) {
-                flushPolyline(svg, pts, stroke);
+                flushPolyline(svg, pts, stroke, tip);
             }
         }
 
@@ -1133,13 +1438,19 @@ final class GuideSiteGraphRenderer {
                             pColor = plots.get(idx)
                                 .getColor();
                         }
-                        svg.append("<circle cx=\"")
+                        svg.append("<circle class=\"guide-chart-shape\" cx=\"")
                             .append(px)
                             .append("\" cy=\"")
                             .append(py)
                             .append("\" r=\"3\" fill=\"")
                             .append(argbToRgba(pColor))
-                            .append("\"/>");
+                            .append("\"><title>")
+                            .append(
+                                esc(
+                                    (pt.getLabel() != null && !pt.getLabel()
+                                        .isEmpty() ? pt.getLabel() + ": " : "") + "(" + formatNum(pxVal) + ", "
+                                        + formatNum(pyVal) + ")"))
+                            .append("</title></circle>");
                     }
                 }
             }
@@ -1151,11 +1462,44 @@ final class GuideSiteGraphRenderer {
     }
 
     private static void flushPolyline(StringBuilder svg, StringBuilder pts, String stroke) {
-        svg.append("<polyline points=\"")
+        flushPolyline(svg, pts, stroke, null);
+    }
+
+    private static void flushPolyline(StringBuilder svg, StringBuilder pts, String stroke, @org.jetbrains.annotations.Nullable String tip) {
+        svg.append("<polyline class=\"guide-chart-shape\" points=\"")
             .append(pts)
             .append("\" stroke=\"")
             .append(stroke)
-            .append("\" stroke-width=\"1.5\" fill=\"none\"/>");
+            .append("\" stroke-width=\"1.5\" fill=\"none\"");
+        if (tip != null && !tip.isEmpty()) {
+            svg.append("><title>")
+                .append(esc(tip))
+                .append("</title></polyline>");
+        } else {
+            svg.append("/>");
+        }
+    }
+
+    /**
+     * Build a short tooltip string for a chart shape. Empty fields are dropped so we get e.g.
+     * "Foo: 12" or "Q1 · Foo: 12".
+     */
+    private static String buildChartTip(String category, String series, double value) {
+        StringBuilder sb = new StringBuilder();
+        if (category != null && !category.isEmpty()) {
+            sb.append(category);
+        }
+        if (series != null && !series.isEmpty()) {
+            if (sb.length() > 0) {
+                sb.append(" · ");
+            }
+            sb.append(series);
+        }
+        if (sb.length() > 0) {
+            sb.append(": ");
+        }
+        sb.append(formatNum(value));
+        return sb.toString();
     }
 
     // ===== Shared SVG helpers =====

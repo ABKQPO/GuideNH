@@ -210,7 +210,7 @@ public class GuideSiteWriter {
         SiteUiText uiText = SiteUiText.forLanguage(language);
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-sidebar-tools\">");
-        appendLanguageSwitcher(html, language, languageLinks, uiText);
+        // Language switching is offered in the page header; avoid duplicating it inside the sidebar.
         html.append("<label class=\"guide-search\">");
         html.append("<span class=\"guide-search-label\">")
             .append(escapeHtml(uiText.searchLabel()))
@@ -558,13 +558,25 @@ public class GuideSiteWriter {
                 "guide-nav-item-icon");
             return;
         }
-        if (icon.textureId() != null && assetExporter != null) {
-            String src = assetExporter.exportResource(icon.textureId());
-            if (!src.isEmpty()) {
-                html.append("<img class=\"item-icon guide-nav-item-icon\" src=\"")
-                    .append(escapeHtml(src))
-                    .append("\" alt=\"\" width=\"32\" height=\"32\" decoding=\"async\">");
-            }
+        if (assetExporter == null) {
+            return;
+        }
+        // Resolve a texture resource id from either the explicit textureId field or the
+        // GuidePageTexture wrapper. Frontmatter "icon: ns:textures/..." populates textureId,
+        // while some loaders only set the texture wrapper, so we cover both paths here.
+        ResourceLocation resolvedTextureId = icon.textureId();
+        if (resolvedTextureId == null && icon.texture() != null) {
+            resolvedTextureId = icon.texture()
+                .getSourceId();
+        }
+        if (resolvedTextureId == null) {
+            return;
+        }
+        String src = assetExporter.exportResource(resolvedTextureId);
+        if (!src.isEmpty()) {
+            html.append("<img class=\"item-icon guide-nav-item-icon\" src=\"")
+                .append(escapeHtml(src))
+                .append("\" alt=\"\" width=\"32\" height=\"32\" decoding=\"async\">");
         }
     }
 
