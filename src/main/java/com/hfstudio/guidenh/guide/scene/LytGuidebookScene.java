@@ -50,6 +50,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityRayPicker;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -2208,6 +2209,12 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void logBottomControlState(String phase, LytRect outerRect) {
+        // Skip the per-frame string construction (key + describeRect + varargs boxing) entirely
+        // when debug logging is disabled. logInfoOnce itself also re-checks, but only after we
+        // have already paid for the formatting work.
+        if (!GuideDebugLog.isEnabled()) {
+            return;
+        }
         int selectableChannels = getSelectableStructureLibChannels().size();
         GuideGregTechTileSupport.logInfoOnce(
             "scene-bottom-controls:" + Integer.toHexString(System.identityHashCode(this))
@@ -2233,6 +2240,9 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void logSliderSkipped(String sliderId, int rowIndex, LytRect outerRect) {
+        if (!GuideDebugLog.isEnabled()) {
+            return;
+        }
         GuideGregTechTileSupport.logInfoOnce(
             "scene-slider-skip:" + Integer.toHexString(
                 System.identityHashCode(this)) + ":" + sliderId + ":" + rowIndex + ":" + getBottomControlAreaHeight(),
@@ -2248,6 +2258,9 @@ public class LytGuidebookScene extends LytBlock {
 
     private void logSliderGeometry(String sliderId, GuideSliderRenderer.SliderGeometry geometry, int rowIndex,
         String label, LytRect outerRect) {
+        if (!GuideDebugLog.isEnabled()) {
+            return;
+        }
         GuideGregTechTileSupport.logInfoOnce(
             "scene-slider-geometry:" + Integer.toHexString(System.identityHashCode(this))
                 + ":"

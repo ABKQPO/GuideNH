@@ -11,12 +11,24 @@ public class InWorldAnnotationRenderer {
     private InWorldAnnotationRenderer() {}
 
     public static void render(Iterable<InWorldAnnotation> annotations, LightDarkMode lightDarkMode) {
+        // Single up-front scan: bail out early when there is nothing to draw (the common case for
+        // scenes without highlights), and at the same time figure out whether any non-occluded
+        // pass / always-on-top pass actually has work to do. Avoids paying for a full GL state
+        // swap + 2-3 empty drawAll iterations on every frame for empty scenes.
+        boolean hasAny = false;
+        boolean hasNormal = false;
         boolean hasAlwaysOnTop = false;
         for (var a : annotations) {
+            hasAny = true;
             if (a.isAlwaysOnTop()) {
                 hasAlwaysOnTop = true;
-                break;
+            } else {
+                hasNormal = true;
             }
+            if (hasNormal && hasAlwaysOnTop) break;
+        }
+        if (!hasAny) {
+            return;
         }
 
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_LINE_BIT);
@@ -28,14 +40,16 @@ public class InWorldAnnotationRenderer {
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            GL11.glDepthFunc(GL11.GL_GREATER);
-            GL11.glDepthMask(false);
-            drawAll(annotations, lightDarkMode, /* occluded */ true, /* pass2 */ false);
+            if (hasNormal) {
+                GL11.glEnable(GL11.GL_DEPTH_TEST);
+                GL11.glDepthFunc(GL11.GL_GREATER);
+                GL11.glDepthMask(false);
+                drawAll(annotations, lightDarkMode, /* occluded */ true, /* pass2 */ false);
 
-            GL11.glDepthFunc(GL11.GL_LEQUAL);
-            GL11.glDepthMask(true);
-            drawAll(annotations, lightDarkMode, /* occluded */ false, /* pass2 */ false);
+                GL11.glDepthFunc(GL11.GL_LEQUAL);
+                GL11.glDepthMask(true);
+                drawAll(annotations, lightDarkMode, /* occluded */ false, /* pass2 */ false);
+            }
 
             // —— Pass 2b: alwaysOnTop ——
             if (hasAlwaysOnTop) {
