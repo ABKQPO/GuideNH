@@ -80,7 +80,7 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
             return Collections.emptyList();
         }
 
-        var itemAnchors = new ArrayList<Pair<ItemId, PageAnchor>>();
+        var itemAnchors = new ArrayList<Pair<ItemId, PageAnchor>>(itemIdList.size());
 
         for (var listEntry : itemIdList) {
             if (listEntry instanceof String itemIdStr) {

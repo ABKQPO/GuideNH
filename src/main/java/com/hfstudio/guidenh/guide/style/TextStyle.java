@@ -10,11 +10,13 @@ import com.hfstudio.guidenh.guide.color.ColorValue;
  */
 @Desugar
 public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Nullable Boolean italic,
-    @Nullable Boolean underlined, @Nullable Boolean strikethrough, @Nullable Boolean obfuscated, @Nullable String font,
-    @Nullable ColorValue color, @Nullable WhiteSpaceMode whiteSpace, @Nullable TextAlignment alignment,
-    @Nullable Boolean dropShadow) {
+    @Nullable Boolean underlined, @Nullable Boolean wavyUnderline, @Nullable Boolean dottedUnderline,
+    @Nullable Boolean strikethrough, @Nullable Boolean obfuscated, @Nullable String font, @Nullable ColorValue color,
+    @Nullable WhiteSpaceMode whiteSpace, @Nullable TextAlignment alignment, @Nullable Boolean dropShadow) {
 
     public static final TextStyle EMPTY = new TextStyle(
+        null,
+        null,
         null,
         null,
         null,
@@ -32,6 +34,8 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
         var bold = this.bold != null ? this.bold : base.bold();
         var italic = this.italic != null ? this.italic : base.italic();
         var underlined = this.underlined != null ? this.underlined : base.underlined();
+        var wavyUnderline = this.wavyUnderline != null ? this.wavyUnderline : base.wavyUnderline();
+        var dottedUnderline = this.dottedUnderline != null ? this.dottedUnderline : base.dottedUnderline();
         var strikethrough = this.strikethrough != null ? this.strikethrough : base.strikethrough();
         var obfuscated = this.obfuscated != null ? this.obfuscated : base.obfuscated();
         var font = this.font != null ? this.font : base.font();
@@ -44,6 +48,8 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
             bold,
             italic,
             underlined,
+            wavyUnderline,
+            dottedUnderline,
             strikethrough,
             obfuscated,
             font,
@@ -59,6 +65,8 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
         builder.bold = bold;
         builder.italic = italic;
         builder.underlined = underlined;
+        builder.wavyUnderline = wavyUnderline;
+        builder.dottedUnderline = dottedUnderline;
         builder.strikethrough = strikethrough;
         builder.obfuscated = obfuscated;
         builder.font = font;
@@ -79,6 +87,8 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
         private Boolean bold;
         private Boolean italic;
         private Boolean underlined;
+        private Boolean wavyUnderline;
+        private Boolean dottedUnderline;
         private Boolean strikethrough;
         private Boolean obfuscated;
         private String font;
@@ -99,6 +109,12 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
             }
             if (style.underlined() != null) {
                 underlined = style.underlined();
+            }
+            if (style.wavyUnderline() != null) {
+                wavyUnderline = style.wavyUnderline();
+            }
+            if (style.dottedUnderline() != null) {
+                dottedUnderline = style.dottedUnderline();
             }
             if (style.strikethrough() != null) {
                 strikethrough = style.strikethrough();
@@ -144,6 +160,16 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
             return this;
         }
 
+        public Builder wavyUnderline(Boolean wavyUnderline) {
+            this.wavyUnderline = wavyUnderline;
+            return this;
+        }
+
+        public Builder dottedUnderline(Boolean dottedUnderline) {
+            this.dottedUnderline = dottedUnderline;
+            return this;
+        }
+
         public Builder strikethrough(Boolean strikethrough) {
             this.strikethrough = strikethrough;
             return this;
@@ -185,6 +211,8 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
                 bold,
                 italic,
                 underlined,
+                wavyUnderline,
+                dottedUnderline,
                 strikethrough,
                 obfuscated,
                 font,

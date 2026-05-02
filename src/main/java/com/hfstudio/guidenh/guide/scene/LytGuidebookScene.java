@@ -24,6 +24,9 @@ import org.joml.Vector3f;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibTooltipContentBuilder;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
@@ -46,10 +49,8 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibTooltipContentBuilder;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityRayPicker;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -1026,7 +1027,8 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private static InWorldLineAnnotation createOriginAxisAnnotation(Vector3f to, ConstantColor color) {
-        return new InWorldLineAnnotation(new Vector3f(), to, color, ORIGIN_AXIS_THICKNESS);
+        InWorldLineAnnotation annotation = new InWorldLineAnnotation(new Vector3f(), to, color, ORIGIN_AXIS_THICKNESS);
+        return annotation;
     }
 
     private void drawSceneButtons(int drawX, int drawY, int w, int h, int absX, int absY) {
@@ -1110,7 +1112,7 @@ public class LytGuidebookScene extends LytBlock {
         int g = (color >>> 8) & 0xFF;
         int b = color & 0xFF;
         GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
-        float texSize = 64f;
+        float texSize = GuideIconButton.TEXTURE_SIZE;
         float u0 = role.iconSrcX() / texSize;
         float v0 = role.iconSrcY() / texSize;
         float u1 = (role.iconSrcX() + 16) / texSize;
@@ -2207,6 +2209,12 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void logBottomControlState(String phase, LytRect outerRect) {
+        // Skip the per-frame string construction (key + describeRect + varargs boxing) entirely
+        // when debug logging is disabled. logInfoOnce itself also re-checks, but only after we
+        // have already paid for the formatting work.
+        if (!GuideDebugLog.isEnabled()) {
+            return;
+        }
         int selectableChannels = getSelectableStructureLibChannels().size();
         GuideGregTechTileSupport.logInfoOnce(
             "scene-bottom-controls:" + Integer.toHexString(System.identityHashCode(this))
@@ -2232,6 +2240,9 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void logSliderSkipped(String sliderId, int rowIndex, LytRect outerRect) {
+        if (!GuideDebugLog.isEnabled()) {
+            return;
+        }
         GuideGregTechTileSupport.logInfoOnce(
             "scene-slider-skip:" + Integer.toHexString(
                 System.identityHashCode(this)) + ":" + sliderId + ":" + rowIndex + ":" + getBottomControlAreaHeight(),
@@ -2247,6 +2258,9 @@ public class LytGuidebookScene extends LytBlock {
 
     private void logSliderGeometry(String sliderId, GuideSliderRenderer.SliderGeometry geometry, int rowIndex,
         String label, LytRect outerRect) {
+        if (!GuideDebugLog.isEnabled()) {
+            return;
+        }
         GuideGregTechTileSupport.logInfoOnce(
             "scene-slider-geometry:" + Integer.toHexString(System.identityHashCode(this))
                 + ":"

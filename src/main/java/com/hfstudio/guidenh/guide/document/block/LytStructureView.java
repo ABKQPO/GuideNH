@@ -37,6 +37,9 @@ public class LytStructureView extends LytBlock {
     private int viewWidth = DEFAULT_WIDTH;
     private int viewHeight = DEFAULT_HEIGHT;
     private final List<BlockEntry> blocks = new ArrayList<>();
+    // Cache the painter-order sorted list so we do not allocate + sort every render frame.
+    // Invalidated whenever addBlock mutates the underlying list.
+    private List<BlockEntry> sortedCache;
 
     public void setViewSize(int width, int height) {
         this.viewWidth = Math.max(32, width);
@@ -46,6 +49,7 @@ public class LytStructureView extends LytBlock {
     public void addBlock(int x, int y, int z, ItemStack stack) {
         if (stack != null) {
             blocks.add(new BlockEntry(x, y, z, stack));
+            sortedCache = null;
         }
     }
 
@@ -99,15 +103,19 @@ public class LytStructureView extends LytBlock {
         int offsetX = bounds.x() + (bounds.width() - contentW) / 2 - sxMin;
         int offsetY = bounds.y() + (bounds.height() - contentH) / 2 - syMin;
 
-        List<BlockEntry> sorted = new ArrayList<>(blocks);
-        sorted.sort(
-            Comparator.<BlockEntry>comparingInt(b -> b.y)
-                .thenComparing(
-                    Comparator.<BlockEntry>comparingInt(b -> b.z)
-                        .reversed())
-                .thenComparingInt(b -> b.x));
+        List<BlockEntry> sorted = sortedCache;
+        if (sorted == null) {
+            sorted = new ArrayList<>(blocks);
+            sorted.sort(
+                Comparator.<BlockEntry>comparingInt(b -> b.y)
+                    .thenComparing(
+                        Comparator.<BlockEntry>comparingInt(b -> b.z)
+                            .reversed())
+                    .thenComparingInt(b -> b.x));
+            sortedCache = sorted;
+        }
 
-        context.pushScissor(bounds);
+        context.pushLocalScissor(bounds);
         try {
             for (BlockEntry b : sorted) {
                 int px = projectX(b.x, b.z) + offsetX;

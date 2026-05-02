@@ -87,19 +87,14 @@ public class FactoryTag {
                 }
 
                 // Start of a name.
-                if (code != Codes.eof && isStart(code)) {
+                if (isPascalTagStart(code)) {
                     effects.enter(tagNameType);
                     effects.enter(tagNamePrimaryType);
                     effects.consume(code);
                     return this::primaryName;
                 }
 
-                return crash(
-                    code,
-                    "before name",
-                    "a character that can start a name, such as a letter, `$`, or `_`"
-                        + (code == Codes.exclamationMark ? " (note: to create a comment in MDX, use `{/* text */}`)"
-                            : ""));
+                return nok.step(code);
             }
 
             // At the start of a closing tag, right after `</`.
@@ -110,20 +105,14 @@ public class FactoryTag {
                 }
 
                 // Start of a closing tag name.
-                if (code != Codes.eof && isStart(code)) {
+                if (isPascalTagStart(code)) {
                     effects.enter(tagNameType);
                     effects.enter(tagNamePrimaryType);
                     effects.consume(code);
                     return this::primaryName;
                 }
 
-                return crash(
-                    code,
-                    "before name",
-                    "a character that can start a name, such as a letter, `$`, or `_`"
-                        + (code == Codes.asterisk || code == Codes.slash
-                            ? " (note: JS comments in JSX tags are not supported in MDX)"
-                            : ""));
+                return nok.step(code);
             }
 
             // Inside the primary name.
@@ -694,6 +683,10 @@ public class FactoryTag {
 
     public static String serializeCharCode(int code) {
         return String.format(Locale.ROOT, "U+%04X", code);
+    }
+
+    private static boolean isPascalTagStart(int code) {
+        return code >= Codes.uppercaseA && code <= Codes.uppercaseZ;
     }
 
 }

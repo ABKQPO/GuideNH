@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
+import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 
 public class GuideItemTargetResolver {
@@ -30,6 +31,10 @@ public class GuideItemTargetResolver {
             try {
                 anchor = guide.getIndex(ItemIndex.class)
                     .findByStack(stack);
+                if (anchor == null) {
+                    anchor = guide.getIndex(OreIndex.class)
+                        .findByStack(stack);
+                }
             } catch (IllegalArgumentException ignored) {
                 continue;
             }

@@ -11,6 +11,9 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.compat.neicustomdiagram.NeiCustomDiagramBridge;
+
 /**
  * Invokes {@link NeiRecipeLookup}-bound handlers to render a recipe in-place. Relies on
  * {@code TemplateRecipeHandler.drawBackground/drawForeground/drawExtras} being independent of

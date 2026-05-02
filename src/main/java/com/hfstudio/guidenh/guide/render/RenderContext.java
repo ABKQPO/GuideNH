@@ -22,6 +22,26 @@ public interface RenderContext {
         return bounds.intersects(viewport());
     }
 
+    default int getDocumentOriginX() {
+        return 0;
+    }
+
+    default int getDocumentOriginY() {
+        return 0;
+    }
+
+    default int getScrollOffsetY() {
+        return 0;
+    }
+
+    default LytRect toScreenRect(LytRect rect) {
+        return new LytRect(
+            rect.x() + getDocumentOriginX(),
+            rect.y() + getDocumentOriginY() - getScrollOffsetY(),
+            rect.width(),
+            rect.height());
+    }
+
     int resolveColor(ColorValue ref);
 
     void fillRect(LytRect rect, int argbColor);
@@ -51,7 +71,38 @@ public interface RenderContext {
         }
     }
 
+    /**
+     * Draw a straight line with the specified thickness. Coordinates are floating-point pixels, suitable
+     * for drawing non-axis-aligned polylines / axes.
+     */
+    void drawLine(float x1, float y1, float x2, float y2, float thickness, int argbColor);
+
+    /**
+     * Fill a triangle with a single color.
+     */
+    void fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3, int argbColor);
+
+    /**
+     * Fill a convex polygon defined by a sequence of vertices with a single color (forms a triangle fan in
+     * order).
+     */
+    void fillPolygon(float[] xs, float[] ys, int argbColor);
+
+    /**
+     * Fill a circle with a single color (polygon approximation).
+     */
+    void fillCircle(float cx, float cy, float radius, int argbColor);
+
+    /**
+     * Draw a circular outline (polygon approximation).
+     */
+    void drawCircleOutline(float cx, float cy, float radius, float thickness, int argbColor);
+
     void pushScissor(LytRect rect);
+
+    default void pushLocalScissor(LytRect rect) {
+        pushScissor(toScreenRect(rect));
+    }
 
     void popScissor();
 

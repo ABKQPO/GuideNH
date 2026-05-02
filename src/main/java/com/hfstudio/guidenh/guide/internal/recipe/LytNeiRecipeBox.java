@@ -10,6 +10,8 @@ import net.minecraft.util.EnumChatFormatting;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.compat.neicustomdiagram.NeiCustomDiagramBridge;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -212,7 +214,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         if (strip.width() <= 0 || strip.height() <= 0) {
             return;
         }
-        context.pushScissor(strip);
+        context.pushLocalScissor(strip);
         try {
             WindowNinePatch.drawWindow(context.lightDarkMode(), windowX, windowY, windowW, windowH);
         } finally {

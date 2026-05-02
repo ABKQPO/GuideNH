@@ -17,6 +17,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
+import com.hfstudio.guidenh.compat.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibImportResult;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
@@ -30,10 +34,6 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibImportRequest;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibImportResult;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -184,7 +184,7 @@ public class SceneEditorSceneNodePreviewApplier {
         }
 
         scene.setStructureLibSceneMetadata(
-            new com.hfstudio.guidenh.guide.scene.structurelib.StructureLibSceneMetadata(
+            new com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata(
                 request.getController(),
                 request.getPiece(),
                 request.getFacing(),

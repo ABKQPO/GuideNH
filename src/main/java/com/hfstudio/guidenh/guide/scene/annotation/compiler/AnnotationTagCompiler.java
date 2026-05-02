@@ -38,7 +38,7 @@ public abstract class AnnotationTagCompiler implements SceneElementTagCompiler {
         }
 
         var contentBox = new LytVBox();
-        compiler.compileBlockContext(children, contentBox);
+        compiler.compileBlockTagChildren(el, contentBox);
         if (!contentBox.getChildren()
             .isEmpty()) {
             annotation.setTooltip(new ContentTooltip(contentBox));

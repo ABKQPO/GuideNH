@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.GuidePageIcon;
+import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
@@ -89,7 +90,8 @@ public class GuideNavBar {
         }
     }
 
-    public void render(Minecraft mc, @Nullable ResourceLocation currentPageId, int mouseX, int mouseY) {
+    public void render(Minecraft mc, @Nullable ResourceLocation currentPageId, int mouseX, int mouseY,
+        @Nullable PageCollection pageCollection) {
         if (lastTree == null || rows.isEmpty()) return;
         int w = currentWidth();
         int bgTop = 0xE0151515;
@@ -145,7 +147,9 @@ public class GuideNavBar {
                 if (fr.getStringWidth(title) > maxTw) {
                     title = fr.trimStringToWidth(title, maxTw - 4) + "\u2026";
                 }
-                int color = current ? 0xFFFFFFFF : (hovered ? 0xFF88BBFF : 0xFFBBBBBB);
+                boolean failed = row.node.pageId() != null && pageCollection != null
+                    && pageCollection.isPageFailed(row.node.pageId());
+                int color = getRowTextColor(current, hovered, failed);
                 fr.drawString(title, textX, rowY + 2, color, false);
             }
         }
@@ -212,6 +216,13 @@ public class GuideNavBar {
         if (expanded.contains(node)) expanded.remove(node);
         else expanded.add(node);
         rebuildRows(lastTree);
+    }
+
+    public static int getRowTextColor(boolean current, boolean hovered, boolean failed) {
+        if (failed) {
+            return current ? 0xFFFF9999 : (hovered ? 0xFFFF7777 : 0xFFFF5555);
+        }
+        return current ? 0xFFFFFFFF : (hovered ? 0xFF88BBFF : 0xFFBBBBBB);
     }
 
     public static void drawVGradient(int x, int y, int w, int h, int topColor, int botColor) {

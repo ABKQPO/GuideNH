@@ -17,6 +17,7 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
@@ -63,12 +64,18 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
     public static List<SceneAnnotation> collectTemplateAnnotations(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el) {
         List<SceneAnnotation> templateAnnotations = new ArrayList<>();
-        for (Object child : el.children()) {
-            if (child instanceof UnistNode childNode) {
-                collectTemplateAnnotationFromNode(compiler, errorSink, childNode, templateAnnotations);
-            }
-        }
+        List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(el);
+        compiler.withBlockTagChildrenSourceContext(
+            el,
+            () -> collectTemplateAnnotations(compiler, errorSink, children, templateAnnotations));
         return templateAnnotations;
+    }
+
+    private static void collectTemplateAnnotations(PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children, List<SceneAnnotation> templateAnnotations) {
+        for (MdAstAnyContent child : children) {
+            collectTemplateAnnotationFromNode(compiler, errorSink, child, templateAnnotations);
+        }
     }
 
     public static void collectTemplateAnnotationFromNode(PageCompiler compiler, LytErrorSink errorSink, UnistNode node,

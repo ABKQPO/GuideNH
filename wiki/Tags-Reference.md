@@ -18,6 +18,9 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | --- | --- | --- |
 | `<a>` | internal/external link and optional anchor name | `href`, `title`, `name` |
 | `<br>` | line break | `clear="none\|left\|right\|all"` |
+| `<kbd>` | keyboard-style inline emphasis | none |
+| `<sub>` | smaller inline subscript-style text | none |
+| `<sup>` | smaller inline superscript-style text | none |
 | `<Color>` | colored inline text | `id` or `color` |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<PlayerName>` | inserts current player username | none |
@@ -25,22 +28,36 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<ItemImage>` | inline item icon | `id` or `ore`, `scale`, `noTooltip`, `yOffset` |
 | `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
+| `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text` |
 
 ## Block Tags
 
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
-| `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth` |
-| `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth` |
+| `<details>` | collapsible runtime block | `open` |
+| `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
+| `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
+| `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of item icons | children must be `<ItemIcon id="..."/>` or `<ItemIcon ore="..."/>` |
 | `<BlockImage>` | block item-form icon | `id` or `ore`, `scale` |
 | `<FloatingImage>` | floated image block | `src`, `align`, `title`, `width`, `height` |
 | `<SubPages>` | navigation child listing | `id`, `alphabetical` |
 | `<CategoryIndex>` | list pages from a category | `category` |
 | `<Structure>` | 2.5D isometric block layout view | `width`, `height` |
+| `<Mermaid>` | runtime Mermaid graph import/inline | `src`, `width`, `height` |
+| `<CsvTable>` | runtime CSV file import table | `src`, `header`, `widths` |
+| `<ColumnChart>` | clustered column chart | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<BarChart>` | horizontal bar chart | same as `<ColumnChart>` |
+| `<LineChart>` | line chart with categorical or numeric X | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
+| `<PieChart>` | pie chart | `startAngle`, `clockwise`, `legend`, `labelPosition` |
+| `<ScatterChart>` | XY scatter chart | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<FunctionGraph>` | Desmos-style multi-curve function graph | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes` |
+| `<Function>` | single-curve shorthand for `<FunctionGraph>` | `expr`, plus all `<FunctionGraph>` panel attributes |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
+| `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc` |
 
 ## Tag Details
 
@@ -72,6 +89,88 @@ Accepted `clear` values:
 - `left`
 - `right`
 - `all`
+
+### `<kbd>`, `<sub>`, And `<sup>`
+
+GuideNH runtime supports a focused subset of lowercase documentation tags for inline use:
+
+````md
+Press <kbd>Shift</kbd> + <sub>1</sub>
+Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
+````
+
+### `<details>`
+
+Creates a collapsible runtime block with a summary row:
+
+````md
+<details open>
+<summary>More</summary>
+
+Hidden-by-default body text
+</details>
+````
+
+### `<FileTree>`
+
+Renders a directory-style outline with real connector lines drawn from the prefix glyphs on each row. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) forms are accepted and may be mixed. Payload text supports the usual inline markdown (links, **bold**, `code`, …). The same content can also be written as a fenced ` ```tree ` or ` ```filetree ` block.
+
+````md
+<FileTree indent="14" gap="0">
+project
+├── src
+│   ├── **main**
+│   │   └── [App.java](./index.md)
+│   └── *test*
+└── `README.md`
+</FileTree>
+````
+
+Optional per-row icons are introduced by a leading directive on the payload:
+
+- `{:icon=Text}` — short text label (single or double quotes optional)
+- `{:iconPng=path/to/file.png}` — PNG asset resolved against the current page
+- `{:iconItem=modid:item_id[:meta][:{snbt}]}` — Minecraft item icon. The optional `meta` segment is a damage value (or `*` for a wildcard); an optional trailing `:{snbt}` block carries SNBT to attach to the stack.
+
+````md
+```filetree
+world
+|-- {:iconItem=minecraft:grass} grass biome
+|   \-- {:icon=Tree} oak forest
+\-- {:iconPng=test1.png} sample asset
+```
+````
+
+Attributes:
+
+- `indent` — pixels per depth level (default `14`)
+- `gap` — extra pixels between rows (default `0`)
+
+### Runtime Blockquotes
+
+Normal markdown blockquotes render at runtime with a left accent line. GitHub alert syntax is supported:
+
+````md
+> [!NOTE]
+> Alert body
+````
+
+GuideNH also supports a runtime-only custom directive on the first quoted line:
+
+````md
+> {: title="Custom Quote" color="#638ef1" icon="i" }
+> Body text
+````
+
+Supported directive keys:
+
+- `title`
+- `color`
+- `icon` for plain text symbols
+- `iconItem` for an `ItemStack` id
+- `iconPng` for a guide asset png path
+
+Only one icon source should be provided.
 
 ### `<Color>`
 
@@ -196,6 +295,7 @@ Flex-style containers for block content.
 | `gap` | integer gap between children, default `5` |
 | `alignItems` | `start`, `center`, `end` |
 | `fullWidth` | boolean expression, default `false` |
+| `width` | integer preferred width; useful for constraining list line width |
 
 Example:
 
@@ -204,6 +304,37 @@ Example:
   <ItemImage id="minecraft:iron_ingot" />
   <ItemImage id="minecraft:gold_ingot" />
 </Row>
+````
+
+### `<Mermaid>`
+
+Runtime Mermaid currently supports mindmaps both inline and from `src`.
+
+````md
+<Mermaid src="./markdown-mindmap.mmd" width="320" height="220" />
+````
+
+- `width` and `height` constrain the runtime viewport box
+- inside the viewport, drag pans and the mouse wheel zooms
+
+To constrain the width of normal markdown lists, wrap them in a container:
+
+````md
+<Column width="220">
+- narrow list item
+- another narrow item
+</Column>
+````
+
+### `<FootnoteList>`
+
+GuideNH uses this block tag internally when runtime markdown footnotes are expanded. It can also be written manually if needed.
+
+````md
+<FootnoteList width="220">
+1. First footnote
+2. Second footnote
+</FootnoteList>
 ````
 
 ### `<ItemGrid>`
@@ -240,6 +371,48 @@ See [Navigation](Navigation) for full navigation behavior.
 
 See [Examples](Examples) and [GameScene](GameScene) when deciding whether to use a static structure preview or a full 3D scene.
 
+### `<Mermaid>`
+
+Used for runtime Mermaid content. Current runtime support is focused on `mindmap`, either inline or through a page-relative `src` import:
+
+````md
+<Mermaid src="./markdown-mindmap.mmd" />
+```
+
+### `<CsvTable>`
+
+Used to parse a CSV file into a runtime table:
+
+````md
+<CsvTable src="./markdown-table.csv" />
+```
+
+`src` resolves relative to the current page, the same way scene imports and normal asset links do.
+
+Optional attributes:
+
+- `header`
+  Defaults to `true`; set `header={false}` to keep the first row unbolded
+- `widths`
+  Comma-separated integer width hints such as `widths="120,80"`
+
+Examples:
+
+````md
+<CsvTable src="./markdown-table.csv" widths="120,80" />
+<CsvTable src="./markdown-table.csv" header={false} />
+```
+
+The related fenced runtime CSV form also supports matching metadata:
+
+````md
+```csv widths="120,80" header=false
+name,value
+iron,42
+gold,17
+```
+````
+
 ### Scene Runtime Tags
 
 These tags only work inside `<GameScene>` / `<Scene>`:
@@ -252,3 +425,149 @@ These tags only work inside `<GameScene>` / `<Scene>`:
 | `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
 
 See [GameScene](GameScene) for scene import/removal behavior and [Annotations](Annotations) for annotation template rules.
+
+
+## Charts
+
+`<ColumnChart>`, `<BarChart>`, `<LineChart>`, `<PieChart>`, and `<ScatterChart>` are interactive chart blocks. All charts share the following common attributes:
+
+| Attribute | Description | Default |
+| --- | --- | --- |
+| `title` | Chart title | none |
+| `width` / `height` | Explicit size | 320 / 200 |
+| `background` / `border` | Background and border colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`) | dark grey |
+| `titleColor` / `labelColor` | Title and value-label colors | light grey |
+| `legend` | Legend position: `none` / `top` / `bottom` / `left` / `right` | `top` |
+| `labelPosition` | Value-label position: `none` / `inside` / `outside` / `above` / `below` / `center` | `none` |
+
+Cartesian charts (Column / Bar / Line / Scatter) additionally accept axis attributes `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` and the matching `yAxis*` set, plus `showXGrid={true}` / `showYGrid={true}` to toggle gridlines.
+
+Children:
+
+* `<Series name="..." color="#..." data="10,20,30"/>` for category-based charts (Column / Bar / categorical Line).
+* `<Series name="..." color="#..." points="x:y,x:y,..."/>` for numeric X (Line `numericX={true}`, Scatter).
+* `<Slice label="..." value="..." color="#..."/>` for `<PieChart>` only.
+
+When `color` is omitted on a `<Series>` or `<Slice>`, GuideNH cycles through a built-in 16-color palette.
+
+`<Series>` and `<Slice>` also accept the following optional icon / tooltip attributes:
+
+* `icon="modid:item"` (same syntax as `<ItemImage>`'s `id`, may include `@meta` and inline NBT JSON) — binds an `ItemStack` to the entry; the legend swatch becomes the item icon and hovering the data point shows the vanilla item tooltip with the chart description appended at the end.
+* `iconImage="images/foo.png"` — use a PNG asset as the legend swatch (overridden by `icon`).
+* `tooltip="..."` — extra free-form text appended to the tooltip (use `\n` for multi-line).
+
+Example:
+
+```mdx
+<PieChart title="Output share">
+  <Slice label="Iron" value="40" icon="minecraft:iron_ingot" tooltip="From smelting" />
+  <Slice label="Gold" value="15" icon="minecraft:gold_ingot" />
+</PieChart>
+```
+
+### `<ColumnChart>` / `<BarChart>`
+
+Extra attributes: `categories` (X-axis or Y-axis labels, comma separated), `barWidthRatio` (default 0.7). `<BarChart>` puts the categories on the Y-axis and values on the X-axis.
+
+#### Combo extensions
+
+`<ColumnChart>` and `<BarChart>` accept two extra child element types so multiple chart styles can share one plot area:
+
+- `<LineSeries name="…" data="v1,v2,…" color="#rrggbb" icon="…"/>` — drawn as a polyline overlay on top of the bars. Each line point sits at the cluster center of the matching category index; the overlay shares the host chart's value axis. You can declare multiple `<LineSeries>` to overlay several trends.
+- `<PieInset size="60" position="topRight" title="…" startAngleDeg="-90" direction="clockwise" titleColor="#rrggbb">` — a small pie chart drawn inside one of the four corners (`topRight`, `topLeft`, `bottomRight`, `bottomLeft`) of the plot area. Its `<Slice>` children share the same syntax as in `<PieChart>`.
+
+```mdx
+<ColumnChart title="Quarterly output" categories="Q1,Q2,Q3,Q4">
+  <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
+  <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
+  <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
+  <PieInset size="60" position="topRight" title="Total share">
+    <Slice label="Iron" value="225" color="#a0a0a0"/>
+    <Slice label="Gold" value="110" color="#e0c060"/>
+  </PieInset>
+</ColumnChart>
+```
+
+### `<LineChart>`
+
+Extra attributes: `numericX={true}` to enable a numeric X-axis (children must use `points`); `showPoints={false}` hides point markers. The hovered point is pushed outward by 2px along the curve normal, enlarged, and outlined; the adjacent line segments thicken by 1px.
+
+### `<PieChart>`
+
+Extra attributes: `startAngle` (default `-90`, i.e. 12 o'clock); `clockwise={false}` to reverse direction. The hovered slice pops outward 4px along its bisector.
+
+### `<ScatterChart>`
+
+Renders points only; `<Series>` must use `points`. The X-axis is always numeric.
+
+## Function Graphs
+
+`<FunctionGraph>` and the single-curve shorthand `<Function>` render an interactive Desmos-style panel. The same panel is also available through a ` ```funcgraph ` fenced code block; see the runtime [Markdown sample](resourcepack/assets/guidenh/guidenh/_en_us/markdown.md) for a full walkthrough.
+
+Panel attributes (accepted by the container, the shorthand, and the fence header alike):
+
+- `width` / `height` (defaults `320` x `220`)
+- `title`, `background`, `border`, `axisColor`, `gridColor`
+- `showGrid` / `showAxes` (default `true`)
+- `xRange="a..b"` (or `xMin` / `xMax` separately), `xStep` for tick spacing; same for the Y axis
+- `quadrants="1,2,3,4"` or `quadrants="all"` to force the visible quadrants; omit to start in quadrant 1 with auto-expansion when sampled `y < 0`
+
+Curve children (`<Plot>` / `<Function>`):
+
+- `expr="..."` &mdash; the expression. Operators `+ - * / % ^`, postfix factorial `!` (gamma-extended), `|x|` absolute value, `√` / `sqrt` / `∛` / `cbrt`, implicit multiplication, and the constants `pi`, `tau`, `e`, `phi` are supported. Built-in calls cover the standard trig/log/exp/rounding family plus two-arg `atan2`, `min`, `max`, `pow`, `hypot`, `mod`.
+- `inverse={true}` evaluates the expression as `x = f(y)` and rotates the curve.
+- `domain="a..b"` (x bounds shorthand) or comma-separated clauses such as `x>=0, x<5`.
+- `color`, `label`. Any curve with a non-empty `label` is automatically listed in a legend rendered just below the panel: a small color swatch followed by the label, with entries flowing left-to-right and wrapping onto a new row when the next entry would not fit.
+
+Marked points (`<Point>`):
+
+- Explicit: `x="..."` and `y="..."`.
+- Plot-anchored: `plot="N"` plus `atX="v"` or `atY="v"` (the runtime bisects on the plot's x-domain to find the matching `x`).
+- Optional `color`, `label`.
+
+Interaction: hover a curve to highlight it; press and hold to scrub a point along the curve. The tooltip shows the expression on the first line and `(x, y)` on the second; it stays anchored above the point and flips below when there is no headroom.
+
+## BetterQuesting Compatibility Tags
+
+`<QuestLink>` and `<QuestCard>` are only registered when the BetterQuesting mod is loaded. They are documented in detail on the [Mod Compatibility](Mod-Compatibility) page; the summary below covers the most common usage.
+
+### `<QuestLink>`
+
+Inline link to a BetterQuesting quest. Clicking opens the quest inside the BetterQuesting GUI, unless the quest UUID is also present in the current guide's `quest_ids` frontmatter — in that case the link navigates to that page instead.
+
+| Attribute | Meaning |
+| --- | --- |
+| `id` | required quest UUID |
+| `text` | optional override for the displayed text |
+
+Visibility behavior is decided per player at compile time:
+
+- visible / completed quests render as a clickable link (completed quests are tinted green and append a `✓` mark)
+- locked quests render as a non-clickable italic gray placeholder using the `guidenh.compat.bq.locked` translation
+- hidden / secret quests render as a darker italic placeholder using `guidenh.compat.bq.hidden`
+- unknown UUIDs render as a red placeholder using `guidenh.compat.bq.missing`
+
+Example:
+
+````md
+See <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" /> for the next step.
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="Stage 2 quest" />
+````
+
+### `<QuestCard>`
+
+Block-level summary card for a BetterQuesting quest. Renders the quest title with the same state-aware styling as `<QuestLink>`, plus the quest description as a body paragraph when the quest is visible to the player.
+
+| Attribute | Meaning |
+| --- | --- |
+| `id` | required quest UUID |
+| `show_desc` | optional boolean (default `true`); set to `false` to suppress the description body |
+
+The accent color of the card border follows the quest state: green for completed, gray for locked / hidden, red for missing, and the standard link color for visible quests.
+
+Example:
+
+````md
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
+````

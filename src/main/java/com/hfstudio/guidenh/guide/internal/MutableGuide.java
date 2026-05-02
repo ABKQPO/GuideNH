@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.internal;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -48,6 +50,7 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     private final String defaultLanguage;
     private final ResourceLocation startPage;
     private final Map<ResourceLocation, ParsedGuidePage> developmentPages = new HashMap<>();
+    private final Map<ResourceLocation, GuidePageFailure> pageFailures = new HashMap<>();
     private final Map<Class<?>, PageIndex> indices;
     private NavigationTree navigationTree = new NavigationTree();
     /**
@@ -135,13 +138,20 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
             return null;
         }
 
-        GuidePage compiledPage;
-        synchronized (compiledPages) {
-            compiledPage = compiledPages.get(parsedPage);
-            if (compiledPage == null) {
-                compiledPage = PageCompiler.compile(this, extensions, parsedPage);
-                compiledPages.put(parsedPage, compiledPage);
+        GuidePage compiledPage = null;
+        try {
+            synchronized (compiledPages) {
+                compiledPage = compiledPages.get(parsedPage);
+                if (compiledPage == null) {
+                    compiledPage = PageCompiler.compile(this, extensions, parsedPage);
+                    compiledPages.put(parsedPage, compiledPage);
+                }
             }
+            clearCompileFailure(id);
+        } catch (Throwable t) {
+            recordCompileFailure(id, buildCompileFailureText(id, t));
+            LOG.error("Failed to compile guide page {}", id, t);
+            compiledPage = buildFailurePage(parsedPage, pageFailures.get(id));
         }
         compiledPage.prepareForDisplay();
         return compiledPage;
@@ -212,6 +222,11 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     @Override
     public boolean pageExists(ResourceLocation pageId) {
         return developmentPages.containsKey(pageId) || pages != null && pages.containsKey(pageId);
+    }
+
+    @Override
+    public boolean isPageFailed(ResourceLocation pageId) {
+        return pageFailures.containsKey(pageId);
     }
 
     /**
@@ -348,6 +363,7 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
 
         // Rebuild navigation
         this.navigationTree = buildNavigation();
+        refreshPageFailures();
 
         // Reload the current page if it has been changed
         var guideScreen = GuideScreen.current();
@@ -401,6 +417,7 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
 
         rebuildIndices();
         navigationTree = buildNavigation();
+        refreshPageFailures();
         // Do not eagerly compile the start page here. Some packs register or rewrite recipes
         // during FMLLoadComplete, after the initial resource reload has already parsed the guide.
         // Deferring compilation until first display avoids caching stale "missing recipe" error
@@ -452,5 +469,99 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
             }
         }
         return false;
+    }
+
+    private void refreshPageFailures() {
+        pageFailures.clear();
+        for (var parsedPage : getAllParsedPages().values()) {
+            if (parsedPage.hasParseFailure()) {
+                recordParseFailure(parsedPage);
+                continue;
+            }
+
+            try {
+                PageCompiler.compile(this, extensions, parsedPage);
+            } catch (Throwable t) {
+                if (isDeferrableWarmPageFailure(t)) {
+                    LOG.debug(
+                        "Deferring validation for page {} until an active client world is available",
+                        parsedPage.getId());
+                    continue;
+                }
+                recordCompileFailure(parsedPage.getId(), buildCompileFailureText(parsedPage.getId(), t));
+                LOG.error("Failed to compile guide page {} during guide refresh", parsedPage.getId(), t);
+            }
+        }
+    }
+
+    private Map<ResourceLocation, ParsedGuidePage> getAllParsedPages() {
+        var allPages = new LinkedHashMap<ResourceLocation, ParsedGuidePage>();
+        if (pages != null) {
+            allPages.putAll(pages);
+        }
+        allPages.putAll(developmentPages);
+        return allPages;
+    }
+
+    private void recordParseFailure(ParsedGuidePage parsedPage) {
+        var parseFailureMessage = parsedPage.getParseFailureMessage();
+        if (parseFailureMessage == null || parseFailureMessage.isEmpty()) {
+            return;
+        }
+
+        pageFailures.put(parsedPage.getId(), GuidePageFailure.parse(parseFailureMessage));
+    }
+
+    private void recordCompileFailure(ResourceLocation pageId, String errorText) {
+        pageFailures.put(pageId, GuidePageFailure.compile(errorText));
+    }
+
+    private void clearCompileFailure(ResourceLocation pageId) {
+        var failure = pageFailures.get(pageId);
+        if (failure != null && !failure.parseFailure) {
+            pageFailures.remove(pageId);
+        }
+    }
+
+    private String buildCompileFailureText(ResourceLocation pageId, Throwable throwable) {
+        var writer = new StringWriter();
+        var printer = new PrintWriter(writer);
+        printer.printf("Failed to compile guide page %s%n%n", pageId);
+        throwable.printStackTrace(printer);
+        printer.flush();
+        return writer.toString();
+    }
+
+    private GuidePage buildFailurePage(ParsedGuidePage parsedPage, @Nullable GuidePageFailure failure) {
+        var effectiveFailure = failure != null ? failure : GuidePageFailure.compile("Unknown guide page failure");
+        return PageCompiler.buildErrorGuidePage(
+            this,
+            extensions,
+            parsedPage.getSourcePack(),
+            parsedPage.getId(),
+            parsedPage.getSource(),
+            effectiveFailure.headingText,
+            effectiveFailure.errorText);
+    }
+
+    private static final class GuidePageFailure {
+
+        private final String headingText;
+        private final String errorText;
+        private final boolean parseFailure;
+
+        private GuidePageFailure(String headingText, String errorText, boolean parseFailure) {
+            this.headingText = headingText;
+            this.errorText = errorText;
+            this.parseFailure = parseFailure;
+        }
+
+        private static GuidePageFailure parse(String errorText) {
+            return new GuidePageFailure("PARSING ERROR", errorText, true);
+        }
+
+        private static GuidePageFailure compile(String errorText) {
+            return new GuidePageFailure("COMPILATION ERROR", errorText, false);
+        }
     }
 }

@@ -286,6 +286,19 @@ public class GuidebookLevelRenderer {
                             GuideGregTechTileSupport.describeTile(tileEntity));
                         GuideGregTechTileSupport.repairMetaTileBinding(tileEntity);
                     }
+                    // FMP's MultipartRenderer.renderWorldBlock requires the tile to be a TileMultipartClient
+                    // trait. Server-side TileMultipart instances (produced by createFromNBT) silently fail to
+                    // render even though tooltips and collisions still work via BlockMultipart.getTile. Promote
+                    // here as a safety net before dispatching to vanilla ISBRH.
+                    if (GuideForgeMultipartSupport.isForgeMultipartBlock(block)
+                        && GuideForgeMultipartSupport.isMultipartTileEntity(tileEntity)
+                        && !GuideForgeMultipartSupport.isClientMultipartTileEntity(tileEntity)) {
+                        TileEntity promoted = GuideForgeMultipartSupport.ensureClientMultipartTile(tileEntity);
+                        if (promoted != null && promoted != tileEntity) {
+                            level.setTileEntity(p[0], p[1], p[2], promoted);
+                            tileEntity = promoted;
+                        }
+                    }
                     resetRenderBlocksState(rb, fakeWorld, exactLayerMode);
                     boolean rendered = rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
                     if (!rendered && GuideForgeMultipartSupport.isForgeMultipartBlock(block)) {
@@ -385,10 +398,8 @@ public class GuidebookLevelRenderer {
                 int brightness = resolveEntityBrightnessForPreview(entity, partialTicks);
                 int lowerBits = brightness % 65536;
                 int upperBits = brightness / 65536;
-                OpenGlHelper.setLightmapTextureCoords(
-                    OpenGlHelper.lightmapTexUnit,
-                    (float) lowerBits / 1.0F,
-                    (float) upperBits / 1.0F);
+                OpenGlHelper
+                    .setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, (float) lowerBits, (float) upperBits);
                 GL11.glColor4f(1f, 1f, 1f, 1f);
                 // Our guidebook camera already supplies world-space transforms, so pass raw
                 // interpolated coordinates here instead of letting RenderManager subtract the

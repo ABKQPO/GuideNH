@@ -5,11 +5,11 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBox;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
-import com.hfstudio.guidenh.guide.internal.recipe.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 

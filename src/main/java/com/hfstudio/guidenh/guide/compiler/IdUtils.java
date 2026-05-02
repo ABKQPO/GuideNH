@@ -1,6 +1,9 @@
 package com.hfstudio.guidenh.guide.compiler;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -20,6 +23,19 @@ import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 public class IdUtils {
 
     public static final Logger LOG = LoggerFactory.getLogger(IdUtils.class);
+
+    // Bounded LRU cache for parsed item references that carry no SNBT tail. Refs containing NBT
+    // are intentionally NOT cached: callers like ItemId.createNoCopy share the NBT reference,
+    // which would otherwise allow downstream mutation to corrupt the cached entry.
+    private static final int PARSE_CACHE_MAX = 1024;
+    private static final Map<String, ParsedItemRef> PARSE_CACHE = Collections
+        .synchronizedMap(new LinkedHashMap<String, ParsedItemRef>(256, 0.75f, true) {
+
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, ParsedItemRef> eldest) {
+                return size() > PARSE_CACHE_MAX;
+            }
+        });
 
     private IdUtils() {}
 
@@ -64,6 +80,16 @@ public class IdUtils {
     @Nullable
     public static ParsedItemRef parseItemRef(String idText, String defaultNamespace) {
         if (idText == null || idText.isEmpty()) return null;
+        // Cache the common no-NBT case keyed on (namespace + ":" + idText). When the input
+        // contains an SNBT tail (detected by '{') we skip the cache to avoid sharing mutable
+        // NBT references across callers.
+        boolean cacheable = idText.indexOf('{') < 0;
+        String cacheKey = null;
+        if (cacheable) {
+            cacheKey = defaultNamespace + ":" + idText;
+            ParsedItemRef cached = PARSE_CACHE.get(cacheKey);
+            if (cached != null) return cached;
+        }
         String head;
         NBTTagCompound nbt = null;
         int brace = idText.indexOf('{');
@@ -99,7 +125,11 @@ public class IdUtils {
                 meta = parseMeta(metaStr);
             }
         }
-        return new ParsedItemRef(id, meta, nbt);
+        ParsedItemRef result = new ParsedItemRef(id, meta, nbt);
+        if (cacheable) {
+            PARSE_CACHE.put(cacheKey, result);
+        }
+        return result;
     }
 
     public static int parseMeta(String metaStr) {

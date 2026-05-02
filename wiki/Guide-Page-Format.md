@@ -6,6 +6,7 @@ GuideNH runtime pages are markdown files parsed with:
 - YAML frontmatter
 - GFM tables
 - strikethrough
+- GuideNH inline underline extensions: `++text++` (straight underline), `^^text^^` (wavy underline), `::text::` (emphasis dots / dotted underline)
 - MDX comments using `{/* ... */}`
 - MDX-style custom tags
 
@@ -16,15 +17,222 @@ GuideNH pages support the common markdown features used in the example guide:
 - headings
 - paragraphs
 - inline emphasis, bold, strike, and code
+- inline underline (`++text++`), wavy underline (`^^text^^`), and emphasis dots (`::text::`)
 - links and images
+- literal autolinks for direct URLs, `www.` hosts, and email addresses
+- reference links and reference images
 - unordered and ordered lists
+- GFM task lists
 - blockquotes
+- GitHub-style alert blockquotes such as `[!NOTE]`
 - horizontal rules
 - fenced code blocks
+- indented code blocks
 - GFM tables
+- footnotes
+- lowercase HTML fragments such as `<a>`, `<br>`, `<kbd>`, `<sub>`, `<sup>`, and `<details>`
 - MDX comments in page text
 
 See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` for a live sample page.
+
+## Code Blocks
+
+Runtime code blocks currently support:
+
+- explicit fence languages such as `java`, `lua`, `scala`, `csv`, and `mermaid`
+- automatic language inference when the fence language is omitted
+- a language label shown above the block
+- a top-right copy button in the in-game viewer
+- lightweight runtime syntax highlighting for the detected language
+
+Example:
+
+````md
+```lua
+local value = 42
+print(value)
+```
+
+```
+object Demo extends App {
+  println("auto detected scala")
+}
+```
+````
+
+Indented code blocks are also supported:
+
+````md
+    print("indented code")
+````
+
+When a fenced block resolves to `mermaid` and the source is a supported `mindmap`, GuideNH renders it as an interactive runtime mindmap instead of a plain code block.
+
+When a fenced block is explicitly marked as `csv`, GuideNH renders it as a runtime table instead of a plain code block. If the fence language is omitted, CSV-shaped text still stays a code block and only uses CSV language detection for labeling/highlighting.
+
+Explicit CSV tables can also provide column width hints:
+
+````md
+```csv widths=120,80
+name,value
+iron,42
+gold,17
+```
+````
+
+Fence metadata also supports `header=false` and quoted width lists:
+
+````md
+```csv widths="120,80" header=false
+name,value
+iron,42
+gold,17
+```
+````
+
+Direct GFM-style literal autolinks are also supported in normal paragraph text:
+
+````md
+Visit https://example.com/docs, www.example.org, or guide@example.com
+````
+
+## Mermaid Mindmaps
+
+GuideNH runtime Mermaid support is currently focused on `mindmap` diagrams:
+
+- fenced ```` ```mermaid ```` blocks
+- auto-detected mermaid code fences whose content starts with `mindmap`
+- explicit `<Mermaid>...</Mermaid>` tags
+- explicit `<Mermaid src="./diagram.mmd" />` imports
+- whole-diagram drag-to-pan interaction in the in-game viewer
+- `layout: tidy-tree` frontmatter inside Mermaid source
+- common mindmap node shapes such as square, rounded, circle, bang, cloud, and hexagon
+- parsed `::icon(...)` and `:::class` metadata
+
+Example:
+
+````md
+```mermaid
+mindmap
+  root((GuideNH))
+    Runtime
+      Markdown
+      CSV
+    Mindmap::icon(fa fa-sitemap)
+      Drag to pan
+```
+
+<Mermaid src="./markdown-mindmap.mmd" />
+````
+
+Mermaid diagrams that are not supported at runtime yet still fall back to regular Mermaid-labeled code blocks.
+
+## CSV Table Import
+
+GuideNH also supports runtime CSV file imports through an explicit tag:
+
+````md
+<CsvTable src="./markdown-table.csv" />
+````
+
+The `src` path resolves relative to the current page, the same way runtime asset links and scene `src` imports do.
+
+Imported CSV tables can also provide width hints:
+
+````md
+<CsvTable src="./markdown-table.csv" widths="120,80" />
+````
+
+You can also write a CSV table inline with an explicit fence:
+
+````md
+```csv
+name,value
+iron,42
+gold,17
+```
+````
+
+## Markdown Table Width Hints
+
+Ordinary GFM markdown tables can also provide runtime column width hints by adding a trailing runtime attribute line immediately after the table:
+
+````md
+| Name | Value |
+| --- | --- |
+| Iron | 42 |
+| Gold | 17 |
+{: widths="120,80" }
+````
+
+This keeps the table itself standard markdown while letting GuideNH apply runtime-only preferred column widths.
+
+## Task Lists, Alerts, And Footnotes
+
+GuideNH runtime also supports several useful GFM-style behaviors:
+
+- task lists using `- [ ]` and `- [x]`
+- GitHub alert blockquotes such as `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]`
+- footnote references and definitions
+
+Example:
+
+````md
+- [x] done item
+- [ ] todo item
+
+> [!NOTE]
+> alert body
+
+Footnote ref[^one]
+
+[^one]: tooltip text
+````
+
+Footnote references render as tooltip-style inline markers, and GuideNH appends a compact runtime footnote list near the bottom of the page.
+
+## List Width Customization
+
+Standard markdown lists do not define width controls, but GuideNH runtime containers can constrain them:
+
+````md
+<Column width="220">
+- narrow list item
+- another narrow item
+</Column>
+````
+
+This is currently the recommended way to customize list line width at runtime.
+
+## Reference Links And Images
+
+GuideNH supports CommonMark reference definitions:
+
+````md
+[Guide Ref][doc]
+![Machine][img]
+
+[doc]: ./subpage.md#intro
+[img]: ./test1.png "Machine Diagram"
+````
+
+## Lowercase HTML Runtime Tags
+
+GuideNH runtime supports a focused subset of lowercase HTML-style tags directly:
+
+````md
+Press <kbd>Shift</kbd> + <sub>1</sub>
+
+<a href="./subpage.md" title="Open subpage">Open subpage</a><br clear="all" />
+
+<details open>
+<summary>More</summary>
+
+Body text
+</details>
+````
+
+Other raw HTML fragments still fall back to literal text-style handling instead of browser-grade HTML rendering.
 
 ## MDX Comments
 
@@ -49,6 +257,8 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | `navigation` | map | Adds the page to the navigation tree |
 | `categories` | list of strings | Adds the page to the category index |
 | `item_ids` | list of item references | Makes the page discoverable by `<ItemLink>` |
+| `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
+| `quest_ids` | list of BetterQuesting quest UUID strings | Makes the page discoverable by `<QuestLink>` / `<QuestCard>` and by the open-guide hotkey when a quest is hovered in the BQ GUI. Only consumed when BetterQuesting is loaded. See [Mod Compatibility](Mod-Compatibility) |
 | any other key | any YAML value | Preserved in `additionalProperties` for extensions or tooling |
 
 ### `navigation`
@@ -76,6 +286,11 @@ navigation:
 categories:
   - basics
   - examples
+ore_ids:
+  - ingotIron
+  - oreCopper
+quest_ids:
+  - 01234567-89ab-cdef-0123-456789abcdef
 ```
 
 ## Link Resolution

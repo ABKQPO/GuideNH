@@ -23,6 +23,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.distanthorizons.DistantHorizonsCompat;
 import com.hfstudio.guidenh.guide.scene.support.GuidePreviewStateSupport;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -60,7 +61,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     public GuidebookFakeWorld getOrCreateFakeWorld() {
         if (fakeWorld == null) {
-            fakeWorld = new GuidebookFakeWorld(this);
+            try (var ignored = DistantHorizonsCompat.suppressClientWorldLoadHooks()) {
+                fakeWorld = new GuidebookFakeWorld(this);
+            }
         }
         return fakeWorld;
     }

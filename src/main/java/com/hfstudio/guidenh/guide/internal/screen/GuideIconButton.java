@@ -13,6 +13,7 @@ public class GuideIconButton extends GuiButton {
 
     public static final int WIDTH = 16;
     public static final int HEIGHT = 16;
+    public static final int TEXTURE_SIZE = 256;
 
     public static final ResourceLocation TEX = new ResourceLocation("guidenh", "textures/guide/buttons.png");
 
@@ -82,7 +83,7 @@ public class GuideIconButton extends GuiButton {
         int b = color & 0xFF;
         GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
 
-        float texSize = 64f;
+        float texSize = GuideIconButton.TEXTURE_SIZE;
         float u0 = role.iconSrcX / texSize;
         float v0 = role.iconSrcY / texSize;
         float u1 = (role.iconSrcX + 16) / texSize;

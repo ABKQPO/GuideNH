@@ -13,11 +13,14 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.compat.betterquesting.BqCompat;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
+import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
@@ -65,7 +68,15 @@ public class GuideBuilder {
 
         // Add default indices
         index(new ItemIndex());
+        index(new OreIndex());
         index(new CategoryIndex());
+
+        // Conditionally attach mod-compat indices when their target mod is loaded.
+        // BqCompat itself does not reference any BetterQuesting types, so this stays safe even
+        // when BQ is absent.
+        if (Mods.BetterQuesting.isModLoaded()) {
+            BqCompat.attachQuestIndex(this);
+        }
     }
 
     /**

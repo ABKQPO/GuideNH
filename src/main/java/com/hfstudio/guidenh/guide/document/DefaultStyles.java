@@ -23,6 +23,8 @@ public class DefaultStyles {
         false,
         false,
         false,
+        false,
+        false,
         UNIFORM_FONT,
         SymbolicColor.BODY_TEXT,
         WhiteSpaceMode.NORMAL,

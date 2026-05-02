@@ -12,6 +12,8 @@ guideme.gui.config.ui.sceneEditorSnapFaceEnabled=Scene Editor Snap Faces
 guideme.gui.config.ui.sceneEditorSnapFaceEnabled.tooltip=Controls whether face snapping starts enabled in the scene editor and saves immediately after toggling.
 guideme.gui.config.ui.sceneEditorSnapCenterEnabled=Scene Editor Snap Centers
 guideme.gui.config.ui.sceneEditorSnapCenterEnabled.tooltip=Controls whether center snapping starts enabled in the scene editor and saves immediately after toggling.
+guideme.gui.config.ui.confirmExternalLinks=Confirm External Links
+guideme.gui.config.ui.confirmExternalLinks.tooltip=Controls whether clicking external links in guide markdown shows a confirmation dialog before opening the browser.
 guideme.gui.config.ui.sceneSwapMouseButtons=Swap 3D Preview Mouse Buttons
 guideme.gui.config.ui.sceneSwapMouseButtons.tooltip=Use left drag to rotate and right drag to pan. Disable to restore the legacy controls.
 guideme.gui.config.ui.sceneLayerSliderEnabled=Enable 3D Preview Layer Slider
@@ -73,6 +75,14 @@ guideme.guidebook.CommandStructurePermissionDenied=You need permission level 3 t
 guideme.guidebook.ContentFrom=Content from
 guideme.guidebook.Crafting=Crafting
 guideme.guidebook.FullWidthView=Full Width View
+guideme.guidebook.MarkdownAlertNote=Note
+guideme.guidebook.MarkdownAlertTip=Tip
+guideme.guidebook.MarkdownAlertImportant=Important
+guideme.guidebook.MarkdownAlertWarning=Warning
+guideme.guidebook.MarkdownAlertCaution=Caution
+guideme.guidebook.CodeBlockCopy=Copy code
+guideme.guidebook.CodeBlockCopySuccess=Code block copied to clipboard.
+guideme.guidebook.CodeBlockCopyFailure=Failed to copy code block: %s
 guideme.guidebook.SceneStructureLibHoldShiftCandidates=Hold Shift to show candidate blocks
 guideme.guidebook.SceneStructureLibHintBlockLabel=Hint Block: 
 guideme.guidebook.SceneStructureLibHintDotNumber=Dot %s
@@ -202,3 +212,9 @@ guideme.guidebook.SceneEditorMarkdownInvalidSaveHint=Current markdown is invalid
 
 # Guide name
 guideme.guide_name=GuideNH Example Guide
+
+# BetterQuesting compatibility
+guidenh.compat.bq.locked=[Locked Quest]
+guidenh.compat.bq.hidden=[Hidden Quest]
+guidenh.compat.bq.missing=[Unknown Quest]
+guidenh.compat.bq.open_in_guide=Open in Guide

@@ -17,6 +17,6 @@ public class DivTagCompiler implements TagCompiler {
 
     @Override
     public void compileBlockContext(PageCompiler compiler, LytBlockContainer parent, MdxJsxFlowElement el) {
-        compiler.compileBlockContext(el, parent);
+        compiler.compileBlockTagChildren(el, parent);
     }
 }

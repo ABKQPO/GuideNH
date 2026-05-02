@@ -5,6 +5,8 @@ navigation:
 
 # Markdown Test
 
+This page is a runtime sample sheet for checking what GuideNH currently renders in-game.
+
 ## Inline Formatting
 
 | Markdown                            | Alternative       | Result                            |
@@ -12,11 +14,20 @@ navigation:
 | `*Italic*`                          | `_Italic_`        | *Italic*                          |
 | `**Bold**`                          | `__Bold__`        | **Bold**                          |
 | `~~Strikethrough~~`                 | `~Strikethrough~` | ~~Strikethrough~~                 |
+| `++Underline++`                     |                   | ++Underline++                     |
+| `^^Wavy underline^^`                |                   | ^^Wavy underline^^                |
+| `::Emphasis dots::`                 |                   | ::Emphasis dots::                 |
 | `[Link](http://a.com)`              |                   | [Link](http://a.com)              |
-| `[Relative Link](./index.md)`       |                   | [Link](./index.md)                |
+| `[Relative Link](./index.md)`       |                   | [Relative Link](./index.md)       |
 | `[Absolute Link](guidenh:index.md)` |                   | [Absolute Link](guidenh:index.md) |
 | `` `Inline Code` ``                 |                   | `Inline Code`                     |
 | `![Image](test1.png)`               |                   | ![Image](test1.png)               |
+
+Literal autolinks: visit https://example.com/docs, www.example.org, or guide@example.com
+
+Press <kbd>Shift</kbd> + <sub>1</sub>
+
+<a href="./subpage.md" title="Open subpage">Open subpage</a><br clear="all" />
 
 ## Headings
 
@@ -34,36 +45,67 @@ Headings can be defined by prefixing them with `#`.
 
 ###### Heading 6
 
-## Other Block Elements
-
-Horizontal Rule:
+## Blockquote And Alerts
 
 Markdown:
 
 ```
----
+> Blockquote
 ```
 
 Result:
 
----
+> Blockquote
 
-Markdown:
+> [!NOTE]
+> GitHub-style note alert with the blue accent line and icon.
 
-`> Blockquote`
+> [!TIP]
+> Tip alert with a green accent line and icon.
 
-Result:
+> [!IMPORTANT]
+> Important alert with the purple accent line and icon.
 
-> Blockquote 
+> [!WARNING]
+> Warning alert with the gold accent line and icon.
+
+> [!CAUTION]
+> Caution alert with the red accent line and icon.
+
+Custom runtime quote directives:
+
+```markdown
+> {: title="Custom Quote" color="#638ef1" icon="i" }
+> Custom title, accent color and text icon.
+```
+
+> {: title="Custom Quote" color="#638ef1" icon="i" }
+> Custom title, accent color and text icon.
+
+```markdown
+> {: title="Item Quote" color="#61b75d" iconItem="minecraft:emerald" }
+> ItemStack icon in the quote header.
+```
+
+> {: title="Item Quote" color="#61b75d" iconItem="minecraft:emerald" }
+> ItemStack icon in the quote header.
+
+```markdown
+> {: title="PNG Quote" color="#c79d3e" iconPng="./diamond.png" }
+> PNG icon loaded from guide assets.
+```
+
+> {: title="PNG Quote" color="#c79d3e" iconPng="./diamond.png" }
+> PNG icon loaded from guide assets.
 
 ## Lists
 
 Markdown:
 
-```
+```markdown
 * List
 * List
-* List 
+* List
 
 1. One
 2. Two
@@ -74,17 +116,25 @@ Result:
 
 * List
 * List
-* List 
+* List
 
 1. One
 2. Two
 3. Three
+
+- [x] Task done
+- [ ] Task pending
+
+<Column width="220">
+- constrained list line width example
+- another constrained list item that should wrap earlier
+</Column>
 
 ## Tables
 
 Markdown:
 
-```
+```markdown
 | First Header  | Second Header |
 | ------------- | ------------- |
 | Content Cell  | Content Cell  |
@@ -97,3 +147,468 @@ Result:
 | ------------- | ------------- |
 | Content Cell  | Content Cell  |
 | Content Cell  | Content Cell  |
+
+Alignment check:
+
+| Left | Center | Right |
+| :--- | :----: | ----: |
+| iron |   42   |   128 |
+| gold |   17   |    64 |
+
+Ordinary markdown tables can also use runtime width hints:
+
+| Name | Value |
+| --- | --- |
+| Iron | 42 |
+| Gold | 17 |
+{: widths="120,80" }
+
+Another width-hint sample with three columns:
+
+| Material | Count | Notes |
+| --- | --- | --- |
+| Iron | 42 | base line |
+| Gold | 17 | compact |
+| Diamond | 9 | rare |
+{: widths="130,70,150" }
+
+## Reference Links And Images
+
+[Guide Ref][doc]
+
+![Machine Diagram][img]
+
+[doc]: ./subpage.md#top
+[img]: test1.png "Machine Diagram"
+
+## Details
+
+<details open>
+<summary>More</summary>
+
+Body text inside runtime details.
+</details>
+
+## Code Blocks
+
+Explicit language:
+
+```lua
+local value = 42
+print(value)
+```
+
+Explicit Scala:
+
+```scala
+object Demo extends App {
+  println("scala language label")
+}
+```
+
+Explicit Markdown:
+
+```markdown
+* List
+* List
+* List
+
+1. One
+2. Two
+3. Three
+```
+
+This unlabeled fence should stay a code block and auto-detect Scala:
+
+```
+object Demo extends App {
+  println("auto detected scala")
+}
+```
+
+This unlabeled fence should stay a code block and auto-detect CSV instead of rendering a table:
+
+```
+name,value
+iron,42
+gold,17
+```
+
+Indented code block:
+
+    print("indented code block")
+
+Forced code block viewport height with inner scrolling:
+
+```java width=220 height=96
+line 01
+line 02
+line 03
+line 04
+line 05
+line 06
+line 07
+line 08
+line 09
+line 10
+line 11
+line 12
+line 13
+line 14
+line 15
+line 16
+line 17
+line 18
+line 19
+line 20
+line 21
+line 22
+line 23
+line 24
+```
+
+## CSV Runtime Tables
+
+This explicit `csv` fence renders as a runtime table:
+
+```csv
+name,value
+iron,42
+gold,17
+```
+
+This explicit `csv` fence also applies column width hints:
+
+```csv widths=120,80
+name,value
+iron,42
+gold,17
+```
+
+Quoted widths and `header=false`:
+
+```csv widths="120,80" header=false
+iron,42
+gold,17
+diamond,9
+```
+
+Imported CSV:
+
+<CsvTable src="./markdown-table.csv" />
+
+Imported CSV with widths:
+
+<CsvTable src="./markdown-table.csv" widths="120,80" />
+
+## File Trees
+
+Fenced `tree` / `filetree` blocks render directory-style outlines with real connector lines. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) prefixes are accepted, mixed freely. Payload text supports the usual inline Markdown (links, **bold**, `code`, etc.).
+
+```tree
+project
+├── src
+│   ├── **main**
+│   │   └── [App.java](./index.md)
+│   └── *test*
+└── `README.md`
+```
+
+ASCII variant with optional per-row icons (`{:icon=…}` for plain text, `{:iconPng=path.png}` for an image, `{:iconItem=mod:item[:meta][:{snbt}]}` for an item stack):
+
+```filetree
+world
+|-- {:iconItem=minecraft:grass} grass biome
+|   |-- {:icon=Oak} oak forest
+|   \-- {:icon=Hill} rolling hills
+|-- {:iconItem=minecraft:wool:14} red wool patch
+\-- {:iconPng=test1.png} sample asset
+```
+
+Inside an MDX block tag, the same syntax works through `<FileTree>` with optional `indent` (px per depth, default `14`) and `gap` (extra px between rows, default `0`):
+
+```html
+<FileTree indent="16" gap="2">
+docs
+├── intro.md
+└── advanced
+    ├── tags.md
+    └── recipes.md
+</FileTree>
+```
+
+## Mermaid Mindmaps
+
+Inline Mermaid fence:
+
+```mermaid
+mindmap
+  root((GuideNH))
+    Runtime
+      Markdown
+      CSV
+    Languages
+      Lua
+      Scala
+    Mindmap::icon(fa fa-sitemap)
+      Drag to pan
+      Wheel to zoom
+```
+
+Mindmap with explicit node coordinates:
+
+```mermaid
+mindmap
+  Root((Pinned Root))
+    Branch[Branch]::pos(120,80)
+      Child A
+      Child B::icon(fa fa-code)
+```
+
+Imported Mermaid file:
+
+<Mermaid src="./markdown-mindmap.mmd" />
+
+Fixed runtime Mermaid viewport size:
+
+<Mermaid src="./markdown-mindmap.mmd" width="320" height="220" />
+
+## Footnotes
+
+Footnote ref[^one]
+
+[^one]: tooltip text for the footnote
+
+## Charts
+
+GuideNH ships with five interactive chart tags: `<ColumnChart>` clustered columns, `<BarChart>` horizontal bars, `<LineChart>` line, `<PieChart>` pie, and `<ScatterChart>` XY scatter. All charts show value + percentage tooltips on hover, and highlight the hovered element (column/bar grows, line points pop along the normal, pie slices pop outward, scatter points enlarge).
+
+### Common attributes
+
+* `title`
+* `width` / `height` (defaults: 320 x 200)
+* `background` / `border` colors
+* `titleColor` / `labelColor`
+* `legend` position: `none` / `top` / `bottom` / `left` / `right` (default `top`)
+* `labelPosition`: `none` / `inside` / `outside` / `above` / `below` / `center`
+
+Color formats: `#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`.
+
+### ColumnChart
+
+```mdx
+<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="Iron" data="120,180,150,210" color="#4E79A7"/>
+  <Series name="Gold" data="30,42,55,48" color="#F28E2B"/>
+</ColumnChart>
+```
+
+<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="Iron" data="120,180,150,210" color="#4E79A7"/>
+  <Series name="Gold" data="30,42,55,48" color="#F28E2B"/>
+</ColumnChart>
+
+Extra attributes: `categories` (X-axis labels, comma separated), `barWidthRatio` (default 0.7), `xAxisLabel` / `yAxisLabel` / `yAxisMin` / `yAxisMax` / `yAxisStep` / `yAxisUnit` / `yAxisTickFormat`, `showXGrid={true}` / `showYGrid={true}`.
+
+### BarChart
+
+```mdx
+<BarChart title="Mod downloads (10k)" categories="GTNH,IC2,Thermal,Mekanism" labelPosition="outside">
+  <Series data="320,210,180,150"/>
+</BarChart>
+```
+
+<BarChart title="Mod downloads (10k)" categories="GTNH,IC2,Thermal,Mekanism" labelPosition="outside">
+  <Series data="320,210,180,150"/>
+</BarChart>
+
+Same attributes as ColumnChart but categories are on the Y-axis.
+
+### LineChart
+
+Categorical X:
+
+```mdx
+<LineChart title="Temperature" categories="Mon,Tue,Wed,Thu,Fri" yAxisUnit="C">
+  <Series name="Outdoor" data="5,8,11,9,6" color="#4E79A7"/>
+  <Series name="Indoor" data="18,19,20,21,20" color="#E15759"/>
+</LineChart>
+```
+
+<LineChart title="Temperature" categories="Mon,Tue,Wed,Thu,Fri" yAxisUnit="C">
+  <Series name="Outdoor" data="5,8,11,9,6" color="#4E79A7"/>
+  <Series name="Indoor" data="18,19,20,21,20" color="#E15759"/>
+</LineChart>
+
+Numeric X:
+
+```mdx
+<LineChart title="Signal Decay" numericX={true} xAxisLabel="Distance (m)" yAxisLabel="Strength (dB)">
+  <Series name="Measured" points="0:0,5:-3,10:-7,20:-12,40:-20"/>
+</LineChart>
+```
+
+<LineChart title="Signal Decay" numericX={true} xAxisLabel="Distance (m)" yAxisLabel="Strength (dB)">
+  <Series name="Measured" points="0:0,5:-3,10:-7,20:-12,40:-20"/>
+</LineChart>
+
+Extra: `numericX={true}` enables a numeric X axis; `showPoints={false}` hides point markers.
+
+### PieChart
+
+```mdx
+<PieChart title="Resource Share" labelPosition="outside" legend="right">
+  <Slice label="Iron" value="45" color="#4E79A7"/>
+  <Slice label="Copper" value="25" color="#F28E2B"/>
+  <Slice label="Gold" value="15" color="#E15759"/>
+  <Slice label="Diamond" value="10"/>
+  <Slice label="Other" value="5"/>
+</PieChart>
+```
+
+<PieChart title="Resource Share" labelPosition="outside" legend="right">
+  <Slice label="Iron" value="45" color="#4E79A7"/>
+  <Slice label="Copper" value="25" color="#F28E2B"/>
+  <Slice label="Gold" value="15" color="#E15759"/>
+  <Slice label="Diamond" value="10"/>
+  <Slice label="Other" value="5"/>
+</PieChart>
+
+Extra: `startAngle` (default -90, i.e. 12 o'clock); `clockwise={false}` to reverse direction.
+
+### ScatterChart
+
+```mdx
+<ScatterChart title="Height-Weight" xAxisLabel="Height (cm)" yAxisLabel="Weight (kg)">
+  <Series name="Sample A" points="160:55,165:58,170:65,175:70,180:78" color="#4E79A7"/>
+  <Series name="Sample B" points="158:52,168:62,172:68,178:75" color="#59A14F"/>
+</ScatterChart>
+```
+
+<ScatterChart title="Height-Weight" xAxisLabel="Height (cm)" yAxisLabel="Weight (kg)">
+  <Series name="Sample A" points="160:55,165:58,170:65,175:70,180:78" color="#4E79A7"/>
+  <Series name="Sample B" points="158:52,168:62,172:68,178:75" color="#59A14F"/>
+</ScatterChart>
+
+### Combo: ColumnChart + LineSeries + PieInset
+
+`<ColumnChart>` and `<BarChart>` accept extra `<LineSeries>` (line overlay sharing the value axis) and `<PieInset>` (small corner pie) children, letting one chart combine several styles.
+
+The pie inset's `position` attribute accepts `topRight` / `topLeft` / `bottomRight` / `bottomLeft` (corner overlay) or `right` (the chart auto-extends its width and the pie occupies a dedicated outside column).
+
+Line overlays share hover/tooltip behavior with the underlying columns/bars: hovering a line point thickens its adjacent segments, enlarges the point, and shows a tooltip with the series name and value.
+
+```mdx
+<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
+  <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
+  <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
+  <PieInset size="60" position="right" title="Total share">
+    <Slice label="Iron" value="225" color="#a0a0a0"/>
+    <Slice label="Gold" value="110" color="#e0c060"/>
+  </PieInset>
+</ColumnChart>
+```
+
+<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
+  <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
+  <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
+  <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
+  <PieInset size="60" position="right" title="Total share">
+    <Slice label="Iron" value="225" color="#a0a0a0"/>
+    <Slice label="Gold" value="110" color="#e0c060"/>
+  </PieInset>
+</ColumnChart>
+
+## Function Graphs
+
+Desmos-style interactive function graphs come in three flavours: a `funcgraph` fenced
+block, the `<FunctionGraph>` MDX container, and the `<Function>` shorthand for a
+single curve. All variants share the same panel: configurable size, X/Y range,
+optional grid/axes, automatic quadrant expansion, and per-curve domain limits.
+Hold the mouse on a curve and drag to scrub a labelled point along it; the
+tooltip stays anchored above the point and flips below when there is no room.
+
+Any curve given a `label` is also listed in a legend rendered just below the
+panel. Each entry is a small colour swatch followed by the label; entries flow
+left-to-right and wrap onto a new row whenever the next entry would not fit.
+
+### Fenced block
+
+The first line of a `funcgraph` fence sets panel-wide attributes (`width`,
+`height`, `xRange=a..b` / `xMin` / `xMax` / `xStep`, `yRange` / `yMin` / `yMax` /
+`yStep`, `quadrants=1,2,3,4` or `all`, `title`, `background`, `border`,
+`axisColor`, `gridColor`, `showGrid`, `showAxes`). Each subsequent non-blank line
+is either an expression with optional pipe-delimited attributes, an explicit
+point `:x,y`, or a plot-anchored point `@plot=N atX=v` / `@plot=N atY=v`.
+Comments start with `#`.
+
+```funcgraph
+width=360 height=220 xRange=-pi..pi yRange=-2..2 quadrants=all
+sin(x)        | color=#ff5566 label="sin"
+cos(x)        | color=#3399ff label="cos"
+x/2           | color=#88cc77 domain=-pi..pi
+:0,0
+@plot=0 atX=1.5708
+```
+
+### `<FunctionGraph>` container
+
+The container accepts the same panel attributes as the fence header. Children
+are `<Plot expr="..." />` (or `<Function expr="..." />`) for curves and
+`<Point ... />` for marked points. Plot attributes: `expr`, `inverse={true}` to
+treat the expression as `x = f(y)`, `domain="a..b"` or comma-separated clauses
+like `x>=0, x<=pi`, `color`, `label`. Point attributes: explicit `x` + `y`, or
+`plot="N"` plus either `atX="v"` or `atY="v"` to anchor on a curve.
+
+```mdx
+<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all">
+  <Plot expr="sin(x)" color="#ff5566" label="sin x"/>
+  <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
+  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1"/>
+  <Point x="0" y="0"/>
+  <Point plot="0" atX="1.5708"/>
+</FunctionGraph>
+```
+
+<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all">
+  <Plot expr="sin(x)" color="#ff5566" label="sin x"/>
+  <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
+  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1"/>
+  <Point x="0" y="0"/>
+  <Point plot="0" atX="1.5708"/>
+</FunctionGraph>
+
+### `<Function>` shorthand
+
+When you only need a single curve, `<Function>` skips the wrapper:
+
+```mdx
+<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff"/>
+```
+
+<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff"/>
+
+### Expression syntax
+
+* Operators: `+ - * / %` plus `^` (right-associative) and unary minus.
+* Postfix `!` is factorial, extended to real numbers via the gamma function
+  (negative integers return NaN).
+* `|expr|` is absolute value; `√`/`sqrt` and `∛`/`cbrt` are roots.
+* Implicit multiplication: `2x`, `2pi`, `(x+1)(x-1)`.
+* Built-in functions: `sin cos tan asin acos atan sinh cosh tanh exp ln log
+  log2 log10 sqrt cbrt abs sign floor ceil round`, plus two-arg `atan2 min max
+  pow hypot mod`.
+* Constants: `pi`, `tau`, `e`, `phi`.
+* Domain clauses (`domain="..."`): `min..max` shorthand for x bounds; clauses
+  like `x>=0`, `x<5` separated by commas; constants accepted on either side.
+* Set `inverse={true}` (MDX) or `inverse=true` (fence attrs) to plot
+  `x = f(y)` — the same expression is evaluated against `y` and the curve is
+  rotated.
+
+### Default quadrants
+
+If you omit `xRange` / `yRange` and `quadrants`, the panel starts in quadrant 1
+(`x>=0`, `y>=0`). When sampling reveals negative `y` values and the y-bounds
+were not set explicitly, the panel automatically expands to include quadrants 3
+and 4 so the curves stay visible.
