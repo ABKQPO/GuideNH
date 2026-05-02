@@ -16,12 +16,13 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Generates static HTML and SVG markup for chart, function-graph, file-tree,
  * mermaid-mindmap, and CSV table elements used in the static site export.
  */
-final class GuideSiteGraphRenderer {
+public final class GuideSiteGraphRenderer {
 
     // Chart default dimensions
     private static final int CHART_DEFAULT_W = 320;
@@ -127,8 +128,8 @@ final class GuideSiteGraphRenderer {
     private static final int MM_CANVAS_PAD = 12;
     private static final int MM_LINE_HEIGHT = 14;
     private static final int MM_ROOT_LINE_HEIGHT = 16;
-    private static final int MM_CHAR_WIDTH = 7;        // Approx Pixeloid Sans @ 12px
-    private static final int MM_ROOT_CHAR_WIDTH = 8;   // Bold root text
+    private static final int MM_CHAR_WIDTH = 7; // Approx Pixeloid Sans @ 12px
+    private static final int MM_ROOT_CHAR_WIDTH = 8; // Bold root text
     private static final int MM_ACCENT_STRIPE = 3;
     private static final int MM_MIN_NODE_WIDTH = 64;
 
@@ -168,7 +169,8 @@ final class GuideSiteGraphRenderer {
 
     static String renderMermaidTree(MermaidMindmapDocument doc) {
         if (doc == null || doc.getRoot() == null) {
-            return "<svg class=\"guide-mermaid-canvas\" width=\"100\" height=\"40\"></svg>";
+            return "<div class=\"guide-mermaid-pan\" data-guide-pannable>"
+                + "<svg class=\"guide-mermaid-canvas\" width=\"100\" height=\"40\"></svg></div>";
         }
         MmLayoutNode root = buildMmLayout(doc.getRoot(), true);
         measureMmTopDown(root);
@@ -180,6 +182,8 @@ final class GuideSiteGraphRenderer {
         int totalH = contentH + MM_CANVAS_PAD * 2;
 
         StringBuilder svg = new StringBuilder();
+        // Outer pan/zoom wrapper consumed by app.js (installMermaidPanZoom).
+        svg.append("<div class=\"guide-mermaid-pan\" data-guide-pannable>");
         svg.append("<svg class=\"guide-mermaid-canvas\" xmlns=\"http://www.w3.org/2000/svg\" width=\"")
             .append(totalW)
             .append("\" height=\"")
@@ -207,7 +211,7 @@ final class GuideSiteGraphRenderer {
             .append(")\">");
         renderMmConnectors(svg, root);
         renderMmNodes(svg, root);
-        svg.append("</g></svg>");
+        svg.append("</g></svg></div>");
         return svg.toString();
     }
 
@@ -378,26 +382,13 @@ final class GuideSiteGraphRenderer {
             shape = MermaidMindmapNodeShape.DEFAULT;
         }
         int strokeWidth = shape == MermaidMindmapNodeShape.BANG ? 2 : 1;
-        int rx;
-        switch (shape) {
-            case ROUNDED:
-            case CIRCLE:
-                rx = Math.min(node.height, node.width) / 2;
-                break;
-            case BANG:
-                rx = 4;
-                break;
-            case CLOUD:
-            case HEXAGON:
-                rx = 8;
-                break;
-            case SQUARE:
-                rx = 0;
-                break;
-            default:
-                rx = 3;
-                break;
-        }
+        int rx = switch (shape) {
+            case ROUNDED, CIRCLE -> Math.min(node.height, node.width) / 2;
+            case BANG -> 4;
+            case CLOUD, HEXAGON -> 8;
+            case SQUARE -> 0;
+            default -> 3;
+        };
         svg.append("<rect x=\"")
             .append(node.x)
             .append("\" y=\"")
@@ -441,18 +432,13 @@ final class GuideSiteGraphRenderer {
                 accent = 0xFF8B949E;
             }
         }
-        switch (node.source.getShape()) {
-            case CIRCLE:
-                return 0xFF7DCFFF;
-            case HEXAGON:
-                return 0xFFE0AF68;
-            case CLOUD:
-                return 0xFF73DACA;
-            case BANG:
-                return 0xFFF7768E;
-            default:
-                return accent;
-        }
+        return switch (node.source.getShape()) {
+            case CIRCLE -> 0xFF7DCFFF;
+            case HEXAGON -> 0xFFE0AF68;
+            case CLOUD -> 0xFF73DACA;
+            case BANG -> 0xFFF7768E;
+            default -> accent;
+        };
     }
 
     // ===== CSV Table =====
@@ -1175,8 +1161,13 @@ final class GuideSiteGraphRenderer {
                     .append("\" r=\"3\" fill=\"")
                     .append(fill)
                     .append("\"><title>")
-                    .append(esc((s.name.isEmpty() ? "" : s.name + ": ") + "(" + formatNum(s.xs[i]) + ", "
-                        + formatNum(s.ys[i]) + ")"))
+                    .append(
+                        esc(
+                            (s.name.isEmpty() ? "" : s.name + ": ") + "("
+                                + formatNum(s.xs[i])
+                                + ", "
+                                + formatNum(s.ys[i])
+                                + ")"))
                     .append("</title></circle>");
             }
         }
@@ -1269,6 +1260,27 @@ final class GuideSiteGraphRenderer {
         int plotH = Math.max(1, bottom - top);
 
         StringBuilder svg = openSvg(w, h, "guide-function-graph", bgColor, borderColor);
+        // Expose plot domain + plot rect so client-side JS (installChartHoverTooltips)
+        // can map cursor pixels → data x/y for live (x, y) tooltips.
+        // We can't add attrs to the already-emitted <svg> tag easily without rewriting
+        // openSvg, so we embed them as <metadata> entries the JS reads.
+        svg.append("<metadata data-plot-domain=\"true\" data-x-min=\"")
+            .append(xMin)
+            .append("\" data-x-max=\"")
+            .append(xMax)
+            .append("\" data-y-min=\"")
+            .append(yMin)
+            .append("\" data-y-max=\"")
+            .append(yMax)
+            .append("\" data-plot-left=\"")
+            .append(left)
+            .append("\" data-plot-right=\"")
+            .append(right)
+            .append("\" data-plot-top=\"")
+            .append(top)
+            .append("\" data-plot-bottom=\"")
+            .append(bottom)
+            .append("\"></metadata>");
 
         // Clip path for curve rendering
         svg.append("<defs><clipPath id=\"gc\"><rect x=\"")
@@ -1448,8 +1460,11 @@ final class GuideSiteGraphRenderer {
                             .append(
                                 esc(
                                     (pt.getLabel() != null && !pt.getLabel()
-                                        .isEmpty() ? pt.getLabel() + ": " : "") + "(" + formatNum(pxVal) + ", "
-                                        + formatNum(pyVal) + ")"))
+                                        .isEmpty() ? pt.getLabel() + ": " : "") + "("
+                                        + formatNum(pxVal)
+                                        + ", "
+                                        + formatNum(pyVal)
+                                        + ")"))
                             .append("</title></circle>");
                     }
                 }
@@ -1465,7 +1480,8 @@ final class GuideSiteGraphRenderer {
         flushPolyline(svg, pts, stroke, null);
     }
 
-    private static void flushPolyline(StringBuilder svg, StringBuilder pts, String stroke, @org.jetbrains.annotations.Nullable String tip) {
+    private static void flushPolyline(StringBuilder svg, StringBuilder pts, String stroke,
+        @Nullable String tip) {
         svg.append("<polyline class=\"guide-chart-shape\" points=\"")
             .append(pts)
             .append("\" stroke=\"")

@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -24,6 +25,8 @@ import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstDottedUnderline;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstUnderline;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstWavyUnderline;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
@@ -540,9 +543,10 @@ public class GuideSiteHtmlCompiler {
         StringBuilder cls = new StringBuilder("guide-quote");
         if (directive.alertType() != null) {
             cls.append(" guide-alert guide-alert-")
-                .append(directive.alertType()
-                    .name()
-                    .toLowerCase(Locale.ROOT));
+                .append(
+                    directive.alertType()
+                        .name()
+                        .toLowerCase(Locale.ROOT));
         }
         StringBuilder style = new StringBuilder();
         ColorValue accent = directive.accentColor();
@@ -565,10 +569,11 @@ public class GuideSiteHtmlCompiler {
         if (title != null && !title.isEmpty()) {
             html.append("<div class=\"guide-quote-title\">");
             QuoteIconSpec icon = directive.icon();
-            if (icon != null && icon.kind() == MarkdownRuntimeBlocks.QuoteIconKind.TEXT) {
-                html.append("<span class=\"guide-quote-icon\">")
-                    .append(escapeHtml(icon.value()))
-                    .append("</span>");
+            if (icon != null) {
+                String iconHtml = renderQuoteIcon(icon, templates, defaultNamespace, currentPageId, sceneResolver);
+                if (iconHtml != null && !iconHtml.isEmpty()) {
+                    html.append(iconHtml);
+                }
             }
             html.append("<span class=\"guide-quote-title-text\">")
                 .append(escapeHtml(title))
@@ -578,6 +583,46 @@ public class GuideSiteHtmlCompiler {
             .append(compileChildren(blockquote.children(), templates, defaultNamespace, currentPageId, sceneResolver))
             .append("</div></blockquote>");
         return html.toString();
+    }
+
+    /**
+     * Render the {@code icon=} / {@code iconPng=} / {@code iconItem=} marker shown in the quote
+     * title. Falls back to a plain text glyph when the requested icon kind cannot be resolved so
+     * the heading never collapses to nothing.
+     */
+    private String renderQuoteIcon(QuoteIconSpec icon, GuideSiteTemplateRegistry templates, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        String value = icon.value();
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        switch (icon.kind()) {
+            case TEXT:
+                return "<span class=\"guide-quote-icon\">" + escapeHtml(value) + "</span>";
+            case PNG: {
+                String resolved = imageResolver.resolve(value, currentPageId);
+                if (resolved == null || resolved.isEmpty()) {
+                    return "<span class=\"guide-quote-icon\">" + escapeHtml(value) + "</span>";
+                }
+                return "<span class=\"guide-quote-icon guide-quote-icon-image\"><img src=\"" + escapeAttribute(resolved)
+                    + "\" alt=\"\" decoding=\"async\"></span>";
+            }
+            case ITEM: {
+                // Synthesize an <ItemImage id="..." /> tag and dispatch through the MDX renderer so
+                // the icon is exported with the same path/tooltip handling as inline ItemImages.
+                List<MdxJsxAttributeNode> attrs = new ArrayList<>();
+                attrs.add(new MdxJsxAttribute("id", value));
+                MdxJsxFlowElement synthetic = new MdxJsxFlowElement("ItemImage", attrs);
+                String rendered = mdxTagRenderer
+                    .render(synthetic, defaultNamespace, currentPageId, templates, sceneResolver, this);
+                if (rendered == null || rendered.isEmpty()) {
+                    return "<span class=\"guide-quote-icon\">" + escapeHtml(value) + "</span>";
+                }
+                return "<span class=\"guide-quote-icon guide-quote-icon-item\">" + rendered + "</span>";
+            }
+            default:
+                return "<span class=\"guide-quote-icon\">" + escapeHtml(value) + "</span>";
+        }
     }
 
     private static String toCssColor(ColorValue color) {

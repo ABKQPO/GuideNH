@@ -10,10 +10,15 @@ final class GuideSiteItemHtml {
     private GuideSiteItemHtml() {}
 
     static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass) {
-        appendIcon(html, item, extraClass, 1f);
+        appendIcon(html, item, extraClass, 1f, false);
     }
 
     static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass, float scale) {
+        appendIcon(html, item, extraClass, scale, false);
+    }
+
+    static void appendIcon(StringBuilder html, GuideSiteExportedItem item, @Nullable String extraClass, float scale,
+        boolean nativeTooltip) {
         String classes = classes("item-icon", extraClass);
         String label = item.displayName()
             .isEmpty() ? item.itemId() : item.displayName();
@@ -22,7 +27,11 @@ final class GuideSiteItemHtml {
         // instead of being silently ignored. Floor at 1px to avoid invisible icons.
         float effectiveScale = scale > 0f ? scale : 1f;
         int size = Math.max(1, Math.round(BASE_ICON_PX * effectiveScale));
+        String titleAttr = nativeTooltip ? " title=\"" + escapeHtml(label) + "\"" : "";
         if (item.hasIcon()) {
+            // Emit both width/height attributes AND an inline `style` declaration so the chosen
+            // size actually wins against the global `.item-icon { width: calc(...) }` CSS rule
+            // (CSS class beats HTML width attributes by specificity, but inline style wins).
             html.append("<img class=\"")
                 .append(escapeHtml(classes))
                 .append("\" src=\"")
@@ -35,7 +44,13 @@ final class GuideSiteItemHtml {
                 .append(size)
                 .append("\" height=\"")
                 .append(size)
-                .append("\" decoding=\"async\">");
+                .append("\" style=\"width:")
+                .append(size)
+                .append("px;height:")
+                .append(size)
+                .append("px;\"")
+                .append(titleAttr)
+                .append(" decoding=\"async\">");
             return;
         }
 
@@ -54,7 +69,9 @@ final class GuideSiteItemHtml {
                 .append(size)
                 .append("px;");
         }
-        html.append("\">")
+        html.append("\"")
+            .append(titleAttr)
+            .append(">")
             .append(escapeHtml(label))
             .append("</span>");
     }

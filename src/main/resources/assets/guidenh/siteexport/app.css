@@ -190,6 +190,23 @@ blockquote {
     font-size: 0.95em;
 }
 
+.guide-quote-icon-image img {
+    width: calc(8px * var(--gui-scale));
+    height: calc(8px * var(--gui-scale));
+    image-rendering: pixelated;
+    vertical-align: middle;
+}
+
+.guide-quote-icon-item {
+    /* Suppress the inline-item wrapper's font-size scaling so the synthesized
+       <ItemImage> sits flush in the heading line. */
+    line-height: 1;
+}
+
+.guide-quote-icon-item .guide-inline-item {
+    vertical-align: middle;
+}
+
 .guide-quote-body > :first-child {
     margin-top: 0;
 }
@@ -232,7 +249,12 @@ p {
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
     grid-template-rows: var(--header-height) 1fr;
-    min-height: 100vh;
+    /* Lock the layout to the viewport so the sidebar (.guide-sidebar) and the main
+       column (.guide-content) each become their own independent scroll containers.
+       Previously this used `min-height: 100vh`, which let the whole grid grow with
+       the article and made the sidebar scroll along with the document. */
+    height: 100vh;
+    overflow: hidden;
 }
 
 .guide-header {
@@ -503,6 +525,15 @@ p {
     display: none;
 }
 
+/* Chart-cursor tooltip: reuse the MC popup chrome but allow line breaks so the
+   function-graph tooltip can show "expr\nx = ..\ny = .." stacked. */
+.guide-chart-tooltip-popup {
+    white-space: pre-line;
+    color: var(--color-body-text);
+    font-family: var(--minecraft-font), monospace;
+    font-size: 0.85rem;
+}
+
 .guide-tooltip {
     cursor: help;
     border-bottom: calc(1px * var(--gui-scale)) dotted var(--color-body-text);
@@ -729,10 +760,20 @@ p {
     box-sizing: border-box;
     border: calc(1px * var(--gui-scale)) solid;
     image-rendering: pixelated;
+    /* Fallback solid background so the slot always shows a frame even if `slot.png`
+       failed to export or the browser is still loading the border-image. */
+    background-color: rgba(139, 139, 139, 0.35);
     border-image-source: url('textures/slot.png');
     border-image-slice: 1 fill;
     position: relative;
     vertical-align: bottom;
+}
+
+.empty-ingredient-box {
+    /* Ensure the empty slot always retains its declared box size even when its
+       grid parent is configured with stretchable rows. */
+    min-width: calc(18px * var(--gui-scale));
+    min-height: calc(18px * var(--gui-scale));
 }
 
 .ingredient-box:hover {
@@ -992,5 +1033,57 @@ p {
     overflow: visible;
     margin-bottom: 0.8em;
     font-family: var(--minecraft-font), monospace;
+}
+
+/* The renderer emits SVG with `font-size="8"` etc. as XML attributes which are
+   readable but tiny once the chart canvas is enlarged. CSS rules win against
+   presentation attributes, so we scale up the typography and stroke weights here
+   in one place rather than threading sizes through every render call site. */
+.guide-chart text,
+.guide-function-graph text {
+    font-size: 16px;
+}
+
+.guide-function-graph text {
+    font-size: 18px;
+}
+
+.guide-function-graph polyline,
+.guide-chart polyline {
+    stroke-width: 3;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.guide-function-graph circle.guide-chart-shape,
+.guide-chart circle.guide-chart-shape {
+    /* Marked points: bigger and easier to hover. */
+    r: 6;
+}
+
+/* Pannable / zoomable mindmap viewport (see GuideSiteGraphRenderer.renderMermaidTree
+   and installMermaidPanZoom in app.js). */
+.guide-mermaid-pan {
+    position: relative;
+    overflow: hidden;
+    max-width: 100%;
+    margin: 0.6em 0;
+    cursor: grab;
+    touch-action: none;
+    /* Cap the visible area so very tall trees don't dominate the page. */
+    max-height: 70vh;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.guide-mermaid-pan.is-grabbing {
+    cursor: grabbing;
+}
+
+.guide-mermaid-pan > .guide-mermaid-canvas {
+    transform-origin: 0 0;
+    will-change: transform;
+    margin: 0;
+    max-width: none;
 }
 

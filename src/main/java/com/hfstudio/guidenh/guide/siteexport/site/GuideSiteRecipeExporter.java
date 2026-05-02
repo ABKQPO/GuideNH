@@ -91,7 +91,9 @@ public class GuideSiteRecipeExporter {
         html.append("<div class=\"recipe-result ingredient-box\" data-result-item-id=\"")
             .append(escapeHtml(resultItem.itemId()))
             .append("\">");
-        GuideSiteItemHtml.appendIcon(html, resultItem, null);
+        // Emit the native `title=` tooltip so hovering the result slot reports the
+        // ItemStack display name even though we don't register a full template.
+        GuideSiteItemHtml.appendIcon(html, resultItem, null, 1f, true);
         html.append("</div>");
         html.append("</section>");
         return html.toString();
@@ -115,7 +117,10 @@ public class GuideSiteRecipeExporter {
             html.append(">");
             for (int i = 0; i < safeCandidates.size(); i++) {
                 int beforeIcon = html.length();
-                GuideSiteItemHtml.appendIcon(html, safeCandidates.get(i), null);
+                // `nativeTooltip=true` so each cycling alternate carries its own
+                // hover tooltip; whichever is `.current` (visible) at the moment
+                // is the one whose title shows up on hover.
+                GuideSiteItemHtml.appendIcon(html, safeCandidates.get(i), null, 1f, true);
                 if (safeCandidates.size() > 1 && i == 0) {
                     // Tag the first candidate as visible up-front; the JS cycler will rotate it on a timer.
                     int classAttr = html.indexOf("class=\"", beforeIcon);

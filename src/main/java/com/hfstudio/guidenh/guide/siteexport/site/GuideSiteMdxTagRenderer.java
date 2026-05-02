@@ -820,6 +820,28 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             }
         }
         List<FunctionPlot> plots = parsePlotChildren(element);
+        // Support self-closing usage like <Function expr="x^2" xRange="-2..4" />: when no nested
+        // <Plot>/<Function> children exist but the outer element itself carries an expression,
+        // treat the outer element as a single plot so the curve renders.
+        if (plots.isEmpty()) {
+            String selfExpr = readOptional(element, "expr");
+            if (selfExpr != null && !selfExpr.trim()
+                .isEmpty()) {
+                String trimmed = selfExpr.trim();
+                boolean inverse = readBoolean(element, "inverse", false);
+                int color = parseArgbAttr(element, "color", FunctionGraphPalette.color(0));
+                String label = readOptional(element, "label");
+                DomainPredicate domain = DomainPredicate.parse(readOptional(element, "domain"));
+                plots.add(
+                    new FunctionPlot(
+                        trimmed,
+                        FunctionExprParser.parse(trimmed, inverse ? 1 : 0),
+                        inverse,
+                        domain,
+                        color,
+                        label != null ? label : trimmed));
+            }
+        }
         // Auto Y range when not specified
         if (Double.isNaN(yMin) || Double.isNaN(yMax)) {
             double autoYMin = Double.MAX_VALUE;
