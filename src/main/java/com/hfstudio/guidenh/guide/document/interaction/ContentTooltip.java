@@ -6,6 +6,8 @@ import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.siteexport.ExportableResourceProvider;
+import com.hfstudio.guidenh.guide.siteexport.ResourceExporter;
 
 public class ContentTooltip implements GuideTooltip {
 
@@ -34,6 +36,11 @@ public class ContentTooltip implements GuideTooltip {
 
     public LytRect getLayoutBox() {
         return layoutBox;
+    }
+
+    @Override
+    public void exportResources(ResourceExporter exporter) {
+        ExportableResourceProvider.visit(content, exporter);
     }
 
     public static void prepareEmbeddedScenes(LytNode node) {

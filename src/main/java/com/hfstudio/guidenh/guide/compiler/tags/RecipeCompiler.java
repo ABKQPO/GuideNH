@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -14,7 +15,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -236,18 +236,23 @@ public class RecipeCompiler extends BlockTagCompiler {
      */
     public static List<Object> filterHandlers(List<Object> raw, @Nullable String nameFilter, @Nullable String idFilter,
         int order) {
+        return filterHandlers(raw, nameFilter, idFilter, order, NEI_HANDLER_METADATA_READER);
+    }
+
+    public static List<Object> filterHandlers(List<Object> raw, @Nullable String nameFilter, @Nullable String idFilter,
+        int order, HandlerMetadataReader metadataReader) {
         if (raw.isEmpty()) return raw;
         List<Object> out = new ArrayList<>(raw.size());
         String nameLower = nameFilter != null ? nameFilter.toLowerCase(Locale.ROOT) : null;
         String idLower = idFilter != null ? idFilter.toLowerCase(Locale.ROOT) : null;
         for (Object h : raw) {
             if (nameLower != null) {
-                String n = NeiRecipeLookup.lookupHandlerName(h);
+                String n = metadataReader.handlerName(h);
                 if (n == null || !n.toLowerCase(Locale.ROOT)
                     .contains(nameLower)) continue;
             }
             if (idLower != null) {
-                String oid = NeiRecipeLookup.lookupOverlayIdentifier(h);
+                String oid = metadataReader.overlayIdentifier(h);
                 boolean match = oid != null && oid.toLowerCase(Locale.ROOT)
                     .equals(idLower);
                 if (!match) {
@@ -286,8 +291,16 @@ public class RecipeCompiler extends BlockTagCompiler {
      * {@code negated == true} means "no stack matches this ref" (for ingredient-slot lists) or "the
      * target stack does not match this ref" (for single-stack matching).
      */
-    @Desugar
-    private record FilterTerm(IdUtils.ParsedItemRef ref, boolean negated) {}
+    private static final class FilterTerm {
+
+        private final IdUtils.ParsedItemRef ref;
+        private final boolean negated;
+
+        private FilterTerm(IdUtils.ParsedItemRef ref, boolean negated) {
+            this.ref = ref;
+            this.negated = negated;
+        }
+    }
 
     /**
      * Disjunctive-normal-form filter expression:
@@ -301,15 +314,62 @@ public class RecipeCompiler extends BlockTagCompiler {
      * Empty expression (from an absent/blank attribute) means "no filter" and is cheap to check
      * via {@link #isEmpty()}.
      */
-    @Desugar
-    private record FilterExpr(List<List<FilterTerm>> orGroups) {
+    public static final class FilterExpr {
 
-        static final FilterExpr EMPTY = new FilterExpr(java.util.Collections.emptyList());
+        private static final FilterExpr EMPTY = new FilterExpr(java.util.Collections.<List<FilterTerm>>emptyList());
+        private final List<List<FilterTerm>> orGroups;
 
-        boolean isEmpty() {
+        private FilterExpr(List<List<FilterTerm>> orGroups) {
+            this.orGroups = orGroups;
+        }
+
+        public boolean isEmpty() {
             return orGroups.isEmpty();
         }
     }
+
+    public interface HandlerMetadataReader {
+
+        @Nullable
+        String handlerName(Object handler);
+
+        @Nullable
+        String overlayIdentifier(Object handler);
+    }
+
+    public interface HandlerRecipeAccess {
+
+        List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex);
+
+        @Nullable
+        NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex);
+    }
+
+    private static final HandlerMetadataReader NEI_HANDLER_METADATA_READER = new HandlerMetadataReader() {
+
+        @Override
+        public @Nullable String handlerName(Object handler) {
+            return NeiRecipeLookup.lookupHandlerName(handler);
+        }
+
+        @Override
+        public @Nullable String overlayIdentifier(Object handler) {
+            return NeiRecipeLookup.lookupOverlayIdentifier(handler);
+        }
+    };
+
+    private static final HandlerRecipeAccess NEI_HANDLER_RECIPE_ACCESS = new HandlerRecipeAccess() {
+
+        @Override
+        public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
+            return NeiRecipeLookup.readIngredientSlots(handler, recipeIndex);
+        }
+
+        @Override
+        public @Nullable NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex) {
+            return NeiRecipeLookup.readResultSlot(handler, recipeIndex);
+        }
+    };
 
     /**
      * Parse an {@code input} / {@code output} attribute supporting OR (',') + AND ('&') + NOT ('!').
@@ -320,6 +380,21 @@ public class RecipeCompiler extends BlockTagCompiler {
     public static FilterExpr parseFilterExpr(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el,
         String attr, String defaultNs) {
         String raw = trimToNull(MdxAttrs.getString(compiler, parent, el, attr, null));
+        return parseFilterExpr(raw, attr, defaultNs, new Consumer<String>() {
+
+            @Override
+            public void accept(String message) {
+                parent.appendError(compiler, message, el);
+            }
+        });
+    }
+
+    public static FilterExpr parseFilterExpr(@Nullable String raw, String defaultNs) {
+        return parseFilterExpr(raw, null, defaultNs, null);
+    }
+
+    private static FilterExpr parseFilterExpr(@Nullable String raw, @Nullable String attr, String defaultNs,
+        @Nullable Consumer<String> errorSink) {
         if (raw == null) return FilterExpr.EMPTY;
         List<List<FilterTerm>> groups = new ArrayList<>();
         for (String orPart : raw.split(",")) {
@@ -335,7 +410,9 @@ public class RecipeCompiler extends BlockTagCompiler {
                     token = token.substring(1)
                         .trim();
                     if (token.isEmpty()) {
-                        parent.appendError(compiler, "Empty " + attr + " negation token '!' has no id", el);
+                        if (errorSink != null) {
+                            errorSink.accept("Empty " + filterAttrName(attr) + " negation token '!' has no id");
+                        }
                         continue;
                     }
                 }
@@ -343,13 +420,19 @@ public class RecipeCompiler extends BlockTagCompiler {
                     IdUtils.ParsedItemRef p = IdUtils.parseItemRef(token, defaultNs);
                     if (p != null) andTerms.add(new FilterTerm(p, negated));
                 } catch (IllegalArgumentException e) {
-                    parent
-                        .appendError(compiler, "Malformed " + attr + " filter '" + token + "': " + e.getMessage(), el);
+                    if (errorSink != null) {
+                        errorSink
+                            .accept("Malformed " + filterAttrName(attr) + " filter '" + token + "': " + e.getMessage());
+                    }
                 }
             }
             if (!andTerms.isEmpty()) groups.add(andTerms);
         }
         return groups.isEmpty() ? FilterExpr.EMPTY : new FilterExpr(groups);
+    }
+
+    private static String filterAttrName(@Nullable String attr) {
+        return attr == null || attr.isEmpty() ? "filter" : attr;
     }
 
     /**
@@ -396,11 +479,11 @@ public class RecipeCompiler extends BlockTagCompiler {
     public static boolean evalSlots(List<NeiRecipeLookup.Slot> slots, FilterExpr expr) {
         if (expr.isEmpty()) return true;
         if (slots == null) return false;
-        for (List<FilterTerm> group : expr.orGroups()) {
+        for (List<FilterTerm> group : expr.orGroups) {
             boolean allOk = true;
             for (FilterTerm t : group) {
-                boolean present = slotsContain(slots, t.ref());
-                if (present == t.negated()) {
+                boolean present = slotsContain(slots, t.ref);
+                if (present == t.negated) {
                     allOk = false;
                     break;
                 }
@@ -414,11 +497,11 @@ public class RecipeCompiler extends BlockTagCompiler {
     public static boolean evalResultSlot(@Nullable NeiRecipeLookup.Slot result, FilterExpr expr) {
         if (expr.isEmpty()) return true;
         if (result == null) return false;
-        for (List<FilterTerm> group : expr.orGroups()) {
+        for (List<FilterTerm> group : expr.orGroups) {
             boolean allOk = true;
             for (FilterTerm t : group) {
-                boolean present = resultSlotContains(result, t.ref());
-                if (present == t.negated()) {
+                boolean present = resultSlotContains(result, t.ref);
+                if (present == t.negated) {
                     allOk = false;
                     break;
                 }
@@ -431,11 +514,11 @@ public class RecipeCompiler extends BlockTagCompiler {
     /** Evaluate a DNF expression against a single concrete stack (vanilla result). */
     public static boolean evalStack(@Nullable ItemStack stack, FilterExpr expr) {
         if (expr.isEmpty()) return true;
-        for (List<FilterTerm> group : expr.orGroups()) {
+        for (List<FilterTerm> group : expr.orGroups) {
             boolean allOk = true;
             for (FilterTerm t : group) {
-                boolean present = stackMatches(stack, t.ref());
-                if (present == t.negated()) {
+                boolean present = stackMatches(stack, t.ref);
+                if (present == t.negated) {
                     allOk = false;
                     break;
                 }
@@ -448,17 +531,17 @@ public class RecipeCompiler extends BlockTagCompiler {
     /** Evaluate a DNF expression against a flat ingredient array (vanilla 3x3). */
     public static boolean evalArray(ItemStack[] stacks, FilterExpr expr) {
         if (expr.isEmpty()) return true;
-        for (List<FilterTerm> group : expr.orGroups()) {
+        for (List<FilterTerm> group : expr.orGroups) {
             boolean allOk = true;
             for (FilterTerm t : group) {
                 boolean present = false;
                 for (ItemStack s : stacks) {
-                    if (stackMatches(s, t.ref())) {
+                    if (stackMatches(s, t.ref)) {
                         present = true;
                         break;
                     }
                 }
-                if (present == t.negated()) {
+                if (present == t.negated) {
                     allOk = false;
                     break;
                 }
@@ -469,11 +552,16 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     public static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr) {
+        return recipeMatches(handler, recipeIndex, inputExpr, outputExpr, NEI_HANDLER_RECIPE_ACCESS);
+    }
+
+    public static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr,
+        HandlerRecipeAccess recipeAccess) {
         if (!outputExpr.isEmpty()) {
-            if (!evalResultSlot(NeiRecipeLookup.readResultSlot(handler, recipeIndex), outputExpr)) return false;
+            if (!evalResultSlot(recipeAccess.readResultSlot(handler, recipeIndex), outputExpr)) return false;
         }
         if (!inputExpr.isEmpty()) {
-            if (!evalSlots(NeiRecipeLookup.readIngredientSlots(handler, recipeIndex), inputExpr)) return false;
+            if (!evalSlots(recipeAccess.readIngredientSlots(handler, recipeIndex), inputExpr)) return false;
         }
         return true;
     }

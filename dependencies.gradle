@@ -11,6 +11,7 @@ dependencies {
     shadowImplementation("org.apache.lucene:lucene-memory:8.11.4")
     shadowImplementation("org.apache.commons:commons-lang3:3.3.2") { transitive = false }
     shadowImplementation("org.sejda.imageio:webp-imageio:0.1.6")
+    shadowImplementation("com.google.flatbuffers:flatbuffers-java:23.5.26") { transitive = false }
 
     devOnlyNonPublishable("com.github.GTNewHorizons:StructureLib:1.4.34:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.8.91-GTNH:dev")

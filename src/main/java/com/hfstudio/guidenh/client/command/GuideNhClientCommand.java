@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.client.command;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,11 +25,13 @@ import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureCoordinateParser;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.siteexport.ExportTask;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteExportTask;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteOutputPaths;
 
 public class GuideNhClientCommand extends CommandBase {
 
     public static final String[] ROOT_SUB_COMMANDS = { "editor", "list", "open", "reload", "search", "export",
-        "exportstructure" };
+        "exportsite", "exportstructure" };
 
     @Override
     public String getCommandName() {
@@ -54,6 +57,7 @@ public class GuideNhClientCommand extends CommandBase {
             case "reload" -> reloadGuides(sender);
             case "search" -> searchGuides(sender, args);
             case "export" -> exportGuide(sender, args);
+            case "exportsite" -> exportSite(sender, args);
             case "exportstructure" -> exportStructure(sender, args);
             default -> send(sender, GuidebookText.CommandClientUsage);
         }
@@ -180,6 +184,24 @@ public class GuideNhClientCommand extends CommandBase {
                 result.outDir);
         } catch (Throwable t) {
             send(sender, GuidebookText.CommandExportFailure, getErrorMessage(t));
+        }
+    }
+
+    private void exportSite(ICommandSender sender, String[] args) {
+        Path outDir = GuideSiteOutputPaths
+            .resolveRequestedOrDefault(args.length >= 2 ? args[1] : null, Paths.get(""), LocalDateTime.now());
+        send(sender, GuidebookText.CommandExportSiteStart, outDir);
+        try {
+            GuideSiteExportTask.Result result = new GuideSiteExportTask(outDir).run();
+            send(
+                sender,
+                GuidebookText.CommandExportSiteSuccess,
+                result.guidesExported(),
+                result.pagesExported(),
+                result.pagesFailed(),
+                result.outDir());
+        } catch (Throwable t) {
+            send(sender, GuidebookText.CommandExportSiteFailure, getErrorMessage(t));
         }
     }
 

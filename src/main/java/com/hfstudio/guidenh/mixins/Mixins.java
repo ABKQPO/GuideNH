@@ -12,7 +12,8 @@ import lombok.RequiredArgsConstructor;
 public enum Mixins implements IMixins {
 
     EARLY(Side.CLIENT, "forge.AccessorForgeHooksClient", "fml.AccessorFMLClientHandler",
-        "minecraft.AccessorAbstractResourcePack", "forge.AccessorShapedOreRecipe", "forge.AccessorShapelessOreRecipe"),
+        "minecraft.AccessorAbstractResourcePack", "forge.AccessorShapedOreRecipe", "forge.AccessorShapelessOreRecipe",
+        "minecraft.MixinModelRendererSceneExportCapture", "minecraft.MixinTessellatorSceneExportCapture"),
 
     // Captures the BetterQuesting quest currently under the mouse cursor in the BQ quest line
     // GUI so the open-guide hotkey can navigate to the corresponding wiki page. Only applied

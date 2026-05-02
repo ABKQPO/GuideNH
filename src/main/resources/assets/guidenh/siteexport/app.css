@@ -1,0 +1,1050 @@
+@font-face {
+    font-family: 'Pixeloid Mono';
+    src: url('fonts/PixeloidMono.woff2') format('woff2'),
+         url('fonts/PixeloidMono.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pixeloid Sans';
+    src: url('fonts/PixeloidSans-Bold.woff2') format('woff2'),
+         url('fonts/PixeloidSans-Bold.woff') format('woff');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pixeloid Sans';
+    src: url('fonts/PixeloidSans.woff2') format('woff2'),
+         url('fonts/PixeloidSans.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+* {
+    box-sizing: border-box;
+    font-synthesis: none;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    font-smooth: never;
+    image-rendering: pixelated;
+}
+
+:root {
+    --color-body-text: rgb(210, 210, 210);
+    --color-link: rgb(0, 213, 255);
+    --color-error-text: rgb(255, 0, 0);
+    --color-header1-separator: rgba(255, 255, 255, 0.5);
+    --color-header2-separator: rgba(210, 210, 210, 0.5);
+    --color-navbar-bg: rgba(0, 0, 0, 0.45);
+    --color-navbar-row-hover: rgb(33, 33, 33);
+    --color-navbar-expand-arrow: rgb(238, 238, 238);
+    --color-table-border: rgb(124, 124, 124);
+    --color-scene-background: rgba(0, 0, 0, 0.2);
+
+    --gui-scale: 3;
+    --sidebar-width: 350px;
+    --header-height: calc(20px * var(--gui-scale));
+
+    --minecraft-font: 'Pixeloid Sans', sans-serif;
+
+    color: var(--color-body-text);
+    background-image: url('textures/sky_stone_block.png');
+    background-color: rgb(64, 64, 64);
+    background-size: calc(32px * var(--gui-scale));
+    background-blend-mode: multiply;
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-size: 20px;
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+:root > * {
+    image-rendering: unset;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-size: 1rem;
+    margin: 1em 0 0.5em;
+}
+
+h1 {
+    border-bottom: 1px solid var(--color-header1-separator);
+    font-size: 1.3rem;
+    color: white;
+    font-family: var(--minecraft-font);
+}
+
+h2 {
+    border-bottom: 1px solid var(--color-header2-separator);
+    font-size: 1.1rem;
+    font-family: var(--minecraft-font);
+}
+
+h3 {
+    font-size: 1rem;
+    font-family: var(--minecraft-font);
+}
+
+a {
+    font-weight: 500;
+    color: var(--color-link);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+ul {
+    list-style-type: square;
+}
+
+hr {
+    height: calc(1px * var(--gui-scale));
+    border: none;
+    background: var(--color-header2-separator);
+}
+
+table {
+    border-collapse: collapse;
+}
+
+table td, table th {
+    padding: 6px;
+}
+
+th {
+    font-weight: bold;
+    font-family: var(--minecraft-font);
+    border-bottom: calc(1px * var(--gui-scale)) solid var(--color-table-border);
+}
+
+tr + tr td {
+    border-top: 1px solid var(--color-table-border);
+}
+
+td + td, th + th {
+    border-left: 1px solid var(--color-table-border);
+}
+
+code {
+    font-family: 'Pixeloid Mono', monospace;
+    font-size: 0.88em;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(124, 124, 124, 0.4);
+    padding: 1px 4px;
+}
+
+pre {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(124, 124, 124, 0.4);
+    padding: 12px;
+    overflow-x: auto;
+}
+
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+blockquote {
+    border-left: calc(2px * var(--gui-scale)) solid rgba(210, 210, 210, 0.35);
+    margin-left: 0;
+    padding-left: 1em;
+    color: rgba(210, 210, 210, 0.75);
+}
+
+.guide-quote {
+    --guide-quote-accent: rgba(124, 135, 149, 1);
+    border-left: calc(2px * var(--gui-scale)) solid var(--guide-quote-accent);
+    background: rgba(64, 64, 64, 0.25);
+    padding: 6px 10px;
+    margin: 0.6em 0;
+    color: rgba(220, 220, 220, 0.9);
+}
+
+.guide-quote-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--guide-quote-accent);
+    margin-bottom: 4px;
+}
+
+.guide-quote-icon {
+    font-size: 0.95em;
+}
+
+.guide-quote-icon-image img {
+    width: calc(8px * var(--gui-scale));
+    height: calc(8px * var(--gui-scale));
+    image-rendering: pixelated;
+    vertical-align: middle;
+}
+
+.guide-quote-icon-item {
+    line-height: 1;
+}
+
+.guide-quote-icon-item .guide-inline-item {
+    vertical-align: middle;
+}
+
+.guide-quote-body > :first-child {
+    margin-top: 0;
+}
+
+.guide-quote-body > :last-child {
+    margin-bottom: 0;
+}
+
+.guide-underline {
+    text-decoration: underline;
+    text-decoration-skip-ink: none;
+}
+
+.guide-wavy-underline {
+    text-decoration: underline wavy;
+    text-decoration-skip-ink: none;
+    text-underline-offset: 0.18em;
+}
+
+.guide-emphasis-dot {
+    text-emphasis: dot;
+    -webkit-text-emphasis: dot;
+    text-emphasis-position: under;
+    -webkit-text-emphasis-position: under;
+}
+
+p {
+    margin: 0 0 0.8em;
+}
+
+.item-icon {
+    width: calc(16px * var(--gui-scale));
+    height: calc(16px * var(--gui-scale));
+    image-rendering: pixelated;
+}
+
+.guide-site {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    grid-template-rows: var(--header-height) 1fr;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.guide-header {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 calc(6px * var(--gui-scale));
+    background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.3) 100%);
+    border-bottom: calc(1px * var(--gui-scale)) solid rgba(255,255,255,0.08);
+}
+
+.guide-logo {
+    font-family: var(--minecraft-font);
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: white;
+    text-decoration: none;
+    letter-spacing: 0.04em;
+}
+
+.guide-logo:hover {
+    text-decoration: none;
+    color: var(--color-link);
+}
+
+.guide-header-lang {
+    display: flex;
+    align-items: center;
+}
+
+.guide-sidebar {
+    grid-column: 1;
+    grid-row: 2;
+    background: var(--color-navbar-bg);
+    border-right: calc(1px * var(--gui-scale)) solid rgba(255,255,255,0.07);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.guide-sidebar-tools {
+    padding: calc(4px * var(--gui-scale)) calc(4px * var(--gui-scale)) calc(2px * var(--gui-scale));
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+}
+
+.guide-search {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.guide-search-label {
+    font-family: var(--minecraft-font);
+    font-size: 0.75rem;
+    color: rgba(210, 210, 210, 0.65);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.guide-search-input {
+    display: block;
+    width: 100%;
+    padding: calc(2px * var(--gui-scale)) calc(3px * var(--gui-scale));
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(124, 124, 124, 0.45);
+    color: var(--color-body-text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.guide-search-input:focus {
+    border-color: var(--color-link);
+}
+
+.guide-search-results {
+    position: absolute;
+    z-index: 100;
+    background: rgba(16, 0, 16, 0.97);
+    border: calc(1px * var(--gui-scale)) solid rgba(80, 0, 255, 0.5);
+    padding: calc(2px * var(--gui-scale));
+    max-height: 60vh;
+    overflow-y: auto;
+    width: calc(var(--sidebar-width) - calc(8px * var(--gui-scale)));
+}
+
+.guide-search-results[hidden] {
+    display: none;
+}
+
+.guide-search-result {
+    display: block;
+    padding: calc(2px * var(--gui-scale)) calc(3px * var(--gui-scale));
+    color: var(--color-body-text);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(124, 124, 124, 0.25);
+}
+
+.guide-search-result:hover {
+    background: var(--color-navbar-row-hover);
+    color: var(--color-link);
+}
+
+.guide-search-result-title {
+    font-family: var(--minecraft-font);
+    display: block;
+}
+
+.guide-search-result-path {
+    font-size: 0.75rem;
+    color: rgba(210, 210, 210, 0.55);
+    display: block;
+}
+
+.guide-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: calc(2px * var(--gui-scale)) 0;
+}
+
+.guide-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.guide-nav li {
+    margin: 0;
+}
+
+.guide-nav a,
+.guide-nav span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: calc(1px * var(--gui-scale)) calc(4px * var(--gui-scale));
+    color: var(--color-body-text);
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.guide-nav a:hover {
+    color: var(--color-link);
+    background: var(--color-navbar-row-hover);
+    text-decoration: none;
+}
+
+.guide-nav a[aria-current="page"] {
+    background: var(--color-navbar-row-hover);
+    color: var(--color-link);
+}
+
+.guide-nav li > ul {
+    margin-left: calc(8px * var(--gui-scale));
+}
+
+.guide-nav-item-icon {
+    width: calc(8px * var(--gui-scale));
+    height: calc(8px * var(--gui-scale));
+    image-rendering: pixelated;
+    flex-shrink: 0;
+}
+
+.guide-generated-link-text {
+    flex: 1;
+}
+
+.guide-language-switcher {
+    display: flex;
+    align-items: center;
+    gap: calc(2px * var(--gui-scale));
+}
+
+.guide-language-links {
+    display: flex;
+    gap: calc(1px * var(--gui-scale));
+}
+
+.guide-language-link {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: calc(1px * var(--gui-scale)) calc(2px * var(--gui-scale));
+    color: var(--color-body-text);
+    text-decoration: none;
+    font-size: 0.8rem;
+    border: 1px solid rgba(124, 124, 124, 0.35);
+}
+
+.guide-language-link:hover {
+    color: var(--color-link);
+    border-color: var(--color-link);
+    text-decoration: none;
+}
+
+.guide-language-link.is-current {
+    color: var(--color-link);
+    border-color: var(--color-link);
+}
+
+.guide-language-link-badge {
+    font-size: 0.7rem;
+    color: rgba(210, 210, 210, 0.55);
+}
+
+.guide-content {
+    grid-column: 2;
+    grid-row: 2;
+    overflow-y: auto;
+    padding: calc(6px * var(--gui-scale));
+}
+
+.guide-page {
+    max-width: 900px;
+}
+
+.guide-page > :first-child {
+    margin-top: 0;
+}
+
+.guide-tooltip-popup {
+    position: fixed;
+    z-index: 200;
+    pointer-events: none;
+    border-image-source: linear-gradient(rgba(80, 0, 255, 0.31), rgba(40, 0, 127, 0.31));
+    border-style: solid;
+    border-width: calc(1px * var(--gui-scale));
+    border-image-slice: 1;
+    background: rgba(16, 0, 16, 0.94);
+    padding: calc(2px * var(--gui-scale));
+    line-height: 1;
+    max-width: calc(220px * var(--gui-scale));
+}
+
+.guide-tooltip-popup::before {
+    content: "";
+    position: absolute;
+    border-top: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    border-bottom: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    box-sizing: content-box;
+    top: calc(-2px * var(--gui-scale));
+    left: calc(-1px * var(--gui-scale));
+    right: calc(-1px * var(--gui-scale));
+    bottom: calc(-2px * var(--gui-scale));
+    pointer-events: none;
+}
+
+.guide-tooltip-popup::after {
+    content: "";
+    position: absolute;
+    border-left: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    border-right: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    box-sizing: content-box;
+    top: calc(-1px * var(--gui-scale));
+    left: calc(-2px * var(--gui-scale));
+    right: calc(-2px * var(--gui-scale));
+    bottom: calc(-1px * var(--gui-scale));
+    pointer-events: none;
+}
+
+.guide-tooltip-popup[hidden] {
+    display: none;
+}
+
+.guide-chart-tooltip-popup {
+    white-space: pre-line;
+    color: var(--color-body-text);
+    font-family: var(--minecraft-font), monospace;
+    font-size: 0.85rem;
+}
+
+.guide-tooltip {
+    cursor: help;
+    border-bottom: calc(1px * var(--gui-scale)) dotted var(--color-body-text);
+}
+
+.guide-tooltip-content {
+    position: relative;
+    border-image-source: linear-gradient(rgba(80, 0, 255, 0.31), rgba(40, 0, 127, 0.31));
+    border-style: solid;
+    border-width: calc(1px * var(--gui-scale));
+    border-image-slice: 1;
+    background: rgba(16, 0, 16, 0.94);
+    padding: calc(2px * var(--gui-scale));
+    line-height: 1;
+    max-width: calc(120px * var(--gui-scale));
+}
+
+.guide-tooltip-content::before {
+    content: "";
+    position: absolute;
+    border-top: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    border-bottom: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    box-sizing: content-box;
+    top: calc(-2px * var(--gui-scale));
+    left: calc(-1px * var(--gui-scale));
+    right: calc(-1px * var(--gui-scale));
+    bottom: calc(-2px * var(--gui-scale));
+    pointer-events: none;
+}
+
+.guide-tooltip-content::after {
+    content: "";
+    position: absolute;
+    border-left: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    border-right: calc(1px * var(--gui-scale)) solid rgba(16, 0, 16, 0.94);
+    box-sizing: content-box;
+    top: calc(-1px * var(--gui-scale));
+    left: calc(-2px * var(--gui-scale));
+    right: calc(-2px * var(--gui-scale));
+    bottom: calc(-1px * var(--gui-scale));
+    pointer-events: none;
+}
+
+.guide-tooltip-item-row {
+    display: flex;
+    align-items: center;
+    gap: calc(2px * var(--gui-scale));
+    margin-bottom: 4px;
+}
+
+.guide-tooltip-item-grid {
+    display: inline-grid;
+    gap: 0;
+}
+
+.guide-image {
+    display: block;
+    max-width: 100%;
+    image-rendering: pixelated;
+}
+
+.guide-inline-color {
+    font-weight: 600;
+}
+
+.guide-inline-item,
+.guide-block-item,
+.guide-command-link,
+.guide-item-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px calc(2px * var(--gui-scale));
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(124, 124, 124, 0.45);
+    color: var(--color-body-text);
+    text-decoration: none;
+    vertical-align: middle;
+    font-size: 0.9em;
+}
+
+.guide-inline-item:hover,
+.guide-block-item:hover,
+.guide-command-link:hover,
+.guide-item-link:hover {
+    color: var(--color-link);
+    border-color: var(--color-link);
+    text-decoration: none;
+}
+
+.guide-item-summary-text,
+.guide-item-link-text {
+    line-height: 1.3;
+}
+
+.guide-block-item-row {
+    margin-bottom: 0.8em;
+}
+
+.guide-item-grid,
+.guide-generated-links {
+    margin-bottom: 0.8em;
+}
+
+.guide-item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(calc(32px * var(--gui-scale)), 1fr));
+    gap: calc(1px * var(--gui-scale));
+}
+
+.guide-generated-links {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(1px * var(--gui-scale));
+}
+
+.guide-generated-links li {
+    margin: 0;
+}
+
+.guide-generated-links a {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: calc(1px * var(--gui-scale)) calc(2px * var(--gui-scale));
+    color: var(--color-body-text);
+    text-decoration: none;
+    border: 1px solid rgba(124, 124, 124, 0.3);
+}
+
+.guide-generated-links a:hover {
+    color: var(--color-link);
+    border-color: var(--color-link);
+    background: var(--color-navbar-row-hover);
+    text-decoration: none;
+}
+
+.guide-layout {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 0.8em;
+}
+
+.guide-layout > * {
+    margin: 0;
+}
+
+.guide-layout-row {
+    flex-wrap: wrap;
+    flex-direction: row;
+}
+
+.guide-layout-column {
+    flex-direction: column;
+}
+
+.guide-recipe-gallery {
+    margin-bottom: 0.8em;
+}
+
+.recipe-grid {
+    display: inline-grid;
+    grid-template-rows: auto auto;
+    grid-template-columns: max-content 1fr max-content;
+    row-gap: 10px;
+    column-gap: 10px;
+    align-items: center;
+    padding: 2px;
+    margin-bottom: 0.8em;
+}
+
+.recipe-grid[data-render-mode="shaped"],
+.recipe-grid[data-render-mode="smelting"],
+.recipe-grid[data-render-mode="stonecutting"] {
+}
+
+.recipe-main {
+    display: contents;
+}
+
+.recipe-ingredients {
+    display: inline-grid;
+    align-self: center;
+    justify-self: start;
+    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.recipe-ingredients[data-shapeless="true"] {
+    grid-template-rows: auto;
+    grid-auto-rows: 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.recipe-supporting-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: center;
+}
+
+.recipe-result {
+    display: inline-grid;
+    align-self: center;
+    justify-self: start;
+}
+
+.recipe-arrow {
+    align-self: center;
+    justify-self: center;
+    width: 85px;
+    height: 50px;
+    image-rendering: pixelated;
+}
+
+.ingredient-box,
+.empty-ingredient-box {
+    display: inline-block;
+    width: calc(18px * var(--gui-scale));
+    height: calc(18px * var(--gui-scale));
+    box-sizing: border-box;
+    border: calc(1px * var(--gui-scale)) solid;
+    image-rendering: pixelated;
+    background-color: rgba(139, 139, 139, 0.35);
+    border-image-source: url('textures/slot.png');
+    border-image-slice: 1 fill;
+    position: relative;
+    vertical-align: bottom;
+}
+
+.empty-ingredient-box {
+    min-width: calc(18px * var(--gui-scale));
+    min-height: calc(18px * var(--gui-scale));
+}
+
+.ingredient-box:hover {
+    background-color: rgba(170, 170, 170, 0.3);
+}
+
+.ingredient-box[data-ingredient-cycling] > * {
+    display: none;
+    position: absolute;
+    inset: 0;
+}
+
+.ingredient-box[data-ingredient-cycling] > .current {
+    display: inline-block;
+}
+
+.mc-frame {
+    display: inline-block;
+    border: calc(4px * var(--gui-scale)) solid;
+    image-rendering: pixelated;
+    border-image-source: url('textures/background.png');
+    border-image-slice: 4 fill;
+}
+
+.guide-structure-view {
+    margin-bottom: 0.8em;
+}
+
+.guide-structure-stage {
+    position: relative;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(124, 124, 124, 0.4);
+}
+
+.guide-structure-empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: rgba(210, 210, 210, 0.5);
+    font-size: 0.85rem;
+}
+
+.guide-structure-block {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: calc(8px * var(--gui-scale));
+    height: calc(7px * var(--gui-scale));
+    padding: 0 calc(2px * var(--gui-scale));
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(124, 124, 124, 0.6);
+    color: var(--color-body-text);
+    transform: translate(-50%, -50%) skewX(-20deg);
+    text-decoration: none;
+    cursor: help;
+    font-size: 0.75rem;
+}
+
+.guide-structure-block.guide-tooltip {
+    text-decoration: none;
+    border-bottom: none;
+}
+
+.guide-structure-block-face {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform: skewX(20deg);
+}
+
+.guide-structure-block-label {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: var(--minecraft-font);
+}
+
+.guide-structure-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(1px * var(--gui-scale));
+    margin-top: calc(2px * var(--gui-scale));
+}
+
+.guide-structure-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: calc(1px * var(--gui-scale)) calc(2px * var(--gui-scale));
+    border: 1px solid rgba(124, 124, 124, 0.4);
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--color-body-text);
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.guide-structure-legend-item.guide-tooltip {
+    text-decoration: none;
+    border-bottom: none;
+}
+
+.guide-structure-legend-swatch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(7px * var(--gui-scale));
+    height: calc(6px * var(--gui-scale));
+    border: 1px solid rgba(124, 124, 124, 0.6);
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: var(--minecraft-font);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.guide-structure-legend-name {
+    flex: 1;
+}
+
+.guide-structure-legend-count {
+    color: rgba(210, 210, 210, 0.65);
+    font-size: 0.8rem;
+}
+
+.guide-item-label {
+    font-size: 0.7rem;
+    font-family: var(--minecraft-font);
+    color: var(--color-body-text);
+    text-align: center;
+    word-break: break-word;
+}
+
+.guide-item-label.is-hidden {
+    display: none;
+}
+
+.guide-export-error {
+    color: var(--color-error-text);
+    font-family: var(--minecraft-font);
+    font-weight: bold;
+}
+
+.guide-file-tree {
+    background: rgb(27, 31, 35);
+    border: 1px solid rgb(58, 64, 71);
+    padding: 8px;
+    overflow-x: auto;
+    font-family: "PixeloidMono", monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-bottom: 0.8em;
+}
+
+.guide-file-tree-row {
+    white-space: nowrap;
+}
+
+.guide-file-tree-prefix {
+    color: rgb(90, 100, 108);
+}
+
+.guide-file-tree-icon {
+    color: rgb(210, 210, 210);
+    margin-right: 2px;
+}
+
+.guide-file-tree-name {
+    color: rgb(210, 210, 210);
+}
+
+.guide-tooltip-scene-placeholder {
+    display: inline-block;
+    background: #0c1117;
+    border: 1px solid #434c57;
+    overflow: hidden;
+    image-rendering: pixelated;
+}
+
+.guide-tooltip-scene-placeholder > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.guide-mermaid-canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0.6em 0;
+    image-rendering: pixelated;
+}
+
+.guide-chart-shape {
+    transition: opacity 0.1s ease, filter 0.1s ease;
+    cursor: pointer;
+}
+
+.guide-chart-shape:hover {
+    opacity: 0.85;
+    filter: brightness(1.15);
+}
+
+.guide-chart-shape:focus {
+    outline: 1px solid rgb(255, 255, 255);
+}
+
+.guide-csv-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 11px;
+    margin-bottom: 0.8em;
+}
+
+.guide-csv-table th,
+.guide-csv-table td {
+    border: 1px solid rgb(58, 64, 71);
+    padding: 4px 8px;
+    text-align: left;
+}
+
+.guide-csv-table th {
+    background: rgb(40, 50, 60);
+    color: rgb(210, 210, 210);
+    font-weight: bold;
+}
+
+.guide-csv-table td {
+    background: rgb(27, 31, 35);
+    color: rgb(186, 192, 206);
+}
+
+.guide-csv-table tr:nth-child(even) td {
+    background: rgb(30, 36, 42);
+}
+
+.guide-chart,
+.guide-function-graph {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    overflow: visible;
+    margin-bottom: 0.8em;
+    font-family: var(--minecraft-font), monospace;
+}
+
+.guide-chart text,
+.guide-function-graph text {
+    font-size: 16px;
+}
+
+.guide-function-graph text {
+    font-size: 18px;
+}
+
+.guide-function-graph polyline,
+.guide-chart polyline {
+    stroke-width: 3;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.guide-function-graph circle.guide-chart-shape,
+.guide-chart circle.guide-chart-shape {
+    r: 6;
+}
+
+.guide-mermaid-pan {
+    position: relative;
+    overflow: hidden;
+    max-width: 100%;
+    margin: 0.6em 0;
+    cursor: grab;
+    touch-action: none;
+    max-height: 70vh;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.guide-mermaid-pan.is-grabbing {
+    cursor: grabbing;
+}
+
+.guide-mermaid-pan > .guide-mermaid-canvas {
+    transform-origin: 0 0;
+    will-change: transform;
+    margin: 0;
+    max-width: none;
+}
+

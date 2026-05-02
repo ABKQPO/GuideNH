@@ -36,6 +36,10 @@ public final class GuidePage {
         return document;
     }
 
+    public List<LytGuidebookScene> scenes() {
+        return scenes;
+    }
+
     public void prepareForDisplay() {
         document.setHoveredElement(null);
         for (var scene : scenes) {

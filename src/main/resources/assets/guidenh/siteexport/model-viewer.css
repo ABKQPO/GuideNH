@@ -1,0 +1,132 @@
+.guide-scene,
+.game-scene-wrapper {
+    --gui-scale: 3;
+}
+
+img.game-scene,
+.guide-scene {
+    display: inline-block;
+    max-width: 100%;
+    padding: calc(4px * var(--gui-scale));
+    border: calc(4px * var(--gui-scale)) solid;
+    border-image-source: url('textures/background.png');
+    border-image-slice: 4 fill;
+    image-rendering: pixelated;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.game-scene-wrapper {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: stretch;
+    max-width: 100%;
+    border: calc(4px * var(--gui-scale)) solid;
+    border-image-source: url('textures/background.png');
+    border-image-slice: 4 fill;
+    image-rendering: pixelated;
+    background: rgba(0, 0, 0, 0.2);
+
+    --modelviewer-width: auto;
+    --modelviewer-height: auto;
+    --modelviewer-aspect-ratio: auto;
+}
+
+.game-scene-wrapper .root,
+.game-scene-wrapper .viewport {
+    flex: 0 0 auto;
+    width: var(--modelviewer-width);
+    max-width: 100%;
+    height: auto !important;
+    aspect-ratio: var(--modelviewer-aspect-ratio);
+    overflow: hidden;
+}
+
+.game-scene-wrapper .root {
+    position: relative;
+}
+
+.game-scene-wrapper canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.game-scene-wrapper .controls {
+    display: flex;
+    flex-direction: column;
+    gap: calc(2px * var(--gui-scale));
+    padding: calc(4px * var(--gui-scale));
+    min-width: calc(52px * var(--gui-scale));
+    background: rgba(0, 0, 0, 0.3);
+    image-rendering: unset;
+}
+
+.game-scene-wrapper .controls button {
+    appearance: none;
+    border: 1px solid rgba(124, 124, 124, 0.5);
+    background: rgba(0, 0, 0, 0.45);
+    color: rgb(200, 200, 200);
+    font: inherit;
+    min-width: calc(11px * var(--gui-scale));
+    min-height: calc(11px * var(--gui-scale));
+    cursor: pointer;
+}
+
+.game-scene-wrapper .controls button:hover {
+    background: rgba(0, 213, 255, 0.15);
+    border-color: rgb(0, 213, 255);
+    color: rgb(0, 213, 255);
+}
+
+.scene-state-controls {
+    display: flex;
+    flex-direction: column;
+    gap: calc(2px * var(--gui-scale));
+    margin-top: calc(1px * var(--gui-scale));
+}
+
+.scene-state-control {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.65rem;
+    color: rgb(210, 210, 210);
+    image-rendering: unset;
+}
+
+.scene-state-control-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.scene-state-control-label {
+    font-weight: 700;
+    font-family: 'Pixeloid Sans', sans-serif;
+    letter-spacing: 0.02em;
+}
+
+.scene-state-control-value {
+    color: rgba(210, 210, 210, 0.65);
+    font-variant-numeric: tabular-nums;
+}
+
+.scene-state-range {
+    width: 100%;
+    margin: 0;
+    accent-color: rgb(0, 213, 255);
+    cursor: pointer;
+}
+
+.guide-scene-placeholder {
+    display: grid;
+    place-items: center;
+    min-width: calc(80px * var(--gui-scale));
+    min-height: calc(53px * var(--gui-scale));
+    padding: calc(5px * var(--gui-scale));
+    text-align: center;
+    color: rgba(210, 210, 210, 0.6);
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
