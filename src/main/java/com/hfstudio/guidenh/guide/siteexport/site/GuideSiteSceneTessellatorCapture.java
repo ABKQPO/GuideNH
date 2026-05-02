@@ -544,12 +544,12 @@ public class GuideSiteSceneTessellatorCapture {
         }
     }
 
-    static final class VertexFormatKey {
+    public static final class VertexFormatKey {
 
-        final boolean hasUv;
-        final boolean hasNormal;
+        public final boolean hasUv;
+        public final boolean hasNormal;
 
-        VertexFormatKey(boolean hasUv, boolean hasNormal) {
+        public VertexFormatKey(boolean hasUv, boolean hasNormal) {
             this.hasUv = hasUv;
             this.hasNormal = hasNormal;
         }
@@ -572,21 +572,21 @@ public class GuideSiteSceneTessellatorCapture {
         }
     }
 
-    static final class MaterialKey {
+    public static final class MaterialKey {
 
-        final String name;
-        final String shaderName;
+        public final String name;
+        public final String shaderName;
         @Nullable
-        final String textureId;
+        public final String textureId;
         @Nullable
-        final String texturePath;
-        final boolean linearFiltering;
-        final boolean useMipmaps;
-        final boolean disableCulling;
-        final int transparency;
-        final int depthTest;
+        public final String texturePath;
+        public final boolean linearFiltering;
+        public final boolean useMipmaps;
+        public final boolean disableCulling;
+        public final int transparency;
+        public final int depthTest;
 
-        MaterialKey(String name, String shaderName, @Nullable String textureId, @Nullable String texturePath,
+        public MaterialKey(String name, String shaderName, @Nullable String textureId, @Nullable String texturePath,
             boolean linearFiltering, boolean useMipmaps, boolean disableCulling, int transparency, int depthTest) {
             this.name = name;
             this.shaderName = shaderName;
@@ -637,7 +637,7 @@ public class GuideSiteSceneTessellatorCapture {
         }
     }
 
-    static final class TextureExport {
+    private static final class TextureExport {
 
         final String textureId;
         final String texturePath;

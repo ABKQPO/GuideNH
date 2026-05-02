@@ -33,12 +33,12 @@ public class GuideSiteItemSupport {
         return new GuideSiteExportedItem(itemId, displayName, iconSrc);
     }
 
-    static GuideSiteExportedItem unresolved(String itemId) {
+    public static GuideSiteExportedItem unresolved(String itemId) {
         String safeItemId = itemId != null ? itemId : "";
         return new GuideSiteExportedItem(safeItemId, safeItemId, "");
     }
 
-    static String itemId(@Nullable ItemStack stack) {
+    public static String itemId(@Nullable ItemStack stack) {
         if (stack == null || stack.getItem() == null) {
             return "";
         }
@@ -47,7 +47,7 @@ public class GuideSiteItemSupport {
         return registryName != null ? registryName : "";
     }
 
-    static String displayName(@Nullable ItemStack stack) {
+    public static String displayName(@Nullable ItemStack stack) {
         if (stack == null) {
             return "";
         }
@@ -59,7 +59,7 @@ public class GuideSiteItemSupport {
         }
     }
 
-    static String stripLegacyFormatting(@Nullable String text) {
+    public static String stripLegacyFormatting(@Nullable String text) {
         if (text == null || text.isEmpty()) {
             return "";
         }

@@ -18,30 +18,30 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeTagRenderer {
 
-    interface TargetStackResolver {
+    public interface TargetStackResolver {
 
         @Nullable
         ItemStack resolve(String recipeId, String defaultNamespace);
     }
 
-    interface VanillaRecipeFinder {
+    public interface VanillaRecipeFinder {
 
         List<RecipeLookup.Entry> findByOutput(ItemStack targetStack);
     }
 
-    interface NeiRecipeFinder {
+    public interface NeiRecipeFinder {
 
         List<NeiRecipeLookup.Entry> findCraftingRecipes(ItemStack targetStack);
     }
 
-    interface RawHandlerFinder {
+    public interface RawHandlerFinder {
 
         List<Object> findCraftingHandlers(ItemStack targetStack);
 
         List<Object> findUsageHandlers(ItemStack targetStack);
     }
 
-    interface HandlerRuntime extends RecipeCompiler.HandlerMetadataReader, RecipeCompiler.HandlerRecipeAccess {
+    public interface HandlerRuntime extends RecipeCompiler.HandlerMetadataReader, RecipeCompiler.HandlerRecipeAccess {
 
         int recipeCount(Object handler);
 
@@ -492,7 +492,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         }
     }
 
-    static String fallbackParagraph(String fallbackText) {
+    public static String fallbackParagraph(String fallbackText) {
         if (fallbackText == null || fallbackText.isEmpty()) {
             return "";
         }

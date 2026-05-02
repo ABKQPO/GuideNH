@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import net.minecraft.client.Minecraft;
@@ -265,14 +266,14 @@ public class GuideSiteExportTask {
             if (manager == null) {
                 return;
             }
-            String requestedLower = requested.toLowerCase(java.util.Locale.ROOT);
+            String requestedLower = requested.toLowerCase(Locale.ROOT);
             Language target = null;
             for (Language candidate : manager.getLanguages()) {
                 String code = candidate.getLanguageCode();
                 if (code == null) {
                     continue;
                 }
-                if (code.toLowerCase(java.util.Locale.ROOT)
+                if (code.toLowerCase(Locale.ROOT)
                     .equals(requestedLower)) {
                     target = candidate;
                     break;
@@ -286,7 +287,7 @@ public class GuideSiteExportTask {
             if (current != null && current.getLanguageCode() != null
                 && requestedLower.equals(
                     current.getLanguageCode()
-                        .toLowerCase(java.util.Locale.ROOT))) {
+                        .toLowerCase(Locale.ROOT))) {
                 return;
             }
             manager.setCurrentLanguage(target);

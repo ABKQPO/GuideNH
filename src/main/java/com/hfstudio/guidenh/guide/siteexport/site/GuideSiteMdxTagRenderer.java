@@ -727,9 +727,22 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         String title = readOptional(element, "title");
         String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
         boolean showLegend = readBoolean(element, "showLegend", true);
+        String yAxisUnit = readOptional(element, "yAxisUnit");
+        boolean labelAbove = "above".equals(readOptional(element, "labelPosition"));
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
-        return GuideSiteGraphRenderer
-            .renderColumnChart(w, h, bgColor, borderColor, title, categories, series, showLegend);
+        GuideSiteGraphRenderer.PieInsetData pieInset = parsePieInsetChildren(element);
+        return GuideSiteGraphRenderer.renderColumnChart(
+            w,
+            h,
+            bgColor,
+            borderColor,
+            title,
+            categories,
+            series,
+            showLegend,
+            pieInset,
+            yAxisUnit,
+            labelAbove);
     }
 
     private String renderBarChart(MdxJsxElementFields element) {
@@ -782,8 +795,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderFunctionGraphTag(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 5120);
-        int h = readInt(element, "height", 3520);
+        int w = readInt(element, "width", 1280);
+        int h = readInt(element, "height", 880);
         int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
         int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
         int axisColor = parseArgbAttr(element, "axisColor", 0xFFB8C2CF);
@@ -895,18 +908,20 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             if (!(child instanceof MdxJsxElementFields c)) {
                 continue;
             }
-            if (!"Series".equals(c.name())) {
+            boolean isSeries = "Series".equals(c.name());
+            boolean isLineSeries = "LineSeries".equals(c.name());
+            if (!isSeries && !isLineSeries) {
                 continue;
             }
             String name = readOptional(c, "name");
-            if (name == null) name = "Series " + (idx + 1);
+            if (name == null) name = (isLineSeries ? "Line " : "Series ") + (idx + 1);
             int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
             String rawData = readOptional(c, "data");
             String rawPoints = readOptional(c, "points");
             double[] xs;
             double[] ys;
             if ((rawData == null || rawData.isEmpty()) && rawPoints != null && !rawPoints.isEmpty()) {
-                // `points="x1:y1,x2:y2,..."` syntax — same as scatter but drawn as a line.
+                // `points="x1:y1,x2:y2,..."` syntax - same as scatter but drawn as a line.
                 // This allows numericX line charts where each series carries its own X positions.
                 double[][] pts = ChartAttrParser.parsePointArray(rawPoints);
                 xs = pts[0];
@@ -916,10 +931,34 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 xs = new double[ys.length];
                 for (int i = 0; i < xs.length; i++) xs[i] = i;
             }
-            result.add(new GuideSiteGraphRenderer.SeriesData(name, color, xs, ys));
+            String type = isLineSeries ? GuideSiteGraphRenderer.SeriesData.TYPE_LINE
+                : GuideSiteGraphRenderer.SeriesData.TYPE_COLUMN;
+            result.add(new GuideSiteGraphRenderer.SeriesData(name, color, xs, ys, type));
             idx++;
         }
         return result;
+    }
+
+    /**
+     * Parse a single {@code <PieInset size="..." position="..." title="...">} child.
+     * Returns {@code null} if no such child is present.
+     */
+    @Nullable
+    private GuideSiteGraphRenderer.PieInsetData parsePieInsetChildren(MdxJsxElementFields element) {
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields c)) {
+                continue;
+            }
+            if (!"PieInset".equals(c.name())) {
+                continue;
+            }
+            int size = readInt(c, "size", 80);
+            String position = readOptional(c, "position");
+            String insetTitle = readOptional(c, "title");
+            List<GuideSiteGraphRenderer.SliceData> slices = parseSliceChildren(c);
+            return new GuideSiteGraphRenderer.PieInsetData(slices, size, position, insetTitle);
+        }
+        return null;
     }
 
     /** Parse {@code <Series points="x1:y1,x2:y2,...">} children for scatter chart. */

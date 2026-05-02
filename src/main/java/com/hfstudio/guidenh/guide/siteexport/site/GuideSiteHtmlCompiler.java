@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -463,27 +465,29 @@ public class GuideSiteHtmlCompiler {
     private String compileCodeBlock(MdAstCode code) {
         String lang = code.lang != null ? code.lang.toLowerCase(Locale.ROOT) : "";
         String meta = code.meta != null ? code.meta : "";
-        if ("csv".equals(lang)) {
-            return GuideSiteGraphRenderer.renderCsvTable(code.value != null ? code.value : "", true);
-        }
-        if ("tree".equals(lang) || "filetree".equals(lang)) {
-            return GuideSiteGraphRenderer.renderFileTree(code.value != null ? code.value : "");
-        }
-        if ("mermaid".equals(lang)) {
-            String src = code.value != null ? code.value : "";
-            try {
-                MermaidMindmapDocument doc = MermaidMindmapParser.parse(src);
-                return GuideSiteGraphRenderer.renderMermaidTree(doc);
-            } catch (Exception ignored) {
-                return "<pre><code class=\"language-mermaid\">" + escapeHtml(src) + "</code></pre>";
+        switch (lang) {
+            case "csv" -> {
+                return GuideSiteGraphRenderer.renderCsvTable(code.value != null ? code.value : "", true);
+            }
+            case "tree", "filetree" -> {
+                return GuideSiteGraphRenderer.renderFileTree(code.value != null ? code.value : "");
+            }
+            case "mermaid" -> {
+                String src = code.value != null ? code.value : "";
+                try {
+                    MermaidMindmapDocument doc = MermaidMindmapParser.parse(src);
+                    return GuideSiteGraphRenderer.renderMermaidTree(doc);
+                } catch (Exception ignored) {
+                    return "<pre><code class=\"language-mermaid\">" + escapeHtml(src) + "</code></pre>";
+                }
+            }
+            case "funcgraph", "functiongraph" -> {
+                String src = code.value != null ? code.value : "";
+                LytFunctionGraph graph = FunctionGraphFenceParser.parse(src);
+                return GuideSiteGraphRenderer.renderFunctionGraph(graph);
             }
         }
-        if ("funcgraph".equals(lang) || "functiongraph".equals(lang)) {
-            String src = code.value != null ? code.value : "";
-            LytFunctionGraph graph = FunctionGraphFenceParser.parse(src);
-            return GuideSiteGraphRenderer.renderFunctionGraph(graph);
-        }
-        // Forced viewport: ```<lang> width=220 height=96 — emits a sized scrollable container.
+        // Forced viewport: ```<lang> width=220 height=96 - emits a sized scrollable container.
         Integer width = parseMetaInt(meta, "width");
         Integer height = parseMetaInt(meta, "height");
         StringBuilder html = new StringBuilder();
@@ -519,8 +523,7 @@ public class GuideSiteHtmlCompiler {
             return null;
         }
         // Accept tokens like `width=220`, `width="220"`, `width='220'`.
-        java.util.regex.Matcher m = java.util.regex.Pattern
-            .compile("(?:^|\\s)" + java.util.regex.Pattern.quote(key) + "\\s*=\\s*\"?'?([0-9]+)\"?'?")
+        Matcher m = Pattern.compile("(?:^|\\s)" + Pattern.quote(key) + "\\s*=\\s*\"?'?([0-9]+)\"?'?")
             .matcher(meta);
         if (m.find()) {
             try {
@@ -571,7 +574,7 @@ public class GuideSiteHtmlCompiler {
             QuoteIconSpec icon = directive.icon();
             if (icon != null) {
                 String iconHtml = renderQuoteIcon(icon, templates, defaultNamespace, currentPageId, sceneResolver);
-                if (iconHtml != null && !iconHtml.isEmpty()) {
+                if (!iconHtml.isEmpty()) {
                     html.append(iconHtml);
                 }
             }
@@ -597,8 +600,6 @@ public class GuideSiteHtmlCompiler {
             return "";
         }
         switch (icon.kind()) {
-            case TEXT:
-                return "<span class=\"guide-quote-icon\">" + escapeHtml(value) + "</span>";
             case PNG: {
                 String resolved = imageResolver.resolve(value, currentPageId);
                 if (resolved == null || resolved.isEmpty()) {
@@ -620,6 +621,7 @@ public class GuideSiteHtmlCompiler {
                 }
                 return "<span class=\"guide-quote-icon guide-quote-icon-item\">" + rendered + "</span>";
             }
+            case TEXT:
             default:
                 return "<span class=\"guide-quote-icon\">" + escapeHtml(value) + "</span>";
         }

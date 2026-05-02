@@ -166,8 +166,6 @@ blockquote {
     color: rgba(210, 210, 210, 0.75);
 }
 
-/* Custom + GFM-alert blockquotes. The accent color is applied via inline style
-   (--guide-quote-accent) so the same rules cover all variants. */
 .guide-quote {
     --guide-quote-accent: rgba(124, 135, 149, 1);
     border-left: calc(2px * var(--gui-scale)) solid var(--guide-quote-accent);
@@ -198,8 +196,6 @@ blockquote {
 }
 
 .guide-quote-icon-item {
-    /* Suppress the inline-item wrapper's font-size scaling so the synthesized
-       <ItemImage> sits flush in the heading line. */
     line-height: 1;
 }
 
@@ -215,7 +211,6 @@ blockquote {
     margin-bottom: 0;
 }
 
-/* GuideNH inline underline extensions: ++text++ ^^text^^ ::text:: */
 .guide-underline {
     text-decoration: underline;
     text-decoration-skip-ink: none;
@@ -228,7 +223,6 @@ blockquote {
 }
 
 .guide-emphasis-dot {
-    /* Per-character dot above the text (CJK 着重号). */
     text-emphasis: dot;
     -webkit-text-emphasis: dot;
     text-emphasis-position: under;
@@ -249,10 +243,6 @@ p {
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
     grid-template-rows: var(--header-height) 1fr;
-    /* Lock the layout to the viewport so the sidebar (.guide-sidebar) and the main
-       column (.guide-content) each become their own independent scroll containers.
-       Previously this used `min-height: 100vh`, which let the whole grid grow with
-       the article and made the sidebar scroll along with the document. */
     height: 100vh;
     overflow: hidden;
 }
@@ -483,8 +473,6 @@ p {
     position: fixed;
     z-index: 200;
     pointer-events: none;
-    /* Provide MC-style tooltip border + background for floating tooltips that
-       inject raw content (no inner .guide-tooltip-content wrapper). */
     border-image-source: linear-gradient(rgba(80, 0, 255, 0.31), rgba(40, 0, 127, 0.31));
     border-style: solid;
     border-width: calc(1px * var(--gui-scale));
@@ -525,8 +513,6 @@ p {
     display: none;
 }
 
-/* Chart-cursor tooltip: reuse the MC popup chrome but allow line breaks so the
-   function-graph tooltip can show "expr\nx = ..\ny = .." stacked. */
 .guide-chart-tooltip-popup {
     white-space: pre-line;
     color: var(--color-body-text);
@@ -710,7 +696,6 @@ p {
 .recipe-grid[data-render-mode="shaped"],
 .recipe-grid[data-render-mode="smelting"],
 .recipe-grid[data-render-mode="stonecutting"] {
-    /* shaped / smelting use the same grid structure */
 }
 
 .recipe-main {
@@ -760,8 +745,6 @@ p {
     box-sizing: border-box;
     border: calc(1px * var(--gui-scale)) solid;
     image-rendering: pixelated;
-    /* Fallback solid background so the slot always shows a frame even if `slot.png`
-       failed to export or the browser is still loading the border-image. */
     background-color: rgba(139, 139, 139, 0.35);
     border-image-source: url('textures/slot.png');
     border-image-slice: 1 fill;
@@ -770,8 +753,6 @@ p {
 }
 
 .empty-ingredient-box {
-    /* Ensure the empty slot always retains its declared box size even when its
-       grid parent is configured with stretchable rows. */
     min-width: calc(18px * var(--gui-scale));
     min-height: calc(18px * var(--gui-scale));
 }
@@ -780,7 +761,6 @@ p {
     background-color: rgba(170, 170, 170, 0.3);
 }
 
-/* Cycling ingredient slots: show only the candidate marked .current; all others stack at the same position. */
 .ingredient-box[data-ingredient-cycling] > * {
     display: none;
     position: absolute;
@@ -920,7 +900,6 @@ p {
     font-weight: bold;
 }
 
-/* File Tree */
 .guide-file-tree {
     background: rgb(27, 31, 35);
     border: 1px solid rgb(58, 64, 71);
@@ -949,10 +928,6 @@ p {
     color: rgb(210, 210, 210);
 }
 
-/* Tooltip 3D scene placeholder: a tooltip that originally embedded a <GameScene> is rendered
-   as a static screenshot here instead of a live WebGL viewer. Hydrating a second scene viewer
-   inside a popover would exhaust the browser's WebGL context cap and routinely crash the
-   page-level scenes. The placeholder mirrors the scene's reserved size so layout is stable. */
 .guide-tooltip-scene-placeholder {
     display: inline-block;
     background: #0c1117;
@@ -968,9 +943,6 @@ p {
     object-fit: contain;
 }
 
-/* Mermaid Mindmap (SVG) — drawn as a self-contained scrollable canvas. The shapes,
-   colors and connectors are produced by GuideSiteGraphRenderer.renderMermaidTree to
-   match the in-game LytMermaidMindmapCanvas style. */
 .guide-mermaid-canvas {
     display: block;
     max-width: 100%;
@@ -979,8 +951,6 @@ p {
     image-rendering: pixelated;
 }
 
-/* Chart shape interactivity: a subtle highlight on hover plus a pointer cursor so the
-   browser-native <title> tooltip is discoverable. */
 .guide-chart-shape {
     transition: opacity 0.1s ease, filter 0.1s ease;
     cursor: pointer;
@@ -995,7 +965,6 @@ p {
     outline: 1px solid rgb(255, 255, 255);
 }
 
-/* CSV Table */
 .guide-csv-table {
     border-collapse: collapse;
     width: 100%;
@@ -1025,20 +994,16 @@ p {
     background: rgb(30, 36, 42);
 }
 
-/* Charts and Function Graphs (SVG) */
 .guide-chart,
 .guide-function-graph {
     display: block;
     max-width: 100%;
+    height: auto;
     overflow: visible;
     margin-bottom: 0.8em;
     font-family: var(--minecraft-font), monospace;
 }
 
-/* The renderer emits SVG with `font-size="8"` etc. as XML attributes which are
-   readable but tiny once the chart canvas is enlarged. CSS rules win against
-   presentation attributes, so we scale up the typography and stroke weights here
-   in one place rather than threading sizes through every render call site. */
 .guide-chart text,
 .guide-function-graph text {
     font-size: 16px;
@@ -1057,12 +1022,9 @@ p {
 
 .guide-function-graph circle.guide-chart-shape,
 .guide-chart circle.guide-chart-shape {
-    /* Marked points: bigger and easier to hover. */
     r: 6;
 }
 
-/* Pannable / zoomable mindmap viewport (see GuideSiteGraphRenderer.renderMermaidTree
-   and installMermaidPanZoom in app.js). */
 .guide-mermaid-pan {
     position: relative;
     overflow: hidden;
@@ -1070,7 +1032,6 @@ p {
     margin: 0.6em 0;
     cursor: grab;
     touch-action: none;
-    /* Cap the visible area so very tall trees don't dominate the page. */
     max-height: 70vh;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(0, 0, 0, 0.15);

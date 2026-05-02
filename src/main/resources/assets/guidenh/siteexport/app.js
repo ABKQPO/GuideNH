@@ -359,7 +359,6 @@ function installMermaidPanZoom(root) {
       const rect = container.getBoundingClientRect();
       const cx = event.clientX - rect.left;
       const cy = event.clientY - rect.top;
-      // Zoom relative to cursor: keep the world-point under the cursor stationary.
       const factor = event.deltaY < 0 ? 1.15 : 1 / 1.15;
       const newScale = Math.max(0.2, Math.min(8, state.scale * factor));
       const ratio = newScale / state.scale;
@@ -368,7 +367,6 @@ function installMermaidPanZoom(root) {
       state.scale = newScale;
       apply();
     }, { passive: false });
-    // Double-click resets the view.
     container.addEventListener("dblclick", () => {
       state.tx = 0;
       state.ty = 0;
@@ -378,18 +376,10 @@ function installMermaidPanZoom(root) {
   }
 }
 
-/**
- * Replace the SVG's native `<title>` tooltips with the GuideNH tooltip overlay so
- * chart shapes show their label in the same MC-styled popup as item tooltips,
- * follow the cursor, and (for function graphs) report the live (x, y) under the
- * pointer instead of just the static expression.
- */
 function installChartHoverTooltips(root) {
   const svgs = root.querySelectorAll("svg.guide-chart, svg.guide-function-graph");
   for (const svg of svgs) {
     const isFunctionGraph = svg.classList.contains("guide-function-graph");
-    // Read plot domain from the SVG viewBox attributes when available so we can
-    // map cursor pixels back to data x/y for function graphs.
     const owner = `chart-${Math.random().toString(36).slice(2, 9)}`;
     let popupEl = null;
     const ensurePopup = () => {
@@ -409,11 +399,25 @@ function installChartHoverTooltips(root) {
     const hide = () => {
       if (popupEl) popupEl.hidden = true;
     };
-    // Per-shape hover: use the existing <title> child as the body.
+    const plotData = [];
+    if (isFunctionGraph) {
+      svg.querySelectorAll("polyline.guide-chart-shape").forEach((poly) => {
+        const titleEl = poly.querySelector("title");
+        const label = titleEl?.textContent ?? "";
+        const raw = poly.getAttribute("points") || "";
+        const pts = [];
+        for (const tok of raw.trim().split(/\s+/)) {
+          const [px, py] = tok.split(",");
+          const fx = parseFloat(px), fy = parseFloat(py);
+          if (Number.isFinite(fx) && Number.isFinite(fy)) pts.push([fx, fy]);
+        }
+        if (pts.length) plotData.push({ pts, label });
+      });
+    }
     svg.querySelectorAll(".guide-chart-shape").forEach((shape) => {
       const titleEl = shape.querySelector("title");
       const text = titleEl?.textContent ?? "";
-      if (titleEl) titleEl.remove();  // suppress native browser tooltip
+      if (titleEl) titleEl.remove();
       shape.addEventListener("mouseenter", (ev) => showText(text, ev));
       shape.addEventListener("mousemove", (ev) => positionPopup(popupEl, ev));
       shape.addEventListener("mouseleave", hide);
@@ -430,20 +434,6 @@ function installChartHoverTooltips(root) {
         top: parseFloat(meta.getAttribute("data-plot-top")),
         bottom: parseFloat(meta.getAttribute("data-plot-bottom")),
       } : null;
-      // Cache parsed polyline points + their associated label (the original <title>) per plot.
-      const plotData = [];
-      svg.querySelectorAll("polyline.guide-chart-shape").forEach((poly) => {
-        const titleEl = poly.querySelector("title");
-        const label = titleEl?.textContent ?? "";
-        const raw = poly.getAttribute("points") || "";
-        const pts = [];
-        for (const tok of raw.trim().split(/\s+/)) {
-          const [px, py] = tok.split(",");
-          const fx = parseFloat(px), fy = parseFloat(py);
-          if (Number.isFinite(fx) && Number.isFinite(fy)) pts.push([fx, fy]);
-        }
-        if (pts.length) plotData.push({ pts, label });
-      });
       svg.addEventListener("mousemove", (ev) => {
         if (!dom || !plotData.length) {
           const closest = findClosestShape(svg, ev);
@@ -451,8 +441,6 @@ function installChartHoverTooltips(root) {
           if (text) showText(text, ev); else hide();
           return;
         }
-        // Convert mouse → SVG user-space coordinates (we authored the SVG with viewBox = 0..w/0..h
-        // so we can use the rect ratio directly).
         const rect = svg.getBoundingClientRect();
         const sx = (ev.clientX - rect.left) * (svg.viewBox.baseVal.width || rect.width) / rect.width;
         const sy = (ev.clientY - rect.top) * (svg.viewBox.baseVal.height || rect.height) / rect.height;
@@ -461,7 +449,6 @@ function installChartHoverTooltips(root) {
           return;
         }
         const dataX = dom.xMin + (sx - dom.left) / (dom.right - dom.left) * (dom.xMax - dom.xMin);
-        // For each plot, interpolate the Y at this svg X and pick the curve nearest to the cursor.
         let best = null;
         let bestDist = Infinity;
         for (const plot of plotData) {
@@ -471,9 +458,6 @@ function installChartHoverTooltips(root) {
           if (d < bestDist) { bestDist = d; best = { plot, svgY: y }; }
         }
         if (!best) { hide(); return; }
-        // Only show tooltip when the cursor is within a visual threshold of the nearest curve.
-        // We compare in SVG user-space then convert to CSS pixels so the sensitivity stays
-        // constant regardless of how the SVG is scaled by max-width / zoom.
         const svgUPerCssPx = (svg.viewBox.baseVal.width || rect.width) / rect.width;
         const THRESHOLD_CSS_PX = 10;
         if (bestDist > THRESHOLD_CSS_PX * svgUPerCssPx) { hide(); return; }
@@ -487,7 +471,6 @@ function installChartHoverTooltips(root) {
 }
 
 function interpolateAtX(pts, x) {
-  // pts is an array of [px, py] in ascending px (mostly); do a linear scan.
   for (let i = 1; i < pts.length; i++) {
     const a = pts[i - 1], b = pts[i];
     const lo = Math.min(a[0], b[0]);
@@ -518,7 +501,6 @@ function findClosestShape(svg, ev) {
 
 function positionPopup(el, ev) {
   if (!el) return;
-  // Offset the popup slightly off the cursor so it doesn't flicker on hover.
   const x = ev.clientX + 14;
   const y = ev.clientY + 14;
   el.style.left = `${x}px`;

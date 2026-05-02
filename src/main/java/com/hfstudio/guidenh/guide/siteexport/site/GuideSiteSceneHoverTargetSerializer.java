@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
@@ -142,7 +143,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
             }
         }
 
-        for (net.minecraft.entity.Entity entity : level.getEntities()) {
+        for (Entity entity : level.getEntities()) {
             if (entity == null || entity.boundingBox == null || !isVisibleEntity(entity.boundingBox, visibleLayerY)) {
                 continue;
             }
@@ -285,7 +286,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
     }
 
     @Nullable
-    private static GuideTooltip resolveEntityTooltip(@Nullable net.minecraft.entity.Entity entity) {
+    private static GuideTooltip resolveEntityTooltip(@Nullable Entity entity) {
         String name = GuideEntityDisplayResolver.resolveDisplayName(entity);
         return name != null && !name.trim()
             .isEmpty() ? new TextTooltip(name) : null;

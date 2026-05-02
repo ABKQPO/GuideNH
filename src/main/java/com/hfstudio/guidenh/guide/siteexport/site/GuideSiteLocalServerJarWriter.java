@@ -8,11 +8,11 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
-final class GuideSiteLocalServerJarWriter {
+public final class GuideSiteLocalServerJarWriter {
 
     private GuideSiteLocalServerJarWriter() {}
 
-    static void writeTo(Path target) throws Exception {
+    public static void writeTo(Path target) throws Exception {
         Path parent = target.getParent();
         if (parent != null) {
             Files.createDirectories(parent);

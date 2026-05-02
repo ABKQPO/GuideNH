@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -25,6 +26,11 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
  */
 public final class GuideSiteGraphRenderer {
 
+    // Monotonically increasing counter used to generate unique clip-path IDs so that
+    // multiple function-graph SVGs embedded in the same HTML page do not share the
+    // same id="gc" definition (inline SVGs share the document's ID namespace).
+    private static int nextClipId = 0;
+
     // Chart default dimensions
     private static final int CHART_DEFAULT_W = 320;
     private static final int CHART_DEFAULT_H = 200;
@@ -45,9 +51,9 @@ public final class GuideSiteGraphRenderer {
 
     private GuideSiteGraphRenderer() {}
 
-    // ===== HTML escape helpers =====
+    // HTML escaping helpers.
 
-    static String esc(String s) {
+    public static String esc(String s) {
         if (s == null) {
             return "";
         }
@@ -57,10 +63,10 @@ public final class GuideSiteGraphRenderer {
             .replace("\"", "&quot;");
     }
 
-    // ===== Color conversion =====
+    // Color conversion.
 
     /** Convert ARGB int (0xAARRGGBB) to CSS hex or rgba(). */
-    static String argbToRgba(int argb) {
+    public static String argbToRgba(int argb) {
         int a = (argb >> 24) & 0xFF;
         int r = (argb >> 16) & 0xFF;
         int g = (argb >> 8) & 0xFF;
@@ -71,9 +77,9 @@ public final class GuideSiteGraphRenderer {
         return String.format("rgba(%d,%d,%d,%.3f)", r, g, b, a / 255.0);
     }
 
-    // ===== File Tree =====
+    // File tree.
 
-    static String renderFileTree(String source) {
+    public static String renderFileTree(String source) {
         FileTreeModel model = FileTreeParser.parse(source);
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-file-tree\">");
@@ -116,11 +122,10 @@ public final class GuideSiteGraphRenderer {
         return html.toString();
     }
 
-    // ===== Mermaid Mindmap (SVG) =====
-    //
-    // The HTML renderer here mirrors the in-game LytMermaidMindmapCanvas: rounded boxes
+    // Mermaid mindmap (SVG).
+    // The HTML renderer mirrors the in-game LytMermaidMindmapCanvas: rounded boxes
     // with a colored accent stripe on the left, 1px L-shaped connectors, top-down layout.
-    // Text width is approximated (we don't have access to MC font metrics here).
+    // Text width is approximated because we do not have access to MC font metrics here.
 
     private static final int MM_NODE_PAD_X = 10;
     private static final int MM_NODE_PAD_Y = 6;
@@ -147,10 +152,10 @@ public final class GuideSiteGraphRenderer {
 
     private static final class MmLayoutNode {
 
-        final MermaidMindmapNode source;
-        final boolean isRoot;
-        final String[] lines;
-        final @org.jetbrains.annotations.Nullable String badge;
+        private final MermaidMindmapNode source;
+        private final boolean isRoot;
+        private final String[] lines;
+        private final @Nullable String badge;
         int width;
         int height;
         int subtreeWidth;
@@ -159,7 +164,7 @@ public final class GuideSiteGraphRenderer {
         int y;
         final List<MmLayoutNode> children = new ArrayList<>();
 
-        MmLayoutNode(MermaidMindmapNode source, boolean isRoot) {
+        private MmLayoutNode(MermaidMindmapNode source, boolean isRoot) {
             this.source = source;
             this.isRoot = isRoot;
             String text = source.getText() != null ? source.getText() : "";
@@ -168,7 +173,7 @@ public final class GuideSiteGraphRenderer {
         }
     }
 
-    static String renderMermaidTree(MermaidMindmapDocument doc) {
+    public static String renderMermaidTree(MermaidMindmapDocument doc) {
         if (doc == null || doc.getRoot() == null) {
             return "<div class=\"guide-mermaid-pan\" data-guide-pannable>"
                 + "<svg class=\"guide-mermaid-canvas\" width=\"100\" height=\"40\"></svg></div>";
@@ -414,7 +419,7 @@ public final class GuideSiteGraphRenderer {
     private static int resolveMmAccent(MmLayoutNode node) {
         int accent = MM_DEFAULT_ACCENT;
         for (String className : node.source.getClasses()) {
-            String lower = className.toLowerCase(java.util.Locale.ROOT);
+            String lower = className.toLowerCase(Locale.ROOT);
             if (lower.contains("danger") || lower.contains("error")
                 || lower.contains("urgent")
                 || lower.contains("red")) {
@@ -442,14 +447,14 @@ public final class GuideSiteGraphRenderer {
         };
     }
 
-    // ===== CSV Table =====
+    // CSV table.
 
-    static String renderCsvTable(String csvSource, boolean hasHeader) {
+    public static String renderCsvTable(String csvSource, boolean hasHeader) {
         List<List<String>> rows = CsvTableParser.parse(csvSource);
         return renderCsvTable(rows, hasHeader);
     }
 
-    static String renderCsvTable(List<List<String>> rows, boolean hasHeader) {
+    public static String renderCsvTable(List<List<String>> rows, boolean hasHeader) {
         if (rows.isEmpty()) {
             return "<table class=\"guide-csv-table\"></table>";
         }
@@ -483,42 +488,87 @@ public final class GuideSiteGraphRenderer {
         return html.toString();
     }
 
-    // ===== Chart data holder classes =====
+    // Chart data holder classes.
 
     /** Chart series data (name, ARGB color, parallel xs/ys arrays). */
-    static final class SeriesData {
+    public static final class SeriesData {
 
-        final String name;
-        final int color;
-        final double[] xs;
-        final double[] ys;
+        /** Series rendered as vertical bars (default). */
+        public static final String TYPE_COLUMN = "column";
+        /** Series rendered as a line overlay on a column chart. */
+        public static final String TYPE_LINE = "line";
 
-        SeriesData(String name, int color, double[] xs, double[] ys) {
+        public final String name;
+        public final int color;
+        public final double[] xs;
+        public final double[] ys;
+        /** Rendering type: {@link #TYPE_COLUMN} or {@link #TYPE_LINE}. */
+        public final String type;
+
+        public SeriesData(String name, int color, double[] xs, double[] ys) {
+            this(name, color, xs, ys, TYPE_COLUMN);
+        }
+
+        public SeriesData(String name, int color, double[] xs, double[] ys, String type) {
             this.name = name != null ? name : "";
             this.color = color;
             this.xs = xs != null ? xs : new double[0];
             this.ys = ys != null ? ys : new double[0];
+            this.type = type != null ? type : TYPE_COLUMN;
+        }
+    }
+
+    /** Inset pie chart that overlays a corner of a column chart. */
+    public static final class PieInsetData {
+
+        public final List<SliceData> slices;
+        /** Diameter of the inset pie in SVG user-space units. */
+        public final int size;
+        /** Corner placement: "right" (top-right), "left" (top-left), "bottom-right", "bottom-left". */
+        public final String position;
+        public final @Nullable String title;
+
+        public PieInsetData(List<SliceData> slices, int size, String position, @Nullable String title) {
+            this.slices = slices != null ? slices : new ArrayList<>();
+            this.size = Math.max(20, size);
+            this.position = position != null ? position : "right";
+            this.title = title;
         }
     }
 
     /** Pie-chart slice (label, value, ARGB color). */
-    static final class SliceData {
+    public static final class SliceData {
 
-        final String label;
-        final double value;
-        final int color;
+        public final String label;
+        public final double value;
+        public final int color;
 
-        SliceData(String label, double value, int color) {
+        public SliceData(String label, double value, int color) {
             this.label = label != null ? label : "";
             this.value = value;
             this.color = color;
         }
     }
 
-    // ===== Column Chart (vertical bars, categorical X) =====
+    // Column chart (vertical bars, categorical X).
 
-    static String renderColumnChart(int w, int h, int bgColor, int borderColor, String title, String[] categories,
-        List<SeriesData> series, boolean showLegend) {
+    /** Backward-compatible overload. Delegates to the composite version with no inset. */
+    public static String renderColumnChart(int w, int h, int bgColor, int borderColor, String title,
+        String[] categories, List<SeriesData> series, boolean showLegend) {
+        return renderColumnChart(w, h, bgColor, borderColor, title, categories, series, showLegend, null, null, false);
+    }
+
+    /**
+     * Composite column chart: renders bar series, optional line-overlay series, and an optional
+     * pie inset in one of the chart's corners.
+     *
+     * @param pieInset   optional pie inset; {@code null} for a plain column chart
+     * @param yAxisUnit  optional unit label shown beside the Y-axis (e.g. "t"); {@code null} to omit
+     * @param labelAbove when {@code true}, draw the numeric value above each bar
+     */
+    public static String renderColumnChart(int w, int h, int bgColor, int borderColor, String title,
+        String[] categories, List<SeriesData> series, boolean showLegend, @Nullable PieInsetData pieInset,
+        @Nullable String yAxisUnit, boolean labelAbove) {
         if (w <= 0) {
             w = CHART_DEFAULT_W;
         }
@@ -561,18 +611,35 @@ public final class GuideSiteGraphRenderer {
         int plotH = Math.max(1, bottom - top);
 
         int nCat = Math.max(1, categories.length);
-        int nSer = Math.max(1, series.size());
         double clusterW = (double) plotW / nCat;
-        double barW = clusterW * 0.7 / nSer;
-        double gap = (clusterW - barW * nSer) / 2.0;
 
         StringBuilder svg = openSvg(w, h, "guide-chart", bgColor, borderColor);
         appendTitle(svg, title, w);
         appendYGridAndLabels(svg, left, right, top, bottom, plotH, yMin, yMax);
         appendCategoryXLabels(svg, categories, left, clusterW, bottom);
 
-        for (int si = 0; si < series.size(); si++) {
-            SeriesData s = series.get(si);
+        // Y-axis unit label (e.g. "(t)" above Y axis)
+        if (yAxisUnit != null && !yAxisUnit.isEmpty()) {
+            svg.append("<text x=\"")
+                .append(left - 3)
+                .append("\" y=\"")
+                .append(top - 2)
+                .append("\" text-anchor=\"end\" font-size=\"7\" fill=\"#B8C2CF\" font-family=\"inherit\">(")
+                .append(esc(yAxisUnit))
+                .append(")</text>");
+        }
+
+        // Determine how many COLUMN series there are for bar-width calculation
+        int nColSer = (int) series.stream()
+            .filter(s -> SeriesData.TYPE_COLUMN.equals(s.type))
+            .count();
+        if (nColSer == 0) nColSer = 1;
+        double barW = clusterW * 0.7 / nColSer;
+        double gap = (clusterW - barW * nColSer) / 2.0;
+
+        int colIdx = 0;
+        for (SeriesData s : series) {
+            if (!SeriesData.TYPE_COLUMN.equals(s.type)) continue;
             String fill = argbToRgba(s.color);
             int len = Math.min(s.xs.length, s.ys.length);
             for (int di = 0; di < len; di++) {
@@ -581,7 +648,7 @@ public final class GuideSiteGraphRenderer {
                     continue;
                 }
                 double value = s.ys[di];
-                double bx = left + ci * clusterW + gap + si * barW;
+                double bx = left + ci * clusterW + gap + colIdx * barW;
                 double by;
                 double bh;
                 double zeroY = bottom - Math.max(0, -yMin) / (yMax - yMin) * plotH;
@@ -608,6 +675,146 @@ public final class GuideSiteGraphRenderer {
                     .append("\"><title>")
                     .append(esc(buildChartTip(categories[ci], s.name, value)))
                     .append("</title></rect>");
+                if (labelAbove) {
+                    svg.append("<text x=\"")
+                        .append(fmtD(bx + barW / 2))
+                        .append("\" y=\"")
+                        .append(fmtD(by - 2))
+                        .append("\" text-anchor=\"middle\" font-size=\"7\" fill=\"")
+                        .append(fill)
+                        .append("\" font-family=\"inherit\">")
+                        .append(esc(formatNum(value)))
+                        .append("</text>");
+                }
+            }
+            colIdx++;
+        }
+
+        // Line-overlay series (same Y scale as column bars)
+        for (SeriesData s : series) {
+            if (!SeriesData.TYPE_LINE.equals(s.type)) continue;
+            String stroke = argbToRgba(s.color);
+            int len = Math.min(s.xs.length, s.ys.length);
+            StringBuilder linePts = new StringBuilder();
+            for (int di = 0; di < len; di++) {
+                int ci = (int) s.xs[di];
+                if (ci < 0 || ci >= nCat) continue;
+                double cx = left + (ci + 0.5) * clusterW;
+                double cy = bottom - (s.ys[di] - yMin) / (yMax - yMin) * plotH;
+                if (linePts.length() > 0) linePts.append(" ");
+                linePts.append(fmtD(cx))
+                    .append(",")
+                    .append(fmtD(cy));
+            }
+            if (linePts.length() > 0) {
+                svg.append("<polyline class=\"guide-chart-shape\" points=\"")
+                    .append(linePts)
+                    .append("\" stroke=\"")
+                    .append(stroke)
+                    .append("\" stroke-width=\"2\" fill=\"none\"><title>")
+                    .append(esc(s.name))
+                    .append("</title></polyline>");
+                // Dots at each data point
+                for (int di = 0; di < len; di++) {
+                    int ci = (int) s.xs[di];
+                    if (ci < 0 || ci >= nCat) continue;
+                    double cx = left + (ci + 0.5) * clusterW;
+                    double cy = bottom - (s.ys[di] - yMin) / (yMax - yMin) * plotH;
+                    svg.append("<circle class=\"guide-chart-shape\" cx=\"")
+                        .append(fmtD(cx))
+                        .append("\" cy=\"")
+                        .append(fmtD(cy))
+                        .append("\" r=\"3\" fill=\"")
+                        .append(stroke)
+                        .append("\"><title>")
+                        .append(esc(buildChartTip(ci < categories.length ? categories[ci] : "", s.name, s.ys[di])))
+                        .append("</title></circle>");
+                }
+            }
+        }
+
+        // Pie inset overlay
+        if (pieInset != null && !pieInset.slices.isEmpty()) {
+            double total = 0;
+            for (SliceData sl : pieInset.slices) total += sl.value;
+            if (total <= 0) total = 1;
+            int pr = pieInset.size / 2;
+            int pcx, pcy;
+            switch (pieInset.position) {
+                case "left":
+                    pcx = left + pr + 4;
+                    pcy = top + pr + 4;
+                    break;
+                case "bottom-right":
+                    pcx = right - pr - 4;
+                    pcy = bottom - pr - 4;
+                    break;
+                case "bottom-left":
+                    pcx = left + pr + 4;
+                    pcy = bottom - pr - 4;
+                    break;
+                default:
+                    pcx = right - pr - 4;
+                    pcy = top + pr + 4;
+                    break; // "right"
+            }
+            // Semi-transparent backing circle
+            svg.append("<circle cx=\"")
+                .append(pcx)
+                .append("\" cy=\"")
+                .append(pcy)
+                .append("\" r=\"")
+                .append(pr + 2)
+                .append("\" fill=\"")
+                .append(argbToRgba(bgColor))
+                .append("\" opacity=\"0.85\"/>");
+            // Pie slices
+            double ang = -Math.PI / 2;
+            for (SliceData sl : pieInset.slices) {
+                double sweep = (sl.value / total) * 2 * Math.PI;
+                double ea = ang + sweep;
+                double x1 = pcx + pr * Math.cos(ang);
+                double y1 = pcy + pr * Math.sin(ang);
+                double x2 = pcx + pr * Math.cos(ea);
+                double y2 = pcy + pr * Math.sin(ea);
+                int la = sweep > Math.PI ? 1 : 0;
+                double pct = (sl.value / total) * 100.0;
+                svg.append("<path class=\"guide-chart-shape\" d=\"M ")
+                    .append(pcx)
+                    .append(" ")
+                    .append(pcy)
+                    .append(" L ")
+                    .append(fmtD(x1))
+                    .append(" ")
+                    .append(fmtD(y1))
+                    .append(" A ")
+                    .append(pr)
+                    .append(" ")
+                    .append(pr)
+                    .append(" 0 ")
+                    .append(la)
+                    .append(" 1 ")
+                    .append(fmtD(x2))
+                    .append(" ")
+                    .append(fmtD(y2))
+                    .append(" Z\" fill=\"")
+                    .append(argbToRgba(sl.color))
+                    .append("\" stroke=\"")
+                    .append(argbToRgba(bgColor))
+                    .append("\" stroke-width=\"0.5\"><title>")
+                    .append(esc(sl.label + ": " + formatNum(sl.value) + " (" + String.format("%.1f", pct) + "%)"))
+                    .append("</title></path>");
+                ang = ea;
+            }
+            // Inset title
+            if (pieInset.title != null && !pieInset.title.isEmpty()) {
+                svg.append("<text x=\"")
+                    .append(pcx)
+                    .append("\" y=\"")
+                    .append(pcy + pr + 9)
+                    .append("\" text-anchor=\"middle\" font-size=\"7\" fill=\"#B8C2CF\" font-family=\"inherit\">")
+                    .append(esc(pieInset.title))
+                    .append("</text>");
             }
         }
 
@@ -620,9 +827,9 @@ public final class GuideSiteGraphRenderer {
             .toString();
     }
 
-    // ===== Bar Chart (horizontal bars, categorical Y) =====
+    // Bar chart (horizontal bars, categorical Y).
 
-    static String renderBarChart(int w, int h, int bgColor, int borderColor, String title, String[] categories,
+    public static String renderBarChart(int w, int h, int bgColor, int borderColor, String title, String[] categories,
         List<SeriesData> series, boolean showLegend) {
         if (w <= 0) {
             w = CHART_DEFAULT_W;
@@ -771,9 +978,9 @@ public final class GuideSiteGraphRenderer {
             .toString();
     }
 
-    // ===== Line Chart =====
+    // Line chart.
 
-    static String renderLineChart(int w, int h, int bgColor, int borderColor, String title, String[] categories,
+    public static String renderLineChart(int w, int h, int bgColor, int borderColor, String title, String[] categories,
         List<SeriesData> series, boolean numericX, boolean showPoints, boolean showLegend) {
         if (w <= 0) {
             w = CHART_DEFAULT_W;
@@ -962,10 +1169,10 @@ public final class GuideSiteGraphRenderer {
             .toString();
     }
 
-    // ===== Pie Chart =====
+    // Pie chart.
 
-    static String renderPieChart(int w, int h, int bgColor, int borderColor, String title, List<SliceData> slices,
-        boolean showLegend) {
+    public static String renderPieChart(int w, int h, int bgColor, int borderColor, String title,
+        List<SliceData> slices, boolean showLegend) {
         if (w <= 0) {
             w = CHART_DEFAULT_W;
         }
@@ -1058,10 +1265,10 @@ public final class GuideSiteGraphRenderer {
             .toString();
     }
 
-    // ===== Scatter Chart =====
+    // Scatter chart.
 
-    static String renderScatterChart(int w, int h, int bgColor, int borderColor, String title, List<SeriesData> series,
-        boolean showLegend) {
+    public static String renderScatterChart(int w, int h, int bgColor, int borderColor, String title,
+        List<SeriesData> series, boolean showLegend) {
         if (w <= 0) {
             w = CHART_DEFAULT_W;
         }
@@ -1182,9 +1389,9 @@ public final class GuideSiteGraphRenderer {
             .toString();
     }
 
-    // ===== Function Graph =====
+    // Function graph.
 
-    static String renderFunctionGraph(LytFunctionGraph graph) {
+    public static String renderFunctionGraph(LytFunctionGraph graph) {
         int w = graph.getExplicitWidth() > 0 ? graph.getExplicitWidth() : GRAPH_DEFAULT_W;
         int h = graph.getExplicitHeight() > 0 ? graph.getExplicitHeight() : GRAPH_DEFAULT_H;
         String title = graph.getTitle();
@@ -1245,9 +1452,9 @@ public final class GuideSiteGraphRenderer {
             yMax);
     }
 
-    static String renderFunctionGraphSvg(List<FunctionPlot> plots, List<MarkedPoint> points, int w, int h, String title,
-        int bgColor, int borderColor, int axisColor, int gridColor, boolean showGrid, boolean showAxes, double xMin,
-        double xMax, double yMin, double yMax) {
+    public static String renderFunctionGraphSvg(List<FunctionPlot> plots, List<MarkedPoint> points, int w, int h,
+        String title, int bgColor, int borderColor, int axisColor, int gridColor, boolean showGrid, boolean showAxes,
+        double xMin, double xMax, double yMin, double yMax) {
 
         int titleBottom = computeTitleBottom(title);
         int leftPad = showAxes ? AXIS_PAD_LEFT : PADDING;
@@ -1261,9 +1468,9 @@ public final class GuideSiteGraphRenderer {
         int plotH = Math.max(1, bottom - top);
 
         StringBuilder svg = openSvg(w, h, "guide-function-graph", bgColor, borderColor);
-        // Expose plot domain + plot rect so client-side JS (installChartHoverTooltips)
-        // can map cursor pixels → data x/y for live (x, y) tooltips.
-        // We can't add attrs to the already-emitted <svg> tag easily without rewriting
+        // Expose the plot domain and plot rect so client-side JS (installChartHoverTooltips)
+        // can map cursor pixels to data x/y for live (x, y) tooltips.
+        // We cannot add attributes to the already-emitted <svg> tag easily without rewriting
         // openSvg, so we embed them as <metadata> entries the JS reads.
         svg.append("<metadata data-plot-domain=\"true\" data-x-min=\"")
             .append(xMin)
@@ -1283,8 +1490,12 @@ public final class GuideSiteGraphRenderer {
             .append(bottom)
             .append("\"></metadata>");
 
-        // Clip path for curve rendering
-        svg.append("<defs><clipPath id=\"gc\"><rect x=\"")
+        // Clip path for curve rendering. Use a unique ID so that multiple function-graph
+        // SVGs embedded in the same HTML page do not collide on the shared document ID namespace.
+        String clipId = "fg" + nextClipId++;
+        svg.append("<defs><clipPath id=\"")
+            .append(clipId)
+            .append("\"><rect x=\"")
             .append(left)
             .append("\" y=\"")
             .append(top)
@@ -1371,7 +1582,7 @@ public final class GuideSiteGraphRenderer {
                     .append(esc(formatNum(xv)))
                     .append("</text>");
             }
-            // Zero-crossing axis lines
+            // Zero-crossing axis lines.
             if (yMin <= 0 && yMax >= 0) {
                 int ay = bottom - (int) Math.round((0 - yMin) / (yMax - yMin) * plotH);
                 svg.append("<line x1=\"")
@@ -1403,7 +1614,9 @@ public final class GuideSiteGraphRenderer {
         }
 
         // Function curves (clipped)
-        svg.append("<g clip-path=\"url(#gc)\">");
+        svg.append("<g clip-path=\"url(#")
+            .append(clipId)
+            .append(")\">");
         for (FunctionPlot plot : plots) {
             String stroke = argbToRgba(plot.getColor());
             String tip = plot.getLabel() != null && !plot.getLabel()
@@ -1498,7 +1711,7 @@ public final class GuideSiteGraphRenderer {
 
     /**
      * Build a short tooltip string for a chart shape. Empty fields are dropped so we get e.g.
-     * "Foo: 12" or "Q1 · Foo: 12".
+     * "Foo: 12" or "Q1 - Foo: 12".
      */
     private static String buildChartTip(String category, String series, double value) {
         StringBuilder sb = new StringBuilder();
@@ -1507,7 +1720,7 @@ public final class GuideSiteGraphRenderer {
         }
         if (series != null && !series.isEmpty()) {
             if (sb.length() > 0) {
-                sb.append(" · ");
+                sb.append(" - ");
             }
             sb.append(series);
         }
@@ -1518,7 +1731,7 @@ public final class GuideSiteGraphRenderer {
         return sb.toString();
     }
 
-    // ===== Shared SVG helpers =====
+    // Shared SVG helpers.
 
     private static StringBuilder openSvg(int w, int h, String cls, int bgColor, int borderColor) {
         StringBuilder svg = new StringBuilder();
@@ -1678,10 +1891,10 @@ public final class GuideSiteGraphRenderer {
         return (int) Math.ceil((double) series.size() / cols) * (LEGEND_ROW_H + 2) + LEGEND_GAP;
     }
 
-    // ===== Number / coordinate formatters =====
+    // Number and coordinate formatters.
 
     /** Format a number for SVG axis labels: integer if whole, else limited decimals. */
-    static String formatNum(double v) {
+    public static String formatNum(double v) {
         if (v == 0) {
             return "0";
         }
