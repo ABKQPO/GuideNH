@@ -53,6 +53,8 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<LineChart>` | line chart with categorical or numeric X | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
 | `<PieChart>` | pie chart | `startAngle`, `clockwise`, `legend`, `labelPosition` |
 | `<ScatterChart>` | XY scatter chart | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<FunctionGraph>` | Desmos-style multi-curve function graph | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes` |
+| `<Function>` | single-curve shorthand for `<FunctionGraph>` | `expr`, plus all `<FunctionGraph>` panel attributes |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
 | `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc` |
@@ -497,6 +499,33 @@ Extra attributes: `startAngle` (default `-90`, i.e. 12 o'clock); `clockwise={fal
 ### `<ScatterChart>`
 
 Renders points only; `<Series>` must use `points`. The X-axis is always numeric.
+
+## Function Graphs
+
+`<FunctionGraph>` and the single-curve shorthand `<Function>` render an interactive Desmos-style panel. The same panel is also available through a ` ```funcgraph ` fenced code block; see the runtime [Markdown sample](resourcepack/assets/guidenh/guidenh/_en_us/markdown.md) for a full walkthrough.
+
+Panel attributes (accepted by the container, the shorthand, and the fence header alike):
+
+- `width` / `height` (defaults `320` x `220`)
+- `title`, `background`, `border`, `axisColor`, `gridColor`
+- `showGrid` / `showAxes` (default `true`)
+- `xRange="a..b"` (or `xMin` / `xMax` separately), `xStep` for tick spacing; same for the Y axis
+- `quadrants="1,2,3,4"` or `quadrants="all"` to force the visible quadrants; omit to start in quadrant 1 with auto-expansion when sampled `y < 0`
+
+Curve children (`<Plot>` / `<Function>`):
+
+- `expr="..."` &mdash; the expression. Operators `+ - * / % ^`, postfix factorial `!` (gamma-extended), `|x|` absolute value, `√` / `sqrt` / `∛` / `cbrt`, implicit multiplication, and the constants `pi`, `tau`, `e`, `phi` are supported. Built-in calls cover the standard trig/log/exp/rounding family plus two-arg `atan2`, `min`, `max`, `pow`, `hypot`, `mod`.
+- `inverse={true}` evaluates the expression as `x = f(y)` and rotates the curve.
+- `domain="a..b"` (x bounds shorthand) or comma-separated clauses such as `x>=0, x<5`.
+- `color`, `label`. Any curve with a non-empty `label` is automatically listed in a legend rendered just below the panel: a small color swatch followed by the label, with entries flowing left-to-right and wrapping onto a new row when the next entry would not fit.
+
+Marked points (`<Point>`):
+
+- Explicit: `x="..."` and `y="..."`.
+- Plot-anchored: `plot="N"` plus `atX="v"` or `atY="v"` (the runtime bisects on the plot's x-domain to find the matching `x`).
+- Optional `color`, `label`.
+
+Interaction: hover a curve to highlight it; press and hold to scrub a point along the curve. The tooltip shows the expression on the first line and `(x, y)` on the second; it stays anchored above the point and flips below when there is no headroom.
 
 ## BetterQuesting Compatibility Tags
 

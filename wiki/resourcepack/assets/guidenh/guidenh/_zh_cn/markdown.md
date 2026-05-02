@@ -506,3 +506,89 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>` 簇状柱形图、`<
     <Slice label="金" value="110" color="#e0c060"/>
   </PieInset>
 </ColumnChart>
+
+## 函数图
+
+GuideNH 提供 Desmos 风格的交互函数图，支持三种写法：`funcgraph` 围栏代码块、
+`<FunctionGraph>` MDX 容器，以及只画一条曲线的简写 `<Function>`。三者共享同一
+面板：可配置尺寸、X/Y 范围、可选网格/坐标轴、自动象限扩展，以及每条曲线的定义域
+限制。在曲线上按住鼠标拖动可沿曲线滑动一个带标签的点；提示框默认锚定在该点正上方，
+顶部空间不足时自动翻到下方。
+
+任何带有 `label` 的曲线都会出现在面板下方的图例里：每一项是一个小色块加曲线名，
+按从左到右的顺序排列，宽度不够时自动换到下一行。
+
+### 围栏代码块
+
+`funcgraph` 围栏的第一行用来设置面板属性（`width`、`height`、`xRange=a..b` /
+`xMin` / `xMax` / `xStep`、`yRange` / `yMin` / `yMax` / `yStep`、
+`quadrants=1,2,3,4` 或 `all`、`title`、`background`、`border`、`axisColor`、
+`gridColor`、`showGrid`、`showAxes`）。其余非空行是带可选管道分隔属性的表达式，
+或以 `:x,y` 写出的固定点，或以 `@plot=N atX=v` / `@plot=N atY=v` 锚定到曲线上
+的点。`#` 之后到行尾为注释。
+
+```funcgraph
+width=360 height=220 xRange=-pi..pi yRange=-2..2 quadrants=all
+sin(x)        | color=#ff5566 label="sin"
+cos(x)        | color=#3399ff label="cos"
+x/2           | color=#88cc77 domain=-pi..pi
+:0,0
+@plot=0 atX=1.5708
+```
+
+### `<FunctionGraph>` 容器
+
+容器接受与围栏首行相同的面板属性。子节点：曲线用 `<Plot expr="..." />`（或
+`<Function expr="..." />`），标记点用 `<Point ... />`。曲线属性：`expr`、
+`inverse={true}` 表示 `x = f(y)`、`domain="a..b"` 或逗号分隔的子句
+（如 `x>=0, x<=pi`）、`color`、`label`。点属性：直接给 `x` + `y`，或者用
+`plot="N"` 配合 `atX="v"` / `atY="v"` 锚定到第 N 条曲线上。
+
+```mdx
+<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all">
+  <Plot expr="sin(x)" color="#ff5566" label="sin x"/>
+  <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
+  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1"/>
+  <Point x="0" y="0"/>
+  <Point plot="0" atX="1.5708"/>
+</FunctionGraph>
+```
+
+<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all">
+  <Plot expr="sin(x)" color="#ff5566" label="sin x"/>
+  <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
+  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1"/>
+  <Point x="0" y="0"/>
+  <Point plot="0" atX="1.5708"/>
+</FunctionGraph>
+
+### `<Function>` 简写
+
+只想画一条曲线时，`<Function>` 不必再套外壳：
+
+```mdx
+<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff"/>
+```
+
+<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff"/>
+
+### 表达式语法
+
+* 运算符：`+ - * / %`、右结合的 `^`，以及一元负号。
+* 后缀 `!` 表示阶乘；通过 gamma 函数推广到实数（负整数返回 NaN）。
+* `|expr|` 是绝对值；`√`/`sqrt` 与 `∛`/`cbrt` 表示开方。
+* 隐式乘法：`2x`、`2pi`、`(x+1)(x-1)` 都合法。
+* 内建函数：`sin cos tan asin acos atan sinh cosh tanh exp ln log log2
+  log10 sqrt cbrt abs sign floor ceil round`，以及双参数 `atan2 min max
+  pow hypot mod`。
+* 常量：`pi`、`tau`、`e`、`phi`。
+* 定义域子句（`domain="..."`）：`min..max` 简写 x 上下界；可写多个用逗号分隔
+  的比较子句，例如 `x>=0`、`x<5`；左右两侧都可使用常量。
+* 设置 `inverse={true}`（MDX）或 `inverse=true`（围栏属性）后，表达式被解释
+  为 `x = f(y)`，对 y 求值并旋转曲线。
+
+### 默认象限行为
+
+未写 `xRange` / `yRange` 与 `quadrants` 时，面板默认仅显示第一象限
+（`x>=0`、`y>=0`）。当采样发现存在 `y<0` 且未显式设置 y 轴上下界时，面板会
+自动扩展到第三、第四象限，以保证曲线完整可见。

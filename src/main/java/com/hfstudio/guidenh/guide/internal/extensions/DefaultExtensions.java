@@ -43,6 +43,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.chart.ColumnChartCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.LineChartCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.PieChartCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ScatterChartCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionTagCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
@@ -120,7 +122,9 @@ public class DefaultExtensions {
                 new BarChartCompiler(),
                 new LineChartCompiler(),
                 new PieChartCompiler(),
-                new ScatterChartCompiler()));
+                new ScatterChartCompiler(),
+                new FunctionGraphTagCompiler(),
+                new FunctionTagCompiler()));
         // Conditionally append mod-compat tag compilers. BqCompat itself does not reference any
         // BetterQuesting types, keeping this branch safe when BQ is absent.
         if (Mods.BetterQuesting.isModLoaded()) {

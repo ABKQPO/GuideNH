@@ -55,6 +55,8 @@
 | `<LineChart>` | 折线图（类别或数值 X 轴） | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
 | `<PieChart>` | 饼图 | `startAngle`, `clockwise`, `legend`, `labelPosition` |
 | `<ScatterChart>` | XY 散点图 | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
+| `<FunctionGraph>` | Desmos 风格的多曲线函数图 | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes` |
+| `<Function>` | 单曲线简写，等价于只含一个 `<Plot>` 的 `<FunctionGraph>` | `expr`，及全部 `<FunctionGraph>` 面板属性 |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | 配方渲染器 | 详见 [配方](Recipes-zh-CN) |
 | `<GameScene>`, `<Scene>` | 3D 指南场景 | 详见 [GameScene](GameScene-zh-CN) |
 | `<QuestCard>` | 块级 BetterQuesting 任务摘要卡片（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `show_desc` |
@@ -462,6 +464,33 @@ gold,17
 ### `<ScatterChart>`
 
 仅绘制数据点；`<Series>` 必须使用 `points` 属性。X 轴始终为数值轴。
+
+## 函数图
+
+`<FunctionGraph>` 与单曲线简写 `<Function>` 渲染交互式 Desmos 风格面板。同一面板也可通过 ` ```funcgraph ` 围栏代码块写出，详细示例见运行时 [Markdown 示例](resourcepack/assets/guidenh/guidenh/_zh_cn/markdown.md)。
+
+面板属性（容器、简写、围栏首行通用）：
+
+- `width` / `height`（默认 `320` × `220`）
+- `title`、`background`、`border`、`axisColor`、`gridColor`
+- `showGrid` / `showAxes`（默认 `true`）
+- `xRange="a..b"`（或 `xMin` / `xMax` 分写），`xStep` 控制刻度间距；Y 轴同理
+- `quadrants="1,2,3,4"` 或 `quadrants="all"` 强制可见象限；不写则默认仅第一象限，并在采样发现 `y < 0` 时自动追加第三、第四象限
+
+曲线子节点（`<Plot>` / `<Function>`）：
+
+- `expr="..."`：表达式。支持 `+ - * / % ^`、后缀阶乘 `!`（gamma 推广至实数）、`|x|` 绝对值、`√`/`sqrt`、`∛`/`cbrt`、隐式乘法以及常量 `pi`、`tau`、`e`、`phi`。内建调用覆盖常规 trig/log/exp/rounding 函数，并提供双参数 `atan2`、`min`、`max`、`pow`、`hypot`、`mod`。
+- `inverse={true}` 将表达式解释为 `x = f(y)` 并旋转曲线。
+- `domain="a..b"`（x 上下界简写）或逗号分隔的比较子句，如 `x>=0, x<5`。
+- `color`、`label`。设置了非空 `label` 的曲线会自动出现在面板下方的图例里：一个小色块加曲线名，按从左到右排列，宽度不够时自动换到下一行。
+
+标记点（`<Point>`）：
+
+- 显式坐标：`x="..."` + `y="..."`。
+- 锚定到曲线：`plot="N"` 配合 `atX="v"` 或 `atY="v"`（运行时在该曲线 x 域上二分求解）。
+- 可选 `color`、`label`。
+
+交互：鼠标悬停曲线会高亮该曲线；按住可沿曲线滑动一个标记点。提示框第一行显示表达式，第二行显示 `(x, y)`；默认锚定在该点正上方，顶部空间不足时自动翻到下方。
 
 ## BetterQuesting 兼容标签
 

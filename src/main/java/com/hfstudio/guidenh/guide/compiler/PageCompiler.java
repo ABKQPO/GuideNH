@@ -30,6 +30,7 @@ import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytAlertBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -956,6 +957,9 @@ public class PageCompiler {
         if (isFileTreeFence(astCode.lang)) {
             return FileTreeCompiler.compile(this, astCode.value);
         }
+        if (isFunctionGraphFence(astCode.lang)) {
+            return FunctionGraphFenceParser.parse(astCode.value);
+        }
         if ("mermaid".equals(language.id())) {
             LytMermaidMindmap mermaidBlock = tryCompileMermaidMindmap(astCode.value);
             if (mermaidBlock != null) {
@@ -988,6 +992,15 @@ public class PageCompiler {
         }
         String trimmed = fenceLanguage.trim();
         return "tree".equalsIgnoreCase(trimmed) || "filetree".equalsIgnoreCase(trimmed);
+    }
+
+    private static boolean isFunctionGraphFence(@Nullable String fenceLanguage) {
+        if (fenceLanguage == null) {
+            return false;
+        }
+        String trimmed = fenceLanguage.trim();
+        return "funcgraph".equalsIgnoreCase(trimmed) || "function".equalsIgnoreCase(trimmed)
+            || "functiongraph".equalsIgnoreCase(trimmed);
     }
 
     private LytBlock compileCsvCodeBlock(MdAstCode astCode) {
