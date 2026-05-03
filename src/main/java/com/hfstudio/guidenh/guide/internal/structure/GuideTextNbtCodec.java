@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.zip.GZIPInputStream;
 
+import net.minecraft.item.Item;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.JsonToNBT;
 import net.minecraft.nbt.NBTBase;
@@ -97,6 +98,7 @@ public class GuideTextNbtCodec {
             }
         }
 
+        resolveItemStackNumericId(decoded);
         return decoded;
     }
 
@@ -121,9 +123,11 @@ public class GuideTextNbtCodec {
         NBTTagCompound encoded = new NBTTagCompound();
         NBTTagList encodedEntries = null;
         ArrayList<String> keys = new ArrayList<>(tag.func_150296_c());
+        String itemRegName = resolveItemStackRegistryName(tag);
 
         for (String key : keys) {
-            NBTBase value = encodeTag(tag.getTag(key));
+            NBTBase value = "id".equals(key) && itemRegName != null ? new NBTTagString(itemRegName)
+                : encodeTag(tag.getTag(key));
             if (isDirectKeySafe(key)) {
                 encoded.setTag(key, value);
             } else {
@@ -283,6 +287,68 @@ public class GuideTextNbtCodec {
             return trimmed.substring(0, trimmed.length() - 1);
         }
         return trimmed;
+    }
+
+    /**
+     * Recursively converts any ItemStack {@code id} string values (registry names written by
+     * GuideNH's export) back to numeric shorts in place, so the compound is usable by vanilla
+     * tile-entity and item rendering code. Call this on author-written SNBT tails (e.g. the
+     * {@code {nbt}} suffix in an {@code id=} attribute) that may have been copy-pasted from an
+     * exported structure.
+     */
+    public static void normalizeItemStackIds(NBTTagCompound tag) {
+        if (tag == null) return;
+        resolveItemStackNumericId(tag);
+        for (String key : tag.func_150296_c()) {
+            NBTBase child = tag.getTag(key);
+            if (child instanceof NBTTagCompound c) {
+                normalizeItemStackIds(c);
+            } else if (child instanceof NBTTagList list && list.func_150303_d() == 10) {
+                for (int i = 0; i < list.tagCount(); i++) {
+                    normalizeItemStackIds(list.getCompoundTagAt(i));
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns the registry name for the item referenced by a numeric {@code id} short in
+     * {@code tag}, or {@code null} when {@code tag} is not a serialized ItemStack or the item
+     * cannot be resolved. Used by {@link #encodeCompound} to emit a stable string id during
+     * export so the output survives item-id remapping across world sessions.
+     */
+    private static String resolveItemStackRegistryName(NBTTagCompound tag) {
+        if (!tag.hasKey("id", 99)) return null;
+        if (!tag.hasKey("Count", 99) && !tag.hasKey("Damage", 99) && !tag.hasKey("tag", 10)) return null;
+        int numId = tag.getInteger("id");
+        if (numId <= 0) return null;
+        Item item = Item.getItemById(numId);
+        if (item == null) return null;
+        Object rawName = Item.itemRegistry.getNameForObject(item);
+        if (rawName == null) return null;
+        String name = rawName.toString();
+        return name.isEmpty() ? null : name;
+    }
+
+    /**
+     * Converts a string {@code id} field in {@code decoded} back to a numeric short when the
+     * compound looks like a serialized ItemStack. Called by {@link #decodeCompound} so the
+     * result is always directly usable by vanilla deserialization. No-op for compounds that
+     * already carry a numeric {@code id} or that are not ItemStacks.
+     */
+    private static void resolveItemStackNumericId(NBTTagCompound decoded) {
+        if (!decoded.hasKey("id", 8)) return;
+        if (!decoded.hasKey("Count", 99) && !decoded.hasKey("Damage", 99) && !decoded.hasKey("tag", 10)) return;
+        String regName = decoded.getString("id");
+        if (regName == null || regName.isEmpty()) return;
+        Item item = (Item) Item.itemRegistry.getObject(regName);
+        if (item == null && !regName.contains(":")) {
+            item = (Item) Item.itemRegistry.getObject("minecraft:" + regName);
+        }
+        if (item == null) return;
+        int numId = Item.getIdFromItem(item);
+        if (numId <= 0 || numId > Short.MAX_VALUE) return;
+        decoded.setShort("id", (short) numId);
     }
 
     public static boolean isDirectKeySafe(String key) {

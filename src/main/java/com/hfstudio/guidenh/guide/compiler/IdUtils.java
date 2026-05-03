@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.bsideup.jabel.Desugar;
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
+import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 
 public class IdUtils {
 
@@ -101,7 +102,10 @@ public class IdUtils {
             String snbt = idText.substring(brace);
             try {
                 NBTBase parsed = JsonToNBT.func_150315_a(snbt);
-                if (parsed instanceof NBTTagCompound tc) nbt = tc;
+                if (parsed instanceof NBTTagCompound tc) {
+                    GuideTextNbtCodec.normalizeItemStackIds(tc);
+                    nbt = tc;
+                }
             } catch (Throwable t) {
                 LOG.warn("Failed to parse SNBT tail '{}' for id '{}'; ignoring NBT", snbt, idText, t);
             }
