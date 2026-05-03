@@ -8,6 +8,7 @@ dependencies {
     shadowImplementation("org.apache.lucene:lucene-analyzers-common:8.11.4")
     shadowImplementation("org.apache.lucene:lucene-queryparser:8.11.4")
     shadowImplementation("org.apache.lucene:lucene-highlighter:8.11.4")
+    shadowImplementation("org.apache.commons:commons-lang3:3.3.2") { transitive = false }
     shadowImplementation("com.google.flatbuffers:flatbuffers-java:23.5.26") { transitive = false }
 
     devOnlyNonPublishable("com.github.GTNewHorizons:StructureLib:1.4.34:dev")

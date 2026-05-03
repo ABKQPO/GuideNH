@@ -68,7 +68,6 @@ tasks.named("processResources").configure {
 }
 
 tasks.named<ShadowJar>("shadowJar") {
-    mergeServiceFiles()
     exclude("META-INF/maven/**", "META-INF/LICENSE*", "META-INF/NOTICE*")
     minimize {
         exclude(dependency("org.apache.lucene:lucene-core:.*"))
