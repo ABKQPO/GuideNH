@@ -6,8 +6,7 @@ public enum SceneEditorScreenshotFormat {
 
     PNG("png", true),
     JPG("jpg", false),
-    BMP("bmp", false),
-    WEBP("webp", false);
+    BMP("bmp", false);
 
     private final String configValue;
     private final boolean alphaSupported;

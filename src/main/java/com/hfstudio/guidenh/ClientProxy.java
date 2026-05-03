@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.internal.GuideDevWatcherPump;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
+import com.hfstudio.guidenh.guide.internal.GuideWarmupPump;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
@@ -44,6 +45,7 @@ public class ClientProxy extends CommonProxy {
         OpenGuideHotkey.init();
         OpenSceneEditorHotkey.init();
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
+        GuideWarmupPump.init();
     }
 
     @Override

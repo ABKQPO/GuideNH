@@ -74,8 +74,12 @@ public class GuideSearch implements AutoCloseable {
 
     public GuideSearch() {
         analyzer = new LanguageSpecificAnalyzerWrapper();
-        var config = new IndexWriterConfig(analyzer);
+        ClassLoader prevCCL = Thread.currentThread()
+            .getContextClassLoader();
+        Thread.currentThread()
+            .setContextClassLoader(GuideSearch.class.getClassLoader());
         try {
+            var config = new IndexWriterConfig(analyzer);
             indexWriter = new IndexWriter(directory, config);
             // Commit once so DirectoryReader can open the in-memory index immediately.
             indexWriter.flush();
@@ -85,6 +89,9 @@ public class GuideSearch implements AutoCloseable {
         } catch (IOException e) {
             // ByteBuffersDirectory keeps this in memory, so initialization failures are unexpected.
             throw new UncheckedIOException("Failed to create index writer.", e);
+        } finally {
+            Thread.currentThread()
+                .setContextClassLoader(prevCCL);
         }
     }
 

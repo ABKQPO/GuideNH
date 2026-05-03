@@ -64,6 +64,12 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     private final int bodyTopInset;
     private final int bodyYShift;
     private final int titleHeight;
+    /**
+     * Whether {@code handler.getOtherStacks(recipeIndex)} throws at call-time. When true,
+     * {@code drawForeground}/{@code drawExtras} are skipped so that GTNH-NEI's safe-wrapper
+     * never logs "Error in getOtherStacks" spam for broken third-party handlers.
+     */
+    private final boolean otherStacksBroken;
 
     public LytNeiRecipeBox(Object handler, int recipeIndex) {
         this.handler = handler;
@@ -96,6 +102,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
         int fh = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
         this.titleHeight = Math.max(ICON_SIZE, fh) + TITLE_PAD_TOP + TITLE_PAD_BOTTOM;
+        this.otherStacksBroken = NeiRecipeLookup.otherStacksThrows(handler, recipeIndex);
     }
 
     public static String stripFormatting(String s) {
@@ -149,8 +156,18 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         WindowNinePatch.drawWindow(context.lightDarkMode(), x, y, w, h);
 
         NeiAnimationTicker.ensureUpdating(handler);
-        NeiHandlerRenderer
-            .render(handler, recipeIndex, bodyX, bodyY + bodyYShift, bodyX, bodyY, bodyWidth, bodyHeight, -1, -1);
+        NeiHandlerRenderer.render(
+            handler,
+            recipeIndex,
+            bodyX,
+            bodyY + bodyYShift,
+            bodyX,
+            bodyY,
+            bodyWidth,
+            bodyHeight,
+            -1,
+            -1,
+            otherStacksBroken);
         context.restoreExternalRenderState();
         drawWindowChromeOverlay(context, x, y, w, h, bodyX, bodyY, bodyWidth, bodyHeight);
         drawTitleRow(context, innerLeft, titleRowTop, fh);

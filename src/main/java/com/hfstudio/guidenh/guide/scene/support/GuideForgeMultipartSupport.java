@@ -9,6 +9,7 @@ import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.Mods;
 import com.hfstudio.guidenh.compat.forgemultipart.ForgeMultipartHelpers;
 
 /**
@@ -20,15 +21,15 @@ public final class GuideForgeMultipartSupport {
     private GuideForgeMultipartSupport() {}
 
     public static boolean isForgeMultipartBlock(@Nullable Block block) {
-        return ForgeMultipartHelpers.isForgeMultipartBlock(block);
+        return Mods.ForgeMultipart.isModLoaded() && ForgeMultipartHelpers.isForgeMultipartBlock(block);
     }
 
     public static boolean isMultipartTileEntity(@Nullable TileEntity tileEntity) {
-        return ForgeMultipartHelpers.isMultipartTileEntity(tileEntity);
+        return Mods.ForgeMultipart.isModLoaded() && ForgeMultipartHelpers.isMultipartTileEntity(tileEntity);
     }
 
     public static boolean isClientMultipartTileEntity(@Nullable TileEntity tileEntity) {
-        return ForgeMultipartHelpers.isClientMultipartTileEntity(tileEntity);
+        return Mods.ForgeMultipart.isModLoaded() && ForgeMultipartHelpers.isClientMultipartTileEntity(tileEntity);
     }
 
     @Nullable
@@ -54,5 +55,15 @@ public final class GuideForgeMultipartSupport {
     public static boolean renderWorldBlock(@Nullable RenderBlocks renderBlocks, @Nullable IBlockAccess blockAccess,
         @Nullable Block block, int x, int y, int z) {
         return ForgeMultipartHelpers.renderWorldBlock(renderBlocks, blockAccess, block, x, y, z);
+    }
+
+    /**
+     * Resolves the primary microblock material from a ForgeMultipart tile entity and returns a
+     * {@code modid:blockname} or {@code modid:blockname:meta} string for scene export.
+     * Returns {@code null} when ForgeMultipart is not loaded or no suitable material was found.
+     */
+    @Nullable
+    public static String resolvePrimaryMicroblockId(@Nullable TileEntity tileEntity) {
+        return ForgeMultipartHelpers.resolvePrimaryMicroblockId(tileEntity);
     }
 }

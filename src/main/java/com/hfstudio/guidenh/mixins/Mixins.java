@@ -15,17 +15,14 @@ public enum Mixins implements IMixins {
         "minecraft.AccessorAbstractResourcePack", "forge.AccessorShapedOreRecipe", "forge.AccessorShapelessOreRecipe",
         "minecraft.MixinModelRendererSceneExportCapture", "minecraft.MixinTessellatorSceneExportCapture"),
 
-    // Captures the BetterQuesting quest currently under the mouse cursor in the BQ quest line
-    // GUI so the open-guide hotkey can navigate to the corresponding wiki page. Only applied
-    // when BetterQuesting is loaded.
     BQ_PANEL_HOVER(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.MixinPanelButtonQuest"),
 
-    // Exposes the private node/data fields of AE2's AENetworkProxy so the AE2 guide preview
-    // helper can synthesize grid nodes without reflective field access. Only applied when
-    // AE2 is loaded.
     AE2_NETWORK_PROXY(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.AccessorAENetworkProxy"),
 
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder"),
+
+    FMP_BLOCK_MICRO_MATERIAL(Side.CLIENT, Phase.LATE, Mods.ForgeMultipart,
+        "compat.forgemultipart.AccessorBlockMicroMaterial"),
 
     ;
 

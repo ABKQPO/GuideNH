@@ -33,6 +33,28 @@ public class NeiHandlerRenderer {
      */
     public static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int clipX,
         int clipY, int clipWidth, int clipHeight, int mouseX, int mouseY) {
+        return render(
+            handler,
+            recipeIndex,
+            screenX,
+            screenY,
+            clipX,
+            clipY,
+            clipWidth,
+            clipHeight,
+            mouseX,
+            mouseY,
+            false);
+    }
+
+    /**
+     * @param skipForeground when {@code true}, skips {@code drawForeground} and {@code drawExtras}.
+     *                       Pass {@code true} for handlers whose {@code getOtherStacks} is known to
+     *                       throw — those methods call GTNH-NEI's safe-wrapper internally, which
+     *                       would log "Error in getOtherStacks" spam on every rendered frame.
+     */
+    public static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int clipX,
+        int clipY, int clipWidth, int clipHeight, int mouseX, int mouseY, boolean skipForeground) {
         if (handler == null || !NeiRecipeLookup.isAvailable()) return null;
 
         if (NeiCustomDiagramBridge.isDiagramGroupHandler(handler)) {
@@ -42,13 +64,18 @@ public class NeiHandlerRenderer {
         }
 
         // Phase 1: NEI-native background + foreground + extras at translated origin.
+        // drawForeground and drawExtras are skipped when getOtherStacks is broken, because
+        // GTNH-NEI calls getOtherStacks inside its own safe-wrapper from those methods, which
+        // would log errors on every render frame.
         GL11.glPushMatrix();
         try {
             GL11.glTranslatef(screenX, screenY, 0f);
             GL11.glColor4f(1f, 1f, 1f, 1f);
             NeiRecipeLookup.callDrawBackground(handler, recipeIndex);
-            NeiRecipeLookup.callDrawForeground(handler, recipeIndex);
-            NeiRecipeLookup.callDrawExtras(handler, recipeIndex);
+            if (!skipForeground) {
+                NeiRecipeLookup.callDrawForeground(handler, recipeIndex);
+                NeiRecipeLookup.callDrawExtras(handler, recipeIndex);
+            }
         } catch (Throwable ignored) {} finally {
             GL11.glPopMatrix();
         }
@@ -74,7 +101,7 @@ public class NeiHandlerRenderer {
         if (result != null) {
             ItemStack shown = pickVisibleStack(result);
             if (shown != null) {
-                drawItem(shown, screenX + result.relx, screenY + result.rely);
+                drawStackWithCount(shown, screenX + result.relx, screenY + result.rely);
                 if (isOver(screenX + result.relx, screenY + result.rely, mouseX, mouseY)) {
                     hovered = shown;
                 }
@@ -89,7 +116,7 @@ public class NeiHandlerRenderer {
         for (NeiRecipeLookup.Slot s : slots) {
             ItemStack shown = pickVisibleStack(s);
             if (shown == null) continue;
-            drawItem(shown, screenX + s.relx, screenY + s.rely);
+            drawStackWithCount(shown, screenX + s.relx, screenY + s.rely);
             if (isOver(screenX + s.relx, screenY + s.rely, mouseX, mouseY)) {
                 hovered = shown;
             }
@@ -99,21 +126,31 @@ public class NeiHandlerRenderer {
 
     public static @Nullable ItemStack pickVisibleStack(NeiRecipeLookup.Slot s) {
         if (s == null || s.stacks == null || s.stacks.isEmpty()) return null;
-        // The current ItemStack rotates via handler.onUpdate() which mutates PositionedStack.item;
-        // we re-read through the stacks list and just show the first non-empty entry.
+        ItemStack zeroCountFallback = null;
         for (int i = 0, n = s.stacks.size(); i < n; i++) {
             ItemStack st = s.stacks.get(i);
-            if (st != null && st.stackSize > 0) return st;
+            if (st == null) continue;
+            if (st.stackSize > 0) return st;
+            if (zeroCountFallback == null) zeroCountFallback = st;
         }
-        return null;
+        return zeroCountFallback;
     }
 
     public static boolean isOver(int x, int y, int mouseX, int mouseY) {
         return mouseX >= x && mouseX < x + 16 && mouseY >= y && mouseY < y + 16;
     }
 
+    /**
+     * Draws item icon + count overlay. For stacks with count=0, skips the overlay to avoid
+     * rendering an ugly "0" label; use {@link #drawItemIcon} to always suppress the overlay.
+     */
     public static void drawItem(ItemStack stack, int x, int y) {
         drawItemInternal(stack, x, y, true);
+    }
+
+    /** Draws item icon + count overlay only when count > 0; icon-only for count=0 items. */
+    public static void drawStackWithCount(ItemStack stack, int x, int y) {
+        drawItemInternal(stack, x, y, stack.stackSize > 0);
     }
 
     public static void drawItemIcon(ItemStack stack, int x, int y) {

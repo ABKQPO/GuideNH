@@ -516,8 +516,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 return normalized;
             }
         }
-
-        return normalizeBlockId(block.getUnlocalizedName());
+        return null;
     }
 
     public static String sanitizeMessage(@Nullable String message) {

@@ -628,7 +628,6 @@ public final class GuideSiteLocalServer {
         mimeTypes.put("jpg", "image/jpeg");
         mimeTypes.put("jpeg", "image/jpeg");
         mimeTypes.put("ico", "image/x-icon");
-        mimeTypes.put("webp", "image/webp");
         mimeTypes.put("wasm", "application/wasm");
         mimeTypes.put("gz", "application/gzip");
         mimeTypes.put("bin", "application/octet-stream");

@@ -28,8 +28,7 @@ public class LytSlot extends LytBlock implements InteractiveElement {
     private final List<ItemStack> stacks;
 
     public LytSlot(ItemStack stack) {
-        this.stacks = (stack == null || stack.stackSize == 0) ? Collections.emptyList()
-            : Collections.singletonList(stack);
+        this.stacks = stack == null ? Collections.emptyList() : Collections.singletonList(stack);
     }
 
     public LytSlot(List<ItemStack> stacks) {
@@ -84,14 +83,18 @@ public class LytSlot extends LytBlock implements InteractiveElement {
 
         var padding = largeSlot ? LARGE_PADDING : PADDING;
         var stack = getDisplayedStack();
-        if (stack != null && stack.stackSize > 0) {
-            context.renderItem(stack, x + padding, y + padding);
+        if (stack != null) {
+            if (stack.stackSize > 0) {
+                context.renderItem(stack, x + padding, y + padding);
+            } else {
+                context.renderItemIcon(stack, x + padding, y + padding);
+            }
         }
     }
 
     public Optional<GuideTooltip> getTooltip(float x, float y) {
         var stack = getDisplayedStack();
-        if (stack == null || stack.stackSize == 0) {
+        if (stack == null) {
             return Optional.empty();
         }
         return Optional.of(new ItemTooltip(stack));

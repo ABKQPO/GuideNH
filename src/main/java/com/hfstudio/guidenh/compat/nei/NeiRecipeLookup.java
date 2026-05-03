@@ -496,6 +496,29 @@ public class NeiRecipeLookup {
         }
     }
 
+    /**
+     * Returns {@code true} if invoking {@code getOtherStacks(recipeIndex)} on this handler throws
+     * an exception. Used by the renderer to skip {@code drawForeground}/{@code drawExtras} for
+     * handlers whose {@code getOtherStacks} is known to be broken: GTNH-NEI wraps those calls
+     * in its own try-catch and logs an error, so GuideNH must avoid triggering them to keep the
+     * log clean.
+     *
+     * <p>
+     * This call goes through Java reflection directly, bypassing GTNH-NEI's safe-wrapper, so any
+     * exception is caught silently here without reaching NEI's logger.
+     */
+    public static boolean otherStacksThrows(Object handler, int recipeIndex) {
+        if (!AVAILABLE || handler == null || H_GET_OTHERS == null) return false;
+        try {
+            H_GET_OTHERS.invoke(handler, recipeIndex);
+            return false;
+        } catch (java.lang.reflect.InvocationTargetException ite) {
+            return ite.getCause() != null;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     public static @Nullable Slot readResultSlot(Object handler, int recipeIndex) {
         if (!AVAILABLE || handler == null || H_GET_RESULT == null) return null;
         try {
@@ -565,12 +588,12 @@ public class NeiRecipeLookup {
             Object itemsArr = PS_ITEMS.get(ps);
             if (itemsArr instanceof ItemStack[]arr) {
                 for (ItemStack s : arr) {
-                    if (s != null && s.stackSize > 0) stacks.add(s);
+                    if (s != null) stacks.add(s);
                 }
             }
             if (stacks.isEmpty()) {
                 Object single = PS_ITEM.get(ps);
-                if (single instanceof ItemStack s && s.stackSize > 0) stacks.add(s);
+                if (single instanceof ItemStack s) stacks.add(s);
             }
             if (stacks.isEmpty()) return null;
             return new Slot(relx, rely, stacks);

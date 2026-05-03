@@ -14,17 +14,6 @@ import com.hfstudio.guidenh.compat.betterquesting.BqCompat;
 import betterquesting.api.questing.IQuest;
 import betterquesting.api2.client.gui.controls.PanelButtonQuest;
 
-/**
- * Captures which BetterQuesting quest panel is currently under the mouse cursor.
- * <p/>
- * The hovered UUID is published to {@link BqCompat#setCurrentHoveredQuestUuid(UUID)} so that
- * the {@code OpenGuideHotkey} handler can navigate to the corresponding guide page when the
- * player holds the open-guide key while pointing at a quest in the BQ quest-line GUI.
- * <p/>
- * Each panel checks itself every render frame: if the mouse is inside its bounds it sets the
- * hover UUID; otherwise, if the global hover UUID still equals this panel's quest, it clears
- * it. This converges to the correct value within one frame even when many panels exist.
- */
 @Mixin(value = PanelButtonQuest.class, remap = false)
 public abstract class MixinPanelButtonQuest {
 

@@ -13,12 +13,17 @@ import java.util.Objects;
 
 import javax.imageio.ImageIO;
 
+import net.minecraft.client.renderer.OpenGlHelper;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL13;
 
 import guideme.flatbuffers.scene.ExpDepthTest;
 import guideme.flatbuffers.scene.ExpIndexElementType;
@@ -27,6 +32,7 @@ import guideme.flatbuffers.scene.ExpTransparency;
 
 public class GuideSiteSceneTessellatorCapture {
 
+    private static final Logger LOG = LogManager.getLogger("GuideNH/SiteExportTessCapture");
     private static final ThreadLocal<GuideSiteSceneTessellatorCapture> ACTIVE = new ThreadLocal<>();
 
     private final GuideSiteAssetRegistry assets;
@@ -89,7 +95,12 @@ public class GuideSiteSceneTessellatorCapture {
 
     public void startDrawing(int drawMode) {
         if (drawing) {
-            throw new IllegalStateException("Already tesselating!");
+            // A previous batch was not properly closed — force-close it to prevent cascading failures.
+            LOG.warn(
+                "Scene capture startDrawing called while already drawing (mode={}); discarding previous unclosed batch",
+                drawMode);
+            drawing = false;
+            currentVertices.clear();
         }
         drawing = true;
         currentVertices.clear();
@@ -114,21 +125,21 @@ public class GuideSiteSceneTessellatorCapture {
 
     public int draw() {
         if (!drawing) {
-            throw new IllegalStateException("Not tesselating!");
+            // draw() called without a paired startDrawing() — skip capture silently.
+            return 0;
         }
         drawing = false;
-
-        if (!currentVertices.isEmpty()) {
-            try {
+        int vertexCount = currentVertices.size();
+        try {
+            if (vertexCount > 0) {
                 captureCurrentMesh();
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to capture tessellator mesh", e);
             }
+        } catch (Throwable e) {
+            LOG.warn("Scene capture mesh export failed ({} vertices)", vertexCount, e);
+        } finally {
+            currentVertices.clear();
         }
-
-        int bytes = currentVertices.size() * 32;
-        currentVertices.clear();
-        return bytes;
+        return vertexCount * 32;
     }
 
     public void setTextureUV(double u, double v) {
@@ -282,54 +293,109 @@ public class GuideSiteSceneTessellatorCapture {
                 material));
     }
 
+    /**
+     * Maximum texture dimension for site export. Very large textures (e.g., GTNH's block atlas can be 8192x8192+)
+     * are down-sampled via available mip levels to keep memory usage reasonable and export speed acceptable.
+     */
+    private static final int MAX_EXPORT_TEXTURE_SIZE = 8192;
+
     @Nullable
     private TextureExport exportCurrentTexture() throws Exception {
-        int textureId = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
-        if (textureId <= 0) {
-            return null;
+        int savedActiveUnit = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
+        if (savedActiveUnit != OpenGlHelper.defaultTexUnit) {
+            OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
         }
+        try {
+            int textureId = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+            if (textureId <= 0) {
+                return null;
+            }
 
-        TextureExport existing = textures.get(textureId);
-        if (existing != null) {
-            return existing;
-        }
+            TextureExport existing = textures.get(textureId);
+            if (existing != null) {
+                return existing;
+            }
 
-        int width = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
-        int height = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
-        if (width <= 0 || height <= 0) {
-            return null;
-        }
+            int level0Width = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
+            int level0Height = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
+            if (level0Width <= 0 || level0Height <= 0) {
+                LOG.warn(
+                    "exportCurrentTexture: bound texture id={} has invalid level-0 dimensions {}x{}; skipping",
+                    textureId,
+                    level0Width,
+                    level0Height);
+                return null;
+            }
 
-        ByteBuffer pixels = BufferUtils.createByteBuffer(width * height * 4);
-        GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixels);
+            // For large textures (e.g. the block atlas in GTNH can exceed 8192x8192), find the
+            // smallest mip level that still fits within MAX_EXPORT_TEXTURE_SIZE. This avoids
+            // allocating hundreds of MB just to download the atlas for a web preview.
+            int exportMipLevel = 0;
+            int exportWidth = level0Width;
+            int exportHeight = level0Height;
 
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int index = (x + y * width) * 4;
-                int r = pixels.get(index) & 0xFF;
-                int g = pixels.get(index + 1) & 0xFF;
-                int b = pixels.get(index + 2) & 0xFF;
-                int a = pixels.get(index + 3) & 0xFF;
-                image.setRGB(x, y, a << 24 | r << 16 | g << 8 | b);
+            if (level0Width > MAX_EXPORT_TEXTURE_SIZE || level0Height > MAX_EXPORT_TEXTURE_SIZE) {
+                for (int lv = 1; lv <= 12; lv++) {
+                    int lw = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, lv, GL11.GL_TEXTURE_WIDTH);
+                    int lh = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, lv, GL11.GL_TEXTURE_HEIGHT);
+                    if (lw <= 0 || lh <= 0) break; // No more mip levels available
+                    exportMipLevel = lv;
+                    exportWidth = lw;
+                    exportHeight = lh;
+                    if (lw <= MAX_EXPORT_TEXTURE_SIZE && lh <= MAX_EXPORT_TEXTURE_SIZE) break;
+                }
+                LOG.debug(
+                    "exportCurrentTexture: texture id={} is {}x{} \u2014 using mip level {} ({}x{}) for site export",
+                    textureId,
+                    level0Width,
+                    level0Height,
+                    exportMipLevel,
+                    exportWidth,
+                    exportHeight);
+            } else {
+                LOG.debug(
+                    "exportCurrentTexture: exporting texture id={} ({}x{})",
+                    textureId,
+                    exportWidth,
+                    exportHeight);
+            }
+
+            ByteBuffer pixels = BufferUtils.createByteBuffer(exportWidth * exportHeight * 4);
+            GL11.glGetTexImage(GL11.GL_TEXTURE_2D, exportMipLevel, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixels);
+
+            BufferedImage image = new BufferedImage(exportWidth, exportHeight, BufferedImage.TYPE_INT_ARGB);
+            for (int y = 0; y < exportHeight; y++) {
+                for (int x = 0; x < exportWidth; x++) {
+                    int index = (x + y * exportWidth) * 4;
+                    int r = pixels.get(index) & 0xFF;
+                    int g = pixels.get(index + 1) & 0xFF;
+                    int b = pixels.get(index + 2) & 0xFF;
+                    int a = pixels.get(index + 3) & 0xFF;
+                    image.setRGB(x, y, a << 24 | r << 16 | g << 8 | b);
+                }
+            }
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", out);
+
+            String texturePath = assets.writeShared("scene-textures", ".png", out.toByteArray());
+
+            int magFilter = GL11.glGetTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER);
+            int minFilter = GL11.glGetTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER);
+            boolean linearFiltering = magFilter == GL11.GL_LINEAR;
+            boolean useMipmaps = minFilter == GL11.GL_NEAREST_MIPMAP_NEAREST
+                || minFilter == GL11.GL_LINEAR_MIPMAP_NEAREST
+                || minFilter == GL11.GL_NEAREST_MIPMAP_LINEAR
+                || minFilter == GL11.GL_LINEAR_MIPMAP_LINEAR;
+
+            TextureExport export = new TextureExport("gltex-" + textureId, texturePath, linearFiltering, useMipmaps);
+            textures.put(textureId, export);
+            return export;
+        } finally {
+            if (savedActiveUnit != OpenGlHelper.defaultTexUnit) {
+                OpenGlHelper.setActiveTexture(savedActiveUnit);
             }
         }
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ImageIO.write(image, "png", out);
-
-        String texturePath = assets.writeShared("scene-textures", ".png", out.toByteArray());
-
-        int magFilter = GL11.glGetTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER);
-        int minFilter = GL11.glGetTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER);
-        boolean linearFiltering = magFilter == GL11.GL_LINEAR;
-        boolean useMipmaps = minFilter == GL11.GL_NEAREST_MIPMAP_NEAREST || minFilter == GL11.GL_LINEAR_MIPMAP_NEAREST
-            || minFilter == GL11.GL_NEAREST_MIPMAP_LINEAR
-            || minFilter == GL11.GL_LINEAR_MIPMAP_LINEAR;
-
-        TextureExport export = new TextureExport("gltex-" + textureId, texturePath, linearFiltering, useMipmaps);
-        textures.put(textureId, export);
-        return export;
     }
 
     private MaterialKey createMaterialKey(@Nullable TextureExport texture) {

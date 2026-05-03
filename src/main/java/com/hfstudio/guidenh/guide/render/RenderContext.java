@@ -56,6 +56,14 @@ public interface RenderContext {
 
     void renderItem(ItemStack stack, int x, int y);
 
+    /**
+     * Renders only the item icon without any count overlay. Use this for items whose
+     * {@code stackSize} is 0 (e.g. GT5 "not consumed" ingredients) so that no "0" label appears.
+     */
+    default void renderItemIcon(ItemStack stack, int x, int y) {
+        renderItem(stack, x, y);
+    }
+
     void blitTexture(ResourceLocation texture, int x, int y, int u, int v, int width, int height);
 
     default void blitGuiSprite(LytRect rect, GuiSprite sprite) {

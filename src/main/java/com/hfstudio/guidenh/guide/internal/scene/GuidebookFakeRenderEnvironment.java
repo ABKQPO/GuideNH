@@ -45,12 +45,15 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
         minecraft.pointedEntity = null;
 
         TileEntityRendererDispatcher dispatcher = TileEntityRendererDispatcher.instance;
-        dispatcher.cacheActiveRenderInfo(
-            fakeWorld,
-            minecraft.getTextureManager(),
-            minecraft.fontRenderer,
-            previewPlayer,
-            partialTicks);
+        if (!level.getTileEntities()
+            .isEmpty()) {
+            dispatcher.cacheActiveRenderInfo(
+                fakeWorld,
+                minecraft.getTextureManager(),
+                minecraft.fontRenderer,
+                previewPlayer,
+                partialTicks);
+        }
 
         RenderManager renderManager = RenderManager.instance;
         renderManager.cacheActiveRenderInfo(
@@ -172,7 +175,9 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
         }
 
         private void restore(TileEntityRendererDispatcher dispatcher) {
-            dispatcher.func_147543_a(world);
+            if (dispatcher.field_147550_f != world) {
+                dispatcher.func_147543_a(world);
+            }
             dispatcher.field_147551_g = livingPlayer;
             dispatcher.field_147562_h = rotationYaw;
             dispatcher.field_147563_i = rotationPitch;

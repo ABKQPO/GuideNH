@@ -1,13 +1,26 @@
 package com.hfstudio.guidenh.compat.forgemultipart;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.RenderBlocks;
+import net.minecraft.init.Blocks;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -17,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.mixins.late.compat.forgemultipart.AccessorBlockMicroMaterial;
 
 public final class ForgeMultipartHelpers {
 
@@ -27,11 +41,16 @@ public final class ForgeMultipartHelpers {
     private static final Class<?> CLASS_NOT_FOUND = Void.class;
     private static final ConcurrentMap<String, Class<?>> CLASS_CACHE = new ConcurrentHashMap<>();
 
-    // Cached singleton MODULE$ instances and hot-path Methods. Volatile for safe lazy init.
     private static volatile Object MICROBLOCK_GENERATOR_MODULE;
     private static volatile Method MICROBLOCK_GENERATOR_CREATE;
     private static volatile Object SCALA_JAVA_CONVERSIONS_MODULE;
     private static volatile Method SCALA_AS_SCALA_BUFFER;
+
+    /**
+     * Lazy reverse map: {@code block.getUnlocalizedName()} (e.g. {@code "tile.customBrick"})
+     * to {@link Block}. Built once on first {@link #preFillMicroblockMaterials} call.
+     */
+    private static volatile Map<String, Block> UNLOCALIZED_BLOCK_CACHE;
 
     public static final String BLOCK_MULTIPART_CLASS = "codechicken.multipart.BlockMultipart";
     public static final String TILE_MULTIPART_CLASS = "codechicken.multipart.TileMultipart";
@@ -42,6 +61,9 @@ public final class ForgeMultipartHelpers {
     public static final String MULTIPART_GENERATOR_OBJECT_CLASS = "codechicken.multipart.MultipartGenerator$";
     public static final String MULTIPART_RENDERER_CLASS = "codechicken.multipart.MultipartRenderer";
     public static final String MULTIPART_RENDERER_OBJECT_CLASS = "codechicken.multipart.MultipartRenderer$";
+    /** Java class and Scala companion object for the ForgeMicroblock material registry. */
+    public static final String BLOCK_MICRO_MATERIAL_CLASS = "codechicken.microblock.BlockMicroMaterial";
+    public static final String BLOCK_MICRO_MATERIAL_OBJECT_CLASS = "codechicken.microblock.BlockMicroMaterial$";
     public static final String SAVED_MULTIPART_ID = "savedMultipart";
     public static final Object INVOCATION_MISSING = new Object();
 
@@ -72,6 +94,8 @@ public final class ForgeMultipartHelpers {
             return null;
         }
 
+        preFillMicroblockMaterials(tag);
+
         NBTTagCompound positionedTag = withWorldPosition(tag, x, y, z);
         TileEntity tileEntity = createMultipartTileFromNbt(world, positionedTag);
         if (tileEntity == null || !world.isRemote) {
@@ -90,9 +114,7 @@ public final class ForgeMultipartHelpers {
         if (partList == null) {
             return tileEntity;
         }
-        // Even when ensureClientMultipartTile already promoted the container, the parts inside may still be
-        // server-side variants (this happens for tiles created by createTileFromNBT before promotion). Replace any
-        // such parts with MicroblockClient-trait variants so renderStatic dispatches to the rendering trait.
+
         Object promotedList = promotePartListToClientVariants(partList);
         if (promotedList != partList && promotedList != null) {
             trySetPartList(tileEntity, promotedList);
@@ -157,7 +179,7 @@ public final class ForgeMultipartHelpers {
         if (partList == null) {
             return null;
         }
-        java.util.List<Object> rebuilt = new java.util.ArrayList<>();
+        List<Object> rebuilt = new ArrayList<>();
         boolean anyPromoted = false;
         boolean anyMicroblockSeen = false;
         try {
@@ -171,8 +193,7 @@ public final class ForgeMultipartHelpers {
             while (Boolean.TRUE.equals(hasNext.invoke(it))) {
                 Object part = next.invoke(it);
                 Object replacement = part;
-                if (part != null && isInstanceOf(part, MICROBLOCK_BASE_CLASS)
-                    && !isInstanceOf(part, MICROBLOCK_CLIENT_CLASS)) {
+                if (isInstanceOf(part, MICROBLOCK_BASE_CLASS) && !isInstanceOf(part, MICROBLOCK_CLIENT_CLASS)) {
                     anyMicroblockSeen = true;
                     Object promoted = promoteMicroblockToClient(part);
                     if (promoted != null && promoted != part) {
@@ -218,7 +239,6 @@ public final class ForgeMultipartHelpers {
             return null;
         }
         try {
-            // Read microClass (Scala-generated accessor) and material (var) and shape (var).
             Object microClass = invokeMethodIfPresent(serverMicroblock, "microClass");
             if (microClass == INVOCATION_MISSING || microClass == null) {
                 warnOnce(
@@ -247,7 +267,6 @@ public final class ForgeMultipartHelpers {
                     material);
                 return null;
             }
-            // MicroblockGenerator$.MODULE$.create(MicroblockClass, Int, Boolean) — cached after first lookup.
             Method create = getMicroblockGeneratorCreate();
             if (create == null) {
                 warnOnce(
@@ -265,7 +284,6 @@ public final class ForgeMultipartHelpers {
                         .getName());
                 return null;
             }
-            // Copy shape (size+slot byte) over to preserve geometry.
             if (shape instanceof Byte b) {
                 writeDeclaredField(promoted, "shape", b);
             }
@@ -286,11 +304,11 @@ public final class ForgeMultipartHelpers {
     }
 
     /**
-     * Bridges a {@code java.util.List} to a Scala {@code mutable.Buffer} (which extends {@code Seq}) via
+     * Bridges a {@code List} to a Scala {@code mutable.Buffer} (which extends {@code Seq}) via
      * JavaConversions.
      */
     @Nullable
-    private static Object javaListToScalaBuffer(java.util.List<?> javaList) {
+    private static Object javaListToScalaBuffer(List<?> javaList) {
         Method asScalaBuffer = getScalaAsScalaBuffer();
         if (asScalaBuffer == null) {
             return null;
@@ -348,7 +366,7 @@ public final class ForgeMultipartHelpers {
             return null;
         }
         try {
-            Method m = conversions.getMethod("asScalaBuffer", java.util.List.class);
+            Method m = conversions.getMethod("asScalaBuffer", List.class);
             m.setAccessible(true);
             SCALA_JAVA_CONVERSIONS_MODULE = conversions.getField("MODULE$")
                 .get(null);
@@ -689,7 +707,7 @@ public final class ForgeMultipartHelpers {
             if (!methodName.equals(method.getName()) || method.getParameterCount() != args.length) {
                 continue;
             }
-            if (requireStatic != java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+            if (requireStatic != Modifier.isStatic(method.getModifiers())) {
                 continue;
             }
             if (matchesParameters(method.getParameterTypes(), args)) {
@@ -764,8 +782,6 @@ public final class ForgeMultipartHelpers {
         Class<?> resolved;
         try {
             resolved = Class.forName(className, false, ForgeMultipartHelpers.class.getClassLoader());
-        } catch (ClassNotFoundException e) {
-            resolved = CLASS_NOT_FOUND;
         } catch (Throwable t) {
             resolved = CLASS_NOT_FOUND;
         }
@@ -787,5 +803,274 @@ public final class ForgeMultipartHelpers {
         copy.setInteger("y", y);
         copy.setInteger("z", z);
         return copy;
+    }
+
+    public static void preFillMicroblockMaterials(@Nullable NBTTagCompound tag) {
+        if (tag == null || !Mods.ForgeMultipart.isModLoaded()) return;
+        scanNbtForMaterialIds(tag, new HashSet<>());
+    }
+
+    private static void scanNbtForMaterialIds(NBTTagCompound tag, Set<String> seen) {
+        for (String key : tag.func_150296_c()) {
+            NBTBase value = tag.getTag(key);
+            if (value instanceof NBTTagString s) {
+                String str = s.func_150285_a_();
+                if (looksLikeMicroblockMaterialId(str) && seen.add(str)) {
+                    ensureMicroblockMaterialRegistered(str);
+                }
+            } else if (value instanceof NBTTagCompound c) {
+                scanNbtForMaterialIds(c, seen);
+            } else if (value instanceof NBTTagList l) {
+                scanNbtListForMaterialIds(l, seen);
+            }
+        }
+    }
+
+    private static void scanNbtListForMaterialIds(NBTTagList list, Set<String> seen) {
+        int type = list.func_150303_d();
+        for (int i = 0; i < list.tagCount(); i++) {
+            if (type == 8) {
+                String str = list.getStringTagAt(i);
+                if (looksLikeMicroblockMaterialId(str) && seen.add(str)) {
+                    ensureMicroblockMaterialRegistered(str);
+                }
+            } else if (type == 10) {
+                scanNbtForMaterialIds(list.getCompoundTagAt(i), seen);
+            }
+        }
+    }
+
+    private static boolean looksLikeMicroblockMaterialId(@Nullable String s) {
+        if (s == null) return false;
+        // Old unlocalized-name format: "tile.stone", "tile.planks_2"
+        if (s.startsWith("tile.") || s.startsWith("item.")) return true;
+        // Modern registry-name format: "minecraft:stone", "minecraft:planks_2"
+        // Must have exactly one colon, a non-empty modid, and no spaces or slashes.
+        int colon = s.indexOf(':');
+        return colon > 0 && colon < s.length() - 1
+            && s.indexOf('/', colon) < 0
+            && s.indexOf(' ') < 0
+            && s.indexOf(':', colon + 1) < 0;
+    }
+
+    private static void ensureMicroblockMaterialRegistered(String materialId) {
+        int meta = 0;
+        Block block = null;
+
+        if (materialId.startsWith("tile.") || materialId.startsWith("item.")) {
+            // Old unlocalized-name format: "tile.planks" or "tile.planks_2"
+            boolean isTile = materialId.startsWith("tile.");
+            String withoutPrefix = materialId.substring(5);
+            String baseName = withoutPrefix;
+            int lastUnderscore = withoutPrefix.lastIndexOf('_');
+            if (lastUnderscore > 0) {
+                String suffix = withoutPrefix.substring(lastUnderscore + 1);
+                if (isDigitString(suffix)) {
+                    meta = Integer.parseInt(suffix);
+                    baseName = withoutPrefix.substring(0, lastUnderscore);
+                }
+            }
+            block = (Block) Block.blockRegistry.getObject(withoutPrefix);
+            if (isAirOrNull(block)) {
+                block = (Block) Block.blockRegistry.getObject(baseName);
+            }
+            if (isAirOrNull(block)) {
+                Map<String, Block> cache = getUnlocalizedBlockCache();
+                block = cache.get(materialId);
+                if (isAirOrNull(block)) {
+                    block = cache.get(isTile ? "tile." + baseName : "item." + baseName);
+                }
+            }
+        } else {
+            // Modern registry-name format: "minecraft:planks" or "minecraft:planks_2"
+            int colon = materialId.indexOf(':');
+            if (colon <= 0) return;
+            String namePart = materialId.substring(colon + 1); // e.g. "planks_2"
+            String baseName = namePart;
+            int lastUnderscore = namePart.lastIndexOf('_');
+            if (lastUnderscore > 0) {
+                String suffix = namePart.substring(lastUnderscore + 1);
+                if (isDigitString(suffix)) {
+                    meta = Integer.parseInt(suffix);
+                    baseName = namePart.substring(0, lastUnderscore);
+                }
+            }
+            // Reconstruct the base registry key: "modid:baseName"
+            String baseKey = materialId.substring(0, colon + 1) + baseName;
+            block = (Block) Block.blockRegistry.getObject(baseKey);
+            if (isAirOrNull(block)) {
+                block = (Block) Block.blockRegistry.getObject(materialId);
+            }
+        }
+
+        if (isAirOrNull(block)) {
+            warnOnce(
+                "fmp-mat-no-block:" + materialId,
+                "Cannot pre-register FMP microblock material '{}': no matching block was found in the registry",
+                materialId);
+            return;
+        }
+
+        tryRegisterAsMicroblockMaterial(block, meta, materialId);
+    }
+
+    private static boolean isAirOrNull(@Nullable Block block) {
+        return block == null || block == Blocks.air;
+    }
+
+    private static Map<String, Block> getUnlocalizedBlockCache() {
+        if (UNLOCALIZED_BLOCK_CACHE != null) return UNLOCALIZED_BLOCK_CACHE;
+        synchronized (ForgeMultipartHelpers.class) {
+            if (UNLOCALIZED_BLOCK_CACHE != null) return UNLOCALIZED_BLOCK_CACHE;
+            HashMap<String, Block> cache = new HashMap<>();
+            for (Object obj : Block.blockRegistry) {
+                if (!(obj instanceof Block b)) continue;
+                try {
+                    String name = b.getUnlocalizedName();
+                    if (name != null && !name.isEmpty()) {
+                        cache.putIfAbsent(name, b);
+                    }
+                } catch (Throwable ignored) {}
+            }
+            UNLOCALIZED_BLOCK_CACHE = Collections.unmodifiableMap(cache);
+            return UNLOCALIZED_BLOCK_CACHE;
+        }
+    }
+
+    private static void tryRegisterAsMicroblockMaterial(Block block, int meta, String materialId) {
+        try {
+            Class<?> cls = cachedClass(BLOCK_MICRO_MATERIAL_CLASS);
+            if (cls == null) return;
+
+            Constructor<?> ctor = null;
+            for (Constructor<?> c : cls.getDeclaredConstructors()) {
+                Class<?>[] pts = c.getParameterTypes();
+                if (pts.length == 2 && Block.class.isAssignableFrom(pts[0])
+                    && (pts[1] == int.class || pts[1] == Integer.class)) {
+                    ctor = c;
+                    break;
+                }
+            }
+            if (ctor == null) {
+                for (Constructor<?> c : cls.getDeclaredConstructors()) {
+                    Class<?>[] pts = c.getParameterTypes();
+                    if (pts.length == 1 && Block.class.isAssignableFrom(pts[0])) {
+                        ctor = c;
+                        break;
+                    }
+                }
+            }
+            if (ctor == null) {
+                warnOnce(
+                    "fmp-mat-no-ctor",
+                    "BlockMicroMaterial has no compatible constructor, so the material cannot be pre-registered");
+                return;
+            }
+
+            ctor.setAccessible(true);
+            Object material = (ctor.getParameterCount() == 2) ? ctor.newInstance(block, meta) : ctor.newInstance(block);
+
+            // Call BlockMicroMaterial.register(material), first as a static method and then via the Scala companion
+            // object.
+            Object result = invokeStaticOrSingletonMethod(
+                BLOCK_MICRO_MATERIAL_CLASS,
+                BLOCK_MICRO_MATERIAL_OBJECT_CLASS,
+                "register",
+                material);
+
+            if (result != INVOCATION_MISSING) {
+                infoOnce(
+                    "fmp-mat-registered:" + materialId,
+                    "Pre-registered FMP microblock material: {} (block={}, meta={})",
+                    materialId,
+                    block.getUnlocalizedName(),
+                    meta);
+            } else {
+                warnOnce(
+                    "fmp-mat-reg-fail:" + materialId,
+                    "BlockMicroMaterial.register() was not found, so pre-registration failed for {}",
+                    materialId);
+            }
+        } catch (Throwable t) {
+            warnOnce(
+                "fmp-mat-reg-ex:" + materialId,
+                "Unexpected exception while pre-registering FMP microblock material '{}': {}",
+                materialId,
+                t.toString());
+        }
+    }
+
+    private static boolean isDigitString(@Nullable String s) {
+        if (s == null || s.isEmpty()) return false;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c < '0' || c > '9') return false;
+        }
+        return true;
+    }
+
+    public static final String MICRO_MATERIAL_REGISTRY_CLASS = "codechicken.microblock.MicroMaterialRegistry";
+    public static final String MICRO_MATERIAL_REGISTRY_OBJECT_CLASS = "codechicken.microblock.MicroMaterialRegistry$";
+
+    @Nullable
+    public static String resolvePrimaryMicroblockId(@Nullable TileEntity tileEntity) {
+        if (tileEntity == null) return null;
+        Object partList = resolvePartList(tileEntity);
+        if (partList == null) return null;
+        try {
+            Method iterator = partList.getClass()
+                .getMethod("iterator");
+            Object it = iterator.invoke(partList);
+            Method hasNext = it.getClass()
+                .getMethod("hasNext");
+            Method next = it.getClass()
+                .getMethod("next");
+            while (Boolean.TRUE.equals(hasNext.invoke(it))) {
+                Object part = next.invoke(it);
+                if (!isInstanceOf(part, MICROBLOCK_BASE_CLASS)) continue;
+
+                // Get integer material ID from the Microblock (Scala field accessor 'material()').
+                Object matId = invokeMethodIfPresent(part, "material");
+                if (!(matId instanceof Integer)) continue;
+
+                // Look up the IMicroMaterial from the registry.
+                Object material = invokeStaticOrSingletonMethod(
+                    MICRO_MATERIAL_REGISTRY_CLASS,
+                    MICRO_MATERIAL_REGISTRY_OBJECT_CLASS,
+                    "getMaterial",
+                    matId);
+                if (material == null || material == INVOCATION_MISSING) continue;
+                if (!isInstanceOf(material, BLOCK_MICRO_MATERIAL_CLASS)) continue;
+
+                Block block = null;
+                int meta = 0;
+                if (material instanceof AccessorBlockMicroMaterial acc) {
+                    block = acc.getBlock();
+                    meta = acc.getMeta();
+                } else {
+                    Object blockObj = invokeMethodIfPresent(material, "block");
+                    Object metaObj = invokeMethodIfPresent(material, "meta");
+                    if (blockObj instanceof Block b) block = b;
+                    if (metaObj instanceof Integer m) meta = m;
+                }
+
+                if (isAirOrNull(block)) continue;
+
+                Object registryName = Block.blockRegistry.getNameForObject(block);
+                if (registryName == null) continue;
+                String blockId = registryName.toString();
+                if (blockId.isEmpty()) continue;
+                return meta > 0 ? blockId + ":" + meta : blockId;
+            }
+        } catch (Throwable t) {
+            warnOnce(
+                "resolve-primary-mb-fail:" + tileEntity.getClass()
+                    .getName(),
+                "Failed to resolve primary microblock material from {}: {}",
+                tileEntity.getClass()
+                    .getName(),
+                t.toString());
+        }
+        return null;
     }
 }

@@ -661,7 +661,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     private void renderItemTooltip(ItemTooltip tooltip, int mouseX, int mouseY) {
         ItemStack stack = tooltip.getStack();
-        if (stack == null || stack.stackSize == 0) {
+        if (stack == null) {
             return;
         }
 

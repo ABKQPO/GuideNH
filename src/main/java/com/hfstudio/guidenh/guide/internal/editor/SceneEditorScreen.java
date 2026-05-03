@@ -1262,7 +1262,7 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void renderPreviewItemTooltip(ItemTooltip tooltip, int mouseX, int mouseY) {
         ItemStack stack = tooltip.getStack();
-        if (stack == null || stack.stackSize == 0) {
+        if (stack == null) {
             return;
         }
 

@@ -24,6 +24,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.distanthorizons.DistantHorizonsCompat;
+import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuidePreviewStateSupport;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -89,6 +90,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         rebindAllTileEntities();
         GuidePreviewStateSupport.prepare(this);
         tickPreviewWorld();
+        previewStateDirty = false;
     }
 
     public void setBlock(int x, int y, int z, @Nullable Block block, int meta, @Nullable TileEntity tileEntity) {
@@ -112,7 +114,15 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             explicitBlockIds.remove(key);
         } else {
             filledBlocks.put(key, new int[] { x, y, z });
-            String resolvedBlockId = resolveBlockId(block);
+            // For ForgeMultipart tiles, extract the primary microblock material to get a meaningful
+            // "modid:blockname[:meta]" export ID instead of "ForgeMultipart:multipart".
+            String resolvedBlockId;
+            if (tileEntity != null && GuideForgeMultipartSupport.isForgeMultipartBlock(block)) {
+                String fmpId = GuideForgeMultipartSupport.resolvePrimaryMicroblockId(tileEntity);
+                resolvedBlockId = fmpId != null ? fmpId : resolveBlockId(block);
+            } else {
+                resolvedBlockId = resolveBlockId(block);
+            }
             if (resolvedBlockId != null) {
                 explicitBlockIds.put(key, resolvedBlockId);
             } else {

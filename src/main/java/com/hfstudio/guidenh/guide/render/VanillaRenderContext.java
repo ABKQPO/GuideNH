@@ -232,6 +232,16 @@ public class VanillaRenderContext implements RenderContext {
     @Override
     public void renderItem(ItemStack stack, int x, int y) {
         if (stack == null) return;
+        renderItemInternal(stack, x, y, true);
+    }
+
+    @Override
+    public void renderItemIcon(ItemStack stack, int x, int y) {
+        if (stack == null) return;
+        renderItemInternal(stack, x, y, false);
+    }
+
+    private void renderItemInternal(ItemStack stack, int x, int y, boolean drawOverlay) {
         var mc = Minecraft.getMinecraft();
         // Avoid glPushAttrib/glPopAttrib: those are slow on modern drivers (cause pipeline
         // flushes). We instead explicitly restore every state we touch in the finally block.
@@ -247,7 +257,9 @@ public class VanillaRenderContext implements RenderContext {
 
             ITEM_RENDERER.zLevel = 100f;
             ITEM_RENDERER.renderItemAndEffectIntoGUI(fontRenderer, mc.getTextureManager(), stack, x, y);
-            ITEM_RENDERER.renderItemOverlayIntoGUI(fontRenderer, mc.getTextureManager(), stack, x, y);
+            if (drawOverlay) {
+                ITEM_RENDERER.renderItemOverlayIntoGUI(fontRenderer, mc.getTextureManager(), stack, x, y);
+            }
             ITEM_RENDERER.zLevel = 0f;
             RenderHelper.disableStandardItemLighting();
         } finally {

@@ -279,6 +279,38 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
         return watcher != null;
     }
 
+    /**
+     * Whether the start page has already been pre-warmed (compiled and cached) or a warm attempt has been made.
+     * Resets to false when {@link #setPages} is called with fresh page data.
+     */
+    private boolean startPageWarmed = false;
+
+    /**
+     * Called each client tick to pre-compile the guide's start page in the background, eliminating the 5-6 second
+     * freeze on first guide open. Compilation is deferred until an active server connection is available (required for
+     * {@link com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld} creation).
+     */
+    public void tickWarmup() {
+        if (startPageWarmed || pages == null) {
+            return;
+        }
+        // GuidebookFakeWorld (needed for <GameScene> blocks) requires an active NetHandler.
+        // Only attempt warmup once we're actually in-game.
+        if (Minecraft.getMinecraft()
+            .getNetHandler() == null) {
+            return;
+        }
+        startPageWarmed = true;
+        try {
+            warmPage(startPage);
+        } catch (Throwable t) {
+            if (!isDeferrableWarmPageFailure(t)) {
+                LOG.error("Failed to pre-warm guide start page {}", startPage, t);
+            }
+            // Deferrable failures are expected when world is partially loaded; the page will compile on first open.
+        }
+    }
+
     public void tick() {
         if (pages == null || watcher == null) {
             return; // Do nothing while pages haven't been loaded yet
@@ -406,6 +438,7 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     public void setPages(Map<ResourceLocation, ParsedGuidePage> pages) {
         this.pages = Collections.unmodifiableMap(new HashMap<>(pages));
         compiledPages.clear();
+        startPageWarmed = false;
 
         if (watcher != null) {
             watcher.clearChanges(); // Since we'll load them all now, ignore all changes up to now
