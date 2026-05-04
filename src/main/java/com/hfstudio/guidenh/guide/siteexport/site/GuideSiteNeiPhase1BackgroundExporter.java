@@ -33,6 +33,14 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(GuideSiteNeiPhase1BackgroundExporter.class);
 
+    /**
+     * Extra transparent border around the NEI body rectangle. GregTech (and similar) ModularUI / nine-patch chrome
+     * often draws a few pixels outside {@link NeiRecipeLookup#lookupHandlerWidth}/{@link NeiRecipeLookup#lookupHandlerHeight};
+     * a flush viewport clips top/right bezel lines and truncates footer text unless we pad here. Site overlays use the same
+     * inset — see {@link com.hfstudio.guidenh.guide.siteexport.site.GuideSiteRecipeExporter#renderNeiPositionedSlots}.
+     */
+    public static final int VIEWPORT_MARGIN_PX = 6;
+
     /** Upper bound avoids extreme handler sizes blowing memory during export. */
     private static final int MAX_EXPORT_EDGE = 1024;
 
@@ -65,12 +73,16 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
         int recipePlatH = NeiRecipeLookup.lookupRecipeHeight(handler, recipeIndex);
         int bodyH = NeiRecipeLayoutMetrics
             .resolveBodyHeight(handlerPlatH, recipePlatH, LytNeiRecipeBox.DEFAULT_BODY_HEIGHT);
-        if (bodyW > MAX_EXPORT_EDGE || bodyH > MAX_EXPORT_EDGE) {
-            LOG.debug("Skip NEI Phase1 export: {}x{} exceeds cap", bodyW, bodyH);
+
+        int m = VIEWPORT_MARGIN_PX;
+        int vw = bodyW + 2 * m;
+        int vh = bodyH + 2 * m;
+        if (vw > MAX_EXPORT_EDGE || vh > MAX_EXPORT_EDGE) {
+            LOG.debug("Skip NEI Phase1 export: {}x{} exceeds cap", vw, vh);
             return null;
         }
 
-        String cacheKey = cacheKey(handler, recipeIndex, bodyW, bodyH);
+        String cacheKey = cacheKey(handler, recipeIndex, vw, vh);
         Result existing = cache.get(cacheKey);
         if (existing != null) {
             return existing;
@@ -78,9 +90,9 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
 
         try {
             int bodyYShiftPx = NeiRecipeLookup.lookupHandlerYShift(handler);
-            byte[] png = renderPng(handler, recipeIndex, bodyW, bodyH);
+            byte[] png = renderPng(handler, recipeIndex, vw, vh);
             String rel = GuideSitePageAssetExporter.ROOT_PREFIX + assets.writeShared("nei-phase1-bg", ".png", png);
-            Result res = new Result(rel, bodyW, bodyH, bodyYShiftPx);
+            Result res = new Result(rel, vw, vh, bodyYShiftPx);
             cache.put(cacheKey, res);
             return res;
         } catch (Throwable t) {
@@ -98,7 +110,7 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
         return overlay + '|' + System.identityHashCode(handler) + '|' + recipeIndex + '|' + bodyW + 'x' + bodyH;
     }
 
-    private static byte[] renderPng(Object handler, int recipeIndex, int bodyW, int bodyH) throws Exception {
+    private static byte[] renderPng(Object handler, int recipeIndex, int viewportW, int viewportH) throws Exception {
         Minecraft minecraft = Minecraft.getMinecraft();
         if (minecraft == null || minecraft.gameSettings == null) {
             throw new IllegalStateException("Minecraft client is not ready for NEI Phase1 export.");
@@ -106,8 +118,9 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
 
         boolean skipForeground = NeiRecipeLookup.otherStacksThrows(handler, recipeIndex);
         int yShift = NeiRecipeLookup.lookupHandlerYShift(handler);
+        int m = VIEWPORT_MARGIN_PX;
 
-        Framebuffer framebuffer = new Framebuffer(bodyW, bodyH, true);
+        Framebuffer framebuffer = new Framebuffer(viewportW, viewportH, true);
         framebuffer.setFramebufferColor(0f, 0f, 0f, 0f);
 
         int previousDisplayWidth = minecraft.displayWidth;
@@ -118,12 +131,12 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
         boolean modelViewPushed = false;
 
         try {
-            minecraft.displayWidth = bodyW;
-            minecraft.displayHeight = bodyH;
+            minecraft.displayWidth = viewportW;
+            minecraft.displayHeight = viewportH;
             minecraft.gameSettings.guiScale = 1;
 
             framebuffer.bindFramebuffer(true);
-            GL11.glViewport(0, 0, bodyW, bodyH);
+            GL11.glViewport(0, 0, viewportW, viewportH);
             GL11.glClearColor(0f, 0f, 0f, 0f);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
@@ -131,7 +144,7 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
             GL11.glPushMatrix();
             projectionPushed = true;
             GL11.glLoadIdentity();
-            GL11.glOrtho(0.0D, bodyW, bodyH, 0.0D, 1000.0D, 3000.0D);
+            GL11.glOrtho(0.0D, viewportW, viewportH, 0.0D, 1000.0D, 3000.0D);
 
             GL11.glMatrixMode(GL11.GL_MODELVIEW);
             GL11.glPushMatrix();
@@ -148,7 +161,7 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
 
             GL11.glPushMatrix();
             try {
-                GL11.glTranslatef(0f, yShift, 0f);
+                GL11.glTranslatef((float) m, (float) (yShift + m), 0f);
                 NeiRecipeLookup.callDrawBackground(handler, recipeIndex);
                 if (!skipForeground) {
                     NeiRecipeLookup.callDrawForeground(handler, recipeIndex);
@@ -159,7 +172,7 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
             }
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ImageIO.write(readPixels(bodyW, bodyH), "png", out);
+            ImageIO.write(readPixels(viewportW, viewportH), "png", out);
             return out.toByteArray();
         } finally {
             if (modelViewPushed) {
@@ -210,6 +223,7 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
     public static final class Result {
 
         public final String relativeUrl;
+        /** Width/height incl. symmetric {@link GuideSiteNeiPhase1BackgroundExporter#VIEWPORT_MARGIN_PX} padding per edge. */
         public final int pixelWidth;
         public final int pixelHeight;
         /**

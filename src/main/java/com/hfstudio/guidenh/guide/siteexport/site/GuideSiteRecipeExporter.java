@@ -181,13 +181,13 @@ public class GuideSiteRecipeExporter {
             double topPct;
             if (usePhase1Canvas) {
                 /*
-                 * PNG is rendered with HandlerInfo Y shift; overlays must apply the same offset.
-                 * relx/rely from GT-style handlers are usually item TL (slot origin + 1); align using an 18×18 cell with
-                 * centred 16×16 PNG to match ModularUI SlotWidget framing.
+                 * PNG viewport is HandlerInfo WxH plus symmetric VIEWPORT_MARGIN_PX — same inset as Phase1 translate(m, yShift+m).
+                 * GT/ModularUI nine-patch bezel can extend a few px past the nominal body; relying on HandlerInfo alone clips edges.
                  */
                 int phase1YShift = phase1BodyYShiftPx != null ? phase1BodyYShiftPx : 0;
-                int slotOx = Math.max(0, slot.relx - 1);
-                int slotOy = Math.max(0, slot.rely - 1 + phase1YShift);
+                int m = GuideSiteNeiPhase1BackgroundExporter.VIEWPORT_MARGIN_PX;
+                int slotOx = Math.max(0, slot.relx - 1 + m);
+                int slotOy = Math.max(0, slot.rely - 1 + phase1YShift + m);
                 slotPxW = NEI_SLOT_GUI_PIXELS;
                 slotPxH = NEI_SLOT_GUI_PIXELS;
                 leftPct = 100.0 * slotOx / canvasW;
