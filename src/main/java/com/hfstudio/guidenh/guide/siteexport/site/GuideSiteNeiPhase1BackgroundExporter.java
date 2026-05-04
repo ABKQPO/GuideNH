@@ -18,8 +18,8 @@ import org.lwjgl.opengl.GL11;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hfstudio.guidenh.compat.neicustomdiagram.NeiCustomDiagramBridge;
 import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.compat.neicustomdiagram.NeiCustomDiagramBridge;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.recipe.NeiRecipeLayoutMetrics;
 
@@ -35,8 +35,10 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
 
     /**
      * Extra transparent border around the NEI body rectangle. GregTech (and similar) ModularUI / nine-patch chrome
-     * often draws a few pixels outside {@link NeiRecipeLookup#lookupHandlerWidth}/{@link NeiRecipeLookup#lookupHandlerHeight};
-     * a flush viewport clips top/right bezel lines and truncates footer text unless we pad here. Site overlays use the same
+     * often draws a few pixels outside
+     * {@link NeiRecipeLookup#lookupHandlerWidth}/{@link NeiRecipeLookup#lookupHandlerHeight};
+     * a flush viewport clips top/right bezel lines and truncates footer text unless we pad here. Site overlays use the
+     * same
      * inset — see {@link com.hfstudio.guidenh.guide.siteexport.site.GuideSiteRecipeExporter#renderNeiPositionedSlots}.
      */
     public static final int VIEWPORT_MARGIN_PX = 6;
@@ -223,7 +225,10 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
     public static final class Result {
 
         public final String relativeUrl;
-        /** Width/height incl. symmetric {@link GuideSiteNeiPhase1BackgroundExporter#VIEWPORT_MARGIN_PX} padding per edge. */
+        /**
+         * Width/height incl. symmetric {@link GuideSiteNeiPhase1BackgroundExporter#VIEWPORT_MARGIN_PX} padding per
+         * edge.
+         */
         public final int pixelWidth;
         public final int pixelHeight;
         /**

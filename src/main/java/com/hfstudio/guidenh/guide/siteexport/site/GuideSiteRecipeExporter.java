@@ -114,18 +114,21 @@ public class GuideSiteRecipeExporter {
     }
 
     /**
-     * @param phase1BackgroundUrl optional Phase1 PNG URL; valid canvas width/height must be set together for Phase1 alignment.
-     * @param phase1BodyYShiftPx matches Phase1 framebuffer {@code glTranslate Y} ({@link NeiRecipeLookup#lookupHandlerYShift}); {@code null} when Phase1 is unused.
+     * @param phase1BackgroundUrl optional Phase1 PNG URL; valid canvas width/height must be set together for Phase1
+     *                            alignment.
+     * @param phase1BodyYShiftPx  matches Phase1 framebuffer {@code glTranslate Y}
+     *                            ({@link NeiRecipeLookup#lookupHandlerYShift}); {@code null} when Phase1 is unused.
      */
-    public String renderNeiPositionedSlots(List<NeiRecipeLookup.Slot> slots,
-        GuideSiteItemIconResolver itemIconResolver, @Nullable String phase1BackgroundUrl,
-        @Nullable Integer phase1CanvasWidthPx, @Nullable Integer phase1CanvasHeightPx,
-        @Nullable Integer phase1BodyYShiftPx) {
+    public String renderNeiPositionedSlots(List<NeiRecipeLookup.Slot> slots, GuideSiteItemIconResolver itemIconResolver,
+        @Nullable String phase1BackgroundUrl, @Nullable Integer phase1CanvasWidthPx,
+        @Nullable Integer phase1CanvasHeightPx, @Nullable Integer phase1BodyYShiftPx) {
         if (slots == null || slots.isEmpty()) {
             return "";
         }
         boolean usePhase1Canvas = phase1BackgroundUrl != null && !phase1BackgroundUrl.isEmpty()
-            && phase1CanvasWidthPx != null && phase1CanvasHeightPx != null && phase1CanvasWidthPx > 0
+            && phase1CanvasWidthPx != null
+            && phase1CanvasHeightPx != null
+            && phase1CanvasWidthPx > 0
             && phase1CanvasHeightPx > 0;
 
         int canvasW;
@@ -181,8 +184,10 @@ public class GuideSiteRecipeExporter {
             double topPct;
             if (usePhase1Canvas) {
                 /*
-                 * PNG viewport is HandlerInfo WxH plus symmetric VIEWPORT_MARGIN_PX — same inset as Phase1 translate(m, yShift+m).
-                 * GT/ModularUI nine-patch bezel can extend a few px past the nominal body; relying on HandlerInfo alone clips edges.
+                 * PNG viewport is HandlerInfo WxH plus symmetric VIEWPORT_MARGIN_PX — same inset as Phase1 translate(m,
+                 * yShift+m).
+                 * GT/ModularUI nine-patch bezel can extend a few px past the nominal body; relying on HandlerInfo alone
+                 * clips edges.
                  */
                 int phase1YShift = phase1BodyYShiftPx != null ? phase1BodyYShiftPx : 0;
                 int m = GuideSiteNeiPhase1BackgroundExporter.VIEWPORT_MARGIN_PX;

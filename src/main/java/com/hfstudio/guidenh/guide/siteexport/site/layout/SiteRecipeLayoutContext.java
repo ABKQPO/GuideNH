@@ -25,7 +25,10 @@ public final class SiteRecipeLayoutContext {
     private final @Nullable Object rawHandler;
     private final int rawRecipeIndex;
     private final @Nullable SiteRecipeRawHandlerAccess rawHandlerAccess;
-    /** Site-relative URL (e.g. prefixed with {@link com.hfstudio.guidenh.guide.siteexport.site.GuideSitePageAssetExporter#ROOT_PREFIX}). */
+    /**
+     * Site-relative URL (e.g. prefixed with
+     * {@link com.hfstudio.guidenh.guide.siteexport.site.GuideSitePageAssetExporter#ROOT_PREFIX}).
+     */
     private final @Nullable String neiPhase1BackgroundUrl;
     private final @Nullable Integer neiPhase1CanvasWidthPx;
     private final @Nullable Integer neiPhase1CanvasHeightPx;
