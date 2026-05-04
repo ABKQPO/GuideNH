@@ -117,6 +117,7 @@ guideme.guidebook.SceneEditorExport=Export
 guideme.guidebook.SceneEditorScreenshot=Screenshot
 guideme.guidebook.SceneEditorScreenshotFormat=Format
 guideme.guidebook.SceneEditorScreenshotScale=Scale
+guideme.guidebook.SceneEditorScreenshotOriginAxes=Show origin axes
 guideme.guidebook.SceneEditorScreenshotSuccess=Scene screenshot saved: %s
 guideme.guidebook.SceneEditorScreenshotFailure=Failed to save scene screenshot: %s
 guideme.guidebook.SceneEditorImportStructure=Import Structure

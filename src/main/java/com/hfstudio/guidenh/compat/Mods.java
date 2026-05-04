@@ -22,6 +22,8 @@ public enum Mods implements IMod, ITargetMod {
     GregTech("gregtech"),
     CarpentersBlocks("CarpentersBlocks"),
     ForgeMultipart("ForgeMultipart"),
+    BuildCraftTransport("BuildCraft|Transport"),
+    LogisticsPipes("LogisticsPipes"),
     DistantHorizons("distanthorizons"),
     EtFuturum("etfuturum"),
     SimpleSkinBackport("simpleskinbackport"),

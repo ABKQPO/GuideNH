@@ -72,6 +72,58 @@ public class SceneEditorOffscreenFramebuffer implements AutoCloseable {
         }
     }
 
+    /**
+     * Renders a tile of the scene at the given pixel offset within the full render.
+     *
+     * <p>
+     * Unlike {@link #render(LytGuidebookScene)}, this method does <em>not</em> call
+     * {@code scene.setSceneSize()} or {@code scene.layout()}: the caller is responsible
+     * for laying out the scene at the full render resolution before calling this method.
+     * The document origin is shifted by {@code (-offsetX, -offsetY)} so that only the
+     * portion of the scene starting at {@code (offsetX, offsetY)} is written into this
+     * framebuffer.
+     * </p>
+     */
+    public BufferedImage renderTile(LytGuidebookScene scene, int offsetX, int offsetY) {
+        if (scene == null) {
+            throw new IllegalArgumentException("scene cannot be null");
+        }
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft == null || minecraft.gameSettings == null) {
+            throw new IllegalStateException("Minecraft client is not ready for screenshot export.");
+        }
+
+        int previousDisplayWidth = minecraft.displayWidth;
+        int previousDisplayHeight = minecraft.displayHeight;
+        int previousGuiScale = minecraft.gameSettings.guiScale;
+
+        try {
+            minecraft.displayWidth = width;
+            minecraft.displayHeight = height;
+            minecraft.gameSettings.guiScale = 1;
+
+            framebuffer.bindFramebuffer(true);
+            GL11.glClearColor(0f, 0f, 0f, 0f);
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+
+            VanillaRenderContext renderContext = new VanillaRenderContext(
+                LightDarkMode.LIGHT_MODE,
+                new LytRect(0, 0, width, height),
+                height);
+            renderContext.setDocumentOrigin(-offsetX, -offsetY);
+            renderContext.setScrollOffsetY(0);
+            scene.render(renderContext);
+
+            return readPixels();
+        } finally {
+            framebuffer.unbindFramebuffer();
+            minecraft.displayWidth = previousDisplayWidth;
+            minecraft.displayHeight = previousDisplayHeight;
+            minecraft.gameSettings.guiScale = previousGuiScale;
+            GL11.glViewport(0, 0, previousDisplayWidth, previousDisplayHeight);
+        }
+    }
+
     private BufferedImage readPixels() {
         ByteBuffer buffer = BufferUtils.createByteBuffer(width * height * 4);
         GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);

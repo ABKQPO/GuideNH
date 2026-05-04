@@ -89,6 +89,7 @@ public class LytGuidebookScene extends LytBlock {
     private boolean reserveBottomControlArea = true;
     private boolean visibleLayerSliderEnabled;
     private boolean forceOriginAxesVisible;
+    private boolean forceHideOriginAxes;
 
     public static int SCENE_BG_COLOR = 0xFF0A0A10;
     public static int SCENE_BORDER_COLOR = 0xFF303040;
@@ -384,6 +385,14 @@ public class LytGuidebookScene extends LytBlock {
 
     public void setForceOriginAxesVisible(boolean forceOriginAxesVisible) {
         this.forceOriginAxesVisible = forceOriginAxesVisible;
+    }
+
+    public boolean isForceHideOriginAxes() {
+        return forceHideOriginAxes;
+    }
+
+    public void setForceHideOriginAxes(boolean forceHideOriginAxes) {
+        this.forceHideOriginAxes = forceHideOriginAxes;
     }
 
     public boolean hasVisibleLayerData() {
@@ -1023,7 +1032,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private boolean shouldRenderOriginAxes() {
-        return forceOriginAxesVisible || ModConfig.debug.enableDebugMode;
+        return !forceHideOriginAxes && (forceOriginAxesVisible || ModConfig.debug.enableDebugMode);
     }
 
     private static InWorldLineAnnotation createOriginAxisAnnotation(Vector3f to, ConstantColor color) {

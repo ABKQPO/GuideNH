@@ -276,6 +276,7 @@ public class SceneEditorScreen extends GuiScreen {
     private String closeConfirmErrorText;
     private SceneEditorSettingsTab activeSettingsTab;
     private SceneEditorScreenLayout.Layout screenLayout;
+    private boolean rightPanelCollapsed;
     private boolean markdownLiveSyncPending;
     private long markdownLiveSyncAtMillis;
     @Nullable
@@ -360,8 +361,9 @@ public class SceneEditorScreen extends GuiScreen {
         this.closeConfirmDialogOpen = false;
         this.closeConfirmErrorText = null;
         this.activeSettingsTab = SceneEditorSettingsTab.CAMERA;
+        this.rightPanelCollapsed = false;
         this.screenLayout = SceneEditorScreenLayout
-            .calculate(360, 220, this.markdownPanelState.isExpanded(), this.markdownPanelState.getOpenWidth());
+            .calculate(360, 220, this.markdownPanelState.isExpanded(), this.markdownPanelState.getOpenWidth(), true);
     }
 
     public static void open() {
@@ -577,7 +579,7 @@ public class SceneEditorScreen extends GuiScreen {
         if (addElementButton != null) {
             addElementButton.xPosition = elementsBoxX + elementsBoxWidth - GuideIconButton.WIDTH - 6;
             addElementButton.yPosition = elementsBoxY + 3;
-            addElementButton.visible = true;
+            addElementButton.visible = !rightPanelCollapsed;
         }
         syncToolbarToggleState();
 
@@ -589,6 +591,7 @@ public class SceneEditorScreen extends GuiScreen {
         drawLeftPanel(mouseX, mouseY);
         drawRightPanel(mouseX, mouseY);
         drawMarkdownToggle(mouseX, mouseY);
+        drawRightPanelToggle(mouseX, mouseY);
         drawToolbarTitle();
 
         super.drawScreen(mouseX, mouseY, partialTicks);
@@ -614,6 +617,12 @@ public class SceneEditorScreen extends GuiScreen {
         } else if (isInsideMarkdownToggle(mouseX, mouseY)) {
             this.drawHoveringText(
                 Collections.singletonList(GuidebookText.SceneEditorMarkdownPanel.text()),
+                mouseX,
+                mouseY,
+                this.fontRendererObj);
+        } else if (isInsideRightPanelToggle(mouseX, mouseY)) {
+            this.drawHoveringText(
+                Collections.singletonList(GuidebookText.SceneEditorSettingsPanel.text()),
                 mouseX,
                 mouseY,
                 this.fontRendererObj);
@@ -735,6 +744,10 @@ public class SceneEditorScreen extends GuiScreen {
         }
         if (button == 0 && isInsideMarkdownToggle(mouseX, mouseY)) {
             toggleMarkdownPanel();
+            return;
+        }
+        if (button == 0 && isInsideRightPanelToggle(mouseX, mouseY)) {
+            rightPanelCollapsed = !rightPanelCollapsed;
             return;
         }
         if (button == 0 && isInsideMarkdownFooter(mouseX, mouseY)) {
@@ -945,8 +958,12 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private void recalculateLayout() {
-        screenLayout = SceneEditorScreenLayout
-            .calculate(this.width, this.height, markdownPanelState.isExpanded(), markdownPanelState.getOpenWidth());
+        screenLayout = SceneEditorScreenLayout.calculate(
+            this.width,
+            this.height,
+            markdownPanelState.isExpanded(),
+            markdownPanelState.getOpenWidth(),
+            !rightPanelCollapsed);
 
         leftPanelX = screenLayout.leftPanel()
             .x();
@@ -1407,6 +1424,9 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private void drawRightPanel(int mouseX, int mouseY) {
+        if (rightPanelCollapsed) {
+            return;
+        }
         this.drawString(
             this.fontRendererObj,
             GuidebookText.SceneEditorSettingsPanel.text(),
@@ -1441,6 +1461,23 @@ public class SceneEditorScreen extends GuiScreen {
             x + 10,
             y + SceneEditorScreenLayout.PANEL_HEADER_Y,
             PANEL_HEADER_COLOR);
+    }
+
+    private void drawRightPanelToggle(int mouseX, int mouseY) {
+        LytRect toggleBounds = screenLayout.rightToggle();
+        boolean hovered = toggleBounds.contains(mouseX, mouseY);
+        int backgroundColor = hovered ? 0xC824303A : 0xA014161A;
+        drawRect(toggleBounds.x(), toggleBounds.y(), toggleBounds.right(), toggleBounds.bottom(), backgroundColor);
+        drawBorder(
+            toggleBounds.x(),
+            toggleBounds.y(),
+            toggleBounds.width(),
+            toggleBounds.height(),
+            hovered ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
+        String arrow = rightPanelCollapsed ? "<" : ">";
+        int arrowX = toggleBounds.x() + (toggleBounds.width() - this.fontRendererObj.getStringWidth(arrow)) / 2;
+        int arrowY = toggleBounds.y() + toggleBounds.height() / 2 - 4;
+        this.drawString(this.fontRendererObj, arrow, arrowX, arrowY, PANEL_HEADER_COLOR);
     }
 
     private void drawMarkdownToggle(int mouseX, int mouseY) {
@@ -1623,7 +1660,8 @@ public class SceneEditorScreen extends GuiScreen {
             session.getSceneModel()
                 .getPreviewWidth(),
             session.getSceneModel()
-                .getPreviewHeight());
+                .getPreviewHeight(),
+            screenshotMenuController.isShowOriginAxes());
         if (mc == null || mc.thePlayer == null) {
             return;
         }
@@ -2289,6 +2327,11 @@ public class SceneEditorScreen extends GuiScreen {
             : settingsBoxX + settingsBoxWidth - SETTINGS_BOX_PADDING;
         int rowBottom = interactiveToggleY + INTERACTIVE_ROW_HEIGHT;
         return mouseX >= interactiveLabelX && mouseX < rowRight && mouseY >= interactiveToggleY && mouseY < rowBottom;
+    }
+
+    private boolean isInsideRightPanelToggle(int mouseX, int mouseY) {
+        return screenLayout.rightToggle()
+            .contains(mouseX, mouseY);
     }
 
     private boolean isInsideMarkdownToggle(int mouseX, int mouseY) {
@@ -3118,6 +3161,11 @@ public class SceneEditorScreen extends GuiScreen {
                 draggingScreenshotScaleSlider = true;
                 return true;
             }
+            LytRect axesBounds = screenshotMenuController.originAxesCheckboxBounds(menuBounds);
+            if (axesBounds.contains(mouseX, mouseY)) {
+                screenshotMenuController.toggleShowOriginAxes();
+                return true;
+            }
         }
         if (!insideMenu && screenshotScaleField != null && screenshotScaleField.isFocused()) {
             if (!commitScreenshotScaleDraft()) {
@@ -3191,6 +3239,43 @@ public class SceneEditorScreen extends GuiScreen {
                 sliderBounds.width(),
                 screenshotMenuController.scaleFraction()),
             draggingScreenshotScaleSlider || sliderBounds.contains(mouseX, mouseY));
+
+        LytRect axesBounds = screenshotMenuController.originAxesCheckboxBounds(menuBounds);
+        boolean axesHovered = axesBounds.contains(mouseX, mouseY);
+        if (axesHovered) {
+            drawRect(
+                menuBounds.x() + 1,
+                axesBounds.y(),
+                menuBounds.right() - 1,
+                axesBounds.bottom(),
+                ELEMENT_MENU_HOVER);
+        }
+        boolean axesChecked = screenshotMenuController.isShowOriginAxes();
+        int axBoxX = axesBounds.x();
+        int axBoxY = axesBounds.y() + 3;
+        drawRect(axBoxX, axBoxY, axBoxX + 10, axBoxY + 10, CHECKBOX_BACKGROUND_COLOR);
+        drawBorder(axBoxX, axBoxY, 10, 10, axesChecked ? CHECKBOX_CHECK_COLOR : INPUT_BORDER_COLOR);
+        if (axesChecked) {
+            drawRect(axBoxX + 2, axBoxY + 2, axBoxX + 8, axBoxY + 8, CHECKBOX_CHECK_COLOR);
+        }
+        this.drawString(
+            this.fontRendererObj,
+            GuidebookText.SceneEditorScreenshotOriginAxes.text(),
+            axesBounds.x() + 14,
+            axesBounds.y() + 5,
+            PANEL_HEADER_COLOR);
+
+        LytRect hintBounds = screenshotMenuController.resolutionHintBounds(menuBounds);
+        LytRect sceneViewport = activePreviewScene != null ? activePreviewScene.getScreenRect() : null;
+        int hintW = sceneViewport != null && !sceneViewport.isEmpty() ? sceneViewport.width()
+            : session.getSceneModel()
+                .getPreviewWidth();
+        int hintH = sceneViewport != null && !sceneViewport.isEmpty() ? sceneViewport.height()
+            : session.getSceneModel()
+                .getPreviewHeight();
+        int scale = screenshotMenuController.getScale();
+        String resolutionHint = (hintW * scale) + " \u00D7 " + (hintH * scale);
+        this.drawString(this.fontRendererObj, resolutionHint, hintBounds.x(), hintBounds.y(), PANEL_MUTED_TEXT);
     }
 
     private boolean isInsideSnapButton(int mouseX, int mouseY) {

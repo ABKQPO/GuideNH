@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.mixins.late.compat.gregtech.AccessorHatchElementBuilder;
 
@@ -22,6 +23,8 @@ import cpw.mods.fml.common.Optional;
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.BaseMetaPipeEntity;
+import gregtech.api.metatileentity.MetaPipeEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.HatchElementBuilder;
@@ -69,7 +72,7 @@ public final class GregTechHelpers {
     }
 
     public static boolean isGregTechTileEntity(@Nullable TileEntity tileEntity) {
-        return tileEntity != null && Mods.GregTech.isModLoaded() && isGregTechTileEntityImpl(tileEntity);
+        return Mods.GregTech.isModLoaded() && isGregTechTileEntityImpl(tileEntity);
     }
 
     @Optional.Method(modid = "gregtech")
@@ -324,7 +327,7 @@ public final class GregTechHelpers {
     }
 
     public static boolean isHatchElementBuilder(@Nullable Object candidate) {
-        return candidate != null && Mods.GregTech.isModLoaded() && isHatchElementBuilderImpl(candidate);
+        return Mods.GregTech.isModLoaded() && isHatchElementBuilderImpl(candidate);
     }
 
     @Optional.Method(modid = "gregtech")
@@ -345,7 +348,7 @@ public final class GregTechHelpers {
 
     @Optional.Method(modid = "gregtech")
     private static int getHatchBuilderHintImpl(Object hatchBuilder) {
-        return ((AccessorHatchElementBuilder) (Object) hatchBuilder).guidenh$getHint();
+        return ((AccessorHatchElementBuilder) hatchBuilder).guidenh$getHint();
     }
 
     @Nullable
@@ -438,5 +441,61 @@ public final class GregTechHelpers {
         } catch (Throwable ignored) {
             builder.append("<unavailable>");
         }
+    }
+
+    public static void preparePipeConnections(GuidebookLevel level) {
+        if (level == null || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            preparePipeConnectionsImpl(level);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static void preparePipeConnectionsImpl(GuidebookLevel level) {
+        for (TileEntity te : level.getTileEntities()) {
+            if (!(te instanceof BaseMetaPipeEntity basePipeEntity)) {
+                continue;
+            }
+            IMetaTileEntity mte = basePipeEntity.getMetaTileEntity();
+            if (!(mte instanceof MetaPipeEntity metaPipe)) {
+                continue;
+            }
+            int x = te.xCoord;
+            int y = te.yCoord;
+            int z = te.zCoord;
+            byte connections = 0;
+            for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
+                TileEntity adj = level.getTileEntity(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ);
+                if (adj == null) {
+                    continue;
+                }
+                if (isSamePipeType(metaPipe, adj)) {
+                    connections |= dir.flag;
+                    continue;
+                }
+                try {
+                    if (metaPipe.canConnect(dir, adj)) {
+                        connections |= dir.flag;
+                    }
+                } catch (Throwable ignored) {}
+            }
+            basePipeEntity.mConnections = connections;
+        }
+    }
+
+    private static boolean isSamePipeType(MetaPipeEntity pipe, TileEntity adj) {
+        if (!(adj instanceof BaseMetaPipeEntity adjBase)) {
+            return false;
+        }
+        IMetaTileEntity adjMte = adjBase.getMetaTileEntity();
+        if (adjMte == null) {
+            return false;
+        }
+        return pipe.getClass()
+            .isInstance(adjMte)
+            || adjMte.getClass()
+                .isInstance(pipe);
     }
 }

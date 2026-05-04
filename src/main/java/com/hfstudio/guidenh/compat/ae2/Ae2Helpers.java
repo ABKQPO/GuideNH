@@ -1,32 +1,22 @@
 package com.hfstudio.guidenh.compat.ae2;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
-
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.mixins.late.compat.ae2.AccessorAENetworkProxy;
 
-import appeng.api.networking.IGridNode;
-import appeng.api.parts.IPart;
-import appeng.me.Grid;
-import appeng.me.GridNode;
+import appeng.api.networking.IGridHost;
+import appeng.api.util.AECableType;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
-import appeng.parts.CableBusContainer;
+import appeng.parts.networking.PartCable;
 import appeng.tile.AEBaseTile;
 import appeng.tile.networking.TileCableBus;
 import cpw.mods.fml.common.Optional;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 /**
  * Public facade for AE2-specific guide preview support. Callers MUST gate every entry
@@ -35,188 +25,91 @@ import cpw.mods.fml.common.Optional;
  * never resolves the AE2 types referenced here at runtime.
  *
  * <p>
- * Replaces the legacy reflective field caches with Mixin Accessors
- * ({@link AccessorAENetworkProxy}); see {@code com.hfstudio.guidenh.mixins.Mixins#AE2_NETWORK_PROXY}.
+ * Cable connections are computed from the guide level tile layout and applied directly
+ * to the center cable part via {@code PartCable.readFromStream}. No AE2 grid nodes,
+ * grids, or {@code WorldData} are touched, keeping the guide preview safe to run on
+ * the client render thread without corrupting real-world AE2 network state.
  * </p>
  */
 public final class Ae2Helpers {
-
-    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
-    public static final ForgeDirection[] PART_SIDES = ForgeDirection.values();
-
-    public static volatile boolean nodeCreationFailureLogged;
 
     private Ae2Helpers() {}
 
     @Optional.Method(modid = "appliedenergistics2")
     public static void prepare(GuidebookLevel level) {
-        preparePreviewState(
-            level.getTileEntities(),
-            () -> level.getOrCreateFakeWorld()
-                .syncLoadedTileEntities(level.getTileEntities()));
-    }
-
-    @Optional.Method(modid = "appliedenergistics2")
-    static void preparePreviewState(Iterable<? extends TileEntity> tileEntities, Runnable postSyncAction) {
-        IdentityHashMap<IGridNode, Boolean> seenNodes = new IdentityHashMap<>();
-        IdentityHashMap<CableBusContainer, Boolean> seenCableBuses = new IdentityHashMap<>();
-        ArrayList<IGridNode> nodes = new ArrayList<>();
-        ArrayList<CableBusContainer> cableBuses = new ArrayList<>();
-        ArrayList<AEBaseTile> tilesToSync = new ArrayList<>();
-
-        for (TileEntity tileEntity : tileEntities) {
-            collectTileState(tileEntity, seenNodes, nodes, seenCableBuses, cableBuses, tilesToSync);
-        }
-
-        if (nodes.isEmpty() && cableBuses.isEmpty()) {
-            return;
-        }
-
-        for (CableBusContainer cableBus : cableBuses) {
-            try {
-                cableBus.addToWorld();
-            } catch (Throwable ignored) {}
-        }
-
-        for (CableBusContainer cableBus : cableBuses) {
-            try {
-                cableBus.updateConnections();
-            } catch (Throwable ignored) {}
-        }
-
-        for (IGridNode node : nodes) {
-            try {
-                node.updateState();
-            } catch (Throwable ignored) {}
-        }
-
-        updateOwningGrids(nodes);
-
-        for (AEBaseTile tile : tilesToSync) {
-            syncDescriptionPacket(tile);
-        }
-
-        if (postSyncAction != null) {
-            postSyncAction.run();
-        }
-    }
-
-    @Optional.Method(modid = "appliedenergistics2")
-    public static void collectTileState(TileEntity tileEntity, IdentityHashMap<IGridNode, Boolean> seenNodes,
-        List<IGridNode> nodes, IdentityHashMap<CableBusContainer, Boolean> seenCableBuses,
-        List<CableBusContainer> cableBuses, List<AEBaseTile> tilesToSync) {
-        if (!(tileEntity instanceof AEBaseTile aeBaseTile)) {
-            return;
-        }
-
-        tilesToSync.add(aeBaseTile);
-
-        if (tileEntity instanceof TileCableBus cableBusTile) {
-            CableBusContainer cableBus = cableBusTile.getCableBus();
-            if (cableBus != null && seenCableBuses.put(cableBus, Boolean.TRUE) == null) {
-                cableBuses.add(cableBus);
+        for (TileEntity te : level.getTileEntities()) {
+            if (te instanceof TileCableBus cableBusTile) {
+                syncCableBusConnections(cableBusTile, level);
+            } else if (te instanceof AEBaseTile aeTile) {
+                syncDescriptionPacket(aeTile);
             }
-            collectCableBusNodes(cableBusTile, seenNodes, nodes);
-            return;
         }
-
-        try {
-            aeBaseTile.onReady();
-        } catch (Throwable ignored) {}
-
-        if (tileEntity instanceof IGridProxyable gridProxyable) {
-            collectNode(gridProxyable.getProxy(), seenNodes, nodes);
-        }
+        level.getOrCreateFakeWorld()
+            .syncLoadedTileEntities(level.getTileEntities());
     }
 
+    /**
+     * Determines which sides of this cable bus connect to adjacent {@link IGridHost}
+     * tiles and applies the result to the center {@link PartCable} via
+     * {@code PartCable.readFromStream}, without creating any AE2 grid node or grid
+     * objects.
+     *
+     * <p>
+     * Sides that have a part installed are excluded; those sides are owned by the
+     * installed part and do not represent external cable connections from the center.
+     * </p>
+     */
     @Optional.Method(modid = "appliedenergistics2")
-    public static void collectCableBusNodes(TileCableBus cableBusTile, IdentityHashMap<IGridNode, Boolean> seenNodes,
-        List<IGridNode> nodes) {
-        for (ForgeDirection side : PART_SIDES) {
-            IPart part;
-            try {
-                part = cableBusTile.getPart(side);
-            } catch (Throwable ignored) {
+    static void syncCableBusConnections(TileCableBus cableBusTile, GuidebookLevel level) {
+        int x = cableBusTile.xCoord;
+        int y = cableBusTile.yCoord;
+        int z = cableBusTile.zCoord;
+
+        int cs = 0;
+        for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
+            if (cableBusTile.getPart(dir) != null) {
                 continue;
             }
-            if (part instanceof IGridProxyable gridProxyable) {
-                collectNode(gridProxyable.getProxy(), seenNodes, nodes);
-            }
-        }
-    }
-
-    @Optional.Method(modid = "appliedenergistics2")
-    public static void collectNode(AENetworkProxy proxy, IdentityHashMap<IGridNode, Boolean> seenNodes,
-        List<IGridNode> nodes) {
-        IGridNode node = ensureNode(proxy);
-        if (node != null && seenNodes.put(node, Boolean.TRUE) == null) {
-            nodes.add(node);
-        }
-    }
-
-    @Optional.Method(modid = "appliedenergistics2")
-    public static IGridNode ensureNode(AENetworkProxy proxy) {
-        if (proxy == null) {
-            return null;
-        }
-
-        try {
-            proxy.onReady();
-        } catch (Throwable ignored) {}
-
-        try {
-            IGridNode existingNode = proxy.getNode();
-            if (existingNode != null) {
-                return existingNode;
-            }
-        } catch (Throwable ignored) {}
-
-        try {
-            AccessorAENetworkProxy accessor = (AccessorAENetworkProxy) proxy;
-            IGridNode createdNode = new GridNode(proxy);
-            accessor.guidenh$setNode(createdNode);
-
-            NBTTagCompound pendingData = accessor.guidenh$getData();
-            if (pendingData != null) {
-                proxy.readFromNBT(pendingData);
-            } else {
-                proxy.readFromNBT(null);
-            }
-
-            createdNode.updateState();
-            return createdNode;
-        } catch (Throwable t) {
-            if (!nodeCreationFailureLogged) {
-                nodeCreationFailureLogged = true;
-                GuideDebugLog.warn(LOG, "Failed to synthesize an AE2 grid node for guide preview rendering", t);
-            }
-            return null;
-        }
-    }
-
-    @Optional.Method(modid = "appliedenergistics2")
-    public static void updateOwningGrids(List<IGridNode> nodes) {
-        IdentityHashMap<Grid, Boolean> seenGrids = new IdentityHashMap<>();
-        ArrayList<Grid> grids = new ArrayList<>();
-        for (IGridNode node : nodes) {
-            if (node == null) {
+            var adj = level.getTileEntity(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ);
+            if (!(adj instanceof IGridHost adjHost)) {
                 continue;
             }
-            try {
-                Object grid = node.getGrid();
-                if (grid instanceof Grid castGrid && seenGrids.put(castGrid, Boolean.TRUE) == null) {
-                    grids.add(castGrid);
-                }
-            } catch (Throwable ignored) {}
-        }
-
-        for (int i = 0; i < 2; i++) {
-            for (Grid grid : grids) {
+            AECableType myType = cableBusTile.getCableConnectionType(dir);
+            if (myType == AECableType.NONE) {
+                continue;
+            }
+            boolean adjCanConnect;
+            if (adjHost instanceof IGridProxyable adjProxyable) {
+                AENetworkProxy proxy = null;
                 try {
-                    grid.update();
+                    proxy = adjProxyable.getProxy();
                 } catch (Throwable ignored) {}
+                if (proxy == null) {
+                    continue;
+                }
+                adjCanConnect = proxy.getConnectableSides()
+                    .contains(dir.getOpposite());
+            } else {
+                adjCanConnect = adjHost.getCableConnectionType(dir.getOpposite()) != AECableType.NONE;
             }
+            if (!adjCanConnect) {
+                continue;
+            }
+            cs |= (1 << dir.ordinal());
         }
+
+        if (!(cableBusTile.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
+            return;
+        }
+
+        // PartCable.readFromStream expects 1 signed byte (connection bitmask) followed by
+        // 4 bytes (channel counts per side, packed 4 bits each).
+        ByteBuf buf = Unpooled.buffer(5);
+        buf.writeByte(cs);
+        buf.writeInt(0);
+        try {
+            cable.readFromStream(buf);
+        } catch (Throwable ignored) {}
     }
 
     @Optional.Method(modid = "appliedenergistics2")

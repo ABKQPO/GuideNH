@@ -118,7 +118,10 @@ public final class FunctionExprParser {
 
     private boolean isImplicitMultiplyStart(char c) {
         // An identifier or '(' immediately following a primary triggers implicit multiplication.
-        if (c == '(' || c == '|') {
+        // '|' is intentionally excluded: after parsing a primary such as "x", the closing '|' of
+        // an enclosing "|x|" expression would otherwise be mistaken for the opening of a new
+        // absolute-value operand, breaking expressions like "|x| - 1".
+        if (c == '(') {
             return true;
         }
         return Character.isLetter(c) || c == '\u221A' || c == '\u221B';
