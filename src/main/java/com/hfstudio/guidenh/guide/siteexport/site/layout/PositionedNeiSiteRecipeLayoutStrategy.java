@@ -29,7 +29,8 @@ public final class PositionedNeiSiteRecipeLayoutStrategy implements SiteRecipeLa
                 ctx.itemIconResolver(),
                 ctx.neiPhase1BackgroundUrl(),
                 ctx.neiPhase1CanvasWidthPx(),
-                ctx.neiPhase1CanvasHeightPx());
+                ctx.neiPhase1CanvasHeightPx(),
+                ctx.neiPhase1BodyYShiftPx());
     }
 
     private static List<NeiRecipeLookup.Slot> collectSlots(SiteRecipeLayoutContext ctx) {

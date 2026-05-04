@@ -469,7 +469,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                     itemIconResolver,
                     phase1 != null ? phase1.relativeUrl : null,
                     phase1 != null ? phase1.pixelWidth : null,
-                    phase1 != null ? phase1.pixelHeight : null));
+                    phase1 != null ? phase1.pixelHeight : null,
+                    phase1 != null ? phase1.bodyYShiftPx : null));
             if (!rendered.isEmpty()) {
                 renderedRecipes.add(rendered);
             }
@@ -524,7 +525,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 rawHandlerSlotAccess,
                 phase1 != null ? phase1.relativeUrl : null,
                 phase1 != null ? phase1.pixelWidth : null,
-                phase1 != null ? phase1.pixelHeight : null));
+                phase1 != null ? phase1.pixelHeight : null,
+                phase1 != null ? phase1.bodyYShiftPx : null));
     }
 
     private @Nullable GuideSiteNeiPhase1BackgroundExporter.Result neiPhase1Capture(@Nullable Object handler,

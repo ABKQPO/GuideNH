@@ -77,9 +77,10 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
         }
 
         try {
+            int bodyYShiftPx = NeiRecipeLookup.lookupHandlerYShift(handler);
             byte[] png = renderPng(handler, recipeIndex, bodyW, bodyH);
             String rel = GuideSitePageAssetExporter.ROOT_PREFIX + assets.writeShared("nei-phase1-bg", ".png", png);
-            Result res = new Result(rel, bodyW, bodyH);
+            Result res = new Result(rel, bodyW, bodyH, bodyYShiftPx);
             cache.put(cacheKey, res);
             return res;
         } catch (Throwable t) {
@@ -211,11 +212,17 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
         public final String relativeUrl;
         public final int pixelWidth;
         public final int pixelHeight;
+        /**
+         * {@link NeiRecipeLookup#lookupHandlerYShift} applied when rendering Phase1; site overlays must align to the
+         * same shift or icons drift from the raster background.
+         */
+        public final int bodyYShiftPx;
 
-        public Result(String relativeUrl, int pixelWidth, int pixelHeight) {
+        public Result(String relativeUrl, int pixelWidth, int pixelHeight, int bodyYShiftPx) {
             this.relativeUrl = relativeUrl;
             this.pixelWidth = pixelWidth;
             this.pixelHeight = pixelHeight;
+            this.bodyYShiftPx = bodyYShiftPx;
         }
     }
 }

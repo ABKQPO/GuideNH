@@ -14,9 +14,8 @@ import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 
 public class GuideSiteRecipeExporter {
 
-    /** NEI draws items into a {@code 16×16} cell; crafting GUIs typically space slot origins {@code 18} apart. */
+    /** NEI slot chrome is commonly {@code 18×18} pixels; vanilla/GT handlers draw {@code 16×16} items inset by 1px. */
     public static final int NEI_SLOT_GUI_PIXELS = 18;
-    public static final int NEI_ITEM_DRAW_PIXELS = 16;
 
     public String renderHtmlGrid(List<List<String>> ingredients, String resultItemId) {
         return renderGrid(
@@ -111,16 +110,17 @@ public class GuideSiteRecipeExporter {
      */
     public String renderNeiPositionedSlots(List<NeiRecipeLookup.Slot> slots,
         GuideSiteItemIconResolver itemIconResolver) {
-        return renderNeiPositionedSlots(slots, itemIconResolver, null, null, null);
+        return renderNeiPositionedSlots(slots, itemIconResolver, null, null, null, null);
     }
 
     /**
-     * @param phase1BackgroundUrl when set with valid canvas pixel size, slot positions use NEI body coordinates
-     *                           and the PNG is drawn behind slots.
+     * @param phase1BackgroundUrl optional Phase1 PNG URL; valid canvas width/height must be set together for Phase1 alignment.
+     * @param phase1BodyYShiftPx matches Phase1 framebuffer {@code glTranslate Y} ({@link NeiRecipeLookup#lookupHandlerYShift}); {@code null} when Phase1 is unused.
      */
     public String renderNeiPositionedSlots(List<NeiRecipeLookup.Slot> slots,
         GuideSiteItemIconResolver itemIconResolver, @Nullable String phase1BackgroundUrl,
-        @Nullable Integer phase1CanvasWidthPx, @Nullable Integer phase1CanvasHeightPx) {
+        @Nullable Integer phase1CanvasWidthPx, @Nullable Integer phase1CanvasHeightPx,
+        @Nullable Integer phase1BodyYShiftPx) {
         if (slots == null || slots.isEmpty()) {
             return "";
         }
@@ -175,12 +175,29 @@ public class GuideSiteRecipeExporter {
             if (slot == null) {
                 continue;
             }
-            int slotPxW = usePhase1Canvas ? NEI_ITEM_DRAW_PIXELS : NEI_SLOT_GUI_PIXELS;
-            int slotPxH = usePhase1Canvas ? NEI_ITEM_DRAW_PIXELS : NEI_SLOT_GUI_PIXELS;
-            double leftPct = usePhase1Canvas ? 100.0 * slot.relx / canvasW
-                : 100.0 * (slot.relx - minX) / canvasW;
-            double topPct = usePhase1Canvas ? 100.0 * slot.rely / canvasH
-                : 100.0 * (slot.rely - minY) / canvasH;
+            int slotPxW;
+            int slotPxH;
+            double leftPct;
+            double topPct;
+            if (usePhase1Canvas) {
+                /*
+                 * PNG is rendered with HandlerInfo Y shift; overlays must apply the same offset.
+                 * relx/rely from GT-style handlers are usually item TL (slot origin + 1); align using an 18×18 cell with
+                 * centred 16×16 PNG to match ModularUI SlotWidget framing.
+                 */
+                int phase1YShift = phase1BodyYShiftPx != null ? phase1BodyYShiftPx : 0;
+                int slotOx = Math.max(0, slot.relx - 1);
+                int slotOy = Math.max(0, slot.rely - 1 + phase1YShift);
+                slotPxW = NEI_SLOT_GUI_PIXELS;
+                slotPxH = NEI_SLOT_GUI_PIXELS;
+                leftPct = 100.0 * slotOx / canvasW;
+                topPct = 100.0 * slotOy / canvasH;
+            } else {
+                slotPxW = NEI_SLOT_GUI_PIXELS;
+                slotPxH = NEI_SLOT_GUI_PIXELS;
+                leftPct = 100.0 * (slot.relx - minX) / canvasW;
+                topPct = 100.0 * (slot.rely - minY) / canvasH;
+            }
             double widthPct = 100.0 * slotPxW / canvasW;
             double heightPct = 100.0 * slotPxH / canvasH;
 

@@ -29,12 +29,14 @@ public final class SiteRecipeLayoutContext {
     private final @Nullable String neiPhase1BackgroundUrl;
     private final @Nullable Integer neiPhase1CanvasWidthPx;
     private final @Nullable Integer neiPhase1CanvasHeightPx;
+    private final @Nullable Integer neiPhase1BodyYShiftPx;
 
     private SiteRecipeLayoutContext(SiteRecipeSourceKind kind, ItemStack targetStack, GuideSiteRecipeExporter exporter,
         GuideSiteItemIconResolver itemIconResolver, @Nullable RecipeLookup.Entry vanillaEntry,
         @Nullable NeiRecipeLookup.Entry neiEntry, @Nullable Object rawHandler, int rawRecipeIndex,
         @Nullable SiteRecipeRawHandlerAccess rawHandlerAccess, @Nullable String neiPhase1BackgroundUrl,
-        @Nullable Integer neiPhase1CanvasWidthPx, @Nullable Integer neiPhase1CanvasHeightPx) {
+        @Nullable Integer neiPhase1CanvasWidthPx, @Nullable Integer neiPhase1CanvasHeightPx,
+        @Nullable Integer neiPhase1BodyYShiftPx) {
         this.kind = kind;
         this.targetStack = targetStack;
         this.exporter = exporter;
@@ -47,6 +49,7 @@ public final class SiteRecipeLayoutContext {
         this.neiPhase1BackgroundUrl = neiPhase1BackgroundUrl;
         this.neiPhase1CanvasWidthPx = neiPhase1CanvasWidthPx;
         this.neiPhase1CanvasHeightPx = neiPhase1CanvasHeightPx;
+        this.neiPhase1BodyYShiftPx = neiPhase1BodyYShiftPx;
     }
 
     public static SiteRecipeLayoutContext vanilla(RecipeLookup.Entry entry, ItemStack targetStack,
@@ -63,18 +66,34 @@ public final class SiteRecipeLayoutContext {
             null,
             null,
             null,
+            null,
             null);
     }
 
     public static SiteRecipeLayoutContext neiEntry(NeiRecipeLookup.Entry entry, ItemStack targetStack,
         GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver) {
-        return neiEntry(entry, targetStack, exporter, itemIconResolver, null, null, null);
+        return neiEntry(entry, targetStack, exporter, itemIconResolver, null, null, null, null);
     }
 
     public static SiteRecipeLayoutContext neiEntry(NeiRecipeLookup.Entry entry, ItemStack targetStack,
         GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
         @Nullable String neiPhase1BackgroundUrl, @Nullable Integer neiPhase1CanvasWidthPx,
         @Nullable Integer neiPhase1CanvasHeightPx) {
+        return neiEntry(
+            entry,
+            targetStack,
+            exporter,
+            itemIconResolver,
+            neiPhase1BackgroundUrl,
+            neiPhase1CanvasWidthPx,
+            neiPhase1CanvasHeightPx,
+            null);
+    }
+
+    public static SiteRecipeLayoutContext neiEntry(NeiRecipeLookup.Entry entry, ItemStack targetStack,
+        GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
+        @Nullable String neiPhase1BackgroundUrl, @Nullable Integer neiPhase1CanvasWidthPx,
+        @Nullable Integer neiPhase1CanvasHeightPx, @Nullable Integer neiPhase1BodyYShiftPx) {
         return new SiteRecipeLayoutContext(
             SiteRecipeSourceKind.NEI_ENTRY,
             targetStack,
@@ -87,7 +106,8 @@ public final class SiteRecipeLayoutContext {
             null,
             neiPhase1BackgroundUrl,
             neiPhase1CanvasWidthPx,
-            neiPhase1CanvasHeightPx);
+            neiPhase1CanvasHeightPx,
+            neiPhase1BodyYShiftPx);
     }
 
     public static SiteRecipeLayoutContext rawHandler(Object handler, int recipeIndex, ItemStack targetStack,
@@ -102,6 +122,7 @@ public final class SiteRecipeLayoutContext {
             rawHandlerAccess,
             null,
             null,
+            null,
             null);
     }
 
@@ -109,6 +130,24 @@ public final class SiteRecipeLayoutContext {
         GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
         SiteRecipeRawHandlerAccess rawHandlerAccess, @Nullable String neiPhase1BackgroundUrl,
         @Nullable Integer neiPhase1CanvasWidthPx, @Nullable Integer neiPhase1CanvasHeightPx) {
+        return rawHandler(
+            handler,
+            recipeIndex,
+            targetStack,
+            exporter,
+            itemIconResolver,
+            rawHandlerAccess,
+            neiPhase1BackgroundUrl,
+            neiPhase1CanvasWidthPx,
+            neiPhase1CanvasHeightPx,
+            null);
+    }
+
+    public static SiteRecipeLayoutContext rawHandler(Object handler, int recipeIndex, ItemStack targetStack,
+        GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
+        SiteRecipeRawHandlerAccess rawHandlerAccess, @Nullable String neiPhase1BackgroundUrl,
+        @Nullable Integer neiPhase1CanvasWidthPx, @Nullable Integer neiPhase1CanvasHeightPx,
+        @Nullable Integer neiPhase1BodyYShiftPx) {
         return new SiteRecipeLayoutContext(
             SiteRecipeSourceKind.RAW_HANDLER,
             targetStack,
@@ -121,7 +160,8 @@ public final class SiteRecipeLayoutContext {
             rawHandlerAccess,
             neiPhase1BackgroundUrl,
             neiPhase1CanvasWidthPx,
-            neiPhase1CanvasHeightPx);
+            neiPhase1CanvasHeightPx,
+            neiPhase1BodyYShiftPx);
     }
 
     public SiteRecipeSourceKind kind() {
@@ -170,5 +210,9 @@ public final class SiteRecipeLayoutContext {
 
     public @Nullable Integer neiPhase1CanvasHeightPx() {
         return neiPhase1CanvasHeightPx;
+    }
+
+    public @Nullable Integer neiPhase1BodyYShiftPx() {
+        return neiPhase1BodyYShiftPx;
     }
 }

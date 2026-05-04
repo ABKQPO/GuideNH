@@ -752,6 +752,8 @@ p {
 
 .recipe-positioned-canvas--phase1-bg {
     background-position: 0 0;
+    /* PNG alpha beneath GT drawDescription / similar extras: MC-style light grey backing for black raster text */
+    background-color: #c6c6c6;
 }
 
 .recipe-positioned-slot-empty {
