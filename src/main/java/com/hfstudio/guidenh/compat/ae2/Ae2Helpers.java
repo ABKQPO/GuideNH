@@ -9,6 +9,8 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 import appeng.api.networking.IGridHost;
 import appeng.api.util.AECableType;
+import appeng.me.helpers.AENetworkProxy;
+import appeng.me.helpers.IGridProxyable;
 import appeng.parts.networking.PartCable;
 import appeng.tile.AEBaseTile;
 import appeng.tile.networking.TileCableBus;
@@ -73,8 +75,24 @@ public final class Ae2Helpers {
                 continue;
             }
             AECableType myType = cableBusTile.getCableConnectionType(dir);
-            AECableType adjType = adjHost.getCableConnectionType(dir.getOpposite());
-            if (myType == AECableType.NONE || adjType == AECableType.NONE) {
+            if (myType == AECableType.NONE) {
+                continue;
+            }
+            boolean adjCanConnect;
+            if (adjHost instanceof IGridProxyable adjProxyable) {
+                AENetworkProxy proxy = null;
+                try {
+                    proxy = adjProxyable.getProxy();
+                } catch (Throwable ignored) {}
+                if (proxy == null) {
+                    continue;
+                }
+                adjCanConnect = proxy.getConnectableSides()
+                    .contains(dir.getOpposite());
+            } else {
+                adjCanConnect = adjHost.getCableConnectionType(dir.getOpposite()) != AECableType.NONE;
+            }
+            if (!adjCanConnect) {
                 continue;
             }
             cs |= (1 << dir.ordinal());

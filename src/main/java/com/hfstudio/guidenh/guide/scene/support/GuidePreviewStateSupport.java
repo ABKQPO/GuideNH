@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import com.hfstudio.guidenh.compat.Mods;
 import com.hfstudio.guidenh.compat.ae2.Ae2Helpers;
 import com.hfstudio.guidenh.compat.buildcraft.BuildCraftHelpers;
+import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 /**
@@ -18,10 +19,22 @@ public final class GuidePreviewStateSupport {
     public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     public static volatile boolean ae2InvokeFailureLogged;
     public static volatile boolean bcInvokeFailureLogged;
+    public static volatile boolean gtPipeInvokeFailureLogged;
 
     private GuidePreviewStateSupport() {}
 
     public static void prepare(GuidebookLevel level) {
+        if (Mods.GregTech.isModLoaded()) {
+            try {
+                GregTechHelpers.preparePipeConnections(level);
+            } catch (Throwable t) {
+                if (!gtPipeInvokeFailureLogged) {
+                    gtPipeInvokeFailureLogged = true;
+                    GuideDebugLog
+                        .warn(LOG, "GT5 pipe/cable connection preparation failed; pipe connections may be wrong", t);
+                }
+            }
+        }
         if (Mods.AE2.isModLoaded()) {
             try {
                 Ae2Helpers.prepare(level);
