@@ -14,8 +14,9 @@ import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 
 public class GuideSiteRecipeExporter {
 
-    /** NEI / vanilla GUI slot spacing in pixels (matches {@code relx}/{@code rely} step for most handlers). */
+    /** NEI draws items into a {@code 16×16} cell; crafting GUIs typically space slot origins {@code 18} apart. */
     public static final int NEI_SLOT_GUI_PIXELS = 18;
+    public static final int NEI_ITEM_DRAW_PIXELS = 16;
 
     public String renderHtmlGrid(List<List<String>> ingredients, String resultItemId) {
         return renderGrid(
@@ -110,27 +111,50 @@ public class GuideSiteRecipeExporter {
      */
     public String renderNeiPositionedSlots(List<NeiRecipeLookup.Slot> slots,
         GuideSiteItemIconResolver itemIconResolver) {
+        return renderNeiPositionedSlots(slots, itemIconResolver, null, null, null);
+    }
+
+    /**
+     * @param phase1BackgroundUrl when set with valid canvas pixel size, slot positions use NEI body coordinates
+     *                           and the PNG is drawn behind slots.
+     */
+    public String renderNeiPositionedSlots(List<NeiRecipeLookup.Slot> slots,
+        GuideSiteItemIconResolver itemIconResolver, @Nullable String phase1BackgroundUrl,
+        @Nullable Integer phase1CanvasWidthPx, @Nullable Integer phase1CanvasHeightPx) {
         if (slots == null || slots.isEmpty()) {
             return "";
         }
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int maxR = Integer.MIN_VALUE;
-        int maxB = Integer.MIN_VALUE;
-        for (NeiRecipeLookup.Slot slot : slots) {
-            if (slot == null) {
-                continue;
+        boolean usePhase1Canvas = phase1BackgroundUrl != null && !phase1BackgroundUrl.isEmpty()
+            && phase1CanvasWidthPx != null && phase1CanvasHeightPx != null && phase1CanvasWidthPx > 0
+            && phase1CanvasHeightPx > 0;
+
+        int canvasW;
+        int canvasH;
+        int minX = 0;
+        int minY = 0;
+        if (usePhase1Canvas) {
+            canvasW = phase1CanvasWidthPx;
+            canvasH = phase1CanvasHeightPx;
+        } else {
+            minX = Integer.MAX_VALUE;
+            minY = Integer.MAX_VALUE;
+            int maxR = Integer.MIN_VALUE;
+            int maxB = Integer.MIN_VALUE;
+            for (NeiRecipeLookup.Slot slot : slots) {
+                if (slot == null) {
+                    continue;
+                }
+                minX = Math.min(minX, slot.relx);
+                minY = Math.min(minY, slot.rely);
+                maxR = Math.max(maxR, slot.relx + NEI_SLOT_GUI_PIXELS);
+                maxB = Math.max(maxB, slot.rely + NEI_SLOT_GUI_PIXELS);
             }
-            minX = Math.min(minX, slot.relx);
-            minY = Math.min(minY, slot.rely);
-            maxR = Math.max(maxR, slot.relx + NEI_SLOT_GUI_PIXELS);
-            maxB = Math.max(maxB, slot.rely + NEI_SLOT_GUI_PIXELS);
+            if (minX == Integer.MAX_VALUE) {
+                return "";
+            }
+            canvasW = Math.max(NEI_SLOT_GUI_PIXELS, maxR - minX);
+            canvasH = Math.max(NEI_SLOT_GUI_PIXELS, maxB - minY);
         }
-        if (minX == Integer.MAX_VALUE) {
-            return "";
-        }
-        int canvasW = Math.max(NEI_SLOT_GUI_PIXELS, maxR - minX);
-        int canvasH = Math.max(NEI_SLOT_GUI_PIXELS, maxB - minY);
 
         StringBuilder html = new StringBuilder();
         html.append("<section class=\"recipe-grid recipe-grid--nei-positioned\" data-render-mode=\"nei-positioned\">");
@@ -139,15 +163,26 @@ public class GuideSiteRecipeExporter {
             .append("px * var(--gui-scale));height:calc(")
             .append(canvasH)
             .append("px * var(--gui-scale));\">");
-        html.append("<div class=\"recipe-positioned-canvas\">");
+        html.append("<div class=\"recipe-positioned-canvas");
+        if (usePhase1Canvas) {
+            html.append(" recipe-positioned-canvas--phase1-bg\" style=\"background-image:url('")
+                .append(escapeHtml(phase1BackgroundUrl))
+                .append("');background-size:100% 100%;background-repeat:no-repeat;\">");
+        } else {
+            html.append("\">");
+        }
         for (NeiRecipeLookup.Slot slot : slots) {
             if (slot == null) {
                 continue;
             }
-            double leftPct = 100.0 * (slot.relx - minX) / canvasW;
-            double topPct = 100.0 * (slot.rely - minY) / canvasH;
-            double widthPct = 100.0 * NEI_SLOT_GUI_PIXELS / canvasW;
-            double heightPct = 100.0 * NEI_SLOT_GUI_PIXELS / canvasH;
+            int slotPxW = usePhase1Canvas ? NEI_ITEM_DRAW_PIXELS : NEI_SLOT_GUI_PIXELS;
+            int slotPxH = usePhase1Canvas ? NEI_ITEM_DRAW_PIXELS : NEI_SLOT_GUI_PIXELS;
+            double leftPct = usePhase1Canvas ? 100.0 * slot.relx / canvasW
+                : 100.0 * (slot.relx - minX) / canvasW;
+            double topPct = usePhase1Canvas ? 100.0 * slot.rely / canvasH
+                : 100.0 * (slot.rely - minY) / canvasH;
+            double widthPct = 100.0 * slotPxW / canvasW;
+            double heightPct = 100.0 * slotPxH / canvasH;
 
             List<GuideSiteExportedItem> candidates = new ArrayList<>();
             if (slot.stacks != null) {
@@ -158,7 +193,11 @@ public class GuideSiteRecipeExporter {
                 }
             }
 
-            html.append("<div class=\"ingredient-box recipe-positioned-slot\"");
+            if (usePhase1Canvas) {
+                html.append("<div class=\"recipe-positioned-slot recipe-positioned-slot--phase1-overlay\"");
+            } else {
+                html.append("<div class=\"ingredient-box recipe-positioned-slot\"");
+            }
             if (candidates.size() > 1) {
                 html.append(" data-ingredient-cycling");
             }

@@ -25,11 +25,16 @@ public final class SiteRecipeLayoutContext {
     private final @Nullable Object rawHandler;
     private final int rawRecipeIndex;
     private final @Nullable SiteRecipeRawHandlerAccess rawHandlerAccess;
+    /** Site-relative URL (e.g. prefixed with {@link com.hfstudio.guidenh.guide.siteexport.site.GuideSitePageAssetExporter#ROOT_PREFIX}). */
+    private final @Nullable String neiPhase1BackgroundUrl;
+    private final @Nullable Integer neiPhase1CanvasWidthPx;
+    private final @Nullable Integer neiPhase1CanvasHeightPx;
 
     private SiteRecipeLayoutContext(SiteRecipeSourceKind kind, ItemStack targetStack, GuideSiteRecipeExporter exporter,
         GuideSiteItemIconResolver itemIconResolver, @Nullable RecipeLookup.Entry vanillaEntry,
         @Nullable NeiRecipeLookup.Entry neiEntry, @Nullable Object rawHandler, int rawRecipeIndex,
-        @Nullable SiteRecipeRawHandlerAccess rawHandlerAccess) {
+        @Nullable SiteRecipeRawHandlerAccess rawHandlerAccess, @Nullable String neiPhase1BackgroundUrl,
+        @Nullable Integer neiPhase1CanvasWidthPx, @Nullable Integer neiPhase1CanvasHeightPx) {
         this.kind = kind;
         this.targetStack = targetStack;
         this.exporter = exporter;
@@ -39,6 +44,9 @@ public final class SiteRecipeLayoutContext {
         this.rawHandler = rawHandler;
         this.rawRecipeIndex = rawRecipeIndex;
         this.rawHandlerAccess = rawHandlerAccess;
+        this.neiPhase1BackgroundUrl = neiPhase1BackgroundUrl;
+        this.neiPhase1CanvasWidthPx = neiPhase1CanvasWidthPx;
+        this.neiPhase1CanvasHeightPx = neiPhase1CanvasHeightPx;
     }
 
     public static SiteRecipeLayoutContext vanilla(RecipeLookup.Entry entry, ItemStack targetStack,
@@ -52,11 +60,21 @@ public final class SiteRecipeLayoutContext {
             null,
             null,
             -1,
+            null,
+            null,
+            null,
             null);
     }
 
     public static SiteRecipeLayoutContext neiEntry(NeiRecipeLookup.Entry entry, ItemStack targetStack,
         GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver) {
+        return neiEntry(entry, targetStack, exporter, itemIconResolver, null, null, null);
+    }
+
+    public static SiteRecipeLayoutContext neiEntry(NeiRecipeLookup.Entry entry, ItemStack targetStack,
+        GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
+        @Nullable String neiPhase1BackgroundUrl, @Nullable Integer neiPhase1CanvasWidthPx,
+        @Nullable Integer neiPhase1CanvasHeightPx) {
         return new SiteRecipeLayoutContext(
             SiteRecipeSourceKind.NEI_ENTRY,
             targetStack,
@@ -66,12 +84,31 @@ public final class SiteRecipeLayoutContext {
             entry,
             null,
             -1,
-            null);
+            null,
+            neiPhase1BackgroundUrl,
+            neiPhase1CanvasWidthPx,
+            neiPhase1CanvasHeightPx);
     }
 
     public static SiteRecipeLayoutContext rawHandler(Object handler, int recipeIndex, ItemStack targetStack,
         GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
         SiteRecipeRawHandlerAccess rawHandlerAccess) {
+        return rawHandler(
+            handler,
+            recipeIndex,
+            targetStack,
+            exporter,
+            itemIconResolver,
+            rawHandlerAccess,
+            null,
+            null,
+            null);
+    }
+
+    public static SiteRecipeLayoutContext rawHandler(Object handler, int recipeIndex, ItemStack targetStack,
+        GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
+        SiteRecipeRawHandlerAccess rawHandlerAccess, @Nullable String neiPhase1BackgroundUrl,
+        @Nullable Integer neiPhase1CanvasWidthPx, @Nullable Integer neiPhase1CanvasHeightPx) {
         return new SiteRecipeLayoutContext(
             SiteRecipeSourceKind.RAW_HANDLER,
             targetStack,
@@ -81,7 +118,10 @@ public final class SiteRecipeLayoutContext {
             null,
             handler,
             recipeIndex,
-            rawHandlerAccess);
+            rawHandlerAccess,
+            neiPhase1BackgroundUrl,
+            neiPhase1CanvasWidthPx,
+            neiPhase1CanvasHeightPx);
     }
 
     public SiteRecipeSourceKind kind() {
@@ -118,5 +158,17 @@ public final class SiteRecipeLayoutContext {
 
     public @Nullable SiteRecipeRawHandlerAccess rawHandlerAccess() {
         return rawHandlerAccess;
+    }
+
+    public @Nullable String neiPhase1BackgroundUrl() {
+        return neiPhase1BackgroundUrl;
+    }
+
+    public @Nullable Integer neiPhase1CanvasWidthPx() {
+        return neiPhase1CanvasWidthPx;
+    }
+
+    public @Nullable Integer neiPhase1CanvasHeightPx() {
+        return neiPhase1CanvasHeightPx;
     }
 }

@@ -24,7 +24,12 @@ public final class PositionedNeiSiteRecipeLayoutStrategy implements SiteRecipeLa
             return "";
         }
         return ctx.exporter()
-            .renderNeiPositionedSlots(merged, ctx.itemIconResolver());
+            .renderNeiPositionedSlots(
+                merged,
+                ctx.itemIconResolver(),
+                ctx.neiPhase1BackgroundUrl(),
+                ctx.neiPhase1CanvasWidthPx(),
+                ctx.neiPhase1CanvasHeightPx());
     }
 
     private static List<NeiRecipeLookup.Slot> collectSlots(SiteRecipeLayoutContext ctx) {

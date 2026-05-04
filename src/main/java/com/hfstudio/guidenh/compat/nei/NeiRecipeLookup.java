@@ -212,9 +212,48 @@ public class NeiRecipeLookup {
         }
     }
 
+    /** NEI crafting recipe tied to {@code handler} index for Phase1/OpenGL snapshots; mirrors {@link #Entry}. */
+    public static final class CraftingRecipeRef {
+
+        public final Object handler;
+        public final int recipeIndex;
+        public final Entry entry;
+
+        CraftingRecipeRef(Object handler, int recipeIndex, Entry entry) {
+            this.handler = handler;
+            this.recipeIndex = recipeIndex;
+            this.entry = entry;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<CraftingRecipeRef> findCraftingRecipeRefs(ItemStack target) {
+        if (!AVAILABLE || target == null || GET_CRAFTING_HANDLERS == null) return Collections.emptyList();
+        try {
+            Object handlersRaw = GET_CRAFTING_HANDLERS.invoke(null, "item", new Object[] { target });
+            if (!(handlersRaw instanceof List)) return Collections.emptyList();
+            List<CraftingRecipeRef> out = new ArrayList<>();
+            for (Object handler : (List<Object>) handlersRaw) {
+                if (handler == null) continue;
+                CraftingRecipeRef[] refs = readHandlerCraftingRecipeRefs(handler);
+                if (refs != null && refs.length > 0) {
+                    out.addAll(Arrays.asList(refs));
+                }
+            }
+            return out;
+        } catch (Throwable t) {
+            LOG.warn("NEI crafting refs query failed", t);
+            return Collections.emptyList();
+        }
+    }
+
     public static List<Entry> findCraftingRecipes(ItemStack target) {
-        if (!AVAILABLE || target == null) return Collections.emptyList();
-        return queryHandlers(GET_CRAFTING_HANDLERS, "item", new Object[] { target });
+        List<CraftingRecipeRef> refs = findCraftingRecipeRefs(target);
+        List<Entry> entries = new ArrayList<>(refs.size());
+        for (CraftingRecipeRef r : refs) {
+            entries.add(r.entry);
+        }
+        return entries;
     }
 
     public static List<Entry> findUsages(ItemStack target) {
@@ -538,7 +577,9 @@ public class NeiRecipeLookup {
             for (Object handler : (List<Object>) handlers) {
                 if (handler == null) continue;
                 Entry[] entries = readHandler(handler);
-                if (entries != null) out.addAll(Arrays.asList(entries));
+                if (entries != null && entries.length > 0) {
+                    out.addAll(Arrays.asList(entries));
+                }
             }
             return out;
         } catch (Throwable t) {
@@ -547,25 +588,38 @@ public class NeiRecipeLookup {
         }
     }
 
-    public static @Nullable Entry[] readHandler(Object handler) {
+    public static @Nullable CraftingRecipeRef[] readHandlerCraftingRecipeRefs(Object handler) {
+        if (!AVAILABLE || handler == null || H_NUM_RECIPES == null || H_GET_RECIPE_NAME == null
+            || H_GET_INGREDIENTS == null || H_GET_OTHERS == null || H_GET_RESULT == null) return null;
         try {
             int n = (int) H_NUM_RECIPES.invoke(handler);
-            if (n <= 0) return new Entry[0];
+            if (n <= 0) return new CraftingRecipeRef[0];
             String recipeName = safeString(H_GET_RECIPE_NAME.invoke(handler));
             String handlerName = handler.getClass()
                 .getSimpleName();
-            Entry[] out = new Entry[n];
+            CraftingRecipeRef[] out = new CraftingRecipeRef[n];
             for (int i = 0; i < n; i++) {
                 List<Slot> ing = readSlotList(H_GET_INGREDIENTS.invoke(handler, i));
                 List<Slot> oth = readSlotList(H_GET_OTHERS.invoke(handler, i));
                 Slot res = readSlot(H_GET_RESULT.invoke(handler, i));
-                out[i] = new Entry(handlerName, recipeName, ing, oth, res);
+                out[i] = new CraftingRecipeRef(handler, i, new Entry(handlerName, recipeName, ing, oth, res));
             }
             return out;
         } catch (Throwable t) {
             LOG.debug("NEI handler {} read failed", handler.getClass(), t);
             return null;
         }
+    }
+
+    public static @Nullable Entry[] readHandler(Object handler) {
+        CraftingRecipeRef[] refs = readHandlerCraftingRecipeRefs(handler);
+        if (refs == null) return null;
+        if (refs.length == 0) return new Entry[0];
+        Entry[] out = new Entry[refs.length];
+        for (int i = 0; i < refs.length; i++) {
+            out[i] = refs[i].entry;
+        }
+        return out;
     }
 
     @SuppressWarnings("unchecked")

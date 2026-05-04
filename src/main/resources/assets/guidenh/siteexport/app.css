@@ -719,9 +719,39 @@ p {
     box-sizing: border-box;
 }
 
-.recipe-grid--nei-positioned .recipe-positioned-slot.ingredient-box {
+.recipe-grid--nei-positioned .recipe-positioned-slot {
     position: absolute;
     vertical-align: unset;
+    z-index: 1;
+}
+
+.recipe-grid--nei-positioned .recipe-positioned-slot--phase1-overlay {
+    box-sizing: border-box;
+    border: none;
+    background: transparent;
+    pointer-events: auto;
+}
+
+.recipe-grid--nei-positioned .recipe-positioned-slot--phase1-overlay:not([data-ingredient-cycling]) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.recipe-grid--nei-positioned .recipe-positioned-slot--phase1-overlay[data-ingredient-cycling] > * {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.recipe-grid--nei-positioned .recipe-positioned-slot--phase1-overlay[data-ingredient-cycling] > .current {
+    display: inline-block;
+}
+
+.recipe-positioned-canvas--phase1-bg {
+    background-position: 0 0;
 }
 
 .recipe-positioned-slot-empty {
