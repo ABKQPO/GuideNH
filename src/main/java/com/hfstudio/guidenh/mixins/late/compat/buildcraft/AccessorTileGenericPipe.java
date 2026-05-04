@@ -14,8 +14,8 @@ public interface AccessorTileGenericPipe {
     Pipe<?> getPipe();
 
     @Invoker("refreshRenderState")
-    void refreshRenderState();
+    void invokeRefreshRenderState();
 
     @Invoker("getItemMetadata")
-    int getItemMetadata();
+    int invokeGetItemMetadata();
 }

@@ -36,7 +36,7 @@ public final class BuildCraftHelpers {
         if (pipe == null || pipe.item == null) {
             return null;
         }
-        return new ItemStack(pipe.item, 1, accessor.getItemMetadata());
+        return new ItemStack(pipe.item, 1, accessor.invokeGetItemMetadata());
     }
 
     /**
@@ -54,7 +54,7 @@ public final class BuildCraftHelpers {
         if (accessor.getPipe() == null) {
             return;
         }
-        accessor.refreshRenderState();
+        accessor.invokeRefreshRenderState();
     }
 
     /**

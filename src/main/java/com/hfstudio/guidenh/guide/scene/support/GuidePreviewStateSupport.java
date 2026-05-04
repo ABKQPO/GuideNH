@@ -7,6 +7,7 @@ import com.hfstudio.guidenh.compat.Mods;
 import com.hfstudio.guidenh.compat.ae2.Ae2Helpers;
 import com.hfstudio.guidenh.compat.buildcraft.BuildCraftHelpers;
 import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
+import com.hfstudio.guidenh.compat.logisticspipes.LogisticsPipesHelpers;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 /**
@@ -20,6 +21,7 @@ public final class GuidePreviewStateSupport {
     public static volatile boolean ae2InvokeFailureLogged;
     public static volatile boolean bcInvokeFailureLogged;
     public static volatile boolean gtPipeInvokeFailureLogged;
+    public static volatile boolean lpInvokeFailureLogged;
 
     private GuidePreviewStateSupport() {}
 
@@ -54,6 +56,17 @@ public final class GuidePreviewStateSupport {
                     bcInvokeFailureLogged = true;
                     GuideDebugLog
                         .warn(LOG, "BuildCraft preview state preparation failed; pipe textures may be wrong", t);
+                }
+            }
+        }
+        if (Mods.LogisticsPipes.isModLoaded()) {
+            try {
+                LogisticsPipesHelpers.prepare(level);
+            } catch (Throwable t) {
+                if (!lpInvokeFailureLogged) {
+                    lpInvokeFailureLogged = true;
+                    GuideDebugLog
+                        .warn(LOG, "LogisticsPipes preview state preparation failed; pipe rendering may be wrong", t);
                 }
             }
         }

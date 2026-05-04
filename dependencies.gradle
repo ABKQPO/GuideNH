@@ -25,6 +25,7 @@ dependencies {
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Angelica:2.1.19:dev")
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))
 
+    compileOnlyApi("com.github.GTNewHorizons:LogisticsPipes:1.5.24-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:BuildCraft:7.1.59:dev") { transitive = false }
     compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.2.21-GTNH-daily") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:BetterQuesting:3.8.40-GTNH:dev") { transitive = false }

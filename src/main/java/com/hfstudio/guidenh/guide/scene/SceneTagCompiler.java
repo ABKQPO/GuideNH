@@ -57,8 +57,9 @@ public class SceneTagCompiler extends BlockTagCompiler {
         int h = MdxAttrs.getInt(compiler, parent, el, "height", 192);
         scene.setSceneSize(w, h);
 
-        float zoom = MdxAttrs.getFloat(compiler, parent, el, "zoom", 1.0f);
-        if (Math.abs(zoom - 1.0f) > 1e-4f) {
+        float zoom = MdxAttrs.getFloat(compiler, parent, el, "zoom", Float.NaN);
+        boolean explicitZoom = !Float.isNaN(zoom);
+        if (explicitZoom) {
             scene.getCamera()
                 .setZoom(zoom);
         }
@@ -83,9 +84,11 @@ public class SceneTagCompiler extends BlockTagCompiler {
         // Pan offsets (screen-space), applied on top of the preset / rotations.
         float offX = MdxAttrs.getFloat(compiler, parent, el, "offsetX", Float.NaN);
         float offY = MdxAttrs.getFloat(compiler, parent, el, "offsetY", Float.NaN);
-        if (!Float.isNaN(offX)) scene.getCamera()
+        boolean explicitOffX = !Float.isNaN(offX);
+        boolean explicitOffY = !Float.isNaN(offY);
+        if (explicitOffX) scene.getCamera()
             .setOffsetX(offX);
-        if (!Float.isNaN(offY)) scene.getCamera()
+        if (explicitOffY) scene.getCamera()
             .setOffsetY(offY);
 
         // Explicit world-space rotation center. If any of the 3 coords is given, we override the
@@ -115,11 +118,81 @@ public class SceneTagCompiler extends BlockTagCompiler {
         }
 
         if (!scene.getLevel()
-            .isEmpty() && !explicitCenter) {
-            var c = scene.getLevel()
-                .getCenter();
-            scene.getCamera()
-                .setRotationCenter(c[0], c[1], c[2]);
+            .isEmpty()) {
+            CameraSettings cam = scene.getCamera();
+            // Set viewport size so worldToScreen() works correctly during auto-computation.
+            cam.setViewportSize(w, h);
+
+            // Determine rotation center; fall back to the geometric center of the level bounds
+            // when the author has not specified one explicitly.
+            float[] center;
+            if (!explicitCenter) {
+                center = scene.getLevel()
+                    .getCenter();
+                cam.setRotationCenter(center[0], center[1], center[2]);
+            } else {
+                center = new float[] { Float.isNaN(centerX) ? 0f : centerX, Float.isNaN(centerY) ? 0f : centerY,
+                    Float.isNaN(centerZ) ? 0f : centerZ };
+            }
+
+            // Auto-zoom: project all 8 AABB corners at zoom=1, offset=0 to obtain the
+            // screen-space extent of the scene under the current isometric rotation. The
+            // initial zoom is then chosen so the full scene fits within the viewport with an
+            // 85% fill factor (15% breathing room).
+            if (!explicitZoom) {
+                cam.setZoom(1f);
+                cam.setOffsetX(0f);
+                cam.setOffsetY(0f);
+
+                int[] bounds = scene.getLevel()
+                    .getBounds();
+                float lx = bounds[0];
+                float ly = bounds[1];
+                float lz = bounds[2];
+                float hx = bounds[3] + 1f;
+                float hy = bounds[4] + 1f;
+                float hz = bounds[5] + 1f;
+
+                float minSX = Float.MAX_VALUE;
+                float maxSX = -Float.MAX_VALUE;
+                float minSY = Float.MAX_VALUE;
+                float maxSY = -Float.MAX_VALUE;
+                for (int ci = 0; ci < 8; ci++) {
+                    float wx = (ci & 1) == 0 ? lx : hx;
+                    float wy = (ci & 2) == 0 ? ly : hy;
+                    float wz = (ci & 4) == 0 ? lz : hz;
+                    var sp = cam.worldToScreen(wx, wy, wz);
+                    if (sp.x < minSX) minSX = sp.x;
+                    if (sp.x > maxSX) maxSX = sp.x;
+                    if (sp.y < minSY) minSY = sp.y;
+                    if (sp.y > maxSY) maxSY = sp.y;
+                }
+
+                float spanX = maxSX - minSX;
+                float spanY = maxSY - minSY;
+                float autoZoom = 1f;
+                if (spanX > 0.5f || spanY > 0.5f) {
+                    float zX = spanX > 0.5f ? (float) w / spanX : Float.MAX_VALUE;
+                    float zY = spanY > 0.5f ? (float) h / spanY : Float.MAX_VALUE;
+                    autoZoom = Math.min(zX, zY) * 0.85f;
+                    autoZoom = Math.max(LytGuidebookScene.MIN_ZOOM, Math.min(LytGuidebookScene.MAX_ZOOM, autoZoom));
+                }
+                cam.setZoom(autoZoom);
+                // Restore any explicit offsets that were zeroed for the measurement pass.
+                if (explicitOffX) cam.setOffsetX(offX);
+                if (explicitOffY) cam.setOffsetY(offY);
+            }
+
+            // Auto-center: shift the projected scene center to the viewport origin.
+            // Applied only when neither the rotation center nor the screen offsets are
+            // author-specified, so explicit offsetX/Y or centerX/Y/Z always win.
+            if (!explicitCenter && !explicitOffX && !explicitOffY) {
+                cam.setOffsetX(0f);
+                cam.setOffsetY(0f);
+                var sc = cam.worldToScreen(center[0], center[1], center[2]);
+                cam.setOffsetX(-sc.x);
+                cam.setOffsetY(sc.y);
+            }
         }
 
         scene.snapshotInitialCamera();
