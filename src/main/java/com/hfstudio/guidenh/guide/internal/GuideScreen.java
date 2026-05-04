@@ -552,6 +552,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             drawTooltipText(sceneButtonHit.role.tooltip(), mouseX, mouseY);
             return;
         }
+        if (navBar.isOpen() && navBar.contains(mouseX, mouseY)) return;
         var interaction = getDocumentInteractionState(mouseX, mouseY);
         if (interaction != null) {
             drawDocumentHoverTooltip(interaction, mouseX, mouseY);
@@ -1021,7 +1022,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             }
         }
         if (button == 0 && navBar.contains(mouseX, mouseY)) {
-            var target = navBar.mouseClicked(mouseX, mouseY);
+            var target = navBar.mouseClicked(mouseX, mouseY, currentAnchor != null ? currentAnchor.pageId() : null);
             if (target != null) {
                 navigateTo(PageAnchor.page(target));
                 mc.getSoundHandler()

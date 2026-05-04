@@ -16,7 +16,7 @@ navigation:
 | 3D Scenes | [Block Scenes](./scene-blocks.md) · [Entity Scenes](./scene-entities.md) · [Camera & Viewport](./scene-camera.md) |
 | Annotations | [Annotations](./scene-annotations.md) · [Import Structure](./scene-import.md) |
 | Widgets | [Recipes](./recipes.md) · [Images](./images.md) · [Tooltips](./tooltips.md) |
-| Other | [Rendering Demo](./rendering.md) · [Debug](./debug.md) · [Structure Tag](./structure.md) · [Japanese](./japanese.md) |
+| Other | [Rendering Demo](./rendering.md) · [Debug](./debug.md) |
 
 ## Inline Elements
 
