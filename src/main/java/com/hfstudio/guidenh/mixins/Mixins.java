@@ -17,8 +17,6 @@ public enum Mixins implements IMixins {
 
     BQ_PANEL_HOVER(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.MixinPanelButtonQuest"),
 
-    AE2_NETWORK_PROXY(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.AccessorAENetworkProxy"),
-
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder"),
 
     FMP_BLOCK_MICRO_MATERIAL(Side.CLIENT, Phase.LATE, Mods.ForgeMultipart,
