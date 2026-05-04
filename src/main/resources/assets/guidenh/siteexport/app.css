@@ -606,7 +606,6 @@ p {
 .guide-command-link:hover,
 .guide-item-link:hover {
     color: var(--color-link);
-    border-color: var(--color-link);
     text-decoration: none;
 }
 
@@ -654,7 +653,6 @@ p {
 
 .guide-generated-links a:hover {
     color: var(--color-link);
-    border-color: var(--color-link);
     background: var(--color-navbar-row-hover);
     text-decoration: none;
 }
@@ -696,6 +694,41 @@ p {
 .recipe-grid[data-render-mode="shaped"],
 .recipe-grid[data-render-mode="smelting"],
 .recipe-grid[data-render-mode="stonecutting"] {
+}
+
+/* NEI positional layout (relx/rely): single canvas, absolute slots */
+.recipe-grid.recipe-grid--nei-positioned {
+    display: inline-block;
+    grid-template-rows: unset;
+    grid-template-columns: unset;
+    row-gap: 0;
+    column-gap: 0;
+    vertical-align: top;
+}
+
+.recipe-positioned-outer {
+    display: inline-block;
+    vertical-align: top;
+    flex-shrink: 0;
+}
+
+.recipe-positioned-canvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.recipe-grid--nei-positioned .recipe-positioned-slot.ingredient-box {
+    position: absolute;
+    vertical-align: unset;
+}
+
+.recipe-positioned-slot-empty {
+    display: block;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 .recipe-main {
