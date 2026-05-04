@@ -7,6 +7,8 @@ navigation:
 
 This page is a runtime sample sheet for checking what GuideNH currently renders in-game.
 
+See also: [Charts](./charts.md) · [Function Graphs](./function-graph.md)
+
 ## Inline Formatting
 
 | Markdown                            | Alternative       | Result                            |
@@ -27,7 +29,7 @@ Literal autolinks: visit https://example.com/docs, www.example.org, or guide@exa
 
 Press <kbd>Shift</kbd> + <sub>1</sub>
 
-<a href="./subpage.md" title="Open subpage">Open subpage</a><br clear="all" />
+<a href="./index.md" title="Open index">Back to index</a><br clear="all" />
 
 ## Headings
 
@@ -178,7 +180,7 @@ Another width-hint sample with three columns:
 
 ![Machine Diagram][img]
 
-[doc]: ./subpage.md#top
+[doc]: ./index.md#top
 [img]: test1.png "Machine Diagram"
 
 ## Details
@@ -378,237 +380,3 @@ Fixed runtime Mermaid viewport size:
 Footnote ref[^one]
 
 [^one]: tooltip text for the footnote
-
-## Charts
-
-GuideNH ships with five interactive chart tags: `<ColumnChart>` clustered columns, `<BarChart>` horizontal bars, `<LineChart>` line, `<PieChart>` pie, and `<ScatterChart>` XY scatter. All charts show value + percentage tooltips on hover, and highlight the hovered element (column/bar grows, line points pop along the normal, pie slices pop outward, scatter points enlarge).
-
-### Common attributes
-
-* `title`
-* `width` / `height` (defaults: 320 x 200)
-* `background` / `border` colors
-* `titleColor` / `labelColor`
-* `legend` position: `none` / `top` / `bottom` / `left` / `right` (default `top`)
-* `labelPosition`: `none` / `inside` / `outside` / `above` / `below` / `center`
-
-Color formats: `#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`.
-
-### ColumnChart
-
-```mdx
-<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
-  <Series name="Iron" data="120,180,150,210" color="#4E79A7"/>
-  <Series name="Gold" data="30,42,55,48" color="#F28E2B"/>
-</ColumnChart>
-```
-
-<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
-  <Series name="Iron" data="120,180,150,210" color="#4E79A7"/>
-  <Series name="Gold" data="30,42,55,48" color="#F28E2B"/>
-</ColumnChart>
-
-Extra attributes: `categories` (X-axis labels, comma separated), `barWidthRatio` (default 0.7), `xAxisLabel` / `yAxisLabel` / `yAxisMin` / `yAxisMax` / `yAxisStep` / `yAxisUnit` / `yAxisTickFormat`, `showXGrid={true}` / `showYGrid={true}`.
-
-### BarChart
-
-```mdx
-<BarChart title="Mod downloads (10k)" categories="GTNH,IC2,Thermal,Mekanism" labelPosition="outside">
-  <Series data="320,210,180,150"/>
-</BarChart>
-```
-
-<BarChart title="Mod downloads (10k)" categories="GTNH,IC2,Thermal,Mekanism" labelPosition="outside">
-  <Series data="320,210,180,150"/>
-</BarChart>
-
-Same attributes as ColumnChart but categories are on the Y-axis.
-
-### LineChart
-
-Categorical X:
-
-```mdx
-<LineChart title="Temperature" categories="Mon,Tue,Wed,Thu,Fri" yAxisUnit="C">
-  <Series name="Outdoor" data="5,8,11,9,6" color="#4E79A7"/>
-  <Series name="Indoor" data="18,19,20,21,20" color="#E15759"/>
-</LineChart>
-```
-
-<LineChart title="Temperature" categories="Mon,Tue,Wed,Thu,Fri" yAxisUnit="C">
-  <Series name="Outdoor" data="5,8,11,9,6" color="#4E79A7"/>
-  <Series name="Indoor" data="18,19,20,21,20" color="#E15759"/>
-</LineChart>
-
-Numeric X:
-
-```mdx
-<LineChart title="Signal Decay" numericX={true} xAxisLabel="Distance (m)" yAxisLabel="Strength (dB)">
-  <Series name="Measured" points="0:0,5:-3,10:-7,20:-12,40:-20"/>
-</LineChart>
-```
-
-<LineChart title="Signal Decay" numericX={true} xAxisLabel="Distance (m)" yAxisLabel="Strength (dB)">
-  <Series name="Measured" points="0:0,5:-3,10:-7,20:-12,40:-20"/>
-</LineChart>
-
-Extra: `numericX={true}` enables a numeric X axis; `showPoints={false}` hides point markers.
-
-### PieChart
-
-```mdx
-<PieChart title="Resource Share" labelPosition="outside" legend="right">
-  <Slice label="Iron" value="45" color="#4E79A7"/>
-  <Slice label="Copper" value="25" color="#F28E2B"/>
-  <Slice label="Gold" value="15" color="#E15759"/>
-  <Slice label="Diamond" value="10"/>
-  <Slice label="Other" value="5"/>
-</PieChart>
-```
-
-<PieChart title="Resource Share" labelPosition="outside" legend="right">
-  <Slice label="Iron" value="45" color="#4E79A7"/>
-  <Slice label="Copper" value="25" color="#F28E2B"/>
-  <Slice label="Gold" value="15" color="#E15759"/>
-  <Slice label="Diamond" value="10"/>
-  <Slice label="Other" value="5"/>
-</PieChart>
-
-Extra: `startAngle` (default -90, i.e. 12 o'clock); `clockwise={false}` to reverse direction.
-
-### ScatterChart
-
-```mdx
-<ScatterChart title="Height-Weight" xAxisLabel="Height (cm)" yAxisLabel="Weight (kg)">
-  <Series name="Sample A" points="160:55,165:58,170:65,175:70,180:78" color="#4E79A7"/>
-  <Series name="Sample B" points="158:52,168:62,172:68,178:75" color="#59A14F"/>
-</ScatterChart>
-```
-
-<ScatterChart title="Height-Weight" xAxisLabel="Height (cm)" yAxisLabel="Weight (kg)">
-  <Series name="Sample A" points="160:55,165:58,170:65,175:70,180:78" color="#4E79A7"/>
-  <Series name="Sample B" points="158:52,168:62,172:68,178:75" color="#59A14F"/>
-</ScatterChart>
-
-### Combo: ColumnChart + LineSeries + PieInset
-
-`<ColumnChart>` and `<BarChart>` accept extra `<LineSeries>` (line overlay sharing the value axis) and `<PieInset>` (small corner pie) children, letting one chart combine several styles.
-
-The pie inset's `position` attribute accepts `topRight` / `topLeft` / `bottomRight` / `bottomLeft` (corner overlay) or `right` (the chart auto-extends its width and the pie occupies a dedicated outside column).
-
-Line overlays share hover/tooltip behavior with the underlying columns/bars: hovering a line point thickens its adjacent segments, enlarges the point, and shows a tooltip with the series name and value.
-
-```mdx
-<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
-  <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
-  <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
-  <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
-  <PieInset size="60" position="right" title="Total share">
-    <Slice label="Iron" value="225" color="#a0a0a0"/>
-    <Slice label="Gold" value="110" color="#e0c060"/>
-  </PieInset>
-</ColumnChart>
-```
-
-<ColumnChart title="Quarterly Output" categories="Q1,Q2,Q3,Q4" yAxisUnit="t" labelPosition="above">
-  <Series name="Iron"  data="40,60,55,70"  color="#a0a0a0"/>
-  <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
-  <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
-  <PieInset size="60" position="right" title="Total share">
-    <Slice label="Iron" value="225" color="#a0a0a0"/>
-    <Slice label="Gold" value="110" color="#e0c060"/>
-  </PieInset>
-</ColumnChart>
-
-## Function Graphs
-
-Desmos-style interactive function graphs come in three flavours: a `funcgraph` fenced
-block, the `<FunctionGraph>` MDX container, and the `<Function>` shorthand for a
-single curve. All variants share the same panel: configurable size, X/Y range,
-optional grid/axes, automatic quadrant expansion, and per-curve domain limits.
-Hold the mouse on a curve and drag to scrub a labelled point along it; the
-tooltip stays anchored above the point and flips below when there is no room.
-
-Any curve given a `label` is also listed in a legend rendered just below the
-panel. Each entry is a small colour swatch followed by the label; entries flow
-left-to-right and wrap onto a new row whenever the next entry would not fit.
-
-### Fenced block
-
-The first line of a `funcgraph` fence sets panel-wide attributes (`width`,
-`height`, `xRange=a..b` / `xMin` / `xMax` / `xStep`, `yRange` / `yMin` / `yMax` /
-`yStep`, `quadrants=1,2,3,4` or `all`, `title`, `background`, `border`,
-`axisColor`, `gridColor`, `showGrid`, `showAxes`). Each subsequent non-blank line
-is either an expression with optional pipe-delimited attributes, an explicit
-point `:x,y`, or a plot-anchored point `@plot=N atX=v` / `@plot=N atY=v`.
-Comments start with `#`.
-
-```funcgraph
-width=360 height=220 xRange=-pi..pi yRange=-2..2 quadrants=all
-sin(x)        | color=#ff5566 label="sin"
-cos(x)        | color=#3399ff label="cos"
-x/2           | color=#88cc77 domain=-pi..pi
-:0,0
-@plot=0 atX=1.5708
-```
-
-### `<FunctionGraph>` container
-
-The container accepts the same panel attributes as the fence header. Children
-are `<Plot expr="..." />` (or `<Function expr="..." />`) for curves and
-`<Point ... />` for marked points. Plot attributes: `expr`, `inverse={true}` to
-treat the expression as `x = f(y)`, `domain="a..b"` or comma-separated clauses
-like `x>=0, x<=pi`, `color`, `label`. Point attributes: explicit `x` + `y`, or
-`plot="N"` plus either `atX="v"` or `atY="v"` to anchor on a curve.
-
-```mdx
-<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all">
-  <Plot expr="sin(x)" color="#ff5566" label="sin x"/>
-  <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
-  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1"/>
-  <Point x="0" y="0"/>
-  <Point plot="0" atX="1.5708"/>
-</FunctionGraph>
-```
-
-<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all">
-  <Plot expr="sin(x)" color="#ff5566" label="sin x"/>
-  <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
-  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1"/>
-  <Point x="0" y="0"/>
-  <Point plot="0" atX="1.5708"/>
-</FunctionGraph>
-
-### `<Function>` shorthand
-
-When you only need a single curve, `<Function>` skips the wrapper:
-
-```mdx
-<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff"/>
-```
-
-<Function expr="x^2 - 2x + 1" xRange="-2..4" yRange="-1..5" color="#3399ff"/>
-
-### Expression syntax
-
-* Operators: `+ - * / %` plus `^` (right-associative) and unary minus.
-* Postfix `!` is factorial, extended to real numbers via the gamma function
-  (negative integers return NaN).
-* `|expr|` is absolute value; `√`/`sqrt` and `∛`/`cbrt` are roots.
-* Implicit multiplication: `2x`, `2pi`, `(x+1)(x-1)`.
-* Built-in functions: `sin cos tan asin acos atan sinh cosh tanh exp ln log
-  log2 log10 sqrt cbrt abs sign floor ceil round`, plus two-arg `atan2 min max
-  pow hypot mod`.
-* Constants: `pi`, `tau`, `e`, `phi`.
-* Domain clauses (`domain="..."`): `min..max` shorthand for x bounds; clauses
-  like `x>=0`, `x<5` separated by commas; constants accepted on either side.
-* Set `inverse={true}` (MDX) or `inverse=true` (fence attrs) to plot
-  `x = f(y)` — the same expression is evaluated against `y` and the curve is
-  rotated.
-
-### Default quadrants
-
-If you omit `xRange` / `yRange` and `quadrants`, the panel starts in quadrant 1
-(`x>=0`, `y>=0`). When sampling reveals negative `y` values and the y-bounds
-were not set explicitly, the panel automatically expands to include quadrants 3
-and 4 so the curves stay visible.
