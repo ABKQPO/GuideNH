@@ -72,7 +72,7 @@ public final class GregTechHelpers {
     }
 
     public static boolean isGregTechTileEntity(@Nullable TileEntity tileEntity) {
-        return tileEntity != null && Mods.GregTech.isModLoaded() && isGregTechTileEntityImpl(tileEntity);
+        return Mods.GregTech.isModLoaded() && isGregTechTileEntityImpl(tileEntity);
     }
 
     @Optional.Method(modid = "gregtech")
@@ -327,7 +327,7 @@ public final class GregTechHelpers {
     }
 
     public static boolean isHatchElementBuilder(@Nullable Object candidate) {
-        return candidate != null && Mods.GregTech.isModLoaded() && isHatchElementBuilderImpl(candidate);
+        return Mods.GregTech.isModLoaded() && isHatchElementBuilderImpl(candidate);
     }
 
     @Optional.Method(modid = "gregtech")
@@ -348,7 +348,7 @@ public final class GregTechHelpers {
 
     @Optional.Method(modid = "gregtech")
     private static int getHatchBuilderHintImpl(Object hatchBuilder) {
-        return ((AccessorHatchElementBuilder) (Object) hatchBuilder).guidenh$getHint();
+        return ((AccessorHatchElementBuilder) hatchBuilder).guidenh$getHint();
     }
 
     @Nullable
