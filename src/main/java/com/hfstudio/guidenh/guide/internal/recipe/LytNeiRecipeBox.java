@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 
 /**
  * A document block that frames and renders a single NEI recipe using the handler's own
@@ -156,18 +157,31 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         WindowNinePatch.drawWindow(context.lightDarkMode(), x, y, w, h);
 
         NeiAnimationTicker.ensureUpdating(handler);
-        NeiHandlerRenderer.render(
-            handler,
-            recipeIndex,
-            bodyX,
-            bodyY + bodyYShift,
-            bodyX,
-            bodyY,
-            bodyWidth,
-            bodyHeight,
-            -1,
-            -1,
-            otherStacksBroken);
+        if (NeiCustomDiagramBridge.isDiagramGroupHandler(handler) && context instanceof VanillaRenderContext vrc) {
+            LytRect bodyAbs = vrc.toScreenRect(new LytRect(bodyX, bodyY, bodyWidth, bodyHeight));
+            NeiCustomDiagramBridge.renderEmbedded(
+                handler,
+                recipeIndex,
+                bodyX,
+                bodyY + bodyYShift,
+                bodyAbs.x(),
+                bodyAbs.y(),
+                bodyAbs.width(),
+                bodyAbs.height());
+        } else {
+            NeiHandlerRenderer.render(
+                handler,
+                recipeIndex,
+                bodyX,
+                bodyY + bodyYShift,
+                bodyX,
+                bodyY,
+                bodyWidth,
+                bodyHeight,
+                -1,
+                -1,
+                otherStacksBroken);
+        }
         context.restoreExternalRenderState();
         drawWindowChromeOverlay(context, x, y, w, h, bodyX, bodyY, bodyWidth, bodyHeight);
         drawTitleRow(context, innerLeft, titleRowTop, fh);
