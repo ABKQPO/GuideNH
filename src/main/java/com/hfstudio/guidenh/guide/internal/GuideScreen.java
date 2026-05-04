@@ -490,13 +490,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
         drawRect(panelX, panelY + TOOLBAR_H, panelX + panelW, panelY + TOOLBAR_H + 1, 0xFF2A2A2A);
 
-        drawPageTitle();
-
         updateSceneHover(mouseX, mouseY);
-
-        if (searchField != null) {
-            drawSearchField();
-        }
 
         var activeDocument = getActiveDocument();
         if (activeDocument != null) {
@@ -519,6 +513,17 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         navBar.setBounds(navX, navY, navH);
         navBar.update(mouseX, mouseY, guide.getNavigationTree());
         navBar.render(mc, currentAnchor != null ? currentAnchor.pageId() : null, mouseX, mouseY, guide);
+
+        /*
+         * Redraw toolbar strip after the document so stray NEI/GL output cannot obscure the title or search box;
+         * icon buttons are still drawn afterward by GuiScreen.drawScreen.
+         */
+        drawRect(panelX, panelY, panelX + panelW, panelY + TOOLBAR_H, BG_COLOR);
+        drawRect(panelX, panelY + TOOLBAR_H, panelX + panelW, panelY + TOOLBAR_H + 1, 0xFF2A2A2A);
+        drawPageTitle();
+        if (searchField != null) {
+            drawSearchField();
+        }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 
