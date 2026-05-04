@@ -11,6 +11,8 @@ import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.compat.buildcraft.BuildCraftHelpers;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public class GuideBlockDisplayResolver {
@@ -30,6 +32,13 @@ public class GuideBlockDisplayResolver {
         Block block = level.getBlock(x, y, z);
         if (block == null || block == Blocks.air) {
             return null;
+        }
+
+        if (Mods.BuildCraftTransport.isModLoaded()) {
+            ItemStack bcStack = BuildCraftHelpers.resolveDisplayStack(level, block, x, y, z);
+            if (bcStack != null) {
+                return bcStack;
+            }
         }
 
         ItemStack carpentersStack = GuideCarpentersBlockSupport.resolveDisplayStack(level, block, x, y, z, target);

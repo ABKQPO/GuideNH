@@ -117,6 +117,7 @@ guideme.guidebook.SceneEditorExport=导出
 guideme.guidebook.SceneEditorScreenshot=截图
 guideme.guidebook.SceneEditorScreenshotFormat=格式
 guideme.guidebook.SceneEditorScreenshotScale=倍率
+guideme.guidebook.SceneEditorScreenshotOriginAxes=显示原点坐标轴
 guideme.guidebook.SceneEditorScreenshotSuccess=场景截图已保存：%s
 guideme.guidebook.SceneEditorScreenshotFailure=场景截图保存失败：%s
 guideme.guidebook.SceneEditorImportStructure=导入结构

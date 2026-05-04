@@ -24,6 +24,7 @@ public class SceneEditorScreenshotMenuController {
     private final SceneEditorNumericFieldController scaleController;
     private SceneEditorScreenshotFormat format;
     private boolean open;
+    private boolean showOriginAxes;
 
     public SceneEditorScreenshotMenuController(SceneEditorScreenshotFormat initialFormat, int initialScale,
         Consumer<SceneEditorScreenshotFormat> formatApplier, IntConsumer scaleApplier) {
@@ -31,7 +32,7 @@ public class SceneEditorScreenshotMenuController {
         this.formatApplier = formatApplier;
         this.scaleApplier = scaleApplier;
         this.scaleController = SceneEditorNumericFieldController
-            .integer(initialScale, 1f, 8f, value -> this.scaleApplier.accept(Math.round(value)));
+            .integer(initialScale, 1f, 64f, value -> this.scaleApplier.accept(Math.round(value)));
     }
 
     public boolean isOpen() {
@@ -72,13 +73,49 @@ public class SceneEditorScreenshotMenuController {
         return scaleController.hasValidationError();
     }
 
+    public boolean isShowOriginAxes() {
+        return showOriginAxes;
+    }
+
+    public void toggleShowOriginAxes() {
+        showOriginAxes = !showOriginAxes;
+    }
+
     public int menuHeight() {
         return MENU_PADDING + SceneEditorScreenshotFormat.values().length * FORMAT_ROW_HEIGHT
             + SECTION_GAP
             + SCALE_LABEL_HEIGHT
             + SCALE_INPUT_HEIGHT
             + 14
+            + SECTION_GAP
+            + FORMAT_ROW_HEIGHT
+            + SECTION_GAP
+            + SCALE_LABEL_HEIGHT
             + MENU_PADDING;
+    }
+
+    public LytRect originAxesCheckboxBounds(LytRect menuBounds) {
+        int top = menuBounds.y() + MENU_PADDING
+            + SceneEditorScreenshotFormat.values().length * FORMAT_ROW_HEIGHT
+            + SECTION_GAP
+            + SCALE_LABEL_HEIGHT
+            + SCALE_INPUT_HEIGHT
+            + 14
+            + SECTION_GAP;
+        return new LytRect(
+            menuBounds.x() + MENU_PADDING,
+            top,
+            menuBounds.width() - MENU_PADDING * 2,
+            FORMAT_ROW_HEIGHT);
+    }
+
+    public LytRect resolutionHintBounds(LytRect menuBounds) {
+        LytRect axesBounds = originAxesCheckboxBounds(menuBounds);
+        return new LytRect(
+            menuBounds.x() + MENU_PADDING,
+            axesBounds.bottom() + SECTION_GAP,
+            menuBounds.width() - MENU_PADDING * 2,
+            SCALE_LABEL_HEIGHT);
     }
 
     @Nullable

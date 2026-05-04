@@ -106,6 +106,17 @@ public final class Ae2Helpers {
         List<IGridNode> nodes, IdentityHashMap<CableBusContainer, Boolean> seenCableBuses,
         List<CableBusContainer> cableBuses, List<AEBaseTile> tilesToSync) {
         if (!(tileEntity instanceof AEBaseTile aeBaseTile)) {
+            // Non-AE2 tiles that expose an AE2 grid proxy (e.g. GT5 ME hatches) must also
+            // have their node initialised so that adjacent cables can form connections.
+            if (tileEntity instanceof IGridProxyable nonAeTile) {
+                AENetworkProxy proxy = null;
+                try {
+                    proxy = nonAeTile.getProxy();
+                } catch (Throwable ignored) {}
+                if (proxy != null) {
+                    collectNode(proxy, seenNodes, nodes);
+                }
+            }
             return;
         }
 
@@ -174,9 +185,9 @@ public final class Ae2Helpers {
         try {
             AccessorAENetworkProxy accessor = (AccessorAENetworkProxy) proxy;
             IGridNode createdNode = new GridNode(proxy);
-            accessor.guidenh$setNode(createdNode);
+            accessor.setNode(createdNode);
 
-            NBTTagCompound pendingData = accessor.guidenh$getData();
+            NBTTagCompound pendingData = accessor.getData();
             if (pendingData != null) {
                 proxy.readFromNBT(pendingData);
             } else {

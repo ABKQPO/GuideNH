@@ -15,6 +15,7 @@ public enum GuidebookText implements LocalizationEnum {
     SceneEditorScreenshot,
     SceneEditorScreenshotFormat,
     SceneEditorScreenshotScale,
+    SceneEditorScreenshotOriginAxes,
     SceneEditorScreenshotSuccess,
     SceneEditorScreenshotFailure,
     SceneEditorAddElement,

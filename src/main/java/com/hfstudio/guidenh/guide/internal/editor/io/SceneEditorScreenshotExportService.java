@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.io;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,8 +15,11 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageWriter;
 
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 
 public class SceneEditorScreenshotExportService {
@@ -41,7 +45,7 @@ public class SceneEditorScreenshotExportService {
     }
 
     public ExportResult export(LytGuidebookScene scene, SceneEditorScreenshotFormat format, int scale, int sceneWidth,
-        int sceneHeight) {
+        int sceneHeight, boolean showOriginAxes) {
         if (scene == null) {
             return ExportResult.failure(new IllegalArgumentException("scene cannot be null"));
         }
@@ -57,6 +61,7 @@ public class SceneEditorScreenshotExportService {
         boolean originalSceneButtonsVisible = scene.isSceneButtonsVisible();
         boolean originalBottomControlsVisible = scene.isBottomControlsVisible();
         boolean originalReserveBottomControlArea = scene.isReserveBottomControlArea();
+        boolean originalForceOriginAxesVisible = scene.isForceOriginAxesVisible();
         float originalZoom = scene.getCamera()
             .getZoom();
         LytRect currentViewport = scene.getScreenRect();
@@ -82,6 +87,7 @@ public class SceneEditorScreenshotExportService {
             scene.setSceneButtonsVisible(false);
             scene.setBottomControlsVisible(false);
             scene.setReserveBottomControlArea(false);
+            scene.setForceOriginAxesVisible(showOriginAxes);
             scene.setSceneSize(renderWidth, renderHeight);
             scene.setCameraViewportOverride(logicalViewportWidth, logicalViewportHeight);
 
@@ -102,6 +108,7 @@ public class SceneEditorScreenshotExportService {
             scene.setSceneButtonsVisible(originalSceneButtonsVisible);
             scene.setBottomControlsVisible(originalBottomControlsVisible);
             scene.setReserveBottomControlArea(originalReserveBottomControlArea);
+            scene.setForceOriginAxesVisible(originalForceOriginAxesVisible);
             scene.setSceneSize(originalSceneWidth, originalSceneHeight);
             scene.clearCameraViewportOverride();
             scene.getCamera()
@@ -187,9 +194,41 @@ public class SceneEditorScreenshotExportService {
 
         @Override
         public BufferedImage render(LytGuidebookScene scene, int width, int height) throws Exception {
-            try (SceneEditorOffscreenFramebuffer framebuffer = new SceneEditorOffscreenFramebuffer(width, height)) {
-                return framebuffer.render(scene);
+            int maxFboSize = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
+            if (maxFboSize <= 0) {
+                maxFboSize = 8192;
             }
+            if (width <= maxFboSize && height <= maxFboSize) {
+                try (SceneEditorOffscreenFramebuffer framebuffer = new SceneEditorOffscreenFramebuffer(width, height)) {
+                    return framebuffer.render(scene);
+                }
+            }
+            return renderTiled(scene, width, height, maxFboSize);
+        }
+
+        private BufferedImage renderTiled(LytGuidebookScene scene, int fullWidth, int fullHeight, int tileSize)
+            throws Exception {
+            scene.setSceneSize(fullWidth, fullHeight);
+            scene.layout(new LayoutContext(new MinecraftFontMetrics()), 0, 0, fullWidth);
+
+            BufferedImage output = new BufferedImage(fullWidth, fullHeight, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = output.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            try {
+                for (int tileY = 0; tileY < fullHeight; tileY += tileSize) {
+                    int tileH = Math.min(tileSize, fullHeight - tileY);
+                    for (int tileX = 0; tileX < fullWidth; tileX += tileSize) {
+                        int tileW = Math.min(tileSize, fullWidth - tileX);
+                        try (SceneEditorOffscreenFramebuffer fb = new SceneEditorOffscreenFramebuffer(tileW, tileH)) {
+                            BufferedImage tile = fb.renderTile(scene, tileX, tileY);
+                            g.drawImage(tile, tileX, tileY, null);
+                        }
+                    }
+                }
+            } finally {
+                g.dispose();
+            }
+            return output;
         }
     }
 

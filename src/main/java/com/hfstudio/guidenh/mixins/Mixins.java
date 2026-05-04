@@ -24,6 +24,9 @@ public enum Mixins implements IMixins {
     FMP_BLOCK_MICRO_MATERIAL(Side.CLIENT, Phase.LATE, Mods.ForgeMultipart,
         "compat.forgemultipart.AccessorBlockMicroMaterial"),
 
+    BC_TILE_GENERIC_PIPE(Side.CLIENT, Phase.LATE, Mods.BuildCraftTransport,
+        "compat.buildcraft.AccessorTileGenericPipe"),
+
     ;
 
     @Getter

@@ -17,6 +17,7 @@ public class SceneEditorScreenLayout {
     public static final int MAX_LEFT_OPEN_WIDTH = 420;
     public static final int MARKDOWN_RESIZE_HANDLE_WIDTH = 4;
 
+    public static final int COLLAPSED_RIGHT_WIDTH = 10;
     public static final int MIN_RIGHT_WIDTH = 172;
     public static final int MAX_RIGHT_WIDTH = 216;
     public static final int MIN_PREVIEW_INTERACTION_WIDTH = 220;
@@ -28,14 +29,20 @@ public class SceneEditorScreenLayout {
     private SceneEditorScreenLayout() {}
 
     public static Layout calculate(int screenWidth, int screenHeight, boolean markdownExpanded) {
-        return calculate(screenWidth, screenHeight, markdownExpanded, MIN_LEFT_OPEN_WIDTH);
+        return calculate(screenWidth, screenHeight, markdownExpanded, MIN_LEFT_OPEN_WIDTH, true);
     }
 
     public static Layout calculate(int screenWidth, int screenHeight, boolean markdownExpanded, int markdownOpenWidth) {
+        return calculate(screenWidth, screenHeight, markdownExpanded, markdownOpenWidth, true);
+    }
+
+    public static Layout calculate(int screenWidth, int screenHeight, boolean markdownExpanded, int markdownOpenWidth,
+        boolean rightPanelExpanded) {
         int safeWidth = Math.max(360, screenWidth);
         int safeHeight = Math.max(220, screenHeight);
 
-        int rightWidth = clamp(safeWidth * 21 / 100, MIN_RIGHT_WIDTH, MAX_RIGHT_WIDTH);
+        int rightWidth = rightPanelExpanded ? clamp(safeWidth * 21 / 100, MIN_RIGHT_WIDTH, MAX_RIGHT_WIDTH)
+            : COLLAPSED_RIGHT_WIDTH;
         int maxLeftWidth = Math.min(
             MAX_LEFT_OPEN_WIDTH,
             safeWidth - rightWidth - MIN_PREVIEW_INTERACTION_WIDTH - MARKDOWN_TOGGLE_WIDTH - 2);
@@ -58,6 +65,12 @@ public class SceneEditorScreenLayout {
         int toggleY = Math.max(0, safeHeight / 2 - MARKDOWN_TOGGLE_HEIGHT / 2);
         LytRect markdownToggle = new LytRect(
             Math.max(0, leftPanel.right() - 1),
+            toggleY,
+            MARKDOWN_TOGGLE_WIDTH,
+            Math.min(MARKDOWN_TOGGLE_HEIGHT, safeHeight));
+
+        LytRect rightToggle = new LytRect(
+            Math.max(0, rightPanel.x() - MARKDOWN_TOGGLE_WIDTH + 1),
             toggleY,
             MARKDOWN_TOGGLE_WIDTH,
             Math.min(MARKDOWN_TOGGLE_HEIGHT, safeHeight));
@@ -101,7 +114,8 @@ public class SceneEditorScreenLayout {
             markdownContent,
             markdownFooter,
             markdownResizeHandle,
-            rightContent);
+            rightContent,
+            rightToggle);
     }
 
     public static int clamp(int value, int minValue, int maxValue) {
@@ -114,5 +128,5 @@ public class SceneEditorScreenLayout {
     @Desugar
     public record Layout(LytRect leftPanel, LytRect rightPanel, LytRect previewRender, LytRect previewInteraction,
         LytRect markdownToggle, LytRect markdownContent, LytRect markdownFooter, LytRect markdownResizeHandle,
-        LytRect rightContent) {}
+        LytRect rightContent, LytRect rightToggle) {}
 }

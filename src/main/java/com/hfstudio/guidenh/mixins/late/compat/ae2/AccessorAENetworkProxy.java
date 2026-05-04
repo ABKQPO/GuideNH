@@ -22,11 +22,11 @@ import appeng.me.helpers.AENetworkProxy;
 public interface AccessorAENetworkProxy {
 
     @Accessor("node")
-    IGridNode guidenh$getNode();
+    IGridNode getNode();
 
     @Accessor("node")
-    void guidenh$setNode(IGridNode node);
+    void setNode(IGridNode node);
 
     @Accessor("data")
-    NBTTagCompound guidenh$getData();
+    NBTTagCompound getData();
 }
