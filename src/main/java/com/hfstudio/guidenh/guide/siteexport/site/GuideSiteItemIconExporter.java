@@ -8,22 +8,26 @@ import java.util.Map;
 
 import javax.imageio.ImageIO;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.renderer.entity.RenderItem;
-import net.minecraft.client.shader.Framebuffer;
-import net.minecraft.item.ItemStack;
-
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.renderer.entity.RenderItem;
+import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.item.ItemStack;
+
 public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(GuideSiteItemIconExporter.class);
-    private static final int ICON_SIZE = 32;
+    /**
+     * Raster size for exported `item-icons/*.png` (vanilla item GUI draws a
+     * 16×16 logical tile, scaled to this).
+     */
+    private static final int ICON_SIZE = 128;
 
     private final GuideSiteAssetRegistry assets;
     private final Map<String, String> exportedIcons = new LinkedHashMap<>();
@@ -46,7 +50,7 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
 
         try {
             String exportedPath = GuideSitePageAssetExporter.ROOT_PREFIX
-                + assets.writeShared("item-icons", ".png", renderPng(stack.copy()));
+                    + assets.writeShared("item-icons", ".png", renderPng(stack.copy()));
             exportedIcons.put(cacheKey, exportedPath);
             return exportedPath;
         } catch (Throwable t) {
@@ -59,13 +63,13 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
     private String cacheKey(ItemStack stack) {
         StringBuilder key = new StringBuilder();
         key.append(GuideSiteItemSupport.itemId(stack))
-            .append('#')
-            .append(stack.getItemDamage())
-            .append('#')
-            .append(stack.stackSize);
+                .append('#')
+                .append(stack.getItemDamage())
+                .append('#')
+                .append(stack.stackSize);
         if (stack.getTagCompound() != null) {
             key.append('#')
-                .append(stack.getTagCompound());
+                    .append(stack.getTagCompound());
         }
         return key.toString();
     }
@@ -129,9 +133,9 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
                 RenderItem itemRenderer = RenderItem.getInstance();
                 itemRenderer.zLevel = 100f;
                 itemRenderer
-                    .renderItemAndEffectIntoGUI(minecraft.fontRenderer, minecraft.getTextureManager(), stack, 0, 0);
+                        .renderItemAndEffectIntoGUI(minecraft.fontRenderer, minecraft.getTextureManager(), stack, 0, 0);
                 itemRenderer
-                    .renderItemOverlayIntoGUI(minecraft.fontRenderer, minecraft.getTextureManager(), stack, 0, 0);
+                        .renderItemOverlayIntoGUI(minecraft.fontRenderer, minecraft.getTextureManager(), stack, 0, 0);
                 itemRenderer.zLevel = 0f;
             } finally {
                 GL11.glPopMatrix();
