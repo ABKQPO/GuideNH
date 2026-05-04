@@ -103,6 +103,7 @@ public class NeiDirectCalls {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static List<Object> otherStacks(Object handler, int idx) {
+        if (handler instanceof TemplateRecipeHandler) TemplateRecipeHandler.findFuelsOnce();
         return (List) h(handler).getOtherStacks(idx);
     }
 
@@ -111,6 +112,9 @@ public class NeiDirectCalls {
      * detect broken handlers without going through GTNH-NEI's logged safe-wrapper.
      */
     public static boolean otherStacksThrows(Object handler, int idx) {
+        // Same lazy-init guard as otherStacks: without it, afuels may be empty at the time
+        // LytNeiRecipeBox is constructed, producing a false-positive "broken" result.
+        if (handler instanceof TemplateRecipeHandler) TemplateRecipeHandler.findFuelsOnce();
         try {
             h(handler).getOtherStacks(idx);
             return false;

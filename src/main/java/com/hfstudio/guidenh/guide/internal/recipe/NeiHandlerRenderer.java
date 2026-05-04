@@ -89,13 +89,15 @@ public class NeiHandlerRenderer {
             mouseX,
             mouseY,
             hovered);
-        hovered = drawSlots(
-            NeiRecipeLookup.readOtherSlots(handler, recipeIndex),
-            screenX,
-            screenY,
-            mouseX,
-            mouseY,
-            hovered);
+        if (!skipForeground) {
+            hovered = drawSlots(
+                NeiRecipeLookup.readOtherSlots(handler, recipeIndex),
+                screenX,
+                screenY,
+                mouseX,
+                mouseY,
+                hovered);
+        }
 
         NeiRecipeLookup.Slot result = NeiRecipeLookup.readResultSlot(handler, recipeIndex);
         if (result != null) {
