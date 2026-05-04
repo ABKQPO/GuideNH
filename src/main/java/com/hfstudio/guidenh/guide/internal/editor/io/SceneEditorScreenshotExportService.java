@@ -62,6 +62,7 @@ public class SceneEditorScreenshotExportService {
         boolean originalBottomControlsVisible = scene.isBottomControlsVisible();
         boolean originalReserveBottomControlArea = scene.isReserveBottomControlArea();
         boolean originalForceOriginAxesVisible = scene.isForceOriginAxesVisible();
+        boolean originalForceHideOriginAxes = scene.isForceHideOriginAxes();
         float originalZoom = scene.getCamera()
             .getZoom();
         LytRect currentViewport = scene.getScreenRect();
@@ -88,6 +89,7 @@ public class SceneEditorScreenshotExportService {
             scene.setBottomControlsVisible(false);
             scene.setReserveBottomControlArea(false);
             scene.setForceOriginAxesVisible(showOriginAxes);
+            scene.setForceHideOriginAxes(!showOriginAxes);
             scene.setSceneSize(renderWidth, renderHeight);
             scene.setCameraViewportOverride(logicalViewportWidth, logicalViewportHeight);
 
@@ -109,6 +111,7 @@ public class SceneEditorScreenshotExportService {
             scene.setBottomControlsVisible(originalBottomControlsVisible);
             scene.setReserveBottomControlArea(originalReserveBottomControlArea);
             scene.setForceOriginAxesVisible(originalForceOriginAxesVisible);
+            scene.setForceHideOriginAxes(originalForceHideOriginAxes);
             scene.setSceneSize(originalSceneWidth, originalSceneHeight);
             scene.clearCameraViewportOverride();
             scene.getCamera()

@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 
 public class SceneEditorScreenshotMenuController {
 
+    public static final int MAX_SCREENSHOT_SCALE = 64;
     public static final int MENU_WIDTH = 156;
     public static final int MENU_PADDING = 6;
     public static final int FORMAT_ROW_HEIGHT = 18;
@@ -31,8 +32,11 @@ public class SceneEditorScreenshotMenuController {
         this.format = initialFormat != null ? initialFormat : SceneEditorScreenshotFormat.PNG;
         this.formatApplier = formatApplier;
         this.scaleApplier = scaleApplier;
-        this.scaleController = SceneEditorNumericFieldController
-            .integer(initialScale, 1f, 64f, value -> this.scaleApplier.accept(Math.round(value)));
+        this.scaleController = SceneEditorNumericFieldController.integer(
+            initialScale,
+            1f,
+            (float) MAX_SCREENSHOT_SCALE,
+            value -> this.scaleApplier.accept(Math.round(value)));
     }
 
     public boolean isOpen() {
@@ -153,7 +157,7 @@ public class SceneEditorScreenshotMenuController {
     }
 
     public void applyScaleFraction(float fraction) {
-        scaleController.applySliderValue(1f + 7f * fraction);
+        scaleController.applySliderValue(1f + (MAX_SCREENSHOT_SCALE - 1f) * fraction);
     }
 
     public LytRect scaleInputBounds(LytRect menuBounds) {
