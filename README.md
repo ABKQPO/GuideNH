@@ -26,7 +26,7 @@ gradlew runClient
 
 In-game:
 
-* `/give @s guidenh:guide` to get the demo guide book
+* `/give Developer guidenh:guide` to get the demo guide book
 * Hover any item with a registered guide entry and hold `G` for about 10 ticks to jump
 * Press `F3+T` to hot-reload guide content during development
 

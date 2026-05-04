@@ -26,7 +26,7 @@ gradlew runClient
 
 进入游戏后：
 
-* 使用 `/give @s guidenh:guide` 获取演示指南书
+* 使用 `/give Developer guidenh:guide` 获取演示指南书
 * 将鼠标悬停在已注册指南条目的物品上，按住 `G` 约 10 tick 以跳转到对应指南
 * 在开发过程中按 `F3+T` 可热重载指南内容
 
