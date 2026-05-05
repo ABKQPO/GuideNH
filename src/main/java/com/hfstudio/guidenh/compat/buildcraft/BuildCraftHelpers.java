@@ -54,6 +54,9 @@ public final class BuildCraftHelpers {
         if (accessor.getPipe() == null) {
             return;
         }
+        // Recompute pipeConnectionsBuffer from the current fake-world neighbors, then
+        // copy the buffer into the PipeRenderState connection matrix.
+        accessor.invokeComputeConnections();
         accessor.invokeRefreshRenderState();
     }
 

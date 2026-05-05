@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.compat.ae2.Ae2Helpers;
 import com.hfstudio.guidenh.compat.buildcraft.BuildCraftHelpers;
 import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.compat.logisticspipes.LogisticsPipesHelpers;
+import com.hfstudio.guidenh.compat.translocators.TranslocatorsHelpers;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 /**
@@ -22,6 +23,7 @@ public final class GuidePreviewStateSupport {
     public static volatile boolean bcInvokeFailureLogged;
     public static volatile boolean gtPipeInvokeFailureLogged;
     public static volatile boolean lpInvokeFailureLogged;
+    public static volatile boolean translocatorsInvokeFailureLogged;
 
     private GuidePreviewStateSupport() {}
 
@@ -67,6 +69,20 @@ public final class GuidePreviewStateSupport {
                     lpInvokeFailureLogged = true;
                     GuideDebugLog
                         .warn(LOG, "LogisticsPipes preview state preparation failed; pipe rendering may be wrong", t);
+                }
+            }
+        }
+        if (Mods.Translocators.isModLoaded()) {
+            try {
+                TranslocatorsHelpers.prepare(level);
+            } catch (Throwable t) {
+                if (!translocatorsInvokeFailureLogged) {
+                    translocatorsInvokeFailureLogged = true;
+                    GuideDebugLog.warn(
+                        LOG,
+                        "Translocators preview state preparation failed;"
+                            + " attachment eject-state and link particles may be incorrect",
+                        t);
                 }
             }
         }
