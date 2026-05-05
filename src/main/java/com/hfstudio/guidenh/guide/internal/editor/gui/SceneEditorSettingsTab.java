@@ -6,9 +6,9 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
 public enum SceneEditorSettingsTab {
 
-    CAMERA(GuidebookText.SceneEditorTabCamera, 0, 3),
-    ROTATION(GuidebookText.SceneEditorTabRotation, 3, 6),
-    PREVIEW(GuidebookText.SceneEditorTabPreview, 6, 9);
+    CAMERA(GuidebookText.SceneEditorTabCamera, 0, 6),
+    ROTATION(GuidebookText.SceneEditorTabRotation, 6, 9),
+    PREVIEW(GuidebookText.SceneEditorTabPreview, 9, 12);
 
     private final GuidebookText textKey;
     private final int startIndex;

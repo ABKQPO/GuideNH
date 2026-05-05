@@ -12,6 +12,7 @@ import appeng.api.util.AECableType;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
 import appeng.parts.networking.PartCable;
+import appeng.parts.networking.PartCableSmart;
 import appeng.tile.AEBaseTile;
 import appeng.tile.networking.TileCableBus;
 import cpw.mods.fml.common.Optional;
@@ -87,8 +88,16 @@ public final class Ae2Helpers {
                 if (proxy == null) {
                     continue;
                 }
-                adjCanConnect = proxy.getConnectableSides()
-                    .contains(dir.getOpposite());
+                var connectableSides = proxy.getConnectableSides();
+                if (connectableSides.isEmpty()) {
+                    // Unformed multiblock tiles (e.g. Crafting CPU components) initialise
+                    // their proxy with no connectable sides until the cluster forms.
+                    // Fall back to the cable-type check so they still appear connected in
+                    // the guide preview.
+                    adjCanConnect = adjHost.getCableConnectionType(dir.getOpposite()) != AECableType.NONE;
+                } else {
+                    adjCanConnect = connectableSides.contains(dir.getOpposite());
+                }
             } else {
                 adjCanConnect = adjHost.getCableConnectionType(dir.getOpposite()) != AECableType.NONE;
             }
@@ -104,9 +113,34 @@ public final class Ae2Helpers {
 
         // PartCable.readFromStream expects 1 signed byte (connection bitmask) followed by
         // 4 bytes (channel counts per side, packed 4 bits each).
+        //
+        // Bit layout of the byte:
+        // bits 0-5: one bit per ForgeDirection.VALID_DIRECTIONS (ordinals 0-5) = connected sides
+        // bit 6 : ForgeDirection.UNKNOWN ordinal = "powered" flag
+        //
+        // If any connection exists we mark the cable as powered so that Smart Cable
+        // renders its channel-usage strips rather than the unpowered (blank) state.
+        //
+        // For channel counts: in guide preview there is no live AE2 grid, so we use
+        // a small non-zero default (1 for Smart Cable, 4 for Dense Cable) on each
+        // connected side to make the channel-usage visualisation visible and meaningful.
+        int csWithPower = cs;
+        if (cs != 0) {
+            csWithPower |= (1 << ForgeDirection.UNKNOWN.ordinal()); // set powered bit
+        }
+
+        int sideOut = 0;
+        boolean isDense = !(cable instanceof PartCableSmart);
+        int defaultChannels = isDense ? 4 : 1;
+        for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
+            if ((cs & (1 << dir.ordinal())) != 0) {
+                sideOut |= (defaultChannels << (dir.ordinal() * 4));
+            }
+        }
+
         ByteBuf buf = Unpooled.buffer(5);
-        buf.writeByte(cs);
-        buf.writeInt(0);
+        buf.writeByte(csWithPower);
+        buf.writeInt(sideOut);
         try {
             cable.readFromStream(buf);
         } catch (Throwable ignored) {}
