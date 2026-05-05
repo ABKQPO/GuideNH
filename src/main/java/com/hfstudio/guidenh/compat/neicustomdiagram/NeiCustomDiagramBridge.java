@@ -285,11 +285,13 @@ public final class NeiCustomDiagramBridge {
 
     /**
      * Renders nei-custom-diagram {@code DiagramGroup} content in the Guidebook.
-     * <p>{@code renderX}/{@code renderY} remain parent-local GUI coordinates (matching {@code Gui});
+     * <p>
+     * {@code renderX}/{@code renderY} remain parent-local GUI coordinates (matching {@code Gui});
      * {@code guiScissorAbs*} are absolute GUI coords (viewport space), same convention as {@code VanillaRenderContext}
      * scissor — required because {@code GL_SCISSOR} ignores {@code GL_MODELVIEW}.
      *
-     * <p>For wide diagrams, {@code guiScissorAbsW} may be smaller than intrinsic layout (NEI {@code HandlerInfo}
+     * <p>
+     * For wide diagrams, {@code guiScissorAbsW} may be smaller than intrinsic layout (NEI {@code HandlerInfo}
      * width defaults); clip width is inflated up to the scaled GUI bounds.
      */
     public static void renderEmbedded(Object handler, int recipeIndex, int renderX, int renderY, int guiScissorAbsX,
@@ -342,7 +344,6 @@ public final class NeiCustomDiagramBridge {
             GL11.glColor4f(1f, 1f, 1f, 1f);
         }
     }
-
 
     public static GuideTooltip getEmbeddedTooltip(Object handler, int recipeIndex, int localMouseX, int localMouseY) {
         if (!isDiagramGroupHandler(handler)) {
