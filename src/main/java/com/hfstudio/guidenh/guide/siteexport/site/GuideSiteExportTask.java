@@ -63,6 +63,7 @@ public class GuideSiteExportTask {
         GuideSiteSearchTextExtractor searchExtractor = new GuideSiteSearchTextExtractor();
         GuideSiteAssetRegistry assets = new GuideSiteAssetRegistry(outDir);
         GuideSiteItemIconExporter itemIconExporter = new GuideSiteItemIconExporter(assets);
+        GuideSiteNeiPhase1BackgroundExporter neiPhase1Exporter = new GuideSiteNeiPhase1BackgroundExporter(assets);
         GuideSiteSceneRuntimeExporter sceneExporter = new GuideSiteSceneRuntimeExporter(assets);
         writer.writeBootstrapFiles(outDir);
 
@@ -143,7 +144,7 @@ public class GuideSiteExportTask {
                     NavigationTree navigationTree = NavigationTree.build(parsedPages);
                     GuideSiteHtmlCompiler compiler = createHtmlCompiler(
                         assetExporter,
-                        new GuideSiteRecipeTagRenderer(itemIconExporter),
+                        new GuideSiteRecipeTagRenderer(itemIconExporter, neiPhase1Exporter),
                         new GuideSiteMdxTagRenderer(
                             guide,
                             parsedPagesById,

@@ -23,7 +23,11 @@ import org.slf4j.LoggerFactory;
 public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(GuideSiteItemIconExporter.class);
-    private static final int ICON_SIZE = 32;
+    /**
+     * Raster size for exported `item-icons/*.png` (vanilla item GUI draws a
+     * 16×16 logical tile, scaled to this).
+     */
+    private static final int ICON_SIZE = 128;
 
     private final GuideSiteAssetRegistry assets;
     private final Map<String, String> exportedIcons = new LinkedHashMap<>();

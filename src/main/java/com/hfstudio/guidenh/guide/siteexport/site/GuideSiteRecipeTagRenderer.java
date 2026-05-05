@@ -14,6 +14,9 @@ import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
+import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeLayoutContext;
+import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeLayoutStrategyRegistry;
+import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeRawHandlerAccess;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeTagRenderer {
@@ -32,6 +35,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     public interface NeiRecipeFinder {
 
         List<NeiRecipeLookup.Entry> findCraftingRecipes(ItemStack targetStack);
+
+        List<NeiRecipeLookup.CraftingRecipeRef> findCraftingRecipeRefs(ItemStack targetStack);
     }
 
     public interface RawHandlerFinder {
@@ -55,22 +60,42 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     private final NeiRecipeFinder neiRecipeFinder;
     private final RawHandlerFinder rawHandlerFinder;
     private final HandlerRuntime handlerRuntime;
+    private final SiteRecipeLayoutStrategyRegistry layoutRegistry;
+    private final SiteRecipeRawHandlerAccess rawHandlerSlotAccess;
+    private final @Nullable GuideSiteNeiPhase1BackgroundExporter neiPhase1BackgroundExporter;
 
     public GuideSiteRecipeTagRenderer() {
-        this(GuideSiteItemIconResolver.NONE);
+        this(GuideSiteItemIconResolver.NONE, null);
     }
 
     public GuideSiteRecipeTagRenderer(GuideSiteItemIconResolver itemIconResolver) {
+        this(itemIconResolver, null);
+    }
+
+    public GuideSiteRecipeTagRenderer(GuideSiteItemIconResolver itemIconResolver,
+        @Nullable GuideSiteNeiPhase1BackgroundExporter neiPhase1BackgroundExporter) {
         this(new GuideSiteRecipeExporter(), itemIconResolver, IdUtils::resolveItemStack, targetStack -> {
             if (targetStack == null || targetStack.getItem() == null) {
                 return Collections.emptyList();
             }
             return RecipeLookup.findByOutput(targetStack.getItem());
-        }, targetStack -> {
-            if (targetStack == null) {
-                return Collections.emptyList();
+        }, new NeiRecipeFinder() {
+
+            @Override
+            public List<NeiRecipeLookup.Entry> findCraftingRecipes(ItemStack targetStack) {
+                if (targetStack == null) {
+                    return Collections.emptyList();
+                }
+                return NeiRecipeLookup.findCraftingRecipes(targetStack);
             }
-            return NeiRecipeLookup.findCraftingRecipes(targetStack);
+
+            @Override
+            public List<NeiRecipeLookup.CraftingRecipeRef> findCraftingRecipeRefs(ItemStack targetStack) {
+                if (targetStack == null) {
+                    return Collections.emptyList();
+                }
+                return NeiRecipeLookup.findCraftingRecipeRefs(targetStack);
+            }
         }, new RawHandlerFinder() {
 
             @Override
@@ -119,7 +144,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
                 return NeiRecipeLookup.readOtherSlots(handler, recipeIndex);
             }
-        });
+        }, neiPhase1BackgroundExporter);
     }
 
     GuideSiteRecipeTagRenderer(GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
@@ -174,7 +199,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
                     return Collections.emptyList();
                 }
-            });
+            },
+            null);
     }
 
     GuideSiteRecipeTagRenderer(GuideSiteRecipeExporter exporter, TargetStackResolver targetStackResolver,
@@ -192,12 +218,28 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             vanillaRecipeFinder,
             neiRecipeFinder,
             rawHandlerFinder,
-            handlerRuntime);
+            handlerRuntime,
+            null);
     }
 
     GuideSiteRecipeTagRenderer(GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
         TargetStackResolver targetStackResolver, VanillaRecipeFinder vanillaRecipeFinder,
         NeiRecipeFinder neiRecipeFinder, RawHandlerFinder rawHandlerFinder, HandlerRuntime handlerRuntime) {
+        this(
+            exporter,
+            itemIconResolver,
+            targetStackResolver,
+            vanillaRecipeFinder,
+            neiRecipeFinder,
+            rawHandlerFinder,
+            handlerRuntime,
+            null);
+    }
+
+    GuideSiteRecipeTagRenderer(GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
+        TargetStackResolver targetStackResolver, VanillaRecipeFinder vanillaRecipeFinder,
+        NeiRecipeFinder neiRecipeFinder, RawHandlerFinder rawHandlerFinder, HandlerRuntime handlerRuntime,
+        @Nullable GuideSiteNeiPhase1BackgroundExporter neiPhase1BackgroundExporter) {
         this.exporter = exporter;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
         this.targetStackResolver = targetStackResolver;
@@ -205,6 +247,9 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         this.neiRecipeFinder = neiRecipeFinder;
         this.rawHandlerFinder = rawHandlerFinder;
         this.handlerRuntime = handlerRuntime;
+        this.layoutRegistry = SiteRecipeLayoutStrategyRegistry.createDefault();
+        this.rawHandlerSlotAccess = rawHandlerSlots(handlerRuntime);
+        this.neiPhase1BackgroundExporter = neiPhase1BackgroundExporter;
     }
 
     GuideSiteRecipeTagRenderer(GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver,
@@ -248,7 +293,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
                     return Collections.emptyList();
                 }
-            });
+            },
+            null);
     }
 
     @Override
@@ -389,25 +435,35 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     }
 
     private List<String> renderFromNeiEntries(RenderRequest request, ItemStack targetStack, boolean hasRecipeFilter) {
-        List<NeiRecipeLookup.Entry> neiEntries = neiRecipeFinder.findCraftingRecipes(targetStack);
-        if (neiEntries.isEmpty()) {
+        List<NeiRecipeLookup.CraftingRecipeRef> refs = neiRecipeFinder.findCraftingRecipeRefs(targetStack);
+        if (refs.isEmpty()) {
             return Collections.emptyList();
         }
 
         List<String> renderedRecipes = new ArrayList<>();
-        for (int i = 0; i < neiEntries.size() && renderedRecipes.size() < request.limit; i++) {
-            NeiRecipeLookup.Entry entry = neiEntries.get(i);
-            if (entry == null || entry.result == null || entry.ingredients == null || entry.ingredients.isEmpty()) {
+        for (int i = 0; i < refs.size() && renderedRecipes.size() < request.limit; i++) {
+            NeiRecipeLookup.CraftingRecipeRef ref = refs.get(i);
+            NeiRecipeLookup.Entry entry = ref != null ? ref.entry : null;
+            if (entry == null || !neiEntryHasAnySlots(entry)) {
                 continue;
             }
             if (hasRecipeFilter && !RecipeCompiler.entryMatches(entry, request.inputExpr, request.outputExpr)) {
                 continue;
             }
 
-            String rendered = exporter.renderNeiOverlayGridItems(
-                exporter.ingredientItemsFromNeiEntry(entry, itemIconResolver),
-                exporter.resultItem(entry != null ? entry.result : null, targetStack, itemIconResolver),
-                exporter.supportingSlotItemsFromNeiEntry(entry, itemIconResolver));
+            @Nullable
+            GuideSiteNeiPhase1BackgroundExporter.Result phase1 = neiPhase1Capture(ref.handler, ref.recipeIndex);
+
+            String rendered = layoutRegistry.render(
+                SiteRecipeLayoutContext.neiEntry(
+                    entry,
+                    targetStack,
+                    exporter,
+                    itemIconResolver,
+                    phase1 != null ? phase1.relativeUrl : null,
+                    phase1 != null ? phase1.pixelWidth : null,
+                    phase1 != null ? phase1.pixelHeight : null,
+                    phase1 != null ? phase1.bodyYShiftPx : null));
             if (!rendered.isEmpty()) {
                 renderedRecipes.add(rendered);
             }
@@ -432,10 +488,11 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 continue;
             }
 
-            renderedRecipes.add(
-                exporter.renderHtmlGridItems(
-                    exporter.ingredientItemsFromVanillaEntry(entry, itemIconResolver),
-                    exporter.itemInfo(entry.result, itemIconResolver)));
+            String rendered = layoutRegistry
+                .render(SiteRecipeLayoutContext.vanilla(entry, targetStack, exporter, itemIconResolver));
+            if (!rendered.isEmpty()) {
+                renderedRecipes.add(rendered);
+            }
         }
         return renderedRecipes;
     }
@@ -450,7 +507,58 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         if (ingredients.isEmpty() && supportingSlots.isEmpty() && resultItem.isEmpty()) {
             return "";
         }
-        return exporter.renderNeiOverlayGridItems(ingredients, resultItem, supportingSlots);
+        @Nullable
+        GuideSiteNeiPhase1BackgroundExporter.Result phase1 = neiPhase1Capture(handler, recipeIndex);
+        return layoutRegistry.render(
+            SiteRecipeLayoutContext.rawHandler(
+                handler,
+                recipeIndex,
+                targetStack,
+                exporter,
+                itemIconResolver,
+                rawHandlerSlotAccess,
+                phase1 != null ? phase1.relativeUrl : null,
+                phase1 != null ? phase1.pixelWidth : null,
+                phase1 != null ? phase1.pixelHeight : null,
+                phase1 != null ? phase1.bodyYShiftPx : null));
+    }
+
+    private @Nullable GuideSiteNeiPhase1BackgroundExporter.Result neiPhase1Capture(@Nullable Object handler,
+        int recipeIndex) {
+        if (neiPhase1BackgroundExporter == null || handler == null) {
+            return null;
+        }
+        return neiPhase1BackgroundExporter.capture(handler, recipeIndex);
+    }
+
+    private static boolean neiEntryHasAnySlots(NeiRecipeLookup.Entry entry) {
+        if (entry.ingredients != null && !entry.ingredients.isEmpty()) {
+            return true;
+        }
+        if (entry.others != null && !entry.others.isEmpty()) {
+            return true;
+        }
+        return entry.result != null;
+    }
+
+    private static SiteRecipeRawHandlerAccess rawHandlerSlots(final HandlerRuntime hr) {
+        return new SiteRecipeRawHandlerAccess() {
+
+            @Override
+            public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
+                return hr.readIngredientSlots(handler, recipeIndex);
+            }
+
+            @Override
+            public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
+                return hr.readOtherSlots(handler, recipeIndex);
+            }
+
+            @Override
+            public @Nullable NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex) {
+                return hr.readResultSlot(handler, recipeIndex);
+            }
+        };
     }
 
     private List<Object> mergeHandlers(List<Object> craftingHandlers, List<Object> usageHandlers) {

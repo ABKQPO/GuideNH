@@ -72,14 +72,46 @@ public class NeiRecipeLookup {
         }
     }
 
-    public static List<Entry> findCraftingRecipes(ItemStack target) {
+    /** NEI crafting recipe tied to {@code handler} index for Phase1/OpenGL snapshots; mirrors {@link #Entry}. */
+    public static final class CraftingRecipeRef {
+
+        public final Object handler;
+        public final int recipeIndex;
+        public final Entry entry;
+
+        CraftingRecipeRef(Object handler, int recipeIndex, Entry entry) {
+            this.handler = handler;
+            this.recipeIndex = recipeIndex;
+            this.entry = entry;
+        }
+    }
+
+    public static List<CraftingRecipeRef> findCraftingRecipeRefs(ItemStack target) {
         if (!AVAILABLE || target == null) return Collections.emptyList();
         try {
-            return processHandlers(NeiDirectCalls.getCraftingHandlers(target));
+            List<Object> handlers = NeiDirectCalls.getCraftingHandlers(target);
+            List<CraftingRecipeRef> out = new ArrayList<>();
+            for (Object handler : handlers) {
+                if (handler == null) continue;
+                CraftingRecipeRef[] refs = readHandlerCraftingRecipeRefs(handler);
+                if (refs != null && refs.length > 0) {
+                    out.addAll(Arrays.asList(refs));
+                }
+            }
+            return out;
         } catch (Throwable t) {
-            LOG.warn("NEI crafting query failed", t);
+            LOG.warn("NEI crafting refs query failed", t);
             return Collections.emptyList();
         }
+    }
+
+    public static List<Entry> findCraftingRecipes(ItemStack target) {
+        List<CraftingRecipeRef> refs = findCraftingRecipeRefs(target);
+        List<Entry> entries = new ArrayList<>(refs.size());
+        for (CraftingRecipeRef r : refs) {
+            entries.add(r.entry);
+        }
+        return entries;
     }
 
     public static List<Entry> findUsages(ItemStack target) {
@@ -317,25 +349,37 @@ public class NeiRecipeLookup {
         } catch (Throwable ignored) {}
     }
 
-    public static @Nullable Entry[] readHandler(Object handler) {
+    public static @Nullable CraftingRecipeRef[] readHandlerCraftingRecipeRefs(Object handler) {
+        if (!AVAILABLE || handler == null) return null;
         try {
             int n = NeiDirectCalls.numRecipes(handler);
-            if (n <= 0) return new Entry[0];
+            if (n <= 0) return new CraftingRecipeRef[0];
             String recipeName = NeiDirectCalls.recipeName(handler);
             String handlerName = handler.getClass()
                 .getSimpleName();
-            Entry[] out = new Entry[n];
+            CraftingRecipeRef[] out = new CraftingRecipeRef[n];
             for (int i = 0; i < n; i++) {
                 List<Slot> ing = readSlotList(NeiDirectCalls.ingredientStacks(handler, i));
                 List<Slot> oth = readSlotList(NeiDirectCalls.otherStacks(handler, i));
                 Slot res = readSlot(NeiDirectCalls.resultStack(handler, i));
-                out[i] = new Entry(handlerName, recipeName, ing, oth, res);
+                out[i] = new CraftingRecipeRef(handler, i, new Entry(handlerName, recipeName, ing, oth, res));
             }
             return out;
         } catch (Throwable t) {
             LOG.debug("NEI handler {} read failed", handler.getClass(), t);
             return null;
         }
+    }
+
+    public static @Nullable Entry[] readHandler(Object handler) {
+        CraftingRecipeRef[] refs = readHandlerCraftingRecipeRefs(handler);
+        if (refs == null) return null;
+        if (refs.length == 0) return new Entry[0];
+        Entry[] out = new Entry[refs.length];
+        for (int i = 0; i < refs.length; i++) {
+            out[i] = refs[i].entry;
+        }
+        return out;
     }
 
     public static List<Slot> readSlotList(Object obj) {

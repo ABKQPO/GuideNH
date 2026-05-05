@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import net.minecraft.item.ItemStack;
 
@@ -12,6 +13,9 @@ import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 
 public class GuideSiteRecipeExporter {
+
+    /** NEI slot chrome is commonly {@code 18×18} pixels; vanilla/GT handlers draw {@code 16×16} items inset by 1px. */
+    public static final int NEI_SLOT_GUI_PIXELS = 18;
 
     public String renderHtmlGrid(List<List<String>> ingredients, String resultItemId) {
         return renderGrid(
@@ -99,6 +103,146 @@ public class GuideSiteRecipeExporter {
         return html.toString();
     }
 
+    /**
+     * Renders ingredient / other / result stacks in a single coordinate system using each slot's
+     * {@link NeiRecipeLookup.Slot#relx}/{@code rely}, scaled with {@code --gui-scale} like other
+     * recipe chrome.
+     */
+    public String renderNeiPositionedSlots(List<NeiRecipeLookup.Slot> slots,
+        GuideSiteItemIconResolver itemIconResolver) {
+        return renderNeiPositionedSlots(slots, itemIconResolver, null, null, null, null);
+    }
+
+    /**
+     * @param phase1BackgroundUrl optional Phase1 PNG URL; valid canvas width/height must be set together for Phase1
+     *                            alignment.
+     * @param phase1BodyYShiftPx  matches Phase1 framebuffer {@code glTranslate Y}
+     *                            ({@link NeiRecipeLookup#lookupHandlerYShift}); {@code null} when Phase1 is unused.
+     */
+    public String renderNeiPositionedSlots(List<NeiRecipeLookup.Slot> slots, GuideSiteItemIconResolver itemIconResolver,
+        @Nullable String phase1BackgroundUrl, @Nullable Integer phase1CanvasWidthPx,
+        @Nullable Integer phase1CanvasHeightPx, @Nullable Integer phase1BodyYShiftPx) {
+        if (slots == null || slots.isEmpty()) {
+            return "";
+        }
+        boolean usePhase1Canvas = phase1BackgroundUrl != null && !phase1BackgroundUrl.isEmpty()
+            && phase1CanvasWidthPx != null
+            && phase1CanvasHeightPx != null
+            && phase1CanvasWidthPx > 0
+            && phase1CanvasHeightPx > 0;
+
+        int canvasW;
+        int canvasH;
+        int minX = 0;
+        int minY = 0;
+        if (usePhase1Canvas) {
+            canvasW = phase1CanvasWidthPx;
+            canvasH = phase1CanvasHeightPx;
+        } else {
+            minX = Integer.MAX_VALUE;
+            minY = Integer.MAX_VALUE;
+            int maxR = Integer.MIN_VALUE;
+            int maxB = Integer.MIN_VALUE;
+            for (NeiRecipeLookup.Slot slot : slots) {
+                if (slot == null) {
+                    continue;
+                }
+                minX = Math.min(minX, slot.relx);
+                minY = Math.min(minY, slot.rely);
+                maxR = Math.max(maxR, slot.relx + NEI_SLOT_GUI_PIXELS);
+                maxB = Math.max(maxB, slot.rely + NEI_SLOT_GUI_PIXELS);
+            }
+            if (minX == Integer.MAX_VALUE) {
+                return "";
+            }
+            canvasW = Math.max(NEI_SLOT_GUI_PIXELS, maxR - minX);
+            canvasH = Math.max(NEI_SLOT_GUI_PIXELS, maxB - minY);
+        }
+
+        StringBuilder html = new StringBuilder();
+        html.append("<section class=\"recipe-grid recipe-grid--nei-positioned\" data-render-mode=\"nei-positioned\">");
+        html.append("<div class=\"recipe-positioned-outer\" style=\"width:calc(")
+            .append(canvasW)
+            .append("px * var(--gui-scale));height:calc(")
+            .append(canvasH)
+            .append("px * var(--gui-scale));\">");
+        html.append("<div class=\"recipe-positioned-canvas");
+        if (usePhase1Canvas) {
+            html.append(" recipe-positioned-canvas--phase1-bg\" style=\"background-image:url('")
+                .append(escapeHtml(phase1BackgroundUrl))
+                .append("');background-size:100% 100%;background-repeat:no-repeat;\">");
+        } else {
+            html.append("\">");
+        }
+        for (NeiRecipeLookup.Slot slot : slots) {
+            if (slot == null) {
+                continue;
+            }
+            int slotPxW;
+            int slotPxH;
+            double leftPct;
+            double topPct;
+            if (usePhase1Canvas) {
+                /*
+                 * PNG viewport is HandlerInfo WxH plus symmetric VIEWPORT_MARGIN_PX — same inset as Phase1 translate(m,
+                 * yShift+m).
+                 * GT/ModularUI nine-patch bezel can extend a few px past the nominal body; relying on HandlerInfo alone
+                 * clips edges.
+                 */
+                int phase1YShift = phase1BodyYShiftPx != null ? phase1BodyYShiftPx : 0;
+                int m = GuideSiteNeiPhase1BackgroundExporter.VIEWPORT_MARGIN_PX;
+                int slotOx = Math.max(0, slot.relx - 1 + m);
+                int slotOy = Math.max(0, slot.rely - 1 + phase1YShift + m);
+                slotPxW = NEI_SLOT_GUI_PIXELS;
+                slotPxH = NEI_SLOT_GUI_PIXELS;
+                leftPct = 100.0 * slotOx / canvasW;
+                topPct = 100.0 * slotOy / canvasH;
+            } else {
+                slotPxW = NEI_SLOT_GUI_PIXELS;
+                slotPxH = NEI_SLOT_GUI_PIXELS;
+                leftPct = 100.0 * (slot.relx - minX) / canvasW;
+                topPct = 100.0 * (slot.rely - minY) / canvasH;
+            }
+            double widthPct = 100.0 * slotPxW / canvasW;
+            double heightPct = 100.0 * slotPxH / canvasH;
+
+            List<GuideSiteExportedItem> candidates = new ArrayList<>();
+            if (slot.stacks != null) {
+                for (ItemStack stack : slot.stacks) {
+                    if (stack != null) {
+                        candidates.add(itemInfo(stack, itemIconResolver));
+                    }
+                }
+            }
+
+            if (usePhase1Canvas) {
+                html.append("<div class=\"recipe-positioned-slot recipe-positioned-slot--phase1-overlay\"");
+            } else {
+                html.append("<div class=\"ingredient-box recipe-positioned-slot\"");
+            }
+            if (candidates.size() > 1) {
+                html.append(" data-ingredient-cycling");
+            }
+            html.append(" style=\"left:")
+                .append(String.format(Locale.US, "%.5f", leftPct))
+                .append("%;top:")
+                .append(String.format(Locale.US, "%.5f", topPct))
+                .append("%;width:")
+                .append(String.format(Locale.US, "%.5f", widthPct))
+                .append("%;height:")
+                .append(String.format(Locale.US, "%.5f", heightPct))
+                .append("%;\">");
+            if (candidates.isEmpty()) {
+                html.append("<span class=\"recipe-positioned-slot-empty\"></span>");
+            } else {
+                appendSlotContents(html, candidates);
+            }
+            html.append("</div>");
+        }
+        html.append("</div></div></section>");
+        return html.toString();
+    }
+
     private void appendSlotBoxes(StringBuilder html, List<List<GuideSiteExportedItem>> slots) {
         if (slots == null) {
             return;
@@ -106,7 +250,6 @@ public class GuideSiteRecipeExporter {
         for (List<GuideSiteExportedItem> candidates : slots) {
             List<GuideSiteExportedItem> safeCandidates = candidates != null ? candidates : Collections.emptyList();
             if (safeCandidates.isEmpty()) {
-                // Render an explicit empty slot so the layout grid stays aligned.
                 html.append("<div class=\"ingredient-box empty-ingredient-box\"></div>");
                 continue;
             }
@@ -115,22 +258,23 @@ public class GuideSiteRecipeExporter {
                 html.append(" data-ingredient-cycling");
             }
             html.append(">");
-            for (int i = 0; i < safeCandidates.size(); i++) {
-                int beforeIcon = html.length();
-                // `nativeTooltip=true` so each cycling alternate carries its own
-                // hover tooltip; whichever is `.current` (visible) at the moment
-                // is the one whose title shows up on hover.
-                GuideSiteItemHtml.appendIcon(html, safeCandidates.get(i), null, 1f, true);
-                if (safeCandidates.size() > 1 && i == 0) {
-                    // Tag the first candidate as visible up-front; the JS cycler will rotate it on a timer.
-                    int classAttr = html.indexOf("class=\"", beforeIcon);
-                    if (classAttr >= 0) {
-                        int valueStart = classAttr + "class=\"".length();
-                        html.insert(valueStart, "current ");
-                    }
+            appendSlotContents(html, safeCandidates);
+            html.append("</div>");
+        }
+    }
+
+    /** Item icons for one slot (cycling markers when {@code stacks.size()>1}); outer box is callers' responsibility. */
+    private void appendSlotContents(StringBuilder html, List<GuideSiteExportedItem> safeCandidates) {
+        for (int i = 0; i < safeCandidates.size(); i++) {
+            int beforeIcon = html.length();
+            GuideSiteItemHtml.appendIcon(html, safeCandidates.get(i), null, 1f, true);
+            if (safeCandidates.size() > 1 && i == 0) {
+                int classAttr = html.indexOf("class=\"", beforeIcon);
+                if (classAttr >= 0) {
+                    int valueStart = classAttr + "class=\"".length();
+                    html.insert(valueStart, "current ");
                 }
             }
-            html.append("</div>");
         }
     }
 

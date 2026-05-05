@@ -606,7 +606,6 @@ p {
 .guide-command-link:hover,
 .guide-item-link:hover {
     color: var(--color-link);
-    border-color: var(--color-link);
     text-decoration: none;
 }
 
@@ -654,7 +653,6 @@ p {
 
 .guide-generated-links a:hover {
     color: var(--color-link);
-    border-color: var(--color-link);
     background: var(--color-navbar-row-hover);
     text-decoration: none;
 }
@@ -696,6 +694,73 @@ p {
 .recipe-grid[data-render-mode="shaped"],
 .recipe-grid[data-render-mode="smelting"],
 .recipe-grid[data-render-mode="stonecutting"] {
+}
+
+/* NEI positional layout (relx/rely): single canvas, absolute slots */
+.recipe-grid.recipe-grid--nei-positioned {
+    display: inline-block;
+    grid-template-rows: unset;
+    grid-template-columns: unset;
+    row-gap: 0;
+    column-gap: 0;
+    vertical-align: top;
+}
+
+.recipe-positioned-outer {
+    display: inline-block;
+    vertical-align: top;
+    flex-shrink: 0;
+}
+
+.recipe-positioned-canvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.recipe-grid--nei-positioned .recipe-positioned-slot {
+    position: absolute;
+    vertical-align: unset;
+    z-index: 1;
+}
+
+.recipe-grid--nei-positioned .recipe-positioned-slot--phase1-overlay {
+    box-sizing: border-box;
+    border: none;
+    background: transparent;
+    pointer-events: auto;
+}
+
+.recipe-grid--nei-positioned .recipe-positioned-slot--phase1-overlay:not([data-ingredient-cycling]) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.recipe-grid--nei-positioned .recipe-positioned-slot--phase1-overlay[data-ingredient-cycling] > * {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.recipe-grid--nei-positioned .recipe-positioned-slot--phase1-overlay[data-ingredient-cycling] > .current {
+    display: inline-block;
+}
+
+.recipe-positioned-canvas--phase1-bg {
+    background-position: 0 0;
+    /* PNG alpha beneath GT drawDescription / similar extras: MC-style light grey backing for black raster text */
+    background-color: #c6c6c6;
+}
+
+.recipe-positioned-slot-empty {
+    display: block;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 .recipe-main {

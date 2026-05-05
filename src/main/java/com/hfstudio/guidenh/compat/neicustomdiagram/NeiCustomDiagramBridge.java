@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.item.ItemStack;
 
 import org.lwjgl.opengl.GL11;
@@ -282,16 +283,38 @@ public final class NeiCustomDiagramBridge {
         return AVAILABLE && handler != null && CLASS_DIAGRAM_GROUP.isInstance(handler);
     }
 
-    public static void renderEmbedded(Object handler, int recipeIndex, int renderX, int renderY, int clipX, int clipY,
-        int clipWidth, int clipHeight) {
+    /**
+     * Renders nei-custom-diagram {@code DiagramGroup} content in the Guidebook.
+     * <p>
+     * {@code renderX}/{@code renderY} remain parent-local GUI coordinates (matching {@code Gui});
+     * {@code guiScissorAbs*} are absolute GUI coords (viewport space), same convention as {@code VanillaRenderContext}
+     * scissor — required because {@code GL_SCISSOR} ignores {@code GL_MODELVIEW}.
+     *
+     * <p>
+     * For wide diagrams, {@code guiScissorAbsW} may be smaller than intrinsic layout (NEI {@code HandlerInfo}
+     * width defaults); clip width is inflated up to the scaled GUI bounds.
+     */
+    public static void renderEmbedded(Object handler, int recipeIndex, int renderX, int renderY, int guiScissorAbsX,
+        int guiScissorAbsY, int guiScissorAbsW, int guiScissorAbsH) {
         if (!isDiagramGroupHandler(handler)) {
             return;
         }
         Object diagram = diagramAt(handler, recipeIndex);
         Object diagramState = diagramState(handler);
-        if (diagram == null || diagramState == null || clipWidth <= 0 || clipHeight <= 0) {
+        if (diagram == null || diagramState == null || guiScissorAbsW <= 0 || guiScissorAbsH <= 0) {
             return;
         }
+
+        Minecraft mc = Minecraft.getMinecraft();
+        ScaledResolution sr = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
+        int scaledW = sr.getScaledWidth();
+        int scaledH = sr.getScaledHeight();
+        int gw = guiScissorAbsW;
+        int gh = guiScissorAbsH;
+        int maxGw = Math.max(1, scaledW - guiScissorAbsX);
+        gw = Math.min(maxGw, Math.max(gw, gw + 400));
+        int maxGh = Math.max(1, scaledH - guiScissorAbsY);
+        gh = Math.min(maxGh, gh + 32);
 
         GL11.glPushAttrib(
             GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT
@@ -302,12 +325,12 @@ public final class NeiCustomDiagramBridge {
                 | GL11.GL_TEXTURE_BIT);
         GL11.glPushMatrix();
         try {
-            applyScissor(clipX, clipY, clipWidth, clipHeight);
+            applyAbsoluteGuiScissor(guiScissorAbsX, guiScissorAbsY, gw, gh);
             GL11.glEnable(GL11.GL_SCISSOR_TEST);
             GL11.glTranslatef(renderX, renderY, 0f);
             GL11.glColor4f(1f, 1f, 1f, 1f);
             METHOD_DIAGRAM_DRAW_BACKGROUND.invoke(diagram, diagramState);
-            renderForeground(diagram, diagramState, clipX, clipY, clipWidth, clipHeight);
+            renderForeground(diagram, diagramState, guiScissorAbsX, guiScissorAbsY, gw, gh);
         } catch (Throwable t) {
             LOG.debug("Embedded nei-custom-diagram render failed", t);
         } finally {
@@ -464,8 +487,8 @@ public final class NeiCustomDiagramBridge {
         ((Consumer<Object>) consumer).accept(point);
     }
 
-    private static void reapplyClipState(int clipX, int clipY, int clipWidth, int clipHeight) {
-        applyScissor(clipX, clipY, clipWidth, clipHeight);
+    private static void reapplyClipState(int absGuiX, int absGuiY, int absGuiW, int absGuiH) {
+        applyAbsoluteGuiScissor(absGuiX, absGuiY, absGuiW, absGuiH);
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glColor4f(1f, 1f, 1f, 1f);
     }
@@ -632,12 +655,13 @@ public final class NeiCustomDiagramBridge {
         return ((Number) METHOD_POINT_Y.invoke(point)).intValue();
     }
 
-    private static void applyScissor(int x, int y, int width, int height) {
+    private static void applyAbsoluteGuiScissor(int guiX, int guiY, int guiW, int guiH) {
+        Minecraft mc = Minecraft.getMinecraft();
         int scale = DisplayScale.scaleFactor();
-        int sx = x * scale;
-        int sy = Minecraft.getMinecraft().displayHeight - (y + height) * scale;
-        int sw = (width + 18) * scale;
-        int sh = (height + 20) * scale;
-        GL11.glScissor(sx, Math.max(25, sy), Math.max(0, sw), Math.max(0, sh));
+        int sx = guiX * scale;
+        int sy = mc.displayHeight - (guiY + guiH) * scale;
+        int sw = guiW * scale;
+        int sh = guiH * scale;
+        GL11.glScissor(sx, Math.max(0, sy), Math.max(0, sw), Math.max(0, sh));
     }
 }

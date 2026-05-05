@@ -12,7 +12,6 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
-import com.hfstudio.guidenh.compat.neicustomdiagram.NeiCustomDiagramBridge;
 
 /**
  * Invokes {@link NeiRecipeLookup}-bound handlers to render a recipe in-place. Relies on
@@ -57,11 +56,7 @@ public class NeiHandlerRenderer {
         int clipY, int clipWidth, int clipHeight, int mouseX, int mouseY, boolean skipForeground) {
         if (handler == null || !NeiRecipeLookup.isAvailable()) return null;
 
-        if (NeiCustomDiagramBridge.isDiagramGroupHandler(handler)) {
-            NeiCustomDiagramBridge
-                .renderEmbedded(handler, recipeIndex, screenX, screenY, clipX, clipY, clipWidth, clipHeight);
-            return null;
-        }
+        // DiagramGroup is rendered from LytNeiRecipeBox with absolute-GUI scissors (tooltip-safe).
 
         // Phase 1: NEI-native background + foreground + extras at translated origin.
         // drawForeground and drawExtras are skipped when getOtherStacks is broken, because
