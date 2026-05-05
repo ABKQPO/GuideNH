@@ -1,6 +1,7 @@
 ---
 navigation:
   title: 调试测试页
+  position: 99
 ---
 
 # 调试测试页

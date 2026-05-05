@@ -36,6 +36,7 @@ import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
+import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
@@ -437,20 +438,50 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             return;
         }
 
-        String resolvedTitle = null;
-        try {
-            var node = guide.getNavigationTree()
-                .getNodeById(currentAnchor.pageId());
-            if (node != null) {
-                resolvedTitle = node.title();
-            }
-        } catch (Throwable ignored) {}
+        String resolvedTitle = extractPageTitleFromDocument();
+
+        if (resolvedTitle == null || resolvedTitle.isEmpty()) {
+            try {
+                var node = guide.getNavigationTree()
+                    .getNodeById(currentAnchor.pageId());
+                if (node != null) {
+                    resolvedTitle = node.title();
+                }
+            } catch (Throwable ignored) {}
+        }
 
         if (resolvedTitle == null || resolvedTitle.isEmpty()) {
             resolvedTitle = currentAnchor.pageId()
                 .toString();
         }
         currentPageTitle = resolvedTitle;
+    }
+
+    /**
+     * Finds the first H1 {@link LytHeading} in the current document, removes it from the
+     * document (so it is not rendered twice inside the content area), and returns its plain
+     * text. Returns {@code null} when no H1 is present.
+     */
+    @Nullable
+    private String extractPageTitleFromDocument() {
+        if (document == null) {
+            return null;
+        }
+        for (var block : document.getBlocks()) {
+            if (block instanceof LytHeading heading) {
+                if (heading.getDepth() == 1) {
+                    document.removeChild(heading);
+                    return heading.getTextContent();
+                } else {
+                    // Any non-H1 heading as the first block stops the search
+                    break;
+                }
+            } else {
+                // Non-heading first block: stop searching
+                break;
+            }
+        }
+        return null;
     }
 
     private int getContentHeight() {

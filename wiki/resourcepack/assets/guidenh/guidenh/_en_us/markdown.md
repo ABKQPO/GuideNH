@@ -1,6 +1,7 @@
 ---
 navigation:
   title: Markdown Test
+  position: 10
 ---
 
 # Markdown Test
