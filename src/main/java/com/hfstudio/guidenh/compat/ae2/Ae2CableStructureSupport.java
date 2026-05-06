@@ -18,6 +18,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.guide.scene.level.ExportedAe2CableBusPartStreams;
+import com.hfstudio.guidenh.guide.scene.level.GuideAe2CableBusPartStreamsSnbt;
 import com.hfstudio.guidenh.guide.scene.level.GuideAe2CableSnbt;
 import com.hfstudio.guidenh.network.GuideNhAe2CableBatchAwait;
 import com.hfstudio.guidenh.network.GuideNhAe2CableBatchReplyMessage;
@@ -31,7 +33,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 /**
- * Captures AE2 {@link PartCable#writeToStream} into structure SNBT ({@link GuideAe2CableSnbt#TAG_ROOT}).
+ * Captures AE2 {@link PartCable#writeToStream} into structure SNBT ({@link GuideAe2CableSnbt#TAG_ROOT}) and side
+ * {@link appeng.api.parts.IPart#writeToStream} payloads ({@link GuideAe2CableBusPartStreamsSnbt#TAG_ROOT}).
  */
 public final class Ae2CableStructureSupport {
 
@@ -47,13 +50,21 @@ public final class Ae2CableStructureSupport {
 
         private final Map<String, int[]> streams;
 
-        Ae2CableMpSnapshot(Map<String, int[]> streams) {
+        private final Map<String, ExportedAe2CableBusPartStreams> partStreams;
+
+        Ae2CableMpSnapshot(Map<String, int[]> streams, Map<String, ExportedAe2CableBusPartStreams> partStreams) {
             this.streams = streams != null ? streams : Collections.emptyMap();
+            this.partStreams = partStreams != null ? partStreams : Collections.emptyMap();
         }
 
         @Nullable
         public int[] lookup(int dim, int x, int y, int z) {
             return streams.get(mpKey(dim, x, y, z));
+        }
+
+        @Nullable
+        public ExportedAe2CableBusPartStreams lookupPartStreams(int dim, int x, int y, int z) {
+            return partStreams.get(mpKey(dim, x, y, z));
         }
     }
 
@@ -80,14 +91,14 @@ public final class Ae2CableStructureSupport {
             }
         }
         if (coords.isEmpty()) {
-            return new Ae2CableMpSnapshot(Collections.emptyMap());
+            return new Ae2CableMpSnapshot(Collections.emptyMap(), Collections.emptyMap());
         }
-        Map<String, int[]> merged = fetchMpStreamsBlocking(dim, coords, 4000L);
-        return new Ae2CableMpSnapshot(merged);
+        return fetchMpStreamsBlocking(dim, coords, 4000L);
     }
 
-    private static Map<String, int[]> fetchMpStreamsBlocking(int dim, List<int[]> coords, long timeoutMsPerBatch) {
-        Map<String, int[]> out = new HashMap<>();
+    private static Ae2CableMpSnapshot fetchMpStreamsBlocking(int dim, List<int[]> coords, long timeoutMsPerBatch) {
+        Map<String, int[]> cableMerged = new HashMap<>();
+        Map<String, ExportedAe2CableBusPartStreams> partMerged = new HashMap<>();
         int max = GuideNhAe2CableBatchRequestMessage.MAX_POSITIONS;
         for (int start = 0; start < coords.size(); start += max) {
             int end = Math.min(coords.size(), start + max);
@@ -117,18 +128,25 @@ public final class Ae2CableStructureSupport {
             byte[] hit = reply.getHit();
             byte[] cs = reply.getCs();
             int[] sideOut = reply.getSideOut();
+            byte[][] partPacked = reply.getPartPacked();
             if (hit == null || cs == null || sideOut == null || hit.length != n) {
                 break;
             }
             for (int i = 0; i < n; i++) {
-                if (hit[i] == 0) {
-                    continue;
-                }
                 int[] p = coords.get(start + i);
-                out.put(mpKey(dim, p[0], p[1], p[2]), new int[] { cs[i] & 0xFF, sideOut[i] });
+                String key = mpKey(dim, p[0], p[1], p[2]);
+                if (hit[i] != 0) {
+                    cableMerged.put(key, new int[] { cs[i] & 0xFF, sideOut[i] });
+                }
+                if (partPacked != null && i < partPacked.length && partPacked[i] != null && partPacked[i].length >= 2) {
+                    ExportedAe2CableBusPartStreams ps = Ae2CableBusPartStreamCodec.unpack(partPacked[i]);
+                    if (!ps.isEmpty()) {
+                        partMerged.put(key, ps);
+                    }
+                }
             }
         }
-        return out;
+        return new Ae2CableMpSnapshot(cableMerged, partMerged);
     }
 
     private static String mpKey(int dim, int x, int y, int z) {
@@ -171,16 +189,30 @@ public final class Ae2CableStructureSupport {
 
         if (mpSnapshot != null && exportWorldForAe2 != null) {
             int[] rpc = mpSnapshot.lookup(dim, wx, wy, wz);
+            ExportedAe2CableBusPartStreams rpcParts = mpSnapshot.lookupPartStreams(dim, wx, wy, wz);
             if (rpc != null && rpc.length >= 2) {
                 applyTag(structureBlockTag, (byte) rpc[0], rpc[1]);
-                return;
             }
+            if (rpcParts != null && !rpcParts.isEmpty()) {
+                GuideAe2CableBusPartStreamsSnbt.writeToStructureBlock(structureBlockTag, rpcParts);
+            }
+            return;
         }
 
         TileEntity workTe = resolveServerCableBusTile(tileEntity, exportWorldForAe2);
 
         if (!(workTe instanceof TileCableBus resolvedBus)) {
             return;
+        }
+        attachCableAndSidePartStreamsLocal(resolvedBus, structureBlockTag);
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static void attachCableAndSidePartStreamsLocal(TileCableBus resolvedBus,
+        NBTTagCompound structureBlockTag) {
+        ExportedAe2CableBusPartStreams parts = Ae2CableBusPartStreamCodec.captureFromBus(resolvedBus);
+        if (!parts.isEmpty()) {
+            GuideAe2CableBusPartStreamsSnbt.writeToStructureBlock(structureBlockTag, parts);
         }
         if (!(resolvedBus.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
             return;

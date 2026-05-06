@@ -8,6 +8,8 @@ import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.compat.ae2.Ae2CableBusPartStreamCodec;
+import com.hfstudio.guidenh.guide.scene.level.ExportedAe2CableBusPartStreams;
 
 import appeng.parts.networking.PartCable;
 import appeng.tile.networking.TileCableBus;
@@ -30,7 +32,7 @@ public class GuideNhAe2CableBatchServerHandler implements IMessageHandler<GuideN
         }
 
         if (!Mods.AE2.isModLoaded() || n <= 0 || n > GuideNhAe2CableBatchRequestMessage.MAX_POSITIONS) {
-            return new GuideNhAe2CableBatchReplyMessage(corr, new byte[0], new byte[0], new int[0]);
+            return new GuideNhAe2CableBatchReplyMessage(corr, new byte[0], new byte[0], new int[0], new byte[0][]);
         }
 
         MinecraftServer srv = MinecraftServer.getServer();
@@ -39,9 +41,10 @@ public class GuideNhAe2CableBatchServerHandler implements IMessageHandler<GuideN
         byte[] hit = new byte[n];
         byte[] cs = new byte[n];
         int[] sideOut = new int[n];
+        byte[][] partPacked = new byte[n][];
 
         if (ws == null) {
-            return new GuideNhAe2CableBatchReplyMessage(corr, hit, cs, sideOut);
+            return new GuideNhAe2CableBatchReplyMessage(corr, hit, cs, sideOut, partPacked);
         }
 
         for (int i = 0; i < n; i++) {
@@ -50,26 +53,40 @@ public class GuideNhAe2CableBatchServerHandler implements IMessageHandler<GuideN
             int z = xyz[i * 3 + 2];
             TileEntity te = ws.getTileEntity(x, y, z);
             if (!(te instanceof TileCableBus bus)) {
+                hit[i] = 0;
+                cs[i] = 0;
+                sideOut[i] = 0;
+                partPacked[i] = Ae2CableBusPartStreamCodec.pack(ExportedAe2CableBusPartStreams.EMPTY);
                 continue;
             }
-            if (!(bus.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
-                continue;
+
+            if (bus.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable) {
+                ByteBuf buf = Unpooled.buffer(5);
+                try {
+                    cable.writeToStream(buf);
+                } catch (IOException ignored) {
+                    // leave buf empty
+                }
+                if (buf.readableBytes() >= 5) {
+                    hit[i] = 1;
+                    cs[i] = buf.readByte();
+                    sideOut[i] = buf.readInt();
+                } else {
+                    hit[i] = 0;
+                    cs[i] = 0;
+                    sideOut[i] = 0;
+                }
+            } else {
+                hit[i] = 0;
+                cs[i] = 0;
+                sideOut[i] = 0;
             }
-            ByteBuf buf = Unpooled.buffer(5);
-            try {
-                cable.writeToStream(buf);
-            } catch (IOException ignored) {
-                continue;
-            }
-            if (buf.readableBytes() < 5) {
-                continue;
-            }
-            hit[i] = 1;
-            cs[i] = buf.readByte();
-            sideOut[i] = buf.readInt();
+
+            ExportedAe2CableBusPartStreams parts = Ae2CableBusPartStreamCodec.captureFromBus(bus);
+            partPacked[i] = Ae2CableBusPartStreamCodec.pack(parts);
         }
 
-        return new GuideNhAe2CableBatchReplyMessage(corr, hit, cs, sideOut);
+        return new GuideNhAe2CableBatchReplyMessage(corr, hit, cs, sideOut, partPacked);
     }
 
     private static WorldServer resolveWorldServer(MinecraftServer srv, int dim) {
