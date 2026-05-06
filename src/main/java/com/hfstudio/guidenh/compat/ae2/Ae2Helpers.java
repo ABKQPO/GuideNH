@@ -8,6 +8,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
+import org.jetbrains.annotations.Nullable;
+
 import appeng.api.networking.IGridHost;
 import appeng.api.parts.IPart;
 import appeng.api.util.AECableType;
@@ -31,6 +33,30 @@ public final class Ae2Helpers {
     private static final int CS_DIRECTION_MASK = 0x3F;
 
     private Ae2Helpers() {}
+
+    /**
+     * Whether {@link net.minecraft.world.World#markBlockForUpdate} must not reapply {@link TileEntity#getDescriptionPacket}
+     * for this TE inside a {@link com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld}: {@link #prepare(GuidebookLevel)}
+     * already merged server-authoritative preview bytes ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID} /
+     * {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID}). Vanilla description resync rebuilds payloads from an inert
+     * preview grid / proxy and overrides that state (channels, TileSecurity connectivity, …).
+     */
+    @Optional.Method(modid = "appliedenergistics2")
+    public static boolean suppressMarkBlockForUpdateDescriptionResync(@Nullable TileEntity te, GuidebookLevel level) {
+        if (te == null || level == null) {
+            return false;
+        }
+        if (te instanceof TileCableBus) {
+            return true;
+        }
+        if (te instanceof AEBaseTile) {
+            long posKey = GuidebookLevel.packPos(te.xCoord, te.yCoord, te.zCoord);
+            byte[] blob = level.previewAuthorityStore()
+                .get(posKey, Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID);
+            return blob != null && blob.length > 0;
+        }
+        return false;
+    }
 
     @Optional.Method(modid = "appliedenergistics2")
     public static void prepare(GuidebookLevel level) {

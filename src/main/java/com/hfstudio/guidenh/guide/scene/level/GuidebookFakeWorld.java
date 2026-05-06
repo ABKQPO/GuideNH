@@ -24,6 +24,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.compat.ae2.Ae2Helpers;
 import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
 
 import cpw.mods.fml.relauncher.Side;
@@ -212,12 +214,8 @@ public class GuidebookFakeWorld extends WorldClient {
         if (tileEntity == null) {
             return;
         }
-        // AE2 TileCableBus: getDescriptionPacket() encodes live-grid CableBusContainer state. In the guide fake world
-        // the grid is inert, so re-applying that packet would wipe PartCable state patched in Ae2Helpers (channels).
-        if (isAe2TileCableBus(tileEntity)) {
-            return;
-        }
-        if (shouldSkipAe2BaseTileNetworkDescriptionReapply(tileEntity, x, y, z)) {
+        // AE2 preview: see Ae2Helpers.suppressMarkBlockForUpdateDescriptionResync.
+        if (suppressAe2StaleTileDescriptionRefresh(tileEntity)) {
             return;
         }
         long guardKey = packBlockPos(x, y, z);
@@ -397,11 +395,10 @@ public class GuidebookFakeWorld extends WorldClient {
     }
 
     private void applyDescriptionPacketToTileEntity(TileEntity tileEntity) {
-        if (tileEntity == null || isAe2TileCableBus(tileEntity)) {
+        if (tileEntity == null) {
             return;
         }
-        if (shouldSkipAe2BaseTileNetworkDescriptionReapply(tileEntity, tileEntity.xCoord, tileEntity.yCoord,
-            tileEntity.zCoord)) {
+        if (suppressAe2StaleTileDescriptionRefresh(tileEntity)) {
             return;
         }
         try {
@@ -412,32 +409,18 @@ public class GuidebookFakeWorld extends WorldClient {
         } catch (Throwable ignored) {}
     }
 
-    private static final String AE2_TILE_AE_BASE = "appeng.tile.AEBaseTile";
-    private static final String AE2_TILE_CABLE_BUS = "appeng.tile.networking.TileCableBus";
-    /** Matches {@code Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID} without loading AE2 classes. */
-    private static final String AE2_BASE_TILE_NETWORK_SUPPLEMENT_ID = "guidenh.ae2.ae_base_tile_network";
-
-    private boolean shouldSkipAe2BaseTileNetworkDescriptionReapply(TileEntity te, int x, int y, int z) {
-        if (level == null || !isAe2BaseTileNonCable(te)) {
+    /**
+     * @see Ae2Helpers#suppressMarkBlockForUpdateDescriptionResync
+     */
+    private boolean suppressAe2StaleTileDescriptionRefresh(@Nullable TileEntity te) {
+        if (level == null || te == null || !Mods.AE2.isModLoaded()) {
             return false;
         }
-        long key = GuidebookLevel.packPos(x, y, z);
-        byte[] raw = level.previewAuthorityStore()
-            .get(key, AE2_BASE_TILE_NETWORK_SUPPLEMENT_ID);
-        return raw != null && raw.length > 0;
-    }
-
-    private static boolean isAe2BaseTileNonCable(@Nullable TileEntity tileEntity) {
-        return tileEntity != null && isInstanceOf(tileEntity, AE2_TILE_AE_BASE) && !isAe2TileCableBus(tileEntity);
-    }
-
-    private static boolean isAe2TileCableBus(TileEntity tileEntity) {
-        for (Class<?> t = tileEntity.getClass(); t != null; t = t.getSuperclass()) {
-            if (AE2_TILE_CABLE_BUS.equals(t.getName())) {
-                return true;
-            }
+        try {
+            return Ae2Helpers.suppressMarkBlockForUpdateDescriptionResync(te, level);
+        } catch (Throwable ignored) {
+            return false;
         }
-        return false;
     }
 
     private Set<Long> getOrCreateMarkBlockForUpdateGuard() {
