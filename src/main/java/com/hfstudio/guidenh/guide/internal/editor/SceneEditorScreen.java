@@ -463,6 +463,9 @@ public class SceneEditorScreen extends GuiScreen {
     public void onGuiClosed() {
         Keyboard.enableRepeatEvents(false);
         super.onGuiClosed();
+        previewScene = null;
+        activePreviewScene = null;
+        expandedElementEditor = null;
     }
 
     @Override

@@ -1508,6 +1508,25 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     }
 
     @Override
+    public void onGuiClosed() {
+        super.onGuiClosed();
+        document = null;
+        layoutDocument = null;
+        currentPage = null;
+        activeScene = null;
+        activeDocumentDragTarget = null;
+        hoveredScene = null;
+        searchDocument = null;
+        cachedInteractionState = null;
+        cachedViewportRect = null;
+        cachedScissorRect = null;
+        cachedContentTooltipViewport = null;
+        cachedTitleViewport = null;
+        history.clear();
+        forwardHistory.clear();
+    }
+
+    @Override
     public void openExternalUrl(URI uri) {
         if (shouldConfirmExternalLinks()) {
             pendingExternalUri = uri;
