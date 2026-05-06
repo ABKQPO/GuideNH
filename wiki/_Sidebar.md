@@ -17,6 +17,7 @@
 - [Localization](Localization)
 - [Examples](Examples)
 - [Mod Compatibility](Mod-Compatibility)
+- [Server Integration](Server-Integration)
 - [FAQ](FAQ)
 
 ### 中文
@@ -36,4 +37,5 @@
 - [本地化](Localization-zh-CN)
 - [示例](Examples-zh-CN)
 - [模组兼容](Mod-Compatibility-zh-CN)
+- [服务器集成](Server-Integration-zh-CN)
 - [常见问题](FAQ-zh-CN)
