@@ -21,8 +21,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 /**
- * AE2 guide preview: applies server-authoritative cable preview bytes from {@link GuidebookLevel#previewAuthorityStore()}
- * ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID}), merged with locally inferred cable facings.
+ * AE2 guide preview: applies server-authoritative AE2 preview bytes from {@link GuidebookLevel#previewAuthorityStore()}
+ * ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID} cable bus; {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID}
+ * other {@link AEBaseTile}), merged with locally inferred cable facings where applicable.
  */
 public final class Ae2Helpers {
 
@@ -38,7 +39,7 @@ public final class Ae2Helpers {
                 syncCableBusConnections(cableBusTile, level);
                 syncCableBusSidePartStreams(cableBusTile, level);
             } else if (te instanceof AEBaseTile aeTile) {
-                syncDescriptionPacket(aeTile);
+                applyNonCableBaseTilePreview(aeTile, level);
             }
         }
         level.getOrCreateFakeWorld()
@@ -167,6 +168,20 @@ public final class Ae2Helpers {
             cs |= (1 << dir.ordinal());
         }
         return cs;
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static void applyNonCableBaseTilePreview(AEBaseTile aeTile, GuidebookLevel level) {
+        if (aeTile instanceof TileCableBus) {
+            return;
+        }
+        long posKey = GuidebookLevel.packPos(aeTile.xCoord, aeTile.yCoord, aeTile.zCoord);
+        byte[] blob = level.previewAuthorityStore()
+            .get(posKey, Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID);
+        if (blob != null && blob.length > 0 && Ae2BaseTileNetworkStreamPreview.applyAuthorityToPreviewTile(aeTile, blob)) {
+            return;
+        }
+        syncDescriptionPacket(aeTile);
     }
 
     @Optional.Method(modid = "appliedenergistics2")

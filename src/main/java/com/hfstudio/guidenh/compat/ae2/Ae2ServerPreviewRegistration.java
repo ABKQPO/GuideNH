@@ -14,7 +14,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 
 /**
- * Registers AE2 server-authoritative cable-bus preview supplement (compat-layer strategy).
+ * Registers AE2 server-authoritative preview supplements under {@link com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementRegistry}: cable-bus (type1) and AEBaseTile {@code X} stream (type2 non-cable). Bootstrap calls {@link #register()} only.
  */
 public final class Ae2ServerPreviewRegistration {
 
@@ -29,6 +29,7 @@ public final class Ae2ServerPreviewRegistration {
             return;
         }
         ServerPreviewSupplementRegistry.registerSnippetAndFetch(new Ae2Snippet(), new Ae2Fetch());
+        Ae2BaseTileNetworkRegistration.register();
     }
 
     private static final class Ae2Fetch implements ServerPreviewSupplementFetchContributor {

@@ -175,6 +175,35 @@ public final class Ae2CableStructureSupport {
         }
     }
 
+    /** For {@link Ae2BaseTileNetworkStructureSupport}: same heuristic as cable MP snapshot gating. */
+    static boolean isMultiplayerClientNoIntegratedServerPublic() {
+        return isMultiplayerClientNoIntegratedServer();
+    }
+
+    @Nullable
+    static WorldServer tryIntegratedServerWorld(int dim) {
+        try {
+            Class<?> mcCls = Class.forName("net.minecraft.client.Minecraft");
+            Object mc = mcCls.getMethod("getMinecraft").invoke(null);
+            Object integratedObj = mcCls.getField("theIntegratedServer").get(mc);
+            if (integratedObj instanceof MinecraftServer) {
+                MinecraftServer isrv = (MinecraftServer) integratedObj;
+                WorldServer sw = isrv.worldServerForDimension(dim);
+                if (sw != null) {
+                    return sw;
+                }
+                if (isrv.worldServers != null) {
+                    for (WorldServer w : isrv.worldServers) {
+                        if (w != null && w.provider.dimensionId == dim) {
+                            return w;
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
     @Optional.Method(modid = "appliedenergistics2")
     public static void attachCableStreamToExport(@Nullable TileEntity tileEntity, NBTTagCompound structureBlockTag) {
         attachCableStreamToExport(tileEntity, structureBlockTag, null, null);
@@ -268,23 +297,7 @@ public final class Ae2CableStructureSupport {
         }
 
         if (sw == null) {
-            try {
-                Class<?> mcCls = Class.forName("net.minecraft.client.Minecraft");
-                Object mc = mcCls.getMethod("getMinecraft").invoke(null);
-                Object integratedObj = mcCls.getField("theIntegratedServer").get(mc);
-                if (integratedObj instanceof MinecraftServer) {
-                    MinecraftServer isrv = (MinecraftServer) integratedObj;
-                    sw = isrv.worldServerForDimension(dim);
-                    if (sw == null && isrv.worldServers != null) {
-                        for (WorldServer w : isrv.worldServers) {
-                            if (w != null && w.provider.dimensionId == dim) {
-                                sw = w;
-                                break;
-                            }
-                        }
-                    }
-                }
-            } catch (Throwable ignored) {}
+            sw = tryIntegratedServerWorld(dim);
         }
 
         if (sw == null) {
