@@ -64,6 +64,11 @@ public final class Ae2Helpers {
     @Optional.Method(modid = "appliedenergistics2")
     public static void prepare(GuidebookLevel level) {
         for (TileEntity te : level.getTileEntities()) {
+            if (te instanceof AEBaseTile aeTile && !(te instanceof TileCableBus)) {
+                initProxyOrientedValidSides(aeTile);
+            }
+        }
+        for (TileEntity te : level.getTileEntities()) {
             if (te instanceof TileCableBus cableBusTile) {
                 syncCableBusConnections(cableBusTile, level);
                 syncCableBusSidePartStreams(cableBusTile, level);
@@ -76,7 +81,30 @@ public final class Ae2Helpers {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    static void syncCableBusConnections(TileCableBus cableBusTile, GuidebookLevel level) {
+    public static void initProxyOrientedValidSides(AEBaseTile aeTile) {
+        if (!aeTile.canBeRotated() || aeTile.getForward() == ForgeDirection.UNKNOWN) {
+            return;
+        }
+        if (!(aeTile instanceof IGridProxyable proxyable)) {
+            return;
+        }
+        AENetworkProxy proxy;
+        try {
+            proxy = proxyable.getProxy();
+        } catch (Throwable ignored) {
+            return;
+        }
+        if (proxy == null || !proxy.getConnectableSides()
+            .isEmpty()) {
+            return;
+        }
+        try {
+            aeTile.setOrientation(aeTile.getForward(), aeTile.getUp());
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    public static void syncCableBusConnections(TileCableBus cableBusTile, GuidebookLevel level) {
         if (!(cableBusTile.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
             return;
         }
@@ -111,7 +139,7 @@ public final class Ae2Helpers {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    static void syncCableBusSidePartStreams(TileCableBus cableBusTile, GuidebookLevel level) {
+    public static void syncCableBusSidePartStreams(TileCableBus cableBusTile, GuidebookLevel level) {
         long posKey = GuidebookLevel.packPos(cableBusTile.xCoord, cableBusTile.yCoord, cableBusTile.zCoord);
         byte[] raw = level.previewAuthorityStore()
             .get(posKey, Ae2ServerPreviewRegistration.SUPPLEMENT_ID);
@@ -160,7 +188,7 @@ public final class Ae2Helpers {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static int computeCableConnectionMask(TileCableBus cableBusTile, GuidebookLevel level) {
+    public static int computeCableConnectionMask(TileCableBus cableBusTile, GuidebookLevel level) {
         int x = cableBusTile.xCoord;
         int y = cableBusTile.yCoord;
         int z = cableBusTile.zCoord;
@@ -201,7 +229,7 @@ public final class Ae2Helpers {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static void applyNonCableBaseTilePreview(AEBaseTile aeTile, GuidebookLevel level) {
+    public static void applyNonCableBaseTilePreview(AEBaseTile aeTile, GuidebookLevel level) {
         if (aeTile instanceof TileCableBus) {
             return;
         }
