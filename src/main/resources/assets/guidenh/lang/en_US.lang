@@ -180,6 +180,7 @@ guideme.guidebook.RegionWandAreaTooLarge=§c[RegionWand]§r Area too large (%s b
 guideme.guidebook.RegionWandChatPos=§b[RegionWand]§r Pos%s = %s, %s, %s
 guideme.guidebook.RegionWandCopied=§a[RegionWand]§r Copied to clipboard: %s×%s×%s, %s non-air blocks, %s with TileEntity NBT.
 guideme.guidebook.RegionWandCopiedSnbt=§a[RegionWand]§r Copied SNBT structure to clipboard: %s×%s×%s, %s non-air blocks, %s with TileEntity NBT. Save it as a .snbt file and reference it via <ImportStructure>.
+guideme.guidebook.RegionWandSavedSnbt=§a[RegionWand]§r Saved SNBT structure: %s×%s×%s, %s non-air blocks, %s with TileEntity NBT. Saved to: %s
 guideme.guidebook.RegionWandCopyFailed=§c[RegionWand]§r Failed to copy to clipboard: %s
 guideme.guidebook.RegionWandModeSwitched=§e[RegionWand]§r Export mode switched: §b%s§r
 guideme.guidebook.RegionWandNeedTwoCorners=§c[RegionWand]§r Select both corners first with left click and right click.
@@ -187,6 +188,7 @@ guideme.guidebook.RegionWandTooltipExport=§7Sneak + right click: export with th
 guideme.guidebook.RegionWandTooltipMode=§7Current mode: §b%s§7 (right-click in air to switch)
 guideme.guidebook.RegionWandTooltipPos=§bPos%s§7 = %s, %s, %s
 guideme.guidebook.RegionWandTooltipSelect=§7Left click: set Pos1; right click: set Pos2
+guideme.guidebook.RegionWandEntitiesExported=§e[RegionWand]§r Also exported %s entities.
 guideme.guidebook.ResetView=Reset View
 guideme.guidebook.RunsCommand=Runs Command:
 guideme.guidebook.Search=Search

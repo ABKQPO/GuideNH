@@ -161,6 +161,8 @@ public enum GuidebookText implements LocalizationEnum {
     RegionWandTooltipExport,
     RegionWandTooltipMode,
     RegionWandTooltipPos,
+    RegionWandEntitiesExported,
+    RegionWandSavedSnbt,
     Smelting,
     Blasting,
     ShapelessCrafting,

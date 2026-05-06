@@ -2,12 +2,17 @@ package com.hfstudio.guidenh.guide.internal.item;
 
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityList;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
@@ -15,6 +20,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
@@ -25,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
@@ -41,8 +48,12 @@ public class RegionWandItem extends Item {
 
     /** New default: SNBT structure compatible with {@code <ImportStructure>}. */
     public static final String MODE_SNBT = "snbt";
+    /** SNBT mode with entities included. */
+    public static final String MODE_SNBT_ENTITIES = "snbt_e";
     /** Legacy: inline {@code <GameScene>} with {@code <Block>} children. */
     public static final String MODE_BLOCKS = "blocks";
+    /** Legacy blocks mode with entities included. */
+    public static final String MODE_BLOCKS_ENTITIES = "blocks_e";
 
     public RegionWandItem() {
         super();
@@ -114,7 +125,10 @@ public class RegionWandItem extends Item {
         var nbt = stack.getTagCompound();
         if (!nbt.hasKey("ExportMode")) return MODE_SNBT;
         String v = nbt.getString("ExportMode");
-        return MODE_BLOCKS.equals(v) ? MODE_BLOCKS : MODE_SNBT;
+        if (MODE_BLOCKS.equals(v)) return MODE_BLOCKS;
+        if (MODE_SNBT_ENTITIES.equals(v)) return MODE_SNBT_ENTITIES;
+        if (MODE_BLOCKS_ENTITIES.equals(v)) return MODE_BLOCKS_ENTITIES;
+        return MODE_SNBT;
     }
 
     public static boolean hasCompleteSelection(ItemStack stack) {
@@ -128,15 +142,30 @@ public class RegionWandItem extends Item {
     }
 
     public static String nextMode(String current) {
-        return MODE_SNBT.equals(current) ? MODE_BLOCKS : MODE_SNBT;
+        if (MODE_SNBT.equals(current)) return MODE_SNBT_ENTITIES;
+        if (MODE_SNBT_ENTITIES.equals(current)) return MODE_BLOCKS;
+        if (MODE_BLOCKS.equals(current)) return MODE_BLOCKS_ENTITIES;
+        return MODE_SNBT; // MODE_BLOCKS_ENTITIES or unknown -> snbt
+    }
+
+    public static boolean includeEntities(String mode) {
+        return MODE_SNBT_ENTITIES.equals(mode) || MODE_BLOCKS_ENTITIES.equals(mode);
     }
 
     public static String modeDisplay(String mode) {
-        return MODE_BLOCKS.equals(mode) ? "blocks" : "snbt";
+        if (MODE_BLOCKS.equals(mode)) return "blocks";
+        if (MODE_SNBT_ENTITIES.equals(mode)) return "snbt+entities";
+        if (MODE_BLOCKS_ENTITIES.equals(mode)) return "blocks+entities";
+        return "snbt";
     }
 
     @Nullable
     public static String exportSelectionAsStructureSnbt(World world, ItemStack stack) {
+        return exportSelectionAsStructureSnbt(world, stack, false);
+    }
+
+    @Nullable
+    public static String exportSelectionAsStructureSnbt(World world, ItemStack stack, boolean includeEntities) {
         if (world == null || stack == null) {
             return null;
         }
@@ -155,7 +184,22 @@ public class RegionWandItem extends Item {
         int dx = maxX - minX + 1;
         int dy = maxY - minY + 1;
         int dz = maxZ - minZ + 1;
-        return exportRegionAsStructureSnbt(world, minX, minY, minZ, dx, dy, dz);
+        if (!includeEntities) {
+            return exportRegionAsStructureSnbt(world, minX, minY, minZ, dx, dy, dz);
+        }
+        if (GuideStructureVolume.exceedsLimit(dx, dy, dz, MAX_EXPORT_BLOCKS)) {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        List<Entity> all = world.getEntitiesWithinAABBExcludingEntity(
+            null,
+            AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1));
+        List<Entity> filtered = new ArrayList<>();
+        for (Entity e : all) {
+            if (!(e instanceof EntityPlayer) && EntityList.getEntityString(e) == null) continue;
+            filtered.add(e);
+        }
+        return exportSnbt(world, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz, filtered).text();
     }
 
     @Nullable
@@ -259,26 +303,70 @@ public class RegionWandItem extends Item {
         }
 
         String mode = getExportMode(stack);
+        List<Entity> entities = Collections.emptyList();
+        if (includeEntities(mode)) {
+            @SuppressWarnings("unchecked")
+            List<Entity> all = world.getEntitiesWithinAABBExcludingEntity(
+                null,
+                AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1));
+            List<Entity> filtered = new ArrayList<>();
+            for (Entity e : all) {
+                // Include players as FakePlayer preview entities; skip non-player entities with no registered ID
+                if (!(e instanceof EntityPlayer) && EntityList.getEntityString(e) == null) continue;
+                filtered.add(e);
+            }
+            entities = filtered;
+        }
+        boolean isBlocks = MODE_BLOCKS.equals(mode) || MODE_BLOCKS_ENTITIES.equals(mode);
         ExportResult result;
-        if (MODE_BLOCKS.equals(mode)) {
-            result = exportBlocks(world, minX, minY, minZ, maxX, maxY, maxZ);
+        if (isBlocks) {
+            result = exportBlocks(world, minX, minY, minZ, maxX, maxY, maxZ, entities);
         } else {
-            result = exportSnbt(world, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz);
+            result = exportSnbt(world, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz, entities);
         }
 
-        try {
-            Toolkit.getDefaultToolkit()
-                .getSystemClipboard()
-                .setContents(new StringSelection(result.text), null);
-            GuidebookText msg = MODE_BLOCKS.equals(mode) ? GuidebookText.RegionWandCopied
-                : GuidebookText.RegionWandCopiedSnbt;
-            send(player, msg, dx, dy, dz, result.nonAir, result.teCount);
-        } catch (Throwable t) {
-            send(player, GuidebookText.RegionWandCopyFailed, getErrorMessage(t));
+        if (isBlocks) {
+            try {
+                Toolkit.getDefaultToolkit()
+                    .getSystemClipboard()
+                    .setContents(new StringSelection(result.text), null);
+                send(player, GuidebookText.RegionWandCopied, dx, dy, dz, result.nonAir, result.teCount);
+                if (result.entityCount > 0) {
+                    send(player, GuidebookText.RegionWandEntitiesExported, result.entityCount);
+                }
+            } catch (Throwable t) {
+                send(player, GuidebookText.RegionWandCopyFailed, getErrorMessage(t));
+            }
+        } else {
+            try {
+                Path savedPath = GuideStructureFileStore.createDefault()
+                    .saveExport("structure", result.text);
+                send(
+                    player,
+                    GuidebookText.RegionWandSavedSnbt,
+                    dx,
+                    dy,
+                    dz,
+                    result.nonAir,
+                    result.teCount,
+                    savedPath.toAbsolutePath()
+                        .normalize()
+                        .toString());
+                if (result.entityCount > 0) {
+                    send(player, GuidebookText.RegionWandEntitiesExported, result.entityCount);
+                }
+            } catch (Throwable t) {
+                send(player, GuidebookText.RegionWandCopyFailed, getErrorMessage(t));
+            }
         }
     }
 
     public static ExportResult exportBlocks(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+        return exportBlocks(world, minX, minY, minZ, maxX, maxY, maxZ, Collections.emptyList());
+    }
+
+    private static ExportResult exportBlocks(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+        List<Entity> entities) {
         StringBuilder sb = new StringBuilder();
         sb.append("<GameScene zoom={4} interactive={true}>\n");
         int nonAir = 0;
@@ -337,8 +425,64 @@ public class RegionWandItem extends Item {
                 }
             }
         }
+        int entityCount = 0;
+        for (Entity entity : entities) {
+            String entityId;
+            String playerName = null;
+            String dataNbt = null;
+            if (entity instanceof EntityPlayer ep) {
+                entityId = "Player";
+                playerName = ep.getGameProfile()
+                    .getName();
+            } else {
+                entityId = EntityList.getEntityString(entity);
+                if (entityId == null) continue;
+                NBTTagCompound entityNbt = new NBTTagCompound();
+                try {
+                    entity.writeToNBT(entityNbt);
+                } catch (Throwable ignored) {
+                    continue;
+                }
+                entityNbt.removeTag("Pos");
+                entityNbt.removeTag("Motion");
+                entityNbt.removeTag("id");
+                if (!entityNbt.hasNoTags()) {
+                    try {
+                        String s = GuideTextNbtCodec.writeTextSafeCompound(entityNbt);
+                        dataNbt = s.replace("'", "\\'");
+                    } catch (Throwable ignored) {}
+                }
+            }
+            float rx = (float) (entity.posX - minX);
+            float ry = (float) (entity.posY - minY);
+            float rz = (float) (entity.posZ - minZ);
+            sb.append("    <Entity id=\"")
+                .append(entityId)
+                .append('"');
+            if (playerName != null) {
+                sb.append(" name=\"")
+                    .append(playerName)
+                    .append('"');
+            }
+            sb.append(" x=\"")
+                .append(rx)
+                .append('"')
+                .append(" y=\"")
+                .append(ry)
+                .append('"')
+                .append(" z=\"")
+                .append(rz)
+                .append('"');
+            if (dataNbt != null && !dataNbt.isEmpty() && !"{}".equals(dataNbt)) {
+                sb.append(" data='")
+                    .append(dataNbt)
+                    .append('\'');
+            }
+            sb.append(" />\n");
+            entityCount++;
+        }
         sb.append("</GameScene>\n");
-        return new ExportResult(sb.toString(), nonAir, teCount);
+        return new ExportResult(sb.toString(), nonAir, teCount, entityCount);
     }
 
     public static ExportResult exportSnbt(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -346,8 +490,29 @@ public class RegionWandItem extends Item {
         return exportSnbt(new WorldStructureExportAccess(world), minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz);
     }
 
+    private static ExportResult exportSnbt(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+        int dx, int dy, int dz, List<Entity> entities) {
+        return exportSnbt(
+            new WorldStructureExportAccess(world),
+            minX,
+            minY,
+            minZ,
+            maxX,
+            maxY,
+            maxZ,
+            dx,
+            dy,
+            dz,
+            entities);
+    }
+
     public static ExportResult exportSnbt(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
         int maxY, int maxZ, int dx, int dy, int dz) {
+        return exportSnbt(access, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz, Collections.emptyList());
+    }
+
+    private static ExportResult exportSnbt(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
+        int maxY, int maxZ, int dx, int dy, int dz, List<Entity> entities) {
         Map<String, Integer> paletteIndex = new HashMap<>();
         NBTTagList paletteList = new NBTTagList();
         NBTTagList blocksList = new NBTTagList();
@@ -398,7 +563,54 @@ public class RegionWandItem extends Item {
         root.setIntArray("size", new int[] { dx, dy, dz });
         root.setTag("palette", paletteList);
         root.setTag("blocks", blocksList);
-        return new ExportResult(GuideTextNbtCodec.writeStructureSnbt(root), nonAir, teCount);
+        int entityCount = 0;
+        if (!entities.isEmpty()) {
+            NBTTagList entitiesList = new NBTTagList();
+            for (Entity entity : entities) {
+                String entityId;
+                String playerName = null;
+                if (entity instanceof EntityPlayer ep) {
+                    entityId = "Player";
+                    playerName = ep.getGameProfile()
+                        .getName();
+                } else {
+                    entityId = EntityList.getEntityString(entity);
+                    if (entityId == null) continue;
+                }
+                var entry = new NBTTagCompound();
+                entry.setString("id", entityId);
+                entry.setFloat("px", (float) (entity.posX - minX));
+                entry.setFloat("py", (float) (entity.posY - minY));
+                entry.setFloat("pz", (float) (entity.posZ - minZ));
+                // Always store rotation at entry level to avoid NBTTagList<float> round-trip
+                // issues with Minecraft 1.7.10's text NBT parser.
+                entry.setFloat("yaw", entity.rotationYaw);
+                entry.setFloat("pitch", entity.rotationPitch);
+                if (playerName != null) {
+                    entry.setString("name", playerName);
+                }
+                // Write NBT for ALL entities, including players (for held items / equipment).
+                NBTTagCompound entityNbt = new NBTTagCompound();
+                try {
+                    entity.writeToNBT(entityNbt);
+                } catch (Throwable ignored) {
+                    if (playerName == null) continue; // non-player: skip on serialization error
+                }
+                entityNbt.removeTag("Pos");
+                entityNbt.removeTag("Motion");
+                entityNbt.removeTag("id");
+                entityNbt.removeTag("Rotation"); // stored separately as yaw/pitch above
+                if (!entityNbt.hasNoTags()) {
+                    entry.setTag("nbt", entityNbt);
+                }
+                entitiesList.appendTag(entry);
+                entityCount++;
+            }
+            if (entitiesList.tagCount() > 0) {
+                root.setTag("entities", entitiesList);
+            }
+        }
+        return new ExportResult(GuideTextNbtCodec.writeStructureSnbt(root), nonAir, teCount, entityCount);
     }
 
     private interface StructureExportAccess {
@@ -475,7 +687,7 @@ public class RegionWandItem extends Item {
     }
 
     @Desugar
-    private record ExportResult(String text, int nonAir, int teCount) {}
+    private record ExportResult(String text, int nonAir, int teCount, int entityCount) {}
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
