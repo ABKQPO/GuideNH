@@ -41,11 +41,21 @@ public class GuidebookPreviewBlockPlacer {
 
     public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
         @Nullable NBTTagCompound tileTag) {
-        place(level, x, y, z, block, meta, tileTag, null);
+        place(level, x, y, z, block, meta, tileTag, null, null);
     }
 
     public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
         @Nullable NBTTagCompound tileTag, @Nullable String explicitBlockId) {
+        place(level, x, y, z, block, meta, tileTag, explicitBlockId, null);
+    }
+
+    /**
+     * @param structureBlockCompound full SNBT {@code blocks[]} compound (not only TE {@code nbt}); optional sidecars
+     *                                 such as {@link GuideAe2CableSnbt#TAG_ROOT} are read here.
+     */
+    public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
+        @Nullable NBTTagCompound tileTag, @Nullable String explicitBlockId,
+        @Nullable NBTTagCompound structureBlockCompound) {
         NBTTagCompound previewTileTag = sanitizeGregTechInitTag(tileTag);
         PlacementData placementData = resolvePlacementData(block, meta, previewTileTag);
         logPlacementRequest(x, y, z, block, meta, previewTileTag, explicitBlockId, placementData);
@@ -108,6 +118,7 @@ public class GuidebookPreviewBlockPlacer {
             previewTileTag);
         logLoadedTile("post-block-added", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
         level.setExplicitBlockId(x, y, z, explicitBlockId);
+        GuideAe2CableSnbt.applySidecar(level, x, y, z, structureBlockCompound);
     }
 
     public static PlacementData resolvePlacementData(Block block, int requestedMeta, @Nullable NBTTagCompound tileTag) {

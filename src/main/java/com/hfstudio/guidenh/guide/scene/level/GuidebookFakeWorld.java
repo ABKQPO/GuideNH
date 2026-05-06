@@ -212,6 +212,11 @@ public class GuidebookFakeWorld extends WorldClient {
         if (tileEntity == null) {
             return;
         }
+        // AE2 TileCableBus: getDescriptionPacket() encodes live-grid CableBusContainer state. In the guide fake world
+        // the grid is inert, so re-applying that packet would wipe PartCable state patched in Ae2Helpers (channels).
+        if (isAe2TileCableBus(tileEntity)) {
+            return;
+        }
         long guardKey = packBlockPos(x, y, z);
         Set<Long> inProgress = getOrCreateMarkBlockForUpdateGuard();
         if (!inProgress.add(guardKey)) {
@@ -389,12 +394,26 @@ public class GuidebookFakeWorld extends WorldClient {
     }
 
     public static void applyDescriptionPacket(TileEntity tileEntity) {
+        if (tileEntity == null || isAe2TileCableBus(tileEntity)) {
+            return;
+        }
         try {
             Packet packet = tileEntity.getDescriptionPacket();
             if (packet instanceof S35PacketUpdateTileEntity updatePacket) {
                 tileEntity.onDataPacket(null, updatePacket);
             }
         } catch (Throwable ignored) {}
+    }
+
+    private static final String AE2_TILE_CABLE_BUS = "appeng.tile.networking.TileCableBus";
+
+    private static boolean isAe2TileCableBus(TileEntity tileEntity) {
+        for (Class<?> t = tileEntity.getClass(); t != null; t = t.getSuperclass()) {
+            if (AE2_TILE_CABLE_BUS.equals(t.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Set<Long> getOrCreateMarkBlockForUpdateGuard() {

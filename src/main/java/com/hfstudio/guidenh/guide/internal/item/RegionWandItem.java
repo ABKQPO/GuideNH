@@ -24,6 +24,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.GuideNH;
+import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.compat.ae2.Ae2CableStructureSupport;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
@@ -353,6 +355,13 @@ public class RegionWandItem extends Item {
         NBTTagList blocksList = new NBTTagList();
         int nonAir = 0;
         int teCount = 0;
+        Ae2CableStructureSupport.Ae2CableMpSnapshot ae2MpSnap = null;
+        if (Mods.AE2.isModLoaded()) {
+            try {
+                ae2MpSnap = Ae2CableStructureSupport.tryCreateMpSnapshot(access.getExportWorldForAe2(), access::getTileEntity,
+                    minX, minY, minZ, maxX, maxY, maxZ);
+            } catch (Throwable ignored) {}
+        }
         for (int y = minY; y <= maxY; y++) {
             for (int z = minZ; z <= maxZ; z++) {
                 for (int x = minX; x <= maxX; x++) {
@@ -388,6 +397,12 @@ public class RegionWandItem extends Item {
                             teCount++;
                         } catch (Throwable ignored) {}
                     }
+                    if (Mods.AE2.isModLoaded()) {
+                        try {
+                            Ae2CableStructureSupport.attachCableStreamToExport(te, blockTag, access.getExportWorldForAe2(),
+                                ae2MpSnap);
+                        } catch (Throwable ignored) {}
+                    }
                     blocksList.appendTag(blockTag);
                     nonAir++;
                 }
@@ -412,6 +427,12 @@ public class RegionWandItem extends Item {
 
         @Nullable
         String getBlockId(int x, int y, int z, Block block);
+
+        /** Non-null only for real {@link World} exports (wand); null for guidebook-level fake worlds. */
+        @Nullable
+        default World getExportWorldForAe2() {
+            return null;
+        }
     }
 
     public static class WorldStructureExportAccess implements StructureExportAccess {
@@ -440,6 +461,11 @@ public class RegionWandItem extends Item {
         @Override
         public String getBlockId(int x, int y, int z, Block block) {
             return Block.blockRegistry.getNameForObject(block);
+        }
+
+        @Override
+        public World getExportWorldForAe2() {
+            return world;
         }
     }
 

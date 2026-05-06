@@ -19,6 +19,11 @@ public class GuideNhNetwork {
             GuideNhStructureRequestMessage.class,
             1,
             Side.SERVER);
+        CHANNEL.registerMessage(
+            GuideNhAe2CableBatchServerHandler.class,
+            GuideNhAe2CableBatchRequestMessage.class,
+            3,
+            Side.SERVER);
     }
 
     public static SimpleNetworkWrapper channel() {

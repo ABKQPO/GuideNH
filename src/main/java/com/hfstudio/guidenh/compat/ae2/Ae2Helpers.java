@@ -5,6 +5,7 @@ import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.hfstudio.guidenh.guide.scene.level.ExportedAe2CableStream;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 import appeng.api.networking.IGridHost;
@@ -19,19 +20,13 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 /**
- * Public facade for AE2-specific guide preview support. Callers MUST gate every entry
- * point behind {@code Mods.AE2.isModLoaded()} before invoking; the inner
- * {@link Optional.Method} annotations stub the bodies when AE2 is absent so the JVM
- * never resolves the AE2 types referenced here at runtime.
- *
- * <p>
- * Cable connections are computed from the guide level tile layout and applied directly
- * to the center cable part via {@code PartCable.readFromStream}. No AE2 grid nodes,
- * grids, or {@code WorldData} are touched, keeping the guide preview safe to run on
- * the client render thread without corrupting real-world AE2 network state.
- * </p>
+ * AE2 guide preview: merges structure-export cable bytes ({@link ExportedAe2CableStream}) with locally inferred facing
+ * connections so preview geometry matches the guide layout while channel stripes match the exported grid snapshot.
  */
 public final class Ae2Helpers {
+
+    /** Low six bits of PartCable stream {@code cs}: {@link ForgeDirection#VALID_DIRECTIONS} only. */
+    private static final int CS_DIRECTION_MASK = 0x3F;
 
     private Ae2Helpers() {}
 
@@ -48,19 +43,42 @@ public final class Ae2Helpers {
             .syncLoadedTileEntities(level.getTileEntities());
     }
 
-    /**
-     * Determines which sides of this cable bus connect to adjacent {@link IGridHost}
-     * tiles and applies the result to the center {@link PartCable} via
-     * {@code PartCable.readFromStream}, without creating any AE2 grid node or grid
-     * objects.
-     *
-     * <p>
-     * Sides that have a part installed are excluded; those sides are owned by the
-     * installed part and do not represent external cable connections from the center.
-     * </p>
-     */
     @Optional.Method(modid = "appliedenergistics2")
     static void syncCableBusConnections(TileCableBus cableBusTile, GuidebookLevel level) {
+        if (!(cableBusTile.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
+            return;
+        }
+
+        int csDirections = computeCableConnectionMask(cableBusTile, level);
+        ExportedAe2CableStream exported = level.getExportedAe2CableStream(
+            cableBusTile.xCoord,
+            cableBusTile.yCoord,
+            cableBusTile.zCoord);
+
+        int poweredMask = 1 << ForgeDirection.UNKNOWN.ordinal();
+        int csOut;
+        int sideOut;
+        if (exported != null) {
+            csOut = (exported.gridCsUnsigned & ~CS_DIRECTION_MASK) | (csDirections & CS_DIRECTION_MASK);
+            sideOut = exported.sideOut;
+            if (sideOut != 0 && (csOut & poweredMask) == 0) {
+                csOut |= poweredMask;
+            }
+        } else {
+            csOut = csDirections;
+            sideOut = 0;
+        }
+
+        ByteBuf buf = Unpooled.buffer(5);
+        buf.writeByte((byte) csOut);
+        buf.writeInt(sideOut);
+        try {
+            cable.readFromStream(buf);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static int computeCableConnectionMask(TileCableBus cableBusTile, GuidebookLevel level) {
         int x = cableBusTile.xCoord;
         int y = cableBusTile.yCoord;
         int z = cableBusTile.zCoord;
@@ -97,19 +115,7 @@ public final class Ae2Helpers {
             }
             cs |= (1 << dir.ordinal());
         }
-
-        if (!(cableBusTile.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
-            return;
-        }
-
-        // PartCable.readFromStream expects 1 signed byte (connection bitmask) followed by
-        // 4 bytes (channel counts per side, packed 4 bits each).
-        ByteBuf buf = Unpooled.buffer(5);
-        buf.writeByte(cs);
-        buf.writeInt(0);
-        try {
-            cable.readFromStream(buf);
-        } catch (Throwable ignored) {}
+        return cs;
     }
 
     @Optional.Method(modid = "appliedenergistics2")

@@ -40,6 +40,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     private final HashMap<Long, int[]> filledBlocks = new HashMap<>();
     private final HashMap<Long, String> explicitBlockIds = new HashMap<>();
+    /** AE2 cable stream payloads keyed like tiles ({@link #packPos}); cleared when block becomes air. */
+    private final HashMap<Long, ExportedAe2CableStream> exportedAe2CableStreams = new HashMap<>();
 
     // Pre-built unmodifiable views returned every call to avoid per-frame
     // Collections.unmodifiableCollection() wrapper allocation (hot on the render loop).
@@ -112,6 +114,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             filledBlocks.remove(key);
             tileEntities.remove(key);
             explicitBlockIds.remove(key);
+            exportedAe2CableStreams.remove(key);
         } else {
             filledBlocks.put(key, new int[] { x, y, z });
             // For ForgeMultipart tiles, extract the primary microblock material to get a meaningful
@@ -208,6 +211,19 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @Nullable
     public String getExplicitBlockId(int x, int y, int z) {
         return explicitBlockIds.get(packPos(x, y, z));
+    }
+
+    public void putExportedAe2CableStream(int x, int y, int z, byte gridCsSigned, int sideOut) {
+        exportedAe2CableStreams.put(packPos(x, y, z), new ExportedAe2CableStream(gridCsSigned, sideOut));
+    }
+
+    public void removeExportedAe2CableStream(int x, int y, int z) {
+        exportedAe2CableStreams.remove(packPos(x, y, z));
+    }
+
+    @Nullable
+    public ExportedAe2CableStream getExportedAe2CableStream(int x, int y, int z) {
+        return exportedAe2CableStreams.get(packPos(x, y, z));
     }
 
     public boolean isEmpty() {
