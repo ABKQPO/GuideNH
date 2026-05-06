@@ -447,7 +447,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             return;
         }
 
-        LytHeading extracted = extractPageTitleFromDocument();
+        LytHeading extracted = currentPage != null ? currentPage.titleHeading() : null;
 
         if (extracted != null) {
             for (var flowContent : extracted.getContent()) {
@@ -471,33 +471,6 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             currentPageTitle = resolvedTitle;
             pageTitle.appendText(resolvedTitle);
         }
-    }
-
-    /**
-     * Finds the first H1 {@link LytHeading} in the current document, removes it from the
-     * document (so it is not rendered twice inside the content area), and returns the heading
-     * node so its flow content can be used for rich-text rendering. Non-heading blocks are
-     * skipped during the search (matching GuideME behaviour). Returns {@code null} when no
-     * H1 is present.
-     */
-    @Nullable
-    private LytHeading extractPageTitleFromDocument() {
-        if (document == null) {
-            return null;
-        }
-        for (var block : document.getBlocks()) {
-            if (block instanceof LytHeading heading) {
-                if (heading.getDepth() == 1) {
-                    document.removeChild(heading);
-                    return heading;
-                } else {
-                    // Any non-H1 heading stops the search
-                    break;
-                }
-            }
-            // Non-heading blocks are skipped; continue searching
-        }
-        return null;
     }
 
     private int getContentHeight() {

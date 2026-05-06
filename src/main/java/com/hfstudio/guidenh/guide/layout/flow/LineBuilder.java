@@ -198,7 +198,6 @@ class LineBuilder implements Consumer<LytFlowContent> {
     private void iterateRuns(CharSequence text, ResolvedTextStyle style, char lastChar, LineConsumer consumer) {
         float curLineWidth = 0;
 
-        var fontScale = style.fontScale();
         var lineBuffer = new StringBuilder();
 
         boolean lastCharWasWhitespace = Character.isWhitespace(lastChar);
@@ -243,7 +242,7 @@ class LineBuilder implements Consumer<LytFlowContent> {
                 lastCharWasWhitespace = false;
             }
 
-            var advance = context.getAdvance(codePoint, style) * fontScale;
+            var advance = context.getAdvance(codePoint, style);
             // Break line if necessary
             if (curLineWidth + advance > remainingLineWidth) {
                 int precedingBreakOpportunity;
@@ -265,7 +264,7 @@ class LineBuilder implements Consumer<LytFlowContent> {
                     // Determine width up until the break opportunity.
                     var widthAtBreakOpportunity = 0f;
                     for (var j = 0; j < precedingBreakOpportunity; j++) {
-                        widthAtBreakOpportunity += context.getAdvance(lineBuffer.charAt(j), style) * fontScale;
+                        widthAtBreakOpportunity += context.getAdvance(lineBuffer.charAt(j), style);
                     }
 
                     consumer
@@ -275,7 +274,7 @@ class LineBuilder implements Consumer<LytFlowContent> {
                     if (lineBuffer.length() != 0 && Character.isWhitespace(lineBuffer.charAt(0))) {
                         var firstChar = lineBuffer.charAt(0);
                         lineBuffer.deleteCharAt(0);
-                        curLineWidth -= context.getAdvance(firstChar, style) * fontScale;
+                        curLineWidth -= context.getAdvance(firstChar, style);
                     }
                 } else {
                     // We exceeded the line length, but did not find a break opportunity
