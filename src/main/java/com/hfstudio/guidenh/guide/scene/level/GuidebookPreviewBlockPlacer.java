@@ -21,6 +21,8 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
+import com.hfstudio.guidenh.guide.scene.snapshot.ImportBlockContext;
+import com.hfstudio.guidenh.guide.scene.snapshot.StructureImportPipeline;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
@@ -51,7 +53,7 @@ public class GuidebookPreviewBlockPlacer {
 
     /**
      * @param structureBlockCompound full SNBT {@code blocks[]} compound (not only TE {@code nbt}); optional sidecars
-     *                                 such as {@link GuideAe2CableSnbt#TAG_ROOT} are read here.
+     *                                 (e.g. AE2 cable stream tag {@link GuideAe2CableSnbt#TAG_ROOT}) via {@link StructureImportPipeline}.
      */
     public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
         @Nullable NBTTagCompound tileTag, @Nullable String explicitBlockId,
@@ -118,7 +120,7 @@ public class GuidebookPreviewBlockPlacer {
             previewTileTag);
         logLoadedTile("post-block-added", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
         level.setExplicitBlockId(x, y, z, explicitBlockId);
-        GuideAe2CableSnbt.applySidecar(level, x, y, z, structureBlockCompound);
+        StructureImportPipeline.apply(new ImportBlockContext(level, x, y, z, structureBlockCompound));
     }
 
     public static PlacementData resolvePlacementData(Block block, int requestedMeta, @Nullable NBTTagCompound tileTag) {
