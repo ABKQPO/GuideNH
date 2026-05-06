@@ -43,7 +43,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
  * { size: [dx, dy, dz],
  *   palette: [ {Name: "minecraft:stone"}, {Name: "minecraft:chest"}, ... ],
  *   blocks: [ {pos: [rx, ry, rz], state: 0, meta: 0, nbt: {...},
- *              guidenh_ae2CableStream_v1: { cs: 0b, sideOut: 0 } }, ... ] }
+ *              guidenh_server_preview_supplement: { guidenh.ae2.cable_bus: { v: 1, b64: "<payload>" } } }, ... ] }
  * </pre>
  *
  * <p>

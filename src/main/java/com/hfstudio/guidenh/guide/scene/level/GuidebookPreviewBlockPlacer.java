@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.guide.scene.snapshot.ImportBlockContext;
+import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.snapshot.StructureImportPipeline;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -52,8 +53,8 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     /**
-     * @param structureBlockCompound full SNBT {@code blocks[]} compound (not only TE {@code nbt}); optional sidecars
-     *                                 (e.g. AE2 cable stream tag {@link GuideAe2CableSnbt#TAG_ROOT}) via {@link StructureImportPipeline}.
+ * @param structureBlockCompound full SNBT {@code blocks[]} compound (not only TE {@code nbt}); optional
+ *                                 {@link ServerPreviewSupplementNbt#TAG_ROOT} via {@link StructureImportPipeline}.
      */
     public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
         @Nullable NBTTagCompound tileTag, @Nullable String explicitBlockId,

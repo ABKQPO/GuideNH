@@ -24,6 +24,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.distanthorizons.DistantHorizonsCompat;
+import com.hfstudio.guidenh.guide.scene.snapshot.GuidebookPreviewAuthorityStore;
 import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuidePreviewStateSupport;
 
@@ -40,11 +41,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     private final HashMap<Long, int[]> filledBlocks = new HashMap<>();
     private final HashMap<Long, String> explicitBlockIds = new HashMap<>();
-    /** AE2 cable stream payloads keyed like tiles ({@link #packPos}); cleared when block becomes air. */
-    private final HashMap<Long, ExportedAe2CableStream> exportedAe2CableStreams = new HashMap<>();
 
-    /** AE2 cable-bus side {@link appeng.api.parts.IPart#writeToStream} payloads keyed like tiles; cleared with air. */
-    private final HashMap<Long, ExportedAe2CableBusPartStreams> exportedAe2CableBusPartStreams = new HashMap<>();
+    /** Opaque server-authoritative preview blobs per coordinate ({@link #packPos}); cleared when block becomes air. */
+    private final GuidebookPreviewAuthorityStore previewAuthorityStore = new GuidebookPreviewAuthorityStore();
 
     // Pre-built unmodifiable views returned every call to avoid per-frame
     // Collections.unmodifiableCollection() wrapper allocation (hot on the render loop).
@@ -117,8 +116,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             filledBlocks.remove(key);
             tileEntities.remove(key);
             explicitBlockIds.remove(key);
-            exportedAe2CableStreams.remove(key);
-            exportedAe2CableBusPartStreams.remove(key);
+            previewAuthorityStore.clearAt(key);
         } else {
             filledBlocks.put(key, new int[] { x, y, z });
             // For ForgeMultipart tiles, extract the primary microblock material to get a meaningful
@@ -217,34 +215,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         return explicitBlockIds.get(packPos(x, y, z));
     }
 
-    public void putExportedAe2CableStream(int x, int y, int z, byte gridCsSigned, int sideOut) {
-        exportedAe2CableStreams.put(packPos(x, y, z), new ExportedAe2CableStream(gridCsSigned, sideOut));
-    }
-
-    public void removeExportedAe2CableStream(int x, int y, int z) {
-        exportedAe2CableStreams.remove(packPos(x, y, z));
-    }
-
-    @Nullable
-    public ExportedAe2CableStream getExportedAe2CableStream(int x, int y, int z) {
-        return exportedAe2CableStreams.get(packPos(x, y, z));
-    }
-
-    public void putExportedAe2CableBusPartStreams(int x, int y, int z, ExportedAe2CableBusPartStreams streams) {
-        if (streams == null || streams.isEmpty()) {
-            exportedAe2CableBusPartStreams.remove(packPos(x, y, z));
-            return;
-        }
-        exportedAe2CableBusPartStreams.put(packPos(x, y, z), streams);
-    }
-
-    public void removeExportedAe2CableBusPartStreams(int x, int y, int z) {
-        exportedAe2CableBusPartStreams.remove(packPos(x, y, z));
-    }
-
-    @Nullable
-    public ExportedAe2CableBusPartStreams getExportedAe2CableBusPartStreams(int x, int y, int z) {
-        return exportedAe2CableBusPartStreams.get(packPos(x, y, z));
+    public GuidebookPreviewAuthorityStore previewAuthorityStore() {
+        return previewAuthorityStore;
     }
 
     public boolean isEmpty() {

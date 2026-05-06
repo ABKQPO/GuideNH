@@ -55,6 +55,23 @@ public class GuideNhAe2CableBatchReplyMessage implements IMessage {
         return partPacked;
     }
 
+    /** {@code true} when arrays match {@code n} positions from the request. */
+    public boolean isConsistentPayload(int n) {
+        if (n < 0 || n > GuideNhAe2CableBatchRequestMessage.MAX_POSITIONS) {
+            return false;
+        }
+        if (hit == null || cs == null || sideOut == null) {
+            return false;
+        }
+        if (hit.length != n || cs.length != n || sideOut.length != n) {
+            return false;
+        }
+        if (partPacked == null || partPacked.length != n) {
+            return false;
+        }
+        return true;
+    }
+
     @Override
     public void fromBytes(ByteBuf buf) {
         corrId = buf.readLong();

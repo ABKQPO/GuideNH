@@ -6,8 +6,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.scene.level.ExportedAe2CableBusPartStreams;
-
 import appeng.api.parts.IPart;
 import appeng.tile.networking.TileCableBus;
 import cpw.mods.fml.common.Optional;
@@ -15,7 +13,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 /**
- * Packs AE2 cable-bus {@link IPart#writeToStream} bytes per facing ({@code 0}–{@code 5}) for SNBT sidecars and MP batch RPC.
+ * Packs AE2 cable-bus {@link IPart#writeToStream} bytes per facing ({@code 0}–{@code 5}) for preview wire and MP batch.
  */
 public final class Ae2CableBusPartStreamCodec {
 
@@ -25,7 +23,7 @@ public final class Ae2CableBusPartStreamCodec {
     private Ae2CableBusPartStreamCodec() {}
 
     @Optional.Method(modid = "appliedenergistics2")
-    public static ExportedAe2CableBusPartStreams captureFromBus(TileCableBus bus) {
+    public static Ae2CableBusSideStreams captureFromBus(TileCableBus bus) {
         byte[][] slots = new byte[6][];
         for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
             int o = dir.ordinal();
@@ -50,14 +48,14 @@ public final class Ae2CableBusPartStreamCodec {
             pb.readBytes(chunk);
             slots[o] = chunk;
         }
-        return new ExportedAe2CableBusPartStreams(slots);
+        return new Ae2CableBusSideStreams(slots);
     }
 
     /**
      * {@code ushort dirMask} then for each set bit {@code o} in ascending {@code o}: {@code ushort len}, {@code len}
      * bytes.
      */
-    public static byte[] pack(ExportedAe2CableBusPartStreams streams) {
+    public static byte[] pack(Ae2CableBusSideStreams streams) {
         if (streams == null || streams.isEmpty()) {
             return new byte[2];
         }
@@ -87,9 +85,9 @@ public final class Ae2CableBusPartStreamCodec {
         return out;
     }
 
-    public static ExportedAe2CableBusPartStreams unpack(@Nullable byte[] payload) {
+    public static Ae2CableBusSideStreams unpack(@Nullable byte[] payload) {
         if (payload == null || payload.length < 2) {
-            return ExportedAe2CableBusPartStreams.EMPTY;
+            return Ae2CableBusSideStreams.EMPTY;
         }
         ByteBuf buf = Unpooled.wrappedBuffer(payload);
         int mask = buf.readUnsignedShort();
@@ -101,13 +99,16 @@ public final class Ae2CableBusPartStreamCodec {
             }
             int len = buf.readUnsignedShort();
             if (len < 0 || len > MAX_SIDE_PAYLOAD || buf.readableBytes() < len) {
-                break;
+                return Ae2CableBusSideStreams.EMPTY;
             }
             byte[] chunk = new byte[len];
             buf.readBytes(chunk);
             slots[o] = chunk;
             any = true;
         }
-        return any ? new ExportedAe2CableBusPartStreams(slots) : ExportedAe2CableBusPartStreams.EMPTY;
+        if (buf.readableBytes() != 0) {
+            return Ae2CableBusSideStreams.EMPTY;
+        }
+        return any ? new Ae2CableBusSideStreams(slots) : Ae2CableBusSideStreams.EMPTY;
     }
 }

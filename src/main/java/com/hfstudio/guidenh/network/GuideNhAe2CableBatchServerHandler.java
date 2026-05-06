@@ -9,7 +9,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.hfstudio.guidenh.compat.Mods;
 import com.hfstudio.guidenh.compat.ae2.Ae2CableBusPartStreamCodec;
-import com.hfstudio.guidenh.guide.scene.level.ExportedAe2CableBusPartStreams;
+import com.hfstudio.guidenh.compat.ae2.Ae2CableBusSideStreams;
 
 import appeng.parts.networking.PartCable;
 import appeng.tile.networking.TileCableBus;
@@ -56,7 +56,7 @@ public class GuideNhAe2CableBatchServerHandler implements IMessageHandler<GuideN
                 hit[i] = 0;
                 cs[i] = 0;
                 sideOut[i] = 0;
-                partPacked[i] = Ae2CableBusPartStreamCodec.pack(ExportedAe2CableBusPartStreams.EMPTY);
+                partPacked[i] = Ae2CableBusPartStreamCodec.pack(Ae2CableBusSideStreams.EMPTY);
                 continue;
             }
 
@@ -82,7 +82,7 @@ public class GuideNhAe2CableBatchServerHandler implements IMessageHandler<GuideN
                 sideOut[i] = 0;
             }
 
-            ExportedAe2CableBusPartStreams parts = Ae2CableBusPartStreamCodec.captureFromBus(bus);
+            Ae2CableBusSideStreams parts = Ae2CableBusPartStreamCodec.captureFromBus(bus);
             partPacked[i] = Ae2CableBusPartStreamCodec.pack(parts);
         }
 

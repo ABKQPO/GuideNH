@@ -1,20 +1,19 @@
-package com.hfstudio.guidenh.guide.scene.level;
+package com.hfstudio.guidenh.compat.ae2;
 
 import java.util.Arrays;
 
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Per-facing snapshots of AE2 {@link appeng.api.parts.IPart#writeToStream} payloads for a {@link appeng.tile.networking.TileCableBus}
- * side attachment ({@link net.minecraftforge.common.util.ForgeDirection} ordinals {@code 0}–{@code 5}).
+ * Per-facing {@link appeng.api.parts.IPart#writeToStream} payloads for a cable bus (ordinals 0–5).
  */
-public final class ExportedAe2CableBusPartStreams {
+public final class Ae2CableBusSideStreams {
 
-    public static final ExportedAe2CableBusPartStreams EMPTY = new ExportedAe2CableBusPartStreams(new byte[6][]);
+    public static final Ae2CableBusSideStreams EMPTY = new Ae2CableBusSideStreams(new byte[6][]);
 
     private final byte[][] bySideOrdinal;
 
-    public ExportedAe2CableBusPartStreams(byte[][] bySideOrdinal) {
+    public Ae2CableBusSideStreams(byte[][] bySideOrdinal) {
         this.bySideOrdinal = bySideOrdinal != null ? bySideOrdinal : new byte[6][];
     }
 
@@ -46,7 +45,7 @@ public final class ExportedAe2CableBusPartStreams {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ExportedAe2CableBusPartStreams that)) {
+        if (!(o instanceof Ae2CableBusSideStreams that)) {
             return false;
         }
         return Arrays.deepEquals(bySideOrdinal, that.bySideOrdinal);

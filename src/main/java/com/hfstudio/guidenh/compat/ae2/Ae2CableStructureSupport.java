@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
@@ -15,12 +14,12 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.guide.scene.level.ExportedAe2CableBusPartStreams;
-import com.hfstudio.guidenh.guide.scene.level.GuideAe2CableBusPartStreamsSnbt;
-import com.hfstudio.guidenh.guide.scene.level.GuideAe2CableSnbt;
+import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.network.GuideNhAe2CableBatchAwait;
 import com.hfstudio.guidenh.network.GuideNhAe2CableBatchReplyMessage;
 import com.hfstudio.guidenh.network.GuideNhAe2CableBatchRequestMessage;
@@ -33,10 +32,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 /**
- * Captures AE2 {@link PartCable#writeToStream} into structure SNBT ({@link GuideAe2CableSnbt#TAG_ROOT}) and side
- * {@link appeng.api.parts.IPart#writeToStream} payloads ({@link GuideAe2CableBusPartStreamsSnbt#TAG_ROOT}).
+ * Captures AE2 cable-bus preview authority into structure NBT under {@link ServerPreviewSupplementNbt#TAG_ROOT}
+ * ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID}), and optional multiplayer batch fetch.
  */
 public final class Ae2CableStructureSupport {
+
+    private static final Logger LOG = LogManager.getLogger("GuideNH/Ae2Preview");
+
+    private static volatile boolean mpFetchEmptyLogged;
 
     private Ae2CableStructureSupport() {}
 
@@ -46,37 +49,33 @@ public final class Ae2CableStructureSupport {
         TileEntity getTile(int x, int y, int z);
     }
 
+    /** Per-export batch: dim:x:y:z → unified {@link Ae2CablePreviewWireCodec} bytes. */
     public static final class Ae2CableMpSnapshot {
 
-        private final Map<String, int[]> streams;
+        private final Map<String, byte[]> wireByKey;
 
-        private final Map<String, ExportedAe2CableBusPartStreams> partStreams;
+        Ae2CableMpSnapshot(Map<String, byte[]> wireByKey) {
+            this.wireByKey = wireByKey != null ? wireByKey : Collections.emptyMap();
+        }
 
-        Ae2CableMpSnapshot(Map<String, int[]> streams, Map<String, ExportedAe2CableBusPartStreams> partStreams) {
-            this.streams = streams != null ? streams : Collections.emptyMap();
-            this.partStreams = partStreams != null ? partStreams : Collections.emptyMap();
+        public static Ae2CableMpSnapshot empty() {
+            return new Ae2CableMpSnapshot(Collections.emptyMap());
         }
 
         @Nullable
-        public int[] lookup(int dim, int x, int y, int z) {
-            return streams.get(mpKey(dim, x, y, z));
-        }
-
-        @Nullable
-        public ExportedAe2CableBusPartStreams lookupPartStreams(int dim, int x, int y, int z) {
-            return partStreams.get(mpKey(dim, x, y, z));
+        public byte[] lookupWire(int dim, int x, int y, int z) {
+            return wireByKey.get(mpKey(dim, x, y, z));
         }
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    @Nullable
     public static Ae2CableMpSnapshot tryCreateMpSnapshot(@Nullable World exportWorld, ExportTileLookup lookup, int minX,
         int minY, int minZ, int maxX, int maxY, int maxZ) {
         if (!Mods.AE2.isModLoaded() || exportWorld == null || !exportWorld.isRemote || lookup == null) {
-            return null;
+            return Ae2CableMpSnapshot.empty();
         }
         if (!isMultiplayerClientNoIntegratedServer()) {
-            return null;
+            return Ae2CableMpSnapshot.empty();
         }
         int dim = exportWorld.provider.dimensionId;
         List<int[]> coords = new ArrayList<>();
@@ -91,14 +90,13 @@ public final class Ae2CableStructureSupport {
             }
         }
         if (coords.isEmpty()) {
-            return new Ae2CableMpSnapshot(Collections.emptyMap(), Collections.emptyMap());
+            return Ae2CableMpSnapshot.empty();
         }
         return fetchMpStreamsBlocking(dim, coords, 4000L);
     }
 
     private static Ae2CableMpSnapshot fetchMpStreamsBlocking(int dim, List<int[]> coords, long timeoutMsPerBatch) {
-        Map<String, int[]> cableMerged = new HashMap<>();
-        Map<String, ExportedAe2CableBusPartStreams> partMerged = new HashMap<>();
+        Map<String, byte[]> merged = new HashMap<>();
         int max = GuideNhAe2CableBatchRequestMessage.MAX_POSITIONS;
         for (int start = 0; start < coords.size(); start += max) {
             int end = Math.min(coords.size(), start + max);
@@ -110,7 +108,7 @@ public final class Ae2CableStructureSupport {
                 xyz[i * 3 + 1] = p[1];
                 xyz[i * 3 + 2] = p[2];
             }
-            long corr = ThreadLocalRandom.current().nextLong();
+            long corr = java.util.concurrent.ThreadLocalRandom.current().nextLong();
             GuideNhAe2CableBatchAwait.register(corr);
             GuideNhNetwork.channel()
                 .sendToServer(new GuideNhAe2CableBatchRequestMessage(corr, dim, xyz));
@@ -120,40 +118,52 @@ public final class Ae2CableStructureSupport {
             } catch (InterruptedException e) {
                 Thread.currentThread()
                     .interrupt();
-                break;
+                logEmptyFetchOnce();
+                return Ae2CableMpSnapshot.empty();
             }
-            if (reply == null) {
-                break;
+            if (reply == null || !reply.isConsistentPayload(n)) {
+                logEmptyFetchOnce();
+                return Ae2CableMpSnapshot.empty();
             }
             byte[] hit = reply.getHit();
             byte[] cs = reply.getCs();
             int[] sideOut = reply.getSideOut();
             byte[][] partPacked = reply.getPartPacked();
-            if (hit == null || cs == null || sideOut == null || hit.length != n) {
-                break;
-            }
             for (int i = 0; i < n; i++) {
                 int[] p = coords.get(start + i);
                 String key = mpKey(dim, p[0], p[1], p[2]);
-                if (hit[i] != 0) {
-                    cableMerged.put(key, new int[] { cs[i] & 0xFF, sideOut[i] });
-                }
-                if (partPacked != null && i < partPacked.length && partPacked[i] != null && partPacked[i].length >= 2) {
-                    ExportedAe2CableBusPartStreams ps = Ae2CableBusPartStreamCodec.unpack(partPacked[i]);
-                    if (!ps.isEmpty()) {
-                        partMerged.put(key, ps);
-                    }
+                Ae2CableBusSideStreams sides = Ae2CableBusPartStreamCodec.unpack(partPackedSafe(partPacked, i));
+                boolean cableHit = hit[i] != 0;
+                int csUnsigned = cs[i] & 0xFF;
+                int sideO = sideOut[i];
+                Ae2CablePreviewSnapshot snap = new Ae2CablePreviewSnapshot(cableHit, csUnsigned, sideO, sides);
+                byte[] wire = Ae2CablePreviewWireCodec.encode(snap);
+                if (wire.length > 0) {
+                    merged.put(key, wire);
                 }
             }
         }
-        return new Ae2CableMpSnapshot(cableMerged, partMerged);
+        return new Ae2CableMpSnapshot(merged);
+    }
+
+    private static void logEmptyFetchOnce() {
+        if (!mpFetchEmptyLogged) {
+            mpFetchEmptyLogged = true;
+            LOG.info("AE2 preview MP batch unavailable or malformed; exporting cable supplements from local/client only.");
+        }
+    }
+
+    private static byte[] partPackedSafe(@Nullable byte[][] partPacked, int i) {
+        if (partPacked == null || i < 0 || i >= partPacked.length) {
+            return new byte[0];
+        }
+        return partPacked[i] != null ? partPacked[i] : new byte[0];
     }
 
     private static String mpKey(int dim, int x, int y, int z) {
         return dim + ":" + x + ":" + y + ":" + z;
     }
 
-    /** {@code true} when {@code Minecraft.theIntegratedServer == null} (remote server client). */
     private static boolean isMultiplayerClientNoIntegratedServer() {
         try {
             Class<?> mcCls = Class.forName("net.minecraft.client.Minecraft");
@@ -187,56 +197,50 @@ public final class Ae2CableStructureSupport {
         int wz = tileEntity.zCoord;
         int dim = exportWorldForAe2 != null ? exportWorldForAe2.provider.dimensionId : Integer.MIN_VALUE;
 
+        Ae2CablePreviewSnapshot local = captureSnapshotFromWorldTile(tileEntity, exportWorldForAe2);
+        byte[] rpcWire = null;
         if (mpSnapshot != null && exportWorldForAe2 != null) {
-            int[] rpc = mpSnapshot.lookup(dim, wx, wy, wz);
-            ExportedAe2CableBusPartStreams rpcParts = mpSnapshot.lookupPartStreams(dim, wx, wy, wz);
-            if (rpc != null && rpc.length >= 2) {
-                applyTag(structureBlockTag, (byte) rpc[0], rpc[1]);
-            }
-            if (rpcParts != null && !rpcParts.isEmpty()) {
-                GuideAe2CableBusPartStreamsSnbt.writeToStructureBlock(structureBlockTag, rpcParts);
-            }
-            return;
+            rpcWire = mpSnapshot.lookupWire(dim, wx, wy, wz);
         }
-
-        TileEntity workTe = resolveServerCableBusTile(tileEntity, exportWorldForAe2);
-
-        if (!(workTe instanceof TileCableBus resolvedBus)) {
-            return;
-        }
-        attachCableAndSidePartStreamsLocal(resolvedBus, structureBlockTag);
+        Ae2CablePreviewSnapshot chosen = Ae2CablePreviewSnapshot.mergePreferring(
+            rpcWire != null && rpcWire.length > 0 ? Ae2CablePreviewWireCodec.decode(rpcWire) : null,
+            local);
+        writeSnapshotToStructure(structureBlockTag, chosen);
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static void attachCableAndSidePartStreamsLocal(TileCableBus resolvedBus,
-        NBTTagCompound structureBlockTag) {
-        ExportedAe2CableBusPartStreams parts = Ae2CableBusPartStreamCodec.captureFromBus(resolvedBus);
-        if (!parts.isEmpty()) {
-            GuideAe2CableBusPartStreamsSnbt.writeToStructureBlock(structureBlockTag, parts);
+    @Nullable
+    private static Ae2CablePreviewSnapshot captureSnapshotFromWorldTile(TileEntity tileEntity,
+        @Nullable World exportWorldForAe2) {
+        TileEntity workTe = resolveServerCableBusTile(tileEntity, exportWorldForAe2);
+        if (!(workTe instanceof TileCableBus resolvedBus)) {
+            return null;
         }
+        Ae2CableBusSideStreams parts = Ae2CableBusPartStreamCodec.captureFromBus(resolvedBus);
         if (!(resolvedBus.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
-            return;
+            return parts.isEmpty() ? null : new Ae2CablePreviewSnapshot(false, 0, 0, parts);
         }
-
         ByteBuf buf = Unpooled.buffer(5);
         try {
             cable.writeToStream(buf);
         } catch (IOException ignored) {
-            return;
+            return parts.isEmpty() ? null : new Ae2CablePreviewSnapshot(false, 0, 0, parts);
         }
         if (buf.readableBytes() < 5) {
-            return;
+            return parts.isEmpty() ? null : new Ae2CablePreviewSnapshot(false, 0, 0, parts);
         }
         byte cs = buf.readByte();
         int sideOut = buf.readInt();
-        applyTag(structureBlockTag, cs, sideOut);
+        return new Ae2CablePreviewSnapshot(true, cs & 0xFF, sideOut, parts);
     }
 
-    private static void applyTag(NBTTagCompound structureBlockTag, byte cs, int sideOut) {
-        NBTTagCompound ext = new NBTTagCompound();
-        ext.setInteger(GuideAe2CableSnbt.KEY_CS, cs & 0xFF);
-        ext.setInteger(GuideAe2CableSnbt.KEY_SIDE_OUT, sideOut);
-        structureBlockTag.setTag(GuideAe2CableSnbt.TAG_ROOT, ext);
+    private static void writeSnapshotToStructure(NBTTagCompound structureBlockTag, @Nullable Ae2CablePreviewSnapshot snap) {
+        if (snap == null || snap.isEffectivelyEmpty()) {
+            ServerPreviewSupplementNbt.removeSupplement(structureBlockTag, Ae2ServerPreviewRegistration.SUPPLEMENT_ID);
+            return;
+        }
+        byte[] wire = Ae2CablePreviewWireCodec.encode(snap);
+        ServerPreviewSupplementNbt.putSupplement(structureBlockTag, Ae2ServerPreviewRegistration.SUPPLEMENT_ID, wire);
     }
 
     private static TileEntity resolveServerCableBusTile(TileEntity clientTe, @Nullable World exportWorld) {
