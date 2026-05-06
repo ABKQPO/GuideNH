@@ -126,30 +126,37 @@ public class StructureLibTooltipContentBuilder {
         if (hintDot <= 0) {
             return HINT_DOT_COLORS[0];
         }
-        return HINT_DOT_COLORS[(hintDot - 1) % HINT_DOT_COLORS.length];
+        return HINT_DOT_COLORS[hintDot % HINT_DOT_COLORS.length];
+    }
+
+    public static int resolveHatchOverlayArgb(StructureLibSceneMetadata.BlockTooltipData data) {
+        for (StructureLibHatchDescriptionLine line : data.getHatchDescriptionLines()) {
+            if (line.getKind() == StructureLibHatchDescriptionLine.Kind.HINT_BLOCK && line.getHintDot() > 0) {
+                return (0x96 << 24) | (resolveHintDotColor(line.getHintDot()) & 0x00FFFFFF);
+            }
+        }
+        return 0x96D9B44A;
     }
 
     public static void appendCandidateGrid(LytVBox root, List<ItemStack> candidates) {
         if (candidates.isEmpty()) {
             return;
         }
-        int columns = Math.max(1, resolveCandidateColumns());
-        int width = Math.min(columns, candidates.size());
-        int height = (candidates.size() + width - 1) / width;
+        int maxCount = Math.max(0, ModConfig.ui.sceneStructureLibCandidateMaxCount);
+        boolean truncated = maxCount > 0 && candidates.size() > maxCount;
+        List<ItemStack> displayed = truncated ? candidates.subList(0, maxCount) : candidates;
+        int columns = Math.max(1, ModConfig.ui.sceneStructureLibCandidateColumns);
+        int width = Math.min(columns, displayed.size());
+        int height = (displayed.size() + width - 1) / width;
         LytSlotGrid grid = new LytSlotGrid(width, height);
         grid.setRenderEmptySlots(false);
         grid.setRenderSlotBackground(false);
-        for (int i = 0; i < candidates.size(); i++) {
-            grid.setItem(i % width, i / width, candidates.get(i));
+        for (int i = 0; i < displayed.size(); i++) {
+            grid.setItem(i % width, i / width, displayed.get(i));
         }
         root.append(grid);
-    }
-
-    public static int resolveCandidateColumns() {
-        try {
-            return ModConfig.ui.sceneStructureLibCandidateColumns;
-        } catch (Throwable ignored) {
-            return DEFAULT_CANDIDATE_COLUMNS;
+        if (truncated) {
+            root.append(LytParagraph.of("..."));
         }
     }
 

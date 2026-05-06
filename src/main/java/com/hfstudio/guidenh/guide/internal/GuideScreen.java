@@ -4,10 +4,13 @@ import java.awt.Desktop;
 import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
@@ -28,6 +31,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
@@ -49,6 +53,7 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
@@ -164,6 +169,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Nullable
     private URI pendingExternalUri;
+
+    private final Set<LytGuidebookScene> registeredScenes = Collections.newSetFromMap(new IdentityHashMap<>());
 
     public static class SceneButtonHit {
 
@@ -414,6 +421,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             }
             if (currentPage != null) {
                 document = currentPage.document();
+                registerPageScenes();
             } else {
                 document = null;
             }
@@ -421,6 +429,28 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         refreshCurrentPageTitle();
         scrollY = 0;
         updateToolbarButtonState();
+    }
+
+    private void registerPageScenes() {
+        if (currentPage == null) return;
+        var scenes = currentPage.scenes();
+        for (int i = 0; i < scenes.size(); i++) {
+            var scene = scenes.get(i);
+            if (!registeredScenes.add(scene)) continue;
+            var level = scene.getLevel();
+            if (level.isEmpty()) continue;
+            int[] bounds = level.getBounds();
+            int sizeX = bounds[3] - bounds[0] + 1;
+            int sizeY = bounds[4] - bounds[1] + 1;
+            int sizeZ = bounds[5] - bounds[2] + 1;
+            String label = currentAnchor != null ? currentAnchor.pageId() + "#" + i : "scene#" + i;
+            String structureText = RegionWandItem
+                .exportRegionAsStructureSnbt(level, bounds[0], bounds[1], bounds[2], sizeX, sizeY, sizeZ);
+            if (structureText != null) {
+                GuideNhClientBridgeController.getInstance()
+                    .rememberScene(label, structureText);
+            }
+        }
     }
 
     private void ensureLayout() {
@@ -760,15 +790,17 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (y + h + pad > this.height) y = this.height - h - pad;
         if (y - pad < 0) y = pad;
 
-        // Vanilla-style tooltip background and border
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        this.zLevel = 300.0F;
+        this.itemRender.zLevel = 300.0F;
         int ctBgColor = 0xF0100010;
         int ctBorderTop = 0x505000FF;
         int ctBorderBottom = 0x5028007F;
-        drawRect(x - pad, y - pad, x + w + pad, y + h + pad, ctBgColor);
-        drawRect(x - pad, y - pad - 1, x + w + pad, y - pad, ctBgColor);
-        drawRect(x - pad, y + h + pad, x + w + pad, y + h + pad + 1, ctBgColor);
-        drawRect(x - pad - 1, y - pad, x - pad, y + h + pad, ctBgColor);
-        drawRect(x + w + pad, y - pad, x + w + pad + 1, y + h + pad, ctBgColor);
+        drawGradientRect(x - pad, y - pad, x + w + pad, y + h + pad, ctBgColor, ctBgColor);
+        drawGradientRect(x - pad, y - pad - 1, x + w + pad, y - pad, ctBgColor, ctBgColor);
+        drawGradientRect(x - pad, y + h + pad, x + w + pad, y + h + pad + 1, ctBgColor, ctBgColor);
+        drawGradientRect(x - pad - 1, y - pad, x - pad, y + h + pad, ctBgColor, ctBgColor);
+        drawGradientRect(x + w + pad, y - pad, x + w + pad + 1, y + h + pad, ctBgColor, ctBgColor);
         drawGradientRect(x - pad, y - pad, x + w + pad, y - pad + 1, ctBorderTop, ctBorderTop);
         drawGradientRect(x - pad, y + h + pad - 1, x + w + pad, y + h + pad, ctBorderBottom, ctBorderBottom);
         drawGradientRect(x - pad, y - pad + 1, x - pad + 1, y + h + pad - 1, ctBorderTop, ctBorderBottom);
@@ -791,13 +823,15 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         } finally {
             GL11.glPopMatrix();
             ctx.restoreExternalRenderState();
+            this.zLevel = 0.0F;
+            this.itemRender.zLevel = 0.0F;
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
         }
     }
 
     private void drawTooltipText(String text, int mouseX, int mouseY) {
         FontRenderer fr = mc.fontRenderer;
         String norm = (text.indexOf('\\') >= 0) ? text.replace("\\n", "\n") : text;
-        int pad = 3;
         int hardMaxWidth = Math.max(40, this.width - 24);
         int preferredWrapWidth = Math.max(80, this.width / 2);
         int wrapWidth = Math.min(hardMaxWidth, preferredWrapWidth);
@@ -813,39 +847,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             }
             lines.addAll(fr.listFormattedStringToWidth(rawLine, wrapWidth));
         }
-        int tw = 0;
-        for (String ln : lines) tw = Math.max(tw, fr.getStringWidth(ln));
-        int th = lines.size() * (fr.FONT_HEIGHT + 1) - 1;
-        int x = mouseX + 12;
-        int y = mouseY - 12;
-        if (x + tw + pad > this.width) {
-            x = mouseX - tw - 12;
-        }
-        if (x - pad < 0) x = pad;
-        if (y + th + pad > this.height) {
-            y = this.height - th - pad;
-        }
-        if (y - pad < 0) y = pad;
-
-        // Vanilla-style tooltip background and border
-        int bgColor = 0xF0100010;
-        int borderTop = 0x505000FF;
-        int borderBottom = 0x5028007F;
-        drawRect(x - pad, y - pad, x + tw + pad, y + th + pad, bgColor);
-        drawRect(x - pad, y - pad - 1, x + tw + pad, y - pad, bgColor);
-        drawRect(x - pad, y + th + pad, x + tw + pad, y + th + pad + 1, bgColor);
-        drawRect(x - pad - 1, y - pad, x - pad, y + th + pad, bgColor);
-        drawRect(x + tw + pad, y - pad, x + tw + pad + 1, y + th + pad, bgColor);
-        drawGradientRect(x - pad, y - pad, x + tw + pad, y - pad + 1, borderTop, borderTop);
-        drawGradientRect(x - pad, y + th + pad - 1, x + tw + pad, y + th + pad, borderBottom, borderBottom);
-        drawGradientRect(x - pad, y - pad + 1, x - pad + 1, y + th + pad - 1, borderTop, borderBottom);
-        drawGradientRect(x + tw + pad - 1, y - pad + 1, x + tw + pad, y + th + pad - 1, borderTop, borderBottom);
-
-        int ly = y;
-        for (String ln : lines) {
-            fr.drawStringWithShadow(ln, x, ly, 0xFFFFFFFF);
-            ly += fr.FONT_HEIGHT + 1;
-        }
+        drawHoveringText(lines, mouseX, mouseY, fr);
     }
 
     private void renderDocument(int mouseX, int mouseY) {
@@ -1524,6 +1526,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         cachedTitleViewport = null;
         history.clear();
         forwardHistory.clear();
+        registeredScenes.clear();
     }
 
     @Override

@@ -95,7 +95,12 @@ public class ModConfig {
         public boolean sceneEditorMarkdownWrapEnabled = true;
 
         @Comment("Maximum item columns per row when showing StructureLib block candidates in tooltips.")
-        public int sceneStructureLibCandidateColumns = 6;
+        public int sceneStructureLibCandidateColumns = 10;
+
+        @Comment("Maximum number of StructureLib block candidates shown per candidate grid in tooltips. "
+            + "Candidates beyond this limit are hidden and an ellipsis '...' is appended instead. "
+            + "Set to 0 to disable the limit. Default: 40.")
+        public int sceneStructureLibCandidateMaxCount = 40;
 
         @Comment("Whether 3D scene previews show the layer slider by default. "
             + "This can still be enabled per-scene from markdown. Default: true.")

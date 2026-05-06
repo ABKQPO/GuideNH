@@ -131,7 +131,7 @@ public class LytGuidebookScene extends LytBlock {
     private final Vector3f projectedLineToScratch = new Vector3f();
     private final float[] pickRayScratch = new float[6];
     private final ConstantColor hoverBoxColor = new ConstantColor(0xFFFFFFFF);
-    private final ConstantColor structureLibHatchOverlayColor = new ConstantColor(0x66D9B44A);
+
     private final ConstantColor originXAxisColor = new ConstantColor(ORIGIN_X_AXIS_COLOR);
     private final ConstantColor originYAxisColor = new ConstantColor(ORIGIN_Y_AXIS_COLOR);
     private final ConstantColor originZAxisColor = new ConstantColor(ORIGIN_Z_AXIS_COLOR);
@@ -1766,8 +1766,9 @@ public class LytGuidebookScene extends LytBlock {
                 entry.getX(),
                 entry.getY(),
                 entry.getZ(),
-                structureLibHatchOverlayColor,
+                new ConstantColor(StructureLibTooltipContentBuilder.resolveHatchOverlayArgb(entry.getTooltipData())),
                 structureLibSceneMetadata.getHatchTooltipPositions());
+            overlay.setAlwaysOnTop(true);
             overlay.setHovered(
                 hoveredStructureLibHatch != null && hoveredStructureLibHatch[0] == entry.getX()
                     && hoveredStructureLibHatch[1] == entry.getY()

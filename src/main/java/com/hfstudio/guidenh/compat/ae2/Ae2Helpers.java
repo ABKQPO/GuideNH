@@ -17,6 +17,7 @@ import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
 import appeng.parts.networking.PartCable;
 import appeng.tile.AEBaseTile;
+import appeng.tile.crafting.TileCraftingTile;
 import appeng.tile.networking.TileCableBus;
 import cpw.mods.fml.common.Optional;
 import io.netty.buffer.ByteBuf;
@@ -64,7 +65,9 @@ public final class Ae2Helpers {
     @Optional.Method(modid = "appliedenergistics2")
     public static void prepare(GuidebookLevel level) {
         for (TileEntity te : level.getTileEntities()) {
-            if (te instanceof AEBaseTile aeTile && !(te instanceof TileCableBus)) {
+            if (te instanceof TileCraftingTile craftingTile) {
+                initCraftingTileValidSides(craftingTile);
+            } else if (te instanceof AEBaseTile aeTile && !(te instanceof TileCableBus)) {
                 initProxyOrientedValidSides(aeTile);
             }
         }
@@ -78,6 +81,13 @@ public final class Ae2Helpers {
         }
         level.getOrCreateFakeWorld()
             .syncLoadedTileEntities(level.getTileEntities());
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static void initCraftingTileValidSides(TileCraftingTile craftingTile) {
+        try {
+            craftingTile.updateMeta(true);
+        } catch (Throwable ignored) {}
     }
 
     @Optional.Method(modid = "appliedenergistics2")

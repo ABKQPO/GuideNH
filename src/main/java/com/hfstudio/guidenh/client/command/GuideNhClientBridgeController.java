@@ -82,6 +82,16 @@ public class GuideNhClientBridgeController {
             .sendToServer(GuideNhStructureRequestMessage.placeAll(x, y, z));
     }
 
+    public void rememberScene(String label, String structureText) {
+        try {
+            var entry = GuideNhStructureRuntime.getClientMemoryStore()
+                .remember(label, structureText);
+            syncEntryToServerIfAvailable(entry);
+        } catch (Exception e) {
+            // Silently ignore parse failures for auto-registered scenes
+        }
+    }
+
     public void onServerHello() {
         GuideNhStructureRuntime.setServerStructureCommandsAvailable(true);
         GuideNhStructureRuntime.setClientStructureSyncNeeded(true);

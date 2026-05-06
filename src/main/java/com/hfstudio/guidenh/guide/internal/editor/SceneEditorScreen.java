@@ -1317,13 +1317,75 @@ public class SceneEditorScreen extends GuiScreen {
             tooltipY = pad;
         }
 
-        drawRect(
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        this.zLevel = 300.0F;
+        this.itemRender.zLevel = 300.0F;
+        int bgColor = 0xF0100010;
+        int borderTop = 0x505000FF;
+        int borderBottom = 0x5028007F;
+        drawGradientRect(
             tooltipX - pad,
             tooltipY - pad,
             tooltipX + tooltipWidth + pad,
             tooltipY + tooltipHeight + pad,
-            0xF0100010);
-        drawBorder(tooltipX - pad, tooltipY - pad, tooltipWidth + pad * 2, tooltipHeight + pad * 2, 0xFF5000FF);
+            bgColor,
+            bgColor);
+        drawGradientRect(
+            tooltipX - pad,
+            tooltipY - pad - 1,
+            tooltipX + tooltipWidth + pad,
+            tooltipY - pad,
+            bgColor,
+            bgColor);
+        drawGradientRect(
+            tooltipX - pad,
+            tooltipY + tooltipHeight + pad,
+            tooltipX + tooltipWidth + pad,
+            tooltipY + tooltipHeight + pad + 1,
+            bgColor,
+            bgColor);
+        drawGradientRect(
+            tooltipX - pad - 1,
+            tooltipY - pad,
+            tooltipX - pad,
+            tooltipY + tooltipHeight + pad,
+            bgColor,
+            bgColor);
+        drawGradientRect(
+            tooltipX + tooltipWidth + pad,
+            tooltipY - pad,
+            tooltipX + tooltipWidth + pad + 1,
+            tooltipY + tooltipHeight + pad,
+            bgColor,
+            bgColor);
+        drawGradientRect(
+            tooltipX - pad,
+            tooltipY - pad,
+            tooltipX + tooltipWidth + pad,
+            tooltipY - pad + 1,
+            borderTop,
+            borderTop);
+        drawGradientRect(
+            tooltipX - pad,
+            tooltipY + tooltipHeight + pad - 1,
+            tooltipX + tooltipWidth + pad,
+            tooltipY + tooltipHeight + pad,
+            borderBottom,
+            borderBottom);
+        drawGradientRect(
+            tooltipX - pad,
+            tooltipY - pad + 1,
+            tooltipX - pad + 1,
+            tooltipY + tooltipHeight + pad - 1,
+            borderTop,
+            borderBottom);
+        drawGradientRect(
+            tooltipX + tooltipWidth + pad - 1,
+            tooltipY - pad + 1,
+            tooltipX + tooltipWidth + pad,
+            tooltipY + tooltipHeight + pad - 1,
+            borderTop,
+            borderBottom);
 
         previewTooltipRenderContext.setLightDarkMode(LightDarkMode.LIGHT_MODE);
         previewTooltipRenderContext.setViewport(new LytRect(0, 0, tooltipWidth, tooltipHeight));
@@ -1340,13 +1402,15 @@ public class SceneEditorScreen extends GuiScreen {
             // Keep preview hover robust even if rich tooltip content fails.
         } finally {
             GL11.glPopMatrix();
+            this.zLevel = 0.0F;
+            this.itemRender.zLevel = 0.0F;
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
         }
     }
 
     private void drawPreviewTooltipText(String text, int mouseX, int mouseY) {
         FontRenderer fontRenderer = mc.fontRenderer;
         String normalizedText = text.indexOf('\\') >= 0 ? text.replace("\\n", "\n") : text;
-        int pad = 3;
         int hardMaxWidth = Math.max(40, this.width - 24);
         int preferredWrapWidth = Math.max(80, this.width / 2);
         int wrapWidth = Math.min(hardMaxWidth, preferredWrapWidth);
@@ -1362,39 +1426,7 @@ public class SceneEditorScreen extends GuiScreen {
             }
             lines.addAll(fontRenderer.listFormattedStringToWidth(rawLine, wrapWidth));
         }
-
-        int tooltipWidth = 0;
-        for (String line : lines) {
-            tooltipWidth = Math.max(tooltipWidth, fontRenderer.getStringWidth(line));
-        }
-        int tooltipHeight = lines.size() * (fontRenderer.FONT_HEIGHT + 1) - 1;
-        int tooltipX = mouseX + 12;
-        int tooltipY = mouseY - 12;
-        if (tooltipX + tooltipWidth + pad > this.width) {
-            tooltipX = mouseX - tooltipWidth - 12;
-        }
-        if (tooltipX - pad < 0) {
-            tooltipX = pad;
-        }
-        if (tooltipY + tooltipHeight + pad > this.height) {
-            tooltipY = this.height - tooltipHeight - pad;
-        }
-        if (tooltipY - pad < 0) {
-            tooltipY = pad;
-        }
-
-        drawRect(
-            tooltipX - pad,
-            tooltipY - pad,
-            tooltipX + tooltipWidth + pad,
-            tooltipY + tooltipHeight + pad,
-            0xF0100010);
-        drawBorder(tooltipX - pad, tooltipY - pad, tooltipWidth + pad * 2, tooltipHeight + pad * 2, 0xFF5000FF);
-        int lineY = tooltipY;
-        for (String line : lines) {
-            fontRenderer.drawStringWithShadow(line, tooltipX, lineY, 0xFFFFFFFF);
-            lineY += fontRenderer.FONT_HEIGHT + 1;
-        }
+        drawHoveringText(lines, mouseX, mouseY, fontRenderer);
     }
 
     private void drawPreviewFrameOverlay() {
