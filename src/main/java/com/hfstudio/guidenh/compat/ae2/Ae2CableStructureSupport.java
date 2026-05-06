@@ -108,7 +108,8 @@ public final class Ae2CableStructureSupport {
                 xyz[i * 3 + 1] = p[1];
                 xyz[i * 3 + 2] = p[2];
             }
-            long corr = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+            long corr = java.util.concurrent.ThreadLocalRandom.current()
+                .nextLong();
             GuideNhAe2CableBatchAwait.register(corr);
             GuideNhNetwork.channel()
                 .sendToServer(new GuideNhAe2CableBatchRequestMessage(corr, dim, xyz));
@@ -149,7 +150,8 @@ public final class Ae2CableStructureSupport {
     private static void logEmptyFetchOnce() {
         if (!mpFetchEmptyLogged) {
             mpFetchEmptyLogged = true;
-            LOG.info("AE2 preview MP batch unavailable or malformed; exporting cable supplements from local/client only.");
+            LOG.info(
+                "AE2 preview MP batch unavailable or malformed; exporting cable supplements from local/client only.");
         }
     }
 
@@ -167,8 +169,10 @@ public final class Ae2CableStructureSupport {
     private static boolean isMultiplayerClientNoIntegratedServer() {
         try {
             Class<?> mcCls = Class.forName("net.minecraft.client.Minecraft");
-            Object mc = mcCls.getMethod("getMinecraft").invoke(null);
-            Object integrated = mcCls.getField("theIntegratedServer").get(mc);
+            Object mc = mcCls.getMethod("getMinecraft")
+                .invoke(null);
+            Object integrated = mcCls.getField("theIntegratedServer")
+                .get(mc);
             return integrated == null;
         } catch (Throwable ignored) {
             return false;
@@ -184,8 +188,10 @@ public final class Ae2CableStructureSupport {
     static WorldServer tryIntegratedServerWorld(int dim) {
         try {
             Class<?> mcCls = Class.forName("net.minecraft.client.Minecraft");
-            Object mc = mcCls.getMethod("getMinecraft").invoke(null);
-            Object integratedObj = mcCls.getField("theIntegratedServer").get(mc);
+            Object mc = mcCls.getMethod("getMinecraft")
+                .invoke(null);
+            Object integratedObj = mcCls.getField("theIntegratedServer")
+                .get(mc);
             if (integratedObj instanceof MinecraftServer) {
                 MinecraftServer isrv = (MinecraftServer) integratedObj;
                 WorldServer sw = isrv.worldServerForDimension(dim);
@@ -263,7 +269,8 @@ public final class Ae2CableStructureSupport {
         return new Ae2CablePreviewSnapshot(true, cs & 0xFF, sideOut, parts);
     }
 
-    private static void writeSnapshotToStructure(NBTTagCompound structureBlockTag, @Nullable Ae2CablePreviewSnapshot snap) {
+    private static void writeSnapshotToStructure(NBTTagCompound structureBlockTag,
+        @Nullable Ae2CablePreviewSnapshot snap) {
         if (snap == null || snap.isEffectivelyEmpty()) {
             ServerPreviewSupplementNbt.removeSupplement(structureBlockTag, Ae2ServerPreviewRegistration.SUPPLEMENT_ID);
             return;

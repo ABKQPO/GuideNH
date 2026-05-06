@@ -53,8 +53,8 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     /**
- * @param structureBlockCompound full SNBT {@code blocks[]} compound (not only TE {@code nbt}); optional
- *                                 {@link ServerPreviewSupplementNbt#TAG_ROOT} via {@link StructureImportPipeline}.
+     * @param structureBlockCompound full SNBT {@code blocks[]} compound (not only TE {@code nbt}); optional
+     *                               {@link ServerPreviewSupplementNbt#TAG_ROOT} via {@link StructureImportPipeline}.
      */
     public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
         @Nullable NBTTagCompound tileTag, @Nullable String explicitBlockId,

@@ -25,7 +25,11 @@ public final class StructureExportPipeline {
             try {
                 c.beginExport(session);
             } catch (Throwable t) {
-                LOG.warn("Structure export beginExport failed: {}", c.getClass().getName(), t);
+                LOG.warn(
+                    "Structure export beginExport failed: {}",
+                    c.getClass()
+                        .getName(),
+                    t);
             }
         }
     }
@@ -35,7 +39,11 @@ public final class StructureExportPipeline {
             try {
                 c.contributeBlock(ctx);
             } catch (Throwable t) {
-                LOG.warn("Structure export contributeBlock failed: {}", c.getClass().getName(), t);
+                LOG.warn(
+                    "Structure export contributeBlock failed: {}",
+                    c.getClass()
+                        .getName(),
+                    t);
             }
         }
     }
@@ -45,7 +53,11 @@ public final class StructureExportPipeline {
             try {
                 c.endExport(session);
             } catch (Throwable t) {
-                LOG.warn("Structure export endExport failed: {}", c.getClass().getName(), t);
+                LOG.warn(
+                    "Structure export endExport failed: {}",
+                    c.getClass()
+                        .getName(),
+                    t);
             }
         }
     }

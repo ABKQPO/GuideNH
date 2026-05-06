@@ -396,7 +396,8 @@ public class RegionWandItem extends Item {
                             teCount++;
                         } catch (Throwable ignored) {}
                     }
-                    StructureExportPipeline.contributeBlock(new ExportBlockContext(exportSession, x, y, z, block, meta, te, blockTag));
+                    StructureExportPipeline
+                        .contributeBlock(new ExportBlockContext(exportSession, x, y, z, block, meta, te, blockTag));
                     blocksList.appendTag(blockTag);
                     nonAir++;
                 }

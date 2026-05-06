@@ -12,10 +12,12 @@ public final class ServerPreviewSupplementRegistry {
 
     private static final List<RegisteredServerPreviewSupplement> ENTRIES = new CopyOnWriteArrayList<>();
 
-    private static final Comparator<RegisteredServerPreviewSupplement> ENTRY_ORDER =
-        Comparator.comparingInt((RegisteredServerPreviewSupplement e) -> e.snippetCodec()
-            .priority())
-            .thenComparing(e -> e.snippetCodec()
+    private static final Comparator<RegisteredServerPreviewSupplement> ENTRY_ORDER = Comparator
+        .comparingInt(
+            (RegisteredServerPreviewSupplement e) -> e.snippetCodec()
+                .priority())
+        .thenComparing(
+            e -> e.snippetCodec()
                 .supplementId());
 
     private ServerPreviewSupplementRegistry() {}
@@ -45,7 +47,9 @@ public final class ServerPreviewSupplementRegistry {
     @Nullable
     public static RegisteredServerPreviewSupplement findBySupplementId(String id) {
         for (RegisteredServerPreviewSupplement e : ENTRIES) {
-            if (id.equals(e.snippetCodec().supplementId())) {
+            if (id.equals(
+                e.snippetCodec()
+                    .supplementId())) {
                 return e;
             }
         }

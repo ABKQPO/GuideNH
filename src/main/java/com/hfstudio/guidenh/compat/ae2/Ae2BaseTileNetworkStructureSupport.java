@@ -64,8 +64,8 @@ public final class Ae2BaseTileNetworkStructureSupport {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    public static Ae2BaseTileNetworkMpSnapshot tryCreateMpSnapshot(@Nullable World exportWorld,
-        ExportTileLookup lookup, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+    public static Ae2BaseTileNetworkMpSnapshot tryCreateMpSnapshot(@Nullable World exportWorld, ExportTileLookup lookup,
+        int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
         if (!Mods.AE2.isModLoaded() || exportWorld == null || !exportWorld.isRemote || lookup == null) {
             return Ae2BaseTileNetworkMpSnapshot.empty();
         }
@@ -154,7 +154,8 @@ public final class Ae2BaseTileNetworkStructureSupport {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    public static void attachBaseTileNetworkToExport(@Nullable TileEntity tileEntity, NBTTagCompound structureBlockTag) {
+    public static void attachBaseTileNetworkToExport(@Nullable TileEntity tileEntity,
+        NBTTagCompound structureBlockTag) {
         attachBaseTileNetworkToExport(tileEntity, structureBlockTag, null, null);
     }
 
@@ -208,12 +209,11 @@ public final class Ae2BaseTileNetworkStructureSupport {
 
     private static void writeXpToStructure(NBTTagCompound structureBlockTag, @Nullable byte[] xp) {
         if (xp == null || xp.length == 0) {
-            ServerPreviewSupplementNbt.removeSupplement(structureBlockTag,
-                Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID);
+            ServerPreviewSupplementNbt
+                .removeSupplement(structureBlockTag, Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID);
             return;
         }
-        ServerPreviewSupplementNbt.putSupplement(structureBlockTag, Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID,
-            xp);
+        ServerPreviewSupplementNbt.putSupplement(structureBlockTag, Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID, xp);
     }
 
     private static TileEntity resolveServerAeBaseTileTile(TileEntity clientTe, @Nullable World exportWorld) {

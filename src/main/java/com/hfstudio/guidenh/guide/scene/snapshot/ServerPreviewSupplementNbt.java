@@ -28,11 +28,15 @@ public final class ServerPreviewSupplementNbt {
             return;
         }
         NBTTagCompound root = structureBlock.hasKey(TAG_ROOT, 10)
-            ? (NBTTagCompound) structureBlock.getCompoundTag(TAG_ROOT).copy()
+            ? (NBTTagCompound) structureBlock.getCompoundTag(TAG_ROOT)
+                .copy()
             : new NBTTagCompound();
         NBTTagCompound entry = new NBTTagCompound();
         entry.setInteger(KEY_WIRE, STRUCTURE_WIRE_V1);
-        entry.setString(KEY_B64, Base64.getEncoder().encodeToString(rawPayload));
+        entry.setString(
+            KEY_B64,
+            Base64.getEncoder()
+                .encodeToString(rawPayload));
         root.setTag(supplementId, entry);
         structureBlock.setTag(TAG_ROOT, root);
     }
@@ -41,9 +45,11 @@ public final class ServerPreviewSupplementNbt {
         if (!structureBlock.hasKey(TAG_ROOT, 10)) {
             return;
         }
-        NBTTagCompound root = (NBTTagCompound) structureBlock.getCompoundTag(TAG_ROOT).copy();
+        NBTTagCompound root = (NBTTagCompound) structureBlock.getCompoundTag(TAG_ROOT)
+            .copy();
         root.removeTag(supplementId);
-        if (root.func_150296_c().isEmpty()) {
+        if (root.func_150296_c()
+            .isEmpty()) {
             structureBlock.removeTag(TAG_ROOT);
         } else {
             structureBlock.setTag(TAG_ROOT, root);

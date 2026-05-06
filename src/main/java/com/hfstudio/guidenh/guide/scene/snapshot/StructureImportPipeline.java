@@ -25,7 +25,11 @@ public final class StructureImportPipeline {
             try {
                 c.apply(ctx);
             } catch (Throwable t) {
-                LOG.warn("Structure import apply failed: {}", c.getClass().getName(), t);
+                LOG.warn(
+                    "Structure import apply failed: {}",
+                    c.getClass()
+                        .getName(),
+                    t);
             }
         }
     }

@@ -7,7 +7,11 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class Ae2CablePreviewSnapshot {
 
-    public static final Ae2CablePreviewSnapshot EMPTY = new Ae2CablePreviewSnapshot(false, 0, 0, Ae2CableBusSideStreams.EMPTY);
+    public static final Ae2CablePreviewSnapshot EMPTY = new Ae2CablePreviewSnapshot(
+        false,
+        0,
+        0,
+        Ae2CableBusSideStreams.EMPTY);
 
     private final boolean cableCorePresent;
     private final int gridCsUnsigned;

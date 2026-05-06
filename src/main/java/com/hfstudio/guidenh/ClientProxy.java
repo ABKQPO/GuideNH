@@ -38,9 +38,14 @@ public class ClientProxy extends CommonProxy {
         GuideNhNetwork.channel()
             .registerMessage(GuideNhClientBridgeHandler.class, GuideNhClientBridgeMessage.class, 2, Side.CLIENT);
         GuideNhNetwork.channel()
-            .registerMessage(GuideNhAe2CableBatchClientHandler.class, GuideNhAe2CableBatchReplyMessage.class, 4, Side.CLIENT);
+            .registerMessage(
+                GuideNhAe2CableBatchClientHandler.class,
+                GuideNhAe2CableBatchReplyMessage.class,
+                4,
+                Side.CLIENT);
         GuideNhNetwork.channel()
-            .registerMessage(GuideNhAe2BaseTileNetworkBatchClientHandler.class,
+            .registerMessage(
+                GuideNhAe2BaseTileNetworkBatchClientHandler.class,
                 GuideNhAe2BaseTileNetworkBatchReplyMessage.class,
                 6,
                 Side.CLIENT);

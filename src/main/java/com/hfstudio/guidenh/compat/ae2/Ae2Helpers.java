@@ -1,14 +1,14 @@
 package com.hfstudio.guidenh.compat.ae2;
 
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-
 import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 import appeng.api.networking.IGridHost;
 import appeng.api.parts.IPart;
@@ -35,10 +35,13 @@ public final class Ae2Helpers {
     private Ae2Helpers() {}
 
     /**
-     * Whether {@link net.minecraft.world.World#markBlockForUpdate} must not reapply {@link TileEntity#getDescriptionPacket}
-     * for this TE inside a {@link com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld}: {@link #prepare(GuidebookLevel)}
+     * Whether {@link net.minecraft.world.World#markBlockForUpdate} must not reapply
+     * {@link TileEntity#getDescriptionPacket}
+     * for this TE inside a {@link com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld}:
+     * {@link #prepare(GuidebookLevel)}
      * already merged server-authoritative preview bytes ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID} /
-     * {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID}). Vanilla description resync rebuilds payloads from an inert
+     * {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID}). Vanilla description resync rebuilds payloads from an
+     * inert
      * preview grid / proxy and overrides that state (channels, TileSecurity connectivity, …).
      */
     @Optional.Method(modid = "appliedenergistics2")
@@ -82,7 +85,8 @@ public final class Ae2Helpers {
         long posKey = GuidebookLevel.packPos(cableBusTile.xCoord, cableBusTile.yCoord, cableBusTile.zCoord);
         byte[] raw = level.previewAuthorityStore()
             .get(posKey, Ae2ServerPreviewRegistration.SUPPLEMENT_ID);
-        Ae2CablePreviewSnapshot snap = raw != null ? Ae2CablePreviewWireCodec.decode(raw) : Ae2CablePreviewSnapshot.EMPTY;
+        Ae2CablePreviewSnapshot snap = raw != null ? Ae2CablePreviewWireCodec.decode(raw)
+            : Ae2CablePreviewSnapshot.EMPTY;
 
         int poweredMask = 1 << ForgeDirection.UNKNOWN.ordinal();
         int csOut;
@@ -204,8 +208,8 @@ public final class Ae2Helpers {
         long posKey = GuidebookLevel.packPos(aeTile.xCoord, aeTile.yCoord, aeTile.zCoord);
         byte[] blob = level.previewAuthorityStore()
             .get(posKey, Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID);
-        boolean applied =
-            blob != null && blob.length > 0 && Ae2BaseTileNetworkStreamPreview.applyAuthorityToPreviewTile(aeTile, blob);
+        boolean applied = blob != null && blob.length > 0
+            && Ae2BaseTileNetworkStreamPreview.applyAuthorityToPreviewTile(aeTile, blob);
         if (applied) {
             return;
         }

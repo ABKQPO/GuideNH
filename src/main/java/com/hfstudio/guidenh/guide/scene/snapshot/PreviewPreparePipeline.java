@@ -27,7 +27,11 @@ public final class PreviewPreparePipeline {
             try {
                 c.prepare(level);
             } catch (Throwable t) {
-                LOG.warn("Preview prepare failed: {}", c.getClass().getName(), t);
+                LOG.warn(
+                    "Preview prepare failed: {}",
+                    c.getClass()
+                        .getName(),
+                    t);
             }
         }
     }

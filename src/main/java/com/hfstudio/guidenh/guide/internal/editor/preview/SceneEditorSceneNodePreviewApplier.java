@@ -310,8 +310,8 @@ public class SceneEditorSceneNodePreviewApplier {
             }
             int meta = blockTag.hasKey("meta") ? blockTag.getInteger("meta") : 0;
             NBTTagCompound tileTag = blockTag.hasKey("nbt", 10) ? blockTag.getCompoundTag("nbt") : null;
-            GuidebookPreviewBlockPlacer.place(level, pos[0], pos[1], pos[2], block, meta, tileTag, palette[state],
-                blockTag);
+            GuidebookPreviewBlockPlacer
+                .place(level, pos[0], pos[1], pos[2], block, meta, tileTag, palette[state], blockTag);
             level.setExplicitBlockId(pos[0], pos[1], pos[2], palette[state]);
         }
     }

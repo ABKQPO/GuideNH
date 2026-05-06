@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.compat.ae2;
 
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+
 import com.hfstudio.guidenh.compat.Mods;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportBlockContext;
@@ -10,11 +13,9 @@ import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementRegistry;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementSnippetCodec;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
-
 /**
- * Registers type2 AE2 preview supplement {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID} ({@link appeng.tile.AEBaseTile}
+ * Registers type2 AE2 preview supplement {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID}
+ * ({@link appeng.tile.AEBaseTile}
  * excluding {@link appeng.tile.networking.TileCableBus}): multiplayer batch RPC, snippet encode/decode, session shared
  * key {@link #SHARED_BASE_TILE_MP_SNAPSHOT}. Priority 11 so cable-bus fetch/snippet runs first (default 10).
  */
@@ -29,8 +30,7 @@ public final class Ae2BaseTileNetworkRegistration {
         if (!Mods.AE2.isModLoaded()) {
             return;
         }
-        ServerPreviewSupplementRegistry.registerSnippetAndFetch(new Ae2NetworkSnippet(),
-            new Ae2NetworkFetch());
+        ServerPreviewSupplementRegistry.registerSnippetAndFetch(new Ae2NetworkSnippet(), new Ae2NetworkFetch());
     }
 
     private static final class Ae2NetworkFetch implements ServerPreviewSupplementFetchContributor {
@@ -47,8 +47,8 @@ public final class Ae2BaseTileNetworkRegistration {
 
         @Override
         public void beginExport(ExportSession session) {
-            Ae2BaseTileNetworkStructureSupport.Ae2BaseTileNetworkMpSnapshot snap =
-                Ae2BaseTileNetworkStructureSupport.tryCreateMpSnapshot(
+            Ae2BaseTileNetworkStructureSupport.Ae2BaseTileNetworkMpSnapshot snap = Ae2BaseTileNetworkStructureSupport
+                .tryCreateMpSnapshot(
                     session.access()
                         .getSourceWorld(),
                     (x, y, z) -> session.access()
@@ -79,10 +79,13 @@ public final class Ae2BaseTileNetworkRegistration {
         @Override
         public void encodeBlock(ExportBlockContext ctx, NBTTagCompound structureBlockTag) {
             Ae2BaseTileNetworkStructureSupport.Ae2BaseTileNetworkMpSnapshot snap = ctx.session()
-                .getShared(SHARED_BASE_TILE_MP_SNAPSHOT,
+                .getShared(
+                    SHARED_BASE_TILE_MP_SNAPSHOT,
                     Ae2BaseTileNetworkStructureSupport.Ae2BaseTileNetworkMpSnapshot.class);
             TileEntity te = ctx.tileEntity();
-            Ae2BaseTileNetworkStructureSupport.attachBaseTileNetworkToExport(te, structureBlockTag,
+            Ae2BaseTileNetworkStructureSupport.attachBaseTileNetworkToExport(
+                te,
+                structureBlockTag,
                 ctx.session()
                     .access()
                     .getSourceWorld(),
@@ -93,9 +96,8 @@ public final class Ae2BaseTileNetworkRegistration {
         public void decodeBlock(ImportBlockContext ctx) {
             GuidebookLevel level = ctx.level();
             long key = GuidebookLevel.packPos(ctx.x(), ctx.y(), ctx.z());
-            byte[] raw =
-                ServerPreviewSupplementNbt.readSupplement(ctx.structureBlockCompound(),
-                    Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID);
+            byte[] raw = ServerPreviewSupplementNbt
+                .readSupplement(ctx.structureBlockCompound(), Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID);
             if (raw == null || raw.length == 0) {
                 level.previewAuthorityStore()
                     .remove(key, Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID);

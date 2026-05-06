@@ -45,7 +45,8 @@ public final class Ae2BaseTileNetworkStreamPreview {
     }
 
     /**
-     * Extracts AE2 {@code X} bytes from {@link AEBaseTile#getDescriptionPacket()} (authority context: resolved server TE
+     * Extracts AE2 {@code X} bytes from {@link AEBaseTile#getDescriptionPacket()} (authority context: resolved server
+     * TE
      * or handler-side world TE).
      */
     @Nullable
@@ -83,10 +84,12 @@ public final class Ae2BaseTileNetworkStreamPreview {
         try {
             NBTTagCompound data = new NBTTagCompound();
             data.setByteArray("X", xPayload);
-            S35PacketUpdateTileEntity pkt =
-                new S35PacketUpdateTileEntity(previewTile.xCoord, previewTile.yCoord, previewTile.zCoord,
-                    AE_TILE_UPDATE_META,
-                    data);
+            S35PacketUpdateTileEntity pkt = new S35PacketUpdateTileEntity(
+                previewTile.xCoord,
+                previewTile.yCoord,
+                previewTile.zCoord,
+                AE_TILE_UPDATE_META,
+                data);
             previewTile.onDataPacket(null, pkt);
             return true;
         } catch (Throwable ignored) {

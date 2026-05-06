@@ -1,20 +1,22 @@
 package com.hfstudio.guidenh.compat.ae2;
 
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+
 import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportBlockContext;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportSession;
-import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.ImportBlockContext;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementFetchContributor;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementRegistry;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementSnippetCodec;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
-
 /**
- * Registers AE2 server-authoritative preview supplements under {@link com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementRegistry}: cable-bus (type1) and AEBaseTile {@code X} stream (type2 non-cable). Bootstrap calls {@link #register()} only.
+ * Registers AE2 server-authoritative preview supplements under
+ * {@link com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementRegistry}: cable-bus (type1) and AEBaseTile
+ * {@code X} stream (type2 non-cable). Bootstrap calls {@link #register()} only.
  */
 public final class Ae2ServerPreviewRegistration {
 
