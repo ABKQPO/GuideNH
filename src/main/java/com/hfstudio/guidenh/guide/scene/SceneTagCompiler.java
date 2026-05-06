@@ -53,8 +53,13 @@ public class SceneTagCompiler extends BlockTagCompiler {
     @Override
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         var scene = new LytGuidebookScene();
-        int w = MdxAttrs.getInt(compiler, parent, el, "width", 256);
-        int h = MdxAttrs.getInt(compiler, parent, el, "height", 192);
+        // Detect whether width/height are explicitly set so auto-size can kick in when omitted.
+        String rawWidth = MdxAttrs.getString(compiler, parent, el, "width", null);
+        String rawHeight = MdxAttrs.getString(compiler, parent, el, "height", null);
+        boolean explicitWidth = rawWidth != null;
+        boolean explicitHeight = rawHeight != null;
+        int w = MdxAttrs.getInt(compiler, parent, el, "width", LytGuidebookScene.DEFAULT_WIDTH);
+        int h = MdxAttrs.getInt(compiler, parent, el, "height", LytGuidebookScene.DEFAULT_HEIGHT);
         scene.setSceneSize(w, h);
 
         float zoom = MdxAttrs.getFloat(compiler, parent, el, "zoom", Float.NaN);
@@ -181,6 +186,54 @@ public class SceneTagCompiler extends BlockTagCompiler {
                 // Restore any explicit offsets that were zeroed for the measurement pass.
                 if (explicitOffX) cam.setOffsetX(offX);
                 if (explicitOffY) cam.setOffsetY(offY);
+            }
+
+            // Auto-size: when width or height is not explicitly set by the author, compute the
+            // actual pixel extent of the scene content at the final zoom and use it as the
+            // viewport size. This eliminates wasted blank space around scenes smaller than the
+            // default canvas while preserving the same fill factor as the reference viewport.
+            if (!explicitWidth || !explicitHeight) {
+                float savedOffX = cam.getOffsetX();
+                float savedOffY = cam.getOffsetY();
+                cam.setOffsetX(0f);
+                cam.setOffsetY(0f);
+
+                int[] szBounds = scene.getLevel()
+                    .getBounds();
+                float szLX = szBounds[0], szLY = szBounds[1], szLZ = szBounds[2];
+                float szHX = szBounds[3] + 1f, szHY = szBounds[4] + 1f, szHZ = szBounds[5] + 1f;
+
+                float szMinSX = Float.MAX_VALUE, szMaxSX = -Float.MAX_VALUE;
+                float szMinSY = Float.MAX_VALUE, szMaxSY = -Float.MAX_VALUE;
+                for (int ci = 0; ci < 8; ci++) {
+                    float wx = (ci & 1) == 0 ? szLX : szHX;
+                    float wy = (ci & 2) == 0 ? szLY : szHY;
+                    float wz = (ci & 4) == 0 ? szLZ : szHZ;
+                    var sp = cam.worldToScreen(wx, wy, wz);
+                    if (sp.x < szMinSX) szMinSX = sp.x;
+                    if (sp.x > szMaxSX) szMaxSX = sp.x;
+                    if (sp.y < szMinSY) szMinSY = sp.y;
+                    if (sp.y > szMaxSY) szMaxSY = sp.y;
+                }
+
+                // Add a small border so the scene content never touches the viewport edge.
+                final int AUTO_PADDING = 16;
+                final int AUTO_MIN_DIM = 64;
+                final int AUTO_MAX_DIM = 512;
+                float szSpanX = szMaxSX - szMinSX;
+                float szSpanY = szMaxSY - szMinSY;
+                if (!explicitWidth && szSpanX > 0.5f) {
+                    w = Math.min(AUTO_MAX_DIM, Math.max(AUTO_MIN_DIM, (int) Math.ceil(szSpanX) + AUTO_PADDING));
+                }
+                if (!explicitHeight && szSpanY > 0.5f) {
+                    h = Math.min(AUTO_MAX_DIM, Math.max(AUTO_MIN_DIM, (int) Math.ceil(szSpanY) + AUTO_PADDING));
+                }
+                scene.setSceneSize(w, h);
+                cam.setViewportSize(w, h);
+
+                // Restore offsets zeroed for the measurement pass.
+                cam.setOffsetX(savedOffX);
+                cam.setOffsetY(savedOffY);
             }
 
             // Auto-center: shift the projected scene center to the viewport origin.

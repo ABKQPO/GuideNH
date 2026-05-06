@@ -34,10 +34,12 @@ import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -144,6 +146,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     @Nullable
     private String cachedSearchQuery;
     private String currentPageTitle = "";
+    private LytParagraph pageTitle;
+    @Nullable
+    private LytRect cachedTitleViewport;
     @Nullable
     private LytDocument layoutDocument;
 
@@ -223,6 +228,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private GuideScreen(MutableGuide guide, PageAnchor anchor) {
         this.guide = guide;
         this.currentAnchor = anchor;
+        pageTitle = new LytParagraph();
+        pageTitle.setStyle(DefaultStyles.HEADING1);
         try {
             this.fullWidth = ModConfig.ui.fullWidth;
         } catch (Throwable ignored) {
@@ -428,6 +435,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     }
 
     private void refreshCurrentPageTitle() {
+        pageTitle.clearContent();
+
         if (currentAnchor == null) {
             currentPageTitle = "";
             return;
@@ -438,9 +447,15 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             return;
         }
 
-        String resolvedTitle = extractPageTitleFromDocument();
+        LytHeading extracted = extractPageTitleFromDocument();
 
-        if (resolvedTitle == null || resolvedTitle.isEmpty()) {
+        if (extracted != null) {
+            for (var flowContent : extracted.getContent()) {
+                pageTitle.append(flowContent);
+            }
+            currentPageTitle = extracted.getTextContent();
+        } else {
+            String resolvedTitle = null;
             try {
                 var node = guide.getNavigationTree()
                     .getNodeById(currentAnchor.pageId());
@@ -448,22 +463,25 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                     resolvedTitle = node.title();
                 }
             } catch (Throwable ignored) {}
-        }
 
-        if (resolvedTitle == null || resolvedTitle.isEmpty()) {
-            resolvedTitle = currentAnchor.pageId()
-                .toString();
+            if (resolvedTitle == null || resolvedTitle.isEmpty()) {
+                resolvedTitle = currentAnchor.pageId()
+                    .toString();
+            }
+            currentPageTitle = resolvedTitle;
+            pageTitle.appendText(resolvedTitle);
         }
-        currentPageTitle = resolvedTitle;
     }
 
     /**
      * Finds the first H1 {@link LytHeading} in the current document, removes it from the
-     * document (so it is not rendered twice inside the content area), and returns its plain
-     * text. Returns {@code null} when no H1 is present.
+     * document (so it is not rendered twice inside the content area), and returns the heading
+     * node so its flow content can be used for rich-text rendering. Non-heading blocks are
+     * skipped during the search (matching GuideME behaviour). Returns {@code null} when no
+     * H1 is present.
      */
     @Nullable
-    private String extractPageTitleFromDocument() {
+    private LytHeading extractPageTitleFromDocument() {
         if (document == null) {
             return null;
         }
@@ -471,15 +489,13 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             if (block instanceof LytHeading heading) {
                 if (heading.getDepth() == 1) {
                     document.removeChild(heading);
-                    return heading.getTextContent();
+                    return heading;
                 } else {
-                    // Any non-H1 heading as the first block stops the search
+                    // Any non-H1 heading stops the search
                     break;
                 }
-            } else {
-                // Non-heading first block: stop searching
-                break;
             }
+            // Non-heading blocks are skipped; continue searching
         }
         return null;
     }
@@ -563,13 +579,36 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     private void drawPageTitle() {
         if (currentAnchor == null || isSearchPage()) return;
+        if (pageTitle.isEmpty()) return;
+
         int reservedRight = (16 + TOOLBAR_GAP) * 5 + PANEL_PADDING + 4;
-        int maxW = Math.max(20, panelW - PANEL_PADDING - reservedRight);
-        String draw = currentPageTitle;
-        if (fontRendererObj.getStringWidth(draw) > maxW) {
-            draw = fontRendererObj.trimStringToWidth(draw, maxW - 4) + ASCII_ELLIPSIS;
+        int availableW = Math.max(20, panelW - PANEL_PADDING - reservedRight);
+        int titleX = panelX + PANEL_PADDING;
+
+        // Two-pass layout: first pass determines height for vertical centering
+        var layoutCtx = new LayoutContext(layoutFontMetrics);
+        pageTitle.layout(layoutCtx, 0, 0, availableW);
+        int titleH = pageTitle.getBounds()
+            .height();
+        int titleY = Math.max(0, (TOOLBAR_H - titleH) / 2) + panelY + 2;
+        // Second pass at the final vertical position (x stays at 0 for GL translate)
+        pageTitle.layout(layoutCtx, 0, 0, availableW);
+
+        var ctx = reusableContentTooltipCtx;
+        cachedTitleViewport = cachedRect(cachedTitleViewport, 0, 0, availableW, Math.max(titleH, TOOLBAR_H));
+        ctx.setLightDarkMode(LightDarkMode.LIGHT_MODE);
+        ctx.setViewport(cachedTitleViewport);
+        ctx.setScreenHeight(this.height);
+        ctx.setDocumentOrigin(titleX, titleY);
+        ctx.setScrollOffsetY(0);
+        GL11.glPushMatrix();
+        GL11.glTranslatef(titleX, titleY, 0f);
+        try {
+            pageTitle.render(ctx);
+        } finally {
+            GL11.glPopMatrix();
+            ctx.restoreExternalRenderState();
         }
-        fontRendererObj.drawString(draw, panelX + PANEL_PADDING, panelY + 4, 0xFFFFFFFF, true);
     }
 
     private void drawButtonTooltip(int mouseX, int mouseY) {
