@@ -786,8 +786,21 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (x - pad < 0) x = pad;
         if (y + h + pad > this.height) y = this.height - h - pad;
         if (y - pad < 0) y = pad;
-        drawRect(x - pad, y - pad, x + w + pad, y + h + pad, 0xF0100010);
-        drawBorder(x - pad, y - pad, w + pad * 2, h + pad * 2, 0xFF5000FF);
+
+        // Vanilla-style tooltip background and border
+        int ctBgColor = 0xF0100010;
+        int ctBorderTop = 0x505000FF;
+        int ctBorderBottom = 0x5028007F;
+        drawRect(x - pad, y - pad, x + w + pad, y + h + pad, ctBgColor);
+        drawRect(x - pad, y - pad - 1, x + w + pad, y - pad, ctBgColor);
+        drawRect(x - pad, y + h + pad, x + w + pad, y + h + pad + 1, ctBgColor);
+        drawRect(x - pad - 1, y - pad, x - pad, y + h + pad, ctBgColor);
+        drawRect(x + w + pad, y - pad, x + w + pad + 1, y + h + pad, ctBgColor);
+        drawGradientRect(x - pad, y - pad, x + w + pad, y - pad + 1, ctBorderTop, ctBorderTop);
+        drawGradientRect(x - pad, y + h + pad - 1, x + w + pad, y + h + pad, ctBorderBottom, ctBorderBottom);
+        drawGradientRect(x - pad, y - pad + 1, x - pad + 1, y + h + pad - 1, ctBorderTop, ctBorderBottom);
+        drawGradientRect(x + w + pad - 1, y - pad + 1, x + w + pad, y + h + pad - 1, ctBorderTop, ctBorderBottom);
+
         var ctx = reusableContentTooltipCtx;
         cachedContentTooltipViewport = cachedRect(cachedContentTooltipViewport, 0, 0, w, h);
         ctx.setLightDarkMode(LightDarkMode.LIGHT_MODE);
@@ -840,8 +853,21 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             y = this.height - th - pad;
         }
         if (y - pad < 0) y = pad;
-        drawRect(x - pad, y - pad, x + tw + pad, y + th + pad, 0xF0100010);
-        drawBorder(x - pad, y - pad, tw + pad * 2, th + pad * 2, 0xFF5000FF);
+
+        // Vanilla-style tooltip background and border
+        int bgColor = 0xF0100010;
+        int borderTop = 0x505000FF;
+        int borderBottom = 0x5028007F;
+        drawRect(x - pad, y - pad, x + tw + pad, y + th + pad, bgColor);
+        drawRect(x - pad, y - pad - 1, x + tw + pad, y - pad, bgColor);
+        drawRect(x - pad, y + th + pad, x + tw + pad, y + th + pad + 1, bgColor);
+        drawRect(x - pad - 1, y - pad, x - pad, y + th + pad, bgColor);
+        drawRect(x + tw + pad, y - pad, x + tw + pad + 1, y + th + pad, bgColor);
+        drawGradientRect(x - pad, y - pad, x + tw + pad, y - pad + 1, borderTop, borderTop);
+        drawGradientRect(x - pad, y + th + pad - 1, x + tw + pad, y + th + pad, borderBottom, borderBottom);
+        drawGradientRect(x - pad, y - pad + 1, x - pad + 1, y + th + pad - 1, borderTop, borderBottom);
+        drawGradientRect(x + tw + pad - 1, y - pad + 1, x + tw + pad, y + th + pad - 1, borderTop, borderBottom);
+
         int ly = y;
         for (String ln : lines) {
             fr.drawStringWithShadow(ln, x, ly, 0xFFFFFFFF);
