@@ -35,6 +35,12 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.snapshot.ExportBlockContext;
+import com.hfstudio.guidenh.guide.scene.snapshot.ExportSession;
+import com.hfstudio.guidenh.guide.scene.snapshot.GuidebookLevelStructureExportAccess;
+import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportAccess;
+import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportPipeline;
+import com.hfstudio.guidenh.guide.scene.snapshot.WorldStructureExportAccess;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
@@ -518,6 +524,8 @@ public class RegionWandItem extends Item {
         NBTTagList blocksList = new NBTTagList();
         int nonAir = 0;
         int teCount = 0;
+        ExportSession exportSession = new ExportSession(access, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz);
+        StructureExportPipeline.beginExport(exportSession);
         for (int y = minY; y <= maxY; y++) {
             for (int z = minZ; z <= maxZ; z++) {
                 for (int x = minX; x <= maxX; x++) {
@@ -553,11 +561,14 @@ public class RegionWandItem extends Item {
                             teCount++;
                         } catch (Throwable ignored) {}
                     }
+                    StructureExportPipeline
+                        .contributeBlock(new ExportBlockContext(exportSession, x, y, z, block, meta, te, blockTag));
                     blocksList.appendTag(blockTag);
                     nonAir++;
                 }
             }
         }
+        StructureExportPipeline.endExport(exportSession);
 
         var root = new NBTTagCompound();
         root.setIntArray("size", new int[] { dx, dy, dz });
@@ -611,79 +622,6 @@ public class RegionWandItem extends Item {
             }
         }
         return new ExportResult(GuideTextNbtCodec.writeStructureSnbt(root), nonAir, teCount, entityCount);
-    }
-
-    private interface StructureExportAccess {
-
-        Block getBlock(int x, int y, int z);
-
-        int getBlockMetadata(int x, int y, int z);
-
-        @Nullable
-        TileEntity getTileEntity(int x, int y, int z);
-
-        @Nullable
-        String getBlockId(int x, int y, int z, Block block);
-    }
-
-    public static class WorldStructureExportAccess implements StructureExportAccess {
-
-        private final World world;
-
-        private WorldStructureExportAccess(World world) {
-            this.world = world;
-        }
-
-        @Override
-        public Block getBlock(int x, int y, int z) {
-            return world.getBlock(x, y, z);
-        }
-
-        @Override
-        public int getBlockMetadata(int x, int y, int z) {
-            return world.getBlockMetadata(x, y, z);
-        }
-
-        @Override
-        public TileEntity getTileEntity(int x, int y, int z) {
-            return world.getTileEntity(x, y, z);
-        }
-
-        @Override
-        public String getBlockId(int x, int y, int z, Block block) {
-            return Block.blockRegistry.getNameForObject(block);
-        }
-    }
-
-    public static class GuidebookLevelStructureExportAccess implements StructureExportAccess {
-
-        private final GuidebookLevel level;
-
-        private GuidebookLevelStructureExportAccess(GuidebookLevel level) {
-            this.level = level;
-        }
-
-        @Override
-        public Block getBlock(int x, int y, int z) {
-            return level.getBlock(x, y, z);
-        }
-
-        @Override
-        public int getBlockMetadata(int x, int y, int z) {
-            return level.getBlockMetadata(x, y, z);
-        }
-
-        @Override
-        public TileEntity getTileEntity(int x, int y, int z) {
-            return level.getTileEntity(x, y, z);
-        }
-
-        @Override
-        public String getBlockId(int x, int y, int z, Block block) {
-            String explicitBlockId = level.getExplicitBlockId(x, y, z);
-            return explicitBlockId != null && !explicitBlockId.isEmpty() ? explicitBlockId
-                : Block.blockRegistry.getNameForObject(block);
-        }
     }
 
     @Desugar

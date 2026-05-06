@@ -24,6 +24,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.compat.ae2.Ae2Helpers;
 import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
 
 import cpw.mods.fml.relauncher.Side;
@@ -212,13 +214,17 @@ public class GuidebookFakeWorld extends WorldClient {
         if (tileEntity == null) {
             return;
         }
+        // AE2 preview: see Ae2Helpers.suppressMarkBlockForUpdateDescriptionResync.
+        if (suppressAe2StaleTileDescriptionRefresh(tileEntity)) {
+            return;
+        }
         long guardKey = packBlockPos(x, y, z);
         Set<Long> inProgress = getOrCreateMarkBlockForUpdateGuard();
         if (!inProgress.add(guardKey)) {
             return;
         }
         try {
-            applyDescriptionPacket(tileEntity);
+            applyDescriptionPacketToTileEntity(tileEntity);
         } finally {
             inProgress.remove(guardKey);
         }
@@ -388,13 +394,33 @@ public class GuidebookFakeWorld extends WorldClient {
         return false;
     }
 
-    public static void applyDescriptionPacket(TileEntity tileEntity) {
+    private void applyDescriptionPacketToTileEntity(TileEntity tileEntity) {
+        if (tileEntity == null) {
+            return;
+        }
+        if (suppressAe2StaleTileDescriptionRefresh(tileEntity)) {
+            return;
+        }
         try {
             Packet packet = tileEntity.getDescriptionPacket();
             if (packet instanceof S35PacketUpdateTileEntity updatePacket) {
                 tileEntity.onDataPacket(null, updatePacket);
             }
         } catch (Throwable ignored) {}
+    }
+
+    /**
+     * @see Ae2Helpers#suppressMarkBlockForUpdateDescriptionResync
+     */
+    private boolean suppressAe2StaleTileDescriptionRefresh(@Nullable TileEntity te) {
+        if (level == null || te == null || !Mods.AE2.isModLoaded()) {
+            return false;
+        }
+        try {
+            return Ae2Helpers.suppressMarkBlockForUpdateDescriptionResync(te, level);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private Set<Long> getOrCreateMarkBlockForUpdateGuard() {

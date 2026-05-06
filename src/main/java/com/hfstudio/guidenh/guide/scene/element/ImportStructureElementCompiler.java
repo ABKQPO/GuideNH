@@ -45,7 +45,8 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
  * <pre>
  * { size: [dx, dy, dz],
  *   palette: [ {Name: "minecraft:stone"}, {Name: "minecraft:chest"}, ... ],
- *   blocks: [ {pos: [rx, ry, rz], state: 0, meta: 0, nbt: {id:"Chest", Items:[...]}}, ... ] }
+ *   blocks: [ {pos: [rx, ry, rz], state: 0, meta: 0, nbt: {...},
+ *              guidenh_server_preview_supplement: { guidenh.ae2.cable_bus: { v: 1, b64: "<payload>" } } }, ... ] }
  * </pre>
  *
  * <p>
@@ -125,7 +126,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
 
             NBTTagCompound tileTag = b.hasKey("nbt", 10) ? b.getCompoundTag("nbt") : null;
-            GuidebookPreviewBlockPlacer.place(level, px, py, pz, block, meta, tileTag, name);
+            GuidebookPreviewBlockPlacer.place(level, px, py, pz, block, meta, tileTag, name, b);
             level.setExplicitBlockId(px, py, pz, name);
             placed++;
         }

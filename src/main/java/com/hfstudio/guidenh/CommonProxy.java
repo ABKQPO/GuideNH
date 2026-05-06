@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh;
 
+import com.hfstudio.guidenh.guide.scene.snapshot.GuideStructureSnapshotRegistration;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 import com.hfstudio.guidenh.network.GuideNhNetworkEvents;
 
@@ -16,6 +17,7 @@ public class CommonProxy {
         GameRegistry.registerItem(GuideNH.GUIDE_ITEM, "guide");
         GameRegistry.registerItem(GuideNH.REGION_WAND, "region_wand");
         GuideNhNetwork.initCommon();
+        GuideStructureSnapshotRegistration.registerAll();
         FMLCommonHandler.instance()
             .bus()
             .register(new GuideNhNetworkEvents());

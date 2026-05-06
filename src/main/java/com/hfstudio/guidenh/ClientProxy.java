@@ -16,6 +16,10 @@ import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 import com.hfstudio.guidenh.guide.internal.GuideWarmupPump;
+import com.hfstudio.guidenh.network.GuideNhAe2BaseTileNetworkBatchClientHandler;
+import com.hfstudio.guidenh.network.GuideNhAe2BaseTileNetworkBatchReplyMessage;
+import com.hfstudio.guidenh.network.GuideNhAe2CableBatchClientHandler;
+import com.hfstudio.guidenh.network.GuideNhAe2CableBatchReplyMessage;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
@@ -36,6 +40,18 @@ public class ClientProxy extends CommonProxy {
         GuideME.initClientProxy();
         GuideNhNetwork.channel()
             .registerMessage(GuideNhClientBridgeHandler.class, GuideNhClientBridgeMessage.class, 2, Side.CLIENT);
+        GuideNhNetwork.channel()
+            .registerMessage(
+                GuideNhAe2CableBatchClientHandler.class,
+                GuideNhAe2CableBatchReplyMessage.class,
+                4,
+                Side.CLIENT);
+        GuideNhNetwork.channel()
+            .registerMessage(
+                GuideNhAe2BaseTileNetworkBatchClientHandler.class,
+                GuideNhAe2BaseTileNetworkBatchReplyMessage.class,
+                6,
+                Side.CLIENT);
     }
 
     @Override

@@ -24,6 +24,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.distanthorizons.DistantHorizonsCompat;
+import com.hfstudio.guidenh.guide.scene.snapshot.GuidebookPreviewAuthorityStore;
 import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuidePreviewStateSupport;
 
@@ -40,6 +41,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     private final HashMap<Long, int[]> filledBlocks = new HashMap<>();
     private final HashMap<Long, String> explicitBlockIds = new HashMap<>();
+
+    /** Opaque server-authoritative preview blobs per coordinate ({@link #packPos}); cleared when block becomes air. */
+    private final GuidebookPreviewAuthorityStore previewAuthorityStore = new GuidebookPreviewAuthorityStore();
 
     // Pre-built unmodifiable views returned every call to avoid per-frame
     // Collections.unmodifiableCollection() wrapper allocation (hot on the render loop).
@@ -114,6 +118,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             filledBlocks.remove(key);
             tileEntities.remove(key);
             explicitBlockIds.remove(key);
+            previewAuthorityStore.clearAt(key);
         } else {
             filledBlocks.put(key, new int[] { x, y, z });
             // For ForgeMultipart tiles, extract the primary microblock material to get a meaningful
@@ -210,6 +215,10 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @Nullable
     public String getExplicitBlockId(int x, int y, int z) {
         return explicitBlockIds.get(packPos(x, y, z));
+    }
+
+    public GuidebookPreviewAuthorityStore previewAuthorityStore() {
+        return previewAuthorityStore;
     }
 
     public boolean isEmpty() {

@@ -21,6 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
+import com.hfstudio.guidenh.guide.scene.snapshot.ImportBlockContext;
+import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
+import com.hfstudio.guidenh.guide.scene.snapshot.StructureImportPipeline;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
@@ -41,11 +44,21 @@ public class GuidebookPreviewBlockPlacer {
 
     public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
         @Nullable NBTTagCompound tileTag) {
-        place(level, x, y, z, block, meta, tileTag, null);
+        place(level, x, y, z, block, meta, tileTag, null, null);
     }
 
     public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
         @Nullable NBTTagCompound tileTag, @Nullable String explicitBlockId) {
+        place(level, x, y, z, block, meta, tileTag, explicitBlockId, null);
+    }
+
+    /**
+     * @param structureBlockCompound full SNBT {@code blocks[]} compound (not only TE {@code nbt}); optional
+     *                               {@link ServerPreviewSupplementNbt#TAG_ROOT} via {@link StructureImportPipeline}.
+     */
+    public static void place(GuidebookLevel level, int x, int y, int z, Block block, int meta,
+        @Nullable NBTTagCompound tileTag, @Nullable String explicitBlockId,
+        @Nullable NBTTagCompound structureBlockCompound) {
         NBTTagCompound previewTileTag = sanitizeGregTechInitTag(tileTag);
         PlacementData placementData = resolvePlacementData(block, meta, previewTileTag);
         logPlacementRequest(x, y, z, block, meta, previewTileTag, explicitBlockId, placementData);
@@ -108,6 +121,7 @@ public class GuidebookPreviewBlockPlacer {
             previewTileTag);
         logLoadedTile("post-block-added", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
         level.setExplicitBlockId(x, y, z, explicitBlockId);
+        StructureImportPipeline.apply(new ImportBlockContext(level, x, y, z, structureBlockCompound));
     }
 
     public static PlacementData resolvePlacementData(Block block, int requestedMeta, @Nullable NBTTagCompound tileTag) {
