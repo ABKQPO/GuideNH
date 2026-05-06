@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -198,7 +199,13 @@ class GuideSourceWatcher implements AutoCloseable {
     public synchronized void close() {
         changedPages.clear();
         deletedPages.clear();
-        watchExecutor.shutdown();
+        watchExecutor.shutdownNow();
+        try {
+            watchExecutor.awaitTermination(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread()
+                .interrupt();
+        }
 
         if (sourceWatcher != null) {
             try {

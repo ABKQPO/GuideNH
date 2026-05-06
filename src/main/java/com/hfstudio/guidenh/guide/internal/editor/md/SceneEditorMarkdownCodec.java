@@ -184,7 +184,20 @@ public class SceneEditorMarkdownCodec {
                 continue;
             }
 
-            model.addElement(parseElement(element, source));
+            // Unknown element — try to parse as a known annotation type.
+            // If unsupported, preserve raw source text as an opaque passthrough node.
+            try {
+                model.addElement(parseElement(element, source));
+            } catch (UnsupportedSubsetException ignored) {
+                String rawText = extractRawNodeText(node, source);
+                if (rawText != null && !rawText.trim()
+                    .isEmpty()) {
+                    SceneEditorSceneNodeModel opaqueNode = new SceneEditorSceneNodeModel(
+                        SceneEditorSceneNodeType.OPAQUE);
+                    opaqueNode.setOpaqueText(rawText);
+                    model.addSceneNode(opaqueNode);
+                }
+            }
         }
 
         return model;
@@ -413,6 +426,16 @@ public class SceneEditorMarkdownCodec {
                     appendElement(builder, sceneNode.getAnnotationElement(), "    ");
                 }
             }
+            case OPAQUE -> {
+                String rawText = sceneNode.getOpaqueText();
+                if (rawText != null && !rawText.isEmpty()) {
+                    // Preserve indentation: emit as-is (already includes leading whitespace from source).
+                    builder.append(rawText);
+                    if (!rawText.endsWith("\n")) {
+                        builder.append('\n');
+                    }
+                }
+            }
         }
     }
 
@@ -603,10 +626,9 @@ public class SceneEditorMarkdownCodec {
             if (!(attributeNode instanceof MdxJsxAttribute attribute)) {
                 throw new UnsupportedSubsetException("Spread attributes are not supported on <" + tagName + ">");
             }
-            if (!allowedAttributes.contains(attribute.name)) {
-                throw new UnsupportedSubsetException(
-                    "Unsupported attribute '" + attribute.name + "' on <" + tagName + ">");
-            }
+            // Unknown attributes are silently ignored so the editor stays compatible with
+            // attributes that GameScene recognises but the editor doesn't manage.
+            // (Previously this threw UnsupportedSubsetException, blocking the whole sync.)
         }
     }
 
@@ -793,6 +815,22 @@ public class SceneEditorMarkdownCodec {
             }
         }
         return -1;
+    }
+
+    @Nullable
+    private String extractRawNodeText(UnistNode node, String source) {
+        UnistPosition position = node.position();
+        if (position == null || position.start() == null || position.end() == null) {
+            return null;
+        }
+        int startOffset = position.start()
+            .offset();
+        int endOffset = position.end()
+            .offset();
+        if (startOffset < 0 || endOffset < startOffset || endOffset > source.length()) {
+            return null;
+        }
+        return source.substring(startOffset, endOffset);
     }
 
     private boolean isIgnorableNode(UnistNode node, String source) {

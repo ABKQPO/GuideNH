@@ -1,10 +1,10 @@
 ---
 navigation:
-  title: 配方
+  title: 配方（导航树标题）
   parent: index.md
 ---
 
-# 配方
+# 配方（页面左上角标题）
 
 `<Recipe>`、`<RecipeFor>` 和 `<RecipesFor>` 组件测试。
 

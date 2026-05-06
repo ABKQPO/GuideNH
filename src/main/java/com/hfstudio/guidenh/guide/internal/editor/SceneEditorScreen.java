@@ -463,6 +463,9 @@ public class SceneEditorScreen extends GuiScreen {
     public void onGuiClosed() {
         Keyboard.enableRepeatEvents(false);
         super.onGuiClosed();
+        previewScene = null;
+        activePreviewScene = null;
+        expandedElementEditor = null;
     }
 
     @Override
@@ -1990,6 +1993,36 @@ public class SceneEditorScreen extends GuiScreen {
                 parameterController::setCenterZ,
                 () -> session.getSceneModel()
                     .getCenterZ()));
+        numericParameterRows.add(
+            createDecimalParameterRow(
+                GuidebookText.SceneEditorCameraYaw,
+                session.getSceneModel()
+                    .getRotationY(),
+                0f,
+                360f,
+                parameterController::setRotationY,
+                () -> session.getSceneModel()
+                    .getRotationY()));
+        numericParameterRows.add(
+            createDecimalParameterRow(
+                GuidebookText.SceneEditorCameraPitch,
+                session.getSceneModel()
+                    .getRotationX(),
+                -90f,
+                90f,
+                parameterController::setRotationX,
+                () -> session.getSceneModel()
+                    .getRotationX()));
+        numericParameterRows.add(
+            createDecimalParameterRow(
+                GuidebookText.SceneEditorCameraRoll,
+                session.getSceneModel()
+                    .getRotationZ(),
+                -180f,
+                180f,
+                parameterController::setRotationZ,
+                () -> session.getSceneModel()
+                    .getRotationZ()));
         numericParameterRows.add(
             createDecimalParameterRow(
                 GuidebookText.SceneEditorRotateX,

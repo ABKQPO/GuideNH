@@ -17,6 +17,8 @@ dependencies {
     devOnlyNonPublishable("com.github.GTNewHorizons:CarpentersBlocks:3.7.2-GTNH:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:ForgeMultipart:1.7.5:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:nei-custom-diagram:1.8.20:dev")
+    devOnlyNonPublishable("com.github.GTNewHorizons:EnhancedLootBags:1.3.4:dev")
+    devOnlyNonPublishable("curse.maven:cofh-core-69162:2388751")
 
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Baubles-Expanded:2.2.13-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.16-GTNH:dev")
@@ -25,8 +27,10 @@ dependencies {
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Angelica:2.1.19:dev")
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))
 
+    compileOnlyApi("com.github.GTNewHorizons:Mobs-Info:0.5.14-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:LogisticsPipes:1.5.24-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:BuildCraft:7.1.59:dev") { transitive = false }
+    compileOnlyApi("com.github.GTNewHorizons:Translocators:1.4.4:dev") { transitive = false }
     compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.2.21-GTNH-daily") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:BetterQuesting:3.8.40-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.DarkShadow44:DistantHorizonsStandalone:9.9.9:dev") { transitive = false }

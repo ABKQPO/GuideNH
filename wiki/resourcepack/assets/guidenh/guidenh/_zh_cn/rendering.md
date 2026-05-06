@@ -2,7 +2,7 @@
 title: "渲染示例"
 navigation:
   title: "渲染示例"
-  position: 1
+  position: 20
 ---
 
 # 渲染示例

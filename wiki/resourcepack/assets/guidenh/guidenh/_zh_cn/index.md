@@ -16,7 +16,7 @@ navigation:
 | 3D 场景 | [方块场景](./scene-blocks.md) · [实体场景](./scene-entities.md) · [镜头与视口](./scene-camera.md) |
 | 注解 | [注解](./scene-annotations.md) · [导入结构](./scene-import.md) |
 | 组件 | [配方](./recipes.md) · [图片](./images.md) · [Tooltip](./tooltips.md) |
-| 其他 | [渲染演示](./rendering.md) · [调试](./debug.md) · [结构标签](./structure.md) · [日语](./japanese.md) |
+| 其他 | [渲染演示](./rendering.md) · [调试](./debug.md) |
 
 ## 行内元素
 

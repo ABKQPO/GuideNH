@@ -67,6 +67,12 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
+    public static Entity loadFromNbt(@Nullable World world, String entityId, @Nullable NBTTagCompound data,
+        @Nullable String playerName, @Nullable String playerUuid) {
+        return load(world, entityId, data, playerName, playerUuid);
+    }
+
+    @Nullable
     static Entity load(@Nullable World world, String entityId, @Nullable NBTTagCompound data,
         @Nullable String playerName, @Nullable String playerUuid) {
         if (entityId == null) {

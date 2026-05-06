@@ -52,6 +52,29 @@ public class SceneEditorStructureImportService {
         this.importExecutor = importExecutor;
     }
 
+    public CompletableFuture<ImportResult> importFromPathAsync(Path path) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return importFromPath(path);
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        }, importExecutor);
+    }
+
+    public ImportResult importFromPath(Path path) throws Exception {
+        String snbtText = structureTextReader.read(path);
+        validateSnbt(snbtText);
+        return new ImportResult(
+            structureCache.createStructureSource(),
+            snbtText,
+            path.toAbsolutePath()
+                .normalize()
+                .toString());
+    }
+
     @Nullable
     public ImportResult chooseAndImport(String dialogTitle) throws Exception {
         Path selectedFile = fileChooser.choose(dialogTitle);

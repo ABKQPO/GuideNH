@@ -59,7 +59,7 @@ public class GuideNhBridgeCommand extends CommandBase {
     }
 
     private void importStructure(ICommandSender sender, String[] args) throws CommandException {
-        if (args.length < 4) {
+        if (args.length < 5) {
             send(sender, GuidebookText.CommandImportStructureUsage);
             return;
         }
@@ -76,8 +76,9 @@ public class GuideNhBridgeCommand extends CommandBase {
         int x = GuideStructureCoordinateParser.parsePosition(baseX, args[1]);
         int y = GuideStructureCoordinateParser.parsePosition(baseY, args[2]);
         int z = GuideStructureCoordinateParser.parsePosition(baseZ, args[3]);
+        String filePath = args[4];
         GuideNhNetwork.channel()
-            .sendTo(GuideNhClientBridgeMessage.importStructure(x, y, z), player);
+            .sendTo(GuideNhClientBridgeMessage.importStructure(x, y, z, filePath), player);
     }
 
     private void placeAllStructures(ICommandSender sender, String[] args) throws CommandException {

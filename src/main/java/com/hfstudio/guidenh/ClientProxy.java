@@ -13,6 +13,7 @@ import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
 import com.hfstudio.guidenh.guide.internal.GuideDevWatcherPump;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
+import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 import com.hfstudio.guidenh.guide.internal.GuideWarmupPump;
 import com.hfstudio.guidenh.network.GuideNhAe2BaseTileNetworkBatchClientHandler;
@@ -27,6 +28,8 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.network.FMLNetworkEvent;
 import cpw.mods.fml.relauncher.Side;
 
 public class ClientProxy extends CommonProxy {
@@ -62,6 +65,7 @@ public class ClientProxy extends CommonProxy {
         OpenSceneEditorHotkey.init();
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
         GuideWarmupPump.init();
+        MinecraftForge.EVENT_BUS.register(this);
     }
 
     @Override
@@ -74,5 +78,13 @@ public class ClientProxy extends CommonProxy {
         super.completeInit(event);
         GuideDevWatcherPump.init();
         GuideOnStartup.init();
+    }
+
+    @SubscribeEvent
+    public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+        GuideME.closeSearch();
+        for (var guide : GuideRegistry.getAll()) {
+            guide.resetWarmup();
+        }
     }
 }

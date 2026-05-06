@@ -27,6 +27,7 @@ public enum Mods implements IMod, ITargetMod {
     DistantHorizons("distanthorizons"),
     EtFuturum("etfuturum"),
     SimpleSkinBackport("simpleskinbackport"),
+    Translocators("Translocator"),
     ;
     // spotless:on
 

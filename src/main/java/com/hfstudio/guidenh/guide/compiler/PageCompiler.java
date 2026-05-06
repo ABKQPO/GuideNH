@@ -284,15 +284,37 @@ public class PageCompiler {
         ResourceLocation id, String pageContent, String headingText, String errorText) {
         var errorRoot = buildErrorPage(headingText, errorText);
         var document = new PageCompiler(pages, extensions, sourcePack, id, pageContent).compile(errorRoot);
-        return new GuidePage(sourcePack, id, document);
+        var titleHeading = extractPageTitleHeading(document);
+        return new GuidePage(sourcePack, id, document, titleHeading);
     }
 
     public static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage) {
         // Translate page tree over to layout pages
         var document = new PageCompiler(pages, extensions, parsedPage.sourcePack, parsedPage.id, parsedPage.source)
             .compile(parsedPage.astRoot);
+        var titleHeading = extractPageTitleHeading(document);
+        return new GuidePage(parsedPage.sourcePack, parsedPage.id, document, titleHeading);
+    }
 
-        return new GuidePage(parsedPage.sourcePack, parsedPage.id, document);
+    /**
+     * Finds the first H1 {@link LytHeading} in the compiled document, removes it from the
+     * document (so it is not rendered twice inside the content area when displayed in a
+     * toolbar), and returns it. Non-heading blocks are skipped during the search. Returns
+     * {@code null} when no H1 is present or when the first heading is not H1.
+     */
+    @Nullable
+    private static LytHeading extractPageTitleHeading(LytDocument document) {
+        for (var block : new ArrayList<>(document.getBlocks())) {
+            if (block instanceof LytHeading heading) {
+                if (heading.getDepth() == 1) {
+                    document.removeChild(heading);
+                    return heading;
+                } else {
+                    break;
+                }
+            }
+        }
+        return null;
     }
 
     public ExtensionCollection getExtensions() {
