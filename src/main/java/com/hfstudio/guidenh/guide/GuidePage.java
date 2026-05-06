@@ -6,7 +6,10 @@ import java.util.List;
 
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
+import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 
@@ -16,11 +19,18 @@ public final class GuidePage {
     private final ResourceLocation id;
     private final LytDocument document;
     private final List<LytGuidebookScene> scenes;
+    @Nullable
+    private final LytHeading titleHeading;
 
     public GuidePage(String sourcePack, ResourceLocation id, LytDocument document) {
+        this(sourcePack, id, document, null);
+    }
+
+    public GuidePage(String sourcePack, ResourceLocation id, LytDocument document, @Nullable LytHeading titleHeading) {
         this.sourcePack = sourcePack;
         this.id = id;
         this.document = document;
+        this.titleHeading = titleHeading;
         this.scenes = collectScenes(document);
     }
 
@@ -38,6 +48,10 @@ public final class GuidePage {
 
     public List<LytGuidebookScene> scenes() {
         return scenes;
+    }
+
+    public @Nullable LytHeading titleHeading() {
+        return titleHeading;
     }
 
     public void prepareForDisplay() {

@@ -1,6 +1,6 @@
 ---
 navigation:
-  title: Recipes
+  title: Recipes But Test Yes
   parent: index.md
 ---
 

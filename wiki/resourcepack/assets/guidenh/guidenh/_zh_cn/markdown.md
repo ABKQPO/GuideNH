@@ -1,6 +1,7 @@
 ---
 navigation:
   title: Markdown 测试
+  position: 10
 ---
 
 # Markdown 测试

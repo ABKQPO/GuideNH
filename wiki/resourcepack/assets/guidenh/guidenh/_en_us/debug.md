@@ -1,6 +1,7 @@
 ---
 navigation:
   title: Debug Test Page
+  position: 99
 ---
 
 # Debug Test Page

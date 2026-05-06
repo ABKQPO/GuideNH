@@ -311,6 +311,10 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
         }
     }
 
+    public void resetWarmup() {
+        startPageWarmed = false;
+    }
+
     public void tick() {
         if (pages == null || watcher == null) {
             return; // Do nothing while pages haven't been loaded yet

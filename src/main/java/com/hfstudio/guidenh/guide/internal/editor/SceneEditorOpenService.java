@@ -30,13 +30,23 @@ public class SceneEditorOpenService {
         }
 
         ItemStack held = player.getHeldItem();
-        String structureSnbt = held != null && held.getItem() instanceof RegionWandItem
-            && RegionWandItem.hasCompleteSelection(held)
-                ? RegionWandItem.exportSelectionAsStructureSnbt(player.worldObj, held)
-                : null;
-        return createInitialSession(
-            held != null && held.getItem() instanceof RegionWandItem && RegionWandItem.hasCompleteSelection(held),
-            structureSnbt);
+        boolean isWand = held != null && held.getItem() instanceof RegionWandItem
+            && RegionWandItem.hasCompleteSelection(held);
+
+        if (!isWand) {
+            return createInitialSession(false, null);
+        }
+
+        String mode = RegionWandItem.getExportMode(held);
+        // blocks/blocks_e modes generate <GameScene><Block> MDX, not SNBT ImportStructure.
+        // Open blank so the editor doesn't pre-fill with the wrong format.
+        if (RegionWandItem.MODE_BLOCKS.equals(mode) || RegionWandItem.MODE_BLOCKS_ENTITIES.equals(mode)) {
+            return new OpenResult(SceneEditorSession.createBlank(), false, null);
+        }
+
+        boolean includeEntities = RegionWandItem.includeEntities(mode);
+        String structureSnbt = RegionWandItem.exportSelectionAsStructureSnbt(player.worldObj, held, includeEntities);
+        return createInitialSession(true, structureSnbt);
     }
 
     OpenResult createInitialSession(@Nullable ItemStack held, @Nullable String structureSnbt) {

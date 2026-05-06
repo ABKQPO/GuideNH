@@ -13,6 +13,9 @@ public interface AccessorTileGenericPipe {
     @Accessor("pipe")
     Pipe<?> getPipe();
 
+    @Invoker("computeConnections")
+    void invokeComputeConnections();
+
     @Invoker("refreshRenderState")
     void invokeRefreshRenderState();
 

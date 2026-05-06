@@ -60,7 +60,7 @@ public class GuideNhClientBridgeController {
         return structureFileStore.saveExport(prefix, structureText);
     }
 
-    public void beginImportStructure(int x, int y, int z) {
+    public void beginImportStructure(int x, int y, int z, String filePath) {
         if (!isServerStructureCommandsAvailable()) {
             sendClient(GuidebookText.CommandStructureServerRequired);
             return;
@@ -70,8 +70,7 @@ public class GuideNhClientBridgeController {
             return;
         }
         pendingImportRequest = new PendingImportRequest(x, y, z);
-        pendingImport = structureImportService.chooseAndImportAsync(GuidebookText.SceneEditorImportStructure.text());
-        sendClient(GuidebookText.CommandStructureImportQueued);
+        pendingImport = structureImportService.importFromPathAsync(java.nio.file.Paths.get(filePath));
     }
 
     public void placeAllStructures(int x, int y, int z) {

@@ -9,8 +9,9 @@ public class GuideNhClientBridgeDispatcher {
         if (message.getAction() != GuideNhClientBridgeMessage.ACTION_IMPORT_STRUCTURE) {
             return;
         }
-        scheduler
-            .schedule(() -> importStructureAction.beginImportStructure(message.getX(), message.getY(), message.getZ()));
+        scheduler.schedule(
+            () -> importStructureAction
+                .beginImportStructure(message.getX(), message.getY(), message.getZ(), message.getFilePath()));
     }
 
     @FunctionalInterface
@@ -22,6 +23,6 @@ public class GuideNhClientBridgeDispatcher {
     @FunctionalInterface
     interface ImportStructureAction {
 
-        void beginImportStructure(int x, int y, int z);
+        void beginImportStructure(int x, int y, int z, String filePath);
     }
 }

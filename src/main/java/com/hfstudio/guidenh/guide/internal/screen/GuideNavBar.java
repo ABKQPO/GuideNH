@@ -158,7 +158,7 @@ public class GuideNavBar {
     }
 
     @Nullable
-    public ResourceLocation mouseClicked(int mouseX, int mouseY) {
+    public ResourceLocation mouseClicked(int mouseX, int mouseY, @Nullable ResourceLocation currentPageId) {
         if (!isOpen()) return null;
         int w = currentWidth();
         if (mouseX < x || mouseX >= x + w || mouseY < y || mouseY >= y + height) return null;
@@ -171,7 +171,19 @@ public class GuideNavBar {
         boolean hasChildren = !row.node.children()
             .isEmpty();
         if (hasChildren) {
-            toggleExpand(row.node);
+            boolean alreadyExpanded = expanded.contains(row.node);
+            if (!alreadyExpanded) {
+                // Collapsed → expand (and navigate if the node has a page).
+                toggleExpand(row.node);
+            } else {
+                // Already expanded: only collapse when already on this exact page;
+                // otherwise just navigate there without touching the expand state.
+                boolean onThisPage = row.node.pageId() != null && row.node.pageId()
+                    .equals(currentPageId);
+                if (onThisPage) {
+                    toggleExpand(row.node);
+                }
+            }
         }
         if (row.node.pageId() != null && row.node.hasPage()) {
             return row.node.pageId();

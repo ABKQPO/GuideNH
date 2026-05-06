@@ -20,6 +20,7 @@ GuideNH is an in-game guide framework for GTNH-era Minecraft mods. This wiki doc
 - [Localization](Localization)
 - [Examples](Examples)
 - [FAQ](FAQ)
+- [Server Integration](Server-Integration)
 
 ## Repository Layout
 

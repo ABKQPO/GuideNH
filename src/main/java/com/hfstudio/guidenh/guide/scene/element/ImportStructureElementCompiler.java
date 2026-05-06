@@ -4,9 +4,12 @@ import java.util.Collections;
 import java.util.Set;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -130,6 +133,51 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
 
         if (placed == 0) {
             errorSink.appendError(compiler, "Structure had no placeable blocks: " + absSrc, el);
+        }
+
+        // Spawn entities stored by the region-wand exporter (snbt+entities mode).
+        if (root.hasKey("entities", 9)) {
+            World fakeWorld = null;
+            try {
+                fakeWorld = level.getOrCreateFakeWorld();
+            } catch (IllegalStateException ignored) {}
+            // Proceed even if fakeWorld is null; entities bind to the preview world lazily on first render,
+            // matching how EntityElementCompiler handles scene parsing before a client world exists.
+            NBTTagList entitiesTag = root.getTagList("entities", 10);
+            for (int i = 0; i < entitiesTag.tagCount(); i++) {
+                NBTTagCompound et = entitiesTag.getCompoundTagAt(i);
+                String entityId = et.getString("id");
+                if (entityId.isEmpty()) continue;
+                float px = et.getFloat("px") + offsetX;
+                float py = et.getFloat("py") + offsetY;
+                float pz = et.getFloat("pz") + offsetZ;
+                String playerName = et.hasKey("name", 8) ? et.getString("name") : null;
+                NBTTagCompound entityNbt = et.hasKey("nbt", 10) ? (NBTTagCompound) et.getCompoundTag("nbt")
+                    .copy() : new NBTTagCompound();
+                Entity entity = null;
+                try {
+                    entity = GuidebookSceneEntityLoader.load(fakeWorld, entityId, entityNbt, playerName, null);
+                } catch (Throwable ignored) {}
+                if (entity != null) {
+                    entity.setPosition(px, py, pz);
+                    // Apply explicit yaw/pitch from the entry (overrides any Rotation from NBT).
+                    if (et.hasKey("yaw") || et.hasKey("pitch")) {
+                        float yaw = et.getFloat("yaw");
+                        float pitch = et.getFloat("pitch");
+                        entity.rotationYaw = yaw;
+                        entity.rotationPitch = pitch;
+                        entity.prevRotationYaw = yaw;
+                        entity.prevRotationPitch = pitch;
+                        if (entity instanceof EntityLivingBase living) {
+                            living.renderYawOffset = yaw;
+                            living.prevRenderYawOffset = yaw;
+                            living.rotationYawHead = yaw;
+                            living.prevRotationYawHead = yaw;
+                        }
+                    }
+                    level.addEntity(entity);
+                }
+            }
         }
     }
 

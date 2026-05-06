@@ -14,6 +14,8 @@ public class SceneEditorSceneNodeModel {
     private final List<SceneEditorElementModel> templateElements;
     @Nullable
     private SceneEditorElementModel annotationElement;
+    @Nullable
+    private String opaqueText;
 
     public SceneEditorSceneNodeModel(SceneEditorSceneNodeType type) {
         this.type = type;
@@ -56,6 +58,15 @@ public class SceneEditorSceneNodeModel {
         this.annotationElement = annotationElement;
     }
 
+    @Nullable
+    public String getOpaqueText() {
+        return opaqueText;
+    }
+
+    public void setOpaqueText(@Nullable String opaqueText) {
+        this.opaqueText = opaqueText;
+    }
+
     public SceneEditorSceneNodeModel duplicate() {
         SceneEditorSceneNodeModel duplicate = new SceneEditorSceneNodeModel(type);
         duplicate.attributes.putAll(this.attributes);
@@ -65,6 +76,7 @@ public class SceneEditorSceneNodeModel {
         if (annotationElement != null) {
             duplicate.annotationElement = annotationElement.duplicate();
         }
+        duplicate.opaqueText = this.opaqueText;
         return duplicate;
     }
 }
