@@ -184,10 +184,13 @@ public final class Ae2BaseTileNetworkStructureSupport {
             rpcXp = mpSnapshot.lookupXpPayload(dim, wx, wy, wz);
         }
         byte[] chosen = null;
+        String src = "none";
         if (rpcXp != null && rpcXp.length > 0) {
             chosen = rpcXp;
+            src = "rpc";
         } else if (local != null && local.length > 0) {
             chosen = local;
+            src = "local";
         }
 
         writeXpToStructure(structureBlockTag, chosen);

@@ -67,7 +67,8 @@ public final class Ae2BaseTileNetworkStreamPreview {
                 return null;
             }
             byte[] xBytes = compound.getByteArray("X");
-            return xBytes != null && xBytes.length > 0 ? xBytes.clone() : null;
+            byte[] out = xBytes != null && xBytes.length > 0 ? xBytes.clone() : null;
+            return out;
         } catch (Throwable ignored) {
             return null;
         }

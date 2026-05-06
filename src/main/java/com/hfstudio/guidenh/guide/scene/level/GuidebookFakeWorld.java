@@ -217,13 +217,16 @@ public class GuidebookFakeWorld extends WorldClient {
         if (isAe2TileCableBus(tileEntity)) {
             return;
         }
+        if (shouldSkipAe2BaseTileNetworkDescriptionReapply(tileEntity, x, y, z)) {
+            return;
+        }
         long guardKey = packBlockPos(x, y, z);
         Set<Long> inProgress = getOrCreateMarkBlockForUpdateGuard();
         if (!inProgress.add(guardKey)) {
             return;
         }
         try {
-            applyDescriptionPacket(tileEntity);
+            applyDescriptionPacketToTileEntity(tileEntity);
         } finally {
             inProgress.remove(guardKey);
         }
@@ -393,8 +396,12 @@ public class GuidebookFakeWorld extends WorldClient {
         return false;
     }
 
-    public static void applyDescriptionPacket(TileEntity tileEntity) {
+    private void applyDescriptionPacketToTileEntity(TileEntity tileEntity) {
         if (tileEntity == null || isAe2TileCableBus(tileEntity)) {
+            return;
+        }
+        if (shouldSkipAe2BaseTileNetworkDescriptionReapply(tileEntity, tileEntity.xCoord, tileEntity.yCoord,
+            tileEntity.zCoord)) {
             return;
         }
         try {
@@ -405,7 +412,24 @@ public class GuidebookFakeWorld extends WorldClient {
         } catch (Throwable ignored) {}
     }
 
+    private static final String AE2_TILE_AE_BASE = "appeng.tile.AEBaseTile";
     private static final String AE2_TILE_CABLE_BUS = "appeng.tile.networking.TileCableBus";
+    /** Matches {@code Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID} without loading AE2 classes. */
+    private static final String AE2_BASE_TILE_NETWORK_SUPPLEMENT_ID = "guidenh.ae2.ae_base_tile_network";
+
+    private boolean shouldSkipAe2BaseTileNetworkDescriptionReapply(TileEntity te, int x, int y, int z) {
+        if (level == null || !isAe2BaseTileNonCable(te)) {
+            return false;
+        }
+        long key = GuidebookLevel.packPos(x, y, z);
+        byte[] raw = level.previewAuthorityStore()
+            .get(key, AE2_BASE_TILE_NETWORK_SUPPLEMENT_ID);
+        return raw != null && raw.length > 0;
+    }
+
+    private static boolean isAe2BaseTileNonCable(@Nullable TileEntity tileEntity) {
+        return tileEntity != null && isInstanceOf(tileEntity, AE2_TILE_AE_BASE) && !isAe2TileCableBus(tileEntity);
+    }
 
     private static boolean isAe2TileCableBus(TileEntity tileEntity) {
         for (Class<?> t = tileEntity.getClass(); t != null; t = t.getSuperclass()) {

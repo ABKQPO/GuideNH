@@ -178,7 +178,9 @@ public final class Ae2Helpers {
         long posKey = GuidebookLevel.packPos(aeTile.xCoord, aeTile.yCoord, aeTile.zCoord);
         byte[] blob = level.previewAuthorityStore()
             .get(posKey, Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID);
-        if (blob != null && blob.length > 0 && Ae2BaseTileNetworkStreamPreview.applyAuthorityToPreviewTile(aeTile, blob)) {
+        boolean applied =
+            blob != null && blob.length > 0 && Ae2BaseTileNetworkStreamPreview.applyAuthorityToPreviewTile(aeTile, blob);
+        if (applied) {
             return;
         }
         syncDescriptionPacket(aeTile);
