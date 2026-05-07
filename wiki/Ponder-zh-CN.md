@@ -50,6 +50,7 @@ assets/<modid>/guidebooks/
 | `time` | 整数 | 是 | 该关键帧所在刻（0 ≤ time ≤ totalTime）。 |
 | `label` | 字符串 | 否 | 悬停在进度条节点上时显示的标签及方向箭头。 |
 | `camera` | 对象 | 否 | 该关键帧的摄像机状态，缺省字段从前一关键帧继承。 |
+| `cameraEaseTicks` | 整数 或 null | 否 | 摄像机从**上一个**关键帧的位置缓动到当前关键帧的时间（刻数）。`null`（默认）= 在整个片段内缓动；`0` = 立即跳转；`N > 0` = 在 N 刻内缓动，之后保持目标位置。 |
 | `layer` | 整数 或 null | 否 | 可见层覆盖。`null` 显示所有层；从 1 开始的整数限制到指定层。 |
 | `annotations` | 数组 | 否 | 该关键帧激活时显示的注释列表。 |
 | `blockChanges` | 数组 | 否 | 该关键帧激活时执行的方块替换列表。 |
@@ -65,7 +66,13 @@ assets/<modid>/guidebooks/
 | `offX` | 水平平移偏移（屏幕像素）。 |
 | `offY` | 垂直平移偏移（屏幕像素）。 |
 
-相邻关键帧之间的摄像机使用**缓入/缓出**曲线平滑插值。
+相邻关键帧之间的摄像机使用**缓入/缓出**曲线平滑插值。使用目标关键帧的 `cameraEaseTicks` 字段可以控制缓动时长：
+
+```json
+{ "time": 60,  "cameraEaseTicks": 0,  "camera": { "rotY": 90 } }   ← 立即跳转
+{ "time": 120, "cameraEaseTicks": 20, "camera": { "rotY": 180 } }  ← 在 20 刻内缓动后保持
+{ "time": 180, "camera": { "rotY": 270 } }                         ← 在整个片段内缓动（默认）
+```
 
 ## 方块变化（blockChanges）
 
@@ -75,8 +82,12 @@ assets/<modid>/guidebooks/
 {
   "time": 60,
   "blockChanges": [
-    { "x": 1, "y": 1, "z": 1, "block": "minecraft:lit_furnace", "meta": 4 },
-    { "x": 1, "y": 2, "z": 1, "block": "minecraft:air" }
+    { "x": 1, "y": 1, "z": 1, "block": "minecraft:lit_furnace", "meta": 4, "particles": true },
+    { "x": 1, "y": 2, "z": 1, "block": "minecraft:air", "particles": false },
+    {
+      "x": 2, "y": 1, "z": 2, "block": "minecraft:chest", "meta": 2,
+      "nbt": "{Items:[{Slot:0b,id:\"minecraft:iron_ingot\",Count:8b,Damage:0s}]}"
+    }
   ]
 }
 ```
@@ -86,8 +97,12 @@ assets/<modid>/guidebooks/
 | `x`, `y`, `z` | 整数 | — | **必填。** 要修改的方块坐标（结构坐标系）。 |
 | `block` | 字符串 | — | **必填。** 注册名，如 `"minecraft:furnace"`。使用 `"minecraft:air"` 表示移除方块。 |
 | `meta` | 整数 | `0` | 方块元数据（伤害值）。 |
+| `particles` | 布尔值 | `true` | 在正向播放中触发该方块变化时，是否生成基于方块自身贴图的粒子效果。设为 `false` 可抑制视觉效果（例如静默移除方块）。 |
+| `nbt` | 字符串 | `null` | 方块实体的 SNBT 标签字符串，用于箱子、熔炉等。通过 `JsonToNBT` 解析。键名必须使用**不带引号**的标准 SNBT 格式；字符串值仍需引号。若方块没有方块实体则忽略该字段。 |
 
 **支持倒放定位：** 向前或向后拖动进度条时，运行时会先将所有改动过的位置恢复为原始状态，再从第 0 帧重新应用到当前帧。无论如何定位，显示的结构始终正确。
+
+> **关于粒子效果：** 粒子效果只在正向播放、关键帧第一次激活时触发，粒子使用被替换方块的自身贴图。定位（倒带/快进）、重置或初始加载时粒子**不会**触发，已有粒子会被清除。
 
 ---
 
@@ -242,7 +257,12 @@ assets/<modid>/guidebooks/
 
 当任意 `hlMin/Max` 坐标存在时，会为该关键帧额外创建一个 `InWorldBoxAnnotation`，颜色由 `highlightColor` 指定。适合在讲解区域时高亮指定的方块范围。
 
-气泡框背景固定为深色半透明（`#CC0E0E20`）。世界锚定模式下有连接线；独立模式下没有。文本使用原版字体渲染器并带阴影。
+气泡框背景固定为深色半透明（`#CC0E0E20`）。世界锚定模式下有连接线；独立模式下没有。文本支持完整的 GuideNH 行内富文本语法（Markdown 格式化与 MDX 行内标签），并带阴影渲染。
+
+> **富文本支持：** `text` 字段支持 GuideNH 页面中所有行内富文本语法：
+> `**粗体**`、`*斜体*`、`~~删除线~~`、`<Color id="RED">颜色文本</Color>`、
+> `<ItemLink id="minecraft:iron_ingot" />` 以及其他所有行内 MDX 标签。
+> **不支持** Minecraft 原版的 `§` 格式代码，请改用上述 MDX 语法。
 
 > 缺少 `text` 字段或值为空的 `text` 注释将被静默忽略。
 
@@ -472,11 +492,12 @@ assets/mymod/guidebooks/
 ## 注意事项
 
 - 思索进度条绘制在层/StructureLib 滑条上方。播放期间结构滑条被隐藏，暂停后重新出现。
-- 即使某些关键帧仅更改部分摄像机轴，摄像机插值始终平滑（缓入/缓出）。
-- 注释属于单个关键帧，仅在该关键帧激活期间（从其 `time` 刻到下一关键帧的 `time` 刻之前）显示。
+- 即使某些关键帧仅更改部分摄像机轴，摄像机插值始终平滑（缓入/缓出）。使用 `cameraEaseTicks` 可以让摄像机立即跳转（`0`）或在指定刻数内完成缓动后保持目标位置。
+- 注释属于单个关键帧，仅在该关键帧激活期间（从其 `time` 刻到下一关键帧的 `time` 刻之前）显示。正向播放时叠加文字注释会平滑淡出后切换。
 - 每个 `<GameScene>` 只有一个 `<ImportPonder>` 标签生效，多个标签时后者覆盖前者。
 - `text` 字段缺失或为空的 `text` 注释将被静默跳过。
 - `inputType` 字段缺失或无法识别时默认为 `"lmb"`。
 - `blockChanges` 按从第 0 帧到当前帧的顺序应用；在多个关键帧中修改同一位置的方块完全正常。
 - `maxWidth` &gt; 0 的 `text` 注释使用原版字体渲染器自动换行；气泡框高度会随多行文本自动调整。
+- `nbt` 字符串中键名必须为**不带引号**的标准 SNBT 格式（MC 1.7.10 `JsonToNBT` 要求）。字符串值仍需引号，例如 `{id:"minecraft:iron_ingot",Count:8b}`。
 

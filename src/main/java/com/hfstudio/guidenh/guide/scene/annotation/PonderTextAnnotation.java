@@ -14,6 +14,9 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
@@ -45,6 +48,9 @@ public class PonderTextAnnotation extends OverlayAnnotation {
 
     @Nullable
     private List<String> resolvedLines;
+
+    @Nullable
+    private LytParagraph richContent;
 
     public PonderTextAnnotation(Vector3f worldPos, String text, int borderArgb) {
         this(worldPos, text, new ConstantColor(borderArgb), 0);
@@ -85,6 +91,18 @@ public class PonderTextAnnotation extends OverlayAnnotation {
         this(text, borderArgb, screenYOffset, 0);
     }
 
+    /**
+     * Attaches a pre-compiled rich-text paragraph to this annotation. When set, the paragraph is
+     * used for both size measurement and rendering instead of the plain-text fallback. The paragraph
+     * style is forced to white with drop-shadow so it looks consistent on the dark bubble background.
+     */
+    public void setRichContent(LytParagraph para) {
+        para.modifyStyle(
+            s -> s.dropShadow(true)
+                .color(ConstantColor.WHITE));
+        this.richContent = para;
+    }
+
     public Vector3f getWorldPos() {
         return worldPos;
     }
@@ -113,17 +131,6 @@ public class PonderTextAnnotation extends OverlayAnnotation {
 
     @Override
     public LytRect getBoundingRect(CameraSettings camera, LytRect viewport) {
-        Minecraft mc = Minecraft.getMinecraft();
-        FontRenderer fr = mc.fontRenderer;
-        List<String> lines = getLines(fr);
-        int lineCount = Math.max(1, lines.size());
-        int maxLineW = 0;
-        for (String line : lines) {
-            int w = fr.getStringWidth(line);
-            if (w > maxLineW) maxLineW = w;
-        }
-        int boxW = maxLineW + PADDING_X * 2;
-        int boxH = fr.FONT_HEIGHT * lineCount + LINE_GAP * (lineCount - 1) + PADDING_Y * 2;
         int cx, cy;
         if (independent) {
             cx = viewport.x() + viewport.width() / 2;
@@ -132,6 +139,26 @@ public class PonderTextAnnotation extends OverlayAnnotation {
             Vector3f screen = camera.worldToScreen(worldPos.x, worldPos.y, worldPos.z);
             cx = viewport.x() + viewport.width() / 2 + Math.round(screen.x);
             cy = viewport.y() + viewport.height() / 2 + Math.round(screen.y);
+        }
+        int boxW, boxH;
+        if (richContent != null) {
+            var lctx = new LayoutContext(new MinecraftFontMetrics());
+            int availW = maxWidth > 0 ? maxWidth : 10000;
+            LytRect cb = richContent.layout(lctx, 0, 0, availW);
+            boxW = cb.width() + PADDING_X * 2;
+            boxH = cb.height() + PADDING_Y * 2;
+        } else {
+            Minecraft mc = Minecraft.getMinecraft();
+            FontRenderer fr = mc.fontRenderer;
+            List<String> lines = getLines(fr);
+            int lineCount = Math.max(1, lines.size());
+            int maxLineW = 0;
+            for (String line : lines) {
+                int w = fr.getStringWidth(line);
+                if (w > maxLineW) maxLineW = w;
+            }
+            boxW = maxLineW + PADDING_X * 2;
+            boxH = fr.FONT_HEIGHT * lineCount + LINE_GAP * (lineCount - 1) + PADDING_Y * 2;
         }
         return new LytRect(cx - boxW / 2, cy - boxH - CONNECTOR_HEIGHT - 1, boxW, boxH);
     }
@@ -145,6 +172,47 @@ public class PonderTextAnnotation extends OverlayAnnotation {
             docOx = vrc.getDocumentOriginX();
             docOy = vrc.getDocumentOriginY();
             scroll = vrc.getScrollOffsetY();
+        }
+
+        int cx, cy;
+        if (independent) {
+            cx = viewport.x() + viewport.width() / 2 - docOx;
+            cy = viewport.y() + viewport.height() / 2 + Math.round(screenYOffset) - docOy + scroll;
+        } else {
+            Vector3f screen = camera.worldToScreen(worldPos.x, worldPos.y, worldPos.z);
+            cx = viewport.x() + viewport.width() / 2 + Math.round(screen.x) - docOx;
+            cy = viewport.y() + viewport.height() / 2 + Math.round(screen.y) - docOy + scroll;
+        }
+
+        float fade = getFade();
+        int borderArgb = borderColor.resolve(context.lightDarkMode());
+
+        if (richContent != null) {
+            var lctx = new LayoutContext(new MinecraftFontMetrics());
+            int availW = maxWidth > 0 ? maxWidth : 10000;
+            LytRect cb = richContent.layout(lctx, 0, 0, availW);
+            int boxW = cb.width() + PADDING_X * 2;
+            int boxH = cb.height() + PADDING_Y * 2;
+            int bx = cx - boxW / 2;
+            int by = cy - boxH - CONNECTOR_HEIGHT - 1;
+
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+            drawFilledRect(bx - 1, by - 1, bx + boxW + 1, by + boxH + 1, applyFade(borderArgb, fade));
+            drawFilledRect(bx, by, bx + boxW, by + boxH, applyFade(BG_ARGB, fade));
+            if (!independent) {
+                drawFilledRect(cx - 1, by + boxH, cx + 1, cy, applyFade(borderArgb, fade));
+            }
+
+            richContent.layout(lctx, bx + PADDING_X, by + PADDING_Y, availW);
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            richContent.render(context);
+            GL11.glColor4f(1f, 1f, 1f, 1f);
+            GL11.glDisable(GL11.GL_BLEND);
+            return;
         }
 
         Minecraft mc = Minecraft.getMinecraft();
@@ -161,21 +229,8 @@ public class PonderTextAnnotation extends OverlayAnnotation {
         int boxW = maxLineW + PADDING_X * 2;
         int boxH = fr.FONT_HEIGHT * lineCount + LINE_GAP * (lineCount - 1) + PADDING_Y * 2;
 
-        int cx, cy;
-        if (independent) {
-            cx = viewport.x() + viewport.width() / 2 - docOx;
-            cy = viewport.y() + viewport.height() / 2 + Math.round(screenYOffset) - docOy + scroll;
-        } else {
-            Vector3f screen = camera.worldToScreen(worldPos.x, worldPos.y, worldPos.z);
-            cx = viewport.x() + viewport.width() / 2 + Math.round(screen.x) - docOx;
-            cy = viewport.y() + viewport.height() / 2 + Math.round(screen.y) - docOy + scroll;
-        }
-
         int bx = cx - boxW / 2;
         int by = cy - boxH - CONNECTOR_HEIGHT - 1;
-
-        float fade = getFade();
-        int borderArgb = borderColor.resolve(context.lightDarkMode());
 
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_TEXTURE_2D);

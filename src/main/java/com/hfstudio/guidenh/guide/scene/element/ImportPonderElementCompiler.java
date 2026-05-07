@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
@@ -82,11 +83,11 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
             return;
         }
 
-        List<List<SceneAnnotation>> annotationsByKeyframe = resolveAnnotations(data);
+        List<List<SceneAnnotation>> annotationsByKeyframe = resolveAnnotations(data, compiler);
         scene.attachPonderData(data, annotationsByKeyframe);
     }
 
-    private static List<List<SceneAnnotation>> resolveAnnotations(PonderSceneData data) {
+    private static List<List<SceneAnnotation>> resolveAnnotations(PonderSceneData data, PageCompiler compiler) {
         List<List<SceneAnnotation>> result = new ArrayList<>();
         for (PonderKeyframe kf : data.getKeyframes()) {
             List<PonderKeyframeAnnotation> rawList = kf.getAnnotations();
@@ -96,15 +97,15 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
             }
             List<SceneAnnotation> resolved = new ArrayList<>(rawList.size());
             for (PonderKeyframeAnnotation raw : rawList) {
-                resolveAndAdd(raw, resolved);
+                resolveAndAdd(raw, resolved, compiler);
             }
             result.add(resolved.isEmpty() ? Collections.emptyList() : resolved);
         }
         return result;
     }
 
-    private static void resolveAndAdd(PonderKeyframeAnnotation raw, List<SceneAnnotation> out) {
-        SceneAnnotation ann = resolveAnnotation(raw);
+    private static void resolveAndAdd(PonderKeyframeAnnotation raw, List<SceneAnnotation> out, PageCompiler compiler) {
+        SceneAnnotation ann = resolveAnnotation(raw, compiler);
         if (ann != null) {
             if (raw.getTooltip() != null && !raw.getTooltip()
                 .isEmpty()) {
@@ -127,7 +128,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
     }
 
     @Nullable
-    private static SceneAnnotation resolveAnnotation(PonderKeyframeAnnotation raw) {
+    private static SceneAnnotation resolveAnnotation(PonderKeyframeAnnotation raw, PageCompiler compiler) {
         switch (raw.getType()) {
             case "diamond": {
                 var pos = new Vector3f(raw.getX(0f), raw.getY(0f), raw.getZ(0f));
@@ -174,10 +175,18 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
                 if (msg == null || msg.isEmpty()) return null;
                 int borderArgb = raw.parseColor(0xFFAAAAAA);
                 int maxW = raw.getMaxWidth(0);
+                PonderTextAnnotation ann;
                 if (raw.isIndependent()) {
-                    return new PonderTextAnnotation(msg, borderArgb, (float) raw.getYOffset(0), maxW);
+                    ann = new PonderTextAnnotation(msg, borderArgb, (float) raw.getYOffset(0), maxW);
+                } else {
+                    ann = new PonderTextAnnotation(pos, msg, borderArgb, maxW);
                 }
-                return new PonderTextAnnotation(pos, msg, borderArgb, maxW);
+                if (compiler != null) {
+                    var para = new LytParagraph();
+                    compiler.compileInlineMarkdown(msg, para);
+                    ann.setRichContent(para);
+                }
+                return ann;
             }
             case "input": {
                 var pos = new Vector3f(raw.getX(0f), raw.getY(0f), raw.getZ(0f));

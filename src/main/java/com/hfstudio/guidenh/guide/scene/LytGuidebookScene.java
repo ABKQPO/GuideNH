@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.function.Consumer;
 
 import net.minecraft.block.Block;
@@ -14,7 +15,10 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.IIcon;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Vec3;
@@ -36,6 +40,7 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
+import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -49,6 +54,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframe;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeBlockChange;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeCameraState;
@@ -101,6 +107,10 @@ public class LytGuidebookScene extends LytBlock {
     private float ponderCamOffX = 0f;
     private float ponderCamOffY = 0f;
     private final List<SceneAnnotation> ponderActiveAnnotations = new ArrayList<>();
+    private final List<SceneAnnotation> ponderOutgoingAnnotations = new ArrayList<>();
+    private int ponderOutgoingFadeTick = 0;
+    private final List<GuidebookSceneParticle> ponderSceneParticles = new ArrayList<>();
+    private final Random ponderParticleRng = new Random();
     private int ponderLastKeyframeIdx = -2;
     private int ponderAnnotationFadeTick = 5;
     private final Map<Long, PonderBlockInfo> ponderBlockSnapshot = new LinkedHashMap<>();
@@ -491,7 +501,8 @@ public class LytGuidebookScene extends LytBlock {
 
     @Nullable
     private Integer resolveVisibleLayerY() {
-        if (ponderSceneData != null) {
+        if (ponderSceneData != null && !ponderPaused && !ponderFinished) {
+            // During active playback the keyframe layer takes precedence.
             int activeIdx = ponderSceneData.resolveActiveKeyframeIndex(ponderCurrentTick);
             if (activeIdx >= 0) {
                 PonderKeyframe kf = ponderSceneData.getKeyframe(activeIdx);
@@ -504,6 +515,7 @@ public class LytGuidebookScene extends LytBlock {
             }
             return null;
         }
+        // Paused, finished, or no ponder: respect the user-controlled layer slider.
         if (!hasVisibleLayerData()) {
             return null;
         }
@@ -956,6 +968,12 @@ public class LytGuidebookScene extends LytBlock {
         }
         appendStructureLibHatchOverlays(inWorld);
         appendOriginAxesAnnotations(inWorld);
+        for (SceneAnnotation pa : ponderOutgoingAnnotations) {
+            if (pa instanceof OverlayAnnotation ov) {
+                ov.setFade(Math.min(1f, ponderOutgoingFadeTick / 5f));
+                overlays.add(ov);
+            }
+        }
         for (SceneAnnotation pa : ponderActiveAnnotations) {
             if (pa instanceof InWorldAnnotation iw) inWorld.add(iw);
             else if (pa instanceof OverlayAnnotation ov) {
@@ -963,6 +981,7 @@ public class LytGuidebookScene extends LytBlock {
                 overlays.add(ov);
             }
         }
+
         if (hoveredEntity != null && hoveredEntityBounds != null && isEntityVisibleForCurrentLayer(hoveredEntity)) {
             float eps = 0.002f;
             hoverBoxMin.set(
@@ -1051,16 +1070,8 @@ public class LytGuidebookScene extends LytBlock {
                 0f,
                 inWorld,
                 context.lightDarkMode(),
-                visibleLayerY);
-
-        if (ponderCameraApplied) {
-            camera.setZoom(savedZoom);
-            camera.setRotationX(savedRotX);
-            camera.setRotationY(savedRotY);
-            camera.setRotationZ(savedRotZ);
-            camera.setOffsetX(savedOffX);
-            camera.setOffsetY(savedOffY);
-        }
+                visibleLayerY,
+                ponderSceneParticles);
 
         if (!overlays.isEmpty()) {
             LytRect viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
@@ -1076,6 +1087,15 @@ public class LytGuidebookScene extends LytBlock {
             } finally {
                 context.popScissor();
             }
+        }
+
+        if (ponderCameraApplied) {
+            camera.setZoom(savedZoom);
+            camera.setRotationX(savedRotX);
+            camera.setRotationY(savedRotY);
+            camera.setRotationZ(savedRotZ);
+            camera.setOffsetX(savedOffX);
+            camera.setOffsetY(savedOffY);
         }
 
         context.restoreExternalRenderState();
@@ -1501,16 +1521,12 @@ public class LytGuidebookScene extends LytBlock {
         int relX = mouseX - cachedPonderBtnAbsX;
         int btnW = SCENE_SLIDER_AREA_HEIGHT;
         int idx = relX / btnW;
-        switch (idx) {
-            case 0:
-                return GuideIconButton.Role.PONDER_PREV_KEYFRAME;
-            case 1:
-                return GuideIconButton.Role.PONDER_PLAY_PAUSE;
-            case 2:
-                return GuideIconButton.Role.PONDER_RESTART;
-            default:
-                return null;
-        }
+        return switch (idx) {
+            case 0 -> GuideIconButton.Role.PONDER_PREV_KEYFRAME;
+            case 1 -> GuideIconButton.Role.PONDER_PLAY_PAUSE;
+            case 2 -> GuideIconButton.Role.PONDER_RESTART;
+            default -> null;
+        };
     }
 
     public boolean containsBottomControlSlider(int mouseX, int mouseY) {
@@ -1561,8 +1577,38 @@ public class LytGuidebookScene extends LytBlock {
 
         float relX = (mouseAbsX) - (lastAbsX + lastW * 0.5f);
         float relY = (mouseAbsY) - (lastAbsY + lastH * 0.5f);
+
+        // Apply ponder camera so the raycast matches the rendered view.
+        boolean ponderApplied = false;
+        float pSavedZoom = 0, pSavedRX = 0, pSavedRY = 0, pSavedRZ = 0, pSavedOX = 0, pSavedOY = 0;
+        if (ponderSceneData != null) {
+            pSavedZoom = camera.getZoom();
+            pSavedRX = camera.getRotationX();
+            pSavedRY = camera.getRotationY();
+            pSavedRZ = camera.getRotationZ();
+            pSavedOX = camera.getOffsetX();
+            pSavedOY = camera.getOffsetY();
+            camera.setZoom(ponderCamZoom);
+            camera.setRotationX(ponderCamRotX);
+            camera.setRotationY(ponderCamRotY);
+            camera.setRotationZ(ponderCamRotZ);
+            camera.setOffsetX(ponderCamOffX);
+            camera.setOffsetY(ponderCamOffY);
+            ponderApplied = true;
+        }
+
         camera.setViewportSize(lastW, lastH);
         float[] ray = camera.screenToWorldRay(relX, relY, pickRayScratch);
+
+        if (ponderApplied) {
+            camera.setZoom(pSavedZoom);
+            camera.setRotationX(pSavedRX);
+            camera.setRotationY(pSavedRY);
+            camera.setRotationZ(pSavedRZ);
+            camera.setOffsetX(pSavedOX);
+            camera.setOffsetY(pSavedOY);
+        }
+
         float ox = ray[0], oy = ray[1], oz = ray[2];
         float dx = ray[3], dy = ray[4], dz = ray[5];
         int[] sceneBounds = level.getBounds();
@@ -1726,12 +1772,18 @@ public class LytGuidebookScene extends LytBlock {
             case HIGHLIGHT_STRUCTURELIB_HATCHES -> setStructureLibHatchHighlightEnabled(
                 !structureLibHatchHighlightEnabled);
             case ZOOM_IN -> {
-                float z = Math.min(10f, camera.getZoom() * 1.25f);
-                camera.setZoom(z);
+                if (ponderSceneData != null) {
+                    ponderCamZoom = Math.min(MAX_ZOOM, ponderCamZoom * 1.25f);
+                } else {
+                    camera.setZoom(Math.min(MAX_ZOOM, camera.getZoom() * 1.25f));
+                }
             }
             case ZOOM_OUT -> {
-                float z = Math.max(0.1f, camera.getZoom() / 1.25f);
-                camera.setZoom(z);
+                if (ponderSceneData != null) {
+                    ponderCamZoom = Math.max(MIN_ZOOM, ponderCamZoom / 1.25f);
+                } else {
+                    camera.setZoom(Math.max(MIN_ZOOM, camera.getZoom() / 1.25f));
+                }
             }
             case RESET_VIEW -> resetViewToInitialCamera();
             case PONDER_PREV_KEYFRAME -> ponderPrevKeyframe();
@@ -1742,12 +1794,19 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void resetViewToInitialCamera() {
-        camera.setZoom(initialCam[0]);
-        camera.setRotationX(initialCam[1]);
-        camera.setRotationY(initialCam[2]);
-        camera.setRotationZ(initialCam[3]);
-        camera.setOffsetX(initialCam[4]);
-        camera.setOffsetY(initialCam[5]);
+        if (ponderSceneData != null) {
+            // In ponder mode the camera is driven by ponderCam* fields.
+            // Re-running updatePonderState restores them to the scripted values
+            // for the current tick, discarding any user pan/rotate offsets.
+            updatePonderState();
+        } else {
+            camera.setZoom(initialCam[0]);
+            camera.setRotationX(initialCam[1]);
+            camera.setRotationY(initialCam[2]);
+            camera.setRotationZ(initialCam[3]);
+            camera.setOffsetX(initialCam[4]);
+            camera.setOffsetY(initialCam[5]);
+        }
     }
 
     public void startDrag(int mouseX, int mouseY, int button) {
@@ -1811,12 +1870,23 @@ public class LytGuidebookScene extends LytBlock {
         dragLastX = mouseX;
         dragLastY = mouseY;
 
-        if (isPanButton(dragButton)) {
-            camera.setOffsetX(camera.getOffsetX() + dx);
-            camera.setOffsetY(camera.getOffsetY() - dy);
-        } else if (isRotateButton(dragButton)) {
-            camera.setRotationY(camera.getRotationY() + dx * DRAG_ROTATE_SENSITIVITY);
-            camera.setRotationX(camera.getRotationX() + dy * DRAG_ROTATE_SENSITIVITY);
+        // Route to ponderCam* so changes are visible when ponder is active (paused or playing).
+        if (ponderSceneData != null) {
+            if (isPanButton(dragButton)) {
+                ponderCamOffX += dx;
+                ponderCamOffY -= dy;
+            } else if (isRotateButton(dragButton)) {
+                ponderCamRotY += dx * DRAG_ROTATE_SENSITIVITY;
+                ponderCamRotX += dy * DRAG_ROTATE_SENSITIVITY;
+            }
+        } else {
+            if (isPanButton(dragButton)) {
+                camera.setOffsetX(camera.getOffsetX() + dx);
+                camera.setOffsetY(camera.getOffsetY() - dy);
+            } else if (isRotateButton(dragButton)) {
+                camera.setRotationY(camera.getRotationY() + dx * DRAG_ROTATE_SENSITIVITY);
+                camera.setRotationX(camera.getRotationX() + dy * DRAG_ROTATE_SENSITIVITY);
+            }
         }
     }
 
@@ -1852,6 +1922,13 @@ public class LytGuidebookScene extends LytBlock {
             return;
         }
         if (isPonderPlaying()) return;
+        if (ponderSceneData != null) {
+            float z = ponderCamZoom;
+            if (dwheel > 0) z *= WHEEL_ZOOM_STEP;
+            else z /= WHEEL_ZOOM_STEP;
+            ponderCamZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
+            return;
+        }
         float z = camera.getZoom();
         if (dwheel > 0) z *= WHEEL_ZOOM_STEP;
         else z /= WHEEL_ZOOM_STEP;
@@ -1864,6 +1941,13 @@ public class LytGuidebookScene extends LytBlock {
         if (!interactive) return;
         if (dwheel == 0) return;
         if (isPonderPlaying()) return;
+        if (ponderSceneData != null) {
+            float z = ponderCamZoom;
+            if (dwheel > 0) z *= WHEEL_ZOOM_STEP;
+            else z /= WHEEL_ZOOM_STEP;
+            ponderCamZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
+            return;
+        }
         float z = camera.getZoom();
         if (dwheel > 0) z *= WHEEL_ZOOM_STEP;
         else z /= WHEEL_ZOOM_STEP;
@@ -1872,11 +1956,11 @@ public class LytGuidebookScene extends LytBlock {
         camera.setZoom(z);
     }
 
-    LytRect getVisibleLayerSliderRectForTesting() {
+    public LytRect getVisibleLayerSliderRectForTesting() {
         return resolveVisibleLayerSliderTrackRect();
     }
 
-    int getVisibleLayerSliderAreaHeightForTesting() {
+    public int getVisibleLayerSliderAreaHeightForTesting() {
         return visibleLayerSliderAreaHeight();
     }
 
@@ -1888,7 +1972,7 @@ public class LytGuidebookScene extends LytBlock {
         setVisibleLayerSilently(layer);
     }
 
-    List<Class<?>> getVisibleAnnotationTypesForTesting() {
+    public List<Class<?>> getVisibleAnnotationTypesForTesting() {
         if (annotations.isEmpty()) {
             return Collections.emptyList();
         }
@@ -1901,7 +1985,7 @@ public class LytGuidebookScene extends LytBlock {
         return visibleTypes;
     }
 
-    LytRect getStructureLibChannelSliderRectForTesting() {
+    public LytRect getStructureLibChannelSliderRectForTesting() {
         List<StructureLibSceneMetadata.ChannelData> channels = getSelectableStructureLibChannels();
         return channels.isEmpty() ? LytRect.empty()
             : resolveStructureLibChannelSliderTrackRect(
@@ -1909,7 +1993,7 @@ public class LytGuidebookScene extends LytBlock {
                     .getChannelId());
     }
 
-    int getStructureLibChannelSliderAreaHeightForTesting() {
+    public int getStructureLibChannelSliderAreaHeightForTesting() {
         return structureLibChannelSliderAreaHeight();
     }
 
@@ -2004,6 +2088,9 @@ public class LytGuidebookScene extends LytBlock {
         this.draggingPonderBar = false;
         this.ponderLastKeyframeIdx = -2;
         this.ponderAnnotationFadeTick = 5;
+        this.ponderOutgoingAnnotations.clear();
+        this.ponderOutgoingFadeTick = 0;
+        this.ponderSceneParticles.clear();
         snapshotPonderBlocks();
         updatePonderState();
     }
@@ -2018,6 +2105,16 @@ public class LytGuidebookScene extends LytBlock {
         if (ponderAnnotationFadeTick < 5) {
             ponderAnnotationFadeTick++;
         }
+        if (ponderOutgoingFadeTick > 0) {
+            ponderOutgoingFadeTick--;
+            if (ponderOutgoingFadeTick == 0) {
+                ponderOutgoingAnnotations.clear();
+            }
+        }
+        ponderSceneParticles.removeIf(p -> {
+            p.tick();
+            return p.isDead();
+        });
         updatePonderState();
     }
 
@@ -2041,6 +2138,10 @@ public class LytGuidebookScene extends LytBlock {
         draggingPonderBar = false;
         ponderLastKeyframeIdx = -2;
         ponderAnnotationFadeTick = 0;
+        ponderActiveAnnotations.clear();
+        ponderOutgoingAnnotations.clear();
+        ponderOutgoingFadeTick = 0;
+        ponderSceneParticles.clear();
         updatePonderState();
     }
 
@@ -2091,10 +2192,33 @@ public class LytGuidebookScene extends LytBlock {
         int activeIdx = ponderSceneData.resolveActiveKeyframeIndex(ponderCurrentTick);
 
         if (activeIdx != ponderLastKeyframeIdx) {
+            boolean wasAtValidKeyframe = ponderLastKeyframeIdx >= 0;
             ponderLastKeyframeIdx = activeIdx;
+
+            // Move current overlay annotations to outgoing so they fade out smoothly.
+            if (!ponderPaused && !ponderActiveAnnotations.isEmpty()) {
+                ponderOutgoingAnnotations.clear();
+                for (SceneAnnotation s : ponderActiveAnnotations) {
+                    if (s instanceof OverlayAnnotation) {
+                        ponderOutgoingAnnotations.add(s);
+                    }
+                }
+                ponderOutgoingFadeTick = ponderAnnotationFadeTick;
+                // If the fade budget is already zero, discard immediately instead of
+                // accumulating stale annotations that would never be cleaned up.
+                if (ponderOutgoingFadeTick == 0) {
+                    ponderOutgoingAnnotations.clear();
+                }
+            } else {
+                ponderOutgoingAnnotations.clear();
+                ponderOutgoingFadeTick = 0;
+            }
+
             ponderAnnotationFadeTick = ponderPaused ? 5 : 0;
             if (!ponderBlockSnapshot.isEmpty()) {
-                applyPonderBlockChanges(activeIdx);
+                // Trigger particle effects only during forward playback, not on seek or initial load.
+                boolean triggerParticles = !ponderPaused && wasAtValidKeyframe;
+                applyPonderBlockChanges(activeIdx, triggerParticles);
             }
         }
 
@@ -2111,8 +2235,15 @@ public class LytGuidebookScene extends LytBlock {
             PonderKeyframe kfB = ponderSceneData.getKeyframe(activeIdx + 1);
             int segDur = kfB.getTime() - kfA.getTime();
             if (segDur > 0) {
-                float rawT = (ponderCurrentTick - kfA.getTime()) / (float) segDur;
-                float t = easeInOut(rawT);
+                Integer easeTicks = kfB.getCameraEaseTicks();
+                float t;
+                if (easeTicks != null && easeTicks == 0) {
+                    t = 1.0f;
+                } else {
+                    int elapsed = ponderCurrentTick - kfA.getTime();
+                    int useDur = (easeTicks != null && easeTicks > 0) ? Math.min(easeTicks, segDur) : segDur;
+                    t = elapsed >= useDur ? 1.0f : easeInOut(elapsed / (float) useDur);
+                }
                 float[] nextCam = resolveFullCameraAt(activeIdx + 1);
                 activeCam[0] = lerp(activeCam[0], nextCam[0], t);
                 activeCam[1] = lerp(activeCam[1], nextCam[1], t);
@@ -2215,17 +2346,82 @@ public class LytGuidebookScene extends LytBlock {
         ponderBlockSnapshot.clear();
     }
 
-    private void applyPonderBlockChanges(int upToKeyframeIdx) {
+    private void applyPonderBlockChanges(int upToKeyframeIdx, boolean triggerParticles) {
         restoreFromPonderSnapshot();
         if (upToKeyframeIdx < 0 || ponderSceneData == null) return;
         for (int i = 0; i <= upToKeyframeIdx && i < ponderSceneData.getKeyframeCount(); i++) {
             PonderKeyframe kf = ponderSceneData.getKeyframe(i);
             if (kf == null) continue;
+            boolean isTarget = i == upToKeyframeIdx;
             for (PonderKeyframeBlockChange bc : kf.getBlockChanges()) {
-                Block block = resolveBlock(bc.getBlock());
-                level.setBlock(bc.getX(), bc.getY(), bc.getZ(), block, bc.getMeta());
+                Block oldBlock = level.getBlock(bc.getX(), bc.getY(), bc.getZ());
+                int oldMeta = level.getBlockMetadata(bc.getX(), bc.getY(), bc.getZ());
+                Block newBlock = resolveBlock(bc.getBlock());
+                TileEntity te = resolvePonderBlockTileEntity(bc, newBlock);
+                level.setBlock(bc.getX(), bc.getY(), bc.getZ(), newBlock, bc.getMeta(), te);
+                if (triggerParticles && isTarget && bc.shouldSpawnParticles()) {
+                    boolean removing = newBlock == null || newBlock == Blocks.air;
+                    Block particleBlock = removing ? oldBlock : newBlock;
+                    int particleMeta = removing ? oldMeta : bc.getMeta();
+                    if (particleBlock != null && particleBlock != Blocks.air) {
+                        spawnBlockParticles(bc.getX(), bc.getY(), bc.getZ(), particleBlock, particleMeta);
+                    }
+                }
             }
         }
+    }
+
+    private void spawnBlockParticles(int bx, int by, int bz, Block block, int meta) {
+        IIcon icon = null;
+        try {
+            icon = block.getIcon(1, meta);
+        } catch (Exception ignored) {}
+        if (icon == null) return;
+
+        float iconW = icon.getMaxU() - icon.getMinU();
+        float iconH = icon.getMaxV() - icon.getMinV();
+        if (iconW <= 0 || iconH <= 0) return;
+
+        Random rng = ponderParticleRng;
+        int count = 4 + rng.nextInt(5);
+        for (int i = 0; i < count; i++) {
+            float px = bx + 0.1f + rng.nextFloat() * 0.8f;
+            float py = by + 0.1f + rng.nextFloat() * 0.8f;
+            float pz = bz + 0.1f + rng.nextFloat() * 0.8f;
+
+            float angle = rng.nextFloat() * (float) (Math.PI * 2.0);
+            float hSpeed = 0.05f + rng.nextFloat() * 0.12f;
+            float vx = (float) Math.cos(angle) * hSpeed;
+            float vy = 0.1f + rng.nextFloat() * 0.15f;
+            float vz = (float) Math.sin(angle) * hSpeed;
+
+            float uFrac = rng.nextFloat() * 0.75f;
+            float vFrac = rng.nextFloat() * 0.75f;
+            float u0 = icon.getMinU() + uFrac * iconW;
+            float v0 = icon.getMinV() + vFrac * iconH;
+            float u1 = u0 + iconW * 0.25f;
+            float v1 = v0 + iconH * 0.25f;
+
+            int maxAge = 8 + rng.nextInt(8);
+            float size = 0.045f + rng.nextFloat() * 0.03f;
+            ponderSceneParticles
+                .add(new GuidebookSceneParticle(px, py, pz, vx, vy, vz, u0, v0, u1, v1, 1f, 1f, 1f, maxAge, size));
+        }
+    }
+
+    @Nullable
+    private TileEntity resolvePonderBlockTileEntity(PonderKeyframeBlockChange bc, @Nullable Block block) {
+        if (block == null) return null;
+        String nbtStr = bc.getNbt();
+        NBTTagCompound tag = null;
+        if (nbtStr != null && !nbtStr.isEmpty()) {
+            try {
+                tag = GuideTextNbtCodec.readTextSafeCompound(nbtStr);
+            } catch (Exception ignored) {}
+        }
+        if (tag == null && !block.hasTileEntity(bc.getMeta())) return null;
+        return GuidebookTileEntityLoader
+            .load(level.getOrCreateFakeWorld(), block, bc.getMeta(), bc.getX(), bc.getY(), bc.getZ(), tag);
     }
 
     /** Compact holder for the initial block state at a ponder-changed position. */

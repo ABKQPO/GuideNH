@@ -72,8 +72,9 @@
       "camera": {
         "rotY": 200.0
       },
+      "cameraEaseTicks": 20,
       "blockChanges": [
-        { "x": 1, "y": 1, "z": 1, "block": "minecraft:lit_furnace", "meta": 4 }
+        { "x": 1, "y": 1, "z": 1, "block": "minecraft:lit_furnace", "meta": 4, "particles": true }
       ],
       "annotations": [
         {
@@ -106,8 +107,9 @@
       "camera": {
         "rotY": 200.0
       },
+      "cameraEaseTicks": 0,
       "blockChanges": [
-        { "x": 1, "y": 2, "z": 1, "block": "minecraft:air" }
+        { "x": 1, "y": 2, "z": 1, "block": "minecraft:air", "particles": false }
       ],
       "annotations": [
         {
@@ -182,6 +184,14 @@
           "yOffset": 50,
           "maxWidth": 200,
           "color": "0xFFAAFFCC"
+        },
+        {
+          "type": "text",
+          "text": "**Bold**, *italic*, ~~strike~~, <Color id=\"RED\">red</Color> <Color id=\"GOLD\">gold</Color>",
+          "independent": true,
+          "yOffset": -50,
+          "maxWidth": 220,
+          "color": "0xFFCCCCCC"
         }
       ]
     },

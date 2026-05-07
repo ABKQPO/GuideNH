@@ -125,6 +125,28 @@ public class GuidebookLevelRenderer {
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
         List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, @Nullable Integer visibleLayerY) {
+        render(
+            level,
+            camera,
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight,
+            scissorX,
+            scissorY,
+            scissorW,
+            scissorH,
+            partialTicks,
+            annotations,
+            lightDarkMode,
+            visibleLayerY,
+            Collections.emptyList());
+    }
+
+    public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
+        int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
+        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, @Nullable Integer visibleLayerY,
+        List<GuidebookSceneParticle> particles) {
 
         int cx0 = Math.max(panelX, scissorX);
         int cy0 = Math.max(panelY, scissorY);
@@ -214,6 +236,9 @@ public class GuidebookLevelRenderer {
 
                         if (!annotations.isEmpty()) {
                             InWorldAnnotationRenderer.render(annotations, lightDarkMode);
+                        }
+                        if (!particles.isEmpty()) {
+                            renderParticlesInContext(particles);
                         }
                     } finally {
                         mc.entityRenderer.disableLightmap(partialTicks);
@@ -459,6 +484,64 @@ public class GuidebookLevelRenderer {
         GL11.glEnable(GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glDepthMask(false);
+    }
+
+    private void renderParticlesInContext(List<GuidebookSceneParticle> particles) {
+        matrixBuffer.clear();
+        GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, matrixBuffer);
+        // For a billboard facing the camera we need the camera right/up vectors in scene space.
+        // The modelview matrix M maps scene coords to eye coords (M = V * S, S = scene transform).
+        // GL stores M in column-major order: element [col*4 + row].
+        // Row 0 of M = [m[0], m[4], m[8]] → camera-right in scene space.
+        // Row 1 of M = [m[1], m[5], m[9]] → camera-up in scene space.
+        // Normalize because the scene transform S may include a scale factor.
+        float rx = matrixBuffer.get(0), ry = matrixBuffer.get(4), rz = matrixBuffer.get(8);
+        float ux = matrixBuffer.get(1), uy = matrixBuffer.get(5), uz = matrixBuffer.get(9);
+        float rLen = (float) Math.sqrt(rx * rx + ry * ry + rz * rz);
+        if (rLen > 1e-6f) {
+            rx /= rLen;
+            ry /= rLen;
+            rz /= rLen;
+        }
+        float uLen = (float) Math.sqrt(ux * ux + uy * uy + uz * uz);
+        if (uLen > 1e-6f) {
+            ux /= uLen;
+            uy /= uLen;
+            uz /= uLen;
+        }
+
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        try {
+            GL11.glEnable(GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            GL11.glEnable(GL_TEXTURE_2D);
+            GL11.glDepthMask(false);
+            GL11.glDisable(GL_CULL_FACE);
+            GL11.glDisable(GL_LIGHTING);
+            GL11.glDisable(GL_ALPHA_TEST);
+
+            OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
+            Minecraft.getMinecraft()
+                .getTextureManager()
+                .bindTexture(TextureMap.locationBlocksTexture);
+
+            var tess = Tessellator.instance;
+            tess.startDrawingQuads();
+            for (GuidebookSceneParticle p : particles) {
+                if (p.isDead()) continue;
+                float alpha = p.getAlpha();
+                tess.setColorRGBA_F(p.red, p.green, p.blue, alpha);
+                float s = p.size;
+                float cx = p.x, cy = p.y, cz = p.z;
+                tess.addVertexWithUV(cx - rx * s - ux * s, cy - ry * s - uy * s, cz - rz * s - uz * s, p.u0, p.v1);
+                tess.addVertexWithUV(cx + rx * s - ux * s, cy + ry * s - uy * s, cz + rz * s - uz * s, p.u1, p.v1);
+                tess.addVertexWithUV(cx + rx * s + ux * s, cy + ry * s + uy * s, cz + rz * s + uz * s, p.u1, p.v0);
+                tess.addVertexWithUV(cx - rx * s + ux * s, cy - ry * s + uy * s, cz - rz * s + uz * s, p.u0, p.v0);
+            }
+            tess.draw();
+        } finally {
+            GL11.glPopAttrib();
+        }
     }
 
     public static void log(Throwable t) {

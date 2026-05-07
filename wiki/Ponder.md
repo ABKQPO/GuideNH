@@ -97,6 +97,7 @@ The `src` attribute accepts both relative and absolute IDs:
 | `time` | integer | Yes | Tick at which this keyframe occurs (0 ≤ time ≤ totalTime). |
 | `label` | string | No | Optional label shown when hovering the keyframe node on the progress bar. |
 | `camera` | object | No | Camera state at this keyframe. Null fields inherit from the previous keyframe. |
+| `cameraEaseTicks` | integer or null | No | How many ticks the camera takes to ease from the **previous** keyframe to this one. `null` (default) = ease over the full segment. `0` = instant snap. `N > 0` = ease over N ticks, then hold at the target position. |
 | `layer` | integer or null | No | Visible layer override. `null` (or omitted) shows all layers. 1-based index. |
 | `annotations` | array | No | List of annotation objects shown while this keyframe is active. |
 | `blockChanges` | array | No | List of block replacements applied when this keyframe first becomes active. |
@@ -117,6 +118,13 @@ camera value is used.
 | `offY` | float | Vertical pan offset in screen pixels. |
 
 The camera smoothly interpolates between adjacent keyframes using an **ease-in/ease-out** curve.
+Use `cameraEaseTicks` on the **destination** keyframe to control the easing duration:
+
+```json
+{ "time": 60, "cameraEaseTicks": 0,  "camera": { "rotY": 90 } }   ← instant snap
+{ "time": 120, "cameraEaseTicks": 20, "camera": { "rotY": 180 } }  ← ease over 20 ticks then hold
+{ "time": 180, "camera": { "rotY": 270 } }                         ← ease over full segment (default)
+```
 
 ## Block Changes
 
@@ -128,8 +136,12 @@ blocks, or animate a machine powering on.
 {
   "time": 60,
   "blockChanges": [
-    { "x": 1, "y": 1, "z": 1, "block": "minecraft:lit_furnace", "meta": 4 },
-    { "x": 1, "y": 2, "z": 1, "block": "minecraft:air" }
+    { "x": 1, "y": 1, "z": 1, "block": "minecraft:lit_furnace", "meta": 4, "particles": true },
+    { "x": 1, "y": 2, "z": 1, "block": "minecraft:air", "particles": false },
+    {
+      "x": 2, "y": 1, "z": 2, "block": "minecraft:chest", "meta": 2,
+      "nbt": "{Items:[{Slot:0b,id:\"minecraft:iron_ingot\",Count:8b,Damage:0s}]}"
+    }
   ]
 }
 ```
@@ -139,10 +151,15 @@ blocks, or animate a machine powering on.
 | `x`, `y`, `z` | integer | — | **Required.** Position of the block to change (structure coordinates). |
 | `block` | string | — | **Required.** Registry name, e.g. `"minecraft:furnace"`. Use `"minecraft:air"` to remove. |
 | `meta` | integer | `0` | Block metadata / damage value. |
+| `particles` | boolean | `true` | Whether to spawn block-texture particle effects when this block change fires during forward playback. Particles are taken from the block's own icon texture. Set to `false` to suppress (e.g., for silent removal). |
+| `nbt` | string | `null` | SNBT string for a tile entity tag, e.g. for chests, furnaces, etc. Parsed with `JsonToNBT`. Keys must be **unquoted** (standard SNBT format). Ignored if the block has no tile entity. |
 
 **Seek-safe:** When seeking backwards the runtime restores all changed positions to their
 original structure state, then re-applies changes from keyframes 0 through the current one.
 The displayed structure is always correct regardless of seek direction.
+
+> **Note on particles:** Block-texture particles fire once, only during forward playback when the
+> keyframe first becomes active. They are cleared on seek, restart, or initial load.
 
 ---
 
@@ -304,7 +321,13 @@ created at the specified bounds with `highlightColor`. This is useful for pointi
 block regions while explaining them.
 
 The background is always a dark semi-transparent navy (`#CC0E0E20`). In world-anchored mode a
-connector line links the box to the anchor. Text is rendered with shadow using the vanilla font renderer.
+connector line links the box to the anchor. Text supports the full GuideNH inline rich-text
+syntax — markdown formatting and MDX inline tags — and is rendered with drop-shadow.
+
+> **Rich text:** The `text` field supports the same inline markup used in GuideNH guide pages:
+> `**bold**`, `*italic*`, `~~strikethrough~~`, `<Color id="RED">colored</Color>`,
+> `<ItemLink id="minecraft:iron_ingot" />`, and all other inline MDX tags.
+> Plain Minecraft `§` format codes are **not** supported; use MDX syntax instead.
 
 > A `text` annotation without a `text` field (or an empty string) is silently ignored.
 
@@ -544,9 +567,11 @@ The Grinder turns ores into doubled dust. Press **Play** to see the animated wal
 - The Ponder progress bar is drawn above the layer/StructureLib sliders. During playback the
   structural sliders are hidden to keep the UI clean; they reappear when paused.
 - Camera interpolation is always smooth (ease-in/out) even if some keyframes only change a
-  subset of camera axes.
+  subset of camera axes. Use `cameraEaseTicks` on a keyframe to snap the camera instantly (`0`)
+  or ease over a fixed number of ticks before holding the target position.
 - Annotations belong to a single keyframe — they appear only while that keyframe is active
-  (i.e., from its `time` tick until the next keyframe's `time` tick).
+  (i.e., from its `time` tick until the next keyframe's `time` tick). Overlay text annotations
+  fade out smoothly when the keyframe changes during playback.
 - Only one `<ImportPonder>` tag is effective per `<GameScene>`. A second tag overwrites the first.
 - A `text` annotation with an empty or absent `text` field is silently skipped.
 - The `inputType` field defaults to `"lmb"` if omitted or unrecognised.
@@ -554,4 +579,7 @@ The Grinder turns ores into doubled dust. Press **Play** to see the animated wal
   active keyframe changes, so changing the same position in multiple keyframes works correctly.
 - `text` annotations with a `maxWidth` &gt; 0 are word-wrapped using the vanilla font renderer;
   the bubble box height adjusts automatically for multi-line text.
+- `nbt` strings in `blockChanges` must use **unquoted** SNBT keys (standard MC 1.7.10 format).
+  Quoted keys will be rejected by the parser. String values still require quotes:
+  `{id:"minecraft:iron_ingot",Count:8b}`.
 

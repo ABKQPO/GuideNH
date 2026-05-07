@@ -28,6 +28,18 @@ public class PonderKeyframe {
     private List<PonderKeyframeAnnotation> annotations;
     @Nullable
     private List<PonderKeyframeBlockChange> blockChanges;
+    /**
+     * Maximum number of ticks over which the camera eases from the previous keyframe's position
+     * to this keyframe's position.
+     * <ul>
+     * <li>{@code null} (absent in JSON) — ease over the full duration of the segment (default behaviour).</li>
+     * <li>{@code 0} — instant snap to this keyframe's camera with no interpolation.</li>
+     * <li>{@code N > 0} — ease completes in {@code N} ticks; camera holds at the target for the
+     * rest of the segment.</li>
+     * </ul>
+     */
+    @Nullable
+    private Integer cameraEaseTicks;
 
     public int getTime() {
         return time;
@@ -63,5 +75,14 @@ public class PonderKeyframe {
      */
     public List<PonderKeyframeBlockChange> getBlockChanges() {
         return blockChanges != null ? blockChanges : Collections.emptyList();
+    }
+
+    /**
+     * Camera easing duration for the transition from the previous keyframe into this one.
+     * {@code null} means full-segment ease; {@code 0} means instant snap.
+     */
+    @Nullable
+    public Integer getCameraEaseTicks() {
+        return cameraEaseTicks;
     }
 }
