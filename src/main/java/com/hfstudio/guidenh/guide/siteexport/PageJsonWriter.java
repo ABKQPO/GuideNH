@@ -91,11 +91,7 @@ public class PageJsonWriter {
                     : nav.parent()
                         .toString());
             n.put("position", nav.position());
-            n.put(
-                "iconItemId",
-                nav.iconItemId() == null ? null
-                    : nav.iconItemId()
-                        .toString());
+            n.put("iconItemId", nav.iconItemId());
             n.put("iconItemMeta", nav.iconItemMeta());
             n.put(
                 "iconTextureId",
@@ -108,10 +104,7 @@ public class PageJsonWriter {
                 List<Map<String, Object>> iconsList = new ArrayList<>();
                 for (NavigationIconEntry entry : nav.iconEntries()) {
                     Map<String, Object> e = new LinkedHashMap<>();
-                    e.put(
-                        "itemId",
-                        entry.itemId()
-                            .toString());
+                    e.put("itemId", entry.itemId());
                     e.put("meta", entry.meta());
                     iconsList.add(e);
                 }

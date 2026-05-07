@@ -14,6 +14,6 @@ import com.github.bsideup.jabel.Desugar;
  */
 @Desugar
 public record FrontmatterNavigation(String title, @Nullable ResourceLocation parent, int position,
-    @Nullable ResourceLocation iconItemId, int iconItemMeta, @Nullable Map<?, ?> iconComponents,
+    @Nullable String iconItemId, int iconItemMeta, @Nullable Map<?, ?> iconComponents,
     @Nullable ResourceLocation iconTextureId, @Nullable List<NavigationIconEntry> iconEntries,
     @Nullable List<ResourceLocation> iconTextureEntries) {}

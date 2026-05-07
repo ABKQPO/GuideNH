@@ -20,7 +20,6 @@ import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
-import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 /**
  * Parses {@code <Series>} / {@code <Slice>} child elements inside chart tags.
@@ -45,8 +44,7 @@ public final class ChartChildParser {
         List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(parentEl);
         int colorIdx = 0;
         for (MdAstAnyContent child : children) {
-            UnistNode node = child;
-            MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(node);
+            MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(child);
             if (childEl == null) {
                 continue;
             }
@@ -60,7 +58,7 @@ public final class ChartChildParser {
                 if ("LineSeries".equals(name) || "PieInset".equals(name)) {
                     continue;
                 }
-                errorSink.appendError(compiler, "Expected <Series> child but got <" + name + ">", node);
+                errorSink.appendError(compiler, "Expected <Series> child but got <" + name + ">", child);
                 continue;
             }
             String seriesName = MdxAttrs.getString(compiler, errorSink, childEl, "name", "");
@@ -91,8 +89,7 @@ public final class ChartChildParser {
         List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(parentEl);
         int colorIdx = 0;
         for (MdAstAnyContent child : children) {
-            UnistNode node = child;
-            MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(node);
+            MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(child);
             if (childEl == null) {
                 continue;
             }
@@ -105,7 +102,7 @@ public final class ChartChildParser {
                 if ("LineSeries".equals(name) || "Series".equals(name) || "PieInset".equals(name)) {
                     continue;
                 }
-                errorSink.appendError(compiler, "Expected <Slice> child but got <" + name + ">", node);
+                errorSink.appendError(compiler, "Expected <Slice> child but got <" + name + ">", child);
                 continue;
             }
             String label = MdxAttrs.getString(compiler, errorSink, childEl, "label", "");
@@ -134,8 +131,7 @@ public final class ChartChildParser {
         // Use a dedicated palette offset so line colors do not collide with the bar palette by default.
         int colorIdx = 0;
         for (MdAstAnyContent child : children) {
-            UnistNode node = child;
-            MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(node);
+            MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(child);
             if (childEl == null) continue;
             String name = childEl.name();
             if (!"LineSeries".equals(name)) continue;
@@ -162,8 +158,7 @@ public final class ChartChildParser {
         MdxJsxElementFields parentEl) {
         List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(parentEl);
         for (MdAstAnyContent child : children) {
-            UnistNode node = child;
-            MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(node);
+            MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(child);
             if (childEl == null) continue;
             String name = childEl.name();
             if (!"PieInset".equals(name)) continue;
@@ -247,9 +242,7 @@ public final class ChartChildParser {
         if (ref == null) {
             return null;
         }
-        Item item = (Item) Item.itemRegistry.getObject(
-            ref.id()
-                .toString());
+        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (item == null) {
             errorSink.appendError(compiler, "Missing item for icon: " + ref.id(), el);
             return null;

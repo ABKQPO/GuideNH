@@ -39,9 +39,7 @@ public final class GuideItemReferenceResolver {
             return null;
         }
 
-        Item item = (Item) Item.itemRegistry.getObject(
-            ref.id()
-                .toString());
+        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (item == null) {
             return null;
         }
@@ -78,7 +76,7 @@ public final class GuideItemReferenceResolver {
         }
 
         ResourceLocation blockId = IdUtils.resolveId(trimmedIdText, defaultNamespace);
-        Block block = (Block) Block.blockRegistry.getObject(blockId.toString());
+        Block block = (Block) Block.blockRegistry.getObject(IdUtils.rawRegistryKey(trimmedIdText, defaultNamespace));
         if (block == null) {
             return null;
         }

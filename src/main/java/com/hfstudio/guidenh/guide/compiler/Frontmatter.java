@@ -59,7 +59,7 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
             // <modid:name:meta> - strict form (angle brackets stripped)
             // modid:name meta - space-separated damage (filter-expression style)
             int iconMeta = 0;
-            ResourceLocation iconId = null;
+            String iconId = null;
             if (iconIdStr != null) {
                 String s = iconIdStr.trim();
                 if (s.startsWith("<") && s.endsWith(">")) {
@@ -91,7 +91,7 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
                         }
                     }
                 }
-                iconId = IdUtils.resolveId(s, pageId.getResourceDomain());
+                iconId = IdUtils.rawRegistryKey(s, pageId.getResourceDomain());
             }
 
             ResourceLocation iconTextureId = null;
@@ -272,7 +272,7 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
                 }
             }
         }
-        return new NavigationIconEntry(IdUtils.resolveId(s, pageId.getResourceDomain()), meta, null);
+        return new NavigationIconEntry(IdUtils.rawRegistryKey(s, pageId.getResourceDomain()), meta, null);
     }
 
     @Nullable

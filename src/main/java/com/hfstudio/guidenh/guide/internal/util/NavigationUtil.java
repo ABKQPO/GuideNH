@@ -109,9 +109,9 @@ public class NavigationUtil {
     }
 
     @Nullable
-    private static ItemStack resolveItemStack(ParsedGuidePage page, ResourceLocation itemId, int meta,
+    private static ItemStack resolveItemStack(ParsedGuidePage page, String itemId, int meta,
         @Nullable java.util.Map<?, ?> nbt) {
-        var item = (Item) Item.itemRegistry.getObject(itemId.toString());
+        var item = (Item) Item.itemRegistry.getObject(itemId);
         if (item == null) {
             LOG.error("Couldn't find icon item {} for page {}", itemId, page.getId());
             return null;

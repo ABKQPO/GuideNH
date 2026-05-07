@@ -60,9 +60,7 @@ public class RecipeCompiler extends BlockTagCompiler {
             parent.appendError(compiler, "Blank id", el);
             return;
         }
-        Item item = (Item) Item.itemRegistry.getObject(
-            ref.id()
-                .toString());
+        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (item == null) {
             if (fallbackText != null) {
                 if (!fallbackText.isEmpty()) parent.append(LytParagraph.of(fallbackText));
@@ -442,9 +440,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      */
     public static boolean stackMatches(@Nullable ItemStack stack, IdUtils.ParsedItemRef ref) {
         if (stack == null) return false;
-        Item refItem = (Item) Item.itemRegistry.getObject(
-            ref.id()
-                .toString());
+        Item refItem = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (refItem == null || stack.getItem() != refItem) return false;
         if (!ref.isWildcardMeta() && stack.getItemDamage() != ref.meta()) return false;
         if (ref.nbt() != null) {

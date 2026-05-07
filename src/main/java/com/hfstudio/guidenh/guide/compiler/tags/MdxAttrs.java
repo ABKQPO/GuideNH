@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.color.ARGB;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -71,16 +72,32 @@ public class MdxAttrs {
     @Nullable
     public static Pair<ResourceLocation, Item> getRequiredItemAndId(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el, String attribute) {
-        var itemId = getRequiredId(compiler, errorSink, el, attribute);
-        if (itemId == null) {
+        var raw = getString(compiler, errorSink, el, attribute, null);
+        if (raw == null) {
+            errorSink.appendError(compiler, "Missing " + attribute + " attribute.", el);
             return null;
         }
-        Item resultItem = (Item) Item.itemRegistry.getObject(itemId.toString());
+        raw = raw.trim();
+        IdUtils.ParsedItemRef ref;
+        try {
+            ref = IdUtils.parseItemRef(
+                raw,
+                compiler.getPageId()
+                    .getResourceDomain());
+        } catch (IllegalArgumentException e) {
+            errorSink.appendError(compiler, "Malformed id " + raw + ": " + e.getMessage(), el);
+            return null;
+        }
+        if (ref == null) {
+            errorSink.appendError(compiler, "Missing " + attribute + " attribute.", el);
+            return null;
+        }
+        Item resultItem = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (resultItem == null) {
-            errorSink.appendError(compiler, "Missing item: " + itemId, el);
+            errorSink.appendError(compiler, "Missing item: " + ref.id(), el);
             return null;
         }
-        return Pair.of(itemId, resultItem);
+        return Pair.of(ref.id(), resultItem);
     }
 
     @Nullable
@@ -110,7 +127,14 @@ public class MdxAttrs {
         if (blockId == null) {
             return null;
         }
-        Block resultBlock = (Block) Block.blockRegistry.getObject(blockId.toString());
+        var rawAttr = getString(el, attribute, null);
+        String blockLookupKey = rawAttr != null && !rawAttr.trim()
+            .isEmpty() ? IdUtils.rawRegistryKey(
+                rawAttr.trim(),
+                compiler.getPageId()
+                    .getResourceDomain())
+                : blockId.toString();
+        Block resultBlock = (Block) Block.blockRegistry.getObject(blockLookupKey);
         if (resultBlock == null) {
             errorSink.appendError(compiler, "Missing block: " + blockId, el);
             return null;
@@ -150,9 +174,9 @@ public class MdxAttrs {
             return null;
         }
         String idStr = raw.trim();
-        com.hfstudio.guidenh.guide.compiler.IdUtils.ParsedItemRef ref;
+        IdUtils.ParsedItemRef ref;
         try {
-            ref = com.hfstudio.guidenh.guide.compiler.IdUtils.parseItemRef(
+            ref = IdUtils.parseItemRef(
                 idStr,
                 compiler.getPageId()
                     .getResourceDomain());
@@ -164,9 +188,7 @@ public class MdxAttrs {
             errorSink.appendError(compiler, "Missing id or ore attribute.", el);
             return null;
         }
-        Item item = (Item) Item.itemRegistry.getObject(
-            ref.id()
-                .toString());
+        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (item == null) {
             errorSink.appendError(compiler, "Missing item: " + ref.id(), el);
             return null;

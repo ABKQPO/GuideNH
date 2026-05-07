@@ -54,7 +54,7 @@ public class IdUtils {
      * SNBT parsing failed (a warning is logged in that case).
      */
     @Desugar
-    public record ParsedItemRef(ResourceLocation id, int meta, @Nullable NBTTagCompound nbt) {
+    public record ParsedItemRef(ResourceLocation id, int meta, @Nullable NBTTagCompound nbt, String rawKey) {
 
         public boolean isWildcardMeta() {
             return meta == OreDictionary.WILDCARD_VALUE;
@@ -114,22 +114,26 @@ public class IdUtils {
         }
 
         ResourceLocation id;
+        String rawKey;
         int meta = 0;
         // head is name | modid:name | modid:name:meta
         int firstColon = head.indexOf(':');
         if (firstColon < 0) {
             id = new ResourceLocation(defaultNamespace, head);
+            rawKey = defaultNamespace + ":" + head;
         } else {
             int secondColon = head.indexOf(':', firstColon + 1);
             if (secondColon < 0) {
+                rawKey = head;
                 id = new ResourceLocation(head);
             } else {
-                id = new ResourceLocation(head.substring(0, secondColon));
+                rawKey = head.substring(0, secondColon);
+                id = new ResourceLocation(rawKey);
                 String metaStr = head.substring(secondColon + 1);
                 meta = parseMeta(metaStr);
             }
         }
-        ParsedItemRef result = new ParsedItemRef(id, meta, nbt);
+        ParsedItemRef result = new ParsedItemRef(id, meta, nbt, rawKey);
         if (cacheable) {
             PARSE_CACHE.put(cacheKey, result);
         }
@@ -164,9 +168,7 @@ public class IdUtils {
     public static ItemId resolveItemId(String idText, String defaultNamespace) {
         ParsedItemRef ref = parseItemRef(idText, defaultNamespace);
         if (ref == null) return null;
-        Item item = (Item) Item.itemRegistry.getObject(
-            ref.id()
-                .toString());
+        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (item == null) return null;
         return ItemId.createNoCopy(item, ref.meta(), ref.nbt());
     }
@@ -179,14 +181,26 @@ public class IdUtils {
     public static ItemStack resolveItemStack(String idText, String defaultNamespace) {
         ParsedItemRef ref = parseItemRef(idText, defaultNamespace);
         if (ref == null) return null;
-        Item item = (Item) Item.itemRegistry.getObject(
-            ref.id()
-                .toString());
+        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (item == null) return null;
         ItemStack stack = new ItemStack(item, 1, ref.concreteMeta());
         if (ref.nbt() != null) stack.stackTagCompound = (NBTTagCompound) ref.nbt()
             .copy();
         return stack;
+    }
+
+    /**
+     * Returns the raw registry key for an item or block ID string, preserving the original casing of
+     * the mod domain. Forge's {@link net.minecraft.util.RegistryNamespaced} uses case-sensitive string
+     * keys; passing a lowercased key (e.g. via {@link ResourceLocation#toString()}) fails to find items
+     * registered under a mixed-case mod ID such as {@code EnderIO}.
+     *
+     * <p>
+     * If {@code idText} already contains a colon it is returned unchanged. Otherwise
+     * {@code defaultNamespace} is prepended (e.g. {@code "minecraft:" + idText}).
+     */
+    public static String rawRegistryKey(String idText, String defaultNamespace) {
+        return idText.contains(":") ? idText : defaultNamespace + ":" + idText;
     }
 
     public static boolean isNonNegativeInt(String s) {
