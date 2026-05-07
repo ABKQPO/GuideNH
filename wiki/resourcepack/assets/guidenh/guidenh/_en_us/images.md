@@ -3,6 +3,15 @@ navigation:
   title: Images
   parent: index.md
   icon: minecraft:wool:1
+  # Cycling icons example — uncomment to enable:
+  # icons:
+  #   - minecraft:wool:1
+  #   - minecraft:wool:4
+  #   - minecraft:wool:14
+  # icon_components example (applies NBT to the icon: item):
+  # icon_components:
+  #   display:
+  #     Name: "Colored Wool Demo"
 ---
 
 # Images

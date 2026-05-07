@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.block.AlignItems;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytCyclingItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
@@ -129,14 +130,22 @@ public class GuideSearchResultDocumentBuilder {
     public static LytBlock buildResultIcon(GuidePageIcon icon) {
         if (icon.isTextureIcon()) {
             var image = new LytImage();
-            image.setTexture(icon.textureId(), icon.texture());
+            image.setTexture(icon.resolveCurrentTextureId(), icon.resolveCurrentTexture());
             image.setExplicitWidth(RESULT_ICON_SIZE);
             image.setExplicitHeight(RESULT_ICON_SIZE);
             image.setMarginTop(RESULT_ICON_MARGIN_TOP);
             return image;
         }
 
-        var item = new LytItemImage(icon.itemStack());
+        var cycleItems = icon.cycleItemStacks();
+        if (cycleItems != null && cycleItems.size() > 1) {
+            var item = new LytCyclingItemImage(cycleItems);
+            item.setTooltipSuppressed(true);
+            item.setMarginTop(RESULT_ICON_MARGIN_TOP);
+            return item;
+        }
+
+        var item = new LytItemImage(icon.resolveCurrentItemStack());
         item.setTooltipSuppressed(true);
         item.setMarginTop(RESULT_ICON_MARGIN_TOP);
         return item;

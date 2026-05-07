@@ -3,6 +3,15 @@ navigation:
   title: 图片
   parent: index.md
   icon: minecraft:wool:1
+  # 循环图标示例——取消注释即可启用：
+  # icons:
+  #   - minecraft:wool:1
+  #   - minecraft:wool:4
+  #   - minecraft:wool:14
+  # icon_components 示例（为 icon: 物品附加 NBT）：
+  # icon_components:
+  #   display:
+  #     Name: "彩色羊毛演示"
 ---
 
 # 图片

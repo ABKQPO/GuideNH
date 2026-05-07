@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
@@ -14,6 +16,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.compiler.Frontmatter;
 import com.hfstudio.guidenh.guide.compiler.FrontmatterNavigation;
+import com.hfstudio.guidenh.guide.compiler.NavigationIconEntry;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 
 /**
@@ -30,7 +33,10 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
  *       "parent":      "guidenh:category",
  *       "position":    10,
  *       "iconItemId":  "minecraft:chest",
- *       "iconTextureId":"guidenh:test1.png"
+ *       "iconItemMeta": 0,
+ *       "iconTextureId":"guidenh:test1.png",
+ *       "icons":       [{"itemId":"minecraft:wool","meta":1},{"itemId":"minecraft:wool","meta":14}],
+ *       "iconTextures":["guidenh:tex1.png","guidenh:tex2.png"]
  *     },
  *     "extra": { … additionalProperties … }
  *   }
@@ -96,6 +102,35 @@ public class PageJsonWriter {
                 nav.iconTextureId() == null ? null
                     : nav.iconTextureId()
                         .toString());
+
+            if (nav.iconEntries() != null && !nav.iconEntries()
+                .isEmpty()) {
+                List<Map<String, Object>> iconsList = new ArrayList<>();
+                for (NavigationIconEntry entry : nav.iconEntries()) {
+                    Map<String, Object> e = new LinkedHashMap<>();
+                    e.put(
+                        "itemId",
+                        entry.itemId()
+                            .toString());
+                    e.put("meta", entry.meta());
+                    iconsList.add(e);
+                }
+                n.put("icons", iconsList);
+            } else {
+                n.put("icons", null);
+            }
+
+            if (nav.iconTextureEntries() != null && !nav.iconTextureEntries()
+                .isEmpty()) {
+                List<String> texList = new ArrayList<>();
+                for (var texId : nav.iconTextureEntries()) {
+                    texList.add(texId.toString());
+                }
+                n.put("iconTextures", texList);
+            } else {
+                n.put("iconTextures", null);
+            }
+
             out.put("navigation", n);
         }
         out.put("extra", fm.additionalProperties() == null ? new LinkedHashMap<>() : fm.additionalProperties());

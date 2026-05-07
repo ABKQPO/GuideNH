@@ -278,10 +278,10 @@ public class GuideNavBar {
 
     public static void drawMiniIcon(Minecraft mc, GuidePageIcon icon, int x, int y) {
         if (icon.isTextureIcon()) {
-            drawMiniTextureIcon(icon.texture(), x, y);
+            drawMiniTextureIcon(icon.resolveCurrentTexture(), x, y);
             return;
         }
-        drawMiniItemIcon(mc, icon.itemStack(), x, y);
+        drawMiniItemIcon(mc, icon.resolveCurrentItemStack(), x, y);
     }
 
     public static void drawMiniItemIcon(Minecraft mc, net.minecraft.item.ItemStack stack, int x, int y) {

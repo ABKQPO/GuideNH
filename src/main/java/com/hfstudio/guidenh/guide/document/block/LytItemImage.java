@@ -28,7 +28,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
      */
     public static int DEFAULT_INLINE_Y_OFFSET = -4;
 
-    private final ItemStack stack;
+    protected ItemStack stack;
     private float scale = 1f;
     private boolean tooltipSuppressed = false;
     private boolean inline = false;

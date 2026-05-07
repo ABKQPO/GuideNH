@@ -263,8 +263,10 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `parent` | 否 | page id | 父页面 id；省略时为顶级节点 |
 | `position` | 否 | integer | 同级排序顺序，默认 `0` |
 | `icon` | 否 | item id | 导航和搜索中显示的物品图标。支持 `modid:name`、`modid:name:meta`（冒号分隔的损伤值/子类型）、`<modid:name:meta>`（严格形式；meta `32767` 匹配所有子类型）以及 `modid:name meta`（空格分隔，过滤表达式风格）。 |
+| `icons` | 否 | item id 列表 | 循环轮播的物品图标列表（每秒切换一次）。每项语法同 `icon`。存在时优先于 `icon` 使用。 |
 | `icon_texture` | 否 | asset path | 纹理图标路径，按普通资源路径解析 |
-| `icon_components` | 否 | map | frontmatter 会解析，但当前运行时渲染尚未使用 |
+| `icon_textures` | 否 | asset path 列表 | 循环轮播的纹理图标列表（每秒切换一次）。存在时优先于 `icon_texture` 使用。 |
+| `icon_components` | 否 | map | 以 YAML map 形式写入物品 NBT 数据（1.7.10 等价实现）。例如 `display.Name` 可自定义图标物品名称。仅作用于 `icon` 字段的单个物品，`icons` 列表不支持该字段。 |
 
 ### Frontmatter 示例
 
@@ -280,7 +282,23 @@ navigation:
   # icon: minecraft:wool:1       （橙色羊毛，冒号写法）
   # icon: <minecraft:wool:1>     （严格尖括号写法）
   # icon: minecraft:wool 1       （空格写法，过滤表达式风格）
+
+  # 循环图标列表——每秒切换一次：
+  # icons:
+  #   - minecraft:wool:1
+  #   - minecraft:wool:4
+  #   - minecraft:wool:14
+
+  # 为图标物品附加 NBT（仅单 icon: 有效，icons: 不适用）：
+  # icon_components:
+  #   display:
+  #     Name: "我的自定义书"
+
   icon_texture: test1.png
+  # 循环纹理列表：
+  # icon_textures:
+  #   - test1.png
+  #   - test2.png
 categories:
   - basics
   - examples

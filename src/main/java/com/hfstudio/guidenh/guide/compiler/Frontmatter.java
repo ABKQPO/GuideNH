@@ -99,6 +99,36 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
                 iconTextureId = IdUtils.resolveLink(iconTextureStr, pageId);
             }
 
+            // Parse icons: list (cycling item icons, each entry uses same syntax as icon:)
+            List<NavigationIconEntry> iconEntries = null;
+            Object iconsObj = navigationMap.get("icons");
+            if (iconsObj instanceof List<?>) {
+                iconEntries = new ArrayList<>();
+                for (Object entry : (List<?>) iconsObj) {
+                    NavigationIconEntry parsed = parseIconEntry(entry, pageId);
+                    if (parsed != null) {
+                        iconEntries.add(parsed);
+                    }
+                }
+                if (iconEntries.isEmpty()) iconEntries = null;
+            }
+
+            // Parse icon_textures: list (cycling texture icons)
+            List<ResourceLocation> iconTextureEntries = null;
+            Object iconTexturesObj = navigationMap.get("icon_textures");
+            if (iconTexturesObj instanceof List<?>) {
+                iconTextureEntries = new ArrayList<>();
+                for (Object entry : (List<?>) iconTexturesObj) {
+                    if (entry instanceof String) {
+                        String texStr = ((String) entry).trim();
+                        if (!texStr.isEmpty()) {
+                            iconTextureEntries.add(IdUtils.resolveLink(texStr, pageId));
+                        }
+                    }
+                }
+                if (iconTextureEntries.isEmpty()) iconTextureEntries = null;
+            }
+
             navigation = new FrontmatterNavigation(
                 title,
                 parentId,
@@ -106,7 +136,9 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
                 iconId,
                 iconMeta,
                 iconComponents,
-                iconTextureId);
+                iconTextureId,
+                iconEntries,
+                iconTextureEntries);
         }
 
         return new Frontmatter(navigation, Collections.unmodifiableMap(new HashMap<>(data)));
@@ -153,8 +185,7 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
 
         // Single-author shorthand: author: "Name"
         Object authorObj = additionalProperties.get("author");
-        if (authorObj instanceof String) {
-            String s = (String) authorObj;
+        if (authorObj instanceof String s) {
             if (!s.trim()
                 .isEmpty()) authors.add(s.trim());
         }
@@ -187,6 +218,61 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
         }
 
         return new FrontmatterPageMeta(Collections.unmodifiableList(authors), date, updated, zoom);
+    }
+
+    @Nullable
+    private static NavigationIconEntry parseIconEntry(Object entry, ResourceLocation pageId) {
+        if (entry instanceof String) {
+            return parseIconEntryString((String) entry, pageId);
+        }
+        if (entry instanceof Map<?, ?> entryMap) {
+            var idStr = getString(entryMap, "id");
+            if (idStr == null) return null;
+            var parsed = parseIconEntryString(idStr, pageId);
+            if (parsed == null) return null;
+            // Allow explicit meta override in the map form
+            int meta = parsed.meta();
+            if (entryMap.containsKey("meta")) {
+                meta = getInt(entryMap, "meta");
+            }
+            var nbt = getCompound(entryMap, "nbt");
+            return new NavigationIconEntry(parsed.itemId(), meta, nbt);
+        }
+        return null;
+    }
+
+    @Nullable
+    private static NavigationIconEntry parseIconEntryString(String raw, ResourceLocation pageId) {
+        String s = raw.trim();
+        if (s.isEmpty()) return null;
+        if (s.startsWith("<") && s.endsWith(">")) {
+            s = s.substring(1, s.length() - 1)
+                .trim();
+        }
+        int meta = 0;
+        int spaceIdx = s.indexOf(' ');
+        if (spaceIdx >= 0) {
+            String metaPart = s.substring(spaceIdx + 1)
+                .trim();
+            s = s.substring(0, spaceIdx)
+                .trim();
+            try {
+                meta = Integer.parseInt(metaPart);
+            } catch (NumberFormatException ignored) {}
+        } else {
+            int firstColon = s.indexOf(':');
+            if (firstColon >= 0) {
+                int secondColon = s.indexOf(':', firstColon + 1);
+                if (secondColon >= 0) {
+                    String metaPart = s.substring(secondColon + 1);
+                    try {
+                        meta = Integer.parseInt(metaPart);
+                        s = s.substring(0, secondColon);
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+        return new NavigationIconEntry(IdUtils.resolveId(s, pageId.getResourceDomain()), meta, null);
     }
 
     @Nullable
