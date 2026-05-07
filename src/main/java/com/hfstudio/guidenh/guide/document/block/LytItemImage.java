@@ -23,40 +23,20 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
 
     public static final int BASE_SIZE = 16;
 
-    /** Pixel gap between icon and label text. */
     private static final int LABEL_GAP = 2;
 
-    /**
-     * Base upward render offset, in pixels, applied to <em>inline</em> item icons so they sit
-     * optically centered with the surrounding text line instead of being anchored to the line top.
-     * Negative values shift the icon up. Scales linearly with {@link #getScale()} at render time.
-     * Authors can override globally by mutating this field during guide load, or per-element via
-     * the {@code yOffset} MDX attribute on {@code <ItemImage>}.
-     */
+    public static int DEFAULT_TEXT_INLINE_Y_OFFSET = -2;
     public static int DEFAULT_INLINE_Y_OFFSET = -4;
 
     protected ItemStack stack;
     private float scale = 1f;
     private boolean showTooltip = true;
     private boolean inline = false;
-    /** Per-instance override for {@link #DEFAULT_INLINE_Y_OFFSET}. {@code null} means "use default". */
     @Nullable
     private Integer inlineYOffsetOverride = null;
-    /** Whether to render the item icon graphic. Default {@code true}. */
     private boolean showIcon = true;
-    /**
-     * Position of the optional label text: {@code "left"} draws text before the icon,
-     * {@code "right"} draws text after the icon. {@code null} means no label (default).
-     */
     @Nullable
     private String labelPosition = null;
-    /**
-     * Format pattern for the label text. Supports wrapping Markdown-style markers:
-     * {@code **bold**}, {@code *italic*}, {@code ~~strikethrough~~}, {@code __underline__},
-     * {@code ^^wavy^^}, {@code ::dotted::}, {@code ++underline++}.
-     * May contain {@code %s} as a placeholder for the item display name.
-     * {@code null} means italic item display name (default).
-     */
     @Nullable
     private String labelFormat = null;
 
@@ -177,6 +157,10 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
                 textX = showIcon ? baseX + iconSize + LABEL_GAP : baseX;
             }
             textY = baseY + textVCenter;
+            if (inline && showIcon) {
+                int base = inlineYOffsetOverride != null ? inlineYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET;
+                textY += Math.round(base * scale);
+            }
             context.drawText(text, textX, textY, textStyle);
         }
 
