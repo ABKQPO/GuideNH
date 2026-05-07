@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.compat.ae2;
 
+import java.util.EnumSet;
+
+import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
@@ -10,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
+import appeng.api.AEApi;
 import appeng.api.networking.IGridHost;
 import appeng.api.parts.IPart;
 import appeng.api.util.AECableType;
@@ -19,6 +23,7 @@ import appeng.parts.networking.PartCable;
 import appeng.tile.AEBaseTile;
 import appeng.tile.crafting.TileCraftingTile;
 import appeng.tile.networking.TileCableBus;
+import appeng.tile.qnb.TileQuantumBridge;
 import cpw.mods.fml.common.Optional;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -67,20 +72,58 @@ public final class Ae2Helpers {
         for (TileEntity te : level.getTileEntities()) {
             if (te instanceof TileCraftingTile craftingTile) {
                 initCraftingTileValidSides(craftingTile);
+            } else if (te instanceof TileQuantumBridge qnb) {
+                applyNonCableBaseTilePreview(qnb, level);
+                initQuantumBridgeValidSides(qnb);
             } else if (te instanceof AEBaseTile aeTile && !(te instanceof TileCableBus)) {
                 initProxyOrientedValidSides(aeTile);
+                applyNonCableBaseTilePreview(aeTile, level);
             }
         }
         for (TileEntity te : level.getTileEntities()) {
             if (te instanceof TileCableBus cableBusTile) {
                 syncCableBusConnections(cableBusTile, level);
                 syncCableBusSidePartStreams(cableBusTile, level);
-            } else if (te instanceof AEBaseTile aeTile) {
-                applyNonCableBaseTilePreview(aeTile, level);
             }
         }
         level.getOrCreateFakeWorld()
             .syncLoadedTileEntities(level.getTileEntities());
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static void initQuantumBridgeValidSides(TileQuantumBridge qnb) {
+        if (!qnb.isFormed()) {
+            return;
+        }
+        AENetworkProxy proxy;
+        try {
+            proxy = qnb.getProxy();
+        } catch (Throwable ignored) {
+            return;
+        }
+        if (proxy == null) {
+            return;
+        }
+        if (qnb.isCorner() || isQuantumLinkCenter(qnb)) {
+            try {
+                proxy.setValidSides(qnb.getConnections());
+            } catch (Throwable ignored) {}
+        } else {
+            proxy.setValidSides(EnumSet.allOf(ForgeDirection.class));
+        }
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static boolean isQuantumLinkCenter(TileQuantumBridge qnb) {
+        for (Block link : AEApi.instance()
+            .definitions()
+            .blocks()
+            .quantumLink()
+            .maybeBlock()
+            .asSet()) {
+            return qnb.getBlockType() == link;
+        }
+        return false;
     }
 
     @Optional.Method(modid = "appliedenergistics2")
