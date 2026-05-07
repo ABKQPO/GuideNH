@@ -163,6 +163,11 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     // Tracks the item stack whose tooltip was rendered last frame, for the G-key disambiguation hotkey.
     @Nullable
     private ItemStack hoveredItemStack;
+    // Tick counter for the in-guide G-key hold-to-open-item-links feature.
+    private int itemLinksKeyTicksHeld = 0;
+    // The item stack captured at the start of a G-key hold gesture; cleared when the key is released.
+    @Nullable
+    private ItemStack pendingItemLinksStack = null;
     private String currentPageTitle = "";
     private LytParagraph pageTitle;
     @Nullable
@@ -307,6 +312,26 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
         ensureLayout();
         clampScroll();
+    }
+
+    @Override
+    public void updateScreen() {
+        super.updateScreen();
+        int guideHotkey = OpenGuideHotkey.OPEN_GUIDE_KEY.getKeyCode();
+        if (guideHotkey > 0 && OpenGuideHotkey.isKeyHeld() && hoveredItemStack != null) {
+            pendingItemLinksStack = hoveredItemStack;
+            if (itemLinksKeyTicksHeld < OpenGuideHotkey.TICKS_TO_OPEN
+                && ++itemLinksKeyTicksHeld == OpenGuideHotkey.TICKS_TO_OPEN) {
+                openItemLinksPage(pendingItemLinksStack);
+                itemLinksKeyTicksHeld = 0;
+                pendingItemLinksStack = null;
+            }
+        } else {
+            if (itemLinksKeyTicksHeld > 0) {
+                itemLinksKeyTicksHeld = Math.max(0, itemLinksKeyTicksHeld - 2);
+            }
+            pendingItemLinksStack = null;
+        }
     }
 
     @Override
@@ -1673,11 +1698,6 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (keyCode == Keyboard.KEY_NEXT) { // PageDown
             scrollY += Math.max(1, getDocumentViewportHeight() - 20);
             clampScroll();
-            return;
-        }
-        int guideHotkey = OpenGuideHotkey.OPEN_GUIDE_KEY.getKeyCode();
-        if (guideHotkey > 0 && keyCode == guideHotkey && hoveredItemStack != null) {
-            openItemLinksPage(hoveredItemStack);
             return;
         }
         super.keyTyped(typedChar, keyCode);

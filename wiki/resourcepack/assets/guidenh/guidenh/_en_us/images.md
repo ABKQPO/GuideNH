@@ -94,9 +94,9 @@ Stretched image (200×80) with an annotation that follows the stretch:
 
 ### Inline Icon vs. Text Baseline
 
-Inline `<ItemImage>` icons are nudged upward by ~2 pixels (scaled by `scale`) so their visual center lines up with the surrounding text baseline.
+Inline `<ItemImage>` icons are nudged upward by ~4 pixels (scaled by `scale`) so their visual center lines up with the surrounding text baseline.
 
-- Default offset (-2px): this line mixes <ItemImage id="minecraft:diamond" /> diamond, <ItemImage id="minecraft:apple" /> apple and <ItemImage id="minecraft:iron_ingot" /> iron ingot.
+- Default offset (-4px): this line mixes <ItemImage id="minecraft:diamond" /> diamond, <ItemImage id="minecraft:apple" /> apple and <ItemImage id="minecraft:iron_ingot" /> iron ingot.
 - Disabled (`yOffset="0"`): <ItemImage id="minecraft:diamond" yOffset="0" /> diamond, <ItemImage id="minecraft:apple" yOffset="0" /> apple and <ItemImage id="minecraft:iron_ingot" yOffset="0" /> iron ingot.
 - Larger offset (`yOffset="-4"`): <ItemImage id="minecraft:diamond" yOffset="-4" /> diamond, <ItemImage id="minecraft:apple" yOffset="-4" /> apple and <ItemImage id="minecraft:iron_ingot" yOffset="-4" /> iron ingot.
 
