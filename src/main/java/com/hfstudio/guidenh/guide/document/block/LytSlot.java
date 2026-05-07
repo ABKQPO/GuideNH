@@ -30,6 +30,8 @@ public class LytSlot extends LytBlock implements InteractiveElement {
     private boolean largeSlot;
     private boolean renderSlotBackground = true;
     private final List<ItemStack> stacks;
+    private long cachedCycleId = -1;
+    private int cachedStackIdx = 0;
 
     public LytSlot(ItemStack stack) {
         this.stacks = stack == null ? Collections.emptyList() : Collections.singletonList(stack);
@@ -105,7 +107,11 @@ public class LytSlot extends LytBlock implements InteractiveElement {
         if (stacks.isEmpty()) {
             return null;
         }
-        var cycle = System.nanoTime() / TimeUnit.MILLISECONDS.toNanos(CYCLE_TIME);
-        return stacks.get((int) (cycle % stacks.size()));
+        long cycle = System.nanoTime() / TimeUnit.MILLISECONDS.toNanos(CYCLE_TIME);
+        if (cycle != cachedCycleId) {
+            cachedCycleId = cycle;
+            cachedStackIdx = (int) (cycle % stacks.size());
+        }
+        return stacks.get(cachedStackIdx);
     }
 }

@@ -43,6 +43,7 @@ class LineBuilder implements Consumer<LytFlowContent> {
     @Nullable
     private LineElement openLineTail;
     private final TextAlignment alignment;
+    private final StringBuilder lineBuffer = new StringBuilder();
 
     public LineBuilder(LayoutContext context, int x, int y, int availableWidth, List<Line> lines,
         List<LineBlock> floats, TextAlignment alignment) {
@@ -201,7 +202,7 @@ class LineBuilder implements Consumer<LytFlowContent> {
     private void iterateRuns(CharSequence text, ResolvedTextStyle style, char lastChar, LineConsumer consumer) {
         float curLineWidth = 0;
 
-        var lineBuffer = new StringBuilder();
+        lineBuffer.setLength(0);
 
         boolean lastCharWasWhitespace = Character.isWhitespace(lastChar);
         boolean canBreakAtStart = lastCharWasWhitespace;

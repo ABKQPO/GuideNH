@@ -141,12 +141,9 @@ public class GuideNavBar {
                 textX += ICON_SIZE + 2;
             }
 
-            String title = row.node.title();
             int maxTw = (x + w - 2) - textX;
             if (maxTw > 0) {
-                if (fr.getStringWidth(title) > maxTw) {
-                    title = fr.trimStringToWidth(title, maxTw - 4) + "\u2026";
-                }
+                String title = row.getTitle(fr, maxTw);
                 boolean failed = row.node.pageId() != null && pageCollection != null
                     && pageCollection.isPageFailed(row.node.pageId());
                 int color = getRowTextColor(current, hovered, failed);
@@ -328,12 +325,24 @@ public class GuideNavBar {
 
     public static class Row {
 
-        final NavigationNode node;
-        final int depth;
+        public final NavigationNode node;
+        public final int depth;
+        private String cachedTitle = null;
+        private int cachedMaxTw = -1;
 
-        Row(NavigationNode node, int depth) {
+        public Row(NavigationNode node, int depth) {
             this.node = node;
             this.depth = depth;
+        }
+
+        public String getTitle(FontRenderer fr, int maxTw) {
+            if (maxTw == cachedMaxTw && cachedTitle != null) {
+                return cachedTitle;
+            }
+            String title = node.title();
+            cachedTitle = fr.getStringWidth(title) > maxTw ? fr.trimStringToWidth(title, maxTw - 4) + "\u2026" : title;
+            cachedMaxTw = maxTw;
+            return cachedTitle;
         }
     }
 }

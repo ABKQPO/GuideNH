@@ -60,8 +60,7 @@ public class GuideSearchResultDocumentBuilder {
         return document != null && document.getBlocks()
             .size() == 1
             && document.getBlocks()
-                .get(0)
-                .getClass() == CenteredStateBlock.class;
+                .get(0) instanceof CenteredStateBlock;
     }
 
     public static CenteredStateBlock buildCenteredMessage(String message) {
@@ -152,15 +151,13 @@ public class GuideSearchResultDocumentBuilder {
     }
 
     public static LytFlowContent copySnippetContent(LytFlowContent content) {
-        if (content.getClass() == LytFlowText.class) {
-            var text = (LytFlowText) content;
+        if (content instanceof LytFlowText text) {
             var copy = copyFlowContent(text, new LytFlowText());
             copy.setText(text.getText());
             return copy;
         }
 
-        if (content.getClass() == LytFlowSpan.class) {
-            var span = (LytFlowSpan) content;
+        if (content instanceof LytFlowSpan span) {
             var copy = copyFlowContent(span, new LytFlowSpan());
             for (var child : span.getChildren()) {
                 copy.append(copySnippetContent(child));

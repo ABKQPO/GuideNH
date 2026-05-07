@@ -16,12 +16,18 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 
 public class FlowBuilder {
 
+    /** Sentinel used to force containsMouse recalculation after a layout rebuild. */
+    private static final LytFlowContent LAYOUT_DIRTY = new LytFlowContent();
+
     private final List<Line> lines = new ArrayList<>();
 
     private final List<LytFlowContent> rootContent = new ArrayList<>();
 
     // Bounding rectangles for any floats in this flow
     private final List<LineBlock> floats = new ArrayList<>();
+
+    /** Tracks the last hovered content so containsMouse is only recalculated on changes. */
+    private LytFlowContent lastHoveredForContainsMouse = LAYOUT_DIRTY;
 
     public void append(LytFlowContent content) {
         this.rootContent.add(content);
@@ -30,6 +36,7 @@ public class FlowBuilder {
     public LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth, TextAlignment alignment) {
         lines.clear();
         floats.clear();
+        lastHoveredForContainsMouse = LAYOUT_DIRTY;
         var lineBuilder = new LineBuilder(context, x, y, availableWidth, lines, floats, alignment);
         for (var content : rootContent) {
             visitInDocumentOrder(content, lineBuilder);
@@ -41,18 +48,33 @@ public class FlowBuilder {
     }
 
     public void render(RenderContext context, @Nullable LytFlowContent hoveredContent) {
+        updateContainsMouse(hoveredContent);
         for (var line : lines) {
             for (var el = line.firstElement(); el != null; el = el.next) {
-                el.containsMouse = hoveredContent != null && hoveredContent.isInclusiveAncestor(el.getFlowContent());
                 el.render(context);
             }
         }
     }
 
     public void renderFloats(RenderContext context, @Nullable LytFlowContent hoveredContent) {
+        updateContainsMouse(hoveredContent);
+        for (var el : floats) {
+            el.render(context);
+        }
+    }
+
+    private void updateContainsMouse(@Nullable LytFlowContent hoveredContent) {
+        if (lastHoveredForContainsMouse == hoveredContent) {
+            return;
+        }
+        lastHoveredForContainsMouse = hoveredContent;
+        for (var line : lines) {
+            for (var el = line.firstElement(); el != null; el = el.next) {
+                el.containsMouse = hoveredContent != null && hoveredContent.isInclusiveAncestor(el.getFlowContent());
+            }
+        }
         for (var el : floats) {
             el.containsMouse = hoveredContent != null && hoveredContent.isInclusiveAncestor(el.getFlowContent());
-            el.render(context);
         }
     }
 

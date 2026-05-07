@@ -136,6 +136,16 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
+    public void drawBorder(int x, int y, int width, int height, int argbColor, int thickness) {
+        int right = x + width;
+        int bottom = y + height;
+        Gui.drawRect(x, y, right, y + thickness, argbColor);
+        Gui.drawRect(x, bottom - thickness, right, bottom, argbColor);
+        Gui.drawRect(x, y + thickness, x + thickness, bottom - thickness, argbColor);
+        Gui.drawRect(right - thickness, y + thickness, right, bottom - thickness, argbColor);
+    }
+
+    @Override
     public void drawText(String text, int x, int y, ResolvedTextStyle style) {
         if (text == null || text.isEmpty()) return;
         int color = resolveColor(style.color());

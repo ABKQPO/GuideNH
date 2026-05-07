@@ -41,6 +41,10 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     private String labelPosition = null;
     @Nullable
     private String labelFormat = null;
+    @Nullable
+    private ResolvedTextStyle cachedLabelStyle = null;
+    @Nullable
+    private String cachedLabelTemplate = null;
 
     public LytItemImage(ItemStack stack) {
         this.stack = stack;
@@ -84,6 +88,8 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
      */
     public void setLabelFormat(@Nullable String format) {
         this.labelFormat = format;
+        this.cachedLabelStyle = null;
+        this.cachedLabelTemplate = null;
     }
 
     /**
@@ -205,19 +211,23 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     protected String resolveLabelText() {
         if (stack == null) return "";
         if (labelFormat == null) return stack.getDisplayName();
-        String template = stripFormatMarkers(labelFormat);
-        return template.contains("%s") ? String.format(template, stack.getDisplayName()) : template;
+        if (cachedLabelTemplate == null) {
+            cachedLabelTemplate = stripFormatMarkers(labelFormat);
+        }
+        return cachedLabelTemplate.contains("%s") ? String.format(cachedLabelTemplate, stack.getDisplayName())
+            : cachedLabelTemplate;
     }
 
     /** Resolves the {@link ResolvedTextStyle} for the label based on the format pattern. */
     protected ResolvedTextStyle resolveLabelStyle() {
-        if (labelFormat == null) {
-            return TextStyle.builder()
+        if (cachedLabelStyle == null) {
+            cachedLabelStyle = labelFormat == null ? TextStyle.builder()
                 .italic(true)
                 .build()
-                .mergeWith(DefaultStyles.BASE_STYLE);
+                .mergeWith(DefaultStyles.BASE_STYLE)
+                : buildFormatStyle(labelFormat).mergeWith(DefaultStyles.BASE_STYLE);
         }
-        return buildFormatStyle(labelFormat).mergeWith(DefaultStyles.BASE_STYLE);
+        return cachedLabelStyle;
     }
 
     private int measureTextWidth(LayoutContext context, String text, ResolvedTextStyle style) {

@@ -142,9 +142,15 @@ public class LytImage extends LytBlock implements InteractiveElement {
             if (!ann.isShowBorder()) {
                 continue;
             }
-            LytRect borderRect;
+            int bx;
+            int by;
+            int bw;
+            int bh;
             if (ann.isWholeImage()) {
-                borderRect = bounds;
+                bx = bounds.x();
+                by = bounds.y();
+                bw = bounds.width();
+                bh = bounds.height();
             } else {
                 // Clamp the annotation region to [0, natW] x [0, natH] so the border
                 // cannot extend beyond the displayed image area regardless of scaling.
@@ -155,13 +161,12 @@ public class LytImage extends LytBlock implements InteractiveElement {
                 if (clampedW <= 0 || clampedH <= 0) {
                     continue;
                 }
-                int bx = bounds.x() + clampedX * dispW / natW;
-                int by = bounds.y() + clampedY * dispH / natH;
-                int bw = Math.max(1, clampedW * dispW / natW);
-                int bh = Math.max(1, clampedH * dispH / natH);
-                borderRect = new LytRect(bx, by, bw, bh);
+                bx = bounds.x() + clampedX * dispW / natW;
+                by = bounds.y() + clampedY * dispH / natH;
+                bw = Math.max(1, clampedW * dispW / natW);
+                bh = Math.max(1, clampedH * dispH / natH);
             }
-            context.drawBorder(borderRect, context.resolveColor(ann.getBorderColor()), ann.getBorderThickness());
+            context.drawBorder(bx, by, bw, bh, context.resolveColor(ann.getBorderColor()), ann.getBorderThickness());
         }
     }
 

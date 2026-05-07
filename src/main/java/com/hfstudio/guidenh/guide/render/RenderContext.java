@@ -57,6 +57,15 @@ public interface RenderContext {
 
     void drawBorder(LytRect rect, int argbColor, int thickness);
 
+    /**
+     * Draws a border around (x, y, width, height) with the given ARGB color and thickness.
+     * Prefer this overload over {@link #drawBorder(LytRect, int, int)} in hot rendering paths
+     * to avoid allocating a temporary {@link LytRect}.
+     */
+    default void drawBorder(int x, int y, int width, int height, int argbColor, int thickness) {
+        drawBorder(new LytRect(x, y, width, height), argbColor, thickness);
+    }
+
     void drawText(String text, int x, int y, ResolvedTextStyle style);
 
     int getStringWidth(String text, ResolvedTextStyle style);
@@ -130,7 +139,7 @@ public interface RenderContext {
     }
 
     default void fillRect(int x, int y, int width, int height, ColorValue color) {
-        fillRect(new LytRect(x, y, width, height), resolveColor(color));
+        fillRect(x, y, width, height, resolveColor(color));
     }
 
     default int getWidth(String text, ResolvedTextStyle style) {

@@ -26,7 +26,7 @@ public class CarpentersBlocksHelpers {
         }
         for (Class<?> type = block.getClass(); type != null; type = type.getSuperclass()) {
             String name = type.getName();
-            if (name != null && name.startsWith(CARPENTERS_BLOCK_PACKAGE)) {
+            if (name.startsWith(CARPENTERS_BLOCK_PACKAGE)) {
                 return true;
             }
         }
