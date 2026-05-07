@@ -23,6 +23,10 @@ public class LytSlot extends LytBlock implements InteractiveElement {
     public static final int OUTER_SIZE_LARGE = ITEM_SIZE + 2 * LARGE_PADDING;
     public static final int CYCLE_TIME = 2000;
 
+    private static final int SLOT_BORDER_DARK = 0xFF373737;
+    private static final int SLOT_BORDER_LIGHT = 0xFFFFFFFF;
+    private static final int SLOT_INNER_BG = 0xFF8B8B8B;
+
     private boolean largeSlot;
     private boolean renderSlotBackground = true;
     private final List<ItemStack> stacks;
@@ -71,14 +75,11 @@ public class LytSlot extends LytBlock implements InteractiveElement {
         int h = bounds.height();
 
         if (renderSlotBackground) {
-            final int BORDER_DARK = 0xFF373737;
-            final int BORDER_LIGHT = 0xFFFFFFFF;
-            final int INNER_BG = 0xFF8B8B8B;
-            context.fillRect(new LytRect(x, y, w, 1), BORDER_DARK);
-            context.fillRect(new LytRect(x, y, 1, h), BORDER_DARK);
-            context.fillRect(new LytRect(x, y + h - 1, w, 1), BORDER_LIGHT);
-            context.fillRect(new LytRect(x + w - 1, y, 1, h), BORDER_LIGHT);
-            context.fillRect(new LytRect(x + 1, y + 1, w - 2, h - 2), INNER_BG);
+            context.fillRect(x, y, w, 1, SLOT_BORDER_DARK);
+            context.fillRect(x, y, 1, h, SLOT_BORDER_DARK);
+            context.fillRect(x, y + h - 1, w, 1, SLOT_BORDER_LIGHT);
+            context.fillRect(x + w - 1, y, 1, h, SLOT_BORDER_LIGHT);
+            context.fillRect(x + 1, y + 1, w - 2, h - 2, SLOT_INNER_BG);
         }
 
         var padding = largeSlot ? LARGE_PADDING : PADDING;

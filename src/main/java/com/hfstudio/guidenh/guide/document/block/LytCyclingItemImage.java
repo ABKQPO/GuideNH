@@ -12,14 +12,21 @@ public class LytCyclingItemImage extends LytItemImage {
 
     private final List<ItemStack> stacks;
 
+    private long cachedSecond = -1;
+    private int cachedIdx = 0;
+
     public LytCyclingItemImage(List<ItemStack> stacks) {
         super(stacks.get(0));
         this.stacks = stacks;
     }
 
     private ItemStack currentStack() {
-        int idx = (int) ((System.currentTimeMillis() / 1000L) % stacks.size());
-        return stacks.get(idx);
+        long second = System.currentTimeMillis() / 1000L;
+        if (second != cachedSecond) {
+            cachedSecond = second;
+            cachedIdx = (int) (second % stacks.size());
+        }
+        return stacks.get(cachedIdx);
     }
 
     @Override

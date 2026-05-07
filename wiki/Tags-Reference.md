@@ -25,7 +25,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<PlayerName>` | inserts current player username | none |
 | `<KeyBind>` | inserts keybinding display name | `id` |
-| `<ItemImage>` | inline item icon | `id` or `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset` |
+| `<ItemImage>` | inline item icon | `id` or `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
 | `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text` |
@@ -250,7 +250,8 @@ Shows an inline item icon.
 | `showIcon` | boolean, default `true`; `false` hides the item icon graphic |
 | `label` | `left` or `right` — shows the item display name as text on the specified side of the icon; omit for no label |
 | `format` | format pattern for the label text; supports Markdown-style wrappers (`**bold**`, `*italic*`, `~~strike~~`, `__underline__`, `^^wavy^^`, `::dotted::`) with optional `%s` placeholder for the item name; default (no attribute) renders the name in italic |
-| `yOffset` | integer pixel offset override at scale `1` |
+| `yOffset` | integer pixel offset override for the **icon** at scale `1`; does not affect the label text |
+| `labelYOffset` | integer pixel offset override for the **label text** at scale `1`; does not affect the icon |
 
 Notes:
 

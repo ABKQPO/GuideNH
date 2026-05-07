@@ -29,7 +29,7 @@ public class ItemImageCompiler extends FlowTagCompiler {
         img.setScale(scale);
         img.setInline(true);
 
-        // Allow MDX authors to override the default inline vertical nudge on a per-element basis,
+        // Allow MDX authors to override the default inline vertical nudge for the icon.
         // e.g. <ItemImage id="minecraft:diamond" yOffset="0" /> to disable the upward shift.
         String yOffRaw = el.getAttributeString("yOffset", null);
         if (yOffRaw != null && !yOffRaw.isEmpty()) {
@@ -37,6 +37,17 @@ public class ItemImageCompiler extends FlowTagCompiler {
                 img.setInlineYOffsetOverride(Integer.parseInt(yOffRaw.trim()));
             } catch (NumberFormatException ignored) {
                 parent.appendError(compiler, "yOffset must be an integer (pixels at scale=1)", el);
+            }
+        }
+
+        // labelYOffset overrides the default inline vertical nudge for the label text only.
+        // e.g. <ItemImage id="minecraft:diamond" label="right" labelYOffset="0" />
+        String labelYOffRaw = el.getAttributeString("labelYOffset", null);
+        if (labelYOffRaw != null && !labelYOffRaw.isEmpty()) {
+            try {
+                img.setLabelYOffsetOverride(Integer.parseInt(labelYOffRaw.trim()));
+            } catch (NumberFormatException ignored) {
+                parent.appendError(compiler, "labelYOffset must be an integer (pixels at scale=1)", el);
             }
         }
 

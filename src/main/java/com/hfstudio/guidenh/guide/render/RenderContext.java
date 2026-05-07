@@ -46,6 +46,15 @@ public interface RenderContext {
 
     void fillRect(LytRect rect, int argbColor);
 
+    /**
+     * Fills a rectangle defined by (x, y, width, height) with the given ARGB color.
+     * Prefer this overload over {@link #fillRect(LytRect, int)} in hot rendering paths
+     * to avoid allocating a temporary {@link LytRect}.
+     */
+    default void fillRect(int x, int y, int width, int height, int argbColor) {
+        fillRect(new LytRect(x, y, width, height), argbColor);
+    }
+
     void drawBorder(LytRect rect, int argbColor, int thickness);
 
     void drawText(String text, int x, int y, ResolvedTextStyle style);

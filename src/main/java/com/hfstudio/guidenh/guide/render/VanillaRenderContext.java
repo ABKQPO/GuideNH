@@ -118,6 +118,11 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
+    public void fillRect(int x, int y, int width, int height, int argbColor) {
+        Gui.drawRect(x, y, x + width, y + height, argbColor);
+    }
+
+    @Override
     public void drawBorder(LytRect rect, int argbColor, int thickness) {
         Gui.drawRect(rect.x(), rect.y(), rect.right(), rect.y() + thickness, argbColor);
         Gui.drawRect(rect.x(), rect.bottom() - thickness, rect.right(), rect.bottom(), argbColor);

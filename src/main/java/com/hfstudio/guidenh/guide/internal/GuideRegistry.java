@@ -99,6 +99,6 @@ public class GuideRegistry {
             LOG.info("The following guides are overridden in resource packs: {}", overridden);
         }
 
-        GuideRegistry.mergedGuides = Collections.unmodifiableMap(new HashMap<>(merged));
+        GuideRegistry.mergedGuides = Collections.unmodifiableMap(merged);
     }
 }

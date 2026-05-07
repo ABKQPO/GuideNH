@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import net.minecraft.item.ItemStack;
 
@@ -25,23 +24,35 @@ public class LytSlotGrid extends LytBox {
     }
 
     public static LytSlotGrid columnFromStacks(List<ItemStack> items, boolean skipEmpty) {
-        var nonEmpty = items.stream()
-            .filter(s -> !skipEmpty || (s != null && s.stackSize > 0))
-            .collect(Collectors.toList());
-        var grid = new LytSlotGrid(1, nonEmpty.size());
-        for (int i = 0; i < nonEmpty.size(); i++) {
-            grid.setItem(0, i, nonEmpty.get(i));
+        int count = 0;
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack s = items.get(i);
+            if (!skipEmpty || (s != null && s.stackSize > 0)) count++;
+        }
+        var grid = new LytSlotGrid(1, count);
+        int row = 0;
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack s = items.get(i);
+            if (!skipEmpty || (s != null && s.stackSize > 0)) {
+                grid.setItem(0, row++, s);
+            }
         }
         return grid;
     }
 
     public static LytSlotGrid rowFromStacks(List<ItemStack> items, boolean skipEmpty) {
-        var nonEmpty = items.stream()
-            .filter(s -> !skipEmpty || (s != null && s.stackSize > 0))
-            .collect(Collectors.toList());
-        var grid = new LytSlotGrid(nonEmpty.size(), 1);
-        for (int i = 0; i < nonEmpty.size(); i++) {
-            grid.setItem(i, 0, nonEmpty.get(i));
+        int count = 0;
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack s = items.get(i);
+            if (!skipEmpty || (s != null && s.stackSize > 0)) count++;
+        }
+        var grid = new LytSlotGrid(count, 1);
+        int col = 0;
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack s = items.get(i);
+            if (!skipEmpty || (s != null && s.stackSize > 0)) {
+                grid.setItem(col++, 0, s);
+            }
         }
         return grid;
     }

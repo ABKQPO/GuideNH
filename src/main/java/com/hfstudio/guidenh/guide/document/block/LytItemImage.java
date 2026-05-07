@@ -25,7 +25,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
 
     private static final int LABEL_GAP = 2;
 
-    public static int DEFAULT_TEXT_INLINE_Y_OFFSET = -2;
+    public static int DEFAULT_TEXT_INLINE_Y_OFFSET = -3;
     public static int DEFAULT_INLINE_Y_OFFSET = -4;
 
     protected ItemStack stack;
@@ -34,6 +34,8 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     private boolean inline = false;
     @Nullable
     private Integer inlineYOffsetOverride = null;
+    @Nullable
+    private Integer labelYOffsetOverride = null;
     private boolean showIcon = true;
     @Nullable
     private String labelPosition = null;
@@ -97,6 +99,11 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         this.inlineYOffsetOverride = override;
     }
 
+    /** Overrides the default inline Y offset for the label text only. Does not affect the icon. */
+    public void setLabelYOffsetOverride(@Nullable Integer override) {
+        this.labelYOffsetOverride = override;
+    }
+
     public ItemStack getStack() {
         return stack;
     }
@@ -158,7 +165,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
             }
             textY = baseY + textVCenter;
             if (inline && showIcon) {
-                int base = inlineYOffsetOverride != null ? inlineYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET;
+                int base = labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET;
                 textY += Math.round(base * scale);
             }
             context.drawText(text, textX, textY, textStyle);

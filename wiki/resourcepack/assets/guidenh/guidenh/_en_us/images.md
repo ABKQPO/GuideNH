@@ -94,11 +94,12 @@ Stretched image (200×80) with an annotation that follows the stretch:
 
 ### Inline Icon vs. Text Baseline
 
-Inline `<ItemImage>` icons are nudged upward by ~4 pixels (scaled by `scale`) so their visual center lines up with the surrounding text baseline.
+Inline `<ItemImage>` icons are nudged upward by ~4 pixels (scaled by `scale`) so their visual center lines up with the surrounding text baseline. The label text receives a separate, smaller default nudge (-2 px). Both can be overridden independently.
 
-- Default offset (-4px): this line mixes <ItemImage id="minecraft:diamond" /> diamond, <ItemImage id="minecraft:apple" /> apple and <ItemImage id="minecraft:iron_ingot" /> iron ingot.
-- Disabled (`yOffset="0"`): <ItemImage id="minecraft:diamond" yOffset="0" /> diamond, <ItemImage id="minecraft:apple" yOffset="0" /> apple and <ItemImage id="minecraft:iron_ingot" yOffset="0" /> iron ingot.
-- Larger offset (`yOffset="-4"`): <ItemImage id="minecraft:diamond" yOffset="-4" /> diamond, <ItemImage id="minecraft:apple" yOffset="-4" /> apple and <ItemImage id="minecraft:iron_ingot" yOffset="-4" /> iron ingot.
+- Default offset (-4px icon, -3px label): this line mixes <ItemImage id="minecraft:diamond" label="right" /> diamond, <ItemImage id="minecraft:apple" label="right" /> apple and <ItemImage id="minecraft:iron_ingot" label="right" /> iron ingot.
+- Disabled icon offset (`yOffset="0"`, label unchanged): <ItemImage id="minecraft:diamond" yOffset="0" label="right" /> diamond, <ItemImage id="minecraft:apple" yOffset="0" label="right" /> apple.
+- Disabled label offset (`labelYOffset="0"`, icon unchanged): <ItemImage id="minecraft:diamond" labelYOffset="0" label="right" /> diamond, <ItemImage id="minecraft:apple" labelYOffset="0" label="right" /> apple.
+- Both offsets zeroed (`yOffset="0" labelYOffset="0"`): <ItemImage id="minecraft:diamond" yOffset="0" labelYOffset="0" label="right" /> diamond, <ItemImage id="minecraft:apple" yOffset="0" labelYOffset="0" label="right" /> apple.
 
 > Values are pixels at `scale=1` and are multiplied by the current scale at render time.
 

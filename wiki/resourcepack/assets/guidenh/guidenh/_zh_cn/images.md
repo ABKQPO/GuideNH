@@ -91,11 +91,12 @@ navigation:
 
 ### 内联图标与文字的纵向对齐
 
-内联的 `<ItemImage>` 默认会向上偏移约 4 像素（随 `scale` 等比例缩放），让图标视觉中心与文字基线对齐。
+内联的 `<ItemImage>` 默认会向上偏移约 4 像素（随 `scale` 等比例缩放），让图标视觉中心与文字基线对齐。标签文字有独立的较小默认偏移（-2 px），两者可分别覆盖。
 
-- 默认偏移（-4px）：这行里有 <ItemImage id="minecraft:diamond" /> 钻石 <ItemImage id="minecraft:apple" /> 苹果和 <ItemImage id="minecraft:iron_ingot" /> 铁锭。
-- 禁用偏移（`yOffset="0"`）：这行里有 <ItemImage id="minecraft:diamond" yOffset="0" /> 钻石 <ItemImage id="minecraft:apple" yOffset="0" /> 苹果和 <ItemImage id="minecraft:iron_ingot" yOffset="0" /> 铁锭。
-- 加大偏移（`yOffset="-4"`）：这行里有 <ItemImage id="minecraft:diamond" yOffset="-4" /> 钻石 <ItemImage id="minecraft:apple" yOffset="-4" /> 苹果和 <ItemImage id="minecraft:iron_ingot" yOffset="-4" /> 铁锭。
+- 默认偏移（图标 -4px，标签 -3px）：这行里有 <ItemImage id="minecraft:diamond" label="right" /> 钻石 <ItemImage id="minecraft:apple" label="right" /> 苹果和 <ItemImage id="minecraft:iron_ingot" label="right" /> 铁锭。
+- 图标偏移归零（`yOffset="0"`，标签不变）：<ItemImage id="minecraft:diamond" yOffset="0" label="right" /> 钻石 <ItemImage id="minecraft:apple" yOffset="0" label="right" /> 苹果。
+- 标签偏移归零（`labelYOffset="0"`，图标不变）：<ItemImage id="minecraft:diamond" labelYOffset="0" label="right" /> 钻石 <ItemImage id="minecraft:apple" labelYOffset="0" label="right" /> 苹果。
+- 两者全部归零（`yOffset="0" labelYOffset="0"`）：<ItemImage id="minecraft:diamond" yOffset="0" labelYOffset="0" label="right" /> 钻石 <ItemImage id="minecraft:apple" yOffset="0" labelYOffset="0" label="right" /> 苹果。
 
 > 偏移量以 scale=1 下的像素数给出，实际渲染时会乘以当前 `scale`。
 

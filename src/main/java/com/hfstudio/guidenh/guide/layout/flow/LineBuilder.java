@@ -25,6 +25,9 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
  */
 class LineBuilder implements Consumer<LytFlowContent> {
 
+    private static final ThreadLocal<BreakIterator> LINE_BREAK_ITERATOR = ThreadLocal
+        .withInitial(BreakIterator::getLineInstance);
+
     private final LayoutContext context;
     private final List<Line> lines;
     // Contains any floating elements we construct as part of processing flow content
@@ -253,7 +256,7 @@ class LineBuilder implements Consumer<LytFlowContent> {
                     precedingBreakOpportunity = lineBuffer.length();
                 } else {
                     // Find break opportunities and include the current character in it.
-                    var breakIterator = BreakIterator.getLineInstance();
+                    var breakIterator = LINE_BREAK_ITERATOR.get();
                     breakIterator.setText(lineBuffer.toString() + (char) codePoint);
                     precedingBreakOpportunity = breakIterator.preceding(lineBuffer.length() + 1);
                 }
