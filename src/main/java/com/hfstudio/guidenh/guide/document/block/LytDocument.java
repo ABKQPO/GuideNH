@@ -134,9 +134,8 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         }
         // Render from the cached visible list. Each block's render is a stable function of its
         // own state; viewport-dependent culling has already been factored out above.
-        for (var i = 0; i < visibleCache.size(); i++) {
-            visibleCache.get(i)
-                .render(context);
+        for (LytBlock lytBlock : visibleCache) {
+            lytBlock.render(context);
         }
     }
 

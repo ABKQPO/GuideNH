@@ -256,9 +256,12 @@ class LineBuilder implements Consumer<LytFlowContent> {
                     precedingBreakOpportunity = lineBuffer.length();
                 } else {
                     // Find break opportunities and include the current character in it.
+                    // Append the char temporarily to avoid a string-concatenation allocation.
                     var breakIterator = LINE_BREAK_ITERATOR.get();
-                    breakIterator.setText(lineBuffer.toString() + (char) codePoint);
-                    precedingBreakOpportunity = breakIterator.preceding(lineBuffer.length() + 1);
+                    lineBuffer.append((char) codePoint);
+                    breakIterator.setText(lineBuffer.toString());
+                    precedingBreakOpportunity = breakIterator.preceding(lineBuffer.length());
+                    lineBuffer.setLength(lineBuffer.length() - 1);
                 }
 
                 // If the preceding text chunk ended on a whitespace, we can break there if the

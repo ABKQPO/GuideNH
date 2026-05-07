@@ -11,12 +11,13 @@ public class LytList extends LytVBox {
     }
 
     public int getDepth() {
-        for (var parent = getParent(); parent != null; parent = parent.getParent()) {
-            if (parent instanceof LytList parentList) {
-                return parentList.getDepth() + 1;
+        int depth = 1;
+        for (var node = getParent(); node != null; node = node.getParent()) {
+            if (node instanceof LytList) {
+                depth++;
             }
         }
-        return 1;
+        return depth;
     }
 
     public boolean isOrdered() {

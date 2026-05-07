@@ -172,8 +172,19 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private LytParagraph pageTitle;
     @Nullable
     private LytRect cachedTitleViewport;
+    private int cachedTitleLayoutWidth = -1;
     @Nullable
     private LytDocument layoutDocument;
+    @Nullable
+    private String cachedBottomBarText;
+    @Nullable
+    private GuidePage cachedBottomBarPage;
+    private int cachedBottomBarWidth;
+    @Nullable
+    private String cachedTooltipText;
+    private int cachedTooltipWrapWidth;
+    @Nullable
+    private List<String> cachedTooltipLines;
 
     public static final int SEARCH_FIELD_H = 12;
     public static final int SEARCH_FIELD_GAP = 6;
@@ -455,6 +466,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         clearInteractionState();
         layoutDocument = null;
         lastLayoutWidth = -1;
+        cachedBottomBarText = null;
+        cachedBottomBarPage = null;
         if (isSearchPage()) {
             currentPage = null;
             document = null;
@@ -527,6 +540,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     private void refreshCurrentPageTitle() {
         pageTitle.clearContent();
+        cachedTitleLayoutWidth = -1;
 
         if (currentAnchor == null) {
             currentPageTitle = "";
@@ -661,7 +675,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         drawRect(panelX, barY, panelX + panelW, barY + 1, 0xFF2A2A2A);
 
         FontRenderer fr = mc.fontRenderer;
-        String text = buildBottomBarText(meta);
+        if (cachedBottomBarText == null || cachedBottomBarPage != currentPage || cachedBottomBarWidth != this.width) {
+            cachedBottomBarText = buildBottomBarText(meta);
+            cachedBottomBarPage = currentPage;
+            cachedBottomBarWidth = this.width;
+        }
+        String text = cachedBottomBarText;
         if (text.isEmpty()) return;
 
         int textRightX = panelX + panelW - 6 - 2;
@@ -758,11 +777,15 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     private static String truncateStringToWidth(FontRenderer fr, String text, int maxW) {
         if (fr.getStringWidth(text) <= maxW) return text;
-        int len = text.length();
-        while (len > 0 && fr.getStringWidth(text.substring(0, len)) > maxW) {
-            len--;
+        int accWidth = 0;
+        for (int i = 0; i < text.length(); i++) {
+            int cw = fr.getCharWidth(text.charAt(i));
+            if (accWidth + cw > maxW) {
+                return text.substring(0, i);
+            }
+            accWidth += cw;
         }
-        return text.substring(0, len);
+        return text;
     }
 
     private static String getSourceDisplayName(String sourcePack) {
@@ -811,14 +834,16 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         int availableW = Math.max(20, panelW - PANEL_PADDING - reservedRight);
         int titleX = panelX + PANEL_PADDING;
 
-        // Two-pass layout: first pass determines height for vertical centering
-        var layoutCtx = new LayoutContext(layoutFontMetrics);
-        pageTitle.layout(layoutCtx, 0, 0, availableW);
+        // Single-pass layout: position is applied via GL translate, not layout coordinates.
+        // Re-layout only when available width changes; avoids LayoutContext allocation each frame.
+        if (availableW != cachedTitleLayoutWidth) {
+            var layoutCtx = new LayoutContext(layoutFontMetrics);
+            pageTitle.layout(layoutCtx, 0, 0, availableW);
+            cachedTitleLayoutWidth = availableW;
+        }
         int titleH = pageTitle.getBounds()
             .height();
         int titleY = Math.max(0, (TOOLBAR_H - titleH) / 2) + panelY + 2;
-        // Second pass at the final vertical position (x stays at 0 for GL translate)
-        pageTitle.layout(layoutCtx, 0, 0, availableW);
 
         var ctx = reusableContentTooltipCtx;
         cachedTitleViewport = cachedRect(cachedTitleViewport, 0, 0, availableW, Math.max(titleH, TOOLBAR_H));
@@ -1059,6 +1084,10 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         int hardMaxWidth = Math.max(40, this.width - 24);
         int preferredWrapWidth = Math.max(80, this.width / 2);
         int wrapWidth = Math.min(hardMaxWidth, preferredWrapWidth);
+        if (norm.equals(cachedTooltipText) && wrapWidth == cachedTooltipWrapWidth) {
+            drawHoveringText(cachedTooltipLines, mouseX, mouseY, fr);
+            return;
+        }
         List<String> lines = new ArrayList<>();
         for (String rawLine : norm.split("\n", -1)) {
             if (rawLine.isEmpty()) {
@@ -1071,6 +1100,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             }
             lines.addAll(fr.listFormattedStringToWidth(rawLine, wrapWidth));
         }
+        cachedTooltipText = norm;
+        cachedTooltipWrapWidth = wrapWidth;
+        cachedTooltipLines = lines;
         drawHoveringText(lines, mouseX, mouseY, fr);
     }
 
@@ -1764,6 +1796,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         cachedScissorRect = null;
         cachedContentTooltipViewport = null;
         cachedTitleViewport = null;
+        cachedBottomBarText = null;
+        cachedBottomBarPage = null;
         history.clear();
         forwardHistory.clear();
         registeredScenes.clear();

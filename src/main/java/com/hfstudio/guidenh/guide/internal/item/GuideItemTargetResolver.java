@@ -8,15 +8,15 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
+import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
 import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 
 public class GuideItemTargetResolver {
 
-    private GuideItemTargetResolver() {}
-
     @Nullable
-    static GuideOpenTarget resolve(@Nullable ItemStack stack, Iterable<MutableGuide> guides) {
+    public static GuideOpenTarget resolve(@Nullable ItemStack stack, Iterable<MutableGuide> guides) {
         var guideId = GuideItem.getGuideId(stack);
         if (guideId != null) {
             return new GuideOpenTarget(guideId, null);
@@ -40,7 +40,10 @@ public class GuideItemTargetResolver {
             }
 
             if (anchor != null) {
-                return new GuideOpenTarget(guide.getId(), anchor);
+                var allPages = guide.getIndex(ItemMultiIndex.class)
+                    .findAllByStack(stack);
+                PageAnchor target = allPages.size() > 1 ? GuideItemLinksPage.anchorForStack(stack) : anchor;
+                return new GuideOpenTarget(guide.getId(), target);
             }
         }
 
@@ -48,5 +51,5 @@ public class GuideItemTargetResolver {
     }
 
     @Desugar
-    record GuideOpenTarget(ResourceLocation guideId, @Nullable PageAnchor anchor) {}
+    public record GuideOpenTarget(ResourceLocation guideId, @Nullable PageAnchor anchor) {}
 }

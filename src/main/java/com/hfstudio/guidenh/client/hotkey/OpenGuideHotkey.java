@@ -20,12 +20,14 @@ import com.hfstudio.guidenh.compat.betterquesting.BqCompat;
 import com.hfstudio.guidenh.compat.betterquesting.QuestIndex;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
+import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
 import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.internal.GuideMEProxy;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
@@ -62,10 +64,10 @@ public class OpenGuideHotkey {
 
     public static class FoundPage {
 
-        final MutableGuide guide;
-        final PageAnchor page;
+        public final MutableGuide guide;
+        public final PageAnchor page;
 
-        FoundPage(MutableGuide guide, PageAnchor page) {
+        public FoundPage(MutableGuide guide, PageAnchor page) {
             this.guide = guide;
             this.page = page;
         }
@@ -195,12 +197,11 @@ public class OpenGuideHotkey {
                 if (!guidebookPages.isEmpty()) {
                     var found = guidebookPages.get(0);
                     var mc = Minecraft.getMinecraft();
-                    if (mc.currentScreen instanceof GuideUiHost) {
-                        ((GuideUiHost) mc.currentScreen).navigateTo(found.page);
-                    } else {
-                        GuideMEProxy.instance()
-                            .openGuide(mc.thePlayer, found.guide.getId(), found.page);
-                    }
+                    List<PageAnchor> allPages = found.guide.getIndex(ItemMultiIndex.class)
+                        .findAllByStack(stack);
+                    PageAnchor target = allPages.size() > 1 ? GuideItemLinksPage.anchorForStack(stack) : found.page;
+                    GuideMEProxy.instance()
+                        .openGuide(mc.thePlayer, found.guide.getId(), target);
                     ticksKeyHeld = 0;
                     holding = false;
                 }

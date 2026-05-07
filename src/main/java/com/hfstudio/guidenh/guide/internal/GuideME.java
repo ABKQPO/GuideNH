@@ -16,7 +16,7 @@ public class GuideME {
     static GuideMEProxy PROXY = new GuideMEServerProxy();
 
     @Nullable
-    public static GuideSearch SEARCH = null;
+    public static volatile GuideSearch SEARCH = null;
 
     private GuideME() {}
 
@@ -28,11 +28,17 @@ public class GuideME {
         PROXY = new GuideMEClientProxy();
     }
 
-    public static synchronized GuideSearch getSearch() {
-        if (SEARCH == null) {
-            SEARCH = new GuideSearch();
+    public static GuideSearch getSearch() {
+        GuideSearch s = SEARCH;
+        if (s == null) {
+            synchronized (GuideME.class) {
+                s = SEARCH;
+                if (s == null) {
+                    SEARCH = s = new GuideSearch();
+                }
+            }
         }
-        return SEARCH;
+        return s;
     }
 
     public static synchronized void closeSearch() {

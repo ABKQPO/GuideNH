@@ -92,7 +92,7 @@ public class GuideSearchResultDocumentBuilder {
         titleLine.setAlignItems(AlignItems.START);
 
         var titleParagraph = new LytParagraph();
-        titleParagraph.setPaddingTop(2);
+        titleParagraph.setPaddingTop(4);
         var link = new LytFlowLink();
         link.setPageLink(result.anchor());
         link.modifyStyle(
@@ -102,7 +102,7 @@ public class GuideSearchResultDocumentBuilder {
         titleParagraph.append(link);
 
         var pathParagraph = new LytParagraph();
-        pathParagraph.setPaddingTop(2);
+        pathParagraph.setPaddingTop(4);
         pathParagraph.setPaddingRight(8);
         pathParagraph.setFullWidth(true);
         pathParagraph.modifyStyle(style -> style.alignment(TextAlignment.RIGHT));
@@ -184,17 +184,17 @@ public class GuideSearchResultDocumentBuilder {
     public record SearchPageResult(PageAnchor anchor, @Nullable GuidePageIcon icon, String title, String pagePath,
         LytFlowContent snippet) {}
 
-    static public class CenteredStateBlock extends LytVBox {
+    public static class CenteredStateBlock extends LytVBox {
 
-        CenteredStateBlock() {
+        public CenteredStateBlock() {
             setFullWidth(true);
             setAlignItems(AlignItems.CENTER);
         }
     }
 
-    static public class ResultRowBlock extends LytHBox {
+    public static class ResultRowBlock extends LytHBox {
 
-        ResultRowBlock() {
+        public ResultRowBlock() {
             setFullWidth(true);
             setWrap(false);
             setGap(0);

@@ -1,8 +1,13 @@
 package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
@@ -31,11 +36,14 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     private static final int BODY_PADDING = 6;
     private static final int SCROLLBAR_WIDTH = 5;
     private static final int MIN_SCROLLBAR_THUMB = 14;
+    private static final Map<String, Set<String>> LANGUAGE_KEYWORDS = buildKeywordMap();
+    private static final String[] ASCII_STRINGS = buildAsciiStrings();
 
     private final LytCodeBlockToolbar toolbar = new LytCodeBlockToolbar();
     private final LytParagraph body = new LytParagraph();
 
     private String codeText = "";
+    private String normalizedCodeText = "";
     private String languageFenceName = "";
     private String languageDisplayName = "Text";
     private String detectedLanguageId = "text";
@@ -78,6 +86,8 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     public void setCodeText(String codeText) {
         this.codeText = codeText != null ? codeText : "";
+        this.normalizedCodeText = this.codeText.replace("\r\n", "\n")
+            .replace('\r', '\n');
         this.lastBodyLineCount = countBodyLines();
         toolbar.setCopyText(this.codeText);
         rebuildBody();
@@ -285,14 +295,12 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     private int countBodyLines() {
-        String normalized = codeText.replace("\r\n", "\n")
-            .replace('\r', '\n');
-        if (normalized.isEmpty()) {
+        if (normalizedCodeText.isEmpty()) {
             return 1;
         }
         int lines = 1;
-        for (int i = 0; i < normalized.length(); i++) {
-            if (normalized.charAt(i) == '\n') {
+        for (int i = 0; i < normalizedCodeText.length(); i++) {
+            if (normalizedCodeText.charAt(i) == '\n') {
                 lines++;
             }
         }
@@ -396,12 +404,11 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     private List<LytFlowSpan> highlightLines() {
-        String normalized = codeText.replace("\r\n", "\n")
-            .replace('\r', '\n');
-        String[] lines = normalized.split("\n", -1);
+        String[] lines = normalizedCodeText.split("\n", -1);
+        String lowerLanguage = detectedLanguageId.toLowerCase(Locale.ROOT);
         List<LytFlowSpan> result = new ArrayList<>(lines.length);
         for (String line : lines) {
-            result.add(highlightLine(line));
+            result.add(highlightLine(line, lowerLanguage));
         }
         if (lines.length == 0) {
             result.add(new LytFlowSpan());
@@ -409,14 +416,13 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         return result;
     }
 
-    private LytFlowSpan highlightLine(String line) {
+    private LytFlowSpan highlightLine(String line, String lowerLanguage) {
         LytFlowSpan root = new LytFlowSpan();
         if (line.isEmpty()) {
             root.append(LytFlowText.of(""));
             return root;
         }
 
-        String lowerLanguage = detectedLanguageId.toLowerCase(Locale.ROOT);
         int index = 0;
         while (index < line.length()) {
             int commentStart = findCommentStart(line, index, lowerLanguage);
@@ -467,7 +473,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
                 continue;
             }
             if (!Character.isWhitespace(current)) {
-                appendStyled(root, Character.toString(current), CODE_PUNCT);
+                appendStyled(root, singleChar(current), CODE_PUNCT);
                 index++;
                 continue;
             }
@@ -482,22 +488,18 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     private int findCommentStart(String line, int start, String language) {
-        int slashSlash = line.indexOf("//", start);
-        int hash = line.indexOf('#', start);
-        int dashDash = line.indexOf("--", start);
-        int semicolon = line.indexOf(';', start);
         int result = -1;
         if (supportsSlashComment(language)) {
-            result = minPositive(result, slashSlash);
+            result = minPositive(result, line.indexOf("//", start));
         }
         if (supportsHashComment(language)) {
-            result = minPositive(result, hash);
+            result = minPositive(result, line.indexOf('#', start));
         }
         if (supportsDashDashComment(language)) {
-            result = minPositive(result, dashDash);
+            result = minPositive(result, line.indexOf("--", start));
         }
         if ("properties".equals(language)) {
-            result = minPositive(result, semicolon);
+            result = minPositive(result, line.indexOf(';', start));
         }
         return result;
     }
@@ -548,9 +550,18 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     private boolean isKeyword(String token, String language) {
-        return switch (language) {
-            case "java" -> matches(
-                token,
+        if ("markdown".equals(language)) {
+            return token.startsWith("#");
+        }
+        Set<String> keywords = LANGUAGE_KEYWORDS.get(language);
+        return keywords != null && keywords.contains(token);
+    }
+
+    private static Map<String, Set<String>> buildKeywordMap() {
+        Map<String, Set<String>> m = new HashMap<>();
+        m.put(
+            "java",
+            kwSet(
                 "public",
                 "private",
                 "protected",
@@ -569,9 +580,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
                 "while",
                 "try",
                 "catch",
-                "throws");
-            case "kotlin" -> matches(
-                token,
+                "throws"));
+        m.put(
+            "kotlin",
+            kwSet(
                 "fun",
                 "val",
                 "var",
@@ -584,9 +596,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
                 "if",
                 "else",
                 "data",
-                "sealed");
-            case "scala" -> matches(
-                token,
+                "sealed"));
+        m.put(
+            "scala",
+            kwSet(
                 "object",
                 "class",
                 "trait",
@@ -598,9 +611,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
                 "match",
                 "yield",
                 "given",
-                "using");
-            case "lua" -> matches(
-                token,
+                "using"));
+        m.put(
+            "lua",
+            kwSet(
                 "local",
                 "function",
                 "end",
@@ -615,9 +629,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
                 "return",
                 "nil",
                 "true",
-                "false");
-            case "groovy" -> matches(
-                token,
+                "false"));
+        m.put(
+            "groovy",
+            kwSet(
                 "def",
                 "class",
                 "interface",
@@ -630,33 +645,34 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
                 "for",
                 "while",
                 "in",
-                "as");
-            case "json" -> matches(token, "true", "false", "null");
-            case "yaml" -> matches(token, "true", "false", "null", "yes", "no");
-            case "xml" -> false;
-            case "properties" -> false;
-            case "bash" -> matches(token, "if", "then", "else", "fi", "for", "do", "done", "case", "esac", "function");
-            case "powershell" -> matches(token, "function", "param", "if", "else", "foreach", "switch", "return");
-            case "markdown" -> token.startsWith("#");
-            case "csv" -> false;
-            case "mermaid" -> matches(token, "graph", "flowchart", "mindmap", "subgraph");
-            default -> false;
-        };
+                "as"));
+        m.put("json", kwSet("true", "false", "null"));
+        m.put("yaml", kwSet("true", "false", "null", "yes", "no"));
+        m.put("bash", kwSet("if", "then", "else", "fi", "for", "do", "done", "case", "esac", "function"));
+        m.put("powershell", kwSet("function", "param", "if", "else", "foreach", "switch", "return"));
+        m.put("mermaid", kwSet("graph", "flowchart", "mindmap", "subgraph"));
+        return m;
     }
 
-    private boolean matches(String token, String... keywords) {
-        for (String keyword : keywords) {
-            if (keyword.equals(token)) {
-                return true;
-            }
+    private static Set<String> kwSet(String... words) {
+        return new HashSet<>(Arrays.asList(words));
+    }
+
+    private static String[] buildAsciiStrings() {
+        String[] arr = new String[128];
+        for (int i = 0; i < 128; i++) {
+            arr[i] = String.valueOf((char) i);
         }
-        return false;
+        return arr;
+    }
+
+    private static String singleChar(char c) {
+        return c < 128 ? ASCII_STRINGS[c] : Character.toString(c);
     }
 
     private void appendStyled(LytFlowSpan root, String text, ConstantColor color) {
-        LytFlowSpan span = new LytFlowSpan();
-        span.modifyStyle(style -> style.color(color));
-        span.append(LytFlowText.of(text));
-        root.append(span);
+        var node = LytFlowText.of(text);
+        node.modifyStyle(style -> style.color(color));
+        root.append(node);
     }
 }
