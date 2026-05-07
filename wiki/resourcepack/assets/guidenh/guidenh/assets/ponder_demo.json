@@ -1,0 +1,195 @@
+{
+  "totalTime": 360,
+  "keyframes": [
+    {
+      "time": 0,
+      "label": "Overview",
+      "camera": {
+        "zoom": 1.8,
+        "rotX": 25.0,
+        "rotY": 210.0,
+        "rotZ": 0.0,
+        "offX": 0.0,
+        "offY": 0.0
+      },
+      "layer": null,
+      "annotations": [
+        {
+          "type": "text",
+          "text": "A simple smelting setup: hopper feeds the furnace, chest collects output.",
+          "independent": true,
+          "yOffset": -60,
+          "maxWidth": 180,
+          "color": "0xFFCCCCFF"
+        }
+      ]
+    },
+    {
+      "time": 60,
+      "label": "Input hopper",
+      "camera": {
+        "rotY": 240.0
+      },
+      "annotations": [
+        {
+          "type": "diamond",
+          "x": 0.5,
+          "y": 1.8,
+          "z": 1.5,
+          "color": "0xFF44FF44",
+          "tooltip": "Hopper: automatically feeds items from above into the furnace slot.",
+          "alwaysOnTop": true
+        },
+        {
+          "type": "text",
+          "x": 0.5,
+          "y": 2.8,
+          "z": 1.5,
+          "text": "Place fuel and ore here",
+          "color": "0xFF44FF44",
+          "hlMinX": 0.05,
+          "hlMinY": 1.05,
+          "hlMinZ": 1.05,
+          "hlMaxX": 0.95,
+          "hlMaxY": 1.95,
+          "hlMaxZ": 1.95,
+          "highlightColor": "0x6044FF44"
+        },
+        {
+          "type": "input",
+          "x": 0.5,
+          "y": 1.5,
+          "z": 2.5,
+          "inputType": "rmb",
+          "modifier": "sneak",
+          "item": "minecraft:iron_ore"
+        }
+      ]
+    },
+    {
+      "time": 130,
+      "label": "Furnace lights up",
+      "camera": {
+        "rotY": 200.0
+      },
+      "blockChanges": [
+        { "x": 1, "y": 1, "z": 1, "block": "minecraft:lit_furnace", "meta": 4 }
+      ],
+      "annotations": [
+        {
+          "type": "text",
+          "x": 1.5,
+          "y": 3.0,
+          "z": 1.5,
+          "text": "Furnace is now lit and smelting!",
+          "color": "0xFFFF8833",
+          "hlMinX": 1.05,
+          "hlMinY": 1.05,
+          "hlMinZ": 1.05,
+          "hlMaxX": 1.95,
+          "hlMaxY": 1.95,
+          "hlMaxZ": 1.95,
+          "highlightColor": "0x60FF8833"
+        },
+        {
+          "type": "blockface",
+          "blockX": 1,
+          "blockY": 1,
+          "blockZ": 1,
+          "color": "0x60FF8833"
+        }
+      ]
+    },
+    {
+      "time": 200,
+      "label": "Ore consumed",
+      "camera": {
+        "rotY": 200.0
+      },
+      "blockChanges": [
+        { "x": 1, "y": 2, "z": 1, "block": "minecraft:air" }
+      ],
+      "annotations": [
+        {
+          "type": "text",
+          "x": 1.5,
+          "y": 2.5,
+          "z": 1.5,
+          "text": "Ore is consumed from input slot",
+          "color": "0xFFFFCC44"
+        },
+        {
+          "type": "line",
+          "fromX": 1.5,
+          "fromY": 2.0,
+          "fromZ": 1.5,
+          "toX": 1.5,
+          "toY": 1.5,
+          "toZ": 1.5,
+          "color": "0xFFFFCC44",
+          "lineWidth": 2.5,
+          "alwaysOnTop": true
+        }
+      ]
+    },
+    {
+      "time": 270,
+      "label": "Output chest",
+      "camera": {
+        "rotY": 165.0
+      },
+      "annotations": [
+        {
+          "type": "box",
+          "minX": 2.05,
+          "minY": 1.05,
+          "minZ": 1.05,
+          "maxX": 2.95,
+          "maxY": 1.95,
+          "maxZ": 1.95,
+          "color": "0x8000AAFF",
+          "lineWidth": 1.5
+        },
+        {
+          "type": "text",
+          "x": 2.5,
+          "y": 2.8,
+          "z": 1.5,
+          "text": "Collect ingots from the chest",
+          "color": "0xFF00AAFF"
+        },
+        {
+          "type": "input",
+          "x": 2.5,
+          "y": 1.5,
+          "z": 2.5,
+          "inputType": "lmb"
+        }
+      ]
+    },
+    {
+      "time": 340,
+      "label": "Done",
+      "camera": {
+        "rotY": 210.0,
+        "zoom": 1.8
+      },
+      "annotations": [
+        {
+          "type": "text",
+          "text": "That's the full smelting cycle. Press the restart button to watch again.",
+          "independent": true,
+          "yOffset": 50,
+          "maxWidth": 200,
+          "color": "0xFFAAFFCC"
+        }
+      ]
+    },
+    {
+      "time": 360,
+      "camera": {
+        "rotY": 210.0
+      }
+    }
+  ]
+}

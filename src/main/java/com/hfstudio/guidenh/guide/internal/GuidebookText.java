@@ -183,7 +183,10 @@ public enum GuidebookText implements LocalizationEnum {
     CodeBlockCopyFailure,
     RunsCommand,
     ItemLinksTitle,
-    ItemLinksEmpty;
+    ItemLinksEmpty,
+    PonderPrevKeyframe,
+    PonderPlayPause,
+    PonderRestart;
 
     @Override
     public String getTranslationKey() {

@@ -16,7 +16,7 @@ date: 2024-01-01
 |---|---|
 | Markdown | [Markdown 基础](./markdown.md) · [图表](./charts.md) · [函数图](./function-graph.md) |
 | 3D 场景 | [方块场景](./scene-blocks.md) · [实体场景](./scene-entities.md) · [镜头与视口](./scene-camera.md) |
-| 注解 | [注解](./scene-annotations.md) · [导入结构](./scene-import.md) |
+| 注解 | [注解](./scene-annotations.md) · [导入结构](./scene-import.md) · [Ponder 动画](./ponder.md) |
 | 组件 | [配方](./recipes.md) · [图片](./images.md) · [Tooltip](./tooltips.md) |
 | 其他 | [渲染演示](./rendering.md) · [调试](./debug.md) |
 

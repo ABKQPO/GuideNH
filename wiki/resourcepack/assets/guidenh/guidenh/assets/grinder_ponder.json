@@ -1,0 +1,139 @@
+{
+  "totalTime": 240,
+  "keyframes": [
+    {
+      "time": 0,
+      "label": "Overview",
+      "camera": {
+        "zoom": 1.5,
+        "rotX": 20.0,
+        "rotY": 225.0,
+        "rotZ": 0.0,
+        "offX": 0.0,
+        "offY": 0.0
+      },
+      "layer": null,
+      "annotations": []
+    },
+    {
+      "time": 60,
+      "label": "Input hatch",
+      "camera": {
+        "rotY": 180.0
+      },
+      "layer": null,
+      "annotations": [
+        {
+          "type": "diamond",
+          "x": 0.5,
+          "y": 1.5,
+          "z": 1.5,
+          "color": "0xFF44FF44",
+          "tooltip": "EV Input Bus",
+          "alwaysOnTop": true
+        },
+        {
+          "type": "text",
+          "x": 0.5,
+          "y": 3.0,
+          "z": 1.5,
+          "text": "Insert ore here",
+          "color": "0xFF44FF44"
+        },
+        {
+          "type": "input",
+          "x": 0.5,
+          "y": 2.0,
+          "z": 1.5,
+          "inputType": "rmb"
+        }
+      ]
+    },
+    {
+      "time": 140,
+      "label": "Output side",
+      "camera": {
+        "rotY": 90.0
+      },
+      "layer": null,
+      "annotations": [
+        {
+          "type": "box",
+          "minX": 2.0,
+          "minY": 0.0,
+          "minZ": 0.0,
+          "maxX": 3.0,
+          "maxY": 2.0,
+          "maxZ": 3.0,
+          "color": "0x8800AAFF",
+          "lineWidth": 1.5
+        },
+        {
+          "type": "line",
+          "fromX": 2.0,
+          "fromY": 1.0,
+          "fromZ": 1.5,
+          "toX": 2.5,
+          "toY": 1.0,
+          "toZ": 1.5,
+          "color": "0xFFFFAA00",
+          "lineWidth": 2.0,
+          "alwaysOnTop": true
+        },
+        {
+          "type": "blockface",
+          "blockX": 2,
+          "blockY": 1,
+          "blockZ": 1,
+          "color": "0x8833FF33"
+        },
+        {
+          "type": "text",
+          "x": 2.5,
+          "y": 3.0,
+          "z": 1.5,
+          "text": "Collect dust here",
+          "color": "0xFF00AAFF"
+        },
+        {
+          "type": "input",
+          "x": 2.5,
+          "y": 2.0,
+          "z": 1.5,
+          "inputType": "lmb"
+        }
+      ]
+    },
+    {
+      "time": 220,
+      "label": "Scroll layers",
+      "camera": {
+        "rotY": 225.0
+      },
+      "layer": null,
+      "annotations": [
+        {
+          "type": "input",
+          "x": 1.5,
+          "y": 2.5,
+          "z": 1.5,
+          "inputType": "scroll"
+        },
+        {
+          "type": "text",
+          "x": 1.5,
+          "y": 3.5,
+          "z": 1.5,
+          "text": "Scroll to show layers",
+          "color": "0xFFFFCC00"
+        }
+      ]
+    },
+    {
+      "time": 240,
+      "camera": {
+        "rotY": 225.0
+      }
+    }
+  ]
+}

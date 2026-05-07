@@ -56,6 +56,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.compiler.DiamondAnnotationEle
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.LineAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.BlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.EntityElementCompiler;
+import com.hfstudio.guidenh.guide.scene.element.ImportPonderElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.IsometricCameraElementCompiler;
@@ -139,6 +140,7 @@ public class DefaultExtensions {
             new BlockElementCompiler(),
             new ImportStructureElementCompiler(),
             new ImportStructureLibElementCompiler(),
+            new ImportPonderElementCompiler(),
             new IsometricCameraElementCompiler(),
             new BlockAnnotationElementCompiler(),
             new BoxAnnotationElementCompiler(),

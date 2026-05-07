@@ -1,0 +1,21 @@
+{
+  size: [3, 3, 3],
+  palette: [
+    {Name: "minecraft:stone"},
+    {Name: "minecraft:furnace"},
+    {Name: "minecraft:iron_ore"},
+    {Name: "minecraft:hopper"},
+    {Name: "minecraft:chest"}
+  ],
+  blocks: [
+    {pos: [0, 0, 0], state: 0}, {pos: [1, 0, 0], state: 0}, {pos: [2, 0, 0], state: 0},
+    {pos: [0, 0, 1], state: 0}, {pos: [1, 0, 1], state: 0}, {pos: [2, 0, 1], state: 0},
+    {pos: [0, 0, 2], state: 0}, {pos: [1, 0, 2], state: 0}, {pos: [2, 0, 2], state: 0},
+
+    {pos: [0, 1, 1], state: 3, meta: 3},
+    {pos: [1, 1, 1], state: 1, meta: 4},
+    {pos: [2, 1, 1], state: 4, meta: 2},
+
+    {pos: [1, 2, 1], state: 2}
+  ]
+}

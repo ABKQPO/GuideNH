@@ -317,6 +317,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     @Override
     public void updateScreen() {
         super.updateScreen();
+        for (LytGuidebookScene scene : registeredScenes) {
+            scene.ponderTick();
+        }
         int guideHotkey = OpenGuideHotkey.OPEN_GUIDE_KEY.getKeyCode();
         if (guideHotkey > 0 && OpenGuideHotkey.isKeyHeld() && hoveredItemStack != null) {
             pendingItemLinksStack = hoveredItemStack;
@@ -1486,6 +1489,10 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     public static SceneButtonHit findSceneButtonHit(LytNode node, int mouseX, int mouseY) {
         if (node instanceof LytGuidebookScene scene && scene.isInteractive()) {
             var role = scene.sceneButtonAt(mouseX, mouseY);
+            if (role != null) {
+                return new SceneButtonHit(scene, role);
+            }
+            role = scene.ponderButtonAt(mouseX, mouseY);
             if (role != null) {
                 return new SceneButtonHit(scene, role);
             }
