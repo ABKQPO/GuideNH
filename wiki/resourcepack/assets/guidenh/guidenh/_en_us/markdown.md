@@ -10,6 +10,63 @@ This page is a runtime sample sheet for checking what GuideNH currently renders 
 
 See also: [Charts](./charts.md) · [Function Graphs](./function-graph.md)
 
+## LaTeX Formulas
+
+Render LaTeX math inline with `<Latex formula="..." />`, or as a centered display block by using the same tag
+in block context (on its own paragraph line).
+
+### Inline formulas
+
+Einstein's mass-energy equivalence: <Latex formula="E=mc^2" /> and Pythagoras: <Latex formula="a^2+b^2=c^2" />
+
+A formula with a fraction expands the line height automatically:
+contains <Latex formula="\frac{1}{2}" /> and also <Latex formula="\frac{a+b}{c-d}" /> in the same line.
+
+Custom colour (gold): <Latex formula="\sqrt{x^2+y^2}" color="#FFD700" />
+
+Scaled up (scale=1.5): <Latex formula="\pi" scale="1.5" />
+
+Tooltip on hover (showTooltip): <Latex formula="\sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}" showTooltip={true} />
+
+Bottom-aligned (valign=bottom): <Latex formula="\frac{a}{b}" valign="bottom" /> sits below a regular line.
+
+Top-aligned (valign=top): <Latex formula="x^2" valign="top" /> is flush with the line top.
+
+Manual offset: <Latex formula="E=mc^2" offsetX="2" offsetY="-1" /> nudged right 2 px and up 1 px.
+
+### `$$formula$$` shorthand
+
+Use `$$formula$$` directly in text for quick formulas with default parameters.
+
+Inline shorthands: $$E=mc^2$$ and $$a^2+b^2=c^2$$
+
+Inline fraction: $$\frac{1}{2}$$
+
+$$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
+
+$$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
+
+### Block (display) formulas
+
+<Latex formula="\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}" />
+
+<Latex formula="\begin{pmatrix} a & b \\ c & d \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} ax+by \\ cx+dy \end{pmatrix}" />
+
+<Latex formula="\oint_C \mathbf{E} \cdot d\mathbf{l} = -\frac{d}{dt}\iint_S \mathbf{B} \cdot d\mathbf{S}" showTooltip={true} />
+
+### Attribute reference
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `formula` | String (required) | — | LaTeX source |
+| `color` | `#RRGGBB` or `#AARRGGBB` | `#FFFFFF` | Glyph colour |
+| `scale` | float | `1.0` | Display size multiplier |
+| `sourceScale` | float | `100.0` | jlatexmath render quality |
+| `showTooltip` | boolean | `false` | Show formula source on hover |
+| `valign` | `top`/`center`/`bottom` | `center` | Inline vertical alignment |
+| `offsetX` | int | `0` | Horizontal pixel offset after alignment |
+| `offsetY` | int | `0` | Vertical pixel offset after alignment |
+
 ## Inline Formatting
 
 | Markdown                            | Alternative       | Result                            |

@@ -28,6 +28,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<ItemImage>` | inline item icon | `id` or `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
+| `<Latex>` | LaTeX math formula; inline in flow context, centered display block in block context | `formula`, `color`, `scale`, `sourceScale`, `showTooltip` |
 | `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text` |
 
 ## Block Tags
@@ -437,6 +438,70 @@ iron,42
 gold,17
 ```
 ````
+
+### `<Latex>`
+
+Renders a LaTeX math formula using jlatexmath. When used inline (inside a paragraph or text flow), it renders as a scaled glyph that expands the line height to fit the formula. When written as its own paragraph (block context), it renders centered as a display-mode formula.
+
+| Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `formula` | string | *(required)* | LaTeX source string |
+| `color` | `#RRGGBB` or `#AARRGGBB` | `#FFFFFF` | Glyph fill colour |
+| `scale` | float | `1.0` | Display size multiplier applied on top of the automatic line-height scaling |
+| `sourceScale` | float | `100.0` | jlatexmath internal render resolution; higher values improve quality at large sizes |
+| `showTooltip` | boolean | `false` | Show the raw LaTeX source as a tooltip on hover |
+| `valign` | `top` / `center` / `bottom` | `center` | Inline-only. Vertical alignment within the text line: `top` aligns the formula top with the line top; `center` (default) centers it on the text; `bottom` aligns the formula bottom with the text bottom |
+| `offsetX` | int | `0` | Horizontal pixel offset applied after alignment (positive = right) |
+| `offsetY` | int | `0` | Vertical pixel offset applied after alignment (positive = down) |
+
+Examples:
+
+````md
+Inline: <Latex formula="E=mc^2" />
+
+Fraction that expands line height: <Latex formula="\frac{a+b}{c-d}" />
+
+Gold colour: <Latex formula="\sqrt{x^2+y^2}" color="#FFD700" />
+
+Scaled up: <Latex formula="\pi" scale="1.5" />
+
+With hover tooltip: <Latex formula="\sum_{n=1}^{\infty} \frac{1}{n^2}" showTooltip={true} />
+
+Bottom-aligned (formula bottom matches text bottom): <Latex formula="\frac{a}{b}" valign="bottom" />
+
+Top-aligned with an upward nudge: <Latex formula="x^2" valign="top" offsetY="-1" />
+
+<Latex formula="\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}" />
+
+<Latex formula="\begin{pmatrix} a & b \\ c & d \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} ax+by \\ cx+dy \end{pmatrix}" />
+````
+
+#### `$$formula$$` shorthand
+
+As a convenience you can write `$$formula$$` directly in Markdown text without using the `<Latex>` tag.
+All rendering parameters use their defaults (white colour, scale 1.0, no tooltip, centre-aligned).
+
+- **Inline**: `$$formula$$` embedded inside a paragraph renders as an inline formula.
+- **Display**: a paragraph whose entire content is `$$formula$$` (with optional surrounding whitespace) renders as a centred display-mode block.
+
+````md
+Inline shorthand: $$E=mc^2$$ and $$a^2+b^2=c^2$$
+
+Inline fraction: $$\frac{a+b}{c-d}$$
+
+$$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
+
+$$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
+````
+
+Notes:
+
+- The formula height is calibrated to the current line text height. Simple formulas render at text height; taller formulas (fractions, summations, integrals, etc.) expand the enclosing line height automatically.
+- `valign` only applies to inline formulas. Display-mode (block-level) formulas are always centered horizontally; use `offsetY` to shift them vertically within the block.
+- `color` defaults to white (`#FFFFFF`). Use `#AARRGGBB` format for a semi-transparent fill.
+- `sourceScale` only affects render sharpness, not the displayed size. Values below `16` are clamped to `16`.
+- `showTooltip` displays the raw LaTeX string in the standard guide tooltip when the cursor hovers over the formula.
+- The `$$formula$$` shorthand always uses default parameters. Use the `<Latex>` tag for custom colour, scale, alignment or tooltip.
 
 ### Scene Runtime Tags
 

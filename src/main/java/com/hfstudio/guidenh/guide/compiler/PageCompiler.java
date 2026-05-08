@@ -32,6 +32,7 @@ import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
+import com.hfstudio.guidenh.guide.document.block.LatexVerticalAlign;
 import com.hfstudio.guidenh.guide.document.block.LytAlertBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
@@ -40,6 +41,8 @@ import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
+import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
+import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
 import com.hfstudio.guidenh.guide.document.block.LytList;
 import com.hfstudio.guidenh.guide.document.block.LytListItem;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidMindmap;
@@ -68,6 +71,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguageDetector;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeCompiler;
 import com.hfstudio.guidenh.guide.internal.markdown.FootnotePreprocessor;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownHtmlRuntimeNormalizer;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLiteralAutolink;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
@@ -129,11 +133,10 @@ public class PageCompiler {
      */
     public static final int DEFAULT_ELEMENT_SPACING = 5;
     public static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
-    private static final Pattern CODEBLOCK_META_WIDTH = Pattern
-        .compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|([^\\s]+))");
+    private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
     private static final Pattern TABLE_ATTRIBUTE_LINE = Pattern.compile("^\\{:\\s*(.+?)\\s*}$");
     private static final Pattern CODEBLOCK_META_HEIGHT = Pattern
-        .compile("(^|\\s)height=(\"([^\"]+)\"|'([^']+)'|([^\\s]+))");
+        .compile("(^|\\s)height=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
     private static final State<List<SourceSlice>> SOURCE_SLICE_STACK = new State<>(
         "source_slice_stack",
         castClass(List.class),
@@ -737,6 +740,17 @@ public class PageCompiler {
     }
 
     private void compileParagraphBlock(MdAstParagraph astParagraph, LytBlockContainer parent) {
+        var children = astParagraph.children();
+        if (children.size() == 1 && children.get(0) instanceof MdAstText soleText) {
+            String formula = MarkdownLatexShorthand.extractSoleDisplayFormula(soleText.value);
+            if (formula != null) {
+                var displayBlock = new LytLatexDisplayBlock(formula, 0xFFFFFFFF, 100f, 1.0f, false, 0, 0);
+                displayBlock.setMarginTop(DEFAULT_ELEMENT_SPACING);
+                displayBlock.setMarginBottom(DEFAULT_ELEMENT_SPACING);
+                parent.append(displayBlock);
+                return;
+            }
+        }
         var paragraph = new LytParagraph();
         compileFlowContext(astParagraph, paragraph);
         paragraph.setMarginTop(DEFAULT_ELEMENT_SPACING);
@@ -831,6 +845,8 @@ public class PageCompiler {
         LytFlowContent layoutChild;
         if (content instanceof MdAstText astText) {
             if (compileLiteralAutolinks(layoutParent, astText.value)) {
+                layoutChild = null;
+            } else if (compileInlineDollarLatex(layoutParent, astText.value)) {
                 layoutChild = null;
             } else {
                 var text = new LytFlowText();
@@ -927,6 +943,33 @@ public class PageCompiler {
                 }
         }
         return foundLink;
+    }
+
+    private boolean compileInlineDollarLatex(LytFlowParent layoutParent, String text) {
+        if (!MarkdownLatexShorthand.mayContain(text)) {
+            return false;
+        }
+        List<MarkdownLatexShorthand.Segment> segments = MarkdownLatexShorthand.split(text);
+        boolean foundFormula = false;
+        for (var segment : segments) {
+            if (segment.isFormula()) {
+                foundFormula = true;
+                var block = new LytLatexBlock(
+                    segment.getValue(),
+                    0xFFFFFFFF,
+                    100f,
+                    1.0f,
+                    false,
+                    LatexVerticalAlign.CENTER,
+                    0,
+                    0);
+                layoutParent.append(LytFlowInlineBlock.of(block));
+            } else if (!segment.getValue()
+                .isEmpty()) {
+                    layoutParent.appendText(segment.getValue());
+                }
+        }
+        return foundFormula;
     }
 
     private LytFlowContent compileLink(MdAstLink astLink, LytErrorSink errorSink) {
@@ -1506,7 +1549,7 @@ public class PageCompiler {
         return pages;
     }
 
-    public @Nullable byte[] loadAsset(ResourceLocation imageId) {
+    public byte @Nullable [] loadAsset(ResourceLocation imageId) {
         return pages.loadAsset(imageId);
     }
 
@@ -1553,8 +1596,7 @@ public class PageCompiler {
         UnistPosition firstPosition = null;
         UnistPosition lastPosition = null;
         for (MdAstAnyContent child : children) {
-            UnistNode node = child;
-            UnistPosition position = node.position();
+            UnistPosition position = child.position();
             if (position == null || position.start() == null || position.end() == null) {
                 return null;
             }

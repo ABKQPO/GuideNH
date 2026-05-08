@@ -8,6 +8,64 @@ navigation:
 
 这一页是运行时渲染检查页，用来在游戏里确认 GuideNH 当前支持的 Markdown 与相关扩展效果。
 
+另见：[图表](./charts.md) · [函数图](./function-graph.md)
+
+## LaTeX 公式
+
+使用 `<Latex formula="..." />` 在行内渲染 LaTeX 数学公式；将同一标签单独写成一段（块级上下文）则渲染为居中展示的独立公式块。
+
+### 行内公式
+
+爱因斯坦质能方程：<Latex formula="E=mc^2" />，勾股定理：<Latex formula="a^2+b^2=c^2" />
+
+含分数的公式会自动撑高行高：
+本行包含 <Latex formula="\frac{1}{2}" /> 与 <Latex formula="\frac{a+b}{c-d}" />。
+
+自定义颜色（金色）：<Latex formula="\sqrt{x^2+y^2}" color="#FFD700" />
+
+放大显示（scale=1.5）：<Latex formula="\pi" scale="1.5" />
+
+悬停显示原式（showTooltip）：<Latex formula="\sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}" showTooltip={true} />
+
+底部对齐（valign=bottom）：<Latex formula="\frac{a}{b}" valign="bottom" /> 与正常文字底部对齐。
+
+顶部对齐（valign=top）：<Latex formula="x^2" valign="top" /> 与行顶对齐。
+
+手动偏移：<Latex formula="E=mc^2" offsetX="2" offsetY="-1" /> 向右偏 2px，向上偏 1px。
+
+### `$$公式$$` 简写语法
+
+在文本中直接使用 `$$公式$$` 进行快速公式渲染，均使用默认参数。
+
+行内简写：$$E=mc^2$$ 和 $$a^2+b^2=c^2$$
+
+行内分数：$$\frac{1}{2}$$
+
+$$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
+
+$$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
+
+### 块级（展示式）公式
+
+<Latex formula="\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}" />
+
+<Latex formula="\begin{pmatrix} a & b \\ c & d \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} ax+by \\ cx+dy \end{pmatrix}" />
+
+<Latex formula="\oint_C \mathbf{E} \cdot d\mathbf{l} = -\frac{d}{dt}\iint_S \mathbf{B} \cdot d\mathbf{S}" showTooltip={true} />
+
+### 属性速查
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `formula` | 字符串（必填） | — | LaTeX 源码 |
+| `color` | `#RRGGBB` 或 `#AARRGGBB` | `#FFFFFF` | 字形颜色 |
+| `scale` | float | `1.0` | 显示大小倍率 |
+| `sourceScale` | float | `100.0` | jlatexmath 渲染分辨率 |
+| `showTooltip` | boolean | `false` | 悬停时显示原式内容 |
+| `valign` | `top`/`center`/`bottom` | `center` | 行内公式垂直对齐方式 |
+| `offsetX` | int | `0` | 对齐后的水平像素偏移 |
+| `offsetY` | int | `0` | 对齐后的垂直像素偏移 |
+
 ## 行内格式
 
 | Markdown                            | 另一种写法        | 效果                              |

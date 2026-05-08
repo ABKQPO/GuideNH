@@ -75,6 +75,7 @@ tasks.named<ShadowJar>("shadowJar") {
         exclude(dependency("org.apache.lucene:lucene-analyzers-common:.*"))
         exclude(dependency("org.apache.lucene:lucene-queryparser:.*"))
         exclude(dependency("org.apache.lucene:lucene-highlighter:.*"))
+        exclude(dependency("org.scilab.forge:jlatexmath:.*"))
     }
 }
 

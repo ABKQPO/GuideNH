@@ -30,6 +30,7 @@
 | `<ItemImage>` | 行内物品图标 | `id` 或 `ore`，`scale`，`noTooltip`，`showTooltip`，`showIcon`，`label`，`format`，`yOffset`，`labelYOffset` |
 | `<ItemLink>` | 物品 tooltip + 可选导航链接 | `id` 或 `ore`，`linksTo`，`showTooltip`，`noTooltip`，`showIcon` |
 | `<CommandLink>` | 可点击的聊天命令链接 | `command`, `title`, `close` |
+| `<Latex>` | LaTeX 数学公式；在流式上下文中行内渲染，在块级上下文中居中显示为独立公式块 | `formula`, `color`, `scale`, `sourceScale`, `showTooltip` |
 | `<QuestLink>` | BetterQuesting 任务链接，按任务状态自动调整样式（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `text` |
 
 ## 块级标签
@@ -402,6 +403,70 @@ iron,42
 gold,17
 ```
 ````
+
+### `<Latex>`
+
+使用 jlatexmath 渲染 LaTeX 数学公式。在行内（段落或文本流中）使用时，渲染为自动缩放的字形，并将所在行的行高扩展以适应公式高度。独立成段（块级上下文）使用时，居中渲染为展示式公式块。
+
+| 属性 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `formula` | 字符串 | *（必填）* | LaTeX 源字符串 |
+| `color` | `#RRGGBB` 或 `#AARRGGBB` | `#FFFFFF` | 字形填充颜色 |
+| `scale` | float | `1.0` | 在自动行高缩放的基础上额外叠加的显示大小倍率 |
+| `sourceScale` | float | `100.0` | jlatexmath 内部渲染分辨率；数值越高，在较大尺寸下渲染越清晰 |
+| `showTooltip` | boolean | `false` | 鼠标悬停时以 tooltip 展示原始 LaTeX 源文本 |
+| `valign` | `top` / `center` / `bottom` | `center` | 仅限行内公式。行内垂直对齐方式：`top` 使公式顶部与行顶对齐；`center`（默认）将公式垂直居中于文字行高；`bottom` 使公式底部与文字底部对齐 |
+| `offsetX` | int | `0` | 对齐后额外施加的水平像素偏移（正值为向右） |
+| `offsetY` | int | `0` | 对齐后额外施加的垂直像素偏移（正值为向下） |
+
+示例：
+
+````md
+行内：<Latex formula="E=mc^2" />
+
+分数（自动扩展行高）：<Latex formula="\frac{a+b}{c-d}" />
+
+金色：<Latex formula="\sqrt{x^2+y^2}" color="#FFD700" />
+
+放大：<Latex formula="\pi" scale="1.5" />
+
+悬停显示源码：<Latex formula="\sum_{n=1}^{\infty} \frac{1}{n^2}" showTooltip={true} />
+
+底部对齐（公式底部与文字底部对齐）：<Latex formula="\frac{a}{b}" valign="bottom" />
+
+顶部对齐并向上微调：<Latex formula="x^2" valign="top" offsetY="-1" />
+
+<Latex formula="\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}" />
+
+<Latex formula="\begin{pmatrix} a & b \\ c & d \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} ax+by \\ cx+dy \end{pmatrix}" />
+````
+
+#### `$$公式$$` 简写语法
+
+你可以在 Markdown 文本中直接使用 `$$公式$$` 语法，无需使用 `<Latex>` 标签。
+所有渲染参数均使用默认值（白色、比例 1.0、无悬停提示、居中对齐）。
+
+- **行内模式**：嵌入段落内的 `$$公式$$` 使用行内渲染。
+- **展示模式**：整个段落内容仅为 `$$公式$$`（首尾可有空白）时，渲染为居中的展示式公式块。
+
+````md
+行内简写：$$E=mc^2$$ 和 $$a^2+b^2=c^2$$
+
+行内分数：$$\frac{a+b}{c-d}$$
+
+$$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
+
+$$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
+````
+
+注意事项：
+
+- 公式高度以当前行文字高度为基准自动校准。简单公式与文字等高；含分数、求和、积分等高度较大的公式会自动扩展所在行的行高。
+- `valign` 仅对行内公式生效。块级（展示式）公式始终水平居中；如需垂直方向调整，请使用 `offsetY`。
+- `color` 默认为白色（`#FFFFFF`）。如需半透明填充，使用 `#AARRGGBB` 格式。
+- `sourceScale` 仅影响渲染清晰度，不改变显示大小。低于 `16` 的值会被截断为 `16`。
+- `showTooltip` 设为 `true` 时，鼠标悬停公式区域会在标准指南 tooltip 中显示原始 LaTeX 字符串。
+- `$$公式$$` 简写语法始终使用默认参数。如需自定义颜色、比例、对齐或悬停提示，请使用 `<Latex>` 标签。
 
 ### 场景运行时标签
 

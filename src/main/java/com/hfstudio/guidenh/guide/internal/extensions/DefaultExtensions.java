@@ -30,6 +30,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KbdTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.LatexTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PlayerNameTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
@@ -91,7 +92,7 @@ public class DefaultExtensions {
     }
 
     public static List<TagCompiler> tagCompilers() {
-        var compilers = new ArrayList<TagCompiler>(
+        var compilers = new ArrayList<>(
             Arrays.asList(
                 new DivTagCompiler(),
                 new ATagCompiler(),
@@ -127,7 +128,8 @@ public class DefaultExtensions {
                 new PieChartCompiler(),
                 new ScatterChartCompiler(),
                 new FunctionGraphTagCompiler(),
-                new FunctionTagCompiler()));
+                new FunctionTagCompiler(),
+                new LatexTagCompiler()));
         // Conditionally append mod-compat tag compilers. BqCompat itself does not reference any
         // BetterQuesting types, keeping this branch safe when BQ is absent.
         if (Mods.BetterQuesting.isModLoaded()) {
@@ -155,6 +157,6 @@ public class DefaultExtensions {
     }
 
     @Desugar
-    private record Registration<T extends Extension> (ExtensionPoint<T> extensionPoint,
+    public record Registration<T extends Extension> (ExtensionPoint<T> extensionPoint,
         Supplier<Collection<T>> factory) {}
 }
