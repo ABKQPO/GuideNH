@@ -186,7 +186,8 @@ public enum GuidebookText implements LocalizationEnum {
     ItemLinksEmpty,
     PonderPrevKeyframe,
     PonderPlayPause,
-    PonderRestart;
+    PonderRestart,
+    ToggleGrid;
 
     @Override
     public String getTranslationKey() {

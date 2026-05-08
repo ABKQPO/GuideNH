@@ -115,6 +115,10 @@ public class SceneTagCompiler extends BlockTagCompiler {
         boolean allowLayerSlider = MdxAttrs
             .getBoolean(compiler, parent, el, "allowLayerSlider", ModConfig.ui.sceneLayerSliderEnabled);
         scene.setVisibleLayerSliderEnabled(allowLayerSlider);
+        boolean gridButtonEnabled = MdxAttrs.getBoolean(compiler, parent, el, "gridButtonEnabled", true);
+        scene.setGridButtonEnabled(gridButtonEnabled);
+        boolean showGrid = MdxAttrs.getBoolean(compiler, parent, el, "showGrid", false);
+        scene.setGridVisible(showGrid);
 
         if (el instanceof MdxJsxFlowElement flow) {
             compileSceneChildren(scene, compiler, parent, flow);
@@ -297,6 +301,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             .save();
         boolean annotationsVisible = scene.isAnnotationsVisible();
         boolean hatchHighlightEnabled = scene.isStructureLibHatchHighlightEnabled();
+        boolean gridVisible = scene.isGridVisible();
         scene.getAnnotations()
             .clear();
         scene.setHoveredBlock(null);
@@ -320,6 +325,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         }
         scene.setAnnotationsVisible(annotationsVisible);
         scene.setStructureLibHatchHighlightEnabled(hatchHighlightEnabled);
+        scene.setGridVisible(gridVisible);
         scene.getCamera()
             .restore(savedCamera);
     }

@@ -56,6 +56,9 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         }
 
         int requestedChannel = MdxAttrs.getInt(compiler, errorSink, el, "channel", Integer.MIN_VALUE);
+        int offsetX = MdxAttrs.getInt(compiler, errorSink, el, "offsetX", 0);
+        int offsetY = MdxAttrs.getInt(compiler, errorSink, el, "offsetY", 0);
+        int offsetZ = MdxAttrs.getInt(compiler, errorSink, el, "offsetZ", 0);
         StructureLibPreviewSelection selectionOverride = scene.getPendingStructureLibPreviewSelection();
         StructureLibImportRequest request = new StructureLibImportRequest(
             controller,
@@ -84,17 +87,17 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
 
             GuidebookPreviewBlockPlacer.place(
                 level,
-                placedBlock.getX(),
-                placedBlock.getY(),
-                placedBlock.getZ(),
+                placedBlock.getX() + offsetX,
+                Math.max(0, Math.min(placedBlock.getY() + offsetY, level.getHeight() - 1)),
+                placedBlock.getZ() + offsetZ,
                 block,
                 placedBlock.getMeta(),
                 placedBlock.getTileTag(),
                 placedBlock.getBlockId());
             level.setExplicitBlockId(
-                placedBlock.getX(),
-                placedBlock.getY(),
-                placedBlock.getZ(),
+                placedBlock.getX() + offsetX,
+                Math.max(0, Math.min(placedBlock.getY() + offsetY, level.getHeight() - 1)),
+                placedBlock.getZ() + offsetZ,
                 placedBlock.getBlockId());
         }
     }

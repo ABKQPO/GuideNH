@@ -80,6 +80,10 @@ public class InWorldAnnotationRenderer {
             } else if (a instanceof InWorldLineAnnotation line) {
                 int color = resolve(line.color(), mode, a.isHovered(), occluded);
                 drawLine(line.from(), line.to(), color, line.thickness());
+            } else if (a instanceof SceneFloorGridAnnotation grid) {
+                if (!occluded) {
+                    drawFloorGrid(grid);
+                }
             }
         }
     }
@@ -329,5 +333,37 @@ public class InWorldAnnotationRenderer {
         GL11.glVertex3f(x2, y2, z2);
         GL11.glVertex3f(x3, y3, z3);
         GL11.glVertex3f(x4, y4, z4);
+    }
+
+    /**
+     * Draws a flat floor grid annotation as thin quads lying on a horizontal plane.
+     *
+     * <p>
+     * Lines are drawn at every integer X and Z coordinate within the annotation's bounds,
+     * covering the structure's XZ footprint plus one block outward in each direction.
+     */
+    public static void drawFloorGrid(SceneFloorGridAnnotation grid) {
+        float half = 0.02f;
+        float planeY = grid.getY() + 0.002f;
+        int x0 = grid.getMinX();
+        int z0 = grid.getMinZ();
+        int x1 = grid.getMaxX();
+        int z1 = grid.getMaxZ();
+        int color = 0x55FFFFFF;
+        applyColor(color);
+        GL11.glBegin(GL11.GL_QUADS);
+        for (int ix = x0; ix <= x1; ix++) {
+            GL11.glVertex3f(ix - half, planeY, z0);
+            GL11.glVertex3f(ix + half, planeY, z0);
+            GL11.glVertex3f(ix + half, planeY, z1);
+            GL11.glVertex3f(ix - half, planeY, z1);
+        }
+        for (int iz = z0; iz <= z1; iz++) {
+            GL11.glVertex3f(x0, planeY, iz - half);
+            GL11.glVertex3f(x1, planeY, iz - half);
+            GL11.glVertex3f(x1, planeY, iz + half);
+            GL11.glVertex3f(x0, planeY, iz + half);
+        }
+        GL11.glEnd();
     }
 }

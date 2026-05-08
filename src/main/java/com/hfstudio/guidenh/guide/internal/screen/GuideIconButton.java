@@ -131,7 +131,8 @@ public class GuideIconButton extends GuiButton {
         SCENE_EDITOR_DELETE_ELEMENT(GuidebookText.SceneEditorDeleteElement, 32, 0),
         PONDER_PREV_KEYFRAME(GuidebookText.PonderPrevKeyframe, 0, 0),
         PONDER_PLAY_PAUSE(GuidebookText.PonderPlayPause, 0, 64),
-        PONDER_RESTART(GuidebookText.PonderRestart, 0, 32);
+        PONDER_RESTART(GuidebookText.PonderRestart, 0, 32),
+        TOGGLE_GRID(GuidebookText.ToggleGrid, 16, 64);
 
         private final GuidebookText textKey;
         final int iconSrcX;

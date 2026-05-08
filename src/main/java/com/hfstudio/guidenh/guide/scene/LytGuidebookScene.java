@@ -53,6 +53,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.SceneFloorGridAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframe;
@@ -207,6 +208,7 @@ public class LytGuidebookScene extends LytBlock {
     private boolean cachedSceneButtonsVisible = true;
     private boolean cachedSceneHasAnnotations = true;
     private boolean cachedSceneHasStructureLibHatches;
+    private boolean cachedGridButtonEnabled = true;
     private GuideIconButton.Role[] cachedSceneButtonRoles = SCENE_BUTTONS_SHOWN;
 
     private boolean annotationsVisible = true;
@@ -228,6 +230,9 @@ public class LytGuidebookScene extends LytBlock {
     private int initialStructureLibCurrentTier = 1;
     private final LinkedHashMap<String, Integer> initialStructureLibChannelOverrides = new LinkedHashMap<>();
     private boolean initialStructureLibHatchHighlightEnabled;
+    private boolean gridButtonEnabled = true;
+    private boolean gridVisible = false;
+    private boolean initialGridVisible = false;
 
     private float[] initialCam = new float[] { 1f, 0f, 0f, 0f, 0f, 0f };
 
@@ -316,6 +321,7 @@ public class LytGuidebookScene extends LytBlock {
         initialStructureLibChannelOverrides.clear();
         initialStructureLibChannelOverrides.putAll(structureLibChannelOverrides);
         initialStructureLibHatchHighlightEnabled = structureLibHatchHighlightEnabled;
+        initialGridVisible = gridVisible;
     }
 
     public void resetInteractiveState() {
@@ -339,6 +345,7 @@ public class LytGuidebookScene extends LytBlock {
             structureLibChannelOverrides.clear();
             structureLibChannelOverrides.putAll(initialStructureLibChannelOverrides);
             structureLibHatchHighlightEnabled = initialStructureLibHatchHighlightEnabled;
+            gridVisible = initialGridVisible;
         }
         if (ponderSceneData != null) {
             ponderCurrentTick = 0;
@@ -445,6 +452,22 @@ public class LytGuidebookScene extends LytBlock {
 
     public void setForceHideOriginAxes(boolean forceHideOriginAxes) {
         this.forceHideOriginAxes = forceHideOriginAxes;
+    }
+
+    public boolean isGridButtonEnabled() {
+        return gridButtonEnabled;
+    }
+
+    public void setGridButtonEnabled(boolean gridButtonEnabled) {
+        this.gridButtonEnabled = gridButtonEnabled;
+    }
+
+    public boolean isGridVisible() {
+        return gridVisible;
+    }
+
+    public void setGridVisible(boolean gridVisible) {
+        this.gridVisible = gridVisible;
     }
 
     public boolean hasVisibleLayerData() {
@@ -968,6 +991,10 @@ public class LytGuidebookScene extends LytBlock {
         }
         appendStructureLibHatchOverlays(inWorld);
         appendOriginAxesAnnotations(inWorld);
+        if (gridVisible && !level.isEmpty()) {
+            int[] bounds = level.getBounds();
+            inWorld.add(new SceneFloorGridAnnotation(bounds[0] - 1, bounds[2] - 1, bounds[3] + 2, bounds[5] + 2, 0f));
+        }
         for (SceneAnnotation pa : ponderOutgoingAnnotations) {
             if (pa instanceof OverlayAnnotation ov) {
                 ov.setFade(Math.min(1f, ponderOutgoingFadeTick / 5f));
@@ -1207,13 +1234,17 @@ public class LytGuidebookScene extends LytBlock {
         } else {
             base = annotationsVisible ? SCENE_BUTTONS_SHOWN : SCENE_BUTTONS_HIDDEN;
         }
-        if (!hasStructureLibHatchData()) {
+        int extra = 0;
+        if (hasStructureLibHatchData()) extra++;
+        if (gridButtonEnabled) extra++;
+        if (extra == 0) {
             return base;
         }
-
-        GuideIconButton.Role[] roles = new GuideIconButton.Role[base.length + 1];
+        GuideIconButton.Role[] roles = new GuideIconButton.Role[base.length + extra];
         System.arraycopy(base, 0, roles, 0, base.length);
-        roles[base.length] = GuideIconButton.Role.HIGHLIGHT_STRUCTURELIB_HATCHES;
+        int i = base.length;
+        if (hasStructureLibHatchData()) roles[i++] = GuideIconButton.Role.HIGHLIGHT_STRUCTURELIB_HATCHES;
+        if (gridButtonEnabled) roles[i] = GuideIconButton.Role.TOGGLE_GRID;
         return roles;
     }
 
@@ -1221,10 +1252,12 @@ public class LytGuidebookScene extends LytBlock {
         boolean hasAnnotations = !annotations.isEmpty();
         boolean hasStructureLibHatches = hasStructureLibHatchData();
         if (cachedSceneButtonsVisible != annotationsVisible || cachedSceneHasAnnotations != hasAnnotations
-            || cachedSceneHasStructureLibHatches != hasStructureLibHatches) {
+            || cachedSceneHasStructureLibHatches != hasStructureLibHatches
+            || cachedGridButtonEnabled != gridButtonEnabled) {
             cachedSceneButtonsVisible = annotationsVisible;
             cachedSceneHasAnnotations = hasAnnotations;
             cachedSceneHasStructureLibHatches = hasStructureLibHatches;
+            cachedGridButtonEnabled = gridButtonEnabled;
             cachedSceneButtonRoles = sceneButtonRoles();
         }
         return cachedSceneButtonRoles;
@@ -1258,7 +1291,8 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private boolean isSceneButtonActive(GuideIconButton.Role role) {
-        return role == GuideIconButton.Role.HIGHLIGHT_STRUCTURELIB_HATCHES && structureLibHatchHighlightEnabled;
+        return (role == GuideIconButton.Role.HIGHLIGHT_STRUCTURELIB_HATCHES && structureLibHatchHighlightEnabled)
+            || (role == GuideIconButton.Role.TOGGLE_GRID && gridVisible);
     }
 
     GuideIconButton.Role[] getVisibleSceneButtonRolesForTesting() {
@@ -1771,6 +1805,7 @@ public class LytGuidebookScene extends LytBlock {
             case HIDE_ANNOTATIONS, SHOW_ANNOTATIONS -> setAnnotationsVisible(!annotationsVisible);
             case HIGHLIGHT_STRUCTURELIB_HATCHES -> setStructureLibHatchHighlightEnabled(
                 !structureLibHatchHighlightEnabled);
+            case TOGGLE_GRID -> setGridVisible(!gridVisible);
             case ZOOM_IN -> {
                 if (ponderSceneData != null) {
                     ponderCamZoom = Math.min(MAX_ZOOM, ponderCamZoom * 1.25f);

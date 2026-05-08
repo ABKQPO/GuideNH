@@ -21,6 +21,9 @@
 | `centerY` | float | auto | 显式世界旋转中心 Y |
 | `centerZ` | float | auto | 显式世界旋转中心 Z |
 | `interactive` | boolean expression | `true` | 是否启用鼠标交互 |
+| `allowLayerSlider` | boolean | `true` | 是否显示垂直层滑块 |
+| `gridButtonEnabled` | boolean | `true` | 是否显示地板网格切换按钮 |
+| `showGrid` | boolean | `false` | 地板网格的初始可见性 |
 
 ## 视角预设
 
@@ -94,9 +97,12 @@ GuideNH 当前注册了以下场景子标签：
 | 属性 | 必需 | 含义 |
 | --- | --- | --- |
 | `src` | 是 | 结构资源路径 |
-| `x` | 否 | 平移 X，整数 |
-| `y` | 否 | 平移 Y，整数 |
-| `z` | 否 | 平移 Z，整数 |
+| `x` | 否 | 平移 X，整数（`offsetX` 的别名） |
+| `y` | 否 | 平移 Y，整数（`offsetY` 的别名） |
+| `z` | 否 | 平移 Z，整数（`offsetZ` 的别名） |
+| `offsetX` | 否 | 平移 X，整数（优先于 `x`） |
+| `offsetY` | 否 | 平移 Y，整数，会被限制在 `[0, 世界高度-1]`（优先于 `y`） |
+| `offsetZ` | 否 | 平移 Z，整数（优先于 `z`） |
 
 支持的格式：
 
@@ -128,6 +134,9 @@ GuideNH 当前注册了以下场景子标签：
 | `rotation` | 否 | 传给导入器的旋转覆盖值 |
 | `flip` | 否 | 传给导入器的镜像覆盖值 |
 | `channel` | 否 | 支持频道结构的频道整数覆盖值 |
+| `offsetX` | 否 | 所有放置方块的 X 偏移，整数，默认 `0` |
+| `offsetY` | 否 | 所有放置方块的 Y 偏移，整数，会被限制在 `[0, 世界高度-1]`，默认 `0` |
+| `offsetZ` | 否 | 所有放置方块的 Z 偏移，整数，默认 `0` |
 
 说明：
 

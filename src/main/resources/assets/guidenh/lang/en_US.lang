@@ -200,6 +200,7 @@ guideme.guidebook.ItemLinksEmpty=No pages are bound to this item
 guideme.guidebook.PonderPrevKeyframe=Previous Keyframe
 guideme.guidebook.PonderPlayPause=Play / Pause
 guideme.guidebook.PonderRestart=Restart
+guideme.guidebook.ToggleGrid=Toggle Floor Grid
 guideme.guidebook.Search=Search
 guideme.guidebook.SearchNoQuery=Enter a Search Query
 guideme.guidebook.SearchNoResults=No Results

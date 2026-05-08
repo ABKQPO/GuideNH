@@ -19,6 +19,9 @@
 | `centerY` | float | auto | explicit world rotation center Y |
 | `centerZ` | float | auto | explicit world rotation center Z |
 | `interactive` | boolean expression | `true` | enables mouse interaction |
+| `allowLayerSlider` | boolean | `true` | shows the vertical layer slider |
+| `gridButtonEnabled` | boolean | `true` | shows the floor grid toggle button |
+| `showGrid` | boolean | `false` | initial visibility of the floor grid |
 
 ## Perspective Presets
 
@@ -92,9 +95,12 @@ Loads an external structure file into the scene.
 | Attribute | Required | Meaning |
 | --- | --- | --- |
 | `src` | yes | structure asset path |
-| `x` | no | integer translation X |
-| `y` | no | integer translation Y |
-| `z` | no | integer translation Z |
+| `x` | no | integer translation X (alias for `offsetX`) |
+| `y` | no | integer translation Y (alias for `offsetY`) |
+| `z` | no | integer translation Z (alias for `offsetZ`) |
+| `offsetX` | no | integer translation X (preferred over `x`) |
+| `offsetY` | no | integer translation Y, clamped to `[0, worldHeight-1]` (preferred over `y`) |
+| `offsetZ` | no | integer translation Z (preferred over `z`) |
 
 Supported formats:
 
@@ -126,6 +132,9 @@ Imports a StructureLib multiblock preview by controller id.
 | `rotation` | no | rotation override passed to the importer |
 | `flip` | no | flip/mirror override passed to the importer |
 | `channel` | no | integer channel override for channel-aware structures |
+| `offsetX` | no | integer X offset applied to all placed blocks (default `0`) |
+| `offsetY` | no | integer Y offset applied to all placed blocks, clamped to `[0, worldHeight-1]` (default `0`) |
+| `offsetZ` | no | integer Z offset applied to all placed blocks (default `0`) |
 
 Notes:
 

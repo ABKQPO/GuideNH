@@ -91,9 +91,15 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             return;
         }
 
-        int offsetX = MdxAttrs.getInt(compiler, errorSink, el, "x", 0);
-        int offsetY = MdxAttrs.getInt(compiler, errorSink, el, "y", 0);
-        int offsetZ = MdxAttrs.getInt(compiler, errorSink, el, "z", 0);
+        int offsetX = MdxAttrs.getString(compiler, errorSink, el, "offsetX", null) != null
+            ? MdxAttrs.getInt(compiler, errorSink, el, "offsetX", 0)
+            : MdxAttrs.getInt(compiler, errorSink, el, "x", 0);
+        int offsetY = MdxAttrs.getString(compiler, errorSink, el, "offsetY", null) != null
+            ? MdxAttrs.getInt(compiler, errorSink, el, "offsetY", 0)
+            : MdxAttrs.getInt(compiler, errorSink, el, "y", 0);
+        int offsetZ = MdxAttrs.getString(compiler, errorSink, el, "offsetZ", null) != null
+            ? MdxAttrs.getInt(compiler, errorSink, el, "offsetZ", 0)
+            : MdxAttrs.getInt(compiler, errorSink, el, "z", 0);
 
         if (!root.hasKey("palette") || !root.hasKey("blocks")) {
             errorSink.appendError(compiler, "Unsupported structure format (missing palette/blocks)", el);
@@ -120,7 +126,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             int[] pos = b.getIntArray("pos");
             if (pos.length < 3) continue;
             int px = offsetX + pos[0];
-            int py = offsetY + pos[1];
+            int py = Math.max(0, Math.min(offsetY + pos[1], level.getHeight() - 1));
             int pz = offsetZ + pos[2];
 
             int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
@@ -149,7 +155,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
                 String entityId = et.getString("id");
                 if (entityId.isEmpty()) continue;
                 float px = et.getFloat("px") + offsetX;
-                float py = et.getFloat("py") + offsetY;
+                float py = Math.max(0f, Math.min(et.getFloat("py") + offsetY, level.getHeight() - 1f));
                 float pz = et.getFloat("pz") + offsetZ;
                 String playerName = et.hasKey("name", 8) ? et.getString("name") : null;
                 NBTTagCompound entityNbt = et.hasKey("nbt", 10) ? (NBTTagCompound) et.getCompoundTag("nbt")
