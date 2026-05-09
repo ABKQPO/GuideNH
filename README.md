@@ -73,3 +73,10 @@ Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
 ## License
 
 LGPL-3.0
+
+## Credits
+Thanks to [GuideME](https://github.com/AppliedEnergistics/GuideME), distributed under [LGPL-3.0](https://github.com/AppliedEnergistics/GuideME/blob/main/LICENSE)
+
+This project also uses several open-source libraries, including SnakeYAML, Apache Lucene, Apache Commons Lang, FlatBuffers Java, and JLaTeXMath.
+
+These libraries are distributed under their respective licenses, primarily Apache License 2.0 and GPL v2.
