@@ -495,6 +495,19 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
         }
     }
 
+    public void applyEditorPage(ParsedGuidePage parsedPage) {
+        if (parsedPage == null) {
+            return;
+        }
+        applyChanges(
+            Collections.singletonList(
+                new GuidePageChange(
+                    parsedPage.getLanguage(),
+                    parsedPage.getId(),
+                    developmentPages.get(parsedPage.getId()),
+                    parsedPage)));
+    }
+
     public GuideItemSettings getItemSettings() {
         return itemSettings;
     }

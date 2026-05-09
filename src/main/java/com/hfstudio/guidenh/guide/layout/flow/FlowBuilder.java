@@ -63,6 +63,24 @@ public class FlowBuilder {
         }
     }
 
+    @Nullable
+    public LytRect getFirstLineBounds() {
+        return lines.isEmpty() ? null : lines.get(0).bounds;
+    }
+
+    @Nullable
+    public LytRect getFirstTextRunBounds() {
+        if (lines.isEmpty()) {
+            return null;
+        }
+        for (var el = lines.get(0).firstElement; el != null; el = el.next) {
+            if (el instanceof LineTextRun textRun && !textRun.text.isEmpty()) {
+                return textRun.bounds;
+            }
+        }
+        return null;
+    }
+
     private void updateContainsMouse(@Nullable LytFlowContent hoveredContent) {
         if (lastHoveredForContainsMouse == hoveredContent) {
             return;

@@ -26,6 +26,7 @@ public class SceneEditorMultilineTextArea {
     public static final int SCROLLBAR_THUMB_COLOR = 0xA0D8D8D8;
     public static final int SELECTION_COLOR = 0x663D89C9;
     public static final int EXTERNAL_HIGHLIGHT_COLOR = 0x4438BDF8;
+    public static final int SYNTAX_WARNING_COLOR = 0xFFFF6767;
 
     private final FontRenderer fontRenderer;
     private final SceneEditorScrollState scrollState = new SceneEditorScrollState();
@@ -51,6 +52,8 @@ public class SceneEditorMultilineTextArea {
     private int horizontalScrollbarGrabOffset;
     private int externalHighlightStart;
     private int externalHighlightEnd;
+    private int syntaxWarningStart;
+    private int syntaxWarningEnd;
 
     public SceneEditorMultilineTextArea(FontRenderer fontRenderer) {
         this(fontRenderer, new ClipboardAccess() {
@@ -88,6 +91,8 @@ public class SceneEditorMultilineTextArea {
         this.horizontalScrollbarGrabOffset = 0;
         this.externalHighlightStart = -1;
         this.externalHighlightEnd = -1;
+        this.syntaxWarningStart = -1;
+        this.syntaxWarningEnd = -1;
     }
 
     public void setBounds(int x, int y, int width, int height) {
@@ -127,6 +132,78 @@ public class SceneEditorMultilineTextArea {
         return selectionModel.getCursorIndex();
     }
 
+    public boolean hasSelection() {
+        return selectionModel.hasSelection();
+    }
+
+    public int getSelectionStart() {
+        return selectionModel.getSelectionStart();
+    }
+
+    public int getSelectionEnd() {
+        return selectionModel.getSelectionEnd();
+    }
+
+    public String getSelectedText() {
+        return selectionModel.getSelectedText();
+    }
+
+    public void selectAll() {
+        selectionModel.selectAll();
+        ensureCursorVisible();
+    }
+
+    public void copySelection() {
+        if (!selectionModel.hasSelection()) {
+            return;
+        }
+        clipboardAccess.copy(selectionModel.getSelectedText());
+    }
+
+    public boolean cutSelection() {
+        if (!selectionModel.hasSelection()) {
+            return false;
+        }
+        clipboardAccess.copy(selectionModel.cutSelection());
+        rebuildLayoutCache();
+        ensureCursorVisible();
+        return true;
+    }
+
+    public boolean pasteClipboard() {
+        selectionModel.insertText(clipboardAccess.paste());
+        rebuildLayoutCache();
+        ensureCursorVisible();
+        return true;
+    }
+
+    public void applyEdit(String text, int selectionStart, int selectionEnd) {
+        selectionModel.setText(text != null ? text : "");
+        selectionModel.setSelection(selectionStart, selectionEnd);
+        rebuildLayoutCache();
+        ensureCursorVisible();
+    }
+
+    public void insertAtSelection(String text) {
+        selectionModel.insertText(text);
+        rebuildLayoutCache();
+        ensureCursorVisible();
+    }
+
+    public float getVerticalScrollFraction() {
+        int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
+        if (maxOffset <= 0) {
+            return 0f;
+        }
+        return scrollState.getOffsetPixels() / (float) maxOffset;
+    }
+
+    public void setVerticalScrollFraction(float fraction) {
+        int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
+        int offset = Math.round(Math.max(0f, Math.min(1f, fraction)) * maxOffset);
+        scrollState.setOffsetPixels(offset);
+    }
+
     public boolean isWrapEnabled() {
         return wrapEnabled;
     }
@@ -155,6 +232,16 @@ public class SceneEditorMultilineTextArea {
     public void clearBackgroundHighlight() {
         this.externalHighlightStart = -1;
         this.externalHighlightEnd = -1;
+    }
+
+    public void setSyntaxWarning(int startIndex, int endIndex) {
+        this.syntaxWarningStart = Math.max(0, startIndex);
+        this.syntaxWarningEnd = Math.max(this.syntaxWarningStart, endIndex);
+    }
+
+    public void clearSyntaxWarning() {
+        this.syntaxWarningStart = -1;
+        this.syntaxWarningEnd = -1;
     }
 
     public void setFocused(boolean focused) {
@@ -401,6 +488,7 @@ public class SceneEditorMultilineTextArea {
                 drawExternalHighlightForLine(line, drawY);
                 drawSelectionForLine(line, drawY);
                 fontRenderer.drawString(line.text(), x + PADDING - horizontalOffsetPixels, drawY, 0xF0F0F0);
+                drawSyntaxWarningForLine(line, drawY);
             }
             drawY += lineHeight;
         }
@@ -415,6 +503,8 @@ public class SceneEditorMultilineTextArea {
         }
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
         drawVerticalScrollbar();
         drawHorizontalScrollbar();
     }
@@ -517,6 +607,36 @@ public class SceneEditorMultilineTextArea {
                 highlightX + highlightWidth,
                 drawY + fontRenderer.FONT_HEIGHT + 1,
                 EXTERNAL_HIGHLIGHT_COLOR);
+        }
+    }
+
+    private void drawSyntaxWarningForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY) {
+        if (syntaxWarningStart < 0 || syntaxWarningEnd <= syntaxWarningStart) {
+            return;
+        }
+        boolean spansLineBreak = line.endsWithNewline() && syntaxWarningStart <= line.endIndex()
+            && syntaxWarningEnd > line.endIndex();
+        int highlightStart = Math.max(syntaxWarningStart, line.startIndex());
+        int highlightEnd = Math.min(syntaxWarningEnd, line.endIndex());
+        if (highlightEnd <= highlightStart && !spansLineBreak) {
+            return;
+        }
+
+        String beforeWarning = line.text()
+            .substring(0, Math.max(0, highlightStart - line.startIndex()));
+        String warnedText = line.text()
+            .substring(
+                Math.max(0, highlightStart - line.startIndex()),
+                Math.max(0, Math.min(highlightEnd, line.endIndex()) - line.startIndex()));
+        int warningX = x + PADDING + fontRenderer.getStringWidth(beforeWarning) - horizontalOffsetPixels;
+        int warningWidth = fontRenderer.getStringWidth(warnedText);
+        if (warningWidth <= 0 && spansLineBreak) {
+            warningWidth = 2;
+        }
+        int warningY = drawY + fontRenderer.FONT_HEIGHT + 1;
+        for (int pixelX = warningX; pixelX < warningX + warningWidth; pixelX += 4) {
+            Gui.drawRect(pixelX, warningY, pixelX + 2, warningY + 1, SYNTAX_WARNING_COLOR);
+            Gui.drawRect(pixelX + 2, warningY + 1, pixelX + 4, warningY + 2, SYNTAX_WARNING_COLOR);
         }
     }
 

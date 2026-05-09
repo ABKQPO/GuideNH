@@ -39,6 +39,14 @@ public class SceneEditorTextSelectionModel {
         this.selectionActive = false;
     }
 
+    public void setSelection(int selectionStart, int selectionEnd) {
+        int start = clampIndex(selectionStart);
+        int end = clampIndex(selectionEnd);
+        this.selectionAnchor = start;
+        this.cursorIndex = end;
+        this.selectionActive = start != end;
+    }
+
     public void beginSelection(int anchorIndex) {
         this.selectionAnchor = clampIndex(anchorIndex);
         this.cursorIndex = this.selectionAnchor;

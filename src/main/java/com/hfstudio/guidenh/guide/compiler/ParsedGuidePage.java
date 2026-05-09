@@ -7,16 +7,19 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
+import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
 public class ParsedGuidePage {
 
-    final String sourcePack;
-    final ResourceLocation id;
-    final String source;
-    final MdAstRoot astRoot;
-    final Frontmatter frontmatter;
-    final String language;
+    private final String sourcePack;
+    private final ResourceLocation id;
+    private final String source;
+    private final MdAstRoot astRoot;
+    private final Frontmatter frontmatter;
+    private final String language;
     private final @Nullable String parseFailureMessage;
+    private final @Nullable UnistPoint parseFailureFrom;
+    private final @Nullable UnistPoint parseFailureTo;
 
     @Deprecated
     public ParsedGuidePage(String sourcePack, ResourceLocation id, String source, MdAstRoot astRoot,
@@ -26,11 +29,17 @@ public class ParsedGuidePage {
 
     public ParsedGuidePage(String sourcePack, ResourceLocation id, String source, MdAstRoot astRoot,
         Frontmatter frontmatter, String language) {
-        this(sourcePack, id, source, astRoot, frontmatter, language, null);
+        this(sourcePack, id, source, astRoot, frontmatter, language, null, null, null);
     }
 
     public ParsedGuidePage(String sourcePack, ResourceLocation id, String source, MdAstRoot astRoot,
         Frontmatter frontmatter, String language, @Nullable String parseFailureMessage) {
+        this(sourcePack, id, source, astRoot, frontmatter, language, parseFailureMessage, null, null);
+    }
+
+    public ParsedGuidePage(String sourcePack, ResourceLocation id, String source, MdAstRoot astRoot,
+        Frontmatter frontmatter, String language, @Nullable String parseFailureMessage,
+        @Nullable UnistPoint parseFailureFrom, @Nullable UnistPoint parseFailureTo) {
         this.sourcePack = sourcePack;
         this.id = id;
         this.source = source;
@@ -38,6 +47,8 @@ public class ParsedGuidePage {
         this.frontmatter = frontmatter;
         this.language = Objects.requireNonNull(language, "language");
         this.parseFailureMessage = parseFailureMessage;
+        this.parseFailureFrom = parseFailureFrom;
+        this.parseFailureTo = parseFailureTo;
     }
 
     public String getSourcePack() {
@@ -64,12 +75,20 @@ public class ParsedGuidePage {
         return source;
     }
 
-    public boolean hasParseFailure() {
-        return parseFailureMessage != null && !parseFailureMessage.isEmpty();
-    }
-
     public @Nullable String getParseFailureMessage() {
         return parseFailureMessage;
+    }
+
+    public @Nullable UnistPoint getParseFailureFrom() {
+        return parseFailureFrom;
+    }
+
+    public @Nullable UnistPoint getParseFailureTo() {
+        return parseFailureTo;
+    }
+
+    public boolean hasParseFailure() {
+        return parseFailureMessage != null && !parseFailureMessage.isEmpty();
     }
 
     @Override

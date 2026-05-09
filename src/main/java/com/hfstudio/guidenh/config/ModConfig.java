@@ -116,6 +116,26 @@ public class ModConfig {
         @DefaultBoolean(true)
         public boolean sceneLayerSliderEnabled = true;
 
+        @Comment("Whether the guide screen editor mode starts enabled.")
+        @DefaultBoolean(false)
+        public boolean guideEditorEnabled = false;
+
+        @Comment("Whether advanced guide editor toolbar buttons start visible.")
+        @DefaultBoolean(false)
+        public boolean guideEditorAdvancedToolbarVisible = false;
+
+        @Comment("Guide editor layout mode: 0 split, 1 editor only, 2 preview only.")
+        public int guideEditorLayoutMode = 0;
+
+        @Comment("Guide editor split divider position as a percentage from the left.")
+        public int guideEditorDividerPercent = 50;
+
+        @Comment("Debounce delay used before guide editor autosave writes to disk, in milliseconds.")
+        public int guideEditorAutosaveDelayMillis = 500;
+
+        @Comment("Default author name inserted into new guide pages.")
+        public String guideEditorDefaultAuthor = "GuideNH";
+
         @Comment("How long page-wheel scrolling temporarily blocks 3D preview wheel interactions. "
             + "Value is in milliseconds. Default: 750.")
         public int sceneWheelInteractionDelayMillis = 750;

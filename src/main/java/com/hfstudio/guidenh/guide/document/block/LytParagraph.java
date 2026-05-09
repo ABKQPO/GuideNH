@@ -100,6 +100,14 @@ public class LytParagraph extends LytBlock implements LytFlowContainer {
         return lineEl != null ? lineEl.getFlowContent() : null;
     }
 
+    public @Nullable LytRect getFirstLineBounds() {
+        return content.getFirstLineBounds();
+    }
+
+    public @Nullable LytRect getFirstTextRunBounds() {
+        return content.getFirstTextRunBounds();
+    }
+
     @Override
     public Stream<LytRect> enumerateContentBounds(LytFlowContent content) {
         return this.content.enumerateContentBounds(content);

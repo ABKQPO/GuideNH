@@ -10,6 +10,8 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 public class LytListItem extends LytVBox {
 
     public static final int LEVEL_MARGIN = 10;
+    private static final int BULLET_SIZE = 2;
+    private static final int BULLET_X_OFFSET = 5;
 
     private final ResolvedTextStyle style = DefaultStyles.BODY_TEXT.mergeWith(DefaultStyles.BASE_STYLE);
 
@@ -48,8 +50,29 @@ public class LytListItem extends LytVBox {
             context.drawText(label, x, bounds.y(), style);
         } else {
             var bounds = getBounds();
-            context.fillRect(bounds.x() + 5, bounds.y() + 4, 2, 2, SymbolicColor.BODY_TEXT);
+            var markerLine = getMarkerLineBounds(context);
+            int bulletY = markerLine.y() + (markerLine.height() - BULLET_SIZE) / 2;
+            context.fillRect(bounds.x() + BULLET_X_OFFSET, bulletY, BULLET_SIZE, BULLET_SIZE, SymbolicColor.BODY_TEXT);
         }
         super.render(context);
+    }
+
+    private LytRect getMarkerLineBounds(RenderContext context) {
+        if (!children.isEmpty()) {
+            LytBlock firstChild = children.get(0);
+            if (firstChild instanceof LytParagraph paragraph) {
+                LytRect firstTextRun = paragraph.getFirstTextRunBounds();
+                if (firstTextRun != null) {
+                    return firstTextRun;
+                }
+                LytRect firstLine = paragraph.getFirstLineBounds();
+                if (firstLine != null) {
+                    return new LytRect(firstLine.x(), firstLine.y(), firstLine.width(), context.getLineHeight(style));
+                }
+            }
+            return firstChild.getBounds();
+        }
+        LytRect bounds = getBounds();
+        return new LytRect(bounds.x(), bounds.y(), bounds.width(), context.getLineHeight(style));
     }
 }

@@ -120,6 +120,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstThematicBreak;
 import com.hfstudio.guidenh.libs.mdx.MdxCommentMasker;
 import com.hfstudio.guidenh.libs.micromark.ParseException;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
+import com.hfstudio.guidenh.libs.unist.UnistPoint;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 import cpw.mods.fml.common.FMLLog;
@@ -201,12 +202,16 @@ public class PageCompiler {
 
         MdAstRoot astRoot;
         String parseFailureMessage = null;
+        UnistPoint parseFailureFrom = null;
+        UnistPoint parseFailureTo = null;
         try {
             astRoot = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
             MarkdownHtmlRuntimeNormalizer.normalize(astRoot);
         } catch (ParseException e) {
+            parseFailureFrom = e.getFrom();
+            parseFailureTo = e.getTo();
             var position = "";
-            if (e.getFrom() != null) {
+            if (parseFailureFrom != null) {
                 position = " at line " + e.getFrom()
                     .line()
                     + " column "
@@ -232,7 +237,16 @@ public class PageCompiler {
             frontmatter = sourceFrontmatter;
         }
 
-        return new ParsedGuidePage(sourcePack, id, pageContent, astRoot, frontmatter, language, parseFailureMessage);
+        return new ParsedGuidePage(
+            sourcePack,
+            id,
+            pageContent,
+            astRoot,
+            frontmatter,
+            language,
+            parseFailureMessage,
+            parseFailureFrom,
+            parseFailureTo);
     }
 
     public static String normalizeLineEndings(String pageContent) {
@@ -292,12 +306,17 @@ public class PageCompiler {
 
     public static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage) {
         // Translate page tree over to layout pages
-        var document = new PageCompiler(pages, extensions, parsedPage.sourcePack, parsedPage.id, parsedPage.source)
-            .compile(parsedPage.astRoot);
+        var document = new PageCompiler(
+            pages,
+            extensions,
+            parsedPage.getSourcePack(),
+            parsedPage.getId(),
+            parsedPage.getSource()).compile(parsedPage.getAstRoot());
         var titleHeading = extractPageTitleHeading(document);
-        FrontmatterPageMeta pageMeta = parsedPage.frontmatter != null ? parsedPage.frontmatter.parseMeta() : null;
+        FrontmatterPageMeta pageMeta = parsedPage.getFrontmatter() != null ? parsedPage.getFrontmatter()
+            .parseMeta() : null;
         if (pageMeta != null && pageMeta.isEmpty()) pageMeta = null;
-        return new GuidePage(parsedPage.sourcePack, parsedPage.id, document, titleHeading, pageMeta);
+        return new GuidePage(parsedPage.getSourcePack(), parsedPage.getId(), document, titleHeading, pageMeta);
     }
 
     /**

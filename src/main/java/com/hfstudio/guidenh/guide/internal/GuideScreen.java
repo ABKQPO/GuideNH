@@ -2,12 +2,16 @@ package com.hfstudio.guidenh.guide.internal;
 
 import java.awt.Desktop;
 import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -39,6 +43,8 @@ import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.AnchorIndexer;
 import com.hfstudio.guidenh.guide.compiler.FrontmatterPageMeta;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
@@ -57,6 +63,16 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
+import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorConflictPrompt;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorContextMenu;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorFileStore;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorLayoutMode;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorMerge;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorState;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorTextActions;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorUndoHistory;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
@@ -67,6 +83,7 @@ import com.hfstudio.guidenh.guide.internal.search.GuideSearchResultDocumentBuild
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchSnippetFormatter;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipRenderSupport;
+import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
@@ -75,6 +92,7 @@ import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
+import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
 import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.Loader;
@@ -124,13 +142,19 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private int dragLastMouseY = 0;
 
     private GuideIconButton btnSearch, btnBack, btnForward, btnFullWidth, btnClose;
+    private GuideIconButton btnGuideEditorToggle, btnGuideEditorNewPage, btnGuideEditorLayoutSplit,
+        btnGuideEditorLayoutEditorOnly, btnGuideEditorLayoutPreviewOnly, btnGuideEditorAdvancedToggle;
     public static final int TOOLBAR_H = 16;
     public static final int TOOLBAR_GAP = 3;
+    private static final int GUIDE_EDITOR_TOOLBAR_H = 16;
+    private static final int GUIDE_EDITOR_MIN_SPLIT_PANE_W = 15;
     private boolean fullWidth;
 
     private final GuideNavBar navBar = new GuideNavBar();
     private final MinecraftFontMetrics layoutFontMetrics = new MinecraftFontMetrics();
     private final CodeBlockClipboardService codeBlockClipboardService = new CodeBlockClipboardService();
+    private final GuideScreenEditorFileStore guideEditorFileStore = GuideScreenEditorFileStore.createDefault();
+    private final Map<Integer, GuideIconButton> guideEditorActionButtons = new LinkedHashMap<>();
 
     private final VanillaRenderContext reusableRenderCtx = new VanillaRenderContext(
         LightDarkMode.LIGHT_MODE,
@@ -185,6 +209,41 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private int cachedTooltipWrapWidth;
     @Nullable
     private List<String> cachedTooltipLines;
+    @Nullable
+    private LytRect cachedPreviewViewport;
+    @Nullable
+    private LytRect cachedPreviewScissor;
+    @Nullable
+    private SceneEditorMultilineTextArea guideEditorTextArea;
+    @Nullable
+    private GuideScreenEditorContextMenu guideEditorContextMenu;
+    @Nullable
+    private ParsedGuidePage guideEditorDraftPage;
+    @Nullable
+    private GuidePage guideEditorPreviewPage;
+    @Nullable
+    private String guideEditorDraftSource;
+    @Nullable
+    private String guideEditorSavedSource;
+    private boolean guideEditorDirty;
+    private boolean guideEditorPreviewDirty = true;
+    private long guideEditorNextSaveAtMillis;
+    private long guideEditorNextPreviewCompileAtMillis;
+    private long guideEditorNextExternalCheckAtMillis;
+    private boolean guideEditorDraggingDivider;
+    private int guideEditorDividerGrabOffset;
+    private boolean guideEditorDraggingPreviewScrollbar;
+    private int guideEditorPreviewScrollbarGrabOffset;
+    private int guideEditorPreviewScrollY;
+    private int guideEditorEditorScrollSyncGeneration;
+    private int guideEditorPreviewScrollSyncGeneration;
+    private int guideEditorActionToolbarBottom;
+    private int guideEditorEditorTop;
+    private boolean guideEditorSuppressUndoRecording;
+    private GuideScreenEditorLayoutMode guideEditorLayoutMode = GuideScreenEditorLayoutMode.SPLIT;
+    private boolean guideEditorAdvancedToolbarVisible;
+    private int guideEditorDividerPercent = GuideScreenEditorState.getDividerPercent();
+    private final GuideScreenEditorUndoHistory guideEditorUndoHistory = new GuideScreenEditorUndoHistory(100);
 
     public static final int SEARCH_FIELD_H = 12;
     public static final int SEARCH_FIELD_GAP = 6;
@@ -306,6 +365,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (reloadedGuide != null) {
             guide = reloadedGuide;
         }
+        syncGuideEditorStateFromConfig();
         clearInteractionState();
         currentPage = null;
         document = null;
@@ -317,11 +377,14 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     @Override
     public void initGui() {
         super.initGui();
+        syncGuideEditorStateFromConfig();
         recomputePanelBounds();
-        rebuildToolbar();
         if (document == null) {
             loadCurrentPage();
         }
+        rebuildToolbar();
+        ensureGuideEditorTextArea();
+        refreshGuideEditorDraft(true);
         ensureLayout();
         scrollToCurrentAnchor();
         clampScroll();
@@ -333,6 +396,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         for (LytGuidebookScene scene : registeredScenes) {
             scene.ponderTick();
         }
+        updateGuideEditorAutosave();
         int guideHotkey = OpenGuideHotkey.OPEN_GUIDE_KEY.getKeyCode();
         if (guideHotkey > 0 && OpenGuideHotkey.isKeyHeld() && hoveredItemStack != null) {
             pendingItemLinksStack = hoveredItemStack;
@@ -386,40 +450,934 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     }
 
     private boolean hasBottomBar() {
-        return currentPage != null && !isSearchPage() && !isItemLinksPage();
+        return currentPage != null && !isSearchPage() && !isItemLinksPage() && !isGuideEditorActive();
+    }
+
+    private boolean isGuideEditorActive() {
+        return GuideScreenEditorState.isEnabled() && currentPage != null && !isSearchPage() && !isItemLinksPage();
+    }
+
+    private void syncGuideEditorStateFromConfig() {
+        guideEditorLayoutMode = GuideScreenEditorState.getLayoutMode();
+        guideEditorAdvancedToolbarVisible = GuideScreenEditorState.isAdvancedToolbarVisible();
+        guideEditorDividerPercent = GuideScreenEditorState.getDividerPercent();
+    }
+
+    private void setGuideEditorLayoutMode(GuideScreenEditorLayoutMode mode) {
+        GuideScreenEditorState.setLayoutMode(mode);
+        guideEditorLayoutMode = mode;
+        if (mode == GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null) {
+            guideEditorTextArea.setFocused(false);
+        }
+        guideEditorPreviewDirty = true;
+    }
+
+    private void toggleGuideEditorEnabled() {
+        GuideScreenEditorState.setEnabled(!GuideScreenEditorState.isEnabled());
+        syncGuideEditorStateFromConfig();
+        refreshGuideEditorDraft(true);
+        rebuildToolbar();
+    }
+
+    private void toggleGuideEditorAdvancedButtons() {
+        guideEditorAdvancedToolbarVisible = !guideEditorAdvancedToolbarVisible;
+        GuideScreenEditorState.setAdvancedToolbarVisible(guideEditorAdvancedToolbarVisible);
+        rebuildToolbar();
+    }
+
+    private void createGuideEditorPage() {
+        if (!isGuideEditorActive()) {
+            return;
+        }
+        ParsedGuidePage currentParsedPage = guide.getParsedPage(currentAnchor.pageId());
+        if (currentParsedPage == null) {
+            return;
+        }
+
+        String language = currentParsedPage.getLanguage();
+        ResourceLocation newPageId = resolveGuideEditorNewPageId(language);
+        String titleText = resolveGuideEditorNewPageTitle();
+        ResourceLocation parentId = resolveGuideEditorNewPageParent(currentParsedPage);
+        String pageText = buildGuideEditorNewPageText(titleText, parentId);
+
+        try {
+            guideEditorFileStore.savePage(guide, newPageId, language, pageText);
+            ParsedGuidePage parsedNewPage = PageCompiler
+                .parse(currentParsedPage.getSourcePack(), language, newPageId, pageText);
+            guide.applyEditorPage(parsedNewPage);
+            guide.rebuildIndices();
+            navigateTo(PageAnchor.page(newPageId));
+            refreshGuideEditorDraft(true);
+            rebuildToolbar();
+        } catch (Throwable t) {
+            FMLLog.warning("Failed to create guide editor page {}", newPageId, t);
+        }
+    }
+
+    private ResourceLocation resolveGuideEditorNewPageId(String language) {
+        String sourcePath = currentAnchor.pageId()
+            .getResourcePath();
+        int slash = sourcePath.lastIndexOf('/');
+        String folder = slash >= 0 ? sourcePath.substring(0, slash) : "";
+        String baseName = "new_guide";
+        String candidate = folder.isEmpty() ? baseName + ".md" : folder + "/" + baseName + ".md";
+        int index = 2;
+        while (guideEditorFileStore
+            .hasPage(guide, new ResourceLocation(guide.getDefaultNamespace(), candidate), language)) {
+            String suffix = "-" + index++;
+            candidate = folder.isEmpty() ? baseName + suffix + ".md" : folder + "/" + baseName + suffix + ".md";
+        }
+        return new ResourceLocation(guide.getDefaultNamespace(), candidate);
+    }
+
+    private ResourceLocation resolveGuideEditorNewPageParent(ParsedGuidePage currentParsedPage) {
+        if (currentParsedPage.getFrontmatter() != null && currentParsedPage.getFrontmatter()
+            .navigationEntry() != null
+            && currentParsedPage.getFrontmatter()
+                .navigationEntry()
+                .parent() != null) {
+            return currentParsedPage.getFrontmatter()
+                .navigationEntry()
+                .parent();
+        }
+        return guide.getStartPage();
+    }
+
+    private String resolveGuideEditorNewPageTitle() {
+        String language = LangUtil.getCurrentLanguage();
+        if (language != null && language.toLowerCase()
+            .startsWith("zh")) {
+            return "新指南";
+        }
+        return "New Guide";
+    }
+
+    private String buildGuideEditorNewPageText(String titleText, ResourceLocation parentId) {
+        String dateText = LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        StringBuilder builder = new StringBuilder();
+        builder.append("---\n");
+        builder.append("navigation:\n");
+        builder.append("  title: ")
+            .append(titleText)
+            .append('\n');
+        builder.append("  parent: ")
+            .append(parentId.toString())
+            .append('\n');
+        builder.append("author: ")
+            .append(GuideScreenEditorState.getDefaultAuthor())
+            .append('\n');
+        builder.append("date: ")
+            .append(dateText)
+            .append('\n');
+        builder.append("---\n\n");
+        return builder.toString();
+    }
+
+    private void ensureGuideEditorTextArea() {
+        if (guideEditorTextArea == null) {
+            guideEditorTextArea = new SceneEditorMultilineTextArea(fontRendererObj);
+            guideEditorTextArea.setWrapEnabled(false);
+        }
+    }
+
+    private void refreshGuideEditorDraft(boolean forceReload) {
+        if (!isGuideEditorActive()) {
+            return;
+        }
+        ParsedGuidePage parsedPage = guide.getParsedPage(currentAnchor.pageId());
+        if (parsedPage == null) {
+            guideEditorDraftSource = null;
+            guideEditorDraftPage = null;
+            guideEditorPreviewPage = null;
+            return;
+        }
+
+        String text = forceReload ? null : guideEditorDraftSource;
+        if (text == null) {
+            text = guideEditorFileStore.readPageText(guide, currentAnchor.pageId(), parsedPage.getLanguage());
+            if (text == null) {
+                text = parsedPage.getSource();
+            }
+        }
+
+        boolean preserveHistory = guideEditorTextArea != null && Objects.equals(guideEditorTextArea.getText(), text);
+        guideEditorDraftPage = parsedPage;
+        guideEditorDraftSource = text;
+        guideEditorSavedSource = text;
+        guideEditorDirty = false;
+        guideEditorPreviewDirty = true;
+        guideEditorNextSaveAtMillis = 0L;
+        guideEditorNextPreviewCompileAtMillis = 0L;
+        guideEditorNextExternalCheckAtMillis = 0L;
+        if (guideEditorTextArea != null && !preserveHistory) {
+            guideEditorSuppressUndoRecording = true;
+            try {
+                guideEditorTextArea.applyEdit(text, 0, 0);
+            } finally {
+                guideEditorSuppressUndoRecording = false;
+            }
+            guideEditorTextArea.setFocused(true);
+        }
+        if (!preserveHistory) {
+            guideEditorUndoHistory.reset(text, 0, 0);
+        }
+        syncGuideEditorPreviewScrollFromEditor();
+    }
+
+    private void updateGuideEditorTextFromArea() {
+        if (guideEditorTextArea == null || guideEditorSuppressUndoRecording) {
+            return;
+        }
+        String text = guideEditorTextArea.getText();
+        if (Objects.equals(text, guideEditorDraftSource)) {
+            return;
+        }
+        guideEditorDraftSource = text;
+        guideEditorDirty = !Objects.equals(text, guideEditorSavedSource);
+        guideEditorPreviewDirty = true;
+        guideEditorUndoHistory
+            .push(text, guideEditorTextArea.getSelectionStart(), guideEditorTextArea.getSelectionEnd());
+        long now = System.currentTimeMillis();
+        guideEditorNextSaveAtMillis = now + GuideScreenEditorState.getAutosaveDelayMillis();
+        guideEditorNextPreviewCompileAtMillis = now + 100L;
+    }
+
+    private void updateGuideEditorAutosave() {
+        if (!isGuideEditorActive()) {
+            return;
+        }
+        pollGuideEditorExternalChanges();
+        if (!guideEditorDirty) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now >= guideEditorNextPreviewCompileAtMillis && guideEditorPreviewDirty) {
+            rebuildGuideEditorPreview();
+        }
+        if (now < guideEditorNextSaveAtMillis) {
+            return;
+        }
+        saveGuideEditorDraft();
+    }
+
+    private void rebuildGuideEditorPreview() {
+        if (!isGuideEditorActive() || guideEditorDraftSource == null || guideEditorDraftPage == null) {
+            return;
+        }
+        try {
+            ParsedGuidePage parsedDraft = PageCompiler.parse(
+                guideEditorDraftPage.getSourcePack(),
+                guideEditorDraftPage.getLanguage(),
+                currentAnchor.pageId(),
+                guideEditorDraftSource);
+            updateGuideEditorSyntaxWarning(parsedDraft);
+            guideEditorPreviewPage = PageCompiler.compile(guide, guide.getExtensions(), parsedDraft);
+            int previewWidth = getGuideEditorPreviewLayoutWidth();
+            if (guideEditorPreviewPage != null && guideEditorPreviewPage.document() != null) {
+                guideEditorPreviewPage.document()
+                    .updateLayout(new LayoutContext(layoutFontMetrics), Math.max(1, previewWidth));
+            }
+            guideEditorPreviewDirty = false;
+            guideEditorDraftPage = parsedDraft;
+        } catch (Throwable t) {
+            FMLLog.warning("Failed to compile guide editor preview for {}", currentAnchor.pageId(), t);
+        }
+    }
+
+    private void updateGuideEditorSyntaxWarning(ParsedGuidePage parsedDraft) {
+        if (guideEditorTextArea == null) {
+            return;
+        }
+        if (!parsedDraft.hasParseFailure() || guideEditorDraftSource == null) {
+            guideEditorTextArea.clearSyntaxWarning();
+            return;
+        }
+
+        int startIndex = resolveGuideEditorOffset(guideEditorDraftSource, parsedDraft.getParseFailureFrom());
+        int endIndex = resolveGuideEditorOffset(guideEditorDraftSource, parsedDraft.getParseFailureTo());
+        if (startIndex < 0) {
+            guideEditorTextArea.clearSyntaxWarning();
+            return;
+        }
+
+        int safeStart = clampGuideEditorOffset(startIndex, guideEditorDraftSource.length());
+        int safeEnd = clampGuideEditorOffset(endIndex, guideEditorDraftSource.length());
+        if (safeEnd <= safeStart) {
+            if (safeStart < guideEditorDraftSource.length()) {
+                safeEnd = safeStart + 1;
+            } else if (safeStart > 0) {
+                safeStart--;
+                safeEnd = safeStart + 1;
+            } else {
+                guideEditorTextArea.clearSyntaxWarning();
+                return;
+            }
+        }
+
+        guideEditorTextArea.setSyntaxWarning(safeStart, safeEnd);
+    }
+
+    private int resolveGuideEditorOffset(String text, @Nullable UnistPoint point) {
+        if (text == null || text.isEmpty() || point == null) {
+            return -1;
+        }
+        int targetLine = Math.max(1, point.line());
+        int targetColumn = Math.max(1, point.column());
+        int line = 1;
+        int column = 1;
+        for (int i = 0; i < text.length(); i++) {
+            if (line == targetLine && column == targetColumn) {
+                return i;
+            }
+            char current = text.charAt(i);
+            if (current == '\r') {
+                if (i + 1 < text.length() && text.charAt(i + 1) == '\n') {
+                    i++;
+                }
+                line++;
+                column = 1;
+                continue;
+            }
+            if (current == '\n') {
+                line++;
+                column = 1;
+                continue;
+            }
+            column++;
+        }
+        return text.length();
+    }
+
+    private int clampGuideEditorOffset(int index, int length) {
+        if (index < 0) {
+            return 0;
+        }
+        if (index > length) {
+            return length;
+        }
+        return index;
+    }
+
+    private void saveGuideEditorDraft() {
+        if (!isGuideEditorActive() || guideEditorDraftSource == null || guideEditorDraftPage == null) {
+            return;
+        }
+        try {
+            guideEditorFileStore
+                .savePage(guide, currentAnchor.pageId(), guideEditorDraftPage.getLanguage(), guideEditorDraftSource);
+            ParsedGuidePage parsedDraft = PageCompiler.parse(
+                guideEditorDraftPage.getSourcePack(),
+                guideEditorDraftPage.getLanguage(),
+                currentAnchor.pageId(),
+                guideEditorDraftSource);
+            guide.applyEditorPage(parsedDraft);
+            guideEditorSavedSource = guideEditorDraftSource;
+            guideEditorDirty = false;
+            guideEditorPreviewDirty = true;
+            guideEditorDraftPage = parsedDraft;
+            guideEditorNextSaveAtMillis = 0L;
+            guideEditorNextPreviewCompileAtMillis = 0L;
+            startBackgroundIndexRefresh();
+        } catch (Throwable t) {
+            FMLLog.warning("Failed to autosave guide editor page {}", currentAnchor.pageId(), t);
+        }
+    }
+
+    private void pollGuideEditorExternalChanges() {
+        if (!isGuideEditorActive() || guideEditorDraftPage == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now < guideEditorNextExternalCheckAtMillis) {
+            return;
+        }
+        guideEditorNextExternalCheckAtMillis = now + 250L;
+        if (guideEditorDraftSource == null) {
+            return;
+        }
+
+        String externalSource = guideEditorFileStore
+            .readPageText(guide, currentAnchor.pageId(), guideEditorDraftPage.getLanguage());
+        if (externalSource == null || Objects.equals(externalSource, guideEditorSavedSource)) {
+            return;
+        }
+        if (!guideEditorDirty) {
+            applyGuideEditorExternalSource(externalSource);
+            return;
+        }
+
+        GuideScreenEditorMerge.Result merge = GuideScreenEditorMerge
+            .merge(guideEditorSavedSource, guideEditorDraftSource, externalSource);
+        if (merge.getKind() == GuideScreenEditorMerge.Result.Kind.CONFLICT) {
+            openGuideEditorConflictPrompt(externalSource);
+            return;
+        }
+        if (merge.getKind() == GuideScreenEditorMerge.Result.Kind.EXTERNAL_WINS) {
+            applyGuideEditorExternalSource(merge.getText());
+            return;
+        }
+        if (merge.getKind() == GuideScreenEditorMerge.Result.Kind.MERGED) {
+            applyGuideEditorExternalSource(merge.getText());
+        }
+    }
+
+    private void applyGuideEditorExternalSource(String source) {
+        if (guideEditorTextArea == null) {
+            return;
+        }
+        String safeSource = source != null ? source : "";
+        guideEditorSuppressUndoRecording = true;
+        try {
+            guideEditorTextArea.applyEdit(safeSource, 0, 0);
+        } finally {
+            guideEditorSuppressUndoRecording = false;
+        }
+        guideEditorDraftSource = safeSource;
+        guideEditorSavedSource = safeSource;
+        guideEditorDirty = false;
+        guideEditorPreviewDirty = true;
+        guideEditorNextSaveAtMillis = 0L;
+        guideEditorNextPreviewCompileAtMillis = 0L;
+        guideEditorUndoHistory.reset(safeSource, 0, 0);
+        refreshGuideEditorPreviewState();
+        syncGuideEditorPreviewScrollFromEditor();
+    }
+
+    private void refreshGuideEditorPreviewState() {
+        if (guideEditorDraftSource == null || guideEditorDraftPage == null) {
+            return;
+        }
+        try {
+            guideEditorDraftPage = PageCompiler.parse(
+                guideEditorDraftPage.getSourcePack(),
+                guideEditorDraftPage.getLanguage(),
+                currentAnchor.pageId(),
+                guideEditorDraftSource);
+            guide.applyEditorPage(guideEditorDraftPage);
+            startBackgroundIndexRefresh();
+        } catch (Throwable t) {
+            FMLLog.warning("Failed to refresh guide editor draft state for {}", currentAnchor.pageId(), t);
+        }
+    }
+
+    private void openGuideEditorConflictPrompt(final String externalSource) {
+        mc.displayGuiScreen(
+            new GuideScreenEditorConflictPrompt(
+                this,
+                GuidebookText.GuideEditorConflictTitle.text(),
+                GuidebookText.GuideEditorConflictMessage.text(),
+                new GuideScreenEditorConflictPrompt.Callback() {
+
+                    @Override
+                    public void keepExternal() {
+                        applyGuideEditorExternalSource(externalSource);
+                    }
+
+                    @Override
+                    public void keepLocal() {
+                        saveGuideEditorDraft();
+                    }
+                }));
+    }
+
+    private void startBackgroundIndexRefresh() {
+        Thread refreshThread = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    guide.rebuildIndices();
+                } catch (Throwable t) {
+                    FMLLog.warning("Guide editor index refresh failed", t);
+                }
+            }
+        }, "GuideNH-GuideEditor-IndexRefresh");
+        refreshThread.setDaemon(true);
+        refreshThread.start();
+    }
+
+    private void handleGuideEditorActionButton(int actionId) {
+        if (guideEditorTextArea == null || actionId < 0 || actionId >= GuideScreenEditorAction.values().length) {
+            return;
+        }
+        performGuideEditorAction(GuideScreenEditorAction.values()[actionId]);
+    }
+
+    private void performGuideEditorAction(GuideScreenEditorAction action) {
+        if (guideEditorTextArea == null || action == null) {
+            return;
+        }
+        switch (action) {
+            case UNDO: {
+                if (!guideEditorUndoHistory.canUndo()) {
+                    return;
+                }
+                applyGuideEditorHistoryEntry(guideEditorUndoHistory.undo());
+                return;
+            }
+            case REDO: {
+                if (!guideEditorUndoHistory.canRedo()) {
+                    return;
+                }
+                applyGuideEditorHistoryEntry(guideEditorUndoHistory.redo());
+                return;
+            }
+            case CUT:
+                if (guideEditorTextArea.cutSelection()) {
+                    updateGuideEditorTextFromArea();
+                }
+                return;
+            case COPY:
+                guideEditorTextArea.copySelection();
+                return;
+            case PASTE:
+                if (guideEditorTextArea.pasteClipboard()) {
+                    updateGuideEditorTextFromArea();
+                }
+                return;
+            case SELECT_ALL:
+                guideEditorTextArea.selectAll();
+                return;
+            default:
+                GuideScreenEditorTextActions.Result result = GuideScreenEditorTextActions.apply(
+                    action,
+                    guideEditorTextArea.getText(),
+                    guideEditorTextArea.getSelectionStart(),
+                    guideEditorTextArea.getSelectionEnd());
+                guideEditorSuppressUndoRecording = true;
+                try {
+                    guideEditorTextArea
+                        .applyEdit(result.getText(), result.getSelectionStart(), result.getSelectionEnd());
+                } finally {
+                    guideEditorSuppressUndoRecording = false;
+                }
+                guideEditorDraftSource = guideEditorTextArea.getText();
+                guideEditorDirty = !Objects.equals(guideEditorDraftSource, guideEditorSavedSource);
+                guideEditorPreviewDirty = true;
+                guideEditorUndoHistory.push(
+                    guideEditorDraftSource,
+                    guideEditorTextArea.getSelectionStart(),
+                    guideEditorTextArea.getSelectionEnd());
+                long now = System.currentTimeMillis();
+                guideEditorNextSaveAtMillis = now + GuideScreenEditorState.getAutosaveDelayMillis();
+                guideEditorNextPreviewCompileAtMillis = now + 100L;
+                syncGuideEditorPreviewScrollFromEditor();
+                return;
+        }
+    }
+
+    private void applyGuideEditorHistoryEntry(GuideScreenEditorUndoHistory.Entry entry) {
+        if (entry == null || guideEditorTextArea == null) {
+            return;
+        }
+        guideEditorSuppressUndoRecording = true;
+        try {
+            guideEditorTextArea.applyEdit(entry.getText(), entry.getSelectionStart(), entry.getSelectionEnd());
+        } finally {
+            guideEditorSuppressUndoRecording = false;
+        }
+        guideEditorDraftSource = entry.getText();
+        guideEditorDirty = !Objects.equals(guideEditorDraftSource, guideEditorSavedSource);
+        guideEditorPreviewDirty = true;
+        long now = System.currentTimeMillis();
+        if (guideEditorDirty) {
+            guideEditorNextSaveAtMillis = now + GuideScreenEditorState.getAutosaveDelayMillis();
+        } else {
+            guideEditorNextSaveAtMillis = 0L;
+        }
+        guideEditorNextPreviewCompileAtMillis = now + 100L;
+        syncGuideEditorPreviewScrollFromEditor();
+    }
+
+    private void openGuideEditorContextMenu(int mouseX, int mouseY) {
+        if (!isGuideEditorActive()) {
+            return;
+        }
+        if (guideEditorContextMenu == null) {
+            guideEditorContextMenu = new GuideScreenEditorContextMenu(buildGuideEditorContextMenuEntries());
+        }
+        guideEditorContextMenu.open(mouseX, mouseY, width, height, fontRendererObj);
+    }
+
+    private void closeGuideEditorContextMenu() {
+        if (guideEditorContextMenu != null) {
+            guideEditorContextMenu.close();
+        }
+    }
+
+    private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorContextMenuEntries() {
+        List<GuideScreenEditorContextMenu.Entry> editEntries = new ArrayList<>();
+        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.UNDO));
+        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REDO));
+        editEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CUT));
+        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COPY));
+        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PASTE));
+        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SELECT_ALL));
+
+        List<GuideScreenEditorContextMenu.Entry> insertEntries = new ArrayList<>();
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_1));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_2));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_3));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_4));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_5));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_6));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BOLD));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITALIC));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.STRIKETHROUGH));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.UNDERLINE));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+        List<GuideScreenEditorContextMenu.Entry> inlineEntries = new ArrayList<>();
+        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.KBD));
+        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SUBSCRIPT));
+        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SUPERSCRIPT));
+        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FOOTNOTE));
+        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LATEX));
+        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LATEX_SHORTHAND));
+        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.KEY_BIND));
+        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PLAYER_NAME));
+        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COLOR));
+        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BREAK));
+        insertEntries.add(
+            GuideScreenEditorContextMenu.Entry
+                .submenu(GuidebookText.GuideEditorContextMenuInline.text(), inlineEntries));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LINK));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REFERENCE_LINK));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMAGE));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REFERENCE_IMAGE));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.INLINE_CODE));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CODE_BLOCK));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCKQUOTE));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.UNORDERED_LIST));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ORDERED_LIST));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TASK_LIST));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TABLE));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+        List<GuideScreenEditorContextMenu.Entry> blockEntries = new ArrayList<>();
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_NOTE));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_TIP));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_IMPORTANT));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_WARNING));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_CAUTION));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.DETAILS));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_CALLOUT));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_ICON_TEXT));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_ICON_ITEM));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_ICON_PNG));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CSV_TABLE));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.MERMAID));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FILE_TREE));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SUB_PAGES));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CATEGORY_INDEX));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FOOTNOTE_LIST));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ROW));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COLUMN));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.DIV));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITEM_GRID));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CSV_TABLE_IMPORT));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ANCHOR));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COLUMN_CHART));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BAR_CHART));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LINE_CHART));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PIE_CHART));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SCATTER_CHART));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_SERIES));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_LINE_SERIES));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_SLICE));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_PIE_INSET));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_GRAPH));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_PLOT));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_POINT));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_GRAPH_FENCE));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.STRUCTURE));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.GAME_SCENE));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SCENE_BLOCK));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SCENE_ENTITY));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ISOMETRIC_CAMERA));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BOX_ANNOTATION));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCK_ANNOTATION));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LINE_ANNOTATION));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.DIAMOND_ANNOTATION));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TEXT_ANNOTATION));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCK_ANNOTATION_TEMPLATE));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMPORT_STRUCTURE));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMPORT_STRUCTURE_LIB));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMPORT_PONDER));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PLACE_BLOCK));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REPLACE_BLOCK));
+        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REMOVE_BLOCKS));
+        insertEntries.add(
+            GuideScreenEditorContextMenu.Entry
+                .submenu(GuidebookText.GuideEditorContextMenuBlocks.text(), blockEntries));
+        List<GuideScreenEditorContextMenu.Entry> embedEntries = new ArrayList<>();
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TOOLTIP));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITEM_IMAGE));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCK_IMAGE));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITEM_LINK));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COMMAND_LINK));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.RECIPE));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.RECIPE_FOR));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.RECIPES_FOR));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FLOATING_IMAGE));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUEST_LINK));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUEST_CARD));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUEST_IDS));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_POSITION));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICON));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICON_TEXTURE));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICONS));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICON_TEXTURES));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_REQUIRED_MODS));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_CATEGORIES));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_ITEM_IDS));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_ORE_IDS));
+        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_METADATA));
+        insertEntries.add(
+            GuideScreenEditorContextMenu.Entry
+                .submenu(GuidebookText.GuideEditorContextMenuEmbeds.text(), embedEntries));
+        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.THEMATIC_BREAK));
+
+        List<GuideScreenEditorContextMenu.Entry> entries = new ArrayList<>();
+        entries.add(
+            GuideScreenEditorContextMenu.Entry.submenu(GuidebookText.GuideEditorContextMenuEdit.text(), editEntries));
+        entries.add(
+            GuideScreenEditorContextMenu.Entry
+                .submenu(GuidebookText.GuideEditorContextMenuInsert.text(), insertEntries));
+        return entries;
+    }
+
+    private int getGuideEditorPreviewLayoutWidth() {
+        return Math.max(1, getGuideEditorPreviewPaneWidth() - SceneEditorMultilineTextArea.PADDING * 2);
     }
 
     private void rebuildToolbar() {
         this.buttonList.clear();
-        int btnY = panelY;
+        int btnY = getToolbarButtonY();
         int btnRight = panelX + panelW - PANEL_PADDING;
-        btnClose = new GuideIconButton(0, btnRight - 16, btnY, GuideIconButton.Role.CLOSE);
-        btnFullWidth = new GuideIconButton(
-            1,
-            btnRight - (16 + TOOLBAR_GAP) * 2 + TOOLBAR_GAP,
+        int leftX = panelX + PANEL_PADDING;
+        leftX = rebuildGuideEditorModeButtons(leftX, btnY);
+        btnSearch = new GuideIconButton(
+            4,
+            isSearchPage() ? leftX : getRightSearchButtonX(),
             btnY,
-            fullWidth ? GuideIconButton.Role.CLOSE_FULL_WIDTH_VIEW : GuideIconButton.Role.OPEN_FULL_WIDTH_VIEW);
-        btnForward = new GuideIconButton(
-            2,
-            btnRight - (16 + TOOLBAR_GAP) * 3 + TOOLBAR_GAP,
-            btnY,
-            GuideIconButton.Role.FORWARD);
+            GuideIconButton.Role.SEARCH);
         btnBack = new GuideIconButton(
             3,
             btnRight - (16 + TOOLBAR_GAP) * 4 + TOOLBAR_GAP,
             btnY,
             GuideIconButton.Role.BACK);
-        btnSearch = new GuideIconButton(
-            4,
-            isSearchPage() ? getSearchToolbarIconX() : getRightSearchButtonX(),
+        btnForward = new GuideIconButton(
+            2,
+            btnRight - (16 + TOOLBAR_GAP) * 3 + TOOLBAR_GAP,
             btnY,
-            GuideIconButton.Role.SEARCH);
+            GuideIconButton.Role.FORWARD);
+        btnFullWidth = new GuideIconButton(
+            1,
+            btnRight - (16 + TOOLBAR_GAP) * 2 + TOOLBAR_GAP,
+            btnY,
+            fullWidth ? GuideIconButton.Role.CLOSE_FULL_WIDTH_VIEW : GuideIconButton.Role.OPEN_FULL_WIDTH_VIEW);
+        btnClose = new GuideIconButton(0, btnRight - 16, btnY, GuideIconButton.Role.CLOSE);
         this.buttonList.add(btnSearch);
         this.buttonList.add(btnBack);
         this.buttonList.add(btnForward);
         this.buttonList.add(btnFullWidth);
         this.buttonList.add(btnClose);
         updateToolbarButtonState();
+    }
+
+    private int getToolbarButtonY() {
+        return panelY + Math.max(0, (TOOLBAR_H - GuideIconButton.HEIGHT) / 2);
+    }
+
+    private int rebuildGuideEditorModeButtons(int leftX, int btnY) {
+        if (!isGuideEditorActive()) {
+            clearGuideEditorActionButtons();
+            btnGuideEditorToggle = null;
+            btnGuideEditorNewPage = null;
+            btnGuideEditorLayoutSplit = null;
+            btnGuideEditorLayoutEditorOnly = null;
+            btnGuideEditorLayoutPreviewOnly = null;
+            btnGuideEditorAdvancedToggle = null;
+            return leftX;
+        }
+
+        int x = leftX;
+        btnGuideEditorToggle = addEditorModeButton(100, x, btnY, GuideIconButton.Role.GUIDE_EDITOR_TOGGLE);
+        x += GuideIconButton.WIDTH + TOOLBAR_GAP;
+        btnGuideEditorNewPage = addEditorModeButton(101, x, btnY, GuideIconButton.Role.GUIDE_EDITOR_NEW_PAGE);
+        x += GuideIconButton.WIDTH + TOOLBAR_GAP;
+        btnGuideEditorLayoutSplit = addEditorModeButton(102, x, btnY, GuideIconButton.Role.GUIDE_EDITOR_LAYOUT_SPLIT);
+        x += GuideIconButton.WIDTH + TOOLBAR_GAP;
+        btnGuideEditorLayoutEditorOnly = addEditorModeButton(
+            103,
+            x,
+            btnY,
+            GuideIconButton.Role.GUIDE_EDITOR_LAYOUT_EDITOR_ONLY);
+        x += GuideIconButton.WIDTH + TOOLBAR_GAP;
+        btnGuideEditorLayoutPreviewOnly = addEditorModeButton(
+            104,
+            x,
+            btnY,
+            GuideIconButton.Role.GUIDE_EDITOR_LAYOUT_PREVIEW_ONLY);
+        x += GuideIconButton.WIDTH + TOOLBAR_GAP;
+        btnGuideEditorAdvancedToggle = addEditorModeButton(
+            105,
+            x,
+            btnY,
+            GuideIconButton.Role.GUIDE_EDITOR_ADVANCED_TOGGLE);
+        rebuildGuideEditorActionButtons();
+        return x + GuideIconButton.WIDTH + TOOLBAR_GAP;
+    }
+
+    private GuideIconButton addEditorModeButton(int id, int x, int y, GuideIconButton.Role role) {
+        GuideIconButton button = new GuideIconButton(id, x, y, role);
+        this.buttonList.add(button);
+        return button;
+    }
+
+    private void clearGuideEditorActionButtons() {
+        guideEditorActionButtons.clear();
+    }
+
+    private void rebuildGuideEditorActionButtons() {
+        guideEditorActionButtons.clear();
+        if (!isGuideEditorActive()) {
+            return;
+        }
+
+        for (GuideScreenEditorAction action : getGuideEditorActionOrder()) {
+            int id = 2000 + action.ordinal();
+            GuideIconButton button = new GuideIconButton(id, 0, 0, action.toRole());
+            guideEditorActionButtons.put(id, button);
+            buttonList.add(button);
+        }
+    }
+
+    private List<GuideScreenEditorAction> getGuideEditorActionOrder() {
+        List<GuideScreenEditorAction> actions = new ArrayList<>();
+        actions.add(GuideScreenEditorAction.HEADING_1);
+        actions.add(GuideScreenEditorAction.HEADING_2);
+        actions.add(GuideScreenEditorAction.HEADING_3);
+        actions.add(GuideScreenEditorAction.BOLD);
+        actions.add(GuideScreenEditorAction.ITALIC);
+        actions.add(GuideScreenEditorAction.KBD);
+        actions.add(GuideScreenEditorAction.SUBSCRIPT);
+        actions.add(GuideScreenEditorAction.SUPERSCRIPT);
+        actions.add(GuideScreenEditorAction.FOOTNOTE);
+        actions.add(GuideScreenEditorAction.LATEX);
+        actions.add(GuideScreenEditorAction.COLOR);
+        actions.add(GuideScreenEditorAction.LINK);
+        actions.add(GuideScreenEditorAction.INLINE_CODE);
+        actions.add(GuideScreenEditorAction.CODE_BLOCK);
+        actions.add(GuideScreenEditorAction.BLOCKQUOTE);
+        actions.add(GuideScreenEditorAction.UNORDERED_LIST);
+        actions.add(GuideScreenEditorAction.ORDERED_LIST);
+        actions.add(GuideScreenEditorAction.TASK_LIST);
+        actions.add(GuideScreenEditorAction.TABLE);
+        actions.add(GuideScreenEditorAction.THEMATIC_BREAK);
+        if (guideEditorAdvancedToolbarVisible) {
+            actions.add(GuideScreenEditorAction.HEADING_4);
+            actions.add(GuideScreenEditorAction.HEADING_5);
+            actions.add(GuideScreenEditorAction.HEADING_6);
+            actions.add(GuideScreenEditorAction.STRIKETHROUGH);
+            actions.add(GuideScreenEditorAction.UNDERLINE);
+            actions.add(GuideScreenEditorAction.IMAGE);
+            actions.add(GuideScreenEditorAction.REFERENCE_LINK);
+            actions.add(GuideScreenEditorAction.REFERENCE_IMAGE);
+            actions.add(GuideScreenEditorAction.ALERT_NOTE);
+            actions.add(GuideScreenEditorAction.ALERT_TIP);
+            actions.add(GuideScreenEditorAction.ALERT_IMPORTANT);
+            actions.add(GuideScreenEditorAction.ALERT_WARNING);
+            actions.add(GuideScreenEditorAction.ALERT_CAUTION);
+            actions.add(GuideScreenEditorAction.DETAILS);
+            actions.add(GuideScreenEditorAction.QUOTE_CALLOUT);
+            actions.add(GuideScreenEditorAction.QUOTE_ICON_TEXT);
+            actions.add(GuideScreenEditorAction.QUOTE_ICON_ITEM);
+            actions.add(GuideScreenEditorAction.QUOTE_ICON_PNG);
+            actions.add(GuideScreenEditorAction.KEY_BIND);
+            actions.add(GuideScreenEditorAction.PLAYER_NAME);
+            actions.add(GuideScreenEditorAction.BREAK);
+            actions.add(GuideScreenEditorAction.TOOLTIP);
+            actions.add(GuideScreenEditorAction.ITEM_IMAGE);
+            actions.add(GuideScreenEditorAction.BLOCK_IMAGE);
+            actions.add(GuideScreenEditorAction.ITEM_LINK);
+            actions.add(GuideScreenEditorAction.CSV_TABLE);
+            actions.add(GuideScreenEditorAction.COMMAND_LINK);
+            actions.add(GuideScreenEditorAction.RECIPE);
+            actions.add(GuideScreenEditorAction.RECIPE_FOR);
+            actions.add(GuideScreenEditorAction.RECIPES_FOR);
+            actions.add(GuideScreenEditorAction.FLOATING_IMAGE);
+            actions.add(GuideScreenEditorAction.MERMAID);
+            actions.add(GuideScreenEditorAction.FILE_TREE);
+            actions.add(GuideScreenEditorAction.SUB_PAGES);
+            actions.add(GuideScreenEditorAction.CATEGORY_INDEX);
+            actions.add(GuideScreenEditorAction.FOOTNOTE_LIST);
+            actions.add(GuideScreenEditorAction.ROW);
+            actions.add(GuideScreenEditorAction.COLUMN);
+            actions.add(GuideScreenEditorAction.DIV);
+            actions.add(GuideScreenEditorAction.ITEM_GRID);
+            actions.add(GuideScreenEditorAction.CSV_TABLE_IMPORT);
+            actions.add(GuideScreenEditorAction.ANCHOR);
+            actions.add(GuideScreenEditorAction.COLUMN_CHART);
+            actions.add(GuideScreenEditorAction.BAR_CHART);
+            actions.add(GuideScreenEditorAction.LINE_CHART);
+            actions.add(GuideScreenEditorAction.PIE_CHART);
+            actions.add(GuideScreenEditorAction.SCATTER_CHART);
+            actions.add(GuideScreenEditorAction.CHART_SERIES);
+            actions.add(GuideScreenEditorAction.CHART_LINE_SERIES);
+            actions.add(GuideScreenEditorAction.CHART_SLICE);
+            actions.add(GuideScreenEditorAction.CHART_PIE_INSET);
+            actions.add(GuideScreenEditorAction.FUNCTION_GRAPH);
+            actions.add(GuideScreenEditorAction.FUNCTION);
+            actions.add(GuideScreenEditorAction.FUNCTION_PLOT);
+            actions.add(GuideScreenEditorAction.FUNCTION_POINT);
+            actions.add(GuideScreenEditorAction.FUNCTION_GRAPH_FENCE);
+            actions.add(GuideScreenEditorAction.STRUCTURE);
+            actions.add(GuideScreenEditorAction.GAME_SCENE);
+            actions.add(GuideScreenEditorAction.SCENE_BLOCK);
+            actions.add(GuideScreenEditorAction.SCENE_ENTITY);
+            actions.add(GuideScreenEditorAction.ISOMETRIC_CAMERA);
+            actions.add(GuideScreenEditorAction.BOX_ANNOTATION);
+            actions.add(GuideScreenEditorAction.BLOCK_ANNOTATION);
+            actions.add(GuideScreenEditorAction.LINE_ANNOTATION);
+            actions.add(GuideScreenEditorAction.DIAMOND_ANNOTATION);
+            actions.add(GuideScreenEditorAction.TEXT_ANNOTATION);
+            actions.add(GuideScreenEditorAction.BLOCK_ANNOTATION_TEMPLATE);
+            actions.add(GuideScreenEditorAction.IMPORT_STRUCTURE);
+            actions.add(GuideScreenEditorAction.IMPORT_STRUCTURE_LIB);
+            actions.add(GuideScreenEditorAction.IMPORT_PONDER);
+            actions.add(GuideScreenEditorAction.PLACE_BLOCK);
+            actions.add(GuideScreenEditorAction.REPLACE_BLOCK);
+            actions.add(GuideScreenEditorAction.REMOVE_BLOCKS);
+            actions.add(GuideScreenEditorAction.QUEST_LINK);
+            actions.add(GuideScreenEditorAction.QUEST_CARD);
+            actions.add(GuideScreenEditorAction.QUEST_IDS);
+            actions.add(GuideScreenEditorAction.NAV_POSITION);
+            actions.add(GuideScreenEditorAction.NAV_ICON);
+            actions.add(GuideScreenEditorAction.NAV_ICON_TEXTURE);
+            actions.add(GuideScreenEditorAction.NAV_ICONS);
+            actions.add(GuideScreenEditorAction.NAV_ICON_TEXTURES);
+            actions.add(GuideScreenEditorAction.NAV_REQUIRED_MODS);
+            actions.add(GuideScreenEditorAction.PAGE_CATEGORIES);
+            actions.add(GuideScreenEditorAction.PAGE_ITEM_IDS);
+            actions.add(GuideScreenEditorAction.PAGE_ORE_IDS);
+            actions.add(GuideScreenEditorAction.PAGE_METADATA);
+            actions.add(GuideScreenEditorAction.LATEX_SHORTHAND);
+            actions.add(GuideScreenEditorAction.UNDO);
+            actions.add(GuideScreenEditorAction.REDO);
+            actions.add(GuideScreenEditorAction.CUT);
+            actions.add(GuideScreenEditorAction.COPY);
+            actions.add(GuideScreenEditorAction.PASTE);
+            actions.add(GuideScreenEditorAction.SELECT_ALL);
+        }
+        return actions;
     }
 
     @Override
@@ -461,11 +1419,26 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 navigateTo(GuideSearchPage.anchorForQuery(""));
                 focusSearchField();
             }
+        } else if (btn == btnGuideEditorToggle) {
+            toggleGuideEditorEnabled();
+        } else if (btn == btnGuideEditorNewPage) {
+            createGuideEditorPage();
+        } else if (btn == btnGuideEditorLayoutSplit) {
+            setGuideEditorLayoutMode(GuideScreenEditorLayoutMode.SPLIT);
+        } else if (btn == btnGuideEditorLayoutEditorOnly) {
+            setGuideEditorLayoutMode(GuideScreenEditorLayoutMode.EDITOR_ONLY);
+        } else if (btn == btnGuideEditorLayoutPreviewOnly) {
+            setGuideEditorLayoutMode(GuideScreenEditorLayoutMode.PREVIEW_ONLY);
+        } else if (btn == btnGuideEditorAdvancedToggle) {
+            toggleGuideEditorAdvancedButtons();
+        } else if (btn != null && btn.id >= 2000) {
+            handleGuideEditorActionButton(btn.id - 2000);
         }
     }
 
     private void loadCurrentPage() {
         clearInteractionState();
+        closeGuideEditorContextMenu();
         layoutDocument = null;
         lastLayoutWidth = -1;
         cachedBottomBarText = null;
@@ -496,6 +1469,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
         refreshCurrentPageTitle();
         scrollY = 0;
+        if (isGuideEditorActive()) {
+            refreshGuideEditorDraft(true);
+        }
         updateToolbarButtonState();
     }
 
@@ -650,24 +1626,30 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
         drawRect(panelX, panelY + TOOLBAR_H, panelX + panelW, panelY + TOOLBAR_H + 1, 0xFF2A2A2A);
 
-        updateSceneHover(mouseX, mouseY);
+        if (!isGuideEditorActive()) {
+            updateSceneHover(mouseX, mouseY);
+        }
 
-        var activeDocument = getActiveDocument();
-        if (activeDocument != null) {
-            if (isCenteredSearchStateDocument(activeDocument)) {
-                drawCenteredSearchStateMessage(activeDocument);
-            } else {
-                renderDocument(mouseX, mouseY);
-            }
+        if (isGuideEditorActive()) {
+            drawGuideEditorScreen(mouseX, mouseY);
         } else {
-            drawPageMissingMessage();
-        }
+            var activeDocument = getActiveDocument();
+            if (activeDocument != null) {
+                if (isCenteredSearchStateDocument(activeDocument)) {
+                    drawCenteredSearchStateMessage(activeDocument);
+                } else {
+                    renderDocument(mouseX, mouseY);
+                }
+            } else {
+                drawPageMissingMessage();
+            }
 
-        if (getMaxScroll() > 0) {
-            drawScrollbar();
-        }
+            if (getMaxScroll() > 0) {
+                drawScrollbar();
+            }
 
-        drawBottomBar();
+            drawBottomBar();
+        }
 
         int navX = panelX;
         int navY = panelY + TOOLBAR_H + 1;
@@ -685,6 +1667,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+        if (isGuideEditorActive()) {
+            drawGuideEditorContextMenu(mouseX, mouseY);
+        }
 
         drawButtonTooltip(mouseX, mouseY);
     }
@@ -712,6 +1697,505 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         int textX = textRightX - textW;
         int textY = barY + (TOOLBAR_H - fr.FONT_HEIGHT) / 2 + 1;
         fr.drawString(text, textX, textY, 0xFFAAAAAA, false);
+    }
+
+    private void drawGuideEditorScreen(int mouseX, int mouseY) {
+        ensureGuideEditorTextArea();
+        updateGuideEditorTextFromArea();
+        if (guideEditorPreviewDirty && System.currentTimeMillis() >= guideEditorNextPreviewCompileAtMillis) {
+            rebuildGuideEditorPreview();
+        }
+
+        int toolbarY = panelY + TOOLBAR_H + 1;
+        int toolbarBottom = layoutGuideEditorActionButtons(contentX, toolbarY, contentW);
+        int editorTop = Math.max(toolbarBottom + 2, toolbarY + GUIDE_EDITOR_TOOLBAR_H + 2);
+        guideEditorActionToolbarBottom = toolbarBottom;
+        guideEditorEditorTop = editorTop;
+        int editorBottom = panelY + panelH - PANEL_PADDING;
+        int editorHeight = Math.max(20, editorBottom - editorTop);
+        int editorAreaWidth = Math.max(20, contentW);
+
+        int leftPaneWidth = resolveGuideEditorLeftPaneWidth(editorAreaWidth);
+        int splitGap = guideEditorLayoutMode == GuideScreenEditorLayoutMode.SPLIT ? 1 : 0;
+        int previewPaneX = contentX + leftPaneWidth + splitGap;
+        int previewPaneWidth = Math.max(0, editorAreaWidth - leftPaneWidth - splitGap);
+
+        if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null) {
+            guideEditorTextArea.setBounds(contentX, editorTop, Math.max(1, leftPaneWidth), editorHeight);
+            guideEditorTextArea.draw(false);
+        }
+
+        if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.SPLIT) {
+            int dividerX = contentX + leftPaneWidth;
+            drawRect(dividerX, editorTop, dividerX + 1, editorTop + editorHeight, 0xFF4A4A4A);
+        }
+
+        if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.EDITOR_ONLY && guideEditorPreviewPage != null) {
+            renderGuideEditorPreview(previewPaneX, editorTop, previewPaneWidth, editorHeight);
+        }
+
+    }
+
+    private void drawGuideEditorContextMenu(int mouseX, int mouseY) {
+        if (guideEditorContextMenu == null || !guideEditorContextMenu.isOpen()) {
+            return;
+        }
+        guideEditorContextMenu.update(mouseX, mouseY, this.width, this.height, fontRendererObj);
+        guideEditorContextMenu.draw(fontRendererObj, mouseX, mouseY);
+    }
+
+    private int layoutGuideEditorActionButtons(int startX, int startY, int availableWidth) {
+        int x = startX;
+        int y = startY;
+        int rowHeight = GuideIconButton.HEIGHT + 2;
+        int maxX = startX + Math.max(GuideIconButton.WIDTH, availableWidth);
+        List<GuideScreenEditorAction> actions = getGuideEditorActionOrder();
+        for (GuideScreenEditorAction action : actions) {
+            int buttonId = 2000 + action.ordinal();
+            GuideIconButton button = guideEditorActionButtons.get(buttonId);
+            if (button == null) {
+                continue;
+            }
+            if (x + GuideIconButton.WIDTH > maxX && x > startX) {
+                x = startX;
+                y += rowHeight;
+            }
+            button.xPosition = x;
+            button.yPosition = y;
+            button.visible = true;
+            button.enabled = true;
+            x += GuideIconButton.WIDTH + TOOLBAR_GAP;
+        }
+        return y + rowHeight;
+    }
+
+    private int resolveGuideEditorLeftPaneWidth(int editorAreaWidth) {
+        if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.PREVIEW_ONLY) {
+            return 0;
+        }
+        if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.EDITOR_ONLY) {
+            return editorAreaWidth;
+        }
+        int divider = guideEditorDividerPercent;
+        int leftPaneWidth = Math.round(editorAreaWidth * (divider / 100.0f));
+        int maxLeft = Math.max(GUIDE_EDITOR_MIN_SPLIT_PANE_W, editorAreaWidth - GUIDE_EDITOR_MIN_SPLIT_PANE_W - 1);
+        return Math.max(GUIDE_EDITOR_MIN_SPLIT_PANE_W, Math.min(maxLeft, leftPaneWidth));
+    }
+
+    private void renderGuideEditorPreview(int x, int y, int width, int height) {
+        if (guideEditorPreviewPage == null) {
+            return;
+        }
+        LytDocument previewDocument = guideEditorPreviewPage.document();
+        if (previewDocument == null) {
+            return;
+        }
+        int renderWidth = Math.max(1, width);
+        if (!previewDocument.hasLayout() || previewDocument.getAvailableWidth() != renderWidth) {
+            previewDocument.updateLayout(new LayoutContext(layoutFontMetrics), renderWidth);
+        }
+        int renderHeight = Math.max(1, height);
+        int maxScroll = Math.max(0, previewDocument.getContentHeight() - renderHeight);
+        if (guideEditorPreviewScrollY > maxScroll) {
+            guideEditorPreviewScrollY = maxScroll;
+        }
+        cachedPreviewViewport = cachedRect(
+            cachedPreviewViewport,
+            0,
+            guideEditorPreviewScrollY,
+            renderWidth,
+            renderHeight);
+        cachedPreviewScissor = cachedRect(cachedPreviewScissor, x, y, renderWidth, renderHeight);
+        reusableRenderCtx.setLightDarkMode(LightDarkMode.LIGHT_MODE);
+        reusableRenderCtx.setViewport(cachedPreviewViewport);
+        reusableRenderCtx.setScreenHeight(this.height);
+        reusableRenderCtx.setDocumentOrigin(x, y);
+        reusableRenderCtx.setScrollOffsetY(guideEditorPreviewScrollY);
+        reusableRenderCtx.setZoom(1.0f);
+        reusableRenderCtx.pushScissor(cachedPreviewScissor);
+        GL11.glPushMatrix();
+        GL11.glTranslatef(x, y, 0f);
+        GL11.glTranslatef(0f, -(float) guideEditorPreviewScrollY, 0f);
+        try {
+            previewDocument.render(reusableRenderCtx);
+        } catch (Throwable t) {
+            FMLLog.warning("Failed to render guide editor preview", t);
+        } finally {
+            GL11.glPopMatrix();
+            reusableRenderCtx.restoreExternalRenderState();
+            reusableRenderCtx.popScissor();
+            reusableRenderCtx.restoreExternalRenderState();
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glColor4f(1f, 1f, 1f, 1f);
+        }
+        drawGuideEditorPreviewScrollbar(x + renderWidth - 5, y, renderHeight, previewDocument.getContentHeight());
+    }
+
+    private void drawGuideEditorPreviewScrollbar(int barX, int barY, int barH, int contentH) {
+        if (barH <= 0 || contentH <= barH) {
+            return;
+        }
+        int barW = 4;
+        drawRect(barX, barY, barX + barW, barY + barH, 0x35101010);
+        int thumbH = Math.max(16, (int) ((long) barH * barH / Math.max(1, contentH)));
+        int maxScroll = Math.max(0, contentH - barH);
+        int thumbY = maxScroll > 0 ? barY + (int) ((long) (barH - thumbH) * guideEditorPreviewScrollY / maxScroll)
+            : barY;
+        drawRect(barX, thumbY, barX + barW, thumbY + thumbH, 0xA0D8D8D8);
+    }
+
+    private boolean handleGuideEditorKey(char typedChar, int keyCode) {
+        if (!isGuideEditorActive() || guideEditorTextArea == null) {
+            return false;
+        }
+        if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
+            if (keyCode == Keyboard.KEY_ESCAPE) {
+                closeGuideEditorContextMenu();
+            }
+            return true;
+        }
+        if (keyCode == Keyboard.KEY_ESCAPE && guideEditorTextArea.isFocused()) {
+            guideEditorTextArea.setFocused(false);
+            return true;
+        }
+        if ((keyCode == Keyboard.KEY_Z && GuiScreen.isShiftKeyDown())
+            && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL))) {
+            performGuideEditorAction(GuideScreenEditorAction.REDO);
+            return true;
+        }
+        if (keyCode == Keyboard.KEY_Y
+            && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL))) {
+            performGuideEditorAction(GuideScreenEditorAction.REDO);
+            return true;
+        }
+        if (keyCode == Keyboard.KEY_Z
+            && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL))) {
+            performGuideEditorAction(GuideScreenEditorAction.UNDO);
+            return true;
+        }
+        if (keyCode == Keyboard.KEY_S
+            && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL))) {
+            saveGuideEditorDraft();
+            return true;
+        }
+        if (!guideEditorTextArea.isFocused()) {
+            return false;
+        }
+        boolean handled = guideEditorTextArea.keyTyped(typedChar, keyCode);
+        if (handled) {
+            updateGuideEditorTextFromArea();
+            syncGuideEditorPreviewScrollFromEditor();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean handleGuideEditorMouseClicked(int mouseX, int mouseY, int button) {
+        if (!isGuideEditorActive()) {
+            return false;
+        }
+        if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
+            return guideEditorContextMenu
+                .mouseClicked(mouseX, mouseY, button, new GuideScreenEditorContextMenu.Listener() {
+
+                    @Override
+                    public void onAction(GuideScreenEditorAction action) {
+                        performGuideEditorAction(action);
+                    }
+                }, fontRendererObj, width, height);
+        }
+        if (!isInsideGuideEditorContent(mouseX, mouseY)) {
+            if (guideEditorTextArea != null && !guideEditorTextArea.contains(mouseX, mouseY)
+                && !isInsideGuideEditorToolbar(mouseX, mouseY)) {
+                guideEditorTextArea.setFocused(false);
+            }
+            return false;
+        }
+
+        if (button == 1 && guideEditorTextArea != null && guideEditorTextArea.contains(mouseX, mouseY)) {
+            guideEditorTextArea.setFocused(true);
+            openGuideEditorContextMenu(mouseX, mouseY);
+            return true;
+        }
+
+        if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.SPLIT && button == 0) {
+            int dividerX = getGuideEditorDividerX();
+            if (Math.abs(mouseX - dividerX) <= 2) {
+                guideEditorDraggingDivider = true;
+                guideEditorDividerGrabOffset = mouseX - dividerX;
+                return true;
+            }
+        }
+
+        if (button == 0 && isInsideGuideEditorPreviewScrollbar(mouseX, mouseY)) {
+            guideEditorDraggingPreviewScrollbar = true;
+            int barY = getGuideEditorContentTop();
+            int barH = Math.max(1, getGuideEditorPreviewPaneHeight());
+            int contentH = guideEditorPreviewPage.document()
+                .getContentHeight();
+            int thumbH = Math.max(16, (int) ((long) barH * barH / Math.max(1, contentH)));
+            int maxScroll = Math.max(0, contentH - barH);
+            int thumbY = maxScroll > 0 ? barY + (int) ((long) (barH - thumbH) * guideEditorPreviewScrollY / maxScroll)
+                : barY;
+            guideEditorPreviewScrollbarGrabOffset = mouseY - thumbY;
+            updateGuideEditorPreviewScrollFromMouse(mouseY);
+            syncGuideEditorEditorScrollFromPreview();
+            return true;
+        }
+
+        if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.PREVIEW_ONLY) {
+            return true;
+        }
+
+        if (guideEditorTextArea != null && guideEditorTextArea.contains(mouseX, mouseY)) {
+            guideEditorTextArea.setFocused(true);
+            boolean handled = guideEditorTextArea.mouseClicked(mouseX, mouseY, button);
+            updateGuideEditorTextFromArea();
+            syncGuideEditorPreviewScrollFromEditor();
+            return handled;
+        }
+
+        return true;
+    }
+
+    private boolean isInsideGuideEditorToolbar(int mouseX, int mouseY) {
+        if (!isGuideEditorActive()) {
+            return false;
+        }
+        if (mouseX < panelX || mouseX >= panelX + panelW) {
+            return false;
+        }
+        int topToolbarBottom = panelY + TOOLBAR_H + 1;
+        int editorToolbarBottom = guideEditorActionToolbarBottom > 0 ? guideEditorActionToolbarBottom
+            : topToolbarBottom + GUIDE_EDITOR_TOOLBAR_H + 2;
+        return mouseY >= panelY && mouseY <= editorToolbarBottom;
+    }
+
+    private boolean handleGuideEditorMouseDragged(int mouseX, int mouseY, int button) {
+        if (!isGuideEditorActive()) {
+            return false;
+        }
+        if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
+            return true;
+        }
+        if (guideEditorDraggingDivider) {
+            updateGuideEditorDividerFromMouse(mouseX);
+            return true;
+        }
+        if (guideEditorDraggingPreviewScrollbar) {
+            updateGuideEditorPreviewScrollFromMouse(mouseY);
+            syncGuideEditorEditorScrollFromPreview();
+            return true;
+        }
+        if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null
+            && guideEditorTextArea.mouseDragged(mouseX, mouseY, button)) {
+            updateGuideEditorTextFromArea();
+            syncGuideEditorPreviewScrollFromEditor();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean handleGuideEditorMouseReleased(int mouseX, int mouseY, int state) {
+        if (!isGuideEditorActive()) {
+            return false;
+        }
+        if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
+            return true;
+        }
+        if (guideEditorDraggingDivider && state != -1) {
+            guideEditorDraggingDivider = false;
+            GuideScreenEditorState.setDividerPercent(guideEditorDividerPercent);
+            return true;
+        }
+        if (guideEditorDraggingPreviewScrollbar && state != -1) {
+            guideEditorDraggingPreviewScrollbar = false;
+            return true;
+        }
+        if (guideEditorTextArea != null) {
+            guideEditorTextArea.mouseReleased(state);
+        }
+        return false;
+    }
+
+    private boolean handleGuideEditorWheel(int mouseX, int mouseY, int dwheel) {
+        if (!isGuideEditorActive()) {
+            return false;
+        }
+        if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
+            return true;
+        }
+        if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null
+            && guideEditorTextArea.contains(mouseX, mouseY)) {
+            guideEditorTextArea.scrollWheel(dwheel);
+            updateGuideEditorTextFromArea();
+            syncGuideEditorPreviewScrollFromEditor();
+            return true;
+        }
+        if (isInsideGuideEditorPreview(mouseX, mouseY)) {
+            scrollGuideEditorPreview(dwheel);
+            syncGuideEditorEditorScrollFromPreview();
+            return true;
+        }
+        return false;
+    }
+
+    private void updateGuideEditorDividerFromMouse(int mouseX) {
+        if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.SPLIT) {
+            return;
+        }
+        int editorWidth = Math.max(1, contentW);
+        int dividerX = mouseX - contentX - guideEditorDividerGrabOffset;
+        int minLeft = GUIDE_EDITOR_MIN_SPLIT_PANE_W;
+        int maxLeft = Math.max(minLeft, editorWidth - GUIDE_EDITOR_MIN_SPLIT_PANE_W - 1);
+        int leftWidth = Math.max(minLeft, Math.min(maxLeft, dividerX));
+        guideEditorDividerPercent = Math.round(leftWidth * 100.0f / editorWidth);
+    }
+
+    private void scrollGuideEditorPreview(int dwheel) {
+        if (guideEditorPreviewPage == null || guideEditorPreviewPage.document() == null) {
+            return;
+        }
+        int pageHeight = guideEditorPreviewPage.document()
+            .getContentHeight();
+        int viewportHeight = Math.max(1, getGuideEditorPreviewPaneHeight());
+        int maxScroll = Math.max(0, pageHeight - viewportHeight);
+        int step = GuiScreen.isShiftKeyDown() ? 60 : 20;
+        guideEditorPreviewScrollY -= Integer.signum(dwheel) * step;
+        if (guideEditorPreviewScrollY < 0) {
+            guideEditorPreviewScrollY = 0;
+        }
+        if (guideEditorPreviewScrollY > maxScroll) {
+            guideEditorPreviewScrollY = maxScroll;
+        }
+    }
+
+    private void syncGuideEditorPreviewScrollFromEditor() {
+        if (guideEditorTextArea == null || guideEditorPreviewPage == null
+            || guideEditorPreviewPage.document() == null) {
+            return;
+        }
+        int pageHeight = guideEditorPreviewPage.document()
+            .getContentHeight();
+        int viewportHeight = Math.max(1, getGuideEditorPreviewPaneHeight());
+        int maxScroll = Math.max(0, pageHeight - viewportHeight);
+        if (maxScroll <= 0) {
+            guideEditorPreviewScrollY = 0;
+            return;
+        }
+        float fraction = guideEditorTextArea.getVerticalScrollFraction();
+        guideEditorPreviewScrollY = Math.max(0, Math.min(maxScroll, Math.round(maxScroll * fraction)));
+    }
+
+    private void syncGuideEditorEditorScrollFromPreview() {
+        if (guideEditorTextArea == null || guideEditorPreviewPage == null
+            || guideEditorPreviewPage.document() == null) {
+            return;
+        }
+        int pageHeight = guideEditorPreviewPage.document()
+            .getContentHeight();
+        int viewportHeight = Math.max(1, getGuideEditorPreviewPaneHeight());
+        int maxScroll = Math.max(0, pageHeight - viewportHeight);
+        float fraction = maxScroll <= 0 ? 0f : guideEditorPreviewScrollY / (float) maxScroll;
+        guideEditorTextArea.setVerticalScrollFraction(fraction);
+    }
+
+    private boolean isInsideGuideEditorPreviewScrollbar(int mouseX, int mouseY) {
+        if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.EDITOR_ONLY || guideEditorPreviewPage == null
+            || guideEditorPreviewPage.document() == null) {
+            return false;
+        }
+        int previewX = getGuideEditorPreviewX();
+        int previewY = getGuideEditorContentTop();
+        int previewW = getGuideEditorPreviewPaneWidth();
+        int previewH = getGuideEditorPreviewPaneHeight();
+        if (previewW <= 0 || previewH <= 0) {
+            return false;
+        }
+        int contentH = guideEditorPreviewPage.document()
+            .getContentHeight();
+        if (contentH <= previewH) {
+            return false;
+        }
+        int barX = previewX + previewW - 5;
+        return mouseX >= barX && mouseX < barX + 4 && mouseY >= previewY && mouseY < previewY + previewH;
+    }
+
+    private void updateGuideEditorPreviewScrollFromMouse(int mouseY) {
+        if (guideEditorPreviewPage == null || guideEditorPreviewPage.document() == null) {
+            return;
+        }
+        int pageHeight = guideEditorPreviewPage.document()
+            .getContentHeight();
+        int viewportHeight = Math.max(1, getGuideEditorPreviewPaneHeight());
+        int maxScroll = Math.max(0, pageHeight - viewportHeight);
+        if (maxScroll <= 0) {
+            guideEditorPreviewScrollY = 0;
+            return;
+        }
+        int barY = getGuideEditorContentTop();
+        int barH = viewportHeight;
+        int thumbH = Math.max(16, (int) ((long) barH * barH / Math.max(1, pageHeight)));
+        int track = Math.max(1, barH - thumbH);
+        int targetThumbY = mouseY - guideEditorPreviewScrollbarGrabOffset;
+        int rel = targetThumbY - barY;
+        if (rel < 0) {
+            rel = 0;
+        }
+        if (rel > track) {
+            rel = track;
+        }
+        guideEditorPreviewScrollY = (int) ((long) rel * maxScroll / track);
+    }
+
+    private boolean isInsideGuideEditorContent(int mouseX, int mouseY) {
+        return mouseX >= contentX && mouseX < contentX + contentW
+            && mouseY >= getGuideEditorContentTop()
+            && mouseY < getGuideEditorContentBottom();
+    }
+
+    private boolean isInsideGuideEditorPreview(int mouseX, int mouseY) {
+        if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.EDITOR_ONLY) {
+            return false;
+        }
+        int previewX = getGuideEditorPreviewX();
+        int previewY = getGuideEditorContentTop();
+        int previewW = getGuideEditorPreviewPaneWidth();
+        int previewH = getGuideEditorPreviewPaneHeight();
+        return mouseX >= previewX && mouseX < previewX + previewW && mouseY >= previewY && mouseY < previewY + previewH;
+    }
+
+    private int getGuideEditorContentTop() {
+        return guideEditorEditorTop > 0 ? guideEditorEditorTop : panelY + TOOLBAR_H + 1 + GUIDE_EDITOR_TOOLBAR_H + 2;
+    }
+
+    private int getGuideEditorContentBottom() {
+        return panelY + panelH - PANEL_PADDING;
+    }
+
+    private int getGuideEditorPreviewX() {
+        int editorAreaWidth = Math.max(20, contentW);
+        int leftPaneWidth = resolveGuideEditorLeftPaneWidth(editorAreaWidth);
+        return contentX + leftPaneWidth + (guideEditorLayoutMode == GuideScreenEditorLayoutMode.SPLIT ? 1 : 0);
+    }
+
+    private int getGuideEditorPreviewPaneWidth() {
+        int editorAreaWidth = Math.max(20, contentW);
+        int leftPaneWidth = resolveGuideEditorLeftPaneWidth(editorAreaWidth);
+        return Math.max(
+            0,
+            editorAreaWidth - leftPaneWidth - (guideEditorLayoutMode == GuideScreenEditorLayoutMode.SPLIT ? 1 : 0));
+    }
+
+    private int getGuideEditorPreviewPaneHeight() {
+        return Math.max(20, getGuideEditorContentBottom() - getGuideEditorContentTop());
+    }
+
+    private int getGuideEditorDividerX() {
+        int editorAreaWidth = Math.max(20, contentW);
+        int leftPaneWidth = resolveGuideEditorLeftPaneWidth(editorAreaWidth);
+        return contentX + leftPaneWidth;
     }
 
     private String buildBottomBarText(@Nullable FrontmatterPageMeta meta) {
@@ -883,10 +2367,20 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         } finally {
             GL11.glPopMatrix();
             ctx.restoreExternalRenderState();
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glColor4f(1f, 1f, 1f, 1f);
         }
     }
 
     private void drawButtonTooltip(int mouseX, int mouseY) {
+        if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
+            String menuTooltip = guideEditorContextMenu.getHoveredTooltip();
+            if (menuTooltip != null) {
+                drawTooltipText(menuTooltip, mouseX, mouseY);
+            }
+            return;
+        }
         for (var b : this.buttonList) {
             if (b instanceof GuideIconButton icon && icon.visible
                 && mouseX >= icon.xPosition
@@ -1128,7 +2622,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (debugY + lineH > this.height) {
             debugY = this.height - lineH;
         }
-        drawHoveringText(java.util.Collections.singletonList("\u00a76" + coordText), mouseX, debugY, fr);
+        drawHoveringText(Collections.singletonList("\u00a76" + coordText), mouseX, debugY, fr);
     }
 
     private void drawTooltipText(String text, int mouseX, int mouseY) {
@@ -1358,6 +2852,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 navBar.scroll(dwheel);
                 return;
             }
+            if (handleGuideEditorWheel(mouseX, mouseY, dwheel)) {
+                return;
+            }
             LytGuidebookScene scene = sceneAt(mouseX, mouseY);
             boolean sceneWheelBlocked = isSceneWheelInteractionBlocked(now);
             if (scene != null && scene.isInteractive()
@@ -1402,6 +2899,18 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int button) {
+        if (handleGuideEditorToolbarRightClick(mouseX, mouseY, button)) {
+            return;
+        }
+        if (button == 0 && navBar.contains(mouseX, mouseY)) {
+            var target = navBar.mouseClicked(mouseX, mouseY, currentAnchor != null ? currentAnchor.pageId() : null);
+            if (target != null) {
+                navigateTo(PageAnchor.page(target));
+                mc.getSoundHandler()
+                    .playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("gui.button.press"), 1.0F));
+            }
+            return;
+        }
         if (searchField != null) {
             boolean insideField = isInsideSearchField(mouseX, mouseY);
             if (button == 0) {
@@ -1416,13 +2925,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 return;
             }
         }
-        if (button == 0 && navBar.contains(mouseX, mouseY)) {
-            var target = navBar.mouseClicked(mouseX, mouseY, currentAnchor != null ? currentAnchor.pageId() : null);
-            if (target != null) {
-                navigateTo(PageAnchor.page(target));
-                mc.getSoundHandler()
-                    .playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("gui.button.press"), 1.0F));
-            }
+        if (handleGuideEditorMouseClicked(mouseX, mouseY, button)) {
             return;
         }
         if (button == 0 && getMaxScroll() > 0) {
@@ -1517,8 +3020,23 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         super.mouseClicked(mouseX, mouseY, button);
     }
 
+    private boolean handleGuideEditorToolbarRightClick(int mouseX, int mouseY, int button) {
+        if (!isGuideEditorActive() || button != 1 || !isInsideGuideEditorToolbar(mouseX, mouseY)) {
+            return false;
+        }
+        closeGuideEditorContextMenu();
+        if (guideEditorTextArea != null) {
+            guideEditorTextArea.setFocused(true);
+        }
+        openGuideEditorContextMenu(mouseX, mouseY);
+        return true;
+    }
+
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        if (handleGuideEditorMouseDragged(mouseX, mouseY, clickedMouseButton)) {
+            return;
+        }
         if (draggingScrollbar) {
             updateScrollFromMouseY(mouseY);
             return;
@@ -1544,6 +3062,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
+        if (handleGuideEditorMouseReleased(mouseX, mouseY, state)) {
+            return;
+        }
         if (draggingScrollbar && state != -1) {
             draggingScrollbar = false;
             return;
@@ -1709,6 +3230,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             activeDocumentDragTarget = null;
         }
         draggingDocument = false;
+        guideEditorDraggingDivider = false;
+        guideEditorDraggingPreviewScrollbar = false;
+        guideEditorPreviewScrollbarGrabOffset = 0;
         if (document != null) {
             document.setHoveredElement(null);
         }
@@ -1761,6 +3285,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
         if (handleSearchFieldKey(typedChar, keyCode)) return;
+        if (handleGuideEditorKey(typedChar, keyCode)) return;
         if (keyCode == Keyboard.KEY_ESCAPE) {
             close();
             return;
@@ -1826,6 +3351,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         ensureLayout();
         scrollToCurrentAnchor();
         clampScroll();
+        if (isGuideEditorActive()) {
+            refreshGuideEditorDraft(true);
+        }
     }
 
     @Override
@@ -1856,6 +3384,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         history.clear();
         forwardHistory.clear();
         registeredScenes.clear();
+        guideEditorPreviewPage = null;
+        guideEditorDraftPage = null;
+        guideEditorDraftSource = null;
+        guideEditorSavedSource = null;
+        guideEditorTextArea = null;
+        guideEditorContextMenu = null;
     }
 
     @Override
@@ -1967,7 +3501,24 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     private int getSearchToolbarFieldWidth(int fieldX) {
         int fieldRight = getRightSearchButtonX() - TOOLBAR_GAP;
+        if (isGuideEditorActive()) {
+            int editorButtonsRight = getGuideEditorModeButtonsRight();
+            fieldRight = Math.max(fieldX + 20, Math.min(fieldRight, editorButtonsRight - TOOLBAR_GAP));
+        }
         return Math.max(20, fieldRight - fieldX);
+    }
+
+    private int getGuideEditorModeButtonsRight() {
+        int right = panelX + PANEL_PADDING;
+        for (GuiButton button : buttonList) {
+            if (button instanceof GuideIconButton && button.visible && button.id >= 100 && button.id <= 105) {
+                right = Math.max(right, button.xPosition + button.width);
+            }
+        }
+        if (right == panelX + PANEL_PADDING) {
+            right += (GuideIconButton.WIDTH + TOOLBAR_GAP) * 6 - TOOLBAR_GAP;
+        }
+        return right;
     }
 
     private void focusSearchField() {
