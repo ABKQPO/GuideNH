@@ -9,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
-import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
 public class SceneEditorElementPropertyController {
@@ -50,7 +49,8 @@ public class SceneEditorElementPropertyController {
 
     public boolean setTooltip(UUID elementId, @Nullable String tooltipMarkdown) {
         SceneEditorElementModel element = requireElement(elementId);
-        if (element == null) {
+        if (element == null || !element.getType()
+            .supportsTooltip()) {
             return false;
         }
         element.setTooltipMarkdown(tooltipMarkdown != null ? tooltipMarkdown : "");
@@ -60,9 +60,8 @@ public class SceneEditorElementPropertyController {
 
     public boolean setThickness(UUID elementId, float thickness) {
         SceneEditorElementModel element = requireElement(elementId);
-        if (element == null || !supportsThickness(element.getType())
-            || Float.isNaN(thickness)
-            || Float.isInfinite(thickness)) {
+        if (element == null || !element.getType()
+            .supportsThickness() || Float.isNaN(thickness) || Float.isInfinite(thickness)) {
             return false;
         }
         element.setThickness(thickness);
@@ -72,7 +71,8 @@ public class SceneEditorElementPropertyController {
 
     public boolean setPrimaryVector(UUID elementId, float x, float y, float z) {
         SceneEditorElementModel element = requireElement(elementId);
-        if (element == null || hasInvalidNumber(x, y, z)) {
+        if (element == null || !element.getType()
+            .supportsPrimaryVector() || hasInvalidNumber(x, y, z)) {
             return false;
         }
         element.setPrimaryX(x);
@@ -84,12 +84,47 @@ public class SceneEditorElementPropertyController {
 
     public boolean setSecondaryVector(UUID elementId, float x, float y, float z) {
         SceneEditorElementModel element = requireElement(elementId);
-        if (element == null || hasInvalidNumber(x, y, z) || !supportsSecondaryVector(element.getType())) {
+        if (element == null || hasInvalidNumber(x, y, z)
+            || !element.getType()
+                .supportsSecondaryVector()) {
             return false;
         }
         element.setSecondaryX(x);
         element.setSecondaryY(y);
         element.setSecondaryZ(z);
+        syncText();
+        return true;
+    }
+
+    public boolean setText(UUID elementId, @Nullable String textMarkdown) {
+        SceneEditorElementModel element = requireElement(elementId);
+        if (element == null || !element.getType()
+            .supportsText()) {
+            return false;
+        }
+        element.setTextMarkdown(textMarkdown != null ? textMarkdown : "");
+        syncText();
+        return true;
+    }
+
+    public boolean setMaxWidth(UUID elementId, int maxWidth) {
+        SceneEditorElementModel element = requireElement(elementId);
+        if (element == null || !element.getType()
+            .supportsMaxWidth()) {
+            return false;
+        }
+        element.setMaxWidth(Math.max(0, maxWidth));
+        syncText();
+        return true;
+    }
+
+    public boolean setBackgroundAlpha(UUID elementId, int backgroundAlpha) {
+        SceneEditorElementModel element = requireElement(elementId);
+        if (element == null || !element.getType()
+            .supportsBackgroundAlpha()) {
+            return false;
+        }
+        element.setBackgroundAlpha(backgroundAlpha);
         syncText();
         return true;
     }
@@ -127,14 +162,6 @@ public class SceneEditorElementPropertyController {
             }
         }
         return false;
-    }
-
-    private boolean supportsSecondaryVector(SceneEditorElementType type) {
-        return type == SceneEditorElementType.BOX || type == SceneEditorElementType.LINE;
-    }
-
-    private boolean supportsThickness(SceneEditorElementType type) {
-        return type != SceneEditorElementType.DIAMOND;
     }
 
     @Nullable

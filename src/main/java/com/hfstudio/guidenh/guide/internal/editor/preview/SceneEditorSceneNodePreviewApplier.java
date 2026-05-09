@@ -24,9 +24,13 @@ import com.hfstudio.guidenh.compat.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.compat.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneImportService;
+import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
+import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
@@ -35,6 +39,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
@@ -188,7 +193,7 @@ public class SceneEditorSceneNodePreviewApplier {
         }
 
         scene.setStructureLibSceneMetadata(
-            new com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata(
+            new StructureLibSceneMetadata(
                 request.getController(),
                 request.getPiece(),
                 request.getFacing(),
@@ -365,47 +370,56 @@ public class SceneEditorSceneNodePreviewApplier {
 
     private SceneAnnotation toRuntimeAnnotation(SceneEditorElementModel element) {
         ConstantColor color = parseColor(element.getColorLiteral());
-        switch (element.getType()) {
-            case BLOCK: {
-                Vector3f min = new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ());
-                Vector3f max = new Vector3f(
-                    element.getPrimaryX() + 1f,
-                    element.getPrimaryY() + 1f,
-                    element.getPrimaryZ() + 1f);
-                InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
-                annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                applyTooltip(annotation, element.getTooltipMarkdown());
-                return annotation;
-            }
-            case BOX: {
-                Vector3f min = new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ());
-                Vector3f max = new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ());
-                normalizeBounds(min, max);
-                InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
-                annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                applyTooltip(annotation, element.getTooltipMarkdown());
-                return annotation;
-            }
-            case LINE: {
-                InWorldLineAnnotation annotation = new InWorldLineAnnotation(
-                    new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
-                    new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ()),
-                    color,
-                    element.getThickness());
-                annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                applyTooltip(annotation, element.getTooltipMarkdown());
-                return annotation;
-            }
-            case DIAMOND:
-            default: {
-                DiamondAnnotation annotation = new DiamondAnnotation(
-                    new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
-                    color);
-                annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                applyTooltip(annotation, element.getTooltipMarkdown());
-                return annotation;
-            }
+        if (element.getType() == SceneEditorElementType.BLOCK) {
+            Vector3f min = new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ());
+            Vector3f max = new Vector3f(
+                element.getPrimaryX() + 1f,
+                element.getPrimaryY() + 1f,
+                element.getPrimaryZ() + 1f);
+            InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
+            annotation.setAlwaysOnTop(element.isAlwaysOnTop());
+            applyTooltip(annotation, element.getTooltipMarkdown());
+            return annotation;
         }
+        if (element.getType() == SceneEditorElementType.BOX) {
+            Vector3f min = new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ());
+            Vector3f max = new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ());
+            normalizeBounds(min, max);
+            InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
+            annotation.setAlwaysOnTop(element.isAlwaysOnTop());
+            applyTooltip(annotation, element.getTooltipMarkdown());
+            return annotation;
+        }
+        if (element.getType() == SceneEditorElementType.LINE) {
+            InWorldLineAnnotation annotation = new InWorldLineAnnotation(
+                new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
+                new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ()),
+                color,
+                element.getThickness());
+            annotation.setAlwaysOnTop(element.isAlwaysOnTop());
+            applyTooltip(annotation, element.getTooltipMarkdown());
+            return annotation;
+        }
+        if (element.getType() == SceneEditorElementType.TEXT) {
+            String text = element.getTextMarkdown();
+            TextAnnotation annotation = new TextAnnotation(
+                new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
+                text,
+                color,
+                element.getMaxWidth());
+            annotation.setBackgroundAlpha(element.getBackgroundAlpha());
+            LytParagraph paragraph = new LytParagraph();
+            PageCompiler compiler = SceneEditorTooltipCompiler.createPreviewCompiler(text);
+            compiler.compileInlineMarkdown(text, paragraph);
+            annotation.setRichContent(paragraph);
+            return annotation;
+        }
+        DiamondAnnotation annotation = new DiamondAnnotation(
+            new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
+            color);
+        annotation.setAlwaysOnTop(element.isAlwaysOnTop());
+        applyTooltip(annotation, element.getTooltipMarkdown());
+        return annotation;
     }
 
     private void applyTooltip(SceneAnnotation annotation, @Nullable String tooltipMarkdown) {

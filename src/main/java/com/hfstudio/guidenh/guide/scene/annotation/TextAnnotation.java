@@ -20,24 +20,26 @@ import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
+import com.hfstudio.guidenh.guide.scene.element.ImportPonderElementCompiler;
 
 /**
  * Speech-bubble text label rendered as a 2D overlay anchored to a world position or at a fixed
  * screen-space offset. Supports optional word-wrapping via a {@code maxWidth} pixel limit, and
  * an optional highlight box (drawn as a companion in-world annotation when used via
- * {@link com.hfstudio.guidenh.guide.scene.element.ImportPonderElementCompiler}).
+ * {@link ImportPonderElementCompiler}).
  *
  * <p>
  * The fade value inherited from {@link OverlayAnnotation} is applied to all drawn colours so
  * the annotation smoothly fades in when its keyframe first becomes active.
  */
-public class PonderTextAnnotation extends OverlayAnnotation {
+public class TextAnnotation extends OverlayAnnotation {
 
     public static final int PADDING_X = 4;
     public static final int PADDING_Y = 3;
     public static final int LINE_GAP = 2;
     public static final int CONNECTOR_HEIGHT = 6;
-    private static final int BG_ARGB = 0xCC0E0E20;
+    public static final int DEFAULT_BACKGROUND_ALPHA = 0xCC;
+    private static final int BACKGROUND_RGB = 0x0E0E20;
 
     private final Vector3f worldPos;
     private final String text;
@@ -45,6 +47,7 @@ public class PonderTextAnnotation extends OverlayAnnotation {
     private final ColorValue borderColor;
     private final boolean independent;
     private final float screenYOffset;
+    private int backgroundAlpha = DEFAULT_BACKGROUND_ALPHA;
 
     @Nullable
     private List<String> resolvedLines;
@@ -52,19 +55,19 @@ public class PonderTextAnnotation extends OverlayAnnotation {
     @Nullable
     private LytParagraph richContent;
 
-    public PonderTextAnnotation(Vector3f worldPos, String text, int borderArgb) {
+    public TextAnnotation(Vector3f worldPos, String text, int borderArgb) {
         this(worldPos, text, new ConstantColor(borderArgb), 0);
     }
 
-    public PonderTextAnnotation(Vector3f worldPos, String text, int borderArgb, int maxWidth) {
+    public TextAnnotation(Vector3f worldPos, String text, int borderArgb, int maxWidth) {
         this(worldPos, text, new ConstantColor(borderArgb), maxWidth);
     }
 
-    public PonderTextAnnotation(Vector3f worldPos, String text, ColorValue borderColor) {
+    public TextAnnotation(Vector3f worldPos, String text, ColorValue borderColor) {
         this(worldPos, text, borderColor, 0);
     }
 
-    public PonderTextAnnotation(Vector3f worldPos, String text, ColorValue borderColor, int maxWidth) {
+    public TextAnnotation(Vector3f worldPos, String text, ColorValue borderColor, int maxWidth) {
         this.worldPos = worldPos;
         this.text = text;
         this.borderColor = borderColor;
@@ -77,18 +80,26 @@ public class PonderTextAnnotation extends OverlayAnnotation {
      * Creates an independent (screen-space) text annotation positioned at {@code screenYOffset}
      * pixels from the scene centre. An optional {@code maxWidth} &gt; 0 enables word-wrapping.
      */
-    public PonderTextAnnotation(String text, int borderArgb, float screenYOffset, int maxWidth) {
+    public TextAnnotation(String text, int borderArgb, float screenYOffset, int maxWidth) {
+        this(text, new ConstantColor(borderArgb), screenYOffset, maxWidth);
+    }
+
+    public TextAnnotation(String text, ColorValue borderColor, float screenYOffset, int maxWidth) {
         this.worldPos = new Vector3f(0, 0, 0);
         this.text = text;
-        this.borderColor = new ConstantColor(borderArgb);
+        this.borderColor = borderColor;
         this.maxWidth = maxWidth;
         this.independent = true;
         this.screenYOffset = screenYOffset;
     }
 
     /** Convenience constructor for independent mode with no word-wrapping. */
-    public PonderTextAnnotation(String text, int borderArgb, float screenYOffset) {
-        this(text, borderArgb, screenYOffset, 0);
+    public TextAnnotation(String text, int borderArgb, float screenYOffset) {
+        this(text, new ConstantColor(borderArgb), screenYOffset, 0);
+    }
+
+    public TextAnnotation(String text, ColorValue borderColor, float screenYOffset) {
+        this(text, borderColor, screenYOffset, 0);
     }
 
     /**
@@ -103,6 +114,14 @@ public class PonderTextAnnotation extends OverlayAnnotation {
         this.richContent = para;
     }
 
+    public int getBackgroundAlpha() {
+        return backgroundAlpha;
+    }
+
+    public void setBackgroundAlpha(int backgroundAlpha) {
+        this.backgroundAlpha = clampAlpha(backgroundAlpha);
+    }
+
     public Vector3f getWorldPos() {
         return worldPos;
     }
@@ -111,7 +130,6 @@ public class PonderTextAnnotation extends OverlayAnnotation {
         return text;
     }
 
-    @SuppressWarnings("unchecked")
     private List<String> getLines(FontRenderer fr) {
         if (resolvedLines != null) {
             return resolvedLines;
@@ -202,7 +220,7 @@ public class PonderTextAnnotation extends OverlayAnnotation {
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
             drawFilledRect(bx - 1, by - 1, bx + boxW + 1, by + boxH + 1, applyFade(borderArgb, fade));
-            drawFilledRect(bx, by, bx + boxW, by + boxH, applyFade(BG_ARGB, fade));
+            drawFilledRect(bx, by, bx + boxW, by + boxH, applyFade(getBackgroundArgb(), fade));
             if (!independent) {
                 drawFilledRect(cx - 1, by + boxH, cx + 1, cy, applyFade(borderArgb, fade));
             }
@@ -238,7 +256,7 @@ public class PonderTextAnnotation extends OverlayAnnotation {
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
         drawFilledRect(bx - 1, by - 1, bx + boxW + 1, by + boxH + 1, applyFade(borderArgb, fade));
-        drawFilledRect(bx, by, bx + boxW, by + boxH, applyFade(BG_ARGB, fade));
+        drawFilledRect(bx, by, bx + boxW, by + boxH, applyFade(getBackgroundArgb(), fade));
         if (!independent) {
             drawFilledRect(cx - 1, by + boxH, cx + 1, cy, applyFade(borderArgb, fade));
         }
@@ -269,5 +287,13 @@ public class PonderTextAnnotation extends OverlayAnnotation {
         tess.addVertexWithUV(x2, y1, 0, 1, 0);
         tess.addVertexWithUV(x1, y1, 0, 0, 0);
         tess.draw();
+    }
+
+    private int getBackgroundArgb() {
+        return (backgroundAlpha << 24) | BACKGROUND_RGB;
+    }
+
+    private static int clampAlpha(int value) {
+        return Math.max(0, Math.min(255, value));
     }
 }

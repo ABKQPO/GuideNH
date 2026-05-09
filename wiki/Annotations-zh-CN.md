@@ -17,6 +17,7 @@ GuideNH 的场景注解是放在 `<GameScene>` / `<Scene>` 内部的子标签。
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<TextAnnotation>`
 
 GuideNH 还支持 `<BlockAnnotationTemplate>`，它会把自己的子注解应用到当前场景里所有已经存在且匹配的方块上。
 
@@ -97,6 +98,41 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<TextAnnotation>`
+
+绘制场景中的气泡文本标签。它可以跟随一个世界坐标锚点，也可以固定在场景中心附近的屏幕坐标上。与其他注解不同，它的子内容会作为气泡正文，而不是悬停 tooltip。
+
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `pos` | 否 | `x y z` 世界坐标锚点 |
+| `x`, `y`, `z` | 否 | 未提供 `pos` 时可用的独立坐标分量 |
+| `text` | 否 | 气泡文本；省略时使用子 Markdown 内容 |
+| `color` | 否 | 气泡边框颜色，默认浅灰色 |
+| `backgroundAlpha` | 否 | 背景透明度，范围 `0` 到 `255`，默认 `204` |
+| `maxWidth` | 否 | 像素换行宽度；`0` 表示单行 |
+| `independent` | 否 | `true` 时固定在屏幕空间 |
+| `yOffset` | 否 | `independent={true}` 时相对场景中心的垂直像素偏移 |
+| `hlMinX/Y/Z`, `hlMaxX/Y/Z` | 否 | 可选伴生高亮框范围 |
+| `highlightColor` | 否 | 可选高亮框颜色 |
+
+世界锚定的气泡会绘制一条连接线指向锚点。独立气泡会水平居中，并使用 `yOffset` 控制垂直位置。导入 Ponder 的 `text` 注解时也会使用同一个运行时注解。
+
+示例：
+
+````md
+<TextAnnotation pos="1.5 2 1.5" color="#FF44AAFF" maxWidth={120} backgroundAlpha={180}>
+  在这里放入**优先级**物品。
+</TextAnnotation>
+````
+
+固定屏幕坐标示例：
+
+````md
+<TextAnnotation independent={true} yOffset={40} color="#FFFFCC00" backgroundAlpha={140}>
+  独立状态文本
+</TextAnnotation>
 ````
 
 ## 富 Tooltip 内容

@@ -2,6 +2,8 @@ package com.hfstudio.guidenh.guide.scene.ponder;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
+
 /**
  * Describes a single annotation entry inside a Ponder keyframe (JSON-driven).
  * The {@code type} field controls which fields are meaningful:
@@ -10,8 +12,9 @@ import org.jetbrains.annotations.Nullable;
  * <li>{@code box} - min (minX,minY,minZ), max (maxX,maxY,maxZ), color, lineWidth, alwaysOnTop</li>
  * <li>{@code line} - from (fromX,fromY,fromZ), to (toX,toY,toZ), color, lineWidth, alwaysOnTop</li>
  * <li>{@code blockface} - block (blockX,blockY,blockZ), color, alwaysOnTop</li>
- * <li>{@code text} - pos (x,y,z), text, color (border), maxWidth (wrap width px), independent, yOffset;
- * optional highlight box via hlMinX/hlMinY/hlMinZ/hlMaxX/hlMaxY/hlMaxZ and highlightColor</li>
+ * <li>{@code text} - pos (x,y,z), text, color (border), backgroundAlpha, maxWidth (wrap width px),
+ * independent, yOffset; optional highlight box via hlMinX/hlMinY/hlMinZ/hlMaxX/hlMaxY/hlMaxZ and
+ * highlightColor</li>
  * <li>{@code input} - pos (x,y,z), inputType ("lmb"|"rmb"|"scroll"), modifier ("sneak"|"ctrl"),
  * item (registry ID)</li>
  * </ul>
@@ -82,6 +85,8 @@ public class PonderKeyframeAnnotation {
     private Integer yOffset;
     @Nullable
     private Integer maxWidth;
+    @Nullable
+    private Integer backgroundAlpha;
     @Nullable
     private Float hlMinX;
     @Nullable
@@ -224,10 +229,14 @@ public class PonderKeyframeAnnotation {
         return maxWidth != null ? maxWidth : def;
     }
 
+    /** Background alpha for {@code text} annotation bubbles, clamped to {@code 0..255}. */
+    public int getBackgroundAlpha(int def) {
+        return backgroundAlpha != null ? Math.max(0, Math.min(255, backgroundAlpha)) : def;
+    }
+
     /**
      * Returns {@code true} when at least one highlight-box coordinate is specified.
-     * When true an {@link com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation}
-     * is created alongside the text annotation.
+     * When true an {@link InWorldBoxAnnotation} is created alongside the text annotation.
      */
     public boolean hasHighlight() {
         return hlMinX != null || hlMinY != null || hlMinZ != null || hlMaxX != null || hlMaxY != null || hlMaxZ != null;

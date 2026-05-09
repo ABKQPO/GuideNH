@@ -238,6 +238,7 @@ assets/<modid>/guidebooks/
   "type": "text",
   "text": "独立标签",
   "color": "0xFFFFCC00",
+  "backgroundAlpha": 160,
   "independent": true,
   "yOffset": 40
 }
@@ -248,6 +249,7 @@ assets/<modid>/guidebooks/
 | `x`, `y`, `z` | float | `0.0` | 锚点的世界坐标（独立模式下忽略）。 |
 | `text` | 字符串 | — | **必填。** 气泡框中显示的文本。 |
 | `color` | 字符串 | `"0xFFAAAAAA"` | ARGB 边框颜色。 |
+| `backgroundAlpha` | 整数 | `204` | 背景透明度，`0` 为完全透明，`255` 为完全不透明。 |
 | `maxWidth` | 整数 | `0` | 若 &gt; 0，按此像素宽度自动换行；`0` 表示单行。 |
 | `independent` | 布尔值 | `false` | 若为 `true`，位置以场景中心为基准（屏幕坐标），而非世界坐标投影。 |
 | `yOffset` | 整数 | `0` | 相对于场景垂直中心的像素偏移（正值向下）。与 `independent: true` 配合使用。 |
@@ -257,7 +259,7 @@ assets/<modid>/guidebooks/
 
 当任意 `hlMin/Max` 坐标存在时，会为该关键帧额外创建一个 `InWorldBoxAnnotation`，颜色由 `highlightColor` 指定。适合在讲解区域时高亮指定的方块范围。
 
-气泡框背景固定为深色半透明（`#CC0E0E20`）。世界锚定模式下有连接线；独立模式下没有。文本支持完整的 GuideNH 行内富文本语法（Markdown 格式化与 MDX 行内标签），并带阴影渲染。
+气泡框背景默认是深色半透明（`#CC0E0E20`），可用 `backgroundAlpha` 调整透明度。世界锚定模式下有连接线；独立模式下没有。文本支持完整的 GuideNH 行内富文本语法（Markdown 格式化与 MDX 行内标签），并带阴影渲染。
 
 > **富文本支持：** `text` 字段支持 GuideNH 页面中所有行内富文本语法：
 > `**粗体**`、`*斜体*`、`~~删除线~~`、`<Color id="RED">颜色文本</Color>`、

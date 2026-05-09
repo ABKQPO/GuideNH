@@ -9,11 +9,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
+import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 
 public class SceneEditorMarkdownElementRangeIndex {
 
-    public static final Pattern ELEMENT_START_PATTERN = Pattern
-        .compile("<(BlockAnnotation|BoxAnnotation|LineAnnotation|DiamondAnnotation)\\b");
     public static final SceneEditorMarkdownElementRangeIndex EMPTY = new SceneEditorMarkdownElementRangeIndex(
         Collections.emptyList());
 
@@ -86,7 +85,7 @@ public class SceneEditorMarkdownElementRangeIndex {
 
     public static List<MatchedTag> collectMatchedTags(String text) {
         List<MatchedTag> matchedTags = new ArrayList<>();
-        Matcher matcher = ELEMENT_START_PATTERN.matcher(text);
+        Matcher matcher = createElementStartPattern().matcher(text);
         while (matcher.find()) {
             String tagName = matcher.group(1);
             int startIndex = matcher.start();
@@ -106,6 +105,22 @@ public class SceneEditorMarkdownElementRangeIndex {
             matchedTags.add(new MatchedTag(tagName, startIndex, closingIndex + closingTag.length()));
         }
         return matchedTags;
+    }
+
+    private static Pattern createElementStartPattern() {
+        StringBuilder builder = new StringBuilder("<(");
+        List<SceneEditorElementType> types = SceneEditorElementType.values();
+        for (int i = 0; i < types.size(); i++) {
+            if (i > 0) {
+                builder.append('|');
+            }
+            builder.append(
+                Pattern.quote(
+                    types.get(i)
+                        .getTagName()));
+        }
+        builder.append(")\\b");
+        return Pattern.compile(builder.toString());
     }
 
     public static boolean isSelfClosingTag(String text, int openTagEnd) {

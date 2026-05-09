@@ -56,10 +56,8 @@ public class SceneEditorPointDragService {
         if (element == null) {
             return false;
         }
-        SceneEditorElementType type = element.getType();
-        return type == SceneEditorElementType.BLOCK || type == SceneEditorElementType.DIAMOND
-            || type == SceneEditorElementType.LINE
-            || type == SceneEditorElementType.BOX;
+        return element.getType()
+            .supportsPointHandles();
     }
 
     @Nullable
@@ -69,13 +67,13 @@ public class SceneEditorPointDragService {
             return null;
         }
         SceneEditorElementType type = element.getType();
-        if (type == SceneEditorElementType.BLOCK || type == SceneEditorElementType.DIAMOND) {
+        if (type.getPointHandleMode() == SceneEditorElementType.PointHandleMode.POINT) {
             return beginPointHandleDrag(element, handleId, camera);
         }
-        if (type == SceneEditorElementType.LINE) {
+        if (type.getPointHandleMode() == SceneEditorElementType.PointHandleMode.LINE) {
             return beginLineHandleDrag(element, handleId, camera);
         }
-        if (type == SceneEditorElementType.BOX) {
+        if (type.getPointHandleMode() == SceneEditorElementType.PointHandleMode.BOX) {
             return beginBoxCornerDrag(element, handleId, camera);
         }
         return null;

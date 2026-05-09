@@ -17,6 +17,9 @@ public class SceneEditorElementModel {
     private boolean visible;
     private boolean alwaysOnTop;
     private String tooltipMarkdown;
+    private String textMarkdown;
+    private int maxWidth;
+    private int backgroundAlpha;
 
     public SceneEditorElementModel(SceneEditorElementType type) {
         this.id = UUID.randomUUID();
@@ -27,11 +30,14 @@ public class SceneEditorElementModel {
         this.secondaryX = 0f;
         this.secondaryY = 0f;
         this.secondaryZ = 0f;
-        this.colorLiteral = type == SceneEditorElementType.DIAMOND ? "#FF00E000" : "#FFFFFFFF";
-        this.thickness = 1f;
+        this.colorLiteral = type.getDefaultColorLiteral();
+        this.thickness = type.getDefaultThickness();
         this.visible = true;
         this.alwaysOnTop = false;
         this.tooltipMarkdown = "";
+        this.textMarkdown = type.getDefaultText();
+        this.maxWidth = type.getDefaultMaxWidth();
+        this.backgroundAlpha = type.getDefaultBackgroundAlpha();
     }
 
     public UUID getId() {
@@ -130,6 +136,30 @@ public class SceneEditorElementModel {
         this.tooltipMarkdown = tooltipMarkdown;
     }
 
+    public String getTextMarkdown() {
+        return textMarkdown;
+    }
+
+    public void setTextMarkdown(String textMarkdown) {
+        this.textMarkdown = textMarkdown;
+    }
+
+    public int getMaxWidth() {
+        return maxWidth;
+    }
+
+    public void setMaxWidth(int maxWidth) {
+        this.maxWidth = maxWidth;
+    }
+
+    public int getBackgroundAlpha() {
+        return backgroundAlpha;
+    }
+
+    public void setBackgroundAlpha(int backgroundAlpha) {
+        this.backgroundAlpha = Math.max(0, Math.min(255, backgroundAlpha));
+    }
+
     public SceneEditorElementModel duplicate() {
         SceneEditorElementModel duplicate = new SceneEditorElementModel(this.type);
         duplicate.setPrimaryX(this.primaryX);
@@ -143,6 +173,9 @@ public class SceneEditorElementModel {
         duplicate.setVisible(this.visible);
         duplicate.setAlwaysOnTop(this.alwaysOnTop);
         duplicate.setTooltipMarkdown(this.tooltipMarkdown);
+        duplicate.setTextMarkdown(this.textMarkdown);
+        duplicate.setMaxWidth(this.maxWidth);
+        duplicate.setBackgroundAlpha(this.backgroundAlpha);
         return duplicate;
     }
 }

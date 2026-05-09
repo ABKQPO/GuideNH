@@ -109,6 +109,22 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
         return folder;
     }
 
+    public static ResourceLocation resolveTranslatedAssetId(ResourceLocation assetId, String language) {
+        if (assetId.getResourcePath()
+            .startsWith("assets/")) {
+            return assetId;
+        }
+        return LangUtil.getTranslatedAsset(assetId, language);
+    }
+
+    public static ResourceLocation resolveGuideAssetId(ResourceLocation assetId, String folder) {
+        String path = assetId.getResourcePath();
+        if (path.startsWith("assets/") || path.startsWith(folder + "/")) {
+            return assetId;
+        }
+        return new ResourceLocation(assetId.getResourceDomain(), folder + "/" + path);
+    }
+
     @Override
     public <T extends PageIndex> T getIndex(Class<T> indexClass) {
         var index = indices.get(indexClass);

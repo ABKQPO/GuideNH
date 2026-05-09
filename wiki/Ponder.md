@@ -25,9 +25,9 @@ Ponder JSON files follow the same resource-pack path rules as SNBT structures:
 
 ```
 assets/<modid>/guidebooks/
-  pages/machines/my_machine.mdx       ← guide page
-  pages/machines/my_machine.snbt      ← structure data
-  pages/machines/my_machine.json      ← Ponder JSON
+  pages/machines/my_machine.mdx       <- guide page
+  pages/machines/my_machine.snbt      <- structure data
+  pages/machines/my_machine.json      <- Ponder JSON
 ```
 
 The `src` attribute accepts both relative and absolute IDs:
@@ -94,7 +94,7 @@ The `src` attribute accepts both relative and absolute IDs:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `time` | integer | Yes | Tick at which this keyframe occurs (0 ≤ time ≤ totalTime). |
+| `time` | integer | Yes | Tick at which this keyframe occurs (0 <= time <= totalTime). |
 | `label` | string | No | Optional label shown when hovering the keyframe node on the progress bar. |
 | `camera` | object | No | Camera state at this keyframe. Null fields inherit from the previous keyframe. |
 | `cameraEaseTicks` | integer or null | No | How many ticks the camera takes to ease from the **previous** keyframe to this one. `null` (default) = ease over the full segment. `0` = instant snap. `N > 0` = ease over N ticks, then hold at the target position. |
@@ -110,7 +110,7 @@ camera value is used.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `zoom` | float | Camera zoom level (0.1 – 10.0). |
+| `zoom` | float | Camera zoom level (0.1 - 10.0). |
 | `rotX` | float | X-axis rotation in degrees. |
 | `rotY` | float | Y-axis rotation in degrees. |
 | `rotZ` | float | Z-axis rotation in degrees. |
@@ -121,9 +121,9 @@ The camera smoothly interpolates between adjacent keyframes using an **ease-in/e
 Use `cameraEaseTicks` on the **destination** keyframe to control the easing duration:
 
 ```json
-{ "time": 60, "cameraEaseTicks": 0,  "camera": { "rotY": 90 } }   ← instant snap
-{ "time": 120, "cameraEaseTicks": 20, "camera": { "rotY": 180 } }  ← ease over 20 ticks then hold
-{ "time": 180, "camera": { "rotY": 270 } }                         ← ease over full segment (default)
+{ "time": 60, "cameraEaseTicks": 0,  "camera": { "rotY": 90 } }   <- instant snap
+{ "time": 120, "cameraEaseTicks": 20, "camera": { "rotY": 180 } }  <- ease over 20 ticks then hold
+{ "time": 180, "camera": { "rotY": 270 } }                         <- ease over full segment (default)
 ```
 
 ## Block Changes
@@ -148,8 +148,8 @@ blocks, or animate a machine powering on.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `x`, `y`, `z` | integer | — | **Required.** Position of the block to change (structure coordinates). |
-| `block` | string | — | **Required.** Registry name, e.g. `"minecraft:furnace"`. Use `"minecraft:air"` to remove. |
+| `x`, `y`, `z` | integer | - | **Required.** Position of the block to change (structure coordinates). |
+| `block` | string | - | **Required.** Registry name, e.g. `"minecraft:furnace"`. Use `"minecraft:air"` to remove. |
 | `meta` | integer | `0` | Block metadata / damage value. |
 | `particles` | boolean | `true` | Whether to spawn block-texture particle effects when this block change fires during forward playback. Particles are taken from the block's own icon texture. Set to `false` to suppress (e.g., for silent removal). |
 | `nbt` | string | `null` | SNBT string for a tile entity tag, e.g. for chests, furnaces, etc. Parsed with `JsonToNBT`. Keys must be **unquoted** (standard SNBT format). Ignored if the block has no tile entity. |
@@ -299,6 +299,7 @@ For a fixed screen-space position that does not project from world coordinates, 
   "type": "text",
   "text": "Independent label",
   "color": "0xFFFFCC00",
+  "backgroundAlpha": 160,
   "independent": true,
   "yOffset": 40
 }
@@ -307,8 +308,9 @@ For a fixed screen-space position that does not project from world coordinates, 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | float | `0.0` | World-space anchor position (ignored in independent mode). |
-| `text` | string | — | **Required.** Text to display inside the bubble. |
+| `text` | string | - | **Required.** Text to display inside the bubble. |
 | `color` | string | `"0xFFAAAAAA"` | ARGB color of the bubble border. |
+| `backgroundAlpha` | integer | `204` | Background opacity from `0` (transparent) to `255` (opaque). The RGB color remains the default dark navy. |
 | `maxWidth` | integer | `0` | If &gt; 0, wraps text at this width in pixels. Omit or set to `0` for a single-line label. |
 | `independent` | boolean | `false` | If `true`, position is relative to the scene centre rather than a world point. |
 | `yOffset` | integer | `0` | Pixel offset from the scene's vertical centre (positive = downward). Used with `independent: true`. |
@@ -320,9 +322,10 @@ When `hlMinX` (or any `hlMin/Max` coordinate) is present, an `InWorldBoxAnnotati
 created at the specified bounds with `highlightColor`. This is useful for pointing at specific
 block regions while explaining them.
 
-The background is always a dark semi-transparent navy (`#CC0E0E20`). In world-anchored mode a
-connector line links the box to the anchor. Text supports the full GuideNH inline rich-text
-syntax — markdown formatting and MDX inline tags — and is rendered with drop-shadow.
+The background is a dark navy bubble by default (`#CC0E0E20`), and `backgroundAlpha` controls its
+opacity. In world-anchored mode a connector line links the box to the anchor. Text supports the
+full GuideNH inline rich-text syntax: markdown formatting and MDX inline tags. It is rendered with
+drop-shadow.
 
 > **Rich text:** The `text` field supports the same inline markup used in GuideNH guide pages:
 > `**bold**`, `*italic*`, `~~strikethrough~~`, `<Color id="RED">colored</Color>`,
@@ -369,7 +372,7 @@ With an optional modifier key prefix and an item icon:
 | `modifier` | string | `null` | Optional modifier key: `"sneak"` or `"ctrl"`. Shows prefix text above the icon. |
 | `item` | string | `null` | Optional item registry ID (e.g. `"minecraft:iron_ingot"`). Renders the item icon to the left of the mouse icon. Supports `"modid:item:meta"` format for meta values. |
 
-The icon is a 16×16 sprite drawn from `ponder_widgets.png`. The box background is semi-transparent
+The icon is a 16x16 sprite drawn from `ponder_widgets.png`. The box background is semi-transparent
 dark (`#CC0E0E20`) with a light-blue border (`#80AAAADD`). When an `item` is specified the box
 expands to accommodate both the item icon and the mouse icon side by side.
 
@@ -383,9 +386,9 @@ Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
 - `FF` alpha = fully opaque
 - `80` alpha = 50% transparent
 - `00` alpha = invisible
-- `"0xFF00E000"` — fully opaque green (default diamond color)
-- `"0x8022CCFF"` — semi-transparent blue
-- `"0xFFAAAAAA"` — light grey (default text bubble border)
+- `"0xFF00E000"` - fully opaque green (default diamond color)
+- `"0x8022CCFF"` - semi-transparent blue
+- `"0xFFAAAAAA"` - light grey (default text bubble border)
 
 ## Playback Behavior
 
@@ -393,16 +396,16 @@ Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
 
 | Control | Action |
 |---------|--------|
-| **◀ (Prev keyframe)** | Jump to the start of the previous keyframe segment. |
-| **▶/⏸ (Play/Pause)** | Toggle playback; restarts from the beginning if already finished. |
-| **↺ (Restart)** | Return to tick 0, reset state, and begin playing. |
+| **Prev keyframe** | Jump to the start of the previous keyframe segment. |
+| **Play/Pause** | Toggle playback; restarts from the beginning if already finished. |
+| **Restart** | Return to tick 0, reset state, and begin playing. |
 | Progress bar | Click or drag to seek to any position. Seeking always pauses playback. |
 | Keyframe nodes | Small tick marks on the bar; hover to see the label and direction arrow. |
 
 ### Initial state
 
 When a page containing `<ImportPonder>` is first opened, the scene starts **paused at tick 0**.
-Press Play (▶) to begin.
+Press Play to begin.
 
 ### Camera lock
 
@@ -423,8 +426,8 @@ When you hover over a keyframe node on the progress bar:
 ### Layer control during playback
 
 The `layer` field of the active keyframe overrides the visible-layer filter during playback:
-- `null` (or omitted) → show all layers.
-- `1`, `2`, `3`, … → restrict to that 1-based layer index.
+- `null` (or omitted) -> show all layers.
+- `1`, `2`, `3`, ... -> restrict to that 1-based layer index.
 
 ## Complete Example
 
@@ -569,7 +572,7 @@ The Grinder turns ores into doubled dust. Press **Play** to see the animated wal
 - Camera interpolation is always smooth (ease-in/out) even if some keyframes only change a
   subset of camera axes. Use `cameraEaseTicks` on a keyframe to snap the camera instantly (`0`)
   or ease over a fixed number of ticks before holding the target position.
-- Annotations belong to a single keyframe — they appear only while that keyframe is active
+- Annotations belong to a single keyframe - they appear only while that keyframe is active
   (i.e., from its `time` tick until the next keyframe's `time` tick). Overlay text annotations
   fade out smoothly when the keyframe changes during playback.
 - Only one `<ImportPonder>` tag is effective per `<GameScene>`. A second tag overwrites the first.

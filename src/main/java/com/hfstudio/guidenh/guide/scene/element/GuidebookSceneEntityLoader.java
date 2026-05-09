@@ -21,6 +21,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
@@ -35,7 +36,7 @@ public class GuidebookSceneEntityLoader {
     public static final Map<String, String> VANILLA_ENTITY_ID_ALIASES = createVanillaEntityIdAliases();
     public static final Set<String> PREVIEW_PLAYER_IDS = createPreviewPlayerIds();
     public static final Map<String, GameProfile> PREVIEW_PLAYER_PROFILE_CACHE = Collections
-        .synchronizedMap(new LinkedHashMap<String, GameProfile>());
+        .synchronizedMap(new LinkedHashMap<>());
     public static volatile GameProfileRepository previewPlayerProfileRepository;
 
     private GuidebookSceneEntityLoader() {}
@@ -106,8 +107,8 @@ public class GuidebookSceneEntityLoader {
         return null;
     }
 
-    @Nullable
-    static GameProfileSpec resolvePreviewPlayerProfile(@Nullable String requestedName, @Nullable String requestedUuid) {
+    static @NotNull GameProfileSpec resolvePreviewPlayerProfile(@Nullable String requestedName,
+        @Nullable String requestedUuid) {
         String trimmedName = trimToNull(requestedName);
         String trimmedUuid = trimToNull(requestedUuid);
         boolean defaultSteveFallback = trimmedName == null && trimmedUuid == null;
@@ -236,9 +237,8 @@ public class GuidebookSceneEntityLoader {
         return normalizeEntityId(suffix);
     }
 
-    @Nullable
-    public static Entity loadPreviewPlayer(@Nullable World world, NBTTagCompound data, @Nullable String playerName,
-        @Nullable String playerUuid) {
+    public static @NotNull Entity loadPreviewPlayer(@Nullable World world, NBTTagCompound data,
+        @Nullable String playerName, @Nullable String playerUuid) {
         GameProfileSpec profileSpec = resolvePreviewPlayerProfile(playerName, playerUuid);
         if (profileSpec == null) {
             throw new IllegalArgumentException("Preview player entities require a name or uuid");
@@ -606,7 +606,7 @@ public class GuidebookSceneEntityLoader {
         return aliases;
     }
 
-    static public class GameProfileSpec {
+    public static class GameProfileSpec {
 
         private final UUID uuid;
         private final String name;

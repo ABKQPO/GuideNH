@@ -65,6 +65,7 @@ import com.hfstudio.guidenh.guide.scene.element.PlaceBlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.RemoveBlocksElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ReplaceBlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
+import com.hfstudio.guidenh.guide.scene.element.TextAnnotationElementCompiler;
 
 public class DefaultExtensions {
 
@@ -151,6 +152,7 @@ public class DefaultExtensions {
             new LineAnnotationElementCompiler(),
             new DiamondAnnotationElementCompiler(),
             new BlockAnnotationTemplateElementCompiler(),
+            new TextAnnotationElementCompiler(),
             new RemoveBlocksElementCompiler(),
             new ReplaceBlockElementCompiler(),
             new PlaceBlockElementCompiler());

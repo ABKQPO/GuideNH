@@ -12,7 +12,7 @@ All annotation kinds live in world space and can be toggled with the scene's *Sh
 
 Place a **diamond marker** at any world coordinate. The diamond always faces the screen; hovering shows a semi-transparent white overlay while its compiled child content is rendered as a rich tooltip.
 
-Activated beacon — 3×3 diamond block base, beacon on top; marker tooltip contains a nested 3D preview:
+Activated beacon - 3x3 diamond block base, beacon on top; marker tooltip contains a nested 3D preview:
 
 <GameScene width="256" height="192" zoom={4} interactive={true}>
   <Block id="minecraft:diamond_block" x="-1" z="-1" />
@@ -27,10 +27,10 @@ Activated beacon — 3×3 diamond block base, beacon on top; marker tooltip cont
   <Block id="minecraft:beacon" y="1" />
   <DiamondAnnotation pos="0.5 2.2 0.5" color="#FFD24C">
     ### Activated Beacon
-    <Color color="#FFD24C">**Effect**</Color>: grants nearby players continuous buffs — speed /
+    <Color color="#FFD24C">**Effect**</Color>: grants nearby players continuous buffs - speed /
     jump boost / resistance / strength / regeneration.
 
-    Activation: a 3×3 / 5×5 / 7×7 / 9×9 pyramid of **diamond / iron / gold / emerald / netherite**
+    Activation: a 3x3 / 5x5 / 7x7 / 9x9 pyramid of **diamond / iron / gold / emerald / netherite**
     blocks beneath the beacon.
 
     <GameScene width="160" height="128" zoom={5} interactive={false}>
@@ -48,7 +48,7 @@ Activated beacon — 3×3 diamond block base, beacon on top; marker tooltip cont
 ## Box / Block / Line Annotations
 
 - `BoxAnnotation` accepts `min="x y z"` / `max="x y z"` (floats) for an arbitrary AABB.
-- `BlockAnnotation` accepts a single `pos="x y z"` (integers); shorthand for a 1×1×1 box.
+- `BlockAnnotation` accepts a single `pos="x y z"` (integers); shorthand for a 1x1x1 box.
 - `LineAnnotation` accepts `from="x y z"` / `to="x y z"` (floats) for a line segment.
 
 All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (default `1`), and `alwaysOnTop` to draw above other geometry. Children are used as a rich-text hover tooltip.
@@ -65,7 +65,7 @@ All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (
 
     <Row>
       <ItemImage id="minecraft:iron_ingot" scale="2" />
-      Iron ingot — smelt iron ore in a furnace.
+      Iron ingot - smelt iron ore in a furnace.
     </Row>
     <RecipeFor id="minecraft:iron_ingot" handlerId="smelting" />
   </BoxAnnotation>
@@ -87,3 +87,145 @@ All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (
     </GameScene>
   </LineAnnotation>
 </GameScene>
+
+## Text Annotation
+
+`<TextAnnotation>` is the shared speech-bubble annotation for normal `<GameScene>` pages and imported Ponder timelines.
+
+```mdx
+<GameScene width="256" height="192" zoom={4} interactive={true}>
+  <TextAnnotation
+    pos="1.5 2.0 1.5"
+    text="Insert items here"
+    color="#FF44AAFF"
+    maxWidth={120}
+    backgroundAlpha={180}
+  />
+</GameScene>
+```
+
+Use `independent={true}` to place the bubble in fixed screen space instead of following a world point:
+
+```mdx
+<GameScene width="256" height="192" zoom={4} interactive={true}>
+  <TextAnnotation
+    text="Independent label"
+    color="#FFFFCC00"
+    backgroundAlpha={140}
+    independent={true}
+    yOffset={40}
+  />
+</GameScene>
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `x`, `y`, `z` | float | `0.0` | World-space anchor position. Ignored when `independent={true}`. |
+| `text` | string | - | Required. Text shown inside the bubble. |
+| `color` | string | `"0xFFAAAAAA"` | Bubble border color. |
+| `backgroundAlpha` | integer | `204` | Background opacity from `0` (transparent) to `255` (opaque). |
+| `maxWidth` | integer | `0` | Word-wrap width in pixels. `0` keeps the bubble on one line. |
+| `independent` | boolean | `false` | If true, the bubble follows the scene center instead of a world point. |
+| `yOffset` | integer | `0` | Pixel offset from the scene center when `independent={true}`. Positive values move downward. |
+| `hlMinX/Y/Z` | float | `0.0` | Minimum corner of an optional highlight box. |
+| `hlMaxX/Y/Z` | float | `1.0` | Maximum corner of the optional highlight box. |
+| `highlightColor` | string | `"0x8000FFAA"` | Highlight box color. |
+
+There is no separate size parameter. The bubble grows from the text content and `maxWidth`.
+When any `hlMin/Max` value is present, a matching `InWorldBoxAnnotation` is also created.
+The bubble background is dark navy by default (`#CC0E0E20`), `backgroundAlpha` controls its
+opacity, and world-anchored mode adds a connector line down to the anchor point.
+
+> **Rich text:** `text` supports the same inline markup used in GuideNH pages:
+> `**bold**`, `*italic*`, `~~strikethrough~~`, `<Color id="RED">colored</Color>`,
+> `<ItemLink id="minecraft:iron_ingot" />`, and other inline MDX tags.
+
+## Input Annotation
+
+`InputAnnotation` renders a mouse-input icon (left button, right button, or scroll wheel) anchored to a world position. This is used to hint that the player should perform a specific interaction.
+
+```json
+{
+  "type": "input",
+  "x": 0.5,
+  "y": 1.5,
+  "z": 0.5,
+  "inputType": "lmb"
+}
+```
+
+With an optional modifier key prefix and an item icon:
+
+```json
+{
+  "type": "input",
+  "x": 0.5,
+  "y": 1.5,
+  "z": 0.5,
+  "inputType": "lmb",
+  "modifier": "sneak",
+  "item": "minecraft:iron_ingot"
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `x`, `y`, `z` | float | `0.0` | World-space anchor position. |
+| `inputType` | string | `"lmb"` | One of `"lmb"`, `"rmb"`, or `"scroll"`. Case-insensitive. |
+| `modifier` | string | `null` | Optional modifier key: `"sneak"` or `"ctrl"`. Shows prefix text above the icon. |
+| `item` | string | `null` | Optional item registry ID (e.g. `"minecraft:iron_ingot"`). Renders the item icon to the left of the mouse icon. Supports `"modid:item:meta"` format for meta values. |
+
+The icon is a 16x16 sprite drawn from `ponder_widgets.png`. The box background is semi-transparent
+dark (`#CC0E0E20`) with a light-blue border (`#80AAAADD`). When an `item` is specified the box
+expands to accommodate both the item icon and the mouse icon side by side.
+
+## Color Format
+
+Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
+`"FFFF00"` (without prefix) are accepted.
+
+- `FF` alpha = fully opaque
+- `80` alpha = 50% transparent
+- `00` alpha = invisible
+- `"0xFF00E000"` - fully opaque green (default diamond color)
+- `"0x8022CCFF"` - semi-transparent blue
+- `"0xFFAAAAAA"` - light grey (default text bubble border)
+
+## Playback Behavior
+
+### Controls
+
+| Control | Action |
+|---------|--------|
+| **◀ (Prev keyframe)** | Jump to the start of the previous keyframe segment. |
+| **▶ / ⏸ (Play/Pause)** | Toggle playback; restarts from the beginning if already finished. |
+| **↻ (Restart)** | Return to tick 0, reset state, and begin playing. |
+| Progress bar | Click or drag to seek to any position. Seeking always pauses playback. |
+| Keyframe nodes | Small tick marks on the bar; hover to see the label and direction arrow. |
+
+### Initial state
+
+When a page containing `<ImportPonder>` is first opened, the scene starts **paused at tick 0**.
+Press Play (▶) to begin.
+
+### Camera lock
+
+While playback is **active** (not paused):
+- The camera follows the interpolated path defined by keyframes.
+- Mouse drag and scroll zoom are **disabled**.
+- The layer slider and StructureLib sliders are **hidden**.
+
+While playback is **paused** or **finished**:
+- Full interactive camera drag, zoom, and layer/StructureLib control are restored.
+
+### Keyframe node labels
+
+When you hover over a keyframe node on the progress bar:
+- The node grows slightly to indicate it is hovered.
+- If the keyframe has a `label`, it is displayed beside the node.
+
+### Layer control during playback
+
+The `layer` field of the active keyframe overrides the visible-layer filter during playback:
+- `null` (or omitted) -> show all layers.
+- `1`, `2`, `3`, ... -> restrict to that 1-based layer index.

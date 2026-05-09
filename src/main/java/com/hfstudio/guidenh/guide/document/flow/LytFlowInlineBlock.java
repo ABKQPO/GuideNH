@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.document.flow;
 
 import java.util.Optional;
 
+import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
@@ -34,14 +35,21 @@ public class LytFlowInlineBlock extends LytFlowContent implements InteractiveEle
     }
 
     public LytSize getPreferredSize(int lineWidth) {
+        return measurePreferredBounds(lineWidth).size();
+    }
+
+    public LytRect getPreferredBounds(int lineWidth) {
+        return measurePreferredBounds(lineWidth);
+    }
+
+    private LytRect measurePreferredBounds(int lineWidth) {
         if (block == null) {
-            return LytSize.empty();
+            return LytRect.empty();
         }
 
         // We need to compute the layout
         var layoutContext = new LayoutContext(new MinecraftFontMetrics());
-        var bounds = block.layout(layoutContext, 0, 0, lineWidth);
-        return new LytSize(bounds.right(), bounds.bottom());
+        return block.layout(layoutContext, 0, 0, lineWidth);
     }
 
     @Override

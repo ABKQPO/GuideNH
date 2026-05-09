@@ -41,6 +41,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     private String labelPosition = null;
     @Nullable
     private String labelFormat = null;
+    private int layoutYOffset = 0;
     @Nullable
     private ResolvedTextStyle cachedLabelStyle = null;
     @Nullable
@@ -117,13 +118,21 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int iconSize = Math.round(BASE_SIZE * scale);
+        int iconYOffset = inline
+            ? Math.round((inlineYOffsetOverride != null ? inlineYOffsetOverride : DEFAULT_INLINE_Y_OFFSET) * scale)
+            : 0;
+        int labelYOffset = inline && showIcon
+            ? Math.round((labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET) * scale)
+            : 0;
         boolean hasLabel = labelPosition != null && stack != null;
 
         if (!showIcon && !hasLabel) {
+            layoutYOffset = 0;
             return new LytRect(x, y, 0, 0);
         }
         if (!hasLabel) {
-            return new LytRect(x, y, iconSize, iconSize);
+            layoutYOffset = iconYOffset;
+            return new LytRect(x, y + layoutYOffset, iconSize, iconSize);
         }
 
         ResolvedTextStyle textStyle = resolveLabelStyle();
@@ -132,11 +141,15 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         int textH = context.getLineHeight(textStyle);
 
         if (!showIcon) {
-            return new LytRect(x, y, textW, textH);
+            layoutYOffset = labelYOffset;
+            return new LytRect(x, y + layoutYOffset, textW, textH);
         }
+        int top = Math.min(iconYOffset, labelYOffset);
+        int bottom = Math.max(iconYOffset + iconSize, labelYOffset + textH);
+        layoutYOffset = top;
         int totalW = iconSize + LABEL_GAP + textW;
-        int totalH = Math.max(iconSize, textH);
-        return new LytRect(x, y, totalW, totalH);
+        int totalH = Math.max(0, bottom - top);
+        return new LytRect(x, y + layoutYOffset, totalW, totalH);
     }
 
     @Override
@@ -147,7 +160,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         if (stack == null || stack.stackSize == 0) return;
 
         int baseX = bounds.x();
-        int baseY = bounds.y();
+        int baseY = bounds.y() - layoutYOffset;
         int iconSize = Math.round(BASE_SIZE * scale);
         boolean hasLabel = labelPosition != null;
 
@@ -161,6 +174,10 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
             int textW = context.getStringWidth(text, textStyle);
             int textH = context.getLineHeight(textStyle);
             int textVCenter = showIcon ? (iconSize - textH) / 2 : 0;
+            int labelYOffset = inline && showIcon
+                ? Math
+                    .round((labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET) * scale)
+                : 0;
 
             if ("left".equals(labelPosition)) {
                 textX = baseX;
@@ -169,11 +186,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
                 iconX = baseX;
                 textX = showIcon ? baseX + iconSize + LABEL_GAP : baseX;
             }
-            textY = baseY + textVCenter;
-            if (inline && showIcon) {
-                int base = labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET;
-                textY += Math.round(base * scale);
-            }
+            textY = baseY + textVCenter + labelYOffset;
             context.drawText(text, textX, textY, textStyle);
         }
 
