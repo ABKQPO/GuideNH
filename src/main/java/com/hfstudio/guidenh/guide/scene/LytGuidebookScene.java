@@ -16,6 +16,7 @@ import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.entity.Entity;
@@ -143,6 +144,7 @@ public class LytGuidebookScene extends LytBlock {
     private int ponderCurrentTick = 0;
     private boolean ponderPaused = false;
     private boolean ponderFinished = false;
+    private boolean ponderExportLayerOverrideEnabled;
     private float ponderCamZoom = 1f;
     private float ponderCamRotX = 0f;
     private float ponderCamRotY = 0f;
@@ -379,6 +381,27 @@ public class LytGuidebookScene extends LytBlock {
             this.bounds = bounds;
             this.hitResult = hitResult;
             this.distanceSq = distanceSq;
+        }
+    }
+
+    public static class PonderTimelineKeyframe {
+
+        private final int time;
+        @Nullable
+        private final String label;
+
+        public PonderTimelineKeyframe(int time, @Nullable String label) {
+            this.time = Math.max(0, time);
+            this.label = label;
+        }
+
+        public int getTime() {
+            return time;
+        }
+
+        @Nullable
+        public String getLabel() {
+            return label;
         }
     }
 
@@ -735,6 +758,20 @@ public class LytGuidebookScene extends LytBlock {
         markBlockStatsDirty();
     }
 
+    public List<SceneBlockStatsEntry> getBlockStatsEntriesForExport() {
+        if (!blockStatsEnabled) {
+            return Collections.emptyList();
+        }
+        if (blockStatsDirty) {
+            rebuildBlockStatsEntries();
+        }
+        return Collections.unmodifiableList(new ArrayList<>(cachedBlockStatsEntries));
+    }
+
+    public boolean shouldExportBlockStats() {
+        return blockStatsEnabled && !getBlockStatsEntriesForExport().isEmpty();
+    }
+
     private void invalidateDocumentLayout() {
         var document = getDocument();
         if (document != null) {
@@ -796,7 +833,7 @@ public class LytGuidebookScene extends LytBlock {
 
     @Nullable
     private Integer resolveVisibleLayerY() {
-        if (ponderSceneData != null && !ponderPaused && !ponderFinished) {
+        if (ponderSceneData != null && ((!ponderPaused && !ponderFinished) || ponderExportLayerOverrideEnabled)) {
             // During active playback the keyframe layer takes precedence.
             int activeIdx = ponderSceneData.resolveActiveKeyframeIndex(ponderCurrentTick);
             if (activeIdx >= 0) {
@@ -819,6 +856,11 @@ public class LytGuidebookScene extends LytBlock {
             return null;
         }
         return getVisibleLayerMinY() + currentLayer - 1;
+    }
+
+    @Nullable
+    public Integer getVisibleLayerYForExport() {
+        return resolveVisibleLayerY();
     }
 
     private boolean isBlockVisibleForCurrentLayer(int y) {
@@ -3139,11 +3181,27 @@ public class LytGuidebookScene extends LytBlock {
         }
         if (dragButton < 0) return;
         if (isPonderPlaying()) return;
-        int dx = mouseX - dragLastX;
-        int dy = mouseY - dragLastY;
         dragLastX = mouseX;
         dragLastY = mouseY;
+    }
 
+    public void pollDrag() {
+        if (!isCameraDragActive()) {
+            return;
+        }
+        float dx = getScaledMouseDeltaX();
+        float dy = getScaledMouseDeltaY();
+        if (dx == 0f && dy == 0f) {
+            return;
+        }
+        updateDragLastPositionFromMouse();
+        applyCameraDrag(dx, dy);
+    }
+
+    private void applyCameraDrag(float dx, float dy) {
+        if (dx == 0f && dy == 0f) {
+            return;
+        }
         // Route to ponderCam* so changes are visible when ponder is active (paused or playing).
         if (ponderSceneData != null) {
             if (isPanButton(dragButton)) {
@@ -3162,6 +3220,46 @@ public class LytGuidebookScene extends LytBlock {
                 camera.setRotationX(camera.getRotationX() + dy * DRAG_ROTATE_SENSITIVITY);
             }
         }
+    }
+
+    private boolean isCameraDragActive() {
+        return dragButton >= 0 && !isPonderPlaying()
+            && !draggingBlockStatsHorizontalScrollbar
+            && !draggingBlockStatsVerticalScrollbar
+            && !draggingPonderBar
+            && !draggingStructureLibTierSlider
+            && !draggingVisibleLayerSlider
+            && draggingStructureLibChannelId == null;
+    }
+
+    private static float getScaledMouseDeltaX() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null || mc.displayWidth <= 0 || mc.displayHeight <= 0) {
+            return Mouse.getDX();
+        }
+        ScaledResolution scaledResolution = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
+        return Mouse.getDX() * scaledResolution.getScaledWidth() / (float) mc.displayWidth;
+    }
+
+    private static float getScaledMouseDeltaY() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null || mc.displayWidth <= 0 || mc.displayHeight <= 0) {
+            return -Mouse.getDY();
+        }
+        ScaledResolution scaledResolution = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
+        return -Mouse.getDY() * scaledResolution.getScaledHeight() / (float) mc.displayHeight;
+    }
+
+    private void updateDragLastPositionFromMouse() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null || mc.displayWidth <= 0 || mc.displayHeight <= 0) {
+            return;
+        }
+        ScaledResolution scaledResolution = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
+        dragLastX = Mouse.getX() * scaledResolution.getScaledWidth() / mc.displayWidth;
+        dragLastY = scaledResolution.getScaledHeight()
+            - Mouse.getY() * scaledResolution.getScaledHeight() / mc.displayHeight
+            - 1;
     }
 
     public void endDrag() {
@@ -3319,6 +3417,27 @@ public class LytGuidebookScene extends LytBlock {
         return ponderSceneData != null;
     }
 
+    public int getPonderCurrentTickForExport() {
+        return ponderCurrentTick;
+    }
+
+    public int getPonderTotalTimeForExport() {
+        return ponderSceneData != null ? ponderSceneData.getTotalTime() : 0;
+    }
+
+    public List<PonderTimelineKeyframe> getPonderTimelineKeyframesForExport() {
+        if (ponderSceneData == null) {
+            return Collections.emptyList();
+        }
+        ArrayList<PonderTimelineKeyframe> keyframes = new ArrayList<>();
+        for (PonderKeyframe keyframe : ponderSceneData.getKeyframes()) {
+            if (keyframe != null) {
+                keyframes.add(new PonderTimelineKeyframe(keyframe.getTime(), keyframe.getLabel()));
+            }
+        }
+        return Collections.unmodifiableList(keyframes);
+    }
+
     public boolean isPonderPlaying() {
         return ponderSceneData != null && !ponderPaused && !ponderFinished;
     }
@@ -3435,9 +3554,20 @@ public class LytGuidebookScene extends LytBlock {
         ponderCurrentTick = Math.max(0, Math.min(ponderSceneData.getTotalTime(), tick));
         ponderPaused = true;
         ponderFinished = ponderCurrentTick >= ponderSceneData.getTotalTime();
+        ponderExportLayerOverrideEnabled = false;
         draggingPonderBar = false;
         ponderAnnotationFadeTick = 5;
         updatePonderState();
+    }
+
+    public void seekToTickForExport(int tick) {
+        seekToTick(tick);
+        ponderExportLayerOverrideEnabled = true;
+    }
+
+    public void restorePonderTickAfterExport(int tick) {
+        seekToTick(tick);
+        ponderExportLayerOverrideEnabled = false;
     }
 
     private void applyPonderBarAt(int mouseAbsX) {

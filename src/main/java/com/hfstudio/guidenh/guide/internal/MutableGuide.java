@@ -32,7 +32,6 @@ import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
-import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 
 import cpw.mods.fml.common.FMLLog;
 
@@ -308,7 +307,7 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     /**
      * Called each client tick to pre-compile the guide's start page in the background, eliminating the 5-6 second
      * freeze on first guide open. Compilation is deferred until an active server connection is available (required for
-     * {@link GuidebookFakeWorld} creation).
+     * guidebook preview world creation).
      */
     public void tickWarmup() {
         if (startPageWarmed || pages == null) {

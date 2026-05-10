@@ -62,7 +62,14 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             templates,
             exportedScene);
 
-        StringBuilder html = new StringBuilder(
+        StringBuilder html = new StringBuilder();
+        boolean hasBlockStats = exportedScene != null && exportedScene.blockStatsHtml() != null
+            && !exportedScene.blockStatsHtml()
+                .isEmpty();
+        if (hasBlockStats) {
+            html.append("<div class=\"guide-scene-export-frame\">");
+        }
+        html.append(
             renderSceneHtml(
                 width,
                 height,
@@ -85,6 +92,10 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         }
 
         html.append(">");
+        if (hasBlockStats) {
+            html.append(exportedScene.blockStatsHtml())
+                .append("</div>");
+        }
         return html.toString();
     }
 

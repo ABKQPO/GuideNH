@@ -182,7 +182,7 @@ function setOrRemoveAttribute(node, name, value) {
 }
 
 function buildStateKey(state) {
-  let key = `layer=${Math.max(0, Number(state.visibleLayer) || 0)}|tier=${Math.max(1, Number(state.tier) || 1)}`;
+  let key = `layer=${Math.max(0, Number(state.visibleLayer) || 0)}|ponder=${Math.max(0, Number(state.ponderTick) || 0)}|tier=${Math.max(1, Number(state.tier) || 1)}`;
   const channels = state.channels || {};
   for (const channelId of Object.keys(channels)) {
     key += `|channel:${channelId}=${Math.max(0, Number(channels[channelId]) || 0)}`;
@@ -193,6 +193,7 @@ function buildStateKey(state) {
 function cloneState(state) {
   return {
     visibleLayer: Math.max(0, Number(state?.visibleLayer) || 0),
+    ponderTick: Math.max(0, Number(state?.ponderTick) || 0),
     tier: Math.max(1, Number(state?.tier) || 1),
     channels: { ...(state?.channels || {}) },
   };
@@ -280,6 +281,133 @@ function createRangeControl(documentRef, labelText, min, max, currentValue, form
   return wrapper;
 }
 
+function createPonderControl(documentRef, control, currentTick, onChange) {
+  const wrapper = documentRef.createElement("div");
+  wrapper.className = "scene-state-control scene-ponder-control";
+
+  const header = documentRef.createElement("div");
+  header.className = "scene-state-control-header";
+  wrapper.append(header);
+
+  const caption = documentRef.createElement("span");
+  caption.className = "scene-state-control-label";
+  caption.textContent = control.label || "Ponder";
+  header.append(caption);
+
+  const value = documentRef.createElement("span");
+  value.className = "scene-state-control-value";
+  header.append(value);
+
+  const buttons = documentRef.createElement("div");
+  buttons.className = "scene-ponder-buttons";
+  wrapper.append(buttons);
+
+  const previousButton = documentRef.createElement("button");
+  previousButton.type = "button";
+  previousButton.className = "scene-ponder-button";
+  previousButton.textContent = "<";
+  previousButton.title = control.previousLabel || "Previous Keyframe";
+  buttons.append(previousButton);
+
+  const playButton = documentRef.createElement("button");
+  playButton.type = "button";
+  playButton.className = "scene-ponder-button";
+  playButton.textContent = ">";
+  playButton.title = control.playPauseLabel || "Play / Pause";
+  buttons.append(playButton);
+
+  const restartButton = documentRef.createElement("button");
+  restartButton.type = "button";
+  restartButton.className = "scene-ponder-button";
+  restartButton.textContent = "R";
+  restartButton.title = control.restartLabel || "Restart";
+  buttons.append(restartButton);
+
+  const range = documentRef.createElement("input");
+  range.className = "scene-state-range";
+  range.type = "range";
+  range.min = "0";
+  range.max = String(Math.max(0, Number(control.totalTime) || 0));
+  range.step = "1";
+  wrapper.append(range);
+
+  const ticks = Array.isArray(control.ticks)
+    ? control.ticks.map((tick) => Math.max(0, Number(tick) || 0))
+    : Array.isArray(control.keyframes)
+      ? control.keyframes.map((keyframe) => Math.max(0, Number(keyframe?.time) || 0))
+      : [];
+  const uniqueTicks = [...new Set([0, ...ticks, Math.max(0, Number(control.totalTime) || 0)])].sort((a, b) => a - b);
+
+  const describeTick = (tick) => {
+    const keyframe = Array.isArray(control.keyframes)
+      ? control.keyframes.find((candidate) => Math.max(0, Number(candidate?.time) || 0) === tick)
+      : null;
+    const label = typeof keyframe?.label === "string" && keyframe.label.length > 0 ? keyframe.label : "";
+    const tickLabel = `${control.timeLabel || "Tick"} ${tick}`;
+    return label ? `${label} - ${tickLabel}` : tickLabel;
+  };
+
+  const nearestExportedTick = (tick) => {
+    let nearest = uniqueTicks[0] ?? 0;
+    let nearestDistance = Math.abs(nearest - tick);
+    for (const candidate of uniqueTicks) {
+      const distance = Math.abs(candidate - tick);
+      if (distance < nearestDistance || (distance === nearestDistance && candidate < nearest)) {
+        nearest = candidate;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  };
+
+  const setDisplayedTick = (tick) => {
+    const normalized = Math.max(0, Math.min(Number(range.max) || 0, Number(tick) || 0));
+    range.value = String(normalized);
+    const displayValue = describeTick(normalized);
+    value.textContent = displayValue;
+    range.setAttribute("aria-valuetext", displayValue);
+  };
+
+  previousButton.addEventListener("click", () => {
+    const current = Number(range.value) || 0;
+    let previous = 0;
+    for (const tick of uniqueTicks) {
+      if (tick < current) {
+        previous = tick;
+      } else {
+        break;
+      }
+    }
+    setDisplayedTick(previous);
+    onChange(previous);
+  });
+  playButton.addEventListener("click", () => {
+    const current = Number(range.value) || 0;
+    let next = uniqueTicks[uniqueTicks.length - 1] ?? current;
+    for (const tick of uniqueTicks) {
+      if (tick > current) {
+        next = tick;
+        break;
+      }
+    }
+    setDisplayedTick(next);
+    onChange(next);
+  });
+  restartButton.addEventListener("click", () => {
+    setDisplayedTick(0);
+    onChange(0);
+  });
+  range.addEventListener("input", () => setDisplayedTick(range.value));
+  range.addEventListener("change", () => {
+    const tick = nearestExportedTick(Number(range.value) || 0);
+    setDisplayedTick(tick);
+    onChange(tick);
+  });
+
+  setDisplayedTick(nearestExportedTick(currentTick));
+  return wrapper;
+}
+
 async function mountSceneStateControls(sceneContext) {
   if (!sceneContext.runtime?.wrapper || !sceneContext.descriptor.interactive) {
     return;
@@ -300,6 +428,14 @@ async function mountSceneStateControls(sceneContext) {
 
   const documentRef = sceneContext.runtime.wrapper.ownerDocument;
   const controls = manifest.controls;
+
+  if (controls.ponder) {
+    host.append(
+      createPonderControl(documentRef, controls.ponder, sceneContext.currentState.ponderTick, (value) =>
+        updateSceneState(sceneContext, { ponderTick: value }),
+      ),
+    );
+  }
 
   if (controls.visibleLayer && Number.isFinite(Number(controls.visibleLayer.max))) {
     const maxLayer = Math.max(0, Number(controls.visibleLayer.max) || 0);

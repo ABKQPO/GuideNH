@@ -16,6 +16,8 @@ import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 import com.hfstudio.guidenh.guide.internal.GuideWarmupPump;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
 import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
@@ -35,6 +37,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
+        GuidebookLevel.setPreviewWorldFactory(GuidebookFakeWorld::new);
         GuideNhClientIntegrationBootstrap.preInitClient();
         GuideME.initClientProxy();
         GuideNhNetwork.channel()

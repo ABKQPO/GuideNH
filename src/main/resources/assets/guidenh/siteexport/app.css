@@ -106,6 +106,16 @@ a:hover {
     text-decoration: underline;
 }
 
+.guide-link {
+    font-weight: 500;
+    color: var(--color-link);
+    text-decoration: none;
+}
+
+.guide-link:hover {
+    text-decoration: underline;
+}
+
 ul {
     list-style-type: square;
 }
@@ -586,6 +596,65 @@ p {
     image-rendering: pixelated;
 }
 
+.guide-floating-image-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: top;
+}
+
+.guide-floating-image-wrap .guide-floating-image {
+    float: none;
+}
+
+.guide-image-annotation {
+    position: absolute;
+    z-index: 2;
+    display: block;
+    pointer-events: auto;
+    border: 0 solid transparent;
+}
+
+.guide-image-annotation.guide-tooltip {
+    cursor: help;
+}
+
+.guide-latex {
+    font-family: 'Pixeloid Mono', monospace;
+    color: white;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(124, 124, 124, 0.35);
+    padding: 0 4px;
+    transform-origin: center;
+    white-space: pre-wrap;
+}
+
+.guide-latex-inline {
+    display: inline-block;
+    vertical-align: baseline;
+}
+
+.guide-latex-display {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0.5em auto 0.8em;
+    overflow-x: auto;
+    text-align: center;
+}
+
+.guide-latex-valign-top {
+    vertical-align: top;
+}
+
+.guide-latex-valign-center {
+    vertical-align: middle;
+}
+
+.guide-latex-valign-bottom {
+    vertical-align: bottom;
+}
+
 .guide-inline-color {
     font-weight: 600;
 }
@@ -683,6 +752,84 @@ p {
 
 .guide-recipe-gallery {
     margin-bottom: 0.8em;
+}
+
+.guide-quest-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px calc(2px * var(--gui-scale));
+    border: 1px solid rgba(124, 124, 124, 0.45);
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--color-link);
+    font-family: var(--minecraft-font);
+    font-size: 0.9em;
+}
+
+.guide-quest-card {
+    border: 1px solid rgba(124, 124, 124, 0.45);
+    background: rgba(0, 0, 0, 0.35);
+    padding: calc(3px * var(--gui-scale));
+    margin-bottom: 0.8em;
+}
+
+.guide-quest-card-title {
+    color: white;
+    font-family: var(--minecraft-font);
+}
+
+.guide-quest-card-meta {
+    margin-top: 3px;
+    color: rgba(210, 210, 210, 0.65);
+    font-family: 'Pixeloid Mono', monospace;
+    font-size: 0.75em;
+}
+
+.guide-scene-export-frame {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: calc(2px * var(--gui-scale));
+    max-width: 100%;
+    margin-bottom: 0.8em;
+}
+
+.guide-scene-block-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: calc(140px * var(--gui-scale));
+    max-height: calc(96px * var(--gui-scale));
+    overflow: auto;
+    padding: calc(2px * var(--gui-scale));
+    background: rgba(17, 25, 34, 0.67);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.guide-scene-block-stat {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    align-items: center;
+    gap: 4px;
+    min-width: calc(32px * var(--gui-scale));
+    color: var(--color-body-text);
+    font-family: var(--minecraft-font);
+    font-size: 0.75em;
+    white-space: nowrap;
+}
+
+.guide-scene-block-stat-icon {
+    width: calc(12px * var(--gui-scale));
+    height: calc(12px * var(--gui-scale));
+}
+
+.guide-scene-block-stat-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.guide-scene-block-stat-count {
+    color: rgba(210, 210, 210, 0.75);
+    font-family: 'Pixeloid Mono', monospace;
 }
 
 .recipe-grid {

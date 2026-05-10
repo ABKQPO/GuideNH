@@ -12,9 +12,12 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
+import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
@@ -179,6 +182,10 @@ public class GuideSiteHtmlCompiler {
     private String compileNode(MdAstAnyContent node, GuideSiteTemplateRegistry templates, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         if (node instanceof MdAstParagraph paragraph) {
+            String displayFormula = extractSoleDisplayLatex(paragraph);
+            if (displayFormula != null) {
+                return renderLatex(displayFormula, null, 1.0f, false, null, 0, 0, true, templates);
+            }
             return "<p>"
                 + compileChildren(paragraph.children(), templates, defaultNamespace, currentPageId, sceneResolver)
                 + "</p>";
@@ -205,7 +212,7 @@ public class GuideSiteHtmlCompiler {
             return compileMarkdownImage(image, currentPageId);
         }
         if (node instanceof MdAstText text) {
-            return escapeHtml(text.value());
+            return compileText(text.value(), templates);
         }
         if (node instanceof MdAstDelete deleted) {
             return "<del>"
@@ -257,6 +264,9 @@ public class GuideSiteHtmlCompiler {
         if (node instanceof MdxJsxFlowElement flowElement && isHtmlAnchorElement(flowElement)) {
             return compileHtmlAnchor(flowElement, templates, defaultNamespace, currentPageId, sceneResolver);
         }
+        if (node instanceof MdxJsxFlowElement flowElement && isHtmlBreakElement(flowElement)) {
+            return compileHtmlBreak(flowElement);
+        }
         if (node instanceof MdxJsxFlowElement flowElement && isTooltipElement(flowElement)) {
             return "<p>" + compileTooltip(flowElement, templates, defaultNamespace, currentPageId, sceneResolver)
                 + "</p>";
@@ -268,7 +278,10 @@ public class GuideSiteHtmlCompiler {
             return compileScene(flowElement, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if (node instanceof MdxJsxFlowElement flowElement && isFloatingImageElement(flowElement)) {
-            return compileFloatingImage(flowElement, currentPageId);
+            return compileFloatingImage(flowElement, templates, defaultNamespace, currentPageId, sceneResolver);
+        }
+        if (node instanceof MdxJsxFlowElement flowElement && isLatexElement(flowElement)) {
+            return compileLatex(flowElement, true, templates);
         }
         if (node instanceof MdxJsxFlowElement flowElement) {
             String rendered = mdxTagRenderer
@@ -280,6 +293,9 @@ public class GuideSiteHtmlCompiler {
         if (node instanceof MdxJsxTextElement textElement && isHtmlAnchorElement(textElement)) {
             return compileHtmlAnchor(textElement, templates, defaultNamespace, currentPageId, sceneResolver);
         }
+        if (node instanceof MdxJsxTextElement textElement && isHtmlBreakElement(textElement)) {
+            return compileHtmlBreak(textElement);
+        }
         if (node instanceof MdxJsxTextElement textElement && isTooltipElement(textElement)) {
             return compileTooltip(textElement, templates, defaultNamespace, currentPageId, sceneResolver);
         }
@@ -290,7 +306,10 @@ public class GuideSiteHtmlCompiler {
             return compileScene(textElement, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if (node instanceof MdxJsxTextElement textElement && isFloatingImageElement(textElement)) {
-            return compileFloatingImage(textElement, currentPageId);
+            return compileFloatingImage(textElement, templates, defaultNamespace, currentPageId, sceneResolver);
+        }
+        if (node instanceof MdxJsxTextElement textElement && isLatexElement(textElement)) {
+            return compileLatex(textElement, false, templates);
         }
         if (node instanceof MdxJsxTextElement textElement) {
             String rendered = mdxTagRenderer
@@ -321,19 +340,70 @@ public class GuideSiteHtmlCompiler {
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String label = element.getAttributeString("label", "");
         if (label == null || label.isEmpty()) {
-            label = "tooltip";
+            String trigger = compileChildren(
+                element.children(),
+                templates,
+                defaultNamespace,
+                currentPageId,
+                sceneResolver);
+            if (trigger != null && !trigger.trim()
+                .isEmpty()) {
+                label = null;
+            } else {
+                label = "tooltip";
+            }
         }
 
-        String templateId = templates
-            .create(compileChildren(element.children(), templates, defaultNamespace, currentPageId, sceneResolver));
+        String tooltipHtml = compileTooltipContent(element, templates, defaultNamespace, currentPageId, sceneResolver);
+        String templateId = templates.create(tooltipHtml);
         return "<span class=\"guide-tooltip\" data-template=\"" + escapeAttribute(templateId)
             + "\">"
-            + escapeHtml(label)
+            + (label != null ? escapeHtml(label)
+                : compileChildren(element.children(), templates, defaultNamespace, currentPageId, sceneResolver))
             + "</span>";
+    }
+
+    private String compileTooltipContent(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        MdxJsxAttribute content = element.getAttribute("content");
+        if (content != null && content.hasExpressionValue()) {
+            String source = normalizeTooltipContentExpression(content.getExpressionValue());
+            if (!source.isEmpty()) {
+                ResourceLocation parsePageId = currentPageId != null ? currentPageId
+                    : new ResourceLocation(
+                        defaultNamespace != null ? defaultNamespace : "guidenh",
+                        "site_export_tooltip");
+                ParsedGuidePage parsed = PageCompiler.parse("site-export-tooltip", "en_us", parsePageId, source);
+                return compileFragment(
+                    parsed.getAstRoot()
+                        .children(),
+                    templates,
+                    defaultNamespace,
+                    sceneResolver,
+                    currentPageId);
+            }
+        }
+        return compileChildren(element.children(), templates, defaultNamespace, currentPageId, sceneResolver);
+    }
+
+    private String normalizeTooltipContentExpression(String expression) {
+        if (expression == null) {
+            return "";
+        }
+        String trimmed = expression.trim();
+        if (trimmed.startsWith("<>") && trimmed.endsWith("</>")) {
+            return trimmed.substring(2, trimmed.length() - 3)
+                .trim();
+        }
+        return trimmed;
     }
 
     private boolean isHtmlAnchorElement(MdxJsxElementFields element) {
         return "a".equals(element.name());
+    }
+
+    private boolean isHtmlBreakElement(MdxJsxElementFields element) {
+        return "br".equals(element.name());
     }
 
     private boolean isTooltipElement(MdxJsxElementFields element) {
@@ -351,6 +421,10 @@ public class GuideSiteHtmlCompiler {
 
     private boolean isFloatingImageElement(MdxJsxElementFields element) {
         return "FloatingImage".equals(element.name());
+    }
+
+    private boolean isLatexElement(MdxJsxElementFields element) {
+        return "Latex".equals(element.name());
     }
 
     private String compileRecipe(MdxJsxElementFields element, String defaultNamespace) {
@@ -373,11 +447,13 @@ public class GuideSiteHtmlCompiler {
             null);
     }
 
-    private String compileFloatingImage(MdxJsxElementFields element, @Nullable ResourceLocation currentPageId) {
+    private String compileFloatingImage(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String title = element.getAttributeString("title", null);
         String alt = element.getAttributeString("alt", title != null ? title : "");
         Integer width = parsePositiveInt(element.getAttributeString("width", null));
         Integer height = parsePositiveInt(element.getAttributeString("height", null));
+        String src = resolveImageSource(element.getAttributeString("src", ""), currentPageId);
 
         StringBuilder style = new StringBuilder();
         if ("right".equals(element.getAttributeString("align", "left"))) {
@@ -396,14 +472,209 @@ public class GuideSiteHtmlCompiler {
                 .append("px;");
         }
 
-        return buildImageTag(
-            "guide-image guide-floating-image",
-            resolveImageSource(element.getAttributeString("src", ""), currentPageId),
-            alt,
-            title,
-            style.toString(),
+        List<ImageAnnotationExport> annotations = collectImageAnnotations(
+            element,
+            templates,
+            defaultNamespace,
+            currentPageId,
+            sceneResolver,
             width,
             height);
+        if (annotations.isEmpty()) {
+            return buildImageTag("guide-image guide-floating-image", src, alt, title, style.toString(), width, height);
+        }
+
+        StringBuilder html = new StringBuilder();
+        html.append("<span class=\"guide-floating-image-wrap\" style=\"")
+            .append(escapeAttribute(style.toString()))
+            .append("\">");
+        html.append(buildImageTag("guide-image guide-floating-image", src, alt, title, null, width, height));
+        for (ImageAnnotationExport annotation : annotations) {
+            html.append("<span class=\"guide-image-annotation");
+            if (annotation.templateId != null) {
+                html.append(" guide-tooltip");
+            }
+            html.append("\"");
+            if (annotation.templateId != null) {
+                html.append(" data-template=\"")
+                    .append(escapeAttribute(annotation.templateId))
+                    .append("\"");
+            }
+            appendOptionalDataAttribute(html, "data-source-x", annotation.sourceX);
+            appendOptionalDataAttribute(html, "data-source-y", annotation.sourceY);
+            appendOptionalDataAttribute(html, "data-source-width", annotation.sourceWidth);
+            appendOptionalDataAttribute(html, "data-source-height", annotation.sourceHeight);
+            html.append(" style=\"")
+                .append(escapeAttribute(annotation.style))
+                .append("\"></span>");
+        }
+        html.append("</span>");
+        return html.toString();
+    }
+
+    private List<ImageAnnotationExport> collectImageAnnotations(MdxJsxElementFields element,
+        GuideSiteTemplateRegistry templates, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+        SceneResolver sceneResolver, @Nullable Integer imageWidth, @Nullable Integer imageHeight) {
+        List<ImageAnnotationExport> annotations = new ArrayList<>();
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxElementFields childElement)
+                || !"ImageAnnotation".equals(childElement.name())) {
+                continue;
+            }
+            String tooltipHtml = compileChildren(
+                childElement.children(),
+                templates,
+                defaultNamespace,
+                currentPageId,
+                sceneResolver);
+            String templateId = tooltipHtml.trim()
+                .isEmpty() ? null : templates.create(tooltipHtml);
+            annotations.add(buildImageAnnotation(childElement, templateId, imageWidth, imageHeight));
+        }
+        return annotations;
+    }
+
+    private ImageAnnotationExport buildImageAnnotation(MdxJsxElementFields element, @Nullable String templateId,
+        @Nullable Integer imageWidth, @Nullable Integer imageHeight) {
+        Integer x = parsePositiveOrZeroInt(element.getAttributeString("x", null));
+        Integer y = parsePositiveOrZeroInt(element.getAttributeString("y", null));
+        Integer w = parsePositiveInt(element.getAttributeString("w", null));
+        Integer h = parsePositiveInt(element.getAttributeString("h", null));
+        boolean wholeImage = x == null && y == null && w == null && h == null;
+
+        StringBuilder style = new StringBuilder();
+        if (wholeImage) {
+            style.append("left:0;top:0;width:100%;height:100%;");
+        } else {
+            style.append("left:0;top:0;width:1px;height:1px;");
+        }
+        if (readBoolean(element, "border", false)) {
+            style.append("border:")
+                .append(Math.max(1, readInt(element, "borderThickness", 1)))
+                .append("px solid ")
+                .append(escapeCssColor(element.getAttributeString("borderColor", "#FFFFFFFF")))
+                .append(";");
+        }
+        return new ImageAnnotationExport(
+            templateId,
+            style.toString(),
+            wholeImage ? null : x != null ? x : 0,
+            wholeImage ? null : y != null ? y : 0,
+            wholeImage ? null : w != null ? w : 1,
+            wholeImage ? null : h != null ? h : 1);
+    }
+
+    private void appendOptionalDataAttribute(StringBuilder html, String name, @Nullable Integer value) {
+        if (value == null) {
+            return;
+        }
+        html.append(" ")
+            .append(name)
+            .append("=\"")
+            .append(value)
+            .append("\"");
+    }
+
+    private String compileLatex(MdxJsxElementFields element, boolean display, GuideSiteTemplateRegistry templates) {
+        String formula = element.getAttributeString("formula", null);
+        if (formula == null || formula.trim()
+            .isEmpty()) {
+            return "<span class=\"guide-export-error\">Latex tag requires a formula</span>";
+        }
+        String color = element.getAttributeString("color", null);
+        float scale = parseFloat(element.getAttributeString("scale", null), 1.0f);
+        boolean showTooltip = readBoolean(element, "showTooltip", false);
+        String valign = element.getAttributeString("valign", null);
+        int offsetX = readInt(element, "offsetX", 0);
+        int offsetY = readInt(element, "offsetY", 0);
+        return renderLatex(formula, color, scale, showTooltip, valign, offsetX, offsetY, display, templates);
+    }
+
+    private String renderLatex(String formula, @Nullable String color, float scale, boolean showTooltip,
+        @Nullable String valign, int offsetX, int offsetY, boolean display, GuideSiteTemplateRegistry templates) {
+        String tag = display ? "div" : "span";
+        StringBuilder classes = new StringBuilder(
+            display ? "guide-latex guide-latex-display" : "guide-latex guide-latex-inline");
+        if (valign != null && !valign.trim()
+            .isEmpty()) {
+            classes.append(" guide-latex-valign-")
+                .append(
+                    sanitizeCssToken(
+                        valign.trim()
+                            .toLowerCase(Locale.ROOT)));
+        }
+
+        String cssColor = parseLatexCssColor(color);
+        StringBuilder style = new StringBuilder();
+        if (cssColor != null) {
+            style.append("color:")
+                .append(cssColor)
+                .append(";");
+        }
+        float safeScale = Math.max(0.1f, scale);
+        if (safeScale != 1.0f || offsetX != 0 || offsetY != 0) {
+            style.append("transform:translate(")
+                .append(offsetX)
+                .append("px,")
+                .append(offsetY)
+                .append("px) scale(")
+                .append(safeScale)
+                .append(");");
+        }
+
+        String templateId = null;
+        if (showTooltip) {
+            templateId = templates.create("<code>" + escapeHtml(formula) + "</code>");
+        }
+
+        StringBuilder html = new StringBuilder();
+        html.append("<")
+            .append(tag)
+            .append(" class=\"")
+            .append(classes)
+            .append("\"");
+        if (templateId != null) {
+            html.append(" data-template=\"")
+                .append(escapeAttribute(templateId))
+                .append("\"");
+        }
+        if (style.length() > 0) {
+            html.append(" style=\"")
+                .append(escapeAttribute(style.toString()))
+                .append("\"");
+        }
+        html.append(">")
+            .append(escapeHtml(formula))
+            .append("</")
+            .append(tag)
+            .append(">");
+        return html.toString();
+    }
+
+    private String compileText(String text, GuideSiteTemplateRegistry templates) {
+        if (!MarkdownLatexShorthand.mayContain(text)) {
+            return escapeHtml(text);
+        }
+        StringBuilder html = new StringBuilder();
+        for (MarkdownLatexShorthand.Segment segment : MarkdownLatexShorthand.split(text)) {
+            if (segment.isFormula()) {
+                html.append(renderLatex(segment.getValue(), null, 1.0f, false, null, 0, 0, false, templates));
+            } else {
+                html.append(escapeHtml(segment.getValue()));
+            }
+        }
+        return html.toString();
+    }
+
+    @Nullable
+    private String extractSoleDisplayLatex(MdAstParagraph paragraph) {
+        if (paragraph.children()
+            .size() != 1
+            || !(paragraph.children()
+                .get(0) instanceof MdAstText text)) {
+            return null;
+        }
+        return MarkdownLatexShorthand.extractSoleDisplayFormula(text.value());
     }
 
     private String compileHeading(MdAstHeading heading, GuideSiteTemplateRegistry templates, String defaultNamespace,
@@ -421,13 +692,20 @@ public class GuideSiteHtmlCompiler {
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String href = element.getAttributeString("href", "");
         String anchorName = element.getAttributeString("name", "");
+        String title = element.getAttributeString("title", "");
         String body = compileChildren(element.children(), templates, defaultNamespace, currentPageId, sceneResolver);
+        String templateId = createTextTooltipTemplate(title, templates, currentPageId);
 
         if (href != null && !href.isEmpty()) {
             StringBuilder html = new StringBuilder();
             html.append("<a href=\"")
                 .append(escapeAttribute(GuideSiteHrefResolver.resolveRawHref(currentPageId, href)))
                 .append("\"");
+            if (templateId != null) {
+                html.append(" class=\"guide-tooltip\" data-template=\"")
+                    .append(escapeAttribute(templateId))
+                    .append("\"");
+            }
             if (anchorName != null && !anchorName.isEmpty()) {
                 html.append(" id=\"")
                     .append(escapeAttribute(anchorName))
@@ -439,6 +717,22 @@ public class GuideSiteHtmlCompiler {
             return html.toString();
         }
 
+        if (templateId != null) {
+            StringBuilder html = new StringBuilder();
+            html.append("<span class=\"guide-link guide-tooltip\" data-template=\"")
+                .append(escapeAttribute(templateId))
+                .append("\"");
+            if (anchorName != null && !anchorName.isEmpty()) {
+                html.append(" id=\"")
+                    .append(escapeAttribute(anchorName))
+                    .append("\"");
+            }
+            html.append(">")
+                .append(body)
+                .append("</span>");
+            return html.toString();
+        }
+
         if (anchorName != null && !anchorName.isEmpty()) {
             if (body.isEmpty()) {
                 return "<span id=\"" + escapeAttribute(anchorName) + "\"></span>";
@@ -447,6 +741,31 @@ public class GuideSiteHtmlCompiler {
         }
 
         return body;
+    }
+
+    private String compileHtmlBreak(MdxJsxElementFields element) {
+        String clear = element.getAttributeString("clear", "none");
+        if ("left".equals(clear) || "right".equals(clear)) {
+            return "<br style=\"clear:" + clear + "\">";
+        }
+        if ("all".equals(clear)) {
+            return "<br style=\"clear:both\">";
+        }
+        if ("none".equals(clear) || clear == null || clear.isEmpty()) {
+            return "<br>";
+        }
+        return "<span class=\"guide-export-error\">Invalid 'clear' attribute</span><br>";
+    }
+
+    @Nullable
+    private String createTextTooltipTemplate(@Nullable String text, GuideSiteTemplateRegistry templates,
+        @Nullable ResourceLocation currentPageId) {
+        if (text == null || text.isEmpty()) {
+            return null;
+        }
+        String html = GuideSiteSceneAnnotationSerializer.renderTooltipHtml(new TextTooltip(text), currentPageId);
+        return html == null || html.trim()
+            .isEmpty() ? null : templates.create(html);
     }
 
     private String compileList(MdAstList list, GuideSiteTemplateRegistry templates, String defaultNamespace,
@@ -736,6 +1055,36 @@ public class GuideSiteHtmlCompiler {
     }
 
     @Nullable
+    private String parseLatexCssColor(@Nullable String raw) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return null;
+        }
+        return escapeCssColor(raw);
+    }
+
+    private String escapeCssColor(String raw) {
+        if (raw == null) {
+            return "transparent";
+        }
+        String trimmed = raw.trim();
+        if (trimmed.matches("#[0-9a-fA-F]{6}")) {
+            return trimmed;
+        }
+        if (trimmed.matches("#[0-9a-fA-F]{8}")) {
+            int alpha = Integer.parseInt(trimmed.substring(1, 3), 16);
+            int red = Integer.parseInt(trimmed.substring(3, 5), 16);
+            int green = Integer.parseInt(trimmed.substring(5, 7), 16);
+            int blue = Integer.parseInt(trimmed.substring(7, 9), 16);
+            return "rgba(" + red + "," + green + "," + blue + "," + (alpha / 255.0f) + ")";
+        }
+        if ("transparent".equalsIgnoreCase(trimmed)) {
+            return "transparent";
+        }
+        return "#ffffffff";
+    }
+
+    @Nullable
     private Integer parsePositiveInt(@Nullable String raw) {
         if (raw == null || raw.isEmpty()) {
             return null;
@@ -746,6 +1095,76 @@ public class GuideSiteHtmlCompiler {
         } catch (NumberFormatException ignored) {
             return null;
         }
+    }
+
+    @Nullable
+    private Integer parsePositiveOrZeroInt(@Nullable String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return null;
+        }
+        try {
+            int value = Integer.parseInt(raw.trim());
+            return value >= 0 ? value : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private int readInt(MdxJsxElementFields element, String name, int fallback) {
+        String raw = element.getAttributeString(name, null);
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private float parseFloat(@Nullable String raw, float fallback) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return fallback;
+        }
+        try {
+            return Float.parseFloat(raw.trim());
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private boolean readBoolean(MdxJsxElementFields element, String name, boolean fallback) {
+        MdxJsxAttribute attribute = element.getAttribute(name);
+        if (attribute == null) {
+            return fallback;
+        }
+        if (!attribute.hasExpressionValue() && !attribute.hasStringValue()) {
+            return true;
+        }
+        String value = attribute.hasExpressionValue() ? attribute.getExpressionValue() : attribute.getStringValue();
+        if ("true".equalsIgnoreCase(value)) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(value)) {
+            return false;
+        }
+        return fallback;
+    }
+
+    private String sanitizeCssToken(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        StringBuilder result = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-') {
+                result.append(ch);
+            }
+        }
+        return result.toString();
     }
 
     private String buildImageTag(String cssClass, String src, @Nullable String alt, @Nullable String title,
@@ -788,6 +1207,31 @@ public class GuideSiteHtmlCompiler {
 
     private static MdxTagRenderer noopMdxTagRenderer() {
         return (element, defaultNamespace, currentPageId, templates, sceneResolver, compiler) -> null;
+    }
+
+    private static class ImageAnnotationExport {
+
+        @Nullable
+        private final String templateId;
+        private final String style;
+        @Nullable
+        private final Integer sourceX;
+        @Nullable
+        private final Integer sourceY;
+        @Nullable
+        private final Integer sourceWidth;
+        @Nullable
+        private final Integer sourceHeight;
+
+        private ImageAnnotationExport(@Nullable String templateId, String style, @Nullable Integer sourceX,
+            @Nullable Integer sourceY, @Nullable Integer sourceWidth, @Nullable Integer sourceHeight) {
+            this.templateId = templateId;
+            this.style = style;
+            this.sourceX = sourceX;
+            this.sourceY = sourceY;
+            this.sourceWidth = sourceWidth;
+            this.sourceHeight = sourceHeight;
+        }
     }
 
     private String escapeAttribute(String text) {

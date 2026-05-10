@@ -40,6 +40,40 @@ function installIngredientCycling(root) {
   }, 1000);
 }
 
+function layoutImageAnnotations(root) {
+  const annotations = root.querySelectorAll(".guide-image-annotation[data-source-x]");
+  for (const annotation of annotations) {
+    const wrapper = annotation.closest(".guide-floating-image-wrap");
+    const image = wrapper?.querySelector("img.guide-floating-image");
+    if (!(image instanceof HTMLImageElement) || !image.naturalWidth || !image.naturalHeight) {
+      continue;
+    }
+    const x = Number(annotation.dataset.sourceX || 0);
+    const y = Number(annotation.dataset.sourceY || 0);
+    const width = Number(annotation.dataset.sourceWidth || 1);
+    const height = Number(annotation.dataset.sourceHeight || 1);
+    annotation.style.left = `${(x / image.naturalWidth) * 100}%`;
+    annotation.style.top = `${(y / image.naturalHeight) * 100}%`;
+    annotation.style.width = `${(width / image.naturalWidth) * 100}%`;
+    annotation.style.height = `${(height / image.naturalHeight) * 100}%`;
+  }
+}
+
+function installImageAnnotations(root) {
+  const images = root.querySelectorAll(".guide-floating-image-wrap img.guide-floating-image");
+  for (const image of images) {
+    if (!(image instanceof HTMLImageElement)) {
+      continue;
+    }
+    if (image.complete) {
+      layoutImageAnnotations(root);
+    } else {
+      image.addEventListener("load", () => layoutImageAnnotations(root), { once: true });
+    }
+  }
+  window.addEventListener("resize", () => layoutImageAnnotations(root), { passive: true });
+}
+
 function installTooltips(root) {
   const tooltipRoot = document.querySelector("[data-guide-tooltip-root]");
   if (!tooltipRoot) {
@@ -309,6 +343,7 @@ document.addEventListener("DOMContentLoaded", () => {
   installSearchUi(document);
   installTooltips(document);
   installIngredientCycling(document);
+  installImageAnnotations(document);
   installMermaidPanZoom(document);
   installChartHoverTooltips(document);
   hydrateVisibleScenes(document);

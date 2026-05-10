@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-public final class GuideSiteExportedScene {
+public class GuideSiteExportedScene {
 
     private final String placeholderPath;
     private final String scenePath;
@@ -8,6 +8,7 @@ public final class GuideSiteExportedScene {
     private final String overlayJson;
     private final String hoverTargetsJson;
     private final String stateManifestPath;
+    private final String blockStatsHtml;
 
     public GuideSiteExportedScene(String placeholderPath, String scenePath) {
         this(placeholderPath, scenePath, null, null, null, null);
@@ -24,12 +25,18 @@ public final class GuideSiteExportedScene {
 
     public GuideSiteExportedScene(String placeholderPath, String scenePath, String inWorldJson, String overlayJson,
         String hoverTargetsJson, String stateManifestPath) {
+        this(placeholderPath, scenePath, inWorldJson, overlayJson, hoverTargetsJson, stateManifestPath, null);
+    }
+
+    public GuideSiteExportedScene(String placeholderPath, String scenePath, String inWorldJson, String overlayJson,
+        String hoverTargetsJson, String stateManifestPath, String blockStatsHtml) {
         this.placeholderPath = placeholderPath;
         this.scenePath = scenePath;
         this.inWorldJson = inWorldJson;
         this.overlayJson = overlayJson;
         this.hoverTargetsJson = hoverTargetsJson;
         this.stateManifestPath = stateManifestPath;
+        this.blockStatsHtml = blockStatsHtml;
     }
 
     public String placeholderPath() {
@@ -54,5 +61,9 @@ public final class GuideSiteExportedScene {
 
     public String stateManifestPath() {
         return stateManifestPath;
+    }
+
+    public String blockStatsHtml() {
+        return blockStatsHtml;
     }
 }

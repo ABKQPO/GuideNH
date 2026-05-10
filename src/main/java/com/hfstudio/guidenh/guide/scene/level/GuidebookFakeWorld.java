@@ -34,7 +34,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Lightweight client-only world wrapper backed by a {@link GuidebookLevel}.
  */
 @SideOnly(Side.CLIENT)
-public class GuidebookFakeWorld extends WorldClient {
+public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewWorld {
 
     public static final long FROZEN_WORLD_TIME = 0L;
     public static volatile boolean gregTechDummyWorldRegistrationAttempted;

@@ -484,6 +484,12 @@ public class SceneEditorScreen extends GuiScreen {
         processPendingMarkdownLiveSync();
     }
 
+    private void pollActivePreviewSceneDrag() {
+        if (activePreviewScene != null) {
+            activePreviewScene.pollDrag();
+        }
+    }
+
     @Override
     protected void actionPerformed(GuiButton button) {
         if (button.id == CLOSE_BUTTON_ID) {
@@ -600,6 +606,7 @@ public class SceneEditorScreen extends GuiScreen {
             addElementButton.visible = !rightPanelCollapsed;
         }
         syncToolbarToggleState();
+        pollActivePreviewSceneDrag();
 
         drawTiledBackground();
         drawCenterPanel(mouseX, mouseY);
@@ -1945,6 +1952,10 @@ public class SceneEditorScreen extends GuiScreen {
         if (preserveCurrentView && previewScene != null) {
             savedCamera = previewScene.getCamera()
                 .save();
+        }
+        if (activePreviewScene != null) {
+            activePreviewScene.endDrag();
+            activePreviewScene = null;
         }
         previewScene = previewBridge.buildScene(session, previewStructureLibSelectionOverride);
         bindPreviewScene(previewScene);

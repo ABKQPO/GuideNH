@@ -35,7 +35,7 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
         this.renderManagerState = new RenderManagerState(RenderManager.instance);
         this.tileEntityDispatcherState = new TileEntityDispatcherState(TileEntityRendererDispatcher.instance);
 
-        WorldClient fakeWorld = level.getOrCreateFakeWorld();
+        WorldClient fakeWorld = getOrCreateClientWorld(level);
         GuidebookPreviewPlayer previewPlayer = getOrCreatePreviewPlayer(minecraft, fakeWorld);
         previewPlayer.syncToPreviewWorld(fakeWorld, level, camera);
 
@@ -80,6 +80,14 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
         float partialTicks) {
         GuidebookPreviewPlayerRenderer.ensureRegistered();
         return new GuidebookFakeRenderEnvironment(level, camera, partialTicks);
+    }
+
+    public static WorldClient getOrCreateClientWorld(GuidebookLevel level) {
+        World world = level.getOrCreateFakeWorld();
+        if (!(world instanceof WorldClient clientWorld)) {
+            throw new IllegalStateException("Guidebook preview world must be a client world.");
+        }
+        return clientWorld;
     }
 
     @Override

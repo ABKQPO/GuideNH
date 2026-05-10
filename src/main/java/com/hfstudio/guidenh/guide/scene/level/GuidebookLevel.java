@@ -55,7 +55,10 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private final int[] boundsScratch = new int[6];
 
     @Nullable
-    private GuidebookFakeWorld fakeWorld;
+    private static GuidebookPreviewWorldFactory previewWorldFactory;
+
+    @Nullable
+    private World fakeWorld;
 
     private boolean previewStateDirty = true;
 
@@ -63,27 +66,39 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
     private boolean boundsDirty = true;
 
-    public GuidebookFakeWorld getOrCreateFakeWorld() {
+    public static void setPreviewWorldFactory(@Nullable GuidebookPreviewWorldFactory factory) {
+        previewWorldFactory = factory;
+    }
+
+    public World getOrCreateFakeWorld() {
         if (fakeWorld == null) {
+            GuidebookPreviewWorldFactory factory = previewWorldFactory;
+            if (factory == null) {
+                throw new IllegalStateException("Guidebook preview world is only available on the client.");
+            }
             try (var ignored = GuideNhIntegrationRegistry.global()
                 .openFakeWorldCreationScope()) {
-                fakeWorld = new GuidebookFakeWorld(this);
+                fakeWorld = factory.create(this);
             }
         }
         return fakeWorld;
     }
 
     public void rebindAllTileEntities() {
-        GuidebookFakeWorld world = getOrCreateFakeWorld();
+        World world = getOrCreateFakeWorld();
         for (TileEntity te : tileEntities.values()) {
             bindTileEntity(te, te.xCoord, te.yCoord, te.zCoord, world);
             te.validate();
         }
-        world.syncLoadedTileEntities(tileEntities.values());
+        if (world instanceof GuidebookPreviewWorld previewWorld) {
+            previewWorld.syncLoadedTileEntities(tileEntities.values());
+        }
         for (Entity entity : entities.values()) {
             bindEntity(entity, world);
         }
-        world.syncLoadedEntities(entities.values());
+        if (world instanceof GuidebookPreviewWorld previewWorld) {
+            previewWorld.syncLoadedEntities(entities.values());
+        }
     }
 
     public void prepareForPreview() {
@@ -447,9 +462,13 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     private void tickPreviewWorld() {
-        GuidebookFakeWorld world = getOrCreateFakeWorld();
+        World world = getOrCreateFakeWorld();
+        if (!(world instanceof GuidebookPreviewWorld previewWorld)) {
+            tickPreviewTileEntitiesFallback();
+            return;
+        }
         try {
-            world.updateEntitiesForPreview();
+            previewWorld.updateEntitiesForPreview();
         } catch (Throwable ignored) {
             tickPreviewTileEntitiesFallback();
         }

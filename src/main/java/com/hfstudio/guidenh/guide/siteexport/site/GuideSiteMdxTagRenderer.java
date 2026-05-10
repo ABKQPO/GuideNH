@@ -209,7 +209,55 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if ("FunctionGraph".equals(name) || "Function".equals(name)) {
             return renderFunctionGraphTag(element);
         }
+        if ("QuestLink".equals(name)) {
+            return renderQuestLink(element);
+        }
+        if ("QuestCard".equals(name)) {
+            return renderQuestCard(element);
+        }
         return null;
+    }
+
+    private String renderQuestLink(MdxJsxElementFields element) {
+        String id = readOptional(element, "id");
+        if (id == null || id.trim()
+            .isEmpty()) {
+            return renderError("QuestLink requires an id");
+        }
+        String text = readOptional(element, "text");
+        String label = text != null && !text.trim()
+            .isEmpty() ? text : "Quest " + id;
+        return "<span class=\"guide-quest-link\" data-quest-id=\"" + escapeAttribute(id)
+            + "\">"
+            + escapeHtml(label)
+            + "</span>";
+    }
+
+    private String renderQuestCard(MdxJsxElementFields element) {
+        String id = readOptional(element, "id");
+        if (id == null || id.trim()
+            .isEmpty()) {
+            return renderError("QuestCard requires an id");
+        }
+        boolean showDesc = readBoolean(element, "show_desc", true);
+        String title = readOptional(element, "title");
+        if (title == null || title.trim()
+            .isEmpty()) {
+            title = "Quest " + id;
+        }
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"guide-quest-card\" data-quest-id=\"")
+            .append(escapeAttribute(id))
+            .append("\"><div class=\"guide-quest-card-title\">")
+            .append(escapeHtml(title))
+            .append("</div>");
+        if (showDesc) {
+            html.append("<div class=\"guide-quest-card-meta\">")
+                .append(escapeHtml(id))
+                .append("</div>");
+        }
+        html.append("</div>");
+        return html.toString();
     }
 
     private String renderColor(MdxJsxElementFields element, String defaultNamespace,

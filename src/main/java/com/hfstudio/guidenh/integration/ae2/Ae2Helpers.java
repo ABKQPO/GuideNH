@@ -19,8 +19,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewWorld;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportBlockContext;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportSession;
 import com.hfstudio.guidenh.guide.scene.snapshot.GuidebookLevelStructureExportAccess;
@@ -63,7 +63,7 @@ public final class Ae2Helpers {
     /**
      * Whether {@link World#markBlockForUpdate} must not reapply
      * {@link TileEntity#getDescriptionPacket}
-     * for this TE inside a {@link GuidebookFakeWorld}:
+     * for this TE inside the guidebook preview world:
      * {@link #prepare(GuidebookLevel)}
      * already merged server-authoritative preview bytes ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID} /
      * {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID}). Vanilla description resync rebuilds payloads from an
@@ -154,8 +154,9 @@ public final class Ae2Helpers {
                 syncCableBusSidePartStreams(cableBusTile, level);
             }
         }
-        level.getOrCreateFakeWorld()
-            .syncLoadedTileEntities(level.getTileEntities());
+        if (level.getOrCreateFakeWorld() instanceof GuidebookPreviewWorld previewWorld) {
+            previewWorld.syncLoadedTileEntities(level.getTileEntities());
+        }
     }
 
     @Optional.Method(modid = "appliedenergistics2")

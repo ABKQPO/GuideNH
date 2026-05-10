@@ -1776,6 +1776,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (!isGuideEditorActive()) {
             updateSceneHover(contentMouseX, contentMouseY);
         }
+        pollActiveSceneDrag();
 
         if (isGuideEditorActive()) {
             drawGuideEditorScreen(contentMouseX, contentMouseY);
@@ -1837,6 +1838,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         int textX = textRightX - textW;
         int textY = barY + (TOOLBAR_H - fr.FONT_HEIGHT) / 2 + 1;
         fr.drawString(text, textX, textY, 0xFFAAAAAA, false);
+    }
+
+    private void pollActiveSceneDrag() {
+        if (activeScene != null) {
+            activeScene.pollDrag();
+        }
     }
 
     private void drawGuideEditorScreen(int mouseX, int mouseY) {

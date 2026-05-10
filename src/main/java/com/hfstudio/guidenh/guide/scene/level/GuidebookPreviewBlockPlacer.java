@@ -15,6 +15,7 @@ import net.minecraft.nbt.NBTTagIntArray;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -234,7 +235,7 @@ public class GuidebookPreviewBlockPlacer {
         }
     }
 
-    public static void invokeOnBlockAdded(Block block, GuidebookFakeWorld world, int x, int y, int z) {
+    public static void invokeOnBlockAdded(Block block, World world, int x, int y, int z) {
         if (block == null || world == null) {
             return;
         }
@@ -559,7 +560,7 @@ public class GuidebookPreviewBlockPlacer {
             return null;
         }
 
-        GuidebookFakeWorld world = level.getOrCreateFakeWorld();
+        World world = level.getOrCreateFakeWorld();
         TileEntity residentTile = resolveWorldResidentTile(world, x, y, z, preparedTileEntity);
         if (residentTile == preparedTileEntity) {
             return preparedTileEntity;
@@ -632,8 +633,7 @@ public class GuidebookPreviewBlockPlacer {
         return false;
     }
 
-    public static TileEntity resolveWorldResidentTile(GuidebookFakeWorld world, int x, int y, int z,
-        TileEntity fallback) {
+    public static TileEntity resolveWorldResidentTile(World world, int x, int y, int z, TileEntity fallback) {
         TileEntity resident = world.getTileEntity(x, y, z);
         return resident != null ? resident : fallback;
     }

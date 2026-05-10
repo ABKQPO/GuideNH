@@ -119,6 +119,17 @@ img.game-scene,
     cursor: pointer;
 }
 
+.scene-ponder-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.game-scene-wrapper .controls .scene-ponder-button {
+    min-width: calc(10px * var(--gui-scale));
+    min-height: calc(10px * var(--gui-scale));
+    line-height: 1;
+}
+
 .guide-scene-placeholder {
     display: grid;
     place-items: center;

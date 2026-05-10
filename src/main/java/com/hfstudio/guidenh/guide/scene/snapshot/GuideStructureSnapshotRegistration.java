@@ -7,7 +7,7 @@ import com.hfstudio.guidenh.integration.preview.GuideCompatStructurePreviewBoots
 /**
  * Registers default structure snapshot / preview contributors. Call once from {@link CommonProxy} {@code preInit}.
  */
-public final class GuideStructureSnapshotRegistration {
+public class GuideStructureSnapshotRegistration {
 
     private GuideStructureSnapshotRegistration() {}
 
@@ -16,6 +16,10 @@ public final class GuideStructureSnapshotRegistration {
         StructureExportPipeline.register(new ServerPreviewSupplementStructureExportContributor());
         StructureImportPipeline.register(new ServerPreviewSupplementStructureImportContributor());
 
+        registerPreviewPrepareContributors();
+    }
+
+    public static void registerPreviewPrepareContributors() {
         for (PreviewPrepareContributor contributor : GuideNhIntegrationRegistry.global()
             .previewPrepareContributors()) {
             PreviewPreparePipeline.register(contributor);
