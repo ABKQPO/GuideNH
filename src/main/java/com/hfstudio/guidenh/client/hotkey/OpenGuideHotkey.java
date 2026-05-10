@@ -26,9 +26,7 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
-import com.hfstudio.guidenh.integration.Mods;
-import com.hfstudio.guidenh.integration.betterquesting.BqCompat;
-import com.hfstudio.guidenh.integration.betterquesting.QuestIndex;
+import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -86,7 +84,8 @@ public class OpenGuideHotkey {
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
             newTick = true;
-            if (Mods.BetterQuesting.isModLoaded()) {
+            if (GuideNhClientIntegrationRegistry.global()
+                .isQuestHoverAvailable()) {
                 tickQuestHover();
             }
         }
@@ -233,11 +232,12 @@ public class OpenGuideHotkey {
 
     /**
      * Tick handler for the BetterQuesting quest-hover hotkey path. Reads the currently hovered
-     * quest UUID published by a BQ-targeted mixin and, when held long enough, opens the guide
+     * quest UUID published by a registered provider and, when held long enough, opens the guide
      * page indexed against that UUID.
      */
     public static void tickQuestHover() {
-        UUID hovered = BqCompat.getCurrentHoveredQuestUuid();
+        GuideNhClientIntegrationRegistry registry = GuideNhClientIntegrationRegistry.global();
+        UUID hovered = registry.currentHoveredQuestId();
         if (!Objects.equals(hovered, previousQuestId)) {
             previousQuestId = hovered;
             questGuidebookPages.clear();
@@ -248,15 +248,11 @@ public class OpenGuideHotkey {
                         continue;
                     }
                     PageAnchor anchor;
-                    try {
-                        anchor = guide.getIndex(QuestIndex.class)
-                            .findByUuid(hovered);
-                    } catch (IllegalArgumentException ignored) {
+                    anchor = registry.findQuestHoverPage(guide, hovered);
+                    if (anchor == null) {
                         continue;
                     }
-                    if (anchor != null) {
-                        questGuidebookPages.add(new FoundPage(guide, anchor));
-                    }
+                    questGuidebookPages.add(new FoundPage(guide, anchor));
                 }
             }
         }

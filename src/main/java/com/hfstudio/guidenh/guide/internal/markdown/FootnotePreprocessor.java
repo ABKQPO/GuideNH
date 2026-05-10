@@ -84,6 +84,7 @@ public final class FootnotePreprocessor {
                 .append('\n');
             index++;
         }
+        result.append('\n');
         result.append("</FootnoteList>\n");
         return result.toString();
     }

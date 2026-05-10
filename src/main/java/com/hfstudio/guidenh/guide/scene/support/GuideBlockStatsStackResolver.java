@@ -11,10 +11,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.integration.Mods;
-import com.hfstudio.guidenh.integration.ae2.Ae2Helpers;
-import com.hfstudio.guidenh.integration.carpentersblocks.CarpentersBlocksHelpers;
-import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartHelpers;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public final class GuideBlockStatsStackResolver {
 
@@ -58,21 +55,9 @@ public final class GuideBlockStatsStackResolver {
 
     private static void appendMultipartEntries(GuidebookLevel level, Block block, TileEntity tileEntity, int x, int y,
         int z, AxisAlignedBB fallbackBounds, List<ResolvedStack> entries) {
-        if (Mods.AE2.isModLoaded()) {
-            Ae2Helpers.appendCableBusStatEntries(tileEntity, entries, x, y, z);
-        }
-        if (entries.isEmpty() && Mods.ForgeMultipart.isModLoaded()
-            && (ForgeMultipartHelpers.isForgeMultipartBlock(block)
-                || ForgeMultipartHelpers.isMultipartTileEntity(tileEntity))) {
-            ArrayList<ItemStack> stacks = new ArrayList<>(4);
-            ForgeMultipartHelpers.appendMultipartStatStacks(tileEntity, stacks);
-            appendWithFallbackBounds(stacks, fallbackBounds, entries);
-        }
-        if (entries.isEmpty() && CarpentersBlocksHelpers.isCarpentersBlock(block)) {
-            ArrayList<ItemStack> stacks = new ArrayList<>(4);
-            CarpentersBlocksHelpers.appendComponentStatStacks(tileEntity, stacks);
-            appendWithFallbackBounds(stacks, fallbackBounds, entries);
-        }
+        entries.addAll(
+            GuideNhIntegrationRegistry.global()
+                .resolveBlockStatsEntries(level, block, tileEntity, x, y, z, fallbackBounds));
     }
 
     private static void appendFallbackEntry(GuidebookLevel level, int x, int y, int z, AxisAlignedBB fallbackBounds,
@@ -83,13 +68,6 @@ public final class GuideBlockStatsStackResolver {
                 entries.add(new ResolvedStack(stack, fallbackBounds));
             }
         } catch (Throwable ignored) {}
-    }
-
-    private static void appendWithFallbackBounds(List<ItemStack> stacks, AxisAlignedBB fallbackBounds,
-        List<ResolvedStack> entries) {
-        for (ItemStack stack : stacks) {
-            entries.add(new ResolvedStack(stack, fallbackBounds));
-        }
     }
 
     private static void normalizeEntries(List<ResolvedStack> entries) {

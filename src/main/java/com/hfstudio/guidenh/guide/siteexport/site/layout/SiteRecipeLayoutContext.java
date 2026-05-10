@@ -6,28 +6,31 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteItemIconResolver;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSitePageAssetExporter;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteRecipeExporter;
+import com.hfstudio.guidenh.integration.api.RecipeEntry;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 /**
  * Immutable inputs for {@link SiteRecipeLayoutStrategy}. Exactly one of
- * {@link #vanillaEntry}, {@link #neiEntry}, or {@link #rawHandler} is meaningful
- * for a given {@link #kind}.
+ * {@link #vanillaEntry}, {@link #recipeEntry}, {@link #neiEntry}, or {@link #rawHandler} is
+ * meaningful for a given {@link #kind}.
  */
-public final class SiteRecipeLayoutContext {
+public class SiteRecipeLayoutContext {
 
     private final SiteRecipeSourceKind kind;
     private final ItemStack targetStack;
     private final GuideSiteRecipeExporter exporter;
     private final GuideSiteItemIconResolver itemIconResolver;
     private final @Nullable RecipeLookup.Entry vanillaEntry;
+    private final @Nullable RecipeEntry recipeEntry;
     private final @Nullable NeiRecipeLookup.Entry neiEntry;
     private final @Nullable Object rawHandler;
     private final int rawRecipeIndex;
     private final @Nullable SiteRecipeRawHandlerAccess rawHandlerAccess;
     /**
      * Site-relative URL (e.g. prefixed with
-     * {@link com.hfstudio.guidenh.guide.siteexport.site.GuideSitePageAssetExporter#ROOT_PREFIX}).
+     * {@link GuideSitePageAssetExporter#ROOT_PREFIX}).
      */
     private final @Nullable String neiPhase1BackgroundUrl;
     private final @Nullable Integer neiPhase1CanvasWidthPx;
@@ -36,15 +39,16 @@ public final class SiteRecipeLayoutContext {
 
     private SiteRecipeLayoutContext(SiteRecipeSourceKind kind, ItemStack targetStack, GuideSiteRecipeExporter exporter,
         GuideSiteItemIconResolver itemIconResolver, @Nullable RecipeLookup.Entry vanillaEntry,
-        @Nullable NeiRecipeLookup.Entry neiEntry, @Nullable Object rawHandler, int rawRecipeIndex,
-        @Nullable SiteRecipeRawHandlerAccess rawHandlerAccess, @Nullable String neiPhase1BackgroundUrl,
-        @Nullable Integer neiPhase1CanvasWidthPx, @Nullable Integer neiPhase1CanvasHeightPx,
-        @Nullable Integer neiPhase1BodyYShiftPx) {
+        @Nullable RecipeEntry recipeEntry, @Nullable NeiRecipeLookup.Entry neiEntry, @Nullable Object rawHandler,
+        int rawRecipeIndex, @Nullable SiteRecipeRawHandlerAccess rawHandlerAccess,
+        @Nullable String neiPhase1BackgroundUrl, @Nullable Integer neiPhase1CanvasWidthPx,
+        @Nullable Integer neiPhase1CanvasHeightPx, @Nullable Integer neiPhase1BodyYShiftPx) {
         this.kind = kind;
         this.targetStack = targetStack;
         this.exporter = exporter;
         this.itemIconResolver = itemIconResolver;
         this.vanillaEntry = vanillaEntry;
+        this.recipeEntry = recipeEntry;
         this.neiEntry = neiEntry;
         this.rawHandler = rawHandler;
         this.rawRecipeIndex = rawRecipeIndex;
@@ -62,6 +66,26 @@ public final class SiteRecipeLayoutContext {
             targetStack,
             exporter,
             itemIconResolver,
+            entry,
+            null,
+            null,
+            null,
+            -1,
+            null,
+            null,
+            null,
+            null,
+            null);
+    }
+
+    public static SiteRecipeLayoutContext recipeEntry(RecipeEntry entry, ItemStack targetStack,
+        GuideSiteRecipeExporter exporter, GuideSiteItemIconResolver itemIconResolver) {
+        return new SiteRecipeLayoutContext(
+            SiteRecipeSourceKind.RECIPE_ENTRY,
+            targetStack,
+            exporter,
+            itemIconResolver,
+            null,
             entry,
             null,
             null,
@@ -102,6 +126,7 @@ public final class SiteRecipeLayoutContext {
             targetStack,
             exporter,
             itemIconResolver,
+            null,
             null,
             entry,
             null,
@@ -158,6 +183,7 @@ public final class SiteRecipeLayoutContext {
             itemIconResolver,
             null,
             null,
+            null,
             handler,
             recipeIndex,
             rawHandlerAccess,
@@ -185,6 +211,10 @@ public final class SiteRecipeLayoutContext {
 
     public @Nullable RecipeLookup.Entry vanillaEntry() {
         return vanillaEntry;
+    }
+
+    public @Nullable RecipeEntry recipeEntry() {
+        return recipeEntry;
     }
 
     public @Nullable NeiRecipeLookup.Entry neiEntry() {

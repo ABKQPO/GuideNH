@@ -9,14 +9,13 @@ import java.util.Map;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
-import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 /**
- * Caches the raw {@link NeiRecipeLookup#queryRawCraftingHandlers(ItemStack)} result per target
- * (item + meta + NBT) for the lifetime of the currently-loaded guide set. Cleared via
- * {@link #clear()} on {@code F3+T} reload (see {@code GuideReloadListener}). A plain HashMap is
- * sufficient: entries are small (a list of handler references) and keyed by a lightweight composite
- * without referencing the original ItemStack.
+ * Caches raw recipe handler results per target (item + meta + NBT) for the lifetime of the
+ * currently-loaded guide set. Cleared via {@link #clear()} on {@code F3+T} reload (see
+ * {@code GuideReloadListener}). A plain HashMap is sufficient: entries are small (a list of handler
+ * references) and keyed by a lightweight composite without referencing the original ItemStack.
  */
 public class RecipeCache {
 
@@ -26,27 +25,28 @@ public class RecipeCache {
     private RecipeCache() {}
 
     public static synchronized List<Object> getCraftingHandlers(ItemStack target) {
-        if (target == null || !NeiRecipeLookup.isAvailable()) return Collections.emptyList();
+        if (target == null) return Collections.emptyList();
         Key key = Key.of(target);
         List<Object> cached = HANDLERS.get(key);
         if (cached != null) return cached;
-        List<Object> fresh = NeiRecipeLookup.queryRawCraftingHandlers(target);
+        List<Object> fresh = GuideNhIntegrationRegistry.global()
+            .queryRawCraftingHandlers(target);
         List<Object> stored = fresh.isEmpty() ? Collections.emptyList() : new ArrayList<>(fresh);
         HANDLERS.put(key, stored);
         return stored;
     }
 
     /**
-     * Cached equivalent of {@link NeiRecipeLookup#queryRawUsageHandlers(ItemStack)}. Used to cover
-     * handlers that consume {@code target} as an input (anvil / fuel / brewing ingredient) and thus
-     * do not appear in the crafting-handler list.
+     * Cached raw usage handlers. Used to cover handlers that consume {@code target} as an input
+     * (anvil / fuel / brewing ingredient) and thus do not appear in the crafting-handler list.
      */
     public static synchronized List<Object> getUsageHandlers(ItemStack target) {
-        if (target == null || !NeiRecipeLookup.isAvailable()) return Collections.emptyList();
+        if (target == null) return Collections.emptyList();
         Key key = Key.of(target);
         List<Object> cached = USAGE_HANDLERS.get(key);
         if (cached != null) return cached;
-        List<Object> fresh = NeiRecipeLookup.queryRawUsageHandlers(target);
+        List<Object> fresh = GuideNhIntegrationRegistry.global()
+            .queryRawUsageHandlers(target);
         List<Object> stored = fresh.isEmpty() ? Collections.emptyList() : new ArrayList<>(fresh);
         USAGE_HANDLERS.put(key, stored);
         return stored;

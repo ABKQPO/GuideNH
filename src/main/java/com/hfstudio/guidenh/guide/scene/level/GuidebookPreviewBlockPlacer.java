@@ -25,9 +25,8 @@ import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.snapshot.StructureImportPipeline;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
-import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuidebookPreviewBlockPlacer {
 
@@ -185,7 +184,7 @@ public class GuidebookPreviewBlockPlacer {
     @Nullable
     private static Integer resolveGregTechBaseMetaUncached(int metaTileId) {
         try {
-            return GregTechHelpers.getMetaTileBaseType(metaTileId);
+            return GuideGregTechTileSupport.getMetaTileBaseType(metaTileId);
         } catch (Throwable t) {
             GuideDebugLog.warn(LOG, "Failed to resolve GregTech base meta for preview block {}", metaTileId, t);
             return null;
@@ -203,7 +202,7 @@ public class GuidebookPreviewBlockPlacer {
                 initTag = (NBTTagCompound) initTag.copy();
                 initTag.setInteger("mID", metaTileId);
             }
-            GregTechHelpers.initializeMetaTile(tileEntity, metaTileId, initTag);
+            GuideGregTechTileSupport.initializeMetaTile(tileEntity, metaTileId, initTag);
         } catch (Throwable t) {
             GuideGregTechTileSupport.logInfoOnce(
                 "preview-gregtech-init-bytearray-shapes:" + metaTileId
@@ -217,7 +216,7 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     public static void applyGregTechDefaultFacing(@Nullable TileEntity tileEntity, @Nullable NBTTagCompound tileTag) {
-        GregTechHelpers.applyDefaultFacing(tileEntity, tileTag);
+        GuideGregTechTileSupport.applyDefaultFacing(tileEntity, tileTag);
     }
 
     public static void applyBartWorksGeneratedBlockMeta(@Nullable TileEntity tileEntity, Block block, int blockMeta) {
@@ -586,7 +585,8 @@ public class GuidebookPreviewBlockPlacer {
     @Nullable
     public static TileEntity finalizeSpecialPreviewTile(GuidebookLevel level, int x, int y, int z,
         @Nullable TileEntity tileEntity) {
-        TileEntity finalizedTile = GuideForgeMultipartSupport.finalizePreviewTile(tileEntity);
+        TileEntity finalizedTile = GuideNhIntegrationRegistry.global()
+            .finalizePreviewTileEntity(level, x, y, z, tileEntity);
         if (finalizedTile != null && finalizedTile != tileEntity) {
             level.setTileEntity(x, y, z, finalizedTile);
         }

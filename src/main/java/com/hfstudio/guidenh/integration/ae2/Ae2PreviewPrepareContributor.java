@@ -8,7 +8,7 @@ import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPrepareContributor;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
 
-public final class Ae2PreviewPrepareContributor implements PreviewPrepareContributor {
+public class Ae2PreviewPrepareContributor implements PreviewPrepareContributor {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     private static volatile boolean invokeFailureLogged;

@@ -69,7 +69,7 @@ public class QuestCardCompiler extends BlockTagCompiler {
         box.append(title);
 
         // Description body: only shown when the player can actually see the quest.
-        if (showDesc && (state == QuestState.VISIBLE || state == QuestState.COMPLETED)) {
+        if (showDesc && isVisibleToPlayer(state)) {
             String description = display.getDescription();
             if (description != null && !description.isEmpty()) {
                 var descPar = new LytParagraph();
@@ -85,7 +85,7 @@ public class QuestCardCompiler extends BlockTagCompiler {
         QuestState state = display.getState();
         String name = resolveTitleText(display, questId);
 
-        if (state == QuestState.VISIBLE || state == QuestState.COMPLETED) {
+        if (isVisibleToPlayer(state)) {
             PageAnchor pageAnchor = compiler.getIndex(QuestIndex.class)
                 .findByUuid(questId);
             var link = new LytFlowLink();
@@ -113,31 +113,46 @@ public class QuestCardCompiler extends BlockTagCompiler {
 
     private static String resolveTitleText(QuestDisplay display, UUID questId) {
         QuestState state = display.getState();
-        return switch (state) {
-            case VISIBLE, COMPLETED -> {
-                String name = display.getName();
-                yield name != null && !name.isEmpty() ? name : "Quest " + questId;
-            }
-            case LOCKED -> "[" + StatCollector.translateToLocal("guidenh.compat.bq.locked") + "]";
-            case HIDDEN -> "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
-            case MISSING -> "[" + StatCollector.translateToLocal("guidenh.compat.bq.missing") + "]";
-        };
+        if (isVisibleToPlayer(state)) {
+            String name = display.getName();
+            return name != null && !name.isEmpty() ? name : "Quest " + questId;
+        }
+        if (state == QuestState.LOCKED) {
+            return "[" + StatCollector.translateToLocal("guidenh.compat.bq.locked") + "]";
+        }
+        if (state == QuestState.HIDDEN) {
+            return "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
+        }
+        if (state == QuestState.MISSING) {
+            return "[" + StatCollector.translateToLocal("guidenh.compat.bq.missing") + "]";
+        }
+        return "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
     }
 
     private static SymbolicColor pickAccentColor(QuestState state) {
-        return switch (state) {
-            case COMPLETED -> SymbolicColor.GREEN;
-            case LOCKED, HIDDEN -> SymbolicColor.GRAY;
-            case MISSING -> SymbolicColor.RED;
-            default -> SymbolicColor.LINK;
-        };
+        if (state == QuestState.COMPLETED) {
+            return SymbolicColor.GREEN;
+        }
+        if (state == QuestState.LOCKED || state == QuestState.HIDDEN) {
+            return SymbolicColor.GRAY;
+        }
+        if (state == QuestState.MISSING) {
+            return SymbolicColor.RED;
+        }
+        return SymbolicColor.LINK;
     }
 
     private static SymbolicColor pickPlaceholderColor(QuestState state) {
-        return switch (state) {
-            case HIDDEN -> SymbolicColor.DARK_GRAY;
-            case MISSING -> SymbolicColor.RED;
-            default -> SymbolicColor.GRAY;
-        };
+        if (state == QuestState.HIDDEN) {
+            return SymbolicColor.DARK_GRAY;
+        }
+        if (state == QuestState.MISSING) {
+            return SymbolicColor.RED;
+        }
+        return SymbolicColor.GRAY;
+    }
+
+    private static boolean isVisibleToPlayer(QuestState state) {
+        return state == QuestState.VISIBLE || state == QuestState.COMPLETED;
     }
 }

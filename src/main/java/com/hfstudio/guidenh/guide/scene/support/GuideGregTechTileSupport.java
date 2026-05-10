@@ -36,6 +36,20 @@ public final class GuideGregTechTileSupport {
         GregTechHelpers.logInfoOnce(key, message, args);
     }
 
+    @Nullable
+    public static Integer getMetaTileBaseType(int metaTileId) {
+        return GregTechHelpers.getMetaTileBaseType(metaTileId);
+    }
+
+    public static boolean initializeMetaTile(@Nullable TileEntity tileEntity, int metaTileId,
+        @Nullable NBTTagCompound tileTag) {
+        return GregTechHelpers.initializeMetaTile(tileEntity, metaTileId, tileTag);
+    }
+
+    public static void applyDefaultFacing(@Nullable TileEntity tileEntity, @Nullable NBTTagCompound tileTag) {
+        GregTechHelpers.applyDefaultFacing(tileEntity, tileTag);
+    }
+
     public static String describeBlock(@Nullable Block block) {
         return GregTechHelpers.describeBlock(block);
     }

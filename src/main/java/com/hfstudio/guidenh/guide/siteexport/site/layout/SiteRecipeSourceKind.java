@@ -9,6 +9,8 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 public enum SiteRecipeSourceKind {
     /** {@link RecipeLookup.Entry} crafting 3x3. */
     VANILLA,
+    /** Generic integration recipe snapshot. */
+    RECIPE_ENTRY,
     /** Snapshot from {@link NeiRecipeLookup#readHandler}. */
     NEI_ENTRY,
     /** Live {@code IRecipeHandler} + recipe index (raw handler path). */

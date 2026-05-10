@@ -7,6 +7,8 @@ import net.minecraft.tileentity.TileEntity;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
+
 import appeng.tile.AEBaseTile;
 import appeng.tile.networking.TileCableBus;
 import cpw.mods.fml.common.Optional;
@@ -25,7 +27,7 @@ import cpw.mods.fml.common.Optional;
  */
 public final class Ae2BaseTileNetworkStreamPreview {
 
-    /** Stored under {@link com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt#TAG_ROOT}. */
+    /** Stored under {@link ServerPreviewSupplementNbt#TAG_ROOT}. */
     public static final String SUPPLEMENT_ID = "guidenh.ae2.ae_base_tile_network";
 
     /** Max {@code X} bytes per tile in multiplayer batch payloads ( ushort length on wire ). */

@@ -10,6 +10,8 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
+import com.hfstudio.guidenh.integration.api.RecipeEntry;
+import com.hfstudio.guidenh.integration.api.RecipeSlot;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 public class GuideSiteRecipeExporter {
@@ -313,25 +315,46 @@ public class GuideSiteRecipeExporter {
     }
 
     public List<List<String>> ingredientsFromNeiEntry(NeiRecipeLookup.Entry entry) {
-        return ingredientsFromNeiSlots(entry != null ? entry.ingredients : Collections.emptyList());
+        return ingredientsFromRecipeSlots(
+            neiSlotsToRecipeSlots(entry != null ? entry.ingredients : Collections.emptyList()));
     }
 
     public List<List<GuideSiteExportedItem>> ingredientItemsFromNeiEntry(NeiRecipeLookup.Entry entry,
         GuideSiteItemIconResolver itemIconResolver) {
-        return ingredientItemsFromNeiSlots(
-            entry != null ? entry.ingredients : Collections.emptyList(),
+        return ingredientItemsFromRecipeSlots(
+            neiSlotsToRecipeSlots(entry != null ? entry.ingredients : Collections.emptyList()),
             itemIconResolver);
     }
 
     public List<List<String>> ingredientsFromNeiSlots(List<NeiRecipeLookup.Slot> slots) {
+        return ingredientsFromRecipeSlots(neiSlotsToRecipeSlots(slots));
+    }
+
+    public List<List<GuideSiteExportedItem>> ingredientItemsFromNeiSlots(List<NeiRecipeLookup.Slot> slots,
+        GuideSiteItemIconResolver itemIconResolver) {
+        return ingredientItemsFromRecipeSlots(neiSlotsToRecipeSlots(slots), itemIconResolver);
+    }
+
+    public List<List<String>> ingredientsFromRecipeEntry(RecipeEntry entry) {
+        return ingredientsFromRecipeSlots(entry != null ? entry.ingredients() : Collections.emptyList());
+    }
+
+    public List<List<GuideSiteExportedItem>> ingredientItemsFromRecipeEntry(RecipeEntry entry,
+        GuideSiteItemIconResolver itemIconResolver) {
+        return ingredientItemsFromRecipeSlots(
+            entry != null ? entry.ingredients() : Collections.emptyList(),
+            itemIconResolver);
+    }
+
+    public List<List<String>> ingredientsFromRecipeSlots(List<RecipeSlot> slots) {
         List<List<String>> ingredients = new ArrayList<>();
         if (slots == null) {
             return ingredients;
         }
-        for (NeiRecipeLookup.Slot slot : slots) {
+        for (RecipeSlot slot : slots) {
             List<String> candidates = new ArrayList<>();
-            if (slot != null && slot.stacks != null) {
-                for (ItemStack stack : slot.stacks) {
+            if (slot != null && slot.stacks() != null) {
+                for (ItemStack stack : slot.stacks()) {
                     if (stack != null) {
                         candidates.add(itemId(stack));
                     }
@@ -342,16 +365,16 @@ public class GuideSiteRecipeExporter {
         return ingredients;
     }
 
-    public List<List<GuideSiteExportedItem>> ingredientItemsFromNeiSlots(List<NeiRecipeLookup.Slot> slots,
+    public List<List<GuideSiteExportedItem>> ingredientItemsFromRecipeSlots(List<RecipeSlot> slots,
         GuideSiteItemIconResolver itemIconResolver) {
         List<List<GuideSiteExportedItem>> ingredients = new ArrayList<>();
         if (slots == null) {
             return ingredients;
         }
-        for (NeiRecipeLookup.Slot slot : slots) {
+        for (RecipeSlot slot : slots) {
             List<GuideSiteExportedItem> candidates = new ArrayList<>();
-            if (slot != null && slot.stacks != null) {
-                for (ItemStack stack : slot.stacks) {
+            if (slot != null && slot.stacks() != null) {
+                for (ItemStack stack : slot.stacks()) {
                     if (stack != null) {
                         candidates.add(itemInfo(stack, itemIconResolver));
                     }
@@ -363,26 +386,53 @@ public class GuideSiteRecipeExporter {
     }
 
     public List<List<String>> supportingSlotsFromNeiEntry(NeiRecipeLookup.Entry entry) {
-        return ingredientsFromNeiSlots(entry != null ? entry.others : Collections.emptyList());
+        return supportingSlotsFromRecipeSlots(
+            neiSlotsToRecipeSlots(entry != null ? entry.others : Collections.emptyList()));
     }
 
     public List<List<GuideSiteExportedItem>> supportingSlotItemsFromNeiEntry(NeiRecipeLookup.Entry entry,
         GuideSiteItemIconResolver itemIconResolver) {
-        return ingredientItemsFromNeiSlots(entry != null ? entry.others : Collections.emptyList(), itemIconResolver);
+        return supportingSlotItemsFromRecipeSlots(
+            neiSlotsToRecipeSlots(entry != null ? entry.others : Collections.emptyList()),
+            itemIconResolver);
     }
 
     public List<List<String>> supportingSlotsFromNeiSlots(List<NeiRecipeLookup.Slot> slots) {
-        return ingredientsFromNeiSlots(slots);
+        return supportingSlotsFromRecipeSlots(neiSlotsToRecipeSlots(slots));
     }
 
     public List<List<GuideSiteExportedItem>> supportingSlotItemsFromNeiSlots(List<NeiRecipeLookup.Slot> slots,
         GuideSiteItemIconResolver itemIconResolver) {
-        return ingredientItemsFromNeiSlots(slots, itemIconResolver);
+        return supportingSlotItemsFromRecipeSlots(neiSlotsToRecipeSlots(slots), itemIconResolver);
+    }
+
+    public List<List<String>> supportingSlotsFromRecipeEntry(RecipeEntry entry) {
+        return supportingSlotsFromRecipeSlots(entry != null ? entry.supportingSlots() : Collections.emptyList());
+    }
+
+    public List<List<GuideSiteExportedItem>> supportingSlotItemsFromRecipeEntry(RecipeEntry entry,
+        GuideSiteItemIconResolver itemIconResolver) {
+        return supportingSlotItemsFromRecipeSlots(
+            entry != null ? entry.supportingSlots() : Collections.emptyList(),
+            itemIconResolver);
+    }
+
+    public List<List<String>> supportingSlotsFromRecipeSlots(List<RecipeSlot> slots) {
+        return ingredientsFromRecipeSlots(slots);
+    }
+
+    public List<List<GuideSiteExportedItem>> supportingSlotItemsFromRecipeSlots(List<RecipeSlot> slots,
+        GuideSiteItemIconResolver itemIconResolver) {
+        return ingredientItemsFromRecipeSlots(slots, itemIconResolver);
     }
 
     public String resultItemId(@Nullable NeiRecipeLookup.Slot result, String fallbackItemId) {
-        if (result != null && result.stacks != null) {
-            for (ItemStack stack : result.stacks) {
+        return resultItemId(neiSlotToRecipeSlot(result), fallbackItemId);
+    }
+
+    public String resultItemId(@Nullable RecipeSlot result, String fallbackItemId) {
+        if (result != null && result.stacks() != null) {
+            for (ItemStack stack : result.stacks()) {
                 String itemId = itemId(stack);
                 if (!itemId.isEmpty()) {
                     return itemId;
@@ -394,8 +444,13 @@ public class GuideSiteRecipeExporter {
 
     public GuideSiteExportedItem resultItem(@Nullable NeiRecipeLookup.Slot result, @Nullable ItemStack fallbackStack,
         GuideSiteItemIconResolver itemIconResolver) {
-        if (result != null && result.stacks != null) {
-            for (ItemStack stack : result.stacks) {
+        return resultItem(neiSlotToRecipeSlot(result), fallbackStack, itemIconResolver);
+    }
+
+    public GuideSiteExportedItem resultItem(@Nullable RecipeSlot result, @Nullable ItemStack fallbackStack,
+        GuideSiteItemIconResolver itemIconResolver) {
+        if (result != null && result.stacks() != null) {
+            for (ItemStack stack : result.stacks()) {
                 if (stack != null && stack.getItem() != null) {
                     return itemInfo(stack, itemIconResolver);
                 }
@@ -405,6 +460,30 @@ public class GuideSiteRecipeExporter {
             return itemInfo(fallbackStack, itemIconResolver);
         }
         return GuideSiteItemSupport.unresolved("");
+    }
+
+    private List<RecipeSlot> neiSlotsToRecipeSlots(List<NeiRecipeLookup.Slot> slots) {
+        if (slots == null || slots.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<RecipeSlot> recipeSlots = new ArrayList<>(slots.size());
+        for (NeiRecipeLookup.Slot slot : slots) {
+            RecipeSlot recipeSlot = neiSlotToRecipeSlot(slot);
+            if (recipeSlot != null) {
+                recipeSlots.add(recipeSlot);
+            } else {
+                recipeSlots.add(new RecipeSlot(0, 0, Collections.emptyList()));
+            }
+        }
+        return recipeSlots;
+    }
+
+    @Nullable
+    private RecipeSlot neiSlotToRecipeSlot(@Nullable NeiRecipeLookup.Slot slot) {
+        if (slot == null) {
+            return null;
+        }
+        return new RecipeSlot(slot.relx, slot.rely, slot.stacks);
     }
 
     public GuideSiteExportedItem itemInfo(@Nullable ItemStack stack, GuideSiteItemIconResolver itemIconResolver) {

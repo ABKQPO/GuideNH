@@ -61,11 +61,16 @@ public class QuestLinkCompiler extends FlowTagCompiler {
         QuestState state = display.getState();
         String text = pickText(overrideText, display, questId);
 
-        switch (state) {
-            case VISIBLE, COMPLETED -> appendVisibleLink(compiler, parent, questId, text, display);
-            case LOCKED -> appendPlaceholder(parent, text, SymbolicColor.GRAY, display.getDescription());
-            case HIDDEN -> appendPlaceholder(parent, text, SymbolicColor.DARK_GRAY, null);
-            case MISSING -> appendPlaceholder(parent, text, SymbolicColor.RED, null);
+        if (state == QuestState.VISIBLE || state == QuestState.COMPLETED) {
+            appendVisibleLink(compiler, parent, questId, text, display);
+        } else if (state == QuestState.LOCKED) {
+            appendPlaceholder(parent, text, SymbolicColor.GRAY, display.getDescription());
+        } else if (state == QuestState.HIDDEN) {
+            appendPlaceholder(parent, text, SymbolicColor.DARK_GRAY, null);
+        } else if (state == QuestState.MISSING) {
+            appendPlaceholder(parent, text, SymbolicColor.RED, null);
+        } else {
+            appendPlaceholder(parent, text, SymbolicColor.GRAY, null);
         }
     }
 
@@ -118,13 +123,22 @@ public class QuestLinkCompiler extends FlowTagCompiler {
             return overrideText;
         }
         QuestState state = display.getState();
-        return switch (state) {
-            case VISIBLE -> nameOrFallback(display, questId);
-            case COMPLETED -> nameOrFallback(display, questId) + " \u2713";
-            case LOCKED -> "[" + StatCollector.translateToLocal("guidenh.compat.bq.locked") + "]";
-            case HIDDEN -> "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
-            case MISSING -> "[" + StatCollector.translateToLocal("guidenh.compat.bq.missing") + "]";
-        };
+        if (state == QuestState.VISIBLE) {
+            return nameOrFallback(display, questId);
+        }
+        if (state == QuestState.COMPLETED) {
+            return nameOrFallback(display, questId) + " \u2713";
+        }
+        if (state == QuestState.LOCKED) {
+            return "[" + StatCollector.translateToLocal("guidenh.compat.bq.locked") + "]";
+        }
+        if (state == QuestState.HIDDEN) {
+            return "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
+        }
+        if (state == QuestState.MISSING) {
+            return "[" + StatCollector.translateToLocal("guidenh.compat.bq.missing") + "]";
+        }
+        return "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
     }
 
     private static String nameOrFallback(QuestDisplay display, UUID questId) {

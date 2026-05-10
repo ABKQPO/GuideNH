@@ -15,8 +15,8 @@ import com.hfstudio.guidenh.integration.Mods;
 
 /**
  * Registers AE2 server-authoritative preview supplements under
- * {@link com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementRegistry}: cable-bus (type1) and AEBaseTile
- * {@code X} stream (type2 non-cable). Bootstrap calls {@link #register()} only.
+ * {@link ServerPreviewSupplementRegistry}: cable-bus (type1) and AEBaseTile {@code X} stream (type2 non-cable).
+ * Bootstrap calls {@link #register()} only.
  */
 public final class Ae2ServerPreviewRegistration {
 

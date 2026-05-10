@@ -27,6 +27,9 @@ import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.api.RecipeEntry;
+import com.hfstudio.guidenh.integration.api.RecipeSlot;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
@@ -139,7 +142,8 @@ public class RecipeCompiler extends BlockTagCompiler {
             List<LytNeiRecipeBox> boxes = new ArrayList<>();
             for (int hi = 0; hi < handlers.size() && boxes.size() < limit; hi++) {
                 Object handler = handlers.get(hi);
-                int num = NeiRecipeLookup.lookupNumRecipes(handler);
+                int num = GuideNhIntegrationRegistry.global()
+                    .lookupRecipeHandlerRecipeCount(handler);
                 for (int ri = 0; ri < num && boxes.size() < limit; ri++) {
                     if (hasRecipeFilter && !recipeMatches(handler, ri, inputExpr, outputExpr)) continue;
                     boxes.add(new LytNeiRecipeBox(handler, ri));
@@ -169,23 +173,34 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
 
         // Legacy fallback: raw slot data coming from NEI (no handler draw) or from vanilla crafting registry.
-        List<NeiRecipeLookup.Entry> neiEntries = NeiRecipeLookup.findCraftingRecipes(targetStack);
-        if (!neiEntries.isEmpty()) {
+        List<RecipeEntry> recipeEntries = GuideNhIntegrationRegistry.global()
+            .findCraftingRecipeEntries(targetStack);
+        if (!recipeEntries.isEmpty()) {
             List<LytStandardRecipeBox> boxes = new ArrayList<>();
-            for (int i = 0; i < neiEntries.size() && boxes.size() < limit; i++) {
-                var e = neiEntries.get(i);
-                if (e.result == null || e.ingredients.isEmpty()) continue;
+            for (int i = 0; i < recipeEntries.size() && boxes.size() < limit; i++) {
+                var e = recipeEntries.get(i);
+                if (e.result() == null || e.ingredients()
+                    .isEmpty()) continue;
                 if (hasRecipeFilter && !entryMatches(e, inputExpr, outputExpr)) continue;
                 List<ItemStack> flat = new ArrayList<>(9);
                 for (int s = 0; s < 9; s++) flat.add(null);
                 int idx = 0;
-                for (var slot : e.ingredients) {
+                for (RecipeSlot slot : e.ingredients()) {
                     if (idx >= 9) break;
-                    if (slot.stacks != null && !slot.stacks.isEmpty()) flat.set(idx, slot.stacks.get(0));
+                    if (slot.stacks() != null && !slot.stacks()
+                        .isEmpty()) flat.set(
+                            idx,
+                            slot.stacks()
+                                .get(0));
                     idx++;
                 }
-                ItemStack resultStack = e.result.stacks != null && !e.result.stacks.isEmpty() ? e.result.stacks.get(0)
-                    : null;
+                ItemStack resultStack = e.result()
+                    .stacks() != null
+                    && !e.result()
+                        .stacks()
+                        .isEmpty() ? e.result()
+                            .stacks()
+                            .get(0) : null;
                 if (resultStack != null) boxes.add(LytStandardRecipeBox.shapeless(flat, resultStack));
             }
             if (!boxes.isEmpty()) {
@@ -348,29 +363,41 @@ public class RecipeCompiler extends BlockTagCompiler {
         NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex);
     }
 
+    public interface RecipeSlotAccess {
+
+        List<RecipeSlot> readIngredientSlots(Object handler, int recipeIndex);
+
+        @Nullable
+        RecipeSlot readResultSlot(Object handler, int recipeIndex);
+    }
+
     private static final HandlerMetadataReader NEI_HANDLER_METADATA_READER = new HandlerMetadataReader() {
 
         @Override
         public @Nullable String handlerName(Object handler) {
-            return NeiRecipeLookup.lookupHandlerName(handler);
+            return GuideNhIntegrationRegistry.global()
+                .lookupRecipeHandlerName(handler);
         }
 
         @Override
         public @Nullable String overlayIdentifier(Object handler) {
-            return NeiRecipeLookup.lookupOverlayIdentifier(handler);
+            return GuideNhIntegrationRegistry.global()
+                .lookupRecipeHandlerOverlayIdentifier(handler);
         }
     };
 
-    private static final HandlerRecipeAccess NEI_HANDLER_RECIPE_ACCESS = new HandlerRecipeAccess() {
+    private static final RecipeSlotAccess REGISTRY_RECIPE_SLOT_ACCESS = new RecipeSlotAccess() {
 
         @Override
-        public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
-            return NeiRecipeLookup.readIngredientSlots(handler, recipeIndex);
+        public List<RecipeSlot> readIngredientSlots(Object handler, int recipeIndex) {
+            return GuideNhIntegrationRegistry.global()
+                .readRecipeIngredientSlots(handler, recipeIndex);
         }
 
         @Override
-        public @Nullable NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex) {
-            return NeiRecipeLookup.readResultSlot(handler, recipeIndex);
+        public @Nullable RecipeSlot readResultSlot(Object handler, int recipeIndex) {
+            return GuideNhIntegrationRegistry.global()
+                .readRecipeResultSlot(handler, recipeIndex);
         }
     };
 
@@ -476,6 +503,33 @@ public class RecipeCompiler extends BlockTagCompiler {
         return false;
     }
 
+    public static boolean recipeSlotsContain(@Nullable List<RecipeSlot> slots, IdUtils.ParsedItemRef ref) {
+        if (slots == null) return false;
+        for (RecipeSlot slot : slots) {
+            if (slot == null || slot.stacks() == null) continue;
+            for (int index = 0, count = slot.stacks()
+                .size(); index < count; index++) {
+                if (stackMatches(
+                    slot.stacks()
+                        .get(index),
+                    ref)) return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean recipeResultSlotContains(@Nullable RecipeSlot result, IdUtils.ParsedItemRef ref) {
+        if (result == null || result.stacks() == null) return false;
+        for (int index = 0, count = result.stacks()
+            .size(); index < count; index++) {
+            if (stackMatches(
+                result.stacks()
+                    .get(index),
+                ref)) return true;
+        }
+        return false;
+    }
+
     /** Evaluate a DNF expression against an ingredient-style slot list. */
     public static boolean evalSlots(List<NeiRecipeLookup.Slot> slots, FilterExpr expr) {
         if (expr.isEmpty()) return true;
@@ -494,6 +548,23 @@ public class RecipeCompiler extends BlockTagCompiler {
         return false;
     }
 
+    public static boolean evalRecipeSlots(List<RecipeSlot> slots, FilterExpr expr) {
+        if (expr.isEmpty()) return true;
+        if (slots == null) return false;
+        for (List<FilterTerm> group : expr.orGroups) {
+            boolean allOk = true;
+            for (FilterTerm term : group) {
+                boolean present = recipeSlotsContain(slots, term.ref);
+                if (present == term.negated) {
+                    allOk = false;
+                    break;
+                }
+            }
+            if (allOk) return true;
+        }
+        return false;
+    }
+
     /** Evaluate a DNF expression against a single-result slot (positional-stack cycling). */
     public static boolean evalResultSlot(@Nullable NeiRecipeLookup.Slot result, FilterExpr expr) {
         if (expr.isEmpty()) return true;
@@ -503,6 +574,23 @@ public class RecipeCompiler extends BlockTagCompiler {
             for (FilterTerm t : group) {
                 boolean present = resultSlotContains(result, t.ref);
                 if (present == t.negated) {
+                    allOk = false;
+                    break;
+                }
+            }
+            if (allOk) return true;
+        }
+        return false;
+    }
+
+    public static boolean evalRecipeResultSlot(@Nullable RecipeSlot result, FilterExpr expr) {
+        if (expr.isEmpty()) return true;
+        if (result == null) return false;
+        for (List<FilterTerm> group : expr.orGroups) {
+            boolean allOk = true;
+            for (FilterTerm term : group) {
+                boolean present = recipeResultSlotContains(result, term.ref);
+                if (present == term.negated) {
                     allOk = false;
                     break;
                 }
@@ -553,7 +641,18 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     public static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr) {
-        return recipeMatches(handler, recipeIndex, inputExpr, outputExpr, NEI_HANDLER_RECIPE_ACCESS);
+        return recipeMatches(handler, recipeIndex, inputExpr, outputExpr, REGISTRY_RECIPE_SLOT_ACCESS);
+    }
+
+    public static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr,
+        RecipeSlotAccess recipeAccess) {
+        if (!outputExpr.isEmpty()) {
+            if (!evalRecipeResultSlot(recipeAccess.readResultSlot(handler, recipeIndex), outputExpr)) return false;
+        }
+        if (!inputExpr.isEmpty()) {
+            if (!evalRecipeSlots(recipeAccess.readIngredientSlots(handler, recipeIndex), inputExpr)) return false;
+        }
+        return true;
     }
 
     public static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr,
@@ -570,6 +669,12 @@ public class RecipeCompiler extends BlockTagCompiler {
     public static boolean entryMatches(NeiRecipeLookup.Entry e, FilterExpr inputExpr, FilterExpr outputExpr) {
         if (!outputExpr.isEmpty() && !evalResultSlot(e.result, outputExpr)) return false;
         if (!inputExpr.isEmpty() && !evalSlots(e.ingredients, inputExpr)) return false;
+        return true;
+    }
+
+    public static boolean entryMatches(RecipeEntry e, FilterExpr inputExpr, FilterExpr outputExpr) {
+        if (!outputExpr.isEmpty() && !evalRecipeResultSlot(e.result(), outputExpr)) return false;
+        if (!inputExpr.isEmpty() && !evalRecipeSlots(e.ingredients(), inputExpr)) return false;
         return true;
     }
 

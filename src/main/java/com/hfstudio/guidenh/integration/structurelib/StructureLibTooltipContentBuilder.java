@@ -74,10 +74,13 @@ public class StructureLibTooltipContentBuilder {
         if (line == null) {
             return null;
         }
-        return switch (line.getKind()) {
-            case HINT_BLOCK -> createHintBlockParagraph(line.getHintDot());
-            case VALID_HATCHES -> createValidHatchesParagraph(line.getText());
-        };
+        if (line.getKind() == StructureLibHatchDescriptionLine.HINT_BLOCK) {
+            return createHintBlockParagraph(line.getHintDot());
+        }
+        if (line.getKind() == StructureLibHatchDescriptionLine.VALID_HATCHES) {
+            return createValidHatchesParagraph(line.getText());
+        }
+        return null;
     }
 
     @Nullable
@@ -131,7 +134,7 @@ public class StructureLibTooltipContentBuilder {
 
     public static int resolveHatchOverlayArgb(StructureLibSceneMetadata.BlockTooltipData data) {
         for (StructureLibHatchDescriptionLine line : data.getHatchDescriptionLines()) {
-            if (line.getKind() == StructureLibHatchDescriptionLine.Kind.HINT_BLOCK && line.getHintDot() > 0) {
+            if (line.getKind() == StructureLibHatchDescriptionLine.HINT_BLOCK && line.getHintDot() > 0) {
                 return (0x96 << 24) | (resolveHintDotColor(line.getHintDot()) & 0x00FFFFFF);
             }
         }

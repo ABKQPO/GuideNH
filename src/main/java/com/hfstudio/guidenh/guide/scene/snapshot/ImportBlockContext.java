@@ -5,10 +5,11 @@ import net.minecraft.nbt.NBTTagCompound;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 
 /**
- * One placed structure voxel after {@link com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer}; carries
- * the full {@code blocks[]} compound for sidecars.
+ * One placed structure voxel after {@link GuidebookPreviewBlockPlacer}; carries the full {@code blocks[]} compound for
+ * sidecars.
  */
 public final class ImportBlockContext {
 

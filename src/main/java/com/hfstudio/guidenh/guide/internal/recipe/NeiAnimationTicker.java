@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.recipe;
 
 import java.util.WeakHashMap;
 
-import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
@@ -21,7 +21,8 @@ public class NeiAnimationTicker {
     private NeiAnimationTicker() {}
 
     public static void ensureUpdating(Object handler) {
-        if (handler == null || !NeiRecipeLookup.isAvailable()) return;
+        if (!GuideNhIntegrationRegistry.global()
+            .canUpdateRecipeAnimation(handler)) return;
         synchronized (TRACKED) {
             TRACKED.put(handler, Boolean.TRUE);
             if (!registered) {
@@ -48,7 +49,8 @@ public class NeiAnimationTicker {
                 .toArray();
         }
         for (Object o : snapshot) {
-            NeiRecipeLookup.callOnUpdate(o);
+            GuideNhIntegrationRegistry.global()
+                .updateRecipeAnimation(o);
         }
     }
 }

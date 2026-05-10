@@ -39,11 +39,6 @@ public class GuideBlockDisplayResolver {
             return integrationStack;
         }
 
-        ItemStack carpentersStack = GuideCarpentersBlockSupport.resolveDisplayStack(level, block, x, y, z, target);
-        if (carpentersStack != null) {
-            return carpentersStack;
-        }
-
         ItemStack pickedStack = safeResolvePickedStack(level, block, x, y, z, target);
         if (pickedStack != null) {
             return pickedStack;
@@ -70,11 +65,10 @@ public class GuideBlockDisplayResolver {
             return null;
         }
 
-        if (GuideCarpentersBlockSupport.isCarpentersBlock(block)) {
-            String carpentersName = resolveIntrinsicBlockDisplayName(level, block, x, y, z);
-            if (carpentersName != null) {
-                return carpentersName;
-            }
+        String integrationName = GuideNhIntegrationRegistry.global()
+            .resolveBlockDisplayName(level, block, x, y, z, target);
+        if (integrationName != null) {
+            return integrationName;
         }
 
         try {
