@@ -1,75 +1,113 @@
-# GuideNH
+<p align="center">
+    <img width="690" src="./src/main/resources/assets/logo.png" alt="GuideNH" style="image-rendering: pixelated;">
+</p>
+<hr>
+<p align="center">
+    <img src="https://img.shields.io/badge/Available%20for-MC%201.7.10-c70039" alt="支持的 Minecraft 版本">
+    <img src="https://img.shields.io/badge/Forge-10.13.4.1614-f6a21a" alt="支持的 Forge 版本">
+    <img src="https://img.shields.io/badge/license-LGPL--3.0-green" alt="许可证">
+</p>
 
-[English](README.md)
+<p align="center">
+    <a href="README.md">English</a> |
+    <a href="README_zh.md">简体中文</a>
+</p>
 
-**GuideNH** 是将 GuideME 移植到 Minecraft **1.7.10** / Forge **10.13.4.1614** 的版本，为 GTNH 风格整合包提供一个游戏内、由 Markdown 驱动的指南系统。
+## **简介**
 
-## 功能特性
+* <span style="color: #ff6600;">GuideNH</span> 是面向 Minecraft **1.7.10** / Forge **10.13.4.1614** 的游戏内指南框架。
+* 它移植并扩展了 GuideME 风格的 Markdown 指南系统，适合 GTNH 时代的整合包与大型模组。
+* 它允许作者直接用资源包结构中的 Markdown 文件编写复杂指南书。
 
-* 完整支持 Markdown 渲染，包括标题、段落、列表、链接、图片、引用、代码块，以及通过 GFM 提供的表格等内容
-* 支持自定义 MDX 风格标签，例如 `<A>`、`<Box>`、`<Color>`、`<ItemLink>`、`<Recipe>`、`<Structure>`、`<GameScene>`、`<ImportStructureLib>`、`<RemoveBlocks>`、`<BlockAnnotationTemplate>`、`<ItemGrid>`、`<KeyBind>` 和 `<PlayerName>`
-* 可直接从资源树中发现并加载多页指南
-* 支持多语言页面，并自动进行回退（`zh_cn` -> `en_us`）
-* 支持物品索引：对着已注册指南条目的物品按住 `G`，即可直接跳转到对应页面
-* 支持多方块结构预览（当前为基于物品图标的 2.5D 等轴测 MVP）
-* 支持带 StructureLib 导入、注解、方块清理、层控制与信道控制的交互式 3D 场景预览
-* 支持通过 `F3+T` 重载资源后立即读取修改过的 `.md` 文件
-* 基于原版 `GuiScreen` 的界面实现，不依赖 ModularUI 或 Blaze3D
+## **功能**
 
-## 快速开始
+* 支持带 YAML 表头的 Markdown 页面、导航元数据、分类、锚点、表格、脚注、Mermaid、LaTeX、图表与文本高亮。
+* 支持 `<ItemLink>`、`<ItemImage>`、`<Recipe>`、`<GameScene>`、`<BlockStats>`、`<Tooltip>`、`<KeyBind>`、`<PlayerName>` 等 MDX 风格运行时标签。
+* 支持交互式 3D GameScene 预览，包括方块/实体放置、StructureLib 导入、Ponder 播放、层滑条、网格按钮、注解与方块统计表。
+* 支持游戏内指南编辑模式，包括编辑/预览分屏、工具栏操作、短延迟自动保存、外部变更处理与资源包页面创建。
+* 支持多语言指南目录与回退、物品索引跳转、搜索、服务端集成和资源重载。
+
+## **作者**
+
+- 程序：`HFstudio`
+- 上游灵感：[GuideME](https://github.com/AppliedEnergistics/GuideME)
+
+## **许可证**
+
+- 代码：[LGPL-3.0](LICENSE.txt)
+- 内置第三方库遵循各自的许可证。
+
+## **Wiki**
+
+* [English Wiki](wiki/Home-en-US.md)
+* [中文 Wiki](wiki/Home-zh-CN.md)
+* [运行时示例资源包](wiki/resourcepack)
+
+## **快速开始**
 
 ```powershell
-gradlew spotlessApply
-gradlew build
-gradlew runClient
+.\gradlew.bat spotlessApply
+.\gradlew.bat build
+.\gradlew.bat runClient
 ```
 
 进入游戏后：
 
-* 使用 `/give Developer guidenh:guide` 获取演示指南书
-* 将鼠标悬停在已注册指南条目的物品上，按住 `G` 约 10 tick 以跳转到对应指南
-* 在开发过程中按 `F3+T` 可热重载指南内容
+* 使用 `/give Developer guidenh:guide` 获取演示指南书。
+* 鼠标悬停在已建立索引的物品上并按住 `G`，可以跳转到对应指南页面。
+* 按 `F3+T` 可以重新加载已编辑的指南资源。
 
-## 示例指南资源
+## **编写示例**
 
-```text
-wiki/resourcepack/assets/guidenh/guidenh/
-|-- assets/
-|   `-- example_structure.snbt
-|-- _en_us/
-|   |-- index.md
-|   |-- rendering.md
-|   `-- structure.md
-`-- _zh_cn/
-    |-- index.md
-    |-- rendering.md
-    `-- structure.md
+```md
+---
+navigation:
+  title: 机器
+  parent: index.md
+author: GuideNH
+date: 2026-05-10
+---
+
+# 机器
+
+按 <KeyBind action="key.attack" /> 进行交互。
+
+<GameScene width="220" height="150" interactive={true}>
+  <Block id="minecraft:furnace" />
+  <BlockStats corner="topRight" maxWidth="120" maxHeight="72" />
+</GameScene>
 ```
 
-GuideNH 现在会直接从 `assets/<modid>/guidenh/_<lang>/...` 中发现指南页面，因此已经不再需要 `_manifest.json`。
+## **开发**
 
-内置示例 `index.md` 现已同时覆盖 `ImportStructureLib`、`RemoveBlocks` 与 `BlockAnnotationTemplate`，可直接用来检查场景预览相关能力。
+### **指南目录**
 
-## 添加内容
+```text
+assets/<modid>/guidenh/
+|-- assets/
+|   `-- shared_structure.snbt
+|-- _en_us/
+|   |-- index.md
+|   `-- machines.md
+`-- _zh_cn/
+    |-- index.md
+    `-- machines.md
+```
 
-1. 创建 `assets/<modid>/guidenh/_<lang>/`
-2. 添加一个或多个 `.md` 页面，例如 `index.md`
-3. 将页面私有资源放在页面旁边，或将共享资源放在 `assets/<modid>/guidenh/assets/` 下
-4. 如果你需要显式 API 控制，可以在代码中注册 Guide；否则也可以直接依赖自动发现的 `<modid>:guidenh` 指南树
+### **注册指南**
 
 ```java
 Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
 ```
 
-## 扩展点
+### **验证**
 
-| 目标 | 入口 |
-| --- | --- |
-| 自定义标签 | `TagCompiler` + `DefaultExtensions` |
-| 布局节点 | `LytBlock` / `LytFlowContent` |
-| 渲染 | `MinecraftRenderContext` |
-| 热键 | `OpenGuideHotkey` |
+```powershell
+.\gradlew.bat spotlessApply
+.\gradlew.bat build --rerun-tasks
+```
 
-## 许可证
+## **致谢**
 
-LGPL-3.0
+GuideNH 借鉴了 [GuideME](https://github.com/AppliedEnergistics/GuideME) 的设计思路，GuideME 使用 LGPL-3.0 分发。
+本项目还使用了 SnakeYAML、Apache Lucene、Apache Commons Lang、FlatBuffers Java、JLaTeXMath 等开源库。
