@@ -41,7 +41,7 @@ Ponder 时间线状态、StructureLib 选择或统计配置发生变化时重建
 <GameScene>
   <Block id="minecraft:stone" />
   <Block id="minecraft:furnace" x="1" />
-  <BlockStats visible={true} corner="topRight" filterMode="blacklist" filter="minecraft:air minecraft:stone"
+  <BlockStats corner="topRight" filterMode="blacklist" filter="minecraft:air minecraft:stone"
     maxWidth={160} maxHeight={96} />
 </GameScene>
 ````
@@ -51,7 +51,7 @@ Ponder 时间线状态、StructureLib 选择或统计配置发生变化时重建
 ````md
 <GameScene>
   <Block id="minecraft:furnace" />
-  <BlockStats visible={true} mode="manual" corner="topRight" maxWidth={160} maxHeight={96}>
+  <BlockStats mode="manual" corner="topRight" maxWidth={160} maxHeight={96}>
     <BlockStat item="minecraft:cobblestone" count={8} />
     <BlockStat item="minecraft:furnace" count={1} />
   </BlockStats>
@@ -186,8 +186,8 @@ GuideNH 当前注册了以下场景子标签：
 
 | 属性 | 必需 | 默认值 | 含义 |
 | --- | --- | --- | --- |
-| `visible` | 否 | config | 初始是否显示统计框 |
-| `buttonEnabled` | 否 | config | 是否显示方块统计切换按钮 |
+| `visible` | 否 | config，默认 `false` | 初始是否显示统计框 |
+| `buttonEnabled` | 否 | config，默认 `true` | 是否显示方块统计切换按钮 |
 | `mode` | 否 | `auto` | `auto` 或 `manual`；子 `<BlockStat>` 会强制手动模式 |
 | `corner` | 否 | `topRight` | 统计框角落：`topRight`、`topLeft`、`bottomRight` 或 `bottomLeft` |
 | `filterMode` | 否 | `blacklist` | `blacklist` 或 `whitelist` |
@@ -207,7 +207,7 @@ GuideNH 当前注册了以下场景子标签：
 
 ````md
 <GameScene>
-  <BlockStats visible={true} corner="bottomRight" maxWidth={160} maxHeight={96}>
+  <BlockStats corner="bottomRight" maxWidth={160} maxHeight={96}>
     <BlockStat item="minecraft:stone" count={16} />
     <BlockStat item="minecraft:torch" count={4} />
   </BlockStats>

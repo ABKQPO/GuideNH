@@ -44,7 +44,7 @@ navigation:
     <Block id="minecraft:stone" x="2" />
     <Block id="minecraft:furnace" x="1" y="1" />
     <Block id="minecraft:torch" x="2" y="1" />
-    <BlockStats visible={true} corner="topRight" maxWidth={160} maxHeight={96} />
+    <BlockStats corner="topRight" maxWidth={160} maxHeight={96} />
 </GameScene>
 
 手动模式可以显示规划材料表，而不是场景内真实方块数量。
@@ -53,7 +53,7 @@ navigation:
     <Block id="minecraft:furnace" />
     <Block id="minecraft:cobblestone" x="1" />
     <Block id="minecraft:cobblestone" x="-1" />
-    <BlockStats visible={true} mode="manual" corner="bottomRight" maxWidth={160} maxHeight={96}>
+    <BlockStats mode="manual" corner="bottomRight" maxWidth={160} maxHeight={96}>
         <BlockStat item="minecraft:cobblestone" count={8} />
         <BlockStat item="minecraft:furnace" count={1} />
     </BlockStats>

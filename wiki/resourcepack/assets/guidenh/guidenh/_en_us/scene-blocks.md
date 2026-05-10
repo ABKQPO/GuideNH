@@ -46,7 +46,7 @@ ForgeMultipart parts, and Carpenters' Blocks covers or overlays.
     <Block id="minecraft:stone" x="2" />
     <Block id="minecraft:furnace" x="1" y="1" />
     <Block id="minecraft:torch" x="2" y="1" />
-    <BlockStats visible={true} corner="topRight" maxWidth={160} maxHeight={96} />
+    <BlockStats corner="topRight" maxWidth={160} maxHeight={96} />
 </GameScene>
 
 Manual mode can show a planned material list instead of the literal scene contents.
@@ -55,7 +55,7 @@ Manual mode can show a planned material list instead of the literal scene conten
     <Block id="minecraft:furnace" />
     <Block id="minecraft:cobblestone" x="1" />
     <Block id="minecraft:cobblestone" x="-1" />
-    <BlockStats visible={true} mode="manual" corner="bottomRight" maxWidth={160} maxHeight={96}>
+    <BlockStats mode="manual" corner="bottomRight" maxWidth={160} maxHeight={96}>
         <BlockStat item="minecraft:cobblestone" count={8} />
         <BlockStat item="minecraft:furnace" count={1} />
     </BlockStats>

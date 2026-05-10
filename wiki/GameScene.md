@@ -43,7 +43,7 @@ Filters can hide common blocks or show only selected blocks:
 <GameScene>
   <Block id="minecraft:stone" />
   <Block id="minecraft:furnace" x="1" />
-  <BlockStats visible={true} corner="topRight" filterMode="blacklist" filter="minecraft:air minecraft:stone"
+  <BlockStats corner="topRight" filterMode="blacklist" filter="minecraft:air minecraft:stone"
     maxWidth={160} maxHeight={96} />
 </GameScene>
 ````
@@ -54,7 +54,7 @@ contents:
 ````md
 <GameScene>
   <Block id="minecraft:furnace" />
-  <BlockStats visible={true} mode="manual" corner="topRight" maxWidth={160} maxHeight={96}>
+  <BlockStats mode="manual" corner="topRight" maxWidth={160} maxHeight={96}>
     <BlockStat item="minecraft:cobblestone" count={8} />
     <BlockStat item="minecraft:furnace" count={1} />
   </BlockStats>
@@ -200,8 +200,8 @@ that scene.
 
 | Attribute | Required | Default | Meaning |
 | --- | --- | --- | --- |
-| `visible` | no | config | initial overlay visibility |
-| `buttonEnabled` | no | config | shows the block statistics toggle button |
+| `visible` | no | config, default `false` | initial overlay visibility |
+| `buttonEnabled` | no | config, default `true` | shows the block statistics toggle button |
 | `mode` | no | `auto` | `auto` or `manual`; child `<BlockStat>` entries force manual mode |
 | `corner` | no | `topRight` | overlay corner: `topRight`, `topLeft`, `bottomRight`, or `bottomLeft` |
 | `filterMode` | no | `blacklist` | `blacklist` or `whitelist` |
@@ -221,7 +221,7 @@ Example:
 
 ````md
 <GameScene>
-  <BlockStats visible={true} corner="bottomRight" maxWidth={160} maxHeight={96}>
+  <BlockStats corner="bottomRight" maxWidth={160} maxHeight={96}>
     <BlockStat item="minecraft:stone" count={16} />
     <BlockStat item="minecraft:torch" count={4} />
   </BlockStats>
