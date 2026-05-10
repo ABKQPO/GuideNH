@@ -27,6 +27,7 @@ import com.hfstudio.guidenh.guide.color.SymbolicColorResolver;
 import com.hfstudio.guidenh.guide.compiler.FrontmatterNavigation;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
@@ -34,7 +35,10 @@ import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.StructureViewCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SubPagesCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
+import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytStructureView;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointSpec;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.DomainPredicate;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionExprParser;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionGraphPalette;
@@ -117,6 +121,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         if ("Color".equals(name)) {
             return renderColor(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+        }
+        if ("mark".equals(name)) {
+            return renderMark(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
         }
         if ("Row".equals(name)) {
             return renderLayoutBox(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler, true);
@@ -214,6 +221,21 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             + ";\">"
             + compiler.compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
             + "</span>";
+    }
+
+    private String renderMark(MdxJsxElementFields element, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+        String rawColor = readOptional(element, "color");
+        String color = rawColor != null ? parseLiteralColor(rawColor) : null;
+        if (color == null) {
+            color = toCssColor(new ConstantColor(PageCompiler.DEFAULT_MARK_BACKGROUND_COLOR));
+        }
+
+        return "<mark class=\"guide-mark\" style=\"background-color:" + escapeAttribute(color)
+            + ";\">"
+            + compiler.compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
+            + "</mark>";
     }
 
     private String renderLayoutBox(MdxJsxElementFields element, String defaultNamespace,
@@ -931,9 +953,27 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         boolean numericX = readBoolean(element, "numericX", false);
         boolean showPoints = readBoolean(element, "showPoints", true);
         boolean showLegend = readBoolean(element, "showLegend", true);
+        CornerLegendPosition cornerLegendPosition = ChartAttrParser
+            .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
+        int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
+        int cornerLegendHeight = readInt(element, "cornerLegendHeight", 64);
+        int cornerLegendBackground = parseArgbAttr(element, "cornerLegendBackground", 0xAA111922);
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
-        return GuideSiteGraphRenderer
-            .renderLineChart(w, h, bgColor, borderColor, title, categories, series, numericX, showPoints, showLegend);
+        return GuideSiteGraphRenderer.renderLineChart(
+            w,
+            h,
+            bgColor,
+            borderColor,
+            title,
+            categories,
+            series,
+            numericX,
+            showPoints,
+            showLegend,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackground);
     }
 
     private String renderPieChart(MdxJsxElementFields element) {
@@ -954,8 +994,24 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
         String title = readOptional(element, "title");
         boolean showLegend = readBoolean(element, "showLegend", true);
+        CornerLegendPosition cornerLegendPosition = ChartAttrParser
+            .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
+        int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
+        int cornerLegendHeight = readInt(element, "cornerLegendHeight", 64);
+        int cornerLegendBackground = parseArgbAttr(element, "cornerLegendBackground", 0xAA111922);
         List<GuideSiteGraphRenderer.SeriesData> series = parseScatterSeriesChildren(element);
-        return GuideSiteGraphRenderer.renderScatterChart(w, h, bgColor, borderColor, title, series, showLegend);
+        return GuideSiteGraphRenderer.renderScatterChart(
+            w,
+            h,
+            bgColor,
+            borderColor,
+            title,
+            series,
+            showLegend,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackground);
     }
 
     private String renderFunctionGraphTag(MdxJsxElementFields element) {
@@ -968,6 +1024,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         boolean showGrid = readBoolean(element, "showGrid", true);
         boolean showAxes = readBoolean(element, "showAxes", true);
         String title = readOptional(element, "title");
+        CornerLegendPosition cornerLegendPosition = ChartAttrParser
+            .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
+        int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
+        int cornerLegendHeight = readInt(element, "cornerLegendHeight", 64);
+        int cornerLegendBackground = parseArgbAttr(element, "cornerLegendBackground", 0xAA111922);
         double xMin = parseDoubleAttr(element, "xMin", -10);
         double xMax = parseDoubleAttr(element, "xMax", 10);
         double yMin = parseDoubleAttr(element, "yMin", Double.NaN);
@@ -1009,6 +1070,12 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 int color = parseArgbAttr(element, "color", FunctionGraphPalette.color(0));
                 String label = readOptional(element, "label");
                 DomainPredicate domain = DomainPredicate.parse(readOptional(element, "domain"));
+                AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
+                    readOptional(element, "pointEveryX"),
+                    readOptional(element, "pointEveryY"),
+                    readOptional(element, "autoPointLabel"),
+                    readOptional(element, "autoPointColor"),
+                    color);
                 plots.add(
                     new FunctionPlot(
                         trimmed,
@@ -1016,7 +1083,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                         inverse,
                         domain,
                         color,
-                        label != null ? label : trimmed));
+                        label != null ? label : trimmed,
+                        autoPointSpec));
             }
         }
         // Auto Y range when not specified
@@ -1061,7 +1129,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             xMin,
             xMax,
             yMin,
-            yMax);
+            yMax,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackground);
     }
 
     /** Parse {@code <Series name="..." data="1,2,3" color="...">} children for bar/column/line charts. */
@@ -1195,6 +1267,12 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             int color = parseArgbAttr(c, "color", FunctionGraphPalette.color(idx));
             String label = readOptional(c, "label");
             DomainPredicate domain = DomainPredicate.parse(readOptional(c, "domain"));
+            AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
+                readOptional(c, "pointEveryX"),
+                readOptional(c, "pointEveryY"),
+                readOptional(c, "autoPointLabel"),
+                readOptional(c, "autoPointColor"),
+                color);
             result.add(
                 new FunctionPlot(
                     exprText,
@@ -1202,7 +1280,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                     inverse,
                     domain,
                     color,
-                    label != null ? label : exprText));
+                    label != null ? label : exprText,
+                    autoPointSpec));
             idx++;
         }
         return result;

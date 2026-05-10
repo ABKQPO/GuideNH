@@ -45,7 +45,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         new ConstantColor(0xFFF1F6FB),
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
-        false);
+        false,
+        null);
     private static final ResolvedTextStyle NODE_TEXT_STYLE = new ResolvedTextStyle(
         1f,
         false,
@@ -59,7 +60,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         new ConstantColor(0xFFD7DEE7),
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
-        false);
+        false,
+        null);
     private static final ResolvedTextStyle ICON_TEXT_STYLE = new ResolvedTextStyle(
         0.85f,
         false,
@@ -73,7 +75,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         new ConstantColor(0xFFB8C2CF),
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
-        false);
+        false,
+        null);
 
     private final MermaidMindmapDocument mindmap;
 

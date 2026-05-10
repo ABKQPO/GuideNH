@@ -31,6 +31,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.ItemLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KbdTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.LatexTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.MarkTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PlayerNameTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
@@ -119,6 +120,7 @@ public class DefaultExtensions {
                 new PlayerNameTagCompiler(),
                 new KeyBindTagCompiler(),
                 new TooltipTagCompiler(),
+                new MarkTagCompiler(),
                 new FootnoteListCompiler(),
                 new StructureViewCompiler(),
                 new MermaidCompiler(),

@@ -1,6 +1,12 @@
 package com.hfstudio.guidenh.guide.compiler.tags.functiongraph;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointSpec;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.DomainPredicate;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionExpr;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionExprParser;
@@ -82,7 +88,7 @@ public final class FunctionGraphFenceParser {
 
     private static final String[] HEADER_KEYS = { "width", "height", "title", "background", "border", "axisColor",
         "gridColor", "showGrid", "showAxes", "xMin", "xMax", "yMin", "yMax", "xRange", "yRange", "xStep", "yStep",
-        "quadrants" };
+        "quadrants", "cornerLegend", "cornerLegendWidth", "cornerLegendHeight", "cornerLegendBackground" };
 
     private static void applyHeader(LytFunctionGraph graph, String line) {
         AttrMap attrs = parseKeyValues(line);
@@ -124,6 +130,23 @@ public final class FunctionGraphFenceParser {
         if (quadrants != null) {
             graph.setQuadrantMask(FunctionGraphAttrs.parseQuadrantMask(quadrants));
         }
+        String cornerLegend = attrs.stringValue("cornerLegend");
+        if (cornerLegend != null) {
+            graph.setCornerLegendPosition(
+                ChartAttrParser.parseCornerLegendPosition(cornerLegend, CornerLegendPosition.NONE));
+        }
+        Integer cornerLegendWidth = attrs.intValue("cornerLegendWidth");
+        Integer cornerLegendHeight = attrs.intValue("cornerLegendHeight");
+        if (cornerLegendWidth != null || cornerLegendHeight != null) {
+            graph.setCornerLegendSize(
+                cornerLegendWidth != null ? cornerLegendWidth : CornerLegendRenderer.DEFAULT_WIDTH,
+                cornerLegendHeight != null ? cornerLegendHeight : CornerLegendRenderer.DEFAULT_HEIGHT);
+        }
+        String cornerLegendBackground = attrs.stringValue("cornerLegendBackground");
+        if (cornerLegendBackground != null) {
+            graph.setCornerLegendBackgroundColor(
+                ChartAttrParser.parseColor(cornerLegendBackground, CornerLegendRenderer.DEFAULT_BACKGROUND));
+        }
     }
 
     private static void applyRange(LytFunctionGraph graph, AttrMap attrs) {
@@ -161,12 +184,7 @@ public final class FunctionGraphFenceParser {
 
     private static FunctionPlot parsePlotLine(String line, int paletteIndex) {
         // Split off pipe-prefixed attributes; the first segment is the expression.
-        int pipe = line.indexOf('|');
-        // Treat '|...|' as absolute value, not as an attribute separator. Detect that by checking
-        // for a matching closing pipe before any '=' sign.
-        if (pipe >= 0 && lineHasMatchingAbsBars(line)) {
-            pipe = -1;
-        }
+        int pipe = findAttributePipe(line);
         String exprText = (pipe >= 0 ? line.substring(0, pipe) : line).trim();
         if (exprText.isEmpty()) {
             return null;
@@ -180,26 +198,82 @@ public final class FunctionGraphFenceParser {
         int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, FunctionGraphPalette.color(paletteIndex))
             : FunctionGraphPalette.color(paletteIndex);
         String label = attrs.stringValue("label");
-        return new FunctionPlot(exprText, ast, inv, domain, color, label);
+        AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
+            attrs.stringValue("pointEveryX"),
+            attrs.stringValue("pointEveryY"),
+            attrs.stringValue("autoPointLabel"),
+            attrs.stringValue("autoPointColor"),
+            color);
+        return new FunctionPlot(exprText, ast, inv, domain, color, label, autoPointSpec);
     }
 
-    private static boolean lineHasMatchingAbsBars(String line) {
-        // A '|...|' literal is recognised only when there is no '=' separator before the closing
-        // pipe; the simple heuristic below handles the common cases.
-        int firstPipe = line.indexOf('|');
-        if (firstPipe < 0) {
-            return false;
-        }
-        int secondPipe = line.indexOf('|', firstPipe + 1);
-        if (secondPipe < 0) {
-            return false;
-        }
-        for (int i = firstPipe + 1; i < secondPipe; i++) {
-            if (line.charAt(i) == '=') {
-                return false;
+    private static int findAttributePipe(String line) {
+        int index = -1;
+        while (true) {
+            index = line.indexOf('|', index + 1);
+            if (index < 0) {
+                return -1;
+            }
+            if (looksLikePlotAttributes(line.substring(index + 1))) {
+                return index;
             }
         }
-        return true;
+    }
+
+    private static boolean looksLikePlotAttributes(String text) {
+        if (text == null) {
+            return false;
+        }
+        int i = 0;
+        int n = text.length();
+        boolean found = false;
+        while (i < n) {
+            while (i < n && Character.isWhitespace(text.charAt(i))) {
+                i++;
+            }
+            if (i >= n) {
+                return found;
+            }
+            int keyStart = i;
+            while (i < n && !Character.isWhitespace(text.charAt(i)) && text.charAt(i) != '=') {
+                i++;
+            }
+            String key = text.substring(keyStart, i);
+            if (!isPlotAttributeKey(key)) {
+                return false;
+            }
+            found = true;
+            while (i < n && Character.isWhitespace(text.charAt(i))) {
+                i++;
+            }
+            if (i < n && text.charAt(i) == '=') {
+                i++;
+                while (i < n && Character.isWhitespace(text.charAt(i))) {
+                    i++;
+                }
+                if (i < n && text.charAt(i) == '"') {
+                    i++;
+                    while (i < n && text.charAt(i) != '"') {
+                        i++;
+                    }
+                    if (i < n) {
+                        i++;
+                    }
+                } else {
+                    while (i < n && !Character.isWhitespace(text.charAt(i))) {
+                        i++;
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
+    private static boolean isPlotAttributeKey(String key) {
+        return switch (key) {
+            case "color", "label", "domain", "inverse", "pointEveryX", "pointEveryY", "autoPointLabel", "autoPointColor" -> true;
+            default -> false;
+        };
     }
 
     private static MarkedPoint parseExplicitPoint(String body) {
@@ -263,15 +337,38 @@ public final class FunctionGraphFenceParser {
     }
 
     private static String stripComment(String line) {
-        int hash = line.indexOf('#');
-        if (hash < 0) {
-            return line;
+        boolean quoted = false;
+        char quote = 0;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (quoted) {
+                if (c == quote) {
+                    quoted = false;
+                }
+                continue;
+            }
+            if (c == '"' || c == '\'') {
+                quoted = true;
+                quote = c;
+                continue;
+            }
+            if (c == '#') {
+                int previous = previousNonWhitespace(line, i);
+                if (previous >= 0 && line.charAt(previous) == '=') {
+                    continue;
+                }
+                return line.substring(0, i);
+            }
         }
-        // Allow '#' inside hex colour literals; skip when it sits inside a key=value pair next to '='.
-        if (hash > 0 && line.charAt(hash - 1) == '=') {
-            return line;
+        return line;
+    }
+
+    private static int previousNonWhitespace(String line, int before) {
+        int i = before - 1;
+        while (i >= 0 && Character.isWhitespace(line.charAt(i))) {
+            i--;
         }
-        return line.substring(0, hash);
+        return i;
     }
 
     /**
@@ -302,8 +399,14 @@ public final class FunctionGraphFenceParser {
                 continue;
             }
             String value = "true";
+            while (i < n && Character.isWhitespace(text.charAt(i))) {
+                i++;
+            }
             if (i < n && text.charAt(i) == '=') {
                 i++;
+                while (i < n && Character.isWhitespace(text.charAt(i))) {
+                    i++;
+                }
                 if (i < n && (text.charAt(i) == '"' || text.charAt(i) == '\'')) {
                     char quote = text.charAt(i);
                     i++;
@@ -331,7 +434,7 @@ public final class FunctionGraphFenceParser {
     /** Tiny case-sensitive map wrapper that exposes typed accessors. */
     private static final class AttrMap {
 
-        private final java.util.Map<String, String> data = new java.util.LinkedHashMap<>();
+        private final Map<String, String> data = new LinkedHashMap<>();
 
         public void put(String key, String value) {
             data.put(key, value);

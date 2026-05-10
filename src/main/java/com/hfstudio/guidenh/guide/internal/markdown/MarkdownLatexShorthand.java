@@ -44,6 +44,9 @@ public final class MarkdownLatexShorthand {
     private MarkdownLatexShorthand() {}
 
     public static MaskResult mask(String source) {
+        if (source == null) {
+            return new MaskResult("", Collections.emptyMap());
+        }
         if (!mayContain(source)) {
             return new MaskResult(source, Collections.emptyMap());
         }
@@ -72,7 +75,7 @@ public final class MarkdownLatexShorthand {
      * Quick pre-check: returns {@code false} if {@code text} cannot contain any {@code $$} pattern.
      */
     public static boolean mayContain(String text) {
-        return text.contains("$$");
+        return text != null && text.contains("$$");
     }
 
     /**
@@ -105,6 +108,9 @@ public final class MarkdownLatexShorthand {
      * @return ordered list of segments; never {@code null}
      */
     public static List<Segment> split(String text) {
+        if (text == null || text.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<Segment> result = new ArrayList<>();
         Matcher m = DOLLAR_PATTERN.matcher(text);
         int last = 0;
@@ -128,6 +134,13 @@ public final class MarkdownLatexShorthand {
         if (node instanceof MdxJsxAttribute attribute) {
             restoreAttribute(attribute, maskResult);
         }
+        if (node instanceof MdxJsxElementFields element) {
+            for (Object attribute : element.attributes()) {
+                if (attribute instanceof MdAstNode attributeNode) {
+                    restoreNode(attributeNode, maskResult);
+                }
+            }
+        }
         if (node instanceof MdAstParent<?>parent) {
             for (Object child : parent.children()) {
                 if (child instanceof MdAstNode childNode) {
@@ -135,11 +148,6 @@ public final class MarkdownLatexShorthand {
                 }
             }
         } else if (node instanceof MdxJsxElementFields element) {
-            for (Object attribute : element.attributes()) {
-                if (attribute instanceof MdAstNode attributeNode) {
-                    restoreNode(attributeNode, maskResult);
-                }
-            }
             for (Object child : element.children()) {
                 if (child instanceof MdAstNode childNode) {
                     restoreNode(childNode, maskResult);

@@ -4,12 +4,14 @@ import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.YamlFrontmatterExtension;
 import com.hfstudio.guidenh.libs.mdast.gfm.GfmTableMdastExtension;
 import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.GfmStrikethroughMdastExtension;
+import com.hfstudio.guidenh.libs.mdast.guidemark.GuideMarkMdastExtension;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.GuideUnderlineMdastExtension;
 import com.hfstudio.guidenh.libs.mdast.mdx.MdxMdastExtension;
 import com.hfstudio.guidenh.libs.mdx.MdxSyntax;
 import com.hfstudio.guidenh.libs.micromark.extensions.YamlFrontmatterSyntax;
 import com.hfstudio.guidenh.libs.micromark.extensions.gfm.GfmTableSyntax;
 import com.hfstudio.guidenh.libs.micromark.extensions.gfmstrikethrough.GfmStrikethroughSyntax;
+import com.hfstudio.guidenh.libs.micromark.extensions.guidemark.GuideMarkSyntax;
 import com.hfstudio.guidenh.libs.micromark.extensions.guideunderline.GuideUnderlineSyntax;
 
 public final class GuideMarkdownOptions {
@@ -32,11 +34,13 @@ public final class GuideMarkdownOptions {
             .withSyntaxExtension(YamlFrontmatterSyntax.INSTANCE)
             .withSyntaxExtension(GfmTableSyntax.INSTANCE)
             .withSyntaxExtension(GfmStrikethroughSyntax.INSTANCE)
+            .withSyntaxExtension(GuideMarkSyntax.INSTANCE)
             .withSyntaxExtension(GuideUnderlineSyntax.INSTANCE)
             .withMdastExtension(MdxMdastExtension.INSTANCE)
             .withMdastExtension(YamlFrontmatterExtension.INSTANCE)
             .withMdastExtension(GfmTableMdastExtension.INSTANCE)
             .withMdastExtension(GfmStrikethroughMdastExtension.INSTANCE)
+            .withMdastExtension(GuideMarkMdastExtension.INSTANCE)
             .withMdastExtension(GuideUnderlineMdastExtension.INSTANCE);
     }
 }

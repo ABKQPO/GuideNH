@@ -76,6 +76,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `++下划线++`                          |                   | ++下划线++                          |
 | `^^波浪下划线^^`                      |                   | ^^波浪下划线^^                      |
 | `::着重号::`                          |                   | ::着重号::                          |
+| `==高亮==`                         | `<mark>高亮</mark>` | ==高亮==                         |
 | `[Link](http://a.com)`              |                   | [Link](http://a.com)              |
 | `[Relative Link](./index.md)`       |                   | [Relative Link](./index.md)       |
 | `[Absolute Link](guidenh:index.md)` |                   | [Absolute Link](guidenh:index.md) |
@@ -86,6 +87,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `![Image](test1.png)`               |                   | ![Image](test1.png)               |
 
 自动链接：访问 https://example.com/docs、www.example.org 或 guide@example.com
+
+自定义高亮颜色：<mark color="#8A6A00">暗金色高亮</mark>
 
 Press <kbd>Shift</kbd> + <sub>1</sub>
 

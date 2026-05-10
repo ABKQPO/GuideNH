@@ -4,6 +4,10 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointLabelMode;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointSpec;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.DomainPredicate;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionExpr;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionExprParser;
@@ -50,6 +54,18 @@ public final class FunctionGraphAttrs {
         }
         graph.setShowGrid(MdxAttrs.getBoolean(compiler, sink, el, "showGrid", true));
         graph.setShowAxes(MdxAttrs.getBoolean(compiler, sink, el, "showAxes", true));
+        graph.setCornerLegendPosition(
+            ChartAttrParser.parseCornerLegendPosition(
+                MdxAttrs.getString(compiler, sink, el, "cornerLegend", null),
+                CornerLegendPosition.NONE));
+        graph.setCornerLegendSize(
+            MdxAttrs.getInt(compiler, sink, el, "cornerLegendWidth", CornerLegendRenderer.DEFAULT_WIDTH),
+            MdxAttrs.getInt(compiler, sink, el, "cornerLegendHeight", CornerLegendRenderer.DEFAULT_HEIGHT));
+        String cornerLegendBackground = MdxAttrs.getString(compiler, sink, el, "cornerLegendBackground", null);
+        if (cornerLegendBackground != null) {
+            graph.setCornerLegendBackgroundColor(
+                ChartAttrParser.parseColor(cornerLegendBackground, CornerLegendRenderer.DEFAULT_BACKGROUND));
+        }
 
         applyRange(graph, compiler, sink, el);
         graph.setQuadrantMask(parseQuadrantMask(MdxAttrs.getString(compiler, sink, el, "quadrants", null)));
@@ -107,7 +123,13 @@ public final class FunctionGraphAttrs {
         int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, FunctionGraphPalette.color(paletteIndex))
             : FunctionGraphPalette.color(paletteIndex);
         String label = MdxAttrs.getString(compiler, sink, el, "label", null);
-        return new FunctionPlot(expr, ast, inverse, domain, color, label);
+        AutoPointSpec autoPointSpec = parseAutoPointSpec(
+            MdxAttrs.getString(compiler, sink, el, "pointEveryX", null),
+            MdxAttrs.getString(compiler, sink, el, "pointEveryY", null),
+            MdxAttrs.getString(compiler, sink, el, "autoPointLabel", null),
+            MdxAttrs.getString(compiler, sink, el, "autoPointColor", null),
+            color);
+        return new FunctionPlot(expr, ast, inverse, domain, color, label, autoPointSpec);
     }
 
     /** Parse a single {@code <Point>} child element into a {@link MarkedPoint}. */
@@ -195,5 +217,15 @@ public final class FunctionGraphAttrs {
             return fallback;
         }
         return DomainPredicate.parseNumberOrConstant(trimmed, fallback);
+    }
+
+    public static AutoPointSpec parseAutoPointSpec(String everyXText, String everyYText, String labelModeText,
+        String colorText, int inheritedColor) {
+        double everyX = parseDouble(everyXText, Double.NaN);
+        double everyY = parseDouble(everyYText, Double.NaN);
+        AutoPointLabelMode labelMode = AutoPointLabelMode.fromString(labelModeText, AutoPointLabelMode.NONE);
+        boolean inherit = colorText == null;
+        int color = inherit ? inheritedColor : ChartAttrParser.parseColor(colorText, inheritedColor);
+        return new AutoPointSpec(everyX, everyY, labelMode, color, inherit);
     }
 }

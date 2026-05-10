@@ -5,6 +5,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
 import com.hfstudio.guidenh.guide.document.block.chart.LytChartBase;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
@@ -46,6 +48,18 @@ public final class CommonChartAttrs {
             ChartAttrParser.parseLabelPosition(
                 MdxAttrs.getString(compiler, errorSink, el, "labelPosition", null),
                 ChartLabelPosition.NONE));
+        chart.setCornerLegendPosition(
+            ChartAttrParser.parseCornerLegendPosition(
+                MdxAttrs.getString(compiler, errorSink, el, "cornerLegend", null),
+                CornerLegendPosition.NONE));
+        chart.setCornerLegendSize(
+            MdxAttrs.getInt(compiler, errorSink, el, "cornerLegendWidth", CornerLegendRenderer.DEFAULT_WIDTH),
+            MdxAttrs.getInt(compiler, errorSink, el, "cornerLegendHeight", CornerLegendRenderer.DEFAULT_HEIGHT));
+        String cornerLegendBackground = MdxAttrs.getString(compiler, errorSink, el, "cornerLegendBackground", null);
+        if (cornerLegendBackground != null) {
+            chart.setCornerLegendBackgroundColor(
+                ChartAttrParser.parseColor(cornerLegendBackground, chart.getCornerLegendBackgroundColor()));
+        }
         // Static empty read to suppress unused warning (no-op).
         if (chart.getLegendPosition() == null) {
             chart.setLegendPosition(ChartLegendPosition.NONE);

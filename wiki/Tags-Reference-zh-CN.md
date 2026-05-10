@@ -25,6 +25,7 @@
 | `<sup>` | 较小的上标风格行内文本 | 无 |
 | `<Color>` | 彩色行内文本 | `id` 或 `color` |
 | `<Tooltip>` | 带 Markdown/标签子内容的富悬浮提示 | `label` |
+| `<mark>` | 行内高亮文本；等价于 `==text==`，并可自定义颜色 | `color` |
 | `<PlayerName>` | 插入当前玩家用户名 | 无 |
 | `<KeyBind>` | 插入按键绑定显示名 | `id` |
 | `<ItemImage>` | 行内物品图标 | `id` 或 `ore`，`scale`，`noTooltip`，`showTooltip`，`showIcon`，`label`，`format`，`yOffset`，`labelYOffset` |
@@ -53,10 +54,10 @@
 | `<CsvTable>` | 运行时 CSV 文件导入表格 | `src`, `header`, `widths` |
 | `<ColumnChart>` | 簇状柱形图 | `categories`, `barWidthRatio`, `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
 | `<BarChart>` | 横向条形图 | 同 `<ColumnChart>` |
-| `<LineChart>` | 折线图（类别或数值 X 轴） | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*` |
+| `<LineChart>` | 折线图（类别或数值 X 轴） | `categories`, `numericX`, `showPoints`, `xAxis*`, `yAxis*`, `cornerLegend` |
 | `<PieChart>` | 饼图 | `startAngle`, `clockwise`, `legend`, `labelPosition` |
-| `<ScatterChart>` | XY 散点图 | `xAxis*`, `yAxis*`, `legend`, `labelPosition` |
-| `<FunctionGraph>` | Desmos 风格的多曲线函数图 | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes` |
+| `<ScatterChart>` | XY 散点图 | `xAxis*`, `yAxis*`, `legend`, `labelPosition`, `cornerLegend` |
+| `<FunctionGraph>` | Desmos 风格的多曲线函数图 | `width`, `height`, `xRange` / `yRange`, `quadrants`, `showGrid`, `showAxes`, `cornerLegend` |
 | `<Function>` | 单曲线简写，等价于只含一个 `<Plot>` 的 `<FunctionGraph>` | `expr`，及全部 `<FunctionGraph>` 面板属性 |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | 配方渲染器 | 详见 [配方](Recipes-zh-CN) |
 | `<GameScene>`, `<Scene>` | 3D 指南场景 | 详见 [GameScene](GameScene-zh-CN) |
@@ -496,6 +497,9 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `titleColor` / `labelColor` | 标题与数据标签颜色 | 浅灰 |
 | `legend` | 图例位置：`none`/`top`/`bottom`/`left`/`right` | `top` |
 | `labelPosition` | 数据标签位置：`none`/`inside`/`outside`/`above`/`below`/`center` | `none` |
+| `cornerLegend` | 图内角落图例位置：`none`/`topRight`/`topLeft`/`bottomRight`/`bottomLeft` | `none` |
+| `cornerLegendWidth` / `cornerLegendHeight` | 图内图例框最大尺寸 | `120` / `64` |
+| `cornerLegendBackground` | 图内图例背景色 | `#AA111922` |
 
 笛卡尔系图表（柱形/条形/折线/散点）支持坐标轴属性 `xAxisLabel`、`xAxisMin`、`xAxisMax`、`xAxisStep`、`xAxisUnit`、`xAxisTickFormat`，以及对应的 `yAxis*`，外加 `showXGrid={true}` 与 `showYGrid={true}` 控制网格线。
 
@@ -549,6 +553,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 附加属性：`numericX={true}`（启用数值 X 轴，子元素改用 `points`）、`showPoints={false}`（隐藏点）。悬停某个数据点时该点沿曲线法向外推 2px、半径 +2 并加黑边，相邻线段加粗。
 
+`<LineChart>` 与 `<ScatterChart>` 可以用 `cornerLegend="topRight"` 等位置值在绘图区内部显示紧凑图例。图例条目使用已有系列名和系列颜色。
+
 ### `<PieChart>`
 
 附加属性：`startAngle`（起始角度，默认 -90 即 12 点钟方向）、`clockwise={false}` 反向。悬停时被悬停扇区沿其角平分线方向外移 4px。
@@ -568,6 +574,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - `showGrid` / `showAxes`（默认 `true`）
 - `xRange="a..b"`（或 `xMin` / `xMax` 分写），`xStep` 控制刻度间距；Y 轴同理
 - `quadrants="1,2,3,4"` 或 `quadrants="all"` 强制可见象限；不写则默认仅第一象限，并在采样发现 `y < 0` 时自动追加第三、第四象限
+- `cornerLegend`、`cornerLegendWidth`、`cornerLegendHeight`、`cornerLegendBackground` 可以把带 `label` 的曲线显示为绘图区内部的紧凑图例
 
 曲线子节点（`<Plot>` / `<Function>`）：
 
@@ -575,6 +582,10 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - `inverse={true}` 将表达式解释为 `x = f(y)` 并旋转曲线。
 - `domain="a..b"`（x 上下界简写）或逗号分隔的比较子句，如 `x>=0, x<5`。
 - `color`、`label`。设置了非空 `label` 的曲线会自动出现在面板下方的图例里：一个小色块加曲线名，按从左到右排列，宽度不够时自动换到下一行。
+- `pointEveryX="step"` 按固定 x 间隔在该曲线上生成点。
+- `pointEveryY="step"` 在曲线与固定 y 间隔的交点处生成点，内部使用有上限的扫描和二分求解。
+- `autoPointLabel="none|x|y|xy"` 控制自动点标签，默认 `none`。
+- `autoPointColor="#..."` 覆盖自动点颜色；省略时继承曲线颜色。
 
 标记点（`<Point>`）：
 

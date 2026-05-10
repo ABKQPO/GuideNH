@@ -77,6 +77,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `++Underline++`                     |                   | ++Underline++                     |
 | `^^Wavy underline^^`                |                   | ^^Wavy underline^^                |
 | `::Emphasis dots::`                 |                   | ::Emphasis dots::                 |
+| `==Highlight==`                     | `<mark>Highlight</mark>` | ==Highlight==               |
 | `[Link](http://a.com)`              |                   | [Link](http://a.com)              |
 | `[Relative Link](./index.md)`       |                   | [Relative Link](./index.md)       |
 | `[Absolute Link](guidenh:index.md)` |                   | [Absolute Link](guidenh:index.md) |
@@ -87,6 +88,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | `![Image](test1.png)`               |                   | ![Image](test1.png)               |
 
 Literal autolinks: visit https://example.com/docs, www.example.org, or guide@example.com
+
+Custom mark color: <mark color="#8A6A00">dark golden highlight</mark>
 
 Press <kbd>Shift</kbd> + <sub>1</sub>
 

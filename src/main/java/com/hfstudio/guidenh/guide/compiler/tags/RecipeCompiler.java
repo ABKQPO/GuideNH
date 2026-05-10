@@ -2,7 +2,9 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -10,12 +12,15 @@ import java.util.function.Consumer;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagCompound;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -74,7 +79,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         // Build the concrete query stack with meta + nbt (wildcard meta collapses to 0).
         ItemStack targetStack = new ItemStack(item, 1, ref.concreteMeta());
         if (ref.nbt() != null) {
-            targetStack.stackTagCompound = (net.minecraft.nbt.NBTTagCompound) ref.nbt()
+            targetStack.stackTagCompound = (NBTTagCompound) ref.nbt()
                 .copy();
         }
 
@@ -111,8 +116,8 @@ public class RecipeCompiler extends BlockTagCompiler {
         // Prefer NEI-native handler rendering if available.
         List<Object> rawHandlers = RecipeCache.getCraftingHandlers(targetStack);
         // When a handler filter is specified, also consult usage handlers. This covers NEI handlers
-        // that treat the target as an input rather than an output (anvil / repair, fuel, brewing
-        // ingredient) 閳?they never show up under getCraftingHandlers.
+        // that treat the target as an input rather than an output. Anvil, repair, fuel, and brewing
+        // ingredients never show up under getCraftingHandlers.
         if (hasHandlerFilter) {
             List<Object> usage = RecipeCache.getUsageHandlers(targetStack);
             if (!usage.isEmpty()) {
@@ -121,8 +126,8 @@ public class RecipeCompiler extends BlockTagCompiler {
                 } else {
                     List<Object> merged = new ArrayList<>(rawHandlers.size() + usage.size());
                     merged.addAll(rawHandlers);
-                    // Dedup by identity 閳?the same IRecipeHandler instance may appear in both lists.
-                    java.util.IdentityHashMap<Object, Boolean> seen = new java.util.IdentityHashMap<>(merged.size());
+                    // Dedup by identity because the same IRecipeHandler instance may appear in both lists.
+                    IdentityHashMap<Object, Boolean> seen = new IdentityHashMap<>(merged.size());
                     for (Object h : rawHandlers) seen.put(h, Boolean.TRUE);
                     for (Object h : usage) if (seen.put(h, Boolean.TRUE) == null) merged.add(h);
                     rawHandlers = merged;
@@ -145,7 +150,7 @@ public class RecipeCompiler extends BlockTagCompiler {
                 return;
             }
         } else if (hasHandlerFilter) {
-            // Handler filter eliminated every candidate. Respect fallbackText (if any) and bail quietly 閳?
+            // Handler filter eliminated every candidate. Respect fallbackText (if any) and bail quietly.
             // this is a legitimate authoring case (e.g. "only render when NEI + the relevant handler is
             // installed") and should not spam error overlays.
             if (fallbackText != null && !fallbackText.isEmpty()) {
@@ -215,8 +220,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      * the available width runs out. Single recipes are appended directly so they keep their
      * original block flow (no extra wrapper overhead).
      */
-    public static void appendRecipes(LytBlockContainer parent,
-        List<? extends com.hfstudio.guidenh.guide.document.block.LytBlock> boxes, boolean multi) {
+    public static void appendRecipes(LytBlockContainer parent, List<? extends LytBlock> boxes, boolean multi) {
         if (boxes.isEmpty()) return;
         if (!multi || boxes.size() == 1) {
             for (var b : boxes) parent.append(b);
@@ -256,7 +260,7 @@ public class RecipeCompiler extends BlockTagCompiler {
                     .equals(idLower);
                 if (!match) {
                     // Secondary: match the handler class simple-name (case-insensitive substring).
-                    // Covers handlers whose overlay identifier differs from their canonical name 閳?
+                    // Covers handlers whose overlay identifier differs from their canonical name.
                     // e.g. the user writes handlerId="fuel" and the class is "FuelRecipeHandler".
                     String cn = h.getClass()
                         .getSimpleName();
@@ -315,7 +319,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      */
     public static final class FilterExpr {
 
-        private static final FilterExpr EMPTY = new FilterExpr(java.util.Collections.<List<FilterTerm>>emptyList());
+        private static final FilterExpr EMPTY = new FilterExpr(Collections.<List<FilterTerm>>emptyList());
         private final List<List<FilterTerm>> orGroups;
 
         private FilterExpr(List<List<FilterTerm>> orGroups) {
@@ -437,7 +441,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     /**
      * {@code true} when {@code stack} satisfies {@code ref}: item identity match, plus meta equality
      * when {@code ref} isn't wildcard-meta, plus NBT equality when {@code ref.nbt()} is non-null.
-     * NBT comparison uses {@link net.minecraft.nbt.NBTBase#equals} which does structural compare.
+     * NBT comparison uses {@link NBTBase#equals} which does structural compare.
      */
     public static boolean stackMatches(@Nullable ItemStack stack, IdUtils.ParsedItemRef ref) {
         if (stack == null) return false;

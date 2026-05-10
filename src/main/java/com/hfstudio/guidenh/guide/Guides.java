@@ -2,13 +2,13 @@ package com.hfstudio.guidenh.guide;
 
 import java.util.Collection;
 
-import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 
 /**
@@ -31,8 +31,7 @@ public class Guides {
      * Create a generic guide item that will open the given guide.
      */
     public static ItemStack createGuideItem(ResourceLocation guideId) {
-        // TODO: 1.7.10 port - needs item registration
-        var stack = new ItemStack(Items.book);
+        var stack = new ItemStack(GuideNH.GUIDE_ITEM);
         if (guideId != null) {
             var tag = new NBTTagCompound();
             tag.setString("GuideId", guideId.toString());

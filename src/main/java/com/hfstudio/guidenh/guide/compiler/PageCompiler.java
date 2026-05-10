@@ -26,6 +26,7 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.PageCollection;
+import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
@@ -87,6 +88,7 @@ import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
 import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
+import com.hfstudio.guidenh.libs.mdast.guidemark.MdAstMark;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstDottedUnderline;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstUnderline;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstWavyUnderline;
@@ -133,6 +135,7 @@ public class PageCompiler {
     public static final int DEFAULT_ELEMENT_SPACING = 5;
     public static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
     private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
+    public static final int DEFAULT_MARK_BACKGROUND_COLOR = 0xFF8A6A00;
     private static final Pattern TABLE_ATTRIBUTE_LINE = Pattern.compile("^\\{:\\s*(.+?)\\s*}$");
     private static final Pattern CODEBLOCK_META_HEIGHT = Pattern
         .compile("(^|\\s)height=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
@@ -366,7 +369,7 @@ public class PageCompiler {
             if (child instanceof MdAstYamlFrontmatter frontmatter) {
                 if (result != null) {
                     FMLLog.getLogger()
-                        .error("[GuideNH] [PageCompiler] Found more than one frontmatter!"); // TODO: proper debugging
+                        .error("[GuideNH] [PageCompiler] Found more than one frontmatter!");
                     continue;
                 }
                 try {
@@ -913,6 +916,11 @@ public class PageCompiler {
             span.modifyStyle(style -> style.dottedUnderline(true));
             compileFlowContext(astDotted, span);
             layoutChild = span;
+        } else if (content instanceof MdAstMark astMark) {
+            var span = new LytFlowSpan();
+            span.modifyStyle(style -> style.backgroundColor(new ConstantColor(DEFAULT_MARK_BACKGROUND_COLOR)));
+            compileFlowContext(astMark, span);
+            layoutChild = span;
         } else if (content instanceof MdAstBreak) {
             layoutChild = new LytFlowBreak();
         } else if (content instanceof MdAstLink astLink) {
@@ -1253,7 +1261,7 @@ public class PageCompiler {
     }
 
     private List<String> splitMetaTokens(String meta) {
-        List<String> tokens = new java.util.ArrayList<>();
+        List<String> tokens = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         boolean inQuotes = false;
         char quote = 0;

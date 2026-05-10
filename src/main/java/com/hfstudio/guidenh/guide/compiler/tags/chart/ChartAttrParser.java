@@ -9,6 +9,7 @@ import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartAxisOptions;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
@@ -162,6 +163,10 @@ public final class ChartAttrParser {
 
     public static ChartLabelPosition parseLabelPosition(String s, ChartLabelPosition def) {
         return ChartLabelPosition.fromString(s, def);
+    }
+
+    public static CornerLegendPosition parseCornerLegendPosition(String s, CornerLegendPosition def) {
+        return CornerLegendPosition.fromString(s, def);
     }
 
     /**

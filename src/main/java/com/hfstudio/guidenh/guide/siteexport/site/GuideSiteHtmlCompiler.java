@@ -24,6 +24,7 @@ import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableCell;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
 import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
+import com.hfstudio.guidenh.libs.mdast.guidemark.MdAstMark;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstDottedUnderline;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstUnderline;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstWavyUnderline;
@@ -210,6 +211,11 @@ public class GuideSiteHtmlCompiler {
             return "<del>"
                 + compileChildren(deleted.children(), templates, defaultNamespace, currentPageId, sceneResolver)
                 + "</del>";
+        }
+        if (node instanceof MdAstMark mark) {
+            return "<mark class=\"guide-mark\">"
+                + compileChildren(mark.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</mark>";
         }
         if (node instanceof MdAstUnderline underline) {
             return "<span class=\"guide-underline\">"

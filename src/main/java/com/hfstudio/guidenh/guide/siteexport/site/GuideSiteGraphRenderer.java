@@ -6,6 +6,10 @@ import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointLabelMode;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointSpec;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionPlot;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.MarkedPoint;
@@ -48,6 +52,17 @@ public final class GuideSiteGraphRenderer {
     private static final int LEGEND_ROW_H = 11;
     // Function graph sample count
     private static final int N_SAMPLES = 1024;
+    private static final int AUTO_POINT_MAX_PER_PLOT = 96;
+    private static final int AUTO_POINT_MAX_TARGETS_PER_PLOT = 256;
+    private static final int AUTO_POINT_SCAN_STEPS = 128;
+    private static final int AUTO_POINT_SOLVE_STEPS = 24;
+    private static final int AUTO_POINT_LABEL_GAP = 4;
+    private static final int CORNER_LEGEND_PADDING_X = 5;
+    private static final int CORNER_LEGEND_PADDING_Y = 4;
+    private static final int CORNER_LEGEND_GAP = 4;
+    private static final int CORNER_LEGEND_ROW_H = 11;
+    private static final int CORNER_LEGEND_MARKER_W = 10;
+    private static final int CORNER_LEGEND_MARKER_H = 6;
 
     private GuideSiteGraphRenderer() {}
 
@@ -982,6 +997,27 @@ public final class GuideSiteGraphRenderer {
 
     public static String renderLineChart(int w, int h, int bgColor, int borderColor, String title, String[] categories,
         List<SeriesData> series, boolean numericX, boolean showPoints, boolean showLegend) {
+        return renderLineChart(
+            w,
+            h,
+            bgColor,
+            borderColor,
+            title,
+            categories,
+            series,
+            numericX,
+            showPoints,
+            showLegend,
+            CornerLegendPosition.NONE,
+            CornerLegendRenderer.DEFAULT_WIDTH,
+            CornerLegendRenderer.DEFAULT_HEIGHT,
+            CornerLegendRenderer.DEFAULT_BACKGROUND);
+    }
+
+    public static String renderLineChart(int w, int h, int bgColor, int borderColor, String title, String[] categories,
+        List<SeriesData> series, boolean numericX, boolean showPoints, boolean showLegend,
+        CornerLegendPosition cornerLegendPosition, int cornerLegendWidth, int cornerLegendHeight,
+        int cornerLegendBackgroundColor) {
         if (w <= 0) {
             w = CHART_DEFAULT_W;
         }
@@ -1162,6 +1198,18 @@ public final class GuideSiteGraphRenderer {
 
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
+        renderChartCornerLegend(
+            svg,
+            series,
+            left,
+            right,
+            top,
+            bottom,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackgroundColor,
+            true);
         if (showLegend) {
             renderLegend(svg, series, left, bottom + AXIS_PAD_BOTTOM + LEGEND_GAP, w - 2 * PADDING);
         }
@@ -1269,6 +1317,23 @@ public final class GuideSiteGraphRenderer {
 
     public static String renderScatterChart(int w, int h, int bgColor, int borderColor, String title,
         List<SeriesData> series, boolean showLegend) {
+        return renderScatterChart(
+            w,
+            h,
+            bgColor,
+            borderColor,
+            title,
+            series,
+            showLegend,
+            CornerLegendPosition.NONE,
+            CornerLegendRenderer.DEFAULT_WIDTH,
+            CornerLegendRenderer.DEFAULT_HEIGHT,
+            CornerLegendRenderer.DEFAULT_BACKGROUND);
+    }
+
+    public static String renderScatterChart(int w, int h, int bgColor, int borderColor, String title,
+        List<SeriesData> series, boolean showLegend, CornerLegendPosition cornerLegendPosition, int cornerLegendWidth,
+        int cornerLegendHeight, int cornerLegendBackgroundColor) {
         if (w <= 0) {
             w = CHART_DEFAULT_W;
         }
@@ -1382,6 +1447,18 @@ public final class GuideSiteGraphRenderer {
 
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
+        renderChartCornerLegend(
+            svg,
+            series,
+            left,
+            right,
+            top,
+            bottom,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackgroundColor,
+            false);
         if (showLegend) {
             renderLegend(svg, series, left, bottom + AXIS_PAD_BOTTOM + LEGEND_GAP, w - 2 * PADDING);
         }
@@ -1449,12 +1526,42 @@ public final class GuideSiteGraphRenderer {
             xMin,
             xMax,
             yMin,
-            yMax);
+            yMax,
+            graph.getCornerLegendPosition(),
+            graph.getCornerLegendWidth(),
+            graph.getCornerLegendHeight(),
+            graph.getCornerLegendBackgroundColor());
     }
 
     public static String renderFunctionGraphSvg(List<FunctionPlot> plots, List<MarkedPoint> points, int w, int h,
         String title, int bgColor, int borderColor, int axisColor, int gridColor, boolean showGrid, boolean showAxes,
         double xMin, double xMax, double yMin, double yMax) {
+        return renderFunctionGraphSvg(
+            plots,
+            points,
+            w,
+            h,
+            title,
+            bgColor,
+            borderColor,
+            axisColor,
+            gridColor,
+            showGrid,
+            showAxes,
+            xMin,
+            xMax,
+            yMin,
+            yMax,
+            CornerLegendPosition.NONE,
+            CornerLegendRenderer.DEFAULT_WIDTH,
+            CornerLegendRenderer.DEFAULT_HEIGHT,
+            CornerLegendRenderer.DEFAULT_BACKGROUND);
+    }
+
+    public static String renderFunctionGraphSvg(List<FunctionPlot> plots, List<MarkedPoint> points, int w, int h,
+        String title, int bgColor, int borderColor, int axisColor, int gridColor, boolean showGrid, boolean showAxes,
+        double xMin, double xMax, double yMin, double yMax, CornerLegendPosition cornerLegendPosition,
+        int cornerLegendWidth, int cornerLegendHeight, int cornerLegendBackgroundColor) {
 
         int titleBottom = computeTitleBottom(title);
         int leftPad = showAxes ? AXIS_PAD_LEFT : PADDING;
@@ -1649,6 +1756,7 @@ public final class GuideSiteGraphRenderer {
             }
         }
 
+        renderFunctionGraphAutoPoints(svg, plots, left, right, top, bottom, plotW, plotH, xMin, xMax, yMin, yMax);
         // Explicit marked points
         if (points != null) {
             for (MarkedPoint pt : points) {
@@ -1686,8 +1794,478 @@ public final class GuideSiteGraphRenderer {
         }
 
         svg.append("</g>");
+        renderFunctionGraphCornerLegend(
+            svg,
+            plots,
+            left,
+            right,
+            top,
+            bottom,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackgroundColor);
         return svg.append("</svg>")
             .toString();
+    }
+
+    private static void renderFunctionGraphAutoPoints(StringBuilder svg, List<FunctionPlot> plots, int left, int right,
+        int top, int bottom, int plotW, int plotH, double xMin, double xMax, double yMin, double yMax) {
+        for (FunctionPlot plot : plots) {
+            AutoPointSpec spec = plot.getAutoPointSpec();
+            if (spec == null || !spec.isEnabled()) {
+                continue;
+            }
+            int color = spec.colorInherit() ? plot.getColor() : spec.color();
+            int drawn = 0;
+            if (!Double.isNaN(spec.everyX())) {
+                drawn = renderFunctionGraphAutoPointsEveryX(
+                    svg,
+                    plot,
+                    spec,
+                    color,
+                    drawn,
+                    left,
+                    right,
+                    top,
+                    bottom,
+                    plotW,
+                    plotH,
+                    xMin,
+                    xMax,
+                    yMin,
+                    yMax);
+            }
+            if (!Double.isNaN(spec.everyY()) && drawn < AUTO_POINT_MAX_PER_PLOT) {
+                renderFunctionGraphAutoPointsEveryY(
+                    svg,
+                    plot,
+                    spec,
+                    color,
+                    drawn,
+                    left,
+                    right,
+                    top,
+                    bottom,
+                    plotW,
+                    plotH,
+                    xMin,
+                    xMax,
+                    yMin,
+                    yMax);
+            }
+        }
+    }
+
+    private static int renderFunctionGraphAutoPointsEveryX(StringBuilder svg, FunctionPlot plot, AutoPointSpec spec,
+        int color, int drawn, int left, int right, int top, int bottom, int plotW, int plotH, double xMin, double xMax,
+        double yMin, double yMax) {
+        if (plot.isInverse()) {
+            return renderFunctionGraphAutoPointIntersections(
+                svg,
+                plot,
+                spec,
+                color,
+                spec.everyX(),
+                true,
+                drawn,
+                left,
+                right,
+                top,
+                bottom,
+                plotW,
+                plotH,
+                xMin,
+                xMax,
+                yMin,
+                yMax);
+        }
+        double step = spec.everyX();
+        double value = Math.ceil(xMin / step) * step;
+        int targets = 0;
+        while (value <= xMax + 1e-9 && drawn < AUTO_POINT_MAX_PER_PLOT && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
+            if (appendFunctionGraphAutoPoint(
+                svg,
+                value,
+                plot.evaluate(value),
+                color,
+                spec.labelMode(),
+                left,
+                right,
+                top,
+                bottom,
+                plotW,
+                plotH,
+                xMin,
+                xMax,
+                yMin,
+                yMax)) {
+                drawn++;
+            }
+            value += step;
+            targets++;
+        }
+        return drawn;
+    }
+
+    private static int renderFunctionGraphAutoPointsEveryY(StringBuilder svg, FunctionPlot plot, AutoPointSpec spec,
+        int color, int drawn, int left, int right, int top, int bottom, int plotW, int plotH, double xMin, double xMax,
+        double yMin, double yMax) {
+        if (plot.isInverse()) {
+            double step = spec.everyY();
+            double value = Math.ceil(yMin / step) * step;
+            int targets = 0;
+            while (value <= yMax + 1e-9 && drawn < AUTO_POINT_MAX_PER_PLOT
+                && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
+                if (appendFunctionGraphAutoPoint(
+                    svg,
+                    plot.evaluate(value),
+                    value,
+                    color,
+                    spec.labelMode(),
+                    left,
+                    right,
+                    top,
+                    bottom,
+                    plotW,
+                    plotH,
+                    xMin,
+                    xMax,
+                    yMin,
+                    yMax)) {
+                    drawn++;
+                }
+                value += step;
+                targets++;
+            }
+            return drawn;
+        }
+        double step = spec.everyY();
+        double value = Math.ceil(yMin / step) * step;
+        int targets = 0;
+        while (value <= yMax + 1e-9 && drawn < AUTO_POINT_MAX_PER_PLOT && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
+            drawn = renderFunctionGraphAutoPointIntersections(
+                svg,
+                plot,
+                spec,
+                color,
+                value,
+                false,
+                drawn,
+                left,
+                right,
+                top,
+                bottom,
+                plotW,
+                plotH,
+                xMin,
+                xMax,
+                yMin,
+                yMax);
+            value += step;
+            targets++;
+        }
+        return drawn;
+    }
+
+    private static int renderFunctionGraphAutoPointIntersections(StringBuilder svg, FunctionPlot plot,
+        AutoPointSpec spec, int color, double target, boolean targetX, int drawn, int left, int right, int top,
+        int bottom, int plotW, int plotH, double xMin, double xMax, double yMin, double yMax) {
+        double independentMin = plot.isInverse() ? yMin : xMin;
+        double independentMax = plot.isInverse() ? yMax : xMax;
+        double prevIndependent = independentMin;
+        double prevValue = functionGraphAutoPointDifference(plot, prevIndependent, target, targetX);
+        for (int i = 1; i <= AUTO_POINT_SCAN_STEPS && drawn < AUTO_POINT_MAX_PER_PLOT; i++) {
+            double independent = independentMin + (independentMax - independentMin) * i / AUTO_POINT_SCAN_STEPS;
+            double value = functionGraphAutoPointDifference(plot, independent, target, targetX);
+            if (Double.isFinite(prevValue) && Double.isFinite(value) && prevValue * value <= 0d) {
+                double solved = solveFunctionGraphAutoPoint(
+                    plot,
+                    target,
+                    targetX,
+                    prevIndependent,
+                    independent,
+                    prevValue);
+                double dataX = plot.isInverse() ? plot.evaluate(solved) : solved;
+                double dataY = plot.isInverse() ? solved : plot.evaluate(solved);
+                if (appendFunctionGraphAutoPoint(
+                    svg,
+                    dataX,
+                    dataY,
+                    color,
+                    spec.labelMode(),
+                    left,
+                    right,
+                    top,
+                    bottom,
+                    plotW,
+                    plotH,
+                    xMin,
+                    xMax,
+                    yMin,
+                    yMax)) {
+                    drawn++;
+                }
+            }
+            prevIndependent = independent;
+            prevValue = value;
+        }
+        return drawn;
+    }
+
+    private static double functionGraphAutoPointDifference(FunctionPlot plot, double independent, double target,
+        boolean targetX) {
+        double dataX = plot.isInverse() ? plot.evaluate(independent) : independent;
+        double dataY = plot.isInverse() ? independent : plot.evaluate(independent);
+        return (targetX ? dataX : dataY) - target;
+    }
+
+    private static double solveFunctionGraphAutoPoint(FunctionPlot plot, double target, boolean targetX, double lo,
+        double hi, double fLo) {
+        for (int i = 0; i < AUTO_POINT_SOLVE_STEPS; i++) {
+            double mid = (lo + hi) * 0.5d;
+            double fMid = functionGraphAutoPointDifference(plot, mid, target, targetX);
+            if (!Double.isFinite(fMid) || Math.abs(fMid) < 1e-9) {
+                return mid;
+            }
+            if (fLo * fMid <= 0d) {
+                hi = mid;
+            } else {
+                lo = mid;
+                fLo = fMid;
+            }
+        }
+        return (lo + hi) * 0.5d;
+    }
+
+    private static boolean appendFunctionGraphAutoPoint(StringBuilder svg, double dataX, double dataY, int color,
+        AutoPointLabelMode labelMode, int left, int right, int top, int bottom, int plotW, int plotH, double xMin,
+        double xMax, double yMin, double yMax) {
+        if (!Double.isFinite(dataX) || !Double.isFinite(dataY)) {
+            return false;
+        }
+        int px = left + (int) Math.round((dataX - xMin) / (xMax - xMin) * plotW);
+        int py = bottom - (int) Math.round((dataY - yMin) / (yMax - yMin) * plotH);
+        if (px < left - 3 || px > right + 3 || py < top - 3 || py > bottom + 3) {
+            return false;
+        }
+        String pointLabel = "(" + formatNum(dataX) + ", " + formatNum(dataY) + ")";
+        svg.append("<circle class=\"guide-chart-shape\" cx=\"")
+            .append(px)
+            .append("\" cy=\"")
+            .append(py)
+            .append("\" r=\"4\" fill=\"#FFFFFF\"/>");
+        svg.append("<circle class=\"guide-chart-shape\" cx=\"")
+            .append(px)
+            .append("\" cy=\"")
+            .append(py)
+            .append("\" r=\"3\" fill=\"")
+            .append(argbToRgba(color))
+            .append("\"><title>")
+            .append(esc(pointLabel))
+            .append("</title></circle>");
+        if (labelMode != null && labelMode != AutoPointLabelMode.NONE) {
+            String label = switch (labelMode) {
+                case X -> formatNum(dataX);
+                case Y -> formatNum(dataY);
+                case XY -> pointLabel;
+                case NONE -> "";
+            };
+            int textW = Math.max(1, label.length() * 6);
+            int labelX = px + AUTO_POINT_LABEL_GAP;
+            if (labelX + textW > right) {
+                labelX = px - textW - AUTO_POINT_LABEL_GAP;
+            }
+            int labelY = py - AUTO_POINT_LABEL_GAP;
+            if (labelY - 8 < top) {
+                labelY = py + 10;
+            }
+            svg.append("<text x=\"")
+                .append(labelX)
+                .append("\" y=\"")
+                .append(labelY)
+                .append("\" font-size=\"8\" fill=\"#D7DEE7\" font-family=\"inherit\">")
+                .append(esc(label))
+                .append("</text>");
+        }
+        return true;
+    }
+
+    private static void renderFunctionGraphCornerLegend(StringBuilder svg, List<FunctionPlot> plots, int left,
+        int right, int top, int bottom, CornerLegendPosition position, int maxWidth, int maxHeight,
+        int backgroundColor) {
+        if (position == null || position == CornerLegendPosition.NONE || plots == null || plots.isEmpty()) {
+            return;
+        }
+        int plotW = right - left;
+        int plotH = bottom - top;
+        if (plotW < 24 || plotH < 12) {
+            return;
+        }
+        int width = clamp(maxWidth > 0 ? maxWidth : CornerLegendRenderer.DEFAULT_WIDTH, 24, plotW);
+        int height = clamp(maxHeight > 0 ? maxHeight : CornerLegendRenderer.DEFAULT_HEIGHT, 12, plotH);
+        int capacity = Math.max(0, (height - CORNER_LEGEND_PADDING_Y * 2) / CORNER_LEGEND_ROW_H);
+        if (capacity <= 0) {
+            return;
+        }
+        List<FunctionPlot> visible = new ArrayList<>();
+        for (FunctionPlot plot : plots) {
+            if (plot.getLabel() != null && !plot.getLabel()
+                .isEmpty()) {
+                visible.add(plot);
+                if (visible.size() >= capacity) {
+                    break;
+                }
+            }
+        }
+        if (visible.isEmpty()) {
+            return;
+        }
+        height = Math.min(height, visible.size() * CORNER_LEGEND_ROW_H + CORNER_LEGEND_PADDING_Y * 2);
+        int x = switch (position) {
+            case TOP_LEFT, BOTTOM_LEFT -> left + CORNER_LEGEND_GAP;
+            case TOP_RIGHT, BOTTOM_RIGHT -> right - width - CORNER_LEGEND_GAP;
+            case NONE -> right - width - CORNER_LEGEND_GAP;
+        };
+        int y = switch (position) {
+            case TOP_LEFT, TOP_RIGHT -> top + CORNER_LEGEND_GAP;
+            case BOTTOM_LEFT, BOTTOM_RIGHT -> bottom - height - CORNER_LEGEND_GAP;
+            case NONE -> top + CORNER_LEGEND_GAP;
+        };
+        x = clamp(x, left, right - width);
+        y = clamp(y, top, bottom - height);
+        svg.append("<rect x=\"")
+            .append(x)
+            .append("\" y=\"")
+            .append(y)
+            .append("\" width=\"")
+            .append(width)
+            .append("\" height=\"")
+            .append(height)
+            .append("\" fill=\"")
+            .append(argbToRgba(backgroundColor))
+            .append("\" stroke=\"rgba(255,255,255,0.4)\" stroke-width=\"1\"/>");
+        int rowY = y + CORNER_LEGEND_PADDING_Y + 8;
+        int markerX = x + CORNER_LEGEND_PADDING_X;
+        int textX = markerX + CORNER_LEGEND_MARKER_W + CORNER_LEGEND_GAP;
+        int maxChars = Math.max(0, (x + width - CORNER_LEGEND_PADDING_X - textX) / 6);
+        for (FunctionPlot plot : visible) {
+            int markerY = rowY - CORNER_LEGEND_MARKER_H / 2 - 2;
+            svg.append("<line x1=\"")
+                .append(markerX)
+                .append("\" y1=\"")
+                .append(markerY + CORNER_LEGEND_MARKER_H / 2)
+                .append("\" x2=\"")
+                .append(markerX + CORNER_LEGEND_MARKER_W)
+                .append("\" y2=\"")
+                .append(markerY + CORNER_LEGEND_MARKER_H / 2)
+                .append("\" stroke=\"")
+                .append(argbToRgba(plot.getColor()))
+                .append("\" stroke-width=\"1.5\"/>");
+            svg.append("<text x=\"")
+                .append(textX)
+                .append("\" y=\"")
+                .append(rowY)
+                .append("\" font-size=\"9\" fill=\"#FFFFFF\" font-family=\"inherit\">")
+                .append(esc(ellipsize(plot.getLabel(), maxChars)))
+                .append("</text>");
+            rowY += CORNER_LEGEND_ROW_H;
+        }
+    }
+
+    private static void renderChartCornerLegend(StringBuilder svg, List<SeriesData> series, int left, int right,
+        int top, int bottom, CornerLegendPosition position, int maxWidth, int maxHeight, int backgroundColor,
+        boolean lineMarker) {
+        if (position == null || position == CornerLegendPosition.NONE || series == null || series.isEmpty()) {
+            return;
+        }
+        int plotW = right - left;
+        int plotH = bottom - top;
+        if (plotW < 24 || plotH < 12) {
+            return;
+        }
+        int width = clamp(maxWidth > 0 ? maxWidth : CornerLegendRenderer.DEFAULT_WIDTH, 24, plotW);
+        int height = clamp(maxHeight > 0 ? maxHeight : CornerLegendRenderer.DEFAULT_HEIGHT, 12, plotH);
+        int capacity = Math.max(0, (height - CORNER_LEGEND_PADDING_Y * 2) / CORNER_LEGEND_ROW_H);
+        if (capacity <= 0) {
+            return;
+        }
+        List<SeriesData> visible = new ArrayList<>();
+        for (SeriesData item : series) {
+            if (item != null && item.name != null && !item.name.isEmpty()) {
+                visible.add(item);
+                if (visible.size() >= capacity) {
+                    break;
+                }
+            }
+        }
+        if (visible.isEmpty()) {
+            return;
+        }
+        height = Math.min(height, visible.size() * CORNER_LEGEND_ROW_H + CORNER_LEGEND_PADDING_Y * 2);
+        int x = switch (position) {
+            case TOP_LEFT, BOTTOM_LEFT -> left + CORNER_LEGEND_GAP;
+            case TOP_RIGHT, BOTTOM_RIGHT -> right - width - CORNER_LEGEND_GAP;
+            case NONE -> right - width - CORNER_LEGEND_GAP;
+        };
+        int y = switch (position) {
+            case TOP_LEFT, TOP_RIGHT -> top + CORNER_LEGEND_GAP;
+            case BOTTOM_LEFT, BOTTOM_RIGHT -> bottom - height - CORNER_LEGEND_GAP;
+            case NONE -> top + CORNER_LEGEND_GAP;
+        };
+        x = clamp(x, left, right - width);
+        y = clamp(y, top, bottom - height);
+        svg.append("<rect x=\"")
+            .append(x)
+            .append("\" y=\"")
+            .append(y)
+            .append("\" width=\"")
+            .append(width)
+            .append("\" height=\"")
+            .append(height)
+            .append("\" fill=\"")
+            .append(argbToRgba(backgroundColor))
+            .append("\" stroke=\"rgba(255,255,255,0.4)\" stroke-width=\"1\"/>");
+        int rowY = y + CORNER_LEGEND_PADDING_Y + 8;
+        int markerX = x + CORNER_LEGEND_PADDING_X;
+        int textX = markerX + CORNER_LEGEND_MARKER_W + CORNER_LEGEND_GAP;
+        int maxChars = Math.max(0, (x + width - CORNER_LEGEND_PADDING_X - textX) / 6);
+        for (SeriesData item : visible) {
+            int markerY = rowY - CORNER_LEGEND_MARKER_H / 2 - 2;
+            if (lineMarker) {
+                svg.append("<line x1=\"")
+                    .append(markerX)
+                    .append("\" y1=\"")
+                    .append(markerY + CORNER_LEGEND_MARKER_H / 2)
+                    .append("\" x2=\"")
+                    .append(markerX + CORNER_LEGEND_MARKER_W)
+                    .append("\" y2=\"")
+                    .append(markerY + CORNER_LEGEND_MARKER_H / 2)
+                    .append("\" stroke=\"")
+                    .append(argbToRgba(item.color))
+                    .append("\" stroke-width=\"1.5\"/>");
+            } else {
+                svg.append("<rect x=\"")
+                    .append(markerX + 2)
+                    .append("\" y=\"")
+                    .append(markerY)
+                    .append("\" width=\"")
+                    .append(CORNER_LEGEND_MARKER_H)
+                    .append("\" height=\"")
+                    .append(CORNER_LEGEND_MARKER_H)
+                    .append("\" fill=\"")
+                    .append(argbToRgba(item.color))
+                    .append("\"/>");
+            }
+            svg.append("<text x=\"")
+                .append(textX)
+                .append("\" y=\"")
+                .append(rowY)
+                .append("\" font-size=\"9\" fill=\"#FFFFFF\" font-family=\"inherit\">")
+                .append(esc(ellipsize(item.name, maxChars)))
+                .append("</text>");
+            rowY += CORNER_LEGEND_ROW_H;
+        }
     }
 
     private static void flushPolyline(StringBuilder svg, StringBuilder pts, String stroke) {
@@ -1889,6 +2467,23 @@ public final class GuideSiteGraphRenderer {
         int itemW = Math.max(60, Math.min(100, (w - 2 * PADDING) / series.size()));
         int cols = Math.max(1, (w - 2 * PADDING) / itemW);
         return (int) Math.ceil((double) series.size() / cols) * (LEGEND_ROW_H + 2) + LEGEND_GAP;
+    }
+
+    private static String ellipsize(String text, int maxChars) {
+        if (text == null || text.isEmpty() || maxChars <= 0) {
+            return "";
+        }
+        if (text.length() <= maxChars) {
+            return text;
+        }
+        if (maxChars <= 3) {
+            return text.substring(0, maxChars);
+        }
+        return text.substring(0, maxChars - 3) + "...";
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     // Number and coordinate formatters.

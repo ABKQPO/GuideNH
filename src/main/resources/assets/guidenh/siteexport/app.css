@@ -229,6 +229,11 @@ blockquote {
     -webkit-text-emphasis-position: under;
 }
 
+.guide-mark {
+    background-color: #8A6A00;
+    color: inherit;
+}
+
 p {
     margin: 0 0 0.8em;
 }
