@@ -23,8 +23,6 @@ import net.minecraft.util.ResourceLocation;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -37,6 +35,8 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 
 import cpw.mods.fml.common.FMLLog;
 

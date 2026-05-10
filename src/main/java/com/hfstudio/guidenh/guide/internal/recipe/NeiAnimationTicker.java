@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.internal.recipe;
 
 import java.util.WeakHashMap;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;

@@ -9,7 +9,7 @@ import java.util.Map;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 /**
  * Caches the raw {@link NeiRecipeLookup#queryRawCraftingHandlers(ItemStack)} result per target

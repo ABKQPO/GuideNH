@@ -39,11 +39,6 @@ import org.joml.Vector3f;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.ae2.Ae2Helpers;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibTooltipContentBuilder;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
@@ -88,6 +83,11 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityRayPicker;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.ae2.Ae2Helpers;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 public class LytGuidebookScene extends LytBlock {
 

@@ -25,9 +25,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.ae2.Ae2Helpers;
-import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.ae2.Ae2Helpers;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;

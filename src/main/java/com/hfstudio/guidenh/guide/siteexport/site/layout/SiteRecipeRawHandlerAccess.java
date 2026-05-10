@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 /**
  * Narrow interface for reading NEI handler slots without depending on

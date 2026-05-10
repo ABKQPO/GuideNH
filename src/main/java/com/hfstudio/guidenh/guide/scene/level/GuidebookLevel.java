@@ -23,10 +23,10 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.distanthorizons.DistantHorizonsCompat;
 import com.hfstudio.guidenh.guide.scene.snapshot.GuidebookPreviewAuthorityStore;
 import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuidePreviewStateSupport;
+import com.hfstudio.guidenh.integration.distanthorizons.DistantHorizonsCompat;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
@@ -92,7 +92,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         previewStateDirty = false;
         rebindAllTileEntities();
-        // Tick first so tile entities (e.g. BC pipes) call initialize() → computeConnections()
+        // Tick first so tile entities (e.g. BC pipes) call initialize() 鈫?computeConnections()
         // before compat helpers read their state.
         tickPreviewWorld();
         GuidePreviewStateSupport.prepare(this);

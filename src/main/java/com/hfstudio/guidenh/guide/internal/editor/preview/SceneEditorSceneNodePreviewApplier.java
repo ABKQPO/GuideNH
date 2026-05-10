@@ -20,11 +20,6 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
-import com.hfstudio.guidenh.compat.structurelib.StructureLibImportRequest;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibImportResult;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneImportService;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -47,6 +42,11 @@ import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.RemoveBlocksExecutor;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 
 public class SceneEditorSceneNodePreviewApplier {
 

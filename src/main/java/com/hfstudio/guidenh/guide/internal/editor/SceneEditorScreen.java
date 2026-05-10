@@ -27,7 +27,6 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -88,6 +87,7 @@ import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.SavedCameraSettings;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 
 public class SceneEditorScreen extends GuiScreen {
 

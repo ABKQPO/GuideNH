@@ -13,8 +13,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.betterquesting.BqCompat;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
@@ -26,6 +24,8 @@ import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.extensions.DefaultExtensions;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.betterquesting.BqCompat;
 
 /**
  * Constructs new guides.

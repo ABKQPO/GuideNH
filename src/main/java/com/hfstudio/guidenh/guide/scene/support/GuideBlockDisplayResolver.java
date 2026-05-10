@@ -11,10 +11,8 @@ import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.buildcraft.BuildCraftHelpers;
-import com.hfstudio.guidenh.compat.logisticspipes.LogisticsPipesHelpers;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuideBlockDisplayResolver {
 
@@ -35,18 +33,10 @@ public class GuideBlockDisplayResolver {
             return null;
         }
 
-        if (Mods.LogisticsPipes.isModLoaded()) {
-            ItemStack lpStack = LogisticsPipesHelpers.resolveDisplayStack(level, block, x, y, z);
-            if (lpStack != null) {
-                return lpStack;
-            }
-        }
-
-        if (Mods.BuildCraftTransport.isModLoaded()) {
-            ItemStack bcStack = BuildCraftHelpers.resolveDisplayStack(level, block, x, y, z);
-            if (bcStack != null) {
-                return bcStack;
-            }
+        ItemStack integrationStack = GuideNhIntegrationRegistry.global()
+            .resolveBlockDisplayStack(level, block, x, y, z, target);
+        if (integrationStack != null) {
+            return integrationStack;
         }
 
         ItemStack carpentersStack = GuideCarpentersBlockSupport.resolveDisplayStack(level, block, x, y, z, target);

@@ -5,9 +5,9 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 /**
  * An {@link ItemTooltip} that lets the NEI handler contribute extra lines via

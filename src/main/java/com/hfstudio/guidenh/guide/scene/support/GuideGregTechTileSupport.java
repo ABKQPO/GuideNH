@@ -6,11 +6,11 @@ import net.minecraft.tileentity.TileEntity;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 /**
  * Backwards-compatible facade. All GregTech integration now lives in
- * {@link com.hfstudio.guidenh.compat.gregtech.GregTechHelpers}.
+ * {@link GregTechHelpers}.
  */
 public final class GuideGregTechTileSupport {
 

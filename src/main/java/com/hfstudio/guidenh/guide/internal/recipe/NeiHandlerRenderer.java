@@ -11,7 +11,7 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 /**
  * Invokes {@link NeiRecipeLookup}-bound handlers to render a recipe in-place. Relies on
@@ -49,7 +49,7 @@ public class NeiHandlerRenderer {
     /**
      * @param skipForeground when {@code true}, skips {@code drawForeground} and {@code drawExtras}.
      *                       Pass {@code true} for handlers whose {@code getOtherStacks} is known to
-     *                       throw — those methods call GTNH-NEI's safe-wrapper internally, which
+     *                       throw 鈥?those methods call GTNH-NEI's safe-wrapper internally, which
      *                       would log "Error in getOtherStacks" spam on every rendered frame.
      */
     public static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int clipX,

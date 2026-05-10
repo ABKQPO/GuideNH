@@ -17,7 +17,6 @@ import net.minecraft.nbt.NBTTagCompound;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -28,6 +27,7 @@ import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 import cpw.mods.fml.common.FMLLog;

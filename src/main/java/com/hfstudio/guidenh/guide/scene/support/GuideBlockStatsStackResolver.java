@@ -10,11 +10,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.ae2.Ae2Helpers;
-import com.hfstudio.guidenh.compat.carpentersblocks.CarpentersBlocksHelpers;
-import com.hfstudio.guidenh.compat.forgemultipart.ForgeMultipartHelpers;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.ae2.Ae2Helpers;
+import com.hfstudio.guidenh.integration.carpentersblocks.CarpentersBlocksHelpers;
+import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartHelpers;
 
 public final class GuideBlockStatsStackResolver {
 

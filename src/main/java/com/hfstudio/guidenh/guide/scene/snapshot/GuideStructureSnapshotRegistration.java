@@ -1,12 +1,12 @@
 package com.hfstudio.guidenh.guide.scene.snapshot;
 
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.ae2.Ae2PreviewPrepareContributor;
-import com.hfstudio.guidenh.compat.buildcraft.BuildCraftPreviewPrepareContributor;
-import com.hfstudio.guidenh.compat.gregtech.GregTechPreviewPrepareContributor;
-import com.hfstudio.guidenh.compat.logisticspipes.LogisticsPipesPreviewPrepareContributor;
-import com.hfstudio.guidenh.compat.preview.GuideCompatStructurePreviewBootstrap;
-import com.hfstudio.guidenh.compat.tinkerconstruct.TinkersConstructPreviewPrepareContributor;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.ae2.Ae2PreviewPrepareContributor;
+import com.hfstudio.guidenh.integration.buildcraft.BuildCraftPreviewPrepareContributor;
+import com.hfstudio.guidenh.integration.gregtech.GregTechPreviewPrepareContributor;
+import com.hfstudio.guidenh.integration.logisticspipes.LogisticsPipesPreviewPrepareContributor;
+import com.hfstudio.guidenh.integration.preview.GuideCompatStructurePreviewBootstrap;
+import com.hfstudio.guidenh.integration.tinkerconstruct.TinkersConstructPreviewPrepareContributor;
 
 /**
  * Registers default structure snapshot / preview contributors. Call once from {@link com.hfstudio.guidenh.CommonProxy}

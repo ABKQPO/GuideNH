@@ -9,12 +9,12 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 public class GuideSiteRecipeExporter {
 
-    /** NEI slot chrome is commonly {@code 18×18} pixels; vanilla/GT handlers draw {@code 16×16} items inset by 1px. */
+    /** NEI slot chrome is commonly {@code 18脳18} pixels; vanilla/GT handlers draw {@code 16脳16} items inset by 1px. */
     public static final int NEI_SLOT_GUI_PIXELS = 18;
 
     public String renderHtmlGrid(List<List<String>> ingredients, String resultItemId) {
@@ -184,7 +184,7 @@ public class GuideSiteRecipeExporter {
             double topPct;
             if (usePhase1Canvas) {
                 /*
-                 * PNG viewport is HandlerInfo WxH plus symmetric VIEWPORT_MARGIN_PX — same inset as Phase1 translate(m,
+                 * PNG viewport is HandlerInfo WxH plus symmetric VIEWPORT_MARGIN_PX 鈥?same inset as Phase1 translate(m,
                  * yShift+m).
                  * GT/ModularUI nine-patch bezel can extend a few px past the nominal body; relying on HandlerInfo alone
                  * clips edges.

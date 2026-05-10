@@ -20,7 +20,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.guide.scene.snapshot.ImportBlockContext;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.snapshot.StructureImportPipeline;
@@ -28,6 +27,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 public class GuidebookPreviewBlockPlacer {
 

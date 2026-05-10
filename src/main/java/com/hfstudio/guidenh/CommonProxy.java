@@ -3,7 +3,7 @@ package com.hfstudio.guidenh;
 import net.minecraft.init.Items;
 import net.minecraftforge.oredict.ShapelessOreRecipe;
 
-import com.hfstudio.guidenh.guide.scene.snapshot.GuideStructureSnapshotRegistration;
+import com.hfstudio.guidenh.integration.GuideNhIntegrationBootstrap;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 import com.hfstudio.guidenh.network.GuideNhNetworkEvents;
 
@@ -21,7 +21,7 @@ public class CommonProxy {
         GameRegistry.registerItem(GuideNH.REGION_WAND, "region_wand");
         GameRegistry.addRecipe(new ShapelessOreRecipe(GuideNH.GUIDE_ITEM, Items.book, Items.compass));
         GuideNhNetwork.initCommon();
-        GuideStructureSnapshotRegistration.registerAll();
+        GuideNhIntegrationBootstrap.preInitCommon();
         FMLCommonHandler.instance()
             .bus()
             .register(new GuideNhNetworkEvents());

@@ -15,9 +15,6 @@ import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
 import org.lwjgl.input.Keyboard;
 
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.betterquesting.BqCompat;
-import com.hfstudio.guidenh.compat.betterquesting.QuestIndex;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
@@ -29,6 +26,9 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.betterquesting.BqCompat;
+import com.hfstudio.guidenh.integration.betterquesting.QuestIndex;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.FMLCommonHandler;

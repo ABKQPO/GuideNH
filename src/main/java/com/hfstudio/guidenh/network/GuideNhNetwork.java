@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.network;
 
 import com.hfstudio.guidenh.GuideNH;
+import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
 
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
@@ -19,16 +20,7 @@ public class GuideNhNetwork {
             GuideNhStructureRequestMessage.class,
             1,
             Side.SERVER);
-        CHANNEL.registerMessage(
-            GuideNhAe2CableBatchServerHandler.class,
-            GuideNhAe2CableBatchRequestMessage.class,
-            3,
-            Side.SERVER);
-        CHANNEL.registerMessage(
-            GuideNhAe2BaseTileNetworkBatchServerHandler.class,
-            GuideNhAe2BaseTileNetworkBatchRequestMessage.class,
-            5,
-            Side.SERVER);
+        Ae2NetworkRegistration.registerCommonMessages();
     }
 
     public static SimpleNetworkWrapper channel() {

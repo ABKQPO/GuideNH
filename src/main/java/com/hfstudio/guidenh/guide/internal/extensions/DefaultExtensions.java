@@ -8,8 +8,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import com.github.bsideup.jabel.Desugar;
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.betterquesting.BqCompat;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ATagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler;
@@ -68,6 +66,8 @@ import com.hfstudio.guidenh.guide.scene.element.RemoveBlocksElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ReplaceBlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.element.TextAnnotationElementCompiler;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.betterquesting.BqCompat;
 
 public class DefaultExtensions {
 

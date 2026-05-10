@@ -4,10 +4,10 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteItemIconResolver;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteRecipeExporter;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 /**
  * Immutable inputs for {@link SiteRecipeLayoutStrategy}. Exactly one of

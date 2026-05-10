@@ -10,8 +10,6 @@ import net.minecraft.util.EnumChatFormatting;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
-import com.hfstudio.guidenh.compat.neicustomdiagram.NeiCustomDiagramBridge;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -19,6 +17,8 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
 
 /**
  * A document block that frames and renders a single NEI recipe using the handler's own

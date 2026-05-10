@@ -12,7 +12,7 @@ import net.minecraftforge.oredict.OreDictionary;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
-import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public final class GuideItemReferenceResolver {
 
@@ -104,8 +104,9 @@ public final class GuideItemReferenceResolver {
         }
 
         ItemStack copiedStack = firstMatch.copy();
-        ItemStack unifiedStack = applyGregTechOreDictUnification(copiedStack);
-        return unifiedStack != null && unifiedStack.getItem() != null ? unifiedStack : copiedStack;
+        ItemStack normalizedStack = GuideNhIntegrationRegistry.global()
+            .normalizeItemStack(copiedStack);
+        return normalizedStack != null && normalizedStack.getItem() != null ? normalizedStack : copiedStack;
     }
 
     @Nullable
@@ -126,14 +127,6 @@ public final class GuideItemReferenceResolver {
 
         Object rawName = Block.blockRegistry.getNameForObject(block);
         return rawName == null ? null : new ResourceLocation(rawName.toString());
-    }
-
-    @Nullable
-    public static ItemStack applyGregTechOreDictUnification(@Nullable ItemStack stack) {
-        if (stack == null || stack.getItem() == null) {
-            return stack;
-        }
-        return GregTechHelpers.applyOreDictUnification(stack);
     }
 
     @Nullable

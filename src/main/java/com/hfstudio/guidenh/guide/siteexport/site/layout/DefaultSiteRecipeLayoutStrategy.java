@@ -1,12 +1,12 @@
 package com.hfstudio.guidenh.guide.siteexport.site.layout;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteExportedItem;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteItemIconResolver;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteRecipeExporter;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 /**
- * Preserves the historical site layout: 3×3 flow grid + optional supporting column + result slot.
+ * Preserves the historical site layout: 3脳3 flow grid + optional supporting column + result slot.
  */
 public final class DefaultSiteRecipeLayoutStrategy implements SiteRecipeLayoutStrategy {
 
