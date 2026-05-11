@@ -10,11 +10,15 @@ public class StructureLibSceneCameraFitter {
     public static final int PADDING_PIXELS = 16;
 
     public FittedCamera fit(GuidebookLevel level, StructureLibExportTaskSpec task) {
+        return fit(level, task.getPixelsPerBlock(), task.getScale(), task.getView());
+    }
+
+    public FittedCamera fit(GuidebookLevel level, int pixelsPerBlock, float scale, StructureLibExportView view) {
         int[] bounds = level.getBounds();
-        int blockPixels = Math.max(1, Math.round(task.getPixelsPerBlock() * task.getScale()));
+        int blockPixels = Math.max(1, Math.round(pixelsPerBlock * scale));
         CameraSettings camera = new CameraSettings();
-        task.getView()
-            .apply(camera);
+        StructureLibExportView effectiveView = view != null ? view : StructureLibExportView.defaultView();
+        effectiveView.apply(camera);
         float centerX = (bounds[0] + bounds[3] + 1f) * 0.5f;
         float centerY = (bounds[1] + bounds[4] + 1f) * 0.5f;
         float centerZ = (bounds[2] + bounds[5] + 1f) * 0.5f;

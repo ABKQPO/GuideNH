@@ -15,6 +15,14 @@ public class StructureLibExportManifestWriter {
         .create();
 
     public Path write(Path outputDirectory, StructureLibExportManifest manifest) throws Exception {
+        return writeObject(outputDirectory, manifest);
+    }
+
+    public Path write(Path outputDirectory, GameSceneExportManifest manifest) throws Exception {
+        return writeObject(outputDirectory, manifest);
+    }
+
+    private Path writeObject(Path outputDirectory, Object manifest) throws Exception {
         Files.createDirectories(outputDirectory);
         Path target = outputDirectory.resolve("manifest.json");
         try (Writer writer = Files.newBufferedWriter(target, StandardCharsets.UTF_8)) {

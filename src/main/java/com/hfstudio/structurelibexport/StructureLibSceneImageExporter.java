@@ -5,6 +5,8 @@ import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -16,31 +18,75 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public class StructureLibSceneImageExporter {
 
     private final StructureLibExportLevelRenderer renderer;
+    private final StructureLibExportOverlayRenderer overlayRenderer;
     private final StructureLibExportImageLimits imageLimits;
 
     public StructureLibSceneImageExporter() {
-        this(new StructureLibExportLevelRenderer(), new StructureLibExportImageLimits());
+        this(
+            new StructureLibExportLevelRenderer(),
+            new StructureLibExportOverlayRenderer(),
+            new StructureLibExportImageLimits());
     }
 
     public StructureLibSceneImageExporter(StructureLibExportLevelRenderer renderer) {
-        this(renderer, new StructureLibExportImageLimits());
+        this(renderer, new StructureLibExportOverlayRenderer(), new StructureLibExportImageLimits());
     }
 
     public StructureLibSceneImageExporter(StructureLibExportLevelRenderer renderer,
         StructureLibExportImageLimits imageLimits) {
+        this(renderer, new StructureLibExportOverlayRenderer(), imageLimits);
+    }
+
+    public StructureLibSceneImageExporter(StructureLibExportLevelRenderer renderer,
+        StructureLibExportOverlayRenderer overlayRenderer, StructureLibExportImageLimits imageLimits) {
         this.renderer = renderer != null ? renderer : new StructureLibExportLevelRenderer();
+        this.overlayRenderer = overlayRenderer != null ? overlayRenderer : new StructureLibExportOverlayRenderer();
         this.imageLimits = imageLimits != null ? imageLimits : new StructureLibExportImageLimits();
     }
 
     public ExportedImage export(GuidebookLevel level, CameraSettings camera, GuidebookSceneLayerSelection layers,
         StructureLibExportBackground background, Path target, int width, int height, long maxPixels) throws Exception {
+        return export(
+            level,
+            camera,
+            layers,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            background,
+            target,
+            width,
+            height,
+            maxPixels);
+    }
+
+    public ExportedImage export(GuidebookLevel level, CameraSettings camera, GuidebookSceneLayerSelection layers,
+        List<InWorldAnnotation> annotations, StructureLibExportBackground background, Path target, int width,
+        int height, long maxPixels) throws Exception {
+        return export(
+            level,
+            camera,
+            layers,
+            annotations,
+            Collections.emptyList(),
+            background,
+            target,
+            width,
+            height,
+            maxPixels);
+    }
+
+    public ExportedImage export(GuidebookLevel level, CameraSettings camera, GuidebookSceneLayerSelection layers,
+        List<InWorldAnnotation> annotations, List<OverlayAnnotation> overlays, StructureLibExportBackground background,
+        Path target, int width, int height, long maxPixels) throws Exception {
         imageLimits.validateSize(width, height, maxPixels);
-        BufferedImage image = render(level, camera, layers, background, width, height);
+        BufferedImage image = render(level, camera, layers, annotations, overlays, background, width, height);
         try {
             Files.createDirectories(target.getParent());
             if (!ImageIO.write(image, "png", target.toFile())) {
@@ -53,14 +99,27 @@ public class StructureLibSceneImageExporter {
     }
 
     private BufferedImage render(GuidebookLevel level, CameraSettings camera, GuidebookSceneLayerSelection layers,
-        StructureLibExportBackground background, int width, int height) throws Exception {
+        List<InWorldAnnotation> annotations, List<OverlayAnnotation> overlays, StructureLibExportBackground background,
+        int width, int height) throws Exception {
         int maxFboSize = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
         if (maxFboSize <= 0) {
             maxFboSize = 8192;
         }
         maxFboSize = Math.min(maxFboSize, imageLimits.resolveMaxTileEdge(maxFboSize));
         if (width <= maxFboSize && height <= maxFboSize) {
-            return renderTile(level, camera, layers, background, width, height, 0, 0, width, height);
+            return renderTile(
+                level,
+                camera,
+                layers,
+                annotations,
+                overlays,
+                background,
+                width,
+                height,
+                0,
+                0,
+                width,
+                height);
         }
 
         BufferedImage output = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -74,6 +133,8 @@ public class StructureLibSceneImageExporter {
                         level,
                         camera,
                         layers,
+                        annotations,
+                        overlays,
                         background,
                         width,
                         height,
@@ -95,8 +156,8 @@ public class StructureLibSceneImageExporter {
     }
 
     private BufferedImage renderTile(GuidebookLevel level, CameraSettings camera, GuidebookSceneLayerSelection layers,
-        StructureLibExportBackground background, int fullWidth, int fullHeight, int offsetX, int offsetY, int tileWidth,
-        int tileHeight) {
+        List<InWorldAnnotation> annotations, List<OverlayAnnotation> overlays, StructureLibExportBackground background,
+        int fullWidth, int fullHeight, int offsetX, int offsetY, int tileWidth, int tileHeight) {
         Minecraft minecraft = Minecraft.getMinecraft();
         int previousDisplayWidth = minecraft.displayWidth;
         int previousDisplayHeight = minecraft.displayHeight;
@@ -120,12 +181,14 @@ public class StructureLibSceneImageExporter {
                 level,
                 camera,
                 layers,
+                annotations,
                 -offsetX,
                 -offsetY,
                 fullWidth,
                 fullHeight,
                 tileWidth,
                 tileHeight);
+            overlayRenderer.render(camera, overlays, -offsetX, -offsetY, fullWidth, fullHeight, tileWidth, tileHeight);
             BufferedImage image = readPixels(tileWidth, tileHeight);
             if (!background.isTransparent()) {
                 return image;

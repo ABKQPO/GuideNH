@@ -64,8 +64,10 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxFaceOverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneFloorGridAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
@@ -913,6 +915,63 @@ public class LytGuidebookScene extends LytBlock {
         return maxY >= visibleLayerY && minY < visibleLayerY + 1f;
     }
 
+    private boolean isAnnotationVisibleForLayerSelection(InWorldAnnotation annotation,
+        GuidebookSceneLayerSelection layerSelection) {
+        if (annotation == null || layerSelection == null
+            || layerSelection.getMode() == GuidebookSceneLayerSelection.Mode.ALL) {
+            return true;
+        }
+        if (annotation instanceof InWorldBoxAnnotation boxAnnotation) {
+            return intersectsLayerSelection(boxAnnotation.min().y, boxAnnotation.max().y, layerSelection);
+        }
+        if (annotation instanceof InWorldLineAnnotation lineAnnotation) {
+            return intersectsLayerSelection(lineAnnotation.from().y, lineAnnotation.to().y, layerSelection);
+        }
+        if (annotation instanceof InWorldBoxFaceOverlayAnnotation overlayAnnotation) {
+            return intersectsLayerSelection(overlayAnnotation.min().y, overlayAnnotation.max().y, layerSelection);
+        }
+        return true;
+    }
+
+    private boolean isOverlayAnnotationVisibleForLayerSelection(OverlayAnnotation annotation,
+        GuidebookSceneLayerSelection layerSelection) {
+        if (annotation == null || layerSelection == null
+            || layerSelection.getMode() == GuidebookSceneLayerSelection.Mode.ALL) {
+            return true;
+        }
+        if (annotation instanceof DiamondAnnotation diamondAnnotation) {
+            return layerSelection.isLayerVisible((int) Math.floor(diamondAnnotation.getPos().y));
+        }
+        if (annotation instanceof TextAnnotation textAnnotation) {
+            return isTextAnnotationVisibleForLayerSelection(textAnnotation, layerSelection);
+        }
+        if (annotation instanceof PonderInputAnnotation inputAnnotation) {
+            return layerSelection.isLayerVisible((int) Math.floor(inputAnnotation.getWorldPos().y));
+        }
+        return true;
+    }
+
+    private boolean isTextAnnotationVisibleForLayerSelection(TextAnnotation annotation,
+        GuidebookSceneLayerSelection layerSelection) {
+        if (annotation.isIndependent()) {
+            return true;
+        }
+        return layerSelection.isLayerVisible((int) Math.floor(annotation.getWorldPos().y));
+    }
+
+    private boolean intersectsLayerSelection(float fromY, float toY, GuidebookSceneLayerSelection layerSelection) {
+        float minY = Math.min(fromY, toY);
+        float maxY = Math.max(fromY, toY);
+        int minLayer = (int) Math.floor(minY);
+        int maxLayer = (int) Math.floor(maxY);
+        for (int layer = minLayer; layer <= maxLayer; layer++) {
+            if (layerSelection.isLayerVisible(layer)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void clearLayerDrivenHoverState() {
         hoveredBlock = null;
         hoveredBlockBounds = null;
@@ -1133,6 +1192,64 @@ public class LytGuidebookScene extends LytBlock {
 
     public List<SceneAnnotation> getAnnotations() {
         return annotations;
+    }
+
+    public List<InWorldAnnotation> collectInWorldAnnotationsForExport(boolean includeSceneAnnotations,
+        boolean includeGrid, GuidebookSceneLayerSelection layerSelection) {
+        ArrayList<InWorldAnnotation> inWorld = new ArrayList<>();
+        GuidebookSceneLayerSelection effectiveLayers = layerSelection != null ? layerSelection
+            : GuidebookSceneLayerSelection.all();
+        if (includeSceneAnnotations) {
+            for (SceneAnnotation annotation : annotations) {
+                if (annotation instanceof InWorldAnnotation inWorldAnnotation
+                    && isAnnotationVisibleForLayerSelection(inWorldAnnotation, effectiveLayers)) {
+                    inWorld.add(inWorldAnnotation);
+                }
+            }
+            appendStructureLibHatchOverlays(inWorld);
+            appendOriginAxesAnnotations(inWorld);
+            appendBlockStatsHighlightAnnotations(inWorld);
+            for (SceneAnnotation annotation : ponderActiveAnnotations) {
+                if (annotation instanceof InWorldAnnotation inWorldAnnotation
+                    && isAnnotationVisibleForLayerSelection(inWorldAnnotation, effectiveLayers)) {
+                    inWorld.add(inWorldAnnotation);
+                }
+            }
+        }
+        if (includeGrid && !level.isEmpty()) {
+            int[] bounds = level.getBounds();
+            SceneFloorGridAnnotation grid = getOrCreateFloorGridAnnotation(bounds);
+            grid.setShowDebugLabels(ModConfig.debug.enableDebugMode);
+            inWorld.add(grid);
+        }
+        return inWorld;
+    }
+
+    public List<OverlayAnnotation> collectOverlayAnnotationsForExport(GuidebookSceneLayerSelection layerSelection) {
+        ArrayList<OverlayAnnotation> overlays = new ArrayList<>();
+        GuidebookSceneLayerSelection effectiveLayers = layerSelection != null ? layerSelection
+            : GuidebookSceneLayerSelection.all();
+        for (SceneAnnotation annotation : annotations) {
+            if (annotation instanceof OverlayAnnotation overlay
+                && isOverlayAnnotationVisibleForLayerSelection(overlay, effectiveLayers)) {
+                overlays.add(overlay);
+            }
+        }
+        for (SceneAnnotation annotation : ponderOutgoingAnnotations) {
+            if (annotation instanceof OverlayAnnotation overlay
+                && isOverlayAnnotationVisibleForLayerSelection(overlay, effectiveLayers)) {
+                overlay.setFade(Math.min(1f, ponderOutgoingFadeTick / 5f));
+                overlays.add(overlay);
+            }
+        }
+        for (SceneAnnotation annotation : ponderActiveAnnotations) {
+            if (annotation instanceof OverlayAnnotation overlay
+                && isOverlayAnnotationVisibleForLayerSelection(overlay, effectiveLayers)) {
+                overlay.setFade(Math.min(1f, ponderAnnotationFadeTick / 5f));
+                overlays.add(overlay);
+            }
+        }
+        return overlays;
     }
 
     @Nullable

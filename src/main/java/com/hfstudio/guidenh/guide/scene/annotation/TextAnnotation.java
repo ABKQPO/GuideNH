@@ -126,6 +126,10 @@ public class TextAnnotation extends OverlayAnnotation {
         return worldPos;
     }
 
+    public boolean isIndependent() {
+        return independent;
+    }
+
     public String getText() {
         return text;
     }

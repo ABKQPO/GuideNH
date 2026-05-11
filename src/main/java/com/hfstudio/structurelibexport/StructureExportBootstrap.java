@@ -2,17 +2,15 @@ package com.hfstudio.structurelibexport;
 
 import net.minecraftforge.client.ClientCommandHandler;
 
-import com.hfstudio.guidenh.integration.Mods;
-
-public class StructureLibExportBootstrap {
+public class StructureExportBootstrap {
 
     private static boolean registered;
 
     public static void registerClientCommands() {
-        if (registered || !Mods.StructureLib.isModLoaded()) {
+        if (registered) {
             return;
         }
         registered = true;
-        ClientCommandHandler.instance.registerCommand(new StructureLibExportCommand());
+        ClientCommandHandler.instance.registerCommand(new StructureExportCommand());
     }
 }
