@@ -41,7 +41,10 @@ public class StructureExportCommand extends CommandBase {
         String subcommand = args[0];
         String[] childArgs = Arrays.copyOfRange(args, 1, args.length);
         if (SUBCOMMAND_STRUCTURE_LIB.equals(subcommand)) {
-            runStructureLib(sender, childArgs);
+            if (!Mods.StructureLib.isModLoaded()) {
+                throw new CommandException("StructureLib is not loaded.");
+            }
+            StructureLibExportSubcommand.run(sender, childArgs);
             return;
         }
         if (SUBCOMMAND_GAME_SCENE.equals(subcommand)) {
@@ -50,14 +53,6 @@ public class StructureExportCommand extends CommandBase {
             return;
         }
         throw new CommandException("Unknown exportStructure subcommand: " + subcommand);
-    }
-
-    private void runStructureLib(ICommandSender sender, String[] args) throws CommandException {
-        if (!Mods.StructureLib.isModLoaded()) {
-            throw new CommandException("StructureLib is not loaded.");
-        }
-        StructureLibExportOptions options = StructureLibExportOptionParser.parse(args);
-        new StructureLibExportRunner().run(sender, options);
     }
 
     @Override
@@ -71,16 +66,26 @@ public class StructureExportCommand extends CommandBase {
             return Collections.emptyList();
         }
         if (args.length == 1) {
-            return getListOfStringsMatchingLastWord(args, SUBCOMMANDS);
+            return getListOfStringsMatchingLastWord(args, availableSubcommands());
         }
         String subcommand = args[0];
         String[] childArgs = Arrays.copyOfRange(args, 1, args.length);
         if (SUBCOMMAND_STRUCTURE_LIB.equals(subcommand)) {
+            if (!Mods.StructureLib.isModLoaded()) {
+                return Collections.emptyList();
+            }
             return getListOfStringsMatchingLastWord(childArgs, STRUCTURE_LIB_OPTIONS);
         }
         if (SUBCOMMAND_GAME_SCENE.equals(subcommand)) {
             return getListOfStringsMatchingLastWord(childArgs, GAME_SCENE_OPTIONS);
         }
         return Collections.emptyList();
+    }
+
+    private String[] availableSubcommands() {
+        if (Mods.StructureLib.isModLoaded()) {
+            return SUBCOMMANDS;
+        }
+        return new String[] { SUBCOMMAND_GAME_SCENE };
     }
 }

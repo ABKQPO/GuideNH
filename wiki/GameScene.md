@@ -571,5 +571,6 @@ When `interactive={true}` the scene supports rotation, pan, zoom, reset, annotat
 ## Related Pages
 
 - [Annotations](Annotations)
+- [Structure Export](Structure-Export)
 - [Recipes](Recipes)
 - [Examples](Examples)

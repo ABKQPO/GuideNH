@@ -41,6 +41,7 @@
 
 * [English Wiki](wiki/Home-en-US.md)
 * [中文 Wiki](wiki/Home-zh-CN.md)
+* [结构导出](wiki/Structure-Export-zh-CN.md)
 * [运行时示例资源包](wiki/resourcepack)
 
 ## **快速开始**

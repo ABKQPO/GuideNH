@@ -6,3 +6,5 @@
 
 - [中文首页](Home-zh-CN)
 - [English Home](Home-en-US)
+- [结构导出](Structure-Export-zh-CN)
+- [Structure Export](Structure-Export)

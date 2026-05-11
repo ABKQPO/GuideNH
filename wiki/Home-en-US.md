@@ -15,6 +15,7 @@ GuideNH is an in-game guide framework for GTNH-era Minecraft mods. This wiki doc
 - [Images And Assets](Images-And-Assets)
 - [Tags Reference](Tags-Reference)
 - [GameScene](GameScene)
+- [Structure Export](Structure-Export)
 - [Annotations](Annotations)
 - [Recipes](Recipes)
 - [Localization](Localization)
@@ -58,6 +59,7 @@ launches the client with a development source folder and opens the guide directl
 
 - `<ImportStructure>` imports external SNBT/NBT structures into a scene.
 - `<ImportStructureLib>` imports StructureLib multiblocks by controller id using GTNH-style `modid:block[:meta]`.
+- `/exportStructure` exports StructureLib previews or loaded GameScene blocks to PNG screenshots for documentation workflows.
 - `<RemoveBlocks>` trims already-placed helper blocks after imports without changing neighboring states.
 - `<BlockAnnotationTemplate>` copies the same child annotations onto every matching block that already exists in the scene.
 - Interactive scenes can automatically expose layer sliders, StructureLib channel sliders, hatch highlight buttons, and rich hover tooltips when the underlying scene data provides them.

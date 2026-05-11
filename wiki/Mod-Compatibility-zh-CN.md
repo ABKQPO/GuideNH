@@ -2,6 +2,10 @@
 
 GuideNH 为部分模组内置了条件性兼容支持。每项集成只在目标模组加载时启用；目标模组不存在时，相关的标签、索引与按键绑定均保持静默，指南其余功能不受影响。
 
+## StructureLib
+
+当 StructureLib 加载时，GuideNH 可以通过 `<ImportStructureLib>` 把多方块预览导入 `<GameScene>`。客户端指令 `/exportStructure structureLib` 也可以把这些预览导出为 PNG 文档截图。完整指令参数、StructureLib 专属选项以及相关的 `gameScene` 导出模式见 [结构导出](Structure-Export-zh-CN)。
+
 ## BetterQuesting
 
 当 [BetterQuesting](https://github.com/GTNewHorizons/BetterQuesting) 加载时，GuideNH 解锁三项能力：

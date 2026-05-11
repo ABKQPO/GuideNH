@@ -534,5 +534,6 @@ GuideNH 当前注册了以下场景子标签：
 ## 相关页面
 
 - [注解](Annotations-zh-CN)
+- [结构导出](Structure-Export-zh-CN)
 - [配方](Recipes-zh-CN)
 - [示例](Examples-zh-CN)

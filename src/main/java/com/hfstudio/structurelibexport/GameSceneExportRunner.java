@@ -176,19 +176,46 @@ public class GameSceneExportRunner {
     }
 
     private ExportRenderPlan planRender(GameSceneExportTaskSpec task) throws CommandException {
-        GuidebookLevel level = task.getScene()
-            .getLevel();
-        if (level == null || level.isEmpty()) {
-            throw new CommandException("GameScene has no blocks to render.");
+        LytGuidebookScene scene = task.getScene();
+        GuidebookLevel level = scene.getLevel();
+        if (level == null) {
+            throw new CommandException("GameScene has no level to render.");
+        }
+        if (level.isEmpty()) {
+            return planEmptyRender(scene, task);
         }
         GuidebookSceneLayerSelection layers = resolveLayers(level, task);
         StructureLibSceneCameraFitter.FittedCamera fittedCamera = task.getView()
             .isExplicit() ? cameraFitter.fit(level, task.getPixelsPerBlock(), task.getScale(), task.getView())
-                : fitSceneCamera(task.getScene(), task);
-        List<InWorldAnnotation> annotations = task.getScene()
+                : fitSceneCamera(scene, task);
+        List<InWorldAnnotation> annotations = scene
             .collectInWorldAnnotationsForExport(task.isShowAnnotations(), task.isShowGrid(), layers);
-        List<OverlayAnnotation> overlays = task.isShowAnnotations() ? task.getScene()
-            .collectOverlayAnnotationsForExport(layers) : Collections.emptyList();
+        List<OverlayAnnotation> overlays = task.isShowAnnotations() ? scene.collectOverlayAnnotationsForExport(layers)
+            : Collections.emptyList();
+        return new ExportRenderPlan(
+            fittedCamera.getCamera(),
+            fittedCamera.getWidth(),
+            fittedCamera.getHeight(),
+            layers,
+            annotations,
+            overlays);
+    }
+
+    private ExportRenderPlan planEmptyRender(LytGuidebookScene scene, GameSceneExportTaskSpec task)
+        throws CommandException {
+        GuidebookSceneLayerSelection layers = GuidebookSceneLayerSelection.all();
+        List<InWorldAnnotation> annotations = scene
+            .collectInWorldAnnotationsForExport(task.isShowAnnotations(), false, layers);
+        List<OverlayAnnotation> overlays = task.isShowAnnotations() ? scene.collectOverlayAnnotationsForExport(layers)
+            : Collections.emptyList();
+        if (annotations.isEmpty() && overlays.isEmpty()) {
+            throw new CommandException("GameScene has no blocks or annotations to render.");
+        }
+        if (task.getView()
+            .isExplicit()) {
+            throw new CommandException("GameScene has no blocks, so explicit fitted views cannot be used.");
+        }
+        StructureLibSceneCameraFitter.FittedCamera fittedCamera = fitSceneCamera(scene, task);
         return new ExportRenderPlan(
             fittedCamera.getCamera(),
             fittedCamera.getWidth(),
@@ -274,7 +301,7 @@ public class GameSceneExportRunner {
             return options.getOutDir()
                 .toAbsolutePath();
         }
-        return Paths.get("screenshots", "gameScene", StructureLibExportRunner.OUTPUT_FORMAT.format(LocalDateTime.now()))
+        return Paths.get("screenshots", "gameScene", StructureExportTimestamp.OUTPUT_FORMAT.format(LocalDateTime.now()))
             .toAbsolutePath();
     }
 

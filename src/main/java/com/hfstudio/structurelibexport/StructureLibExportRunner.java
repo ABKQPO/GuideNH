@@ -4,7 +4,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,8 +17,6 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.BuildContext;
 
 public class StructureLibExportRunner {
-
-    public static final DateTimeFormatter OUTPUT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss");
 
     private final StructureLibControllerDiscovery controllerDiscovery;
     private final StructureLibExportPlanner planner;
@@ -228,7 +225,8 @@ public class StructureLibExportRunner {
             return options.getOutDir()
                 .toAbsolutePath();
         }
-        return Paths.get("screenshots", "structurelib", OUTPUT_FORMAT.format(LocalDateTime.now()))
+        return Paths
+            .get("screenshots", "structurelib", StructureExportTimestamp.OUTPUT_FORMAT.format(LocalDateTime.now()))
             .toAbsolutePath();
     }
 

@@ -41,6 +41,7 @@
 
 * [English Wiki](wiki/Home-en-US.md)
 * [中文 Wiki](wiki/Home-zh-CN.md)
+* [Structure Export](wiki/Structure-Export.md)
 * [Runtime example resource pack](wiki/resourcepack)
 
 ## **Quick Start**
