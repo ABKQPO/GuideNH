@@ -4,11 +4,11 @@ import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class CodeBlockLanguageDetector {
+public class CodeBlockLanguageDetector {
 
     private static final CodeBlockLanguage PLAIN_TEXT = new CodeBlockLanguage("text", "Text");
 
-    private CodeBlockLanguageDetector() {}
+    protected CodeBlockLanguageDetector() {}
 
     public static CodeBlockLanguage detect(@Nullable String explicitFenceLanguage, String codeText) {
         CodeBlockLanguage explicit = CodeBlockLanguageRegistry.findByFenceName(explicitFenceLanguage);
@@ -132,30 +132,32 @@ public final class CodeBlockLanguageDetector {
     }
 
     private static boolean looksLikeCsv(String text) {
-        String[] lines = text.split("\n");
-        if (lines.length < 2) {
+        int firstLineEnd = findLineEnd(text, 0);
+        if (firstLineEnd >= text.length()) {
             return false;
         }
-        int columns = countCsvColumns(lines[0]);
+        int columns = countCsvColumns(text, 0, firstLineEnd);
         if (columns < 2) {
             return false;
         }
-        for (int i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()
-                .isEmpty() && countCsvColumns(lines[i]) == columns) {
+        int lineStart = skipLineBreak(text, firstLineEnd);
+        while (lineStart < text.length()) {
+            int lineEnd = findLineEnd(text, lineStart);
+            if (hasText(text, lineStart, lineEnd) && countCsvColumns(text, lineStart, lineEnd) == columns) {
                 return true;
             }
+            lineStart = skipLineBreak(text, lineEnd);
         }
         return false;
     }
 
-    private static int countCsvColumns(String line) {
+    private static int countCsvColumns(String text, int start, int end) {
         boolean inQuotes = false;
         int count = 1;
-        for (int i = 0; i < line.length(); i++) {
-            char current = line.charAt(i);
+        for (int i = start; i < end; i++) {
+            char current = text.charAt(i);
             if (current == '"') {
-                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                if (inQuotes && i + 1 < end && text.charAt(i + 1) == '"') {
                     i++;
                 } else {
                     inQuotes = !inQuotes;
@@ -165,6 +167,37 @@ public final class CodeBlockLanguageDetector {
             }
         }
         return count;
+    }
+
+    private static int findLineEnd(String text, int start) {
+        int index = start;
+        while (index < text.length()) {
+            char ch = text.charAt(index);
+            if (ch == '\n' || ch == '\r') {
+                return index;
+            }
+            index++;
+        }
+        return text.length();
+    }
+
+    private static int skipLineBreak(String text, int offset) {
+        if (offset < text.length() && text.charAt(offset) == '\r') {
+            offset++;
+        }
+        if (offset < text.length() && text.charAt(offset) == '\n') {
+            offset++;
+        }
+        return offset;
+    }
+
+    private static boolean hasText(String text, int start, int end) {
+        for (int i = start; i < end; i++) {
+            if (!Character.isWhitespace(text.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean looksLikeMermaid(String lower) {

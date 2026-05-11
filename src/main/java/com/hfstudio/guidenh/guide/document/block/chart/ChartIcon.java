@@ -8,7 +8,7 @@ import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 /**
  * Icon associated with a chart series/slice: either an {@link ItemStack} or a PNG resource.
  */
-public final class ChartIcon {
+public class ChartIcon {
 
     private final ItemStack stack;
     private final GuidePageTexture texture;

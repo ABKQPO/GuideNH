@@ -8,12 +8,12 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
  * Stateless helper that draws a {@link PieInsetSpec} inside a host chart's plot rectangle.
  * The inset occupies a small square in the requested corner of the plot area.
  */
-public final class PieInsetRenderer {
+public class PieInsetRenderer {
 
     private static final int CIRCLE_SEGMENTS = 24;
     private static final int MARGIN = 4;
 
-    private PieInsetRenderer() {}
+    protected PieInsetRenderer() {}
 
     public static void draw(RenderContext context, LytRect plotRect, PieInsetSpec spec) {
         if (spec == null || spec.getSlices()

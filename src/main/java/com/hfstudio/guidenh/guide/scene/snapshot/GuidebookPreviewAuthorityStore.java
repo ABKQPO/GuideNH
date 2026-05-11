@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Per-coordinate opaque supplement bytes keyed by {@link #supplementId()}, for server-authoritative preview data.
  */
-public final class GuidebookPreviewAuthorityStore {
+public class GuidebookPreviewAuthorityStore {
 
     private final HashMap<Long, HashMap<String, byte[]>> byPos = new HashMap<>();
 
@@ -18,8 +18,12 @@ public final class GuidebookPreviewAuthorityStore {
             remove(packedPos, supplementId);
             return;
         }
-        HashMap<String, byte[]> slot = byPos.computeIfAbsent(packedPos, k -> new HashMap<>());
-        slot.put(supplementId, payload);
+        HashMap<String, byte[]> slot = byPos.get(packedPos);
+        if (slot == null) {
+            slot = new HashMap<>();
+            byPos.put(packedPos, slot);
+        }
+        slot.put(supplementId, payload.clone());
     }
 
     public void remove(long packedPos, String supplementId) {
@@ -65,7 +69,7 @@ public final class GuidebookPreviewAuthorityStore {
             return null;
         }
         byte[] raw = slot.get(supplementId);
-        return raw != null && raw.length > 0 ? raw : null;
+        return raw != null && raw.length > 0 ? raw.clone() : null;
     }
 
     /** For diagnostics only. */

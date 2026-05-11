@@ -13,9 +13,9 @@ import net.minecraft.util.AxisAlignedBB;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
-public final class GuideBlockStatsStackResolver {
+public class GuideBlockStatsStackResolver {
 
-    private GuideBlockStatsStackResolver() {}
+    protected GuideBlockStatsStackResolver() {}
 
     public static List<ItemStack> resolveStacks(GuidebookLevel level, int x, int y, int z) {
         List<ResolvedStack> entries = resolveEntries(level, x, y, z);
@@ -32,15 +32,20 @@ public final class GuideBlockStatsStackResolver {
     }
 
     public static List<ResolvedStack> resolveEntries(GuidebookLevel level, int x, int y, int z) {
+        return resolveEntriesInto(level, x, y, z, new ArrayList<>(4));
+    }
+
+    public static List<ResolvedStack> resolveEntriesInto(GuidebookLevel level, int x, int y, int z,
+        List<ResolvedStack> entries) {
+        entries.clear();
         if (level == null) {
-            return Collections.emptyList();
+            return entries;
         }
         Block block = level.getBlock(x, y, z);
         if (block == null || block == Blocks.air) {
-            return Collections.emptyList();
+            return entries;
         }
         TileEntity tileEntity = level.getTileEntity(x, y, z);
-        ArrayList<ResolvedStack> entries = new ArrayList<>(4);
         AxisAlignedBB fallbackBounds = GuideBlockBoundsResolver.resolveSelectedBounds(level, x, y, z);
         if (fallbackBounds == null) {
             fallbackBounds = GuideBlockBoundsResolver.resolveWorldBounds(level, x, y, z);
@@ -80,7 +85,7 @@ public final class GuideBlockStatsStackResolver {
         }
     }
 
-    public static final class ResolvedStack {
+    public static class ResolvedStack {
 
         private final ItemStack stack;
         private final AxisAlignedBB bounds;

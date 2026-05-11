@@ -51,6 +51,7 @@ import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -1085,28 +1086,32 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         double yMin = parseDoubleAttr(element, "yMin", Double.NaN);
         double yMax = parseDoubleAttr(element, "yMax", Double.NaN);
         String xRange = readOptional(element, "xRange");
-        if (xRange != null && xRange.contains("..")) {
-            String[] parts = xRange.split("\\.\\.");
-            if (parts.length == 2) {
-                try {
-                    xMin = Double.parseDouble(parts[0].trim());
-                } catch (NumberFormatException ignored) {}
-                try {
-                    xMax = Double.parseDouble(parts[1].trim());
-                } catch (NumberFormatException ignored) {}
-            }
+        int xRangeSeparator = rangeSeparatorIndex(xRange);
+        if (xRangeSeparator >= 0) {
+            try {
+                xMin = Double.parseDouble(
+                    xRange.substring(0, xRangeSeparator)
+                        .trim());
+            } catch (NumberFormatException ignored) {}
+            try {
+                xMax = Double.parseDouble(
+                    xRange.substring(xRangeSeparator + 2)
+                        .trim());
+            } catch (NumberFormatException ignored) {}
         }
         String yRange = readOptional(element, "yRange");
-        if (yRange != null && yRange.contains("..")) {
-            String[] parts = yRange.split("\\.\\.");
-            if (parts.length == 2) {
-                try {
-                    yMin = Double.parseDouble(parts[0].trim());
-                } catch (NumberFormatException ignored) {}
-                try {
-                    yMax = Double.parseDouble(parts[1].trim());
-                } catch (NumberFormatException ignored) {}
-            }
+        int yRangeSeparator = rangeSeparatorIndex(yRange);
+        if (yRangeSeparator >= 0) {
+            try {
+                yMin = Double.parseDouble(
+                    yRange.substring(0, yRangeSeparator)
+                        .trim());
+            } catch (NumberFormatException ignored) {}
+            try {
+                yMax = Double.parseDouble(
+                    yRange.substring(yRangeSeparator + 2)
+                        .trim());
+            } catch (NumberFormatException ignored) {}
         }
         List<FunctionPlot> plots = parsePlotChildren(element);
         // Support self-closing usage like <Function expr="x^2" xRange="-2..4" />: when no nested
@@ -1185,6 +1190,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             cornerLegendWidth,
             cornerLegendHeight,
             cornerLegendBackground);
+    }
+
+    private int rangeSeparatorIndex(@Nullable String range) {
+        if (range == null) {
+            return -1;
+        }
+        int separator = range.indexOf("..");
+        return separator >= 0 && range.indexOf("..", separator + 2) < 0 ? separator : -1;
     }
 
     /** Parse {@code <Series name="..." data="1,2,3" color="...">} children for bar/column/line charts. */
@@ -1742,20 +1755,22 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         collectStructureText(rawText, element.children());
 
         List<StructureBlockView> blocks = new ArrayList<>();
-        for (String rawLine : rawText.toString()
-            .split("\\R")) {
+        boolean[] failed = new boolean[1];
+        GuideStringLines.visitLines(rawText.toString(), (rawLine, lineIndex) -> {
             String line = rawLine.trim();
             if (line.isEmpty() || line.startsWith("#")) {
-                continue;
+                return true;
             }
 
             StructureBlockView block = parseStructureBlock(line, currentPageId, templates);
             if (block == null) {
-                return null;
+                failed[0] = true;
+                return false;
             }
             blocks.add(block);
-        }
-        return blocks;
+            return true;
+        });
+        return failed[0] ? null : blocks;
     }
 
     private void collectStructureText(StringBuilder text, List<? extends MdAstAnyContent> children) {
@@ -1778,8 +1793,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     @Nullable
     private StructureBlockView parseStructureBlock(String line, @Nullable ResourceLocation currentPageId,
         GuideSiteTemplateRegistry templates) {
-        String[] parts = line.split("\\s+");
-        if (parts.length < 4) {
+        List<String> parts = splitWhitespaceTokens(line, 4);
+        if (parts.size() < 4) {
             return null;
         }
 
@@ -1787,14 +1802,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         int y;
         int z;
         try {
-            x = Integer.parseInt(parts[0]);
-            y = Integer.parseInt(parts[1]);
-            z = Integer.parseInt(parts[2]);
+            x = Integer.parseInt(parts.get(0));
+            y = Integer.parseInt(parts.get(1));
+            z = Integer.parseInt(parts.get(2));
         } catch (NumberFormatException e) {
             return null;
         }
 
-        String idSpec = parts[3];
+        String idSpec = parts.get(3);
         int meta = 0;
         int firstColon = idSpec.indexOf(':');
         int lastColon = idSpec.lastIndexOf(':');
@@ -1834,6 +1849,26 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             templateId);
     }
 
+    private List<String> splitWhitespaceTokens(String text, int limit) {
+        List<String> tokens = new ArrayList<>(Math.max(1, limit));
+        int start = -1;
+        for (int index = 0, length = text.length(); index <= length; index++) {
+            char value = index < length ? text.charAt(index) : ' ';
+            if (Character.isWhitespace(value)) {
+                if (start >= 0) {
+                    tokens.add(text.substring(start, index));
+                    if (limit > 0 && tokens.size() >= limit) {
+                        return tokens;
+                    }
+                    start = -1;
+                }
+            } else if (start < 0) {
+                start = index;
+            }
+        }
+        return tokens;
+    }
+
     private String abbreviateStructureLabel(String displayName, String itemId) {
         String cleaned = displayName != null ? displayName.trim() : "";
         if (!cleaned.isEmpty()) {
@@ -1848,12 +1883,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             cleaned = cleaned.replace('_', ' ')
                 .replace('-', ' ');
 
-            String[] words = cleaned.split("\\s+");
             StringBuilder initials = new StringBuilder();
-            for (String word : words) {
-                if (word.isEmpty()) {
-                    continue;
-                }
+            for (String word : splitWhitespaceTokens(cleaned, 3)) {
                 char ch = word.charAt(0);
                 if (Character.isLetterOrDigit(ch)) {
                     initials.append(Character.toUpperCase(ch));
@@ -1866,7 +1897,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 return initials.toString();
             }
 
-            String compact = cleaned.replaceAll("[^A-Za-z0-9]", "");
+            String compact = keepAsciiLettersAndDigits(cleaned);
             if (!compact.isEmpty()) {
                 return compact.substring(0, Math.min(3, compact.length()))
                     .toUpperCase(Locale.ROOT);
@@ -1882,12 +1913,23 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if (colon >= 0 && colon + 1 < fallback.length()) {
             fallback = fallback.substring(colon + 1);
         }
-        fallback = fallback.replaceAll("[^A-Za-z0-9]", "");
+        fallback = keepAsciiLettersAndDigits(fallback);
         if (fallback.isEmpty()) {
             fallback = "BLK";
         }
         return fallback.substring(0, Math.min(3, fallback.length()))
             .toUpperCase(Locale.ROOT);
+    }
+
+    private String keepAsciiLettersAndDigits(String value) {
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int index = 0; index < value.length(); index++) {
+            char ch = value.charAt(index);
+            if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')) {
+                builder.append(ch);
+            }
+        }
+        return builder.toString();
     }
 
     private String renderFallbackItemLabel(String itemId, @Nullable ResourceLocation currentPageId,
@@ -2043,7 +2085,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return escapeHtml(text);
     }
 
-    private static final class StructureBlockView {
+    private static class StructureBlockView {
 
         private final int x;
         private final int y;
@@ -2070,7 +2112,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
     }
 
-    private static final class StructureLegendEntry {
+    private static class StructureLegendEntry {
 
         private final GuideSiteExportedItem item;
         private final String abbreviation;

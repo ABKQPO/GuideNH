@@ -67,9 +67,23 @@ public class AnchorIndexer {
     }
 
     private String normalizeAnchor(String anchor) {
-        return anchor.toLowerCase(Locale.ROOT)
-            .trim()
-            .replaceAll("\\s+", "-");
+        String trimmed = anchor.toLowerCase(Locale.ROOT)
+            .trim();
+        StringBuilder normalized = new StringBuilder(trimmed.length());
+        boolean previousWhitespace = false;
+        for (int i = 0; i < trimmed.length(); i++) {
+            char ch = trimmed.charAt(i);
+            if (Character.isWhitespace(ch)) {
+                if (!previousWhitespace) {
+                    normalized.append('-');
+                    previousWhitespace = true;
+                }
+            } else {
+                normalized.append(ch);
+                previousWhitespace = false;
+            }
+        }
+        return normalized.toString();
     }
 
     @Desugar

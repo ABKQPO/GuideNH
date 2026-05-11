@@ -30,7 +30,7 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-public final class GuideSiteLocalServer {
+public class GuideSiteLocalServer {
 
     private static final Charset UTF_8 = StandardCharsets.UTF_8;
     private static final int DEFAULT_PORT = 8734;
@@ -552,15 +552,24 @@ public final class GuideSiteLocalServer {
         }
 
         Map<String, String> query = new LinkedHashMap<>();
-        String[] pairs = rawQuery.split("&");
-        for (String pair : pairs) {
-            if (pair == null || pair.isEmpty()) {
-                continue;
+        int start = 0;
+        int length = rawQuery.length();
+        while (start <= length) {
+            int end = rawQuery.indexOf('&', start);
+            if (end < 0) {
+                end = length;
             }
-            int equals = pair.indexOf('=');
-            String rawKey = equals >= 0 ? pair.substring(0, equals) : pair;
-            String rawValue = equals >= 0 ? pair.substring(equals + 1) : "";
-            query.put(urlDecode(rawKey), urlDecode(rawValue));
+            if (end > start) {
+                String pair = rawQuery.substring(start, end);
+                int equals = pair.indexOf('=');
+                String rawKey = equals >= 0 ? pair.substring(0, equals) : pair;
+                String rawValue = equals >= 0 ? pair.substring(equals + 1) : "";
+                query.put(urlDecode(rawKey), urlDecode(rawValue));
+            }
+            if (end == length) {
+                break;
+            }
+            start = end + 1;
         }
         return query;
     }

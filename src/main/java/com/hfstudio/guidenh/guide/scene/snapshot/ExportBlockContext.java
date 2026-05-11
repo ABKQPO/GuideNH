@@ -6,7 +6,7 @@ import net.minecraft.tileentity.TileEntity;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class ExportBlockContext {
+public class ExportBlockContext {
 
     private final ExportSession session;
     private final int worldX;

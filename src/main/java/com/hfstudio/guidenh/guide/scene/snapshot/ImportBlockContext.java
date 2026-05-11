@@ -11,7 +11,7 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
  * One placed structure voxel after {@link GuidebookPreviewBlockPlacer}; carries the full {@code blocks[]} compound for
  * sidecars.
  */
-public final class ImportBlockContext {
+public class ImportBlockContext {
 
     private final GuidebookLevel level;
     private final int x;

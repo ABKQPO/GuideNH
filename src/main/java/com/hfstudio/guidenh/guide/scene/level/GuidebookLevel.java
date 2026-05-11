@@ -213,11 +213,11 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     public void setExplicitBlockId(int x, int y, int z, @Nullable String blockId) {
         long key = packPos(x, y, z);
-        if (blockId == null || blockId.trim()
-            .isEmpty()) {
+        String normalizedBlockId = trimToNull(blockId);
+        if (normalizedBlockId == null) {
             explicitBlockIds.remove(key);
         } else {
-            explicitBlockIds.put(key, blockId.trim());
+            explicitBlockIds.put(key, normalizedBlockId);
         }
     }
 
@@ -532,12 +532,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     @Nullable
     public static String normalizeBlockId(@Nullable String candidate) {
-        if (candidate == null) {
-            return null;
-        }
-
-        String trimmed = candidate.trim();
-        if (trimmed.isEmpty()) {
+        String trimmed = trimToNull(candidate);
+        if (trimmed == null) {
             return null;
         }
 
@@ -551,6 +547,29 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
 
         return trimmed.indexOf(':') >= 0 ? trimmed : "minecraft:" + trimmed;
+    }
+
+    @Nullable
+    private static String trimToNull(@Nullable String value) {
+        if (value == null) {
+            return null;
+        }
+
+        int start = 0;
+        int end = value.length();
+        while (start < end && value.charAt(start) <= ' ') {
+            start++;
+        }
+        while (end > start && value.charAt(end - 1) <= ' ') {
+            end--;
+        }
+        if (start == end) {
+            return null;
+        }
+        if (start == 0 && end == value.length()) {
+            return value;
+        }
+        return value.substring(start, end);
     }
 
 }

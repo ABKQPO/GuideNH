@@ -309,7 +309,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      * {@code negated == true} means "no stack matches this ref" (for ingredient-slot lists) or "the
      * target stack does not match this ref" (for single-stack matching).
      */
-    private static final class FilterTerm {
+    private static class FilterTerm {
 
         private final IdUtils.ParsedItemRef ref;
         private final boolean negated;
@@ -332,7 +332,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      * Empty expression (from an absent/blank attribute) means "no filter" and is cheap to check
      * via {@link #isEmpty()}.
      */
-    public static final class FilterExpr {
+    public static class FilterExpr {
 
         private static final FilterExpr EMPTY = new FilterExpr(Collections.<List<FilterTerm>>emptyList());
         private final List<List<FilterTerm>> orGroups;
@@ -427,38 +427,74 @@ public class RecipeCompiler extends BlockTagCompiler {
         @Nullable Consumer<String> errorSink) {
         if (raw == null) return FilterExpr.EMPTY;
         List<List<FilterTerm>> groups = new ArrayList<>();
-        for (String orPart : raw.split(",")) {
-            String orTrim = orPart.trim();
-            if (orTrim.isEmpty()) continue;
-            List<FilterTerm> andTerms = new ArrayList<>();
-            for (String andPart : orTrim.split("&")) {
-                String token = andPart.trim();
-                if (token.isEmpty()) continue;
-                boolean negated = false;
-                if (token.startsWith("!")) {
-                    negated = true;
-                    token = token.substring(1)
-                        .trim();
-                    if (token.isEmpty()) {
-                        if (errorSink != null) {
-                            errorSink.accept("Empty " + filterAttrName(attr) + " negation token '!' has no id");
-                        }
-                        continue;
-                    }
-                }
-                try {
-                    IdUtils.ParsedItemRef p = IdUtils.parseItemRef(token, defaultNs);
-                    if (p != null) andTerms.add(new FilterTerm(p, negated));
-                } catch (IllegalArgumentException e) {
-                    if (errorSink != null) {
-                        errorSink
-                            .accept("Malformed " + filterAttrName(attr) + " filter '" + token + "': " + e.getMessage());
-                    }
-                }
+        int rawLength = raw.length();
+        int orStart = 0;
+        while (orStart <= rawLength) {
+            int orEnd = raw.indexOf(',', orStart);
+            if (orEnd < 0) {
+                orEnd = rawLength;
             }
-            if (!andTerms.isEmpty()) groups.add(andTerms);
+            String orTrim = raw.substring(orStart, orEnd)
+                .trim();
+            if (!orTrim.isEmpty()) {
+                List<FilterTerm> andTerms = new ArrayList<>();
+                parseFilterTerms(orTrim, attr, defaultNs, errorSink, andTerms);
+                if (!andTerms.isEmpty()) groups.add(andTerms);
+            }
+            if (orEnd == rawLength) {
+                break;
+            }
+            orStart = orEnd + 1;
         }
         return groups.isEmpty() ? FilterExpr.EMPTY : new FilterExpr(groups);
+    }
+
+    private static void parseFilterTerms(String orTrim, @Nullable String attr, String defaultNs,
+        @Nullable Consumer<String> errorSink, List<FilterTerm> andTerms) {
+        int andLength = orTrim.length();
+        int andStart = 0;
+        while (andStart <= andLength) {
+            int andEnd = orTrim.indexOf('&', andStart);
+            if (andEnd < 0) {
+                andEnd = andLength;
+            }
+            parseFilterTerm(
+                orTrim.substring(andStart, andEnd)
+                    .trim(),
+                attr,
+                defaultNs,
+                errorSink,
+                andTerms);
+            if (andEnd == andLength) {
+                break;
+            }
+            andStart = andEnd + 1;
+        }
+    }
+
+    private static void parseFilterTerm(String token, @Nullable String attr, String defaultNs,
+        @Nullable Consumer<String> errorSink, List<FilterTerm> andTerms) {
+        if (token.isEmpty()) return;
+        boolean negated = false;
+        if (token.startsWith("!")) {
+            negated = true;
+            token = token.substring(1)
+                .trim();
+            if (token.isEmpty()) {
+                if (errorSink != null) {
+                    errorSink.accept("Empty " + filterAttrName(attr) + " negation token '!' has no id");
+                }
+                return;
+            }
+        }
+        try {
+            IdUtils.ParsedItemRef p = IdUtils.parseItemRef(token, defaultNs);
+            if (p != null) andTerms.add(new FilterTerm(p, negated));
+        } catch (IllegalArgumentException e) {
+            if (errorSink != null) {
+                errorSink.accept("Malformed " + filterAttrName(attr) + " filter '" + token + "': " + e.getMessage());
+            }
+        }
     }
 
     private static String filterAttrName(@Nullable String attr) {

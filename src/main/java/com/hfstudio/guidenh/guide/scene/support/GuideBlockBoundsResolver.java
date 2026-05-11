@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
+import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -70,8 +71,9 @@ public class GuideBlockBoundsResolver {
         }
 
         try {
-            block.setBlockBoundsBasedOnState(level.getOrCreateFakeWorld(), x, y, z);
-            AxisAlignedBB selectedBounds = block.getSelectedBoundingBoxFromPool(level.getOrCreateFakeWorld(), x, y, z);
+            World fakeWorld = level.getOrCreateFakeWorld();
+            block.setBlockBoundsBasedOnState(fakeWorld, x, y, z);
+            AxisAlignedBB selectedBounds = block.getSelectedBoundingBoxFromPool(fakeWorld, x, y, z);
             if (selectedBounds != null && isNonEmpty(selectedBounds)) {
                 return copyOf(selectedBounds);
             }

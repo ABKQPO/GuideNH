@@ -1,32 +1,34 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class FootnotePreprocessor {
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+
+public class FootnotePreprocessor {
 
     private static final Pattern DEFINITION_START = Pattern.compile("^\\[\\^([^\\]]+)]:(.*)$");
     private static final Pattern REFERENCE = Pattern.compile("\\[\\^([^\\]]+)]");
 
-    private FootnotePreprocessor() {}
+    protected FootnotePreprocessor() {}
 
     public static String preprocess(String markdown) {
         if (markdown == null || markdown.indexOf("[^") < 0) {
             return markdown;
         }
 
-        String normalized = markdown.replace("\r\n", "\n")
-            .replace('\r', '\n');
-        String[] lines = normalized.split("\n", -1);
+        List<String> lines = GuideStringLines.splitLines(markdown);
         Map<String, String> definitions = new LinkedHashMap<>();
-        StringBuilder body = new StringBuilder(normalized.length());
+        StringBuilder body = new StringBuilder(markdown.length());
 
-        for (int i = 0; i < lines.length; i++) {
-            Matcher matcher = DEFINITION_START.matcher(lines[i]);
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            Matcher matcher = DEFINITION_START.matcher(line);
             if (!matcher.matches()) {
-                appendLine(body, lines[i]);
+                appendLine(body, line);
                 continue;
             }
 
@@ -35,8 +37,8 @@ public final class FootnotePreprocessor {
             StringBuilder definition = new StringBuilder(
                 matcher.group(2)
                     .trim());
-            while (i + 1 < lines.length) {
-                String next = lines[i + 1];
+            while (i + 1 < lines.size()) {
+                String next = lines.get(i + 1);
                 if (next.startsWith("    ") || next.startsWith("\t")) {
                     if (definition.length() > 0) {
                         definition.append('\n');
@@ -46,8 +48,8 @@ public final class FootnotePreprocessor {
                     continue;
                 }
                 if (next.isEmpty()) {
-                    if (i + 2 < lines.length) {
-                        String afterBlank = lines[i + 2];
+                    if (i + 2 < lines.size()) {
+                        String afterBlank = lines.get(i + 2);
                         if (afterBlank.startsWith("    ") || afterBlank.startsWith("\t")) {
                             definition.append("\n\n");
                             i += 2;

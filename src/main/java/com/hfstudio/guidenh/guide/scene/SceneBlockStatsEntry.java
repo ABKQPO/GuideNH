@@ -114,7 +114,7 @@ public class SceneBlockStatsEntry {
         cachedEllipsizedText = text != null ? text : "";
     }
 
-    public static final class BlockStatsPlacement {
+    public static class BlockStatsPlacement {
 
         private final int x;
         private final int y;

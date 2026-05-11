@@ -16,9 +16,9 @@ import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartHelpers;
  * Backwards-compatible facade. Implementation lives in
  * {@link ForgeMultipartHelpers}.
  */
-public final class GuideForgeMultipartSupport {
+public class GuideForgeMultipartSupport {
 
-    private GuideForgeMultipartSupport() {}
+    protected GuideForgeMultipartSupport() {}
 
     public static boolean isForgeMultipartBlock(@Nullable Block block) {
         return Mods.ForgeMultipart.isModLoaded() && ForgeMultipartHelpers.isForgeMultipartBlock(block);

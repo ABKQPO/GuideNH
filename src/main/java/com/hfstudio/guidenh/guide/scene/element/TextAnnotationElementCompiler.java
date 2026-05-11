@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.element;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import org.joml.Vector3f;
@@ -10,6 +11,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
@@ -142,26 +144,27 @@ public class TextAnnotationElementCompiler implements SceneElementTagCompiler {
     }
 
     private static String trimCommonIndent(String text) {
-        String normalized = text.replace("\r\n", "\n")
-            .replace('\r', '\n');
-        String[] lines = normalized.split("\n", -1);
+        List<String> lines = GuideStringLines.splitLines(text);
         int start = 0;
-        int end = lines.length;
-        while (start < end && lines[start].trim()
+        int end = lines.size();
+        while (start < end && lines.get(start)
+            .trim()
             .isEmpty()) {
             start++;
         }
-        while (end > start && lines[end - 1].trim()
+        while (end > start && lines.get(end - 1)
+            .trim()
             .isEmpty()) {
             end--;
         }
         int indent = Integer.MAX_VALUE;
         for (int i = start; i < end; i++) {
-            if (lines[i].trim()
+            if (lines.get(i)
+                .trim()
                 .isEmpty()) {
                 continue;
             }
-            indent = Math.min(indent, countLeadingSpaces(lines[i]));
+            indent = Math.min(indent, countLeadingSpaces(lines.get(i)));
         }
         if (indent == Integer.MAX_VALUE) {
             indent = 0;
@@ -171,7 +174,7 @@ public class TextAnnotationElementCompiler implements SceneElementTagCompiler {
             if (i > start) {
                 builder.append('\n');
             }
-            String line = lines[i];
+            String line = lines.get(i);
             builder.append(line.substring(Math.min(indent, line.length())));
         }
         return builder.toString();

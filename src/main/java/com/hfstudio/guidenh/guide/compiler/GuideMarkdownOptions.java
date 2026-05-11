@@ -14,12 +14,12 @@ import com.hfstudio.guidenh.libs.micromark.extensions.gfmstrikethrough.GfmStrike
 import com.hfstudio.guidenh.libs.micromark.extensions.guidemark.GuideMarkSyntax;
 import com.hfstudio.guidenh.libs.micromark.extensions.guideunderline.GuideUnderlineSyntax;
 
-public final class GuideMarkdownOptions {
+public class GuideMarkdownOptions {
 
     private static final MdastOptions RUNTIME = createBaseOptions();
     private static final MdastOptions SCENE_EDITOR = createBaseOptions();
 
-    private GuideMarkdownOptions() {}
+    protected GuideMarkdownOptions() {}
 
     public static MdastOptions runtime() {
         return RUNTIME;

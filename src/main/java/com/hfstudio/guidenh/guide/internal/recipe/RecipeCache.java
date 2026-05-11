@@ -2,9 +2,10 @@ package com.hfstudio.guidenh.guide.internal.recipe;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -19,8 +20,9 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
  */
 public class RecipeCache {
 
-    public static final Map<Key, List<Object>> HANDLERS = new HashMap<>();
-    public static final Map<Key, List<Object>> USAGE_HANDLERS = new HashMap<>();
+    public static final int MAX_CACHE_ENTRIES = 512;
+    public static final Map<Key, List<Object>> HANDLERS = createCache();
+    public static final Map<Key, List<Object>> USAGE_HANDLERS = createCache();
 
     private RecipeCache() {}
 
@@ -55,6 +57,16 @@ public class RecipeCache {
     public static synchronized void clear() {
         HANDLERS.clear();
         USAGE_HANDLERS.clear();
+    }
+
+    private static Map<Key, List<Object>> createCache() {
+        return new LinkedHashMap<Key, List<Object>>(16, 0.75f, true) {
+
+            @Override
+            protected boolean removeEldestEntry(Entry<Key, List<Object>> eldest) {
+                return size() > MAX_CACHE_ENTRIES;
+            }
+        };
     }
 
     public static class Key {

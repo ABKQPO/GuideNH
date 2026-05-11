@@ -13,9 +13,9 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 /**
  * Applies the common attributes shared by all charts (title/size/color/legend/label position).
  */
-public final class CommonChartAttrs {
+public class CommonChartAttrs {
 
-    private CommonChartAttrs() {}
+    protected CommonChartAttrs() {}
 
     public static void apply(LytChartBase chart, PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el) {

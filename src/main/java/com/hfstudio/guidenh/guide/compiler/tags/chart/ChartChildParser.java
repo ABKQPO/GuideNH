@@ -24,9 +24,9 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 /**
  * Parses {@code <Series>} / {@code <Slice>} child elements inside chart tags.
  */
-public final class ChartChildParser {
+public class ChartChildParser {
 
-    private ChartChildParser() {}
+    protected ChartChildParser() {}
 
     public static List<ChartSeries> parseValueSeries(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields parentEl) {

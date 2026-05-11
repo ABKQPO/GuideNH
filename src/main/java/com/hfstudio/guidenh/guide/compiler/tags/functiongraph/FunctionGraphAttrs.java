@@ -22,11 +22,11 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
  * {@code <Plot>} / {@code <Point>} tag families. Mirrors the conventions used by the chart attr
  * parsers so authors who already know one can reuse the same shapes.
  */
-public final class FunctionGraphAttrs {
+public class FunctionGraphAttrs {
 
     public static final int QUADRANT_MASK_AUTO = 0;
 
-    private FunctionGraphAttrs() {}
+    protected FunctionGraphAttrs() {}
 
     /** Apply the panel-level attributes onto {@code graph}. */
     public static void applyContainerAttrs(LytFunctionGraph graph, PageCompiler compiler, LytErrorSink sink,
@@ -172,8 +172,13 @@ public final class FunctionGraphAttrs {
             return 0xF;
         }
         int mask = 0;
-        for (String raw : trimmed.split(",")) {
-            String part = raw.trim();
+        int start = 0;
+        for (int i = 0; i <= trimmed.length(); i++) {
+            if (i < trimmed.length() && trimmed.charAt(i) != ',') {
+                continue;
+            }
+            String part = trimmed.substring(start, i)
+                .trim();
             try {
                 int q = Integer.parseInt(part);
                 if (q >= 1 && q <= 4) {
@@ -182,6 +187,7 @@ public final class FunctionGraphAttrs {
             } catch (NumberFormatException ex) {
                 // ignored
             }
+            start = i + 1;
         }
         return mask;
     }

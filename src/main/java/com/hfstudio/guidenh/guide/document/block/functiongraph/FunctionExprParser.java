@@ -11,7 +11,7 @@ package com.hfstudio.guidenh.guide.document.block.functiongraph;
  * Operator precedence (low to high): {@code +-} -> {@code * / %} -> unary minus / abs ->
  * {@code ^} (right associative) -> postfix {@code !} -> primary.
  */
-public final class FunctionExprParser {
+public class FunctionExprParser {
 
     private final String src;
     private final int defaultVar;

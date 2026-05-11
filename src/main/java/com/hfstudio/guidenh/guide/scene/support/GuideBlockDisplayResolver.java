@@ -80,8 +80,7 @@ public class GuideBlockDisplayResolver {
 
         try {
             String localizedName = block.getLocalizedName();
-            if (localizedName != null && !localizedName.trim()
-                .isEmpty()) {
+            if (hasText(localizedName)) {
                 return localizedName;
             }
         } catch (Throwable ignored) {}
@@ -100,8 +99,7 @@ public class GuideBlockDisplayResolver {
             if (item != null) {
                 ItemStack stack = new ItemStack(item, 1, resolveDisplayMeta(level, block, x, y, z));
                 String displayName = stack.getDisplayName();
-                if (displayName != null && !displayName.trim()
-                    .isEmpty()) {
+                if (hasText(displayName)) {
                     return displayName;
                 }
             }
@@ -109,8 +107,7 @@ public class GuideBlockDisplayResolver {
 
         try {
             String localizedName = block.getLocalizedName();
-            if (localizedName != null && !localizedName.trim()
-                .isEmpty()) {
+            if (hasText(localizedName)) {
                 return localizedName;
             }
         } catch (Throwable ignored) {}
@@ -190,5 +187,17 @@ public class GuideBlockDisplayResolver {
         } catch (Throwable ignored) {
             return null;
         }
+    }
+
+    private static boolean hasText(@Nullable String value) {
+        if (value == null) {
+            return false;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            if (value.charAt(i) > ' ') {
+                return true;
+            }
+        }
+        return false;
     }
 }

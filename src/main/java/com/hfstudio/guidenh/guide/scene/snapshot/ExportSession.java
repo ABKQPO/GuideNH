@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * One SNBT export run; contributors may stash batch state in {@link #shared}.
  */
-public final class ExportSession {
+public class ExportSession {
 
     private final StructureExportAccess access;
     private final int minX;

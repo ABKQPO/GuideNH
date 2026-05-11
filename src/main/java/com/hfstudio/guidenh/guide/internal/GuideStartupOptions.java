@@ -30,13 +30,14 @@ public class GuideStartupOptions {
         }
 
         try {
-            String[] parts = trimmedValue.split("!", 2);
-            ResourceLocation guideId = new ResourceLocation(parts[0]);
-            if (parts.length == 1 || parts[1].isEmpty()) {
+            int anchorSeparator = trimmedValue.indexOf('!');
+            String guidePart = anchorSeparator >= 0 ? trimmedValue.substring(0, anchorSeparator) : trimmedValue;
+            ResourceLocation guideId = new ResourceLocation(guidePart);
+            if (anchorSeparator < 0 || anchorSeparator == trimmedValue.length() - 1) {
                 return new ShowOnStartup(guideId, null);
             }
 
-            return new ShowOnStartup(guideId, parseStartupAnchor(guideId, parts[1]));
+            return new ShowOnStartup(guideId, parseStartupAnchor(guideId, trimmedValue.substring(anchorSeparator + 1)));
         } catch (RuntimeException e) {
             FMLLog.getLogger()
                 .error("[GuideNH] [GuideStartupOptions] Failed to parse guideme.showOnStartup='{}'", trimmedValue, e);
@@ -55,21 +56,30 @@ public class GuideStartupOptions {
             return result;
         }
 
-        for (String token : trimmedValue.split(",")) {
-            String trimmedToken = token.trim();
-            if (trimmedToken.isEmpty()) {
-                continue;
+        int start = 0;
+        int length = trimmedValue.length();
+        while (start <= length) {
+            int end = trimmedValue.indexOf(',', start);
+            if (end < 0) {
+                end = length;
             }
-
-            try {
-                result.add(new ResourceLocation(trimmedToken));
-            } catch (RuntimeException e) {
-                FMLLog.getLogger()
-                    .error(
-                        "[GuideNH] [GuideStartupOptions] Failed to parse validateAtStartup guide id '{}'",
-                        trimmedToken,
-                        e);
+            String trimmedToken = trimmedValue.substring(start, end)
+                .trim();
+            if (!trimmedToken.isEmpty()) {
+                try {
+                    result.add(new ResourceLocation(trimmedToken));
+                } catch (RuntimeException e) {
+                    FMLLog.getLogger()
+                        .error(
+                            "[GuideNH] [GuideStartupOptions] Failed to parse validateAtStartup guide id '{}'",
+                            trimmedToken,
+                            e);
+                }
             }
+            if (end == length) {
+                break;
+            }
+            start = end + 1;
         }
 
         return result;

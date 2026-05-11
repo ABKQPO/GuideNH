@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -195,7 +196,7 @@ public class MdxAttrs {
         }
         ItemStack stack = new ItemStack(item, 1, ref.concreteMeta());
         if (ref.nbt() != null) {
-            stack.stackTagCompound = (net.minecraft.nbt.NBTTagCompound) ref.nbt()
+            stack.stackTagCompound = (NBTTagCompound) ref.nbt()
                 .copy();
         }
         return Pair.of(ref.id(), stack);
@@ -356,18 +357,42 @@ public class MdxAttrs {
         if (raw == null || raw.isEmpty()) {
             return new Vector3f(defaultValue);
         }
-        String[] parts = raw.trim()
-            .split("\\s+");
-        if (parts.length != 3) {
+        float[] parts = parseVector3Parts(raw);
+        if (parts == null) {
             errorSink.appendError(compiler, name + " expects 3 space-separated floats, got: '" + raw + "'", el);
             return new Vector3f(defaultValue);
         }
-        try {
-            return new Vector3f(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]));
-        } catch (NumberFormatException e) {
-            errorSink.appendError(compiler, "Malformed vector3 for " + name + ": '" + raw + "'", el);
-            return new Vector3f(defaultValue);
+        return new Vector3f(parts[0], parts[1], parts[2]);
+    }
+
+    @Nullable
+    public static float[] parseVector3Parts(String raw) {
+        float[] values = new float[3];
+        int length = raw.length();
+        int index = 0;
+        int cursor = 0;
+        while (cursor < length) {
+            while (cursor < length && Character.isWhitespace(raw.charAt(cursor))) {
+                cursor++;
+            }
+            if (cursor >= length) {
+                break;
+            }
+            if (index >= values.length) {
+                return null;
+            }
+            int start = cursor;
+            while (cursor < length && !Character.isWhitespace(raw.charAt(cursor))) {
+                cursor++;
+            }
+            try {
+                values[index] = Float.parseFloat(raw.substring(start, cursor));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+            index++;
         }
+        return index == values.length ? values : null;
     }
 
     @Nullable

@@ -172,19 +172,12 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
             return null;
         }
 
-        String[] parts = raw.trim()
-            .split("\\s+");
-        if (parts.length != 3) {
+        float[] parts = MdxAttrs.parseVector3Parts(raw);
+        if (parts == null) {
             errorSink.appendError(compiler, name + " expects 3 space-separated floats, got: '" + raw + "'", el);
             return null;
         }
-
-        try {
-            return new Vector3f(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]));
-        } catch (NumberFormatException e) {
-            errorSink.appendError(compiler, "Malformed vector3 for " + name + ": '" + raw + "'", el);
-            return null;
-        }
+        return new Vector3f(parts[0], parts[1], parts[2]);
     }
 
     public static boolean tryInvokeBooleanInstanceMethod(Object target, String methodName, boolean argument) {

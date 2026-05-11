@@ -4,7 +4,7 @@ package com.hfstudio.guidenh.guide.document.block.functiongraph;
  * Marker drawn on top of the curves. A point either has explicit {@code (x, y)} coordinates, or it
  * references a {@link FunctionPlot} index plus a known-axis value to be solved for the other axis.
  */
-public final class MarkedPoint {
+public class MarkedPoint {
 
     /** Explicit (x, y). */
     public static final int MODE_EXPLICIT = 0;

@@ -47,12 +47,18 @@ public interface DomainPredicate {
             return ALWAYS;
         }
         DomainPredicate result = ALWAYS;
-        String[] clauses = trimmed.split(",");
-        for (String raw : clauses) {
-            DomainPredicate clause = parseClause(raw.trim());
+        int start = 0;
+        for (int i = 0; i <= trimmed.length(); i++) {
+            if (i < trimmed.length() && trimmed.charAt(i) != ',') {
+                continue;
+            }
+            DomainPredicate clause = parseClause(
+                trimmed.substring(start, i)
+                    .trim());
             if (clause != null) {
                 result = result.and(clause);
             }
+            start = i + 1;
         }
         return result;
     }

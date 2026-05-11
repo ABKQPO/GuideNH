@@ -14,11 +14,11 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 /**
  * Applies simple dotted NBT paths such as {@code InputTanks[0].TankContent.Amount}.
  */
-public final class PonderNbtPath {
+public class PonderNbtPath {
 
     private static final String WRAPPED_VALUE_KEY = "value";
 
-    private PonderNbtPath() {}
+    protected PonderNbtPath() {}
 
     public static NBTTagCompound parseCompound(String snbt) throws Exception {
         return GuideTextNbtCodec.readTextSafeCompound(snbt);
@@ -169,19 +169,25 @@ public final class PonderNbtPath {
 
     private static List<PathSegment> parse(String path) {
         List<PathSegment> segments = new ArrayList<>();
-        if (path == null || path.trim()
-            .isEmpty()) {
+        String trimmedPath = trimToNull(path);
+        if (trimmedPath == null) {
             return segments;
         }
 
-        String[] rawSegments = path.trim()
-            .split("\\.");
-        for (String raw : rawSegments) {
-            PathSegment segment = parseSegment(raw.trim());
+        int start = 0;
+        while (start <= trimmedPath.length()) {
+            int separator = trimmedPath.indexOf('.', start);
+            int end = separator >= 0 ? separator : trimmedPath.length();
+            String rawSegment = trimToNull(trimmedPath.substring(start, end));
+            PathSegment segment = rawSegment != null ? parseSegment(rawSegment) : null;
             if (segment == null) {
                 return new ArrayList<>();
             }
             segments.add(segment);
+            if (separator < 0) {
+                break;
+            }
+            start = separator + 1;
         }
         return segments;
     }
@@ -200,8 +206,10 @@ public final class PonderNbtPath {
             if (close < 0) {
                 return null;
             }
-            String indexText = raw.substring(cursor + 1, close)
-                .trim();
+            String indexText = trimToNull(raw.substring(cursor + 1, close));
+            if (indexText == null) {
+                return null;
+            }
             try {
                 indexes.add(Integer.parseInt(indexText));
             } catch (NumberFormatException e) {
@@ -218,7 +226,7 @@ public final class PonderNbtPath {
         return new PathSegment(key, indexes);
     }
 
-    private static final class PathSegment {
+    private static class PathSegment {
 
         private final String key;
         private final List<Integer> indexes;
@@ -227,5 +235,27 @@ public final class PonderNbtPath {
             this.key = key;
             this.indexes = indexes;
         }
+    }
+
+    @Nullable
+    private static String trimToNull(@Nullable String value) {
+        if (value == null) {
+            return null;
+        }
+        int start = 0;
+        int end = value.length();
+        while (start < end && value.charAt(start) <= ' ') {
+            start++;
+        }
+        while (end > start && value.charAt(end - 1) <= ' ') {
+            end--;
+        }
+        if (start == end) {
+            return null;
+        }
+        if (start == 0 && end == value.length()) {
+            return value;
+        }
+        return value.substring(start, end);
     }
 }

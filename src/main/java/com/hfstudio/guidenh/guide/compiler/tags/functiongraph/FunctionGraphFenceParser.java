@@ -25,50 +25,60 @@ import com.hfstudio.guidenh.guide.document.block.functiongraph.MarkedPoint;
  * <p>
  * Comments start with {@code #} and run to end of line.
  */
-public final class FunctionGraphFenceParser {
+public class FunctionGraphFenceParser {
 
-    private FunctionGraphFenceParser() {}
+    protected FunctionGraphFenceParser() {}
 
     public static LytFunctionGraph parse(String source) {
         LytFunctionGraph graph = new LytFunctionGraph();
         if (source == null) {
             return graph;
         }
-        String[] lines = source.split("\\r?\\n");
-        boolean headerParsed = false;
-        int plotIndex = 0;
-        for (String rawLine : lines) {
-            String line = stripComment(rawLine).trim();
-            if (line.isEmpty()) {
+        ParseState state = new ParseState();
+        int lineStart = 0;
+        for (int i = 0; i <= source.length(); i++) {
+            if (i < source.length() && source.charAt(i) != '\n' && source.charAt(i) != '\r') {
                 continue;
             }
-            if (!headerParsed && looksLikeHeader(line)) {
-                applyHeader(graph, line);
-                headerParsed = true;
-                continue;
+            parseLineInto(graph, state, source.substring(lineStart, i));
+            if (i + 1 < source.length() && source.charAt(i) == '\r' && source.charAt(i + 1) == '\n') {
+                i++;
             }
-            headerParsed = true;
-            if (line.charAt(0) == ':') {
-                MarkedPoint point = parseExplicitPoint(line.substring(1));
-                if (point != null) {
-                    graph.addPoint(point);
-                }
-                continue;
-            }
-            if (line.charAt(0) == '@') {
-                MarkedPoint point = parsePlotPoint(line.substring(1));
-                if (point != null) {
-                    graph.addPoint(point);
-                }
-                continue;
-            }
-            FunctionPlot plot = parsePlotLine(line, plotIndex);
-            if (plot != null) {
-                graph.addPlot(plot);
-                plotIndex++;
-            }
+            lineStart = i + 1;
         }
         return graph;
+    }
+
+    private static void parseLineInto(LytFunctionGraph graph, ParseState state, String rawLine) {
+        String line = stripComment(rawLine).trim();
+        if (line.isEmpty()) {
+            return;
+        }
+        if (!state.headerParsed && looksLikeHeader(line)) {
+            applyHeader(graph, line);
+            state.headerParsed = true;
+            return;
+        }
+        state.headerParsed = true;
+        if (line.charAt(0) == ':') {
+            MarkedPoint point = parseExplicitPoint(line.substring(1));
+            if (point != null) {
+                graph.addPoint(point);
+            }
+            return;
+        }
+        if (line.charAt(0) == '@') {
+            MarkedPoint point = parsePlotPoint(line.substring(1));
+            if (point != null) {
+                graph.addPoint(point);
+            }
+            return;
+        }
+        FunctionPlot plot = parsePlotLine(line, state.plotIndex);
+        if (plot != null) {
+            graph.addPlot(plot);
+            state.plotIndex++;
+        }
     }
 
     private static boolean looksLikeHeader(String line) {
@@ -432,7 +442,13 @@ public final class FunctionGraphFenceParser {
     }
 
     /** Tiny case-sensitive map wrapper that exposes typed accessors. */
-    private static final class AttrMap {
+    private static class ParseState {
+
+        private boolean headerParsed;
+        private int plotIndex;
+    }
+
+    private static class AttrMap {
 
         private final Map<String, String> data = new LinkedHashMap<>();
 

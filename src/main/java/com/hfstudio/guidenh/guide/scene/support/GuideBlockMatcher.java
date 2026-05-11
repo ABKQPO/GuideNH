@@ -12,7 +12,7 @@ public class GuideBlockMatcher {
     @Nullable
     private final Integer meta;
 
-    private GuideBlockMatcher(String blockId, @Nullable Integer meta) {
+    protected GuideBlockMatcher(String blockId, @Nullable Integer meta) {
         this.blockId = blockId;
         this.meta = meta;
     }
@@ -22,25 +22,40 @@ public class GuideBlockMatcher {
             throw new IllegalArgumentException("Block matcher cannot be null");
         }
 
-        String trimmed = literal.trim();
-        String[] parts = trimmed.split(":");
-        if (parts.length < 2 || parts.length > 3 || parts[0].isEmpty() || parts[1].isEmpty()) {
+        String trimmed = trimToNull(literal);
+        if (trimmed == null) {
+            throw new IllegalArgumentException("Invalid block matcher: " + literal);
+        }
+        int effectiveEnd = stripTrailingSeparators(trimmed);
+        int firstSeparator = trimmed.indexOf(':');
+        if (firstSeparator <= 0 || firstSeparator >= effectiveEnd - 1) {
+            throw new IllegalArgumentException("Invalid block matcher: " + literal);
+        }
+
+        int secondSeparator = trimmed.indexOf(':', firstSeparator + 1);
+        if (secondSeparator == firstSeparator + 1) {
+            throw new IllegalArgumentException("Invalid block matcher: " + literal);
+        }
+        if (secondSeparator > 0 && secondSeparator < effectiveEnd - 1
+            && trimmed.indexOf(':', secondSeparator + 1) >= 0) {
             throw new IllegalArgumentException("Invalid block matcher: " + literal);
         }
 
         Integer meta = null;
-        if (parts.length == 3) {
+        int blockIdEnd = effectiveEnd;
+        if (secondSeparator > 0 && secondSeparator < effectiveEnd) {
             try {
-                meta = Integer.valueOf(parts[2]);
+                meta = Integer.valueOf(trimmed.substring(secondSeparator + 1, effectiveEnd));
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid block matcher meta: " + literal, e);
             }
             if (meta < 0) {
                 throw new IllegalArgumentException("Block matcher meta must be non-negative: " + literal);
             }
+            blockIdEnd = secondSeparator;
         }
 
-        return new GuideBlockMatcher(parts[0] + ":" + parts[1], meta);
+        return new GuideBlockMatcher(trimmed.substring(0, blockIdEnd), meta);
     }
 
     public String getBlockId() {
@@ -102,12 +117,8 @@ public class GuideBlockMatcher {
 
     @Nullable
     public static String normalizeResolvedBlockId(@Nullable String candidate) {
-        if (candidate == null) {
-            return null;
-        }
-
-        String trimmed = candidate.trim();
-        if (trimmed.isEmpty()) {
+        String trimmed = trimToNull(candidate);
+        if (trimmed == null) {
             return null;
         }
 
@@ -130,12 +141,8 @@ public class GuideBlockMatcher {
 
     @Nullable
     public static String normalizeRegistryName(@Nullable String registryName) {
-        if (registryName == null) {
-            return null;
-        }
-
-        String trimmed = registryName.trim();
-        if (trimmed.isEmpty()) {
+        String trimmed = trimToNull(registryName);
+        if (trimmed == null) {
             return null;
         }
 
@@ -149,5 +156,36 @@ public class GuideBlockMatcher {
         }
 
         return "minecraft:" + unlocalizedName.substring(5);
+    }
+
+    private static int stripTrailingSeparators(String value) {
+        int end = value.length();
+        while (end > 0 && value.charAt(end - 1) == ':') {
+            end--;
+        }
+        return end;
+    }
+
+    @Nullable
+    private static String trimToNull(@Nullable String value) {
+        if (value == null) {
+            return null;
+        }
+
+        int start = 0;
+        int end = value.length();
+        while (start < end && value.charAt(start) <= ' ') {
+            start++;
+        }
+        while (end > start && value.charAt(end - 1) <= ' ') {
+            end--;
+        }
+        if (start == end) {
+            return null;
+        }
+        if (start == 0 && end == value.length()) {
+            return value;
+        }
+        return value.substring(start, end);
     }
 }

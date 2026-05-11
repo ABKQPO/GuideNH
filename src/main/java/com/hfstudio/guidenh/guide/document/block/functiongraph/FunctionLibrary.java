@@ -4,9 +4,9 @@ package com.hfstudio.guidenh.guide.document.block.functiongraph;
  * Numeric helpers for the function graph: standard one- and two-argument numeric functions, plus a
  * Lanczos approximation of the gamma function that powers the postfix factorial operator.
  */
-public final class FunctionLibrary {
+public class FunctionLibrary {
 
-    private FunctionLibrary() {}
+    protected FunctionLibrary() {}
 
     /** Returns true when {@code name} is recognised as a built-in function (any arity). */
     public static boolean isKnown(String name) {

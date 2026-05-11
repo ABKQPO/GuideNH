@@ -14,9 +14,9 @@ import com.hfstudio.guidenh.integration.carpentersblocks.CarpentersBlocksHelpers
  * Backwards-compatible facade. Implementation lives in
  * {@link CarpentersBlocksHelpers}.
  */
-public final class GuideCarpentersBlockSupport {
+public class GuideCarpentersBlockSupport {
 
-    private GuideCarpentersBlockSupport() {}
+    protected GuideCarpentersBlockSupport() {}
 
     public static boolean isCarpentersBlock(@Nullable Block block) {
         return CarpentersBlocksHelpers.isCarpentersBlock(block);

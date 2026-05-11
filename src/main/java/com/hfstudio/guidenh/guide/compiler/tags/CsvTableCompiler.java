@@ -129,19 +129,29 @@ public class CsvTableCompiler extends BlockTagCompiler {
             return Collections.emptyList();
         }
 
-        String[] parts = rawWidths.split(",");
-        List<Integer> result = new ArrayList<>(parts.length);
-        for (String part : parts) {
-            String trimmed = part.trim();
+        List<Integer> result = new ArrayList<>();
+        int length = rawWidths.length();
+        int start = 0;
+        while (start <= length) {
+            int end = rawWidths.indexOf(',', start);
+            if (end < 0) {
+                end = length;
+            }
+            String trimmed = rawWidths.substring(start, end)
+                .trim();
             if (trimmed.isEmpty()) {
                 result.add(0);
-                continue;
+            } else {
+                try {
+                    result.add(Math.max(0, Integer.parseInt(trimmed)));
+                } catch (NumberFormatException e) {
+                    result.add(0);
+                }
             }
-            try {
-                result.add(Math.max(0, Integer.parseInt(trimmed)));
-            } catch (NumberFormatException e) {
-                result.add(0);
+            if (end == length) {
+                break;
             }
+            start = end + 1;
         }
         return result;
     }
@@ -152,12 +162,18 @@ public class CsvTableCompiler extends BlockTagCompiler {
         paragraph.setMarginBottom(0);
         paragraph.modifyStyle(style -> style.whiteSpace(WhiteSpaceMode.PRE_WRAP));
 
-        String[] lines = value.split("\n", -1);
-        for (int i = 0; i < lines.length; i++) {
-            paragraph.appendText(lines[i]);
-            if (i < lines.length - 1) {
-                paragraph.appendBreak();
+        int start = 0;
+        while (start <= value.length()) {
+            int end = value.indexOf('\n', start);
+            if (end < 0) {
+                end = value.length();
             }
+            paragraph.appendText(value.substring(start, end));
+            if (end == value.length()) {
+                break;
+            }
+            paragraph.appendBreak();
+            start = end + 1;
         }
 
         cell.append(paragraph);

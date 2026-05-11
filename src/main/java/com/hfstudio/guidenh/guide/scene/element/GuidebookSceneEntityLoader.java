@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,10 +34,11 @@ import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 
 public class GuidebookSceneEntityLoader {
 
+    public static final int MAX_PREVIEW_PLAYER_PROFILE_CACHE_ENTRIES = 256;
     public static final Map<String, String> VANILLA_ENTITY_ID_ALIASES = createVanillaEntityIdAliases();
     public static final Set<String> PREVIEW_PLAYER_IDS = createPreviewPlayerIds();
     public static final Map<String, GameProfile> PREVIEW_PLAYER_PROFILE_CACHE = Collections
-        .synchronizedMap(new LinkedHashMap<>());
+        .synchronizedMap(createPreviewPlayerProfileCache());
     public static volatile GameProfileRepository previewPlayerProfileRepository;
 
     private GuidebookSceneEntityLoader() {}
@@ -604,6 +606,16 @@ public class GuidebookSceneEntityLoader {
         aliases.put("villager", "Villager");
         aliases.put("ender_crystal", "EnderCrystal");
         return aliases;
+    }
+
+    private static Map<String, GameProfile> createPreviewPlayerProfileCache() {
+        return new LinkedHashMap<String, GameProfile>(16, 0.75f, true) {
+
+            @Override
+            protected boolean removeEldestEntry(Entry<String, GameProfile> eldest) {
+                return size() > MAX_PREVIEW_PLAYER_PROFILE_CACHE_ENTRIES;
+            }
+        };
     }
 
     public static class GameProfileSpec {

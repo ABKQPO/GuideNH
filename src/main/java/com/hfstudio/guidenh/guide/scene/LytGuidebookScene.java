@@ -215,6 +215,7 @@ public class LytGuidebookScene extends LytBlock {
     // Reuse annotation partitions instead of allocating new lists every frame.
     private final List<InWorldAnnotation> inWorldScratch = new ArrayList<>();
     private final List<OverlayAnnotation> overlayScratch = new ArrayList<>();
+    private final List<GuideBlockStatsStackResolver.ResolvedStack> blockStatsStackScratch = new ArrayList<>(4);
     private final List<InWorldBlockFaceOverlayAnnotation> structureLibHatchOverlayAnnotations = new ArrayList<>();
     @Nullable
     private SceneFloorGridAnnotation cachedFloorGridAnnotation;
@@ -1742,9 +1743,8 @@ public class LytGuidebookScene extends LytBlock {
                 if (pos == null || pos.length < 3) {
                     continue;
                 }
-                List<GuideBlockStatsStackResolver.ResolvedStack> entries = GuideBlockStatsStackResolver
-                    .resolveEntries(level, pos[0], pos[1], pos[2]);
-                for (GuideBlockStatsStackResolver.ResolvedStack entry : entries) {
+                GuideBlockStatsStackResolver.resolveEntriesInto(level, pos[0], pos[1], pos[2], blockStatsStackScratch);
+                for (GuideBlockStatsStackResolver.ResolvedStack entry : blockStatsStackScratch) {
                     addBlockStatsStack(byKey, entry.stack(), pos[0], pos[1], pos[2], entry.bounds());
                 }
             }
@@ -2275,7 +2275,7 @@ public class LytGuidebookScene extends LytBlock {
         context.fillRect(thumb, 0xCCEAF6FF);
     }
 
-    public static final class BlockStatsHitRegion {
+    public static class BlockStatsHitRegion {
 
         private int x0;
         private int y0;
@@ -4307,7 +4307,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     /** Compact holder for the initial block state at a ponder-changed position. */
-    private static final class PonderBlockInfo {
+    private static class PonderBlockInfo {
 
         final int x;
         final int y;
@@ -4345,7 +4345,7 @@ public class LytGuidebookScene extends LytBlock {
         return result.isEmpty() ? Collections.emptyMap() : result;
     }
 
-    private static final class PonderEntityRuntime {
+    private static class PonderEntityRuntime {
 
         private int entityId;
         private final String entityTypeId;

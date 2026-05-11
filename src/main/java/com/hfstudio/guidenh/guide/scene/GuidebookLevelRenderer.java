@@ -53,6 +53,7 @@ public class GuidebookLevelRenderer {
     public static final int FULL_BRIGHTNESS = 15728880;
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
+    private final GuideEntityRenderStateResolver.ResolvedEntityRenderState entityRenderState = new GuideEntityRenderStateResolver.ResolvedEntityRenderState();
 
     // Rebind RenderBlocks only when the level instance changes.
     private RenderBlocks cachedRenderBlocks;
@@ -413,7 +414,7 @@ public class GuidebookLevelRenderer {
             try {
                 preparePreviewModelLighting();
                 GuideEntityRenderStateResolver.ResolvedEntityRenderState renderState = GuideEntityRenderStateResolver
-                    .resolve(entity, partialTicks);
+                    .resolve(entity, partialTicks, entityRenderState);
                 int brightness = resolveEntityBrightnessForPreview(entity, partialTicks);
                 int lowerBits = brightness % 65536;
                 int upperBits = brightness / 65536;
@@ -425,10 +426,10 @@ public class GuidebookLevelRenderer {
                 // preview player position a second time via renderEntityStatic().
                 renderManager.renderEntityWithPosYaw(
                     entity,
-                    renderState.x,
-                    renderState.y,
-                    renderState.z,
-                    renderState.yaw,
+                    renderState.x(),
+                    renderState.y(),
+                    renderState.z(),
+                    renderState.yaw(),
                     partialTicks);
             } catch (Throwable t) {
                 log(t);

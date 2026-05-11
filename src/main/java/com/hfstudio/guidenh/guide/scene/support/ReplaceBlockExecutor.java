@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.support;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -15,6 +16,8 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 
 public class ReplaceBlockExecutor {
+
+    public static final int MAX_PREALLOCATED_TARGETS = 4096;
 
     private ReplaceBlockExecutor() {}
 
@@ -31,15 +34,18 @@ public class ReplaceBlockExecutor {
     public static void execute(GuidebookLevel level, GuideBlockMatcher fromMatcher, @Nullable NBTTagCompound fromNbt,
         Block toBlock, int toMeta, @Nullable NBTTagCompound toNbt, String toExplicitId, boolean hasBounds, int x, int y,
         int z, int dx, int dy, int dz) {
-        List<int[]> targets = new ArrayList<>();
+        List<int[]> targets;
 
         if (!hasBounds) {
-            for (int[] pos : level.getFilledBlocks()) {
+            Collection<int[]> filledBlocks = level.getFilledBlocks();
+            targets = new ArrayList<>(filledBlocks.size());
+            for (int[] pos : filledBlocks) {
                 if (blockMatches(level, pos[0], pos[1], pos[2], fromMatcher, fromNbt)) {
                     targets.add(pos);
                 }
             }
         } else {
+            targets = new ArrayList<>(estimateBoundedTargetCapacity(dx, dy, dz));
             int endX = x + dx;
             int endY = y + dy;
             int endZ = z + dz;
@@ -59,6 +65,14 @@ public class ReplaceBlockExecutor {
             NBTTagCompound tagCopy = toNbt != null ? (NBTTagCompound) toNbt.copy() : null;
             GuidebookPreviewBlockPlacer.place(level, pos[0], pos[1], pos[2], toBlock, toMeta, tagCopy, toExplicitId);
         }
+    }
+
+    private static int estimateBoundedTargetCapacity(int dx, int dy, int dz) {
+        if (dx <= 0 || dy <= 0 || dz <= 0) {
+            return 0;
+        }
+        long volume = (long) dx * (long) dy * (long) dz;
+        return volume > MAX_PREALLOCATED_TARGETS ? MAX_PREALLOCATED_TARGETS : (int) volume;
     }
 
     private static boolean blockMatches(GuidebookLevel level, int bx, int by, int bz, GuideBlockMatcher matcher,

@@ -8,7 +8,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class ServerPreviewSupplementRegistry {
+public class ServerPreviewSupplementRegistry {
 
     private static final List<RegisteredServerPreviewSupplement> ENTRIES = new CopyOnWriteArrayList<>();
 
@@ -20,7 +20,7 @@ public final class ServerPreviewSupplementRegistry {
             e -> e.snippetCodec()
                 .supplementId());
 
-    private ServerPreviewSupplementRegistry() {}
+    protected ServerPreviewSupplementRegistry() {}
 
     public static void registerSnippet(ServerPreviewSupplementSnippetCodec snippet) {
         register(new RegisteredServerPreviewSupplement(snippet, null));

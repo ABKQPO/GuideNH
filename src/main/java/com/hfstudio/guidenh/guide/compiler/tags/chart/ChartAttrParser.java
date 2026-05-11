@@ -15,14 +15,14 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 /**
  * Static utility collection for parsing chart tag attributes.
  */
-public final class ChartAttrParser {
+public class ChartAttrParser {
 
     /** Default 16-color cyclic palette (opaque). */
     public static final int[] DEFAULT_PALETTE = new int[] { 0xFF4E79A7, 0xFFF28E2B, 0xFFE15759, 0xFF76B7B2, 0xFF59A14F,
         0xFFEDC948, 0xFFB07AA1, 0xFFFF9DA7, 0xFF9C755F, 0xFFBAB0AC, 0xFF1F77B4, 0xFFFF7F0E, 0xFF2CA02C, 0xFFD62728,
         0xFF9467BD, 0xFF8C564B };
 
-    private ChartAttrParser() {}
+    protected ChartAttrParser() {}
 
     public static int paletteColor(int index) {
         int n = DEFAULT_PALETTE.length;
@@ -41,11 +41,15 @@ public final class ChartAttrParser {
         if (trimmed.isEmpty()) {
             return new double[0];
         }
-        String[] parts = trimmed.split(",");
-        List<Double> values = new ArrayList<>(parts.length);
-        for (String part : parts) {
-            String p = part.trim();
+        List<Double> values = new ArrayList<>();
+        for (int start = 0, i = 0; i <= trimmed.length(); i++) {
+            if (i < trimmed.length() && trimmed.charAt(i) != ',') {
+                continue;
+            }
+            String p = trimmed.substring(start, i)
+                .trim();
             if (p.isEmpty()) {
+                start = i + 1;
                 continue;
             }
             try {
@@ -53,6 +57,7 @@ public final class ChartAttrParser {
             } catch (NumberFormatException ex) {
                 // Skip unparsable item
             }
+            start = i + 1;
         }
         double[] out = new double[values.size()];
         for (int i = 0; i < out.length; i++) {
@@ -72,10 +77,16 @@ public final class ChartAttrParser {
         if (trimmed.isEmpty()) {
             return new String[0];
         }
-        String[] parts = trimmed.split(",");
-        String[] out = new String[parts.length];
-        for (int i = 0; i < parts.length; i++) {
-            out[i] = parts[i].trim();
+        int count = countCommaSeparatedValues(trimmed);
+        String[] out = new String[count];
+        int index = 0;
+        for (int start = 0, i = 0; i <= trimmed.length(); i++) {
+            if (i < trimmed.length() && trimmed.charAt(i) != ',') {
+                continue;
+            }
+            out[index++] = trimmed.substring(start, i)
+                .trim();
+            start = i + 1;
         }
         return out;
     }
@@ -88,14 +99,18 @@ public final class ChartAttrParser {
             .isEmpty()) {
             return new double[][] { new double[0], new double[0] };
         }
-        String[] parts = s.trim()
-            .split(",");
-        List<Double> xs = new ArrayList<>(parts.length);
-        List<Double> ys = new ArrayList<>(parts.length);
-        for (String part : parts) {
-            String p = part.trim();
+        String trimmed = s.trim();
+        List<Double> xs = new ArrayList<>();
+        List<Double> ys = new ArrayList<>();
+        for (int start = 0, i = 0; i <= trimmed.length(); i++) {
+            if (i < trimmed.length() && trimmed.charAt(i) != ',') {
+                continue;
+            }
+            String p = trimmed.substring(start, i)
+                .trim();
             int colon = p.indexOf(':');
             if (colon <= 0 || colon == p.length() - 1) {
+                start = i + 1;
                 continue;
             }
             try {
@@ -110,6 +125,7 @@ public final class ChartAttrParser {
             } catch (NumberFormatException ex) {
                 // Skip
             }
+            start = i + 1;
         }
         double[] xa = new double[xs.size()];
         double[] ya = new double[ys.size()];
@@ -118,6 +134,16 @@ public final class ChartAttrParser {
             ya[i] = ys.get(i);
         }
         return new double[][] { xa, ya };
+    }
+
+    private static int countCommaSeparatedValues(String text) {
+        int count = 1;
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == ',') {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**

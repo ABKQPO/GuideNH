@@ -411,25 +411,44 @@ public class GuidebookPreviewBlockPlacer {
             return new byte[0];
         }
 
-        String[] parts = content.split(",");
-        ArrayList<Byte> decoded = new ArrayList<>(parts.length);
-        for (String part : parts) {
-            String numeric = trimNumericSuffix(part);
-            if (numeric.isEmpty()) {
-                continue;
-            }
-            try {
-                decoded.add((byte) Integer.parseInt(numeric));
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
+        int size = countByteArrayLiteralEntries(content);
+        if (size < 0) {
+            return null;
         }
 
-        byte[] result = new byte[decoded.size()];
-        for (int index = 0; index < decoded.size(); index++) {
-            result[index] = decoded.get(index);
+        byte[] decoded = new byte[size];
+        int output = 0;
+        for (int start = 0, i = 0; i <= content.length(); i++) {
+            if (i < content.length() && content.charAt(i) != ',') {
+                continue;
+            }
+            String numeric = trimNumericSuffix(content.substring(start, i));
+            if (!numeric.isEmpty()) {
+                decoded[output++] = (byte) Integer.parseInt(numeric);
+            }
+            start = i + 1;
         }
-        return result;
+        return decoded;
+    }
+
+    private static int countByteArrayLiteralEntries(String content) {
+        int count = 0;
+        for (int start = 0, i = 0; i <= content.length(); i++) {
+            if (i < content.length() && content.charAt(i) != ',') {
+                continue;
+            }
+            String numeric = trimNumericSuffix(content.substring(start, i));
+            if (!numeric.isEmpty()) {
+                try {
+                    Integer.parseInt(numeric);
+                    count++;
+                } catch (NumberFormatException ignored) {
+                    return -1;
+                }
+            }
+            start = i + 1;
+        }
+        return count;
     }
 
     @Nullable

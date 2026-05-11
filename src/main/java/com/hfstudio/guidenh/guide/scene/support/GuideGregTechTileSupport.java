@@ -12,9 +12,9 @@ import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
  * Backwards-compatible facade. All GregTech integration now lives in
  * {@link GregTechHelpers}.
  */
-public final class GuideGregTechTileSupport {
+public class GuideGregTechTileSupport {
 
-    private GuideGregTechTileSupport() {}
+    protected GuideGregTechTileSupport() {}
 
     public static boolean isGregTechTileEntity(@Nullable TileEntity tileEntity) {
         return GregTechHelpers.isGregTechTileEntity(tileEntity);

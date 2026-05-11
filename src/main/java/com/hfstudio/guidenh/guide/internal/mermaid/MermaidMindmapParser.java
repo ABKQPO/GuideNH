@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.internal.mermaid;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
@@ -10,26 +9,26 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 
-public final class MermaidMindmapParser {
+public class MermaidMindmapParser {
 
     private static final Pattern CLASS_SUFFIX = Pattern.compile(":::([A-Za-z0-9_\\- ]+)$");
     private static final Pattern ICON_SUFFIX = Pattern.compile("::icon\\(([^)]*)\\)");
     private static final Pattern POSITION_SUFFIX = Pattern.compile("::pos\\(([-+]?\\d+)\\s*,\\s*([-+]?\\d+)\\)$");
 
-    private MermaidMindmapParser() {}
+    protected MermaidMindmapParser() {}
 
     public static String normalize(String source) {
         if (source == null || source.isEmpty()) {
             return "";
         }
-        return source.replace("\r\n", "\n")
-            .replace('\r', '\n');
+        return GuideStringLines.normalizeLineEndings(source);
     }
 
     public static MermaidMindmapDocument parse(String source) {
         String normalized = normalize(source);
-        List<String> lines = Arrays.asList(normalized.split("\n", -1));
+        List<String> lines = GuideStringLines.splitLines(normalized);
         MermaidMindmapLayoutMode layoutMode = MermaidMindmapLayoutMode.MINDMAP;
         int index = 0;
 
@@ -186,9 +185,7 @@ public final class MermaidMindmapParser {
             throw new IllegalArgumentException("Mermaid mindmap contains an empty node declaration.");
         }
         if (id.isEmpty()) {
-            id = normalizedLabel.toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("(^-|-$)", "");
+            id = toSlugId(normalizedLabel);
         }
 
         return new MermaidMindmapNode(id, normalizedLabel, shape, classes, icon, posX, posY);
@@ -196,10 +193,16 @@ public final class MermaidMindmapParser {
 
     private static List<String> splitClasses(String classes) {
         List<String> result = new ArrayList<>();
-        for (String value : classes.split("\\s+")) {
-            String trimmed = value.trim();
-            if (!trimmed.isEmpty()) {
-                result.add(trimmed);
+        int start = -1;
+        for (int index = 0, length = classes.length(); index <= length; index++) {
+            char value = index < length ? classes.charAt(index) : ' ';
+            if (Character.isWhitespace(value)) {
+                if (start >= 0) {
+                    result.add(classes.substring(start, index));
+                    start = -1;
+                }
+            } else if (start < 0) {
+                start = index;
             }
         }
         return result;
@@ -280,14 +283,41 @@ public final class MermaidMindmapParser {
             return "";
         }
 
-        String[] parts = icon.trim()
-            .split("\\s+");
-        String leaf = parts[parts.length - 1];
+        String trimmed = icon.trim();
+        String leaf = trimmed.substring(lastWhitespaceSeparatedTokenStart(trimmed));
         if (leaf.startsWith("fa-")) {
             leaf = leaf.substring(3);
         }
         return leaf.replace('-', ' ')
             .trim();
+    }
+
+    private static String toSlugId(String label) {
+        String lower = label.toLowerCase(Locale.ROOT);
+        StringBuilder builder = new StringBuilder(lower.length());
+        boolean previousDash = true;
+        for (int index = 0; index < lower.length(); index++) {
+            char value = lower.charAt(index);
+            if ((value >= 'a' && value <= 'z') || (value >= '0' && value <= '9')) {
+                builder.append(value);
+                previousDash = false;
+            } else if (!previousDash) {
+                builder.append('-');
+                previousDash = true;
+            }
+        }
+        if (builder.length() > 0 && builder.charAt(builder.length() - 1) == '-') {
+            builder.setLength(builder.length() - 1);
+        }
+        return builder.toString();
+    }
+
+    private static int lastWhitespaceSeparatedTokenStart(String text) {
+        int index = text.length() - 1;
+        while (index >= 0 && !Character.isWhitespace(text.charAt(index))) {
+            index--;
+        }
+        return index + 1;
     }
 
     private static int countIndent(String rawLine) {

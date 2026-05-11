@@ -5,7 +5,7 @@ package com.hfstudio.guidenh.guide.document.block.functiongraph;
  * optional inverse flag (so {@code x = f(y)} curves can be drawn by sweeping y), an optional domain
  * predicate, and the colour / label used for tooltips and legends.
  */
-public final class FunctionPlot {
+public class FunctionPlot {
 
     private final String expressionText;
     private final FunctionExpr expression;

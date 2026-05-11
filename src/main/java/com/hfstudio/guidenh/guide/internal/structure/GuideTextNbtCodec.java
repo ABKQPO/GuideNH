@@ -260,25 +260,60 @@ public class GuideTextNbtCodec {
             return new byte[0];
         }
 
-        String[] parts = content.split(",");
-        ArrayList<Byte> decoded = new ArrayList<>(parts.length);
-        for (String part : parts) {
-            String numeric = trimNumericSuffix(part);
+        byte[] decoded = new byte[countByteArrayLiteralValues(content)];
+        int count = 0;
+        int start = 0;
+        int length = content.length();
+        while (start <= length) {
+            int end = content.indexOf(',', start);
+            if (end < 0) {
+                end = length;
+            }
+            String numeric = trimNumericSuffix(content.substring(start, end));
             if (numeric.isEmpty()) {
+                if (end == length) {
+                    break;
+                }
+                start = end + 1;
                 continue;
             }
             try {
-                decoded.add((byte) Integer.parseInt(numeric));
+                decoded[count] = (byte) Integer.parseInt(numeric);
+                count++;
             } catch (NumberFormatException ignored) {
                 return null;
             }
+            if (end == length) {
+                break;
+            }
+            start = end + 1;
         }
+        if (count == decoded.length) {
+            return decoded;
+        }
+        byte[] compact = new byte[count];
+        System.arraycopy(decoded, 0, compact, 0, count);
+        return compact;
+    }
 
-        byte[] result = new byte[decoded.size()];
-        for (int index = 0; index < decoded.size(); index++) {
-            result[index] = decoded.get(index);
+    private static int countByteArrayLiteralValues(String content) {
+        int count = 0;
+        int start = 0;
+        int length = content.length();
+        while (start <= length) {
+            int end = content.indexOf(',', start);
+            if (end < 0) {
+                end = length;
+            }
+            if (!trimNumericSuffix(content.substring(start, end)).isEmpty()) {
+                count++;
+            }
+            if (end == length) {
+                break;
+            }
+            start = end + 1;
         }
-        return result;
+        return count;
     }
 
     public static String trimNumericSuffix(String value) {

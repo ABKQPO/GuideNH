@@ -6,7 +6,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
-public final class CornerLegendRenderer {
+public class CornerLegendRenderer {
 
     public static final int DEFAULT_WIDTH = 120;
     public static final int DEFAULT_HEIGHT = 64;
@@ -22,7 +22,7 @@ public final class CornerLegendRenderer {
     private static final int MIN_HEIGHT = 12;
     private static final ResolvedTextStyle TEXT_STYLE = LytChartBase.textStyle(0xFFFFFFFF);
 
-    private CornerLegendRenderer() {}
+    protected CornerLegendRenderer() {}
 
     public static void render(RenderContext context, LytRect plotRect, List<CornerLegendEntry> entries,
         CornerLegendPosition position, int maxWidth, int maxHeight, int backgroundColor) {

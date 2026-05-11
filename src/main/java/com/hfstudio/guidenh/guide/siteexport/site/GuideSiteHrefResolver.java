@@ -86,9 +86,27 @@ public class GuideSiteHrefResolver {
         if (text == null) {
             return "";
         }
-        return text.toLowerCase(Locale.ROOT)
-            .trim()
-            .replaceAll("\\s+", "-");
+        return collapseWhitespaceToDashes(
+            text.toLowerCase(Locale.ROOT)
+                .trim());
+    }
+
+    private static String collapseWhitespaceToDashes(String text) {
+        StringBuilder builder = new StringBuilder(text.length());
+        boolean previousWhitespace = false;
+        for (int index = 0; index < text.length(); index++) {
+            char value = text.charAt(index);
+            if (Character.isWhitespace(value)) {
+                if (!previousWhitespace) {
+                    builder.append('-');
+                    previousWhitespace = true;
+                }
+            } else {
+                builder.append(value);
+                previousWhitespace = false;
+            }
+        }
+        return builder.toString();
     }
 
     public static String outputPageFile(ResourceLocation pageId) {
@@ -116,7 +134,7 @@ public class GuideSiteHrefResolver {
         return relative.replace('\\', '/');
     }
 
-    public static final class ContextScope implements AutoCloseable {
+    public static class ContextScope implements AutoCloseable {
 
         @Nullable
         private final ExportContext previous;
@@ -140,7 +158,7 @@ public class GuideSiteHrefResolver {
         }
     }
 
-    private static final class ExportContext {
+    private static class ExportContext {
 
         private final String namespace;
         private final String guidePath;

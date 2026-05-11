@@ -25,8 +25,7 @@ public class GuideEntityDisplayResolver {
                 ItemStack stack = ei.getEntityItem();
                 if (stack != null) {
                     String displayName = stack.getDisplayName();
-                    if (displayName != null && !displayName.trim()
-                        .isEmpty()) {
+                    if (hasText(displayName)) {
                         return displayName;
                     }
                 }
@@ -52,8 +51,7 @@ public class GuideEntityDisplayResolver {
 
         try {
             String entityId = EntityList.getEntityString(entity);
-            if (entityId != null && !entityId.trim()
-                .isEmpty()) {
+            if (hasText(entityId)) {
                 return entityId;
             }
         } catch (Throwable ignored) {}
@@ -61,8 +59,7 @@ public class GuideEntityDisplayResolver {
         try {
             String simpleName = entity.getClass()
                 .getSimpleName();
-            return simpleName != null && !simpleName.trim()
-                .isEmpty() ? simpleName : null;
+            return hasText(simpleName) ? simpleName : null;
         } catch (Throwable ignored) {
             return null;
         }
@@ -88,15 +85,12 @@ public class GuideEntityDisplayResolver {
     public static String resolveTranslatedEntityName(Entity entity) {
         try {
             String entityId = EntityList.getEntityString(entity);
-            if (entityId == null || entityId.trim()
-                .isEmpty()) {
+            if (!hasText(entityId)) {
                 return null;
             }
             String key = "entity." + entityId + ".name";
             String translated = StatCollector.translateToLocal(key);
-            if (translated != null && !translated.equals(key)
-                && !translated.trim()
-                    .isEmpty()) {
+            if (hasText(translated) && !translated.equals(key)) {
                 return translated;
             }
         } catch (Throwable ignored) {}
@@ -108,10 +102,42 @@ public class GuideEntityDisplayResolver {
             return false;
         }
 
-        String trimmed = value.trim();
-        if (trimmed.isEmpty()) {
+        int first = firstTextIndex(value);
+        if (first < 0) {
             return false;
         }
-        return !"\"\"".equals(trimmed) && !"''".equals(trimmed);
+        int last = lastTextIndex(value);
+        return !isEmptyQuotedName(value, first, last);
+    }
+
+    private static boolean hasText(@Nullable String value) {
+        return value != null && firstTextIndex(value) >= 0;
+    }
+
+    private static int firstTextIndex(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            if (value.charAt(i) > ' ') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int lastTextIndex(String value) {
+        for (int i = value.length() - 1; i >= 0; i--) {
+            if (value.charAt(i) > ' ') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean isEmptyQuotedName(String value, int first, int last) {
+        if (last - first != 1) {
+            return false;
+        }
+
+        char quote = value.charAt(first);
+        return quote == value.charAt(last) && (quote == '"' || quote == '\'');
     }
 }

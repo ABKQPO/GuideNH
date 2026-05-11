@@ -221,13 +221,14 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
     @Nullable
     private static ItemStack resolveItemStack(String itemId) {
         if (itemId == null || itemId.isEmpty()) return null;
-        String[] parts = itemId.split(":");
         String registryId;
         int meta = 0;
-        if (parts.length >= 3) {
+        int lastColon = itemId.lastIndexOf(':');
+        int firstColon = itemId.indexOf(':');
+        if (firstColon >= 0 && firstColon != lastColon) {
             try {
-                meta = Integer.parseInt(parts[parts.length - 1]);
-                registryId = parts[0] + ":" + parts[1];
+                meta = Integer.parseInt(itemId.substring(lastColon + 1));
+                registryId = itemId.substring(0, lastColon);
             } catch (NumberFormatException ignored) {
                 registryId = itemId;
             }

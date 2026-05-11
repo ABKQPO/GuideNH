@@ -12,11 +12,13 @@ import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
+import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -784,11 +786,11 @@ public class SceneEditorMarkdownCodec {
         if (normalizedTooltip.isEmpty()) {
             return;
         }
-        String[] lines = normalizedTooltip.split("\n", -1);
-        for (int i = 0; i < lines.length; i++) {
+        List<String> lines = GuideStringLines.splitLines(normalizedTooltip);
+        for (int i = 0; i < lines.size(); i++) {
             builder.append(indent)
-                .append(lines[i]);
-            if (i < lines.length - 1) {
+                .append(lines.get(i));
+            if (i < lines.size() - 1) {
                 builder.append('\n');
             }
         }
@@ -899,17 +901,11 @@ public class SceneEditorMarkdownCodec {
             return Arrays.copyOf(defaultValue, defaultValue.length);
         }
 
-        String[] pieces = rawValue.trim()
-            .split("\\s+");
-        if (pieces.length != 3) {
+        float[] pieces = MdxAttrs.parseVector3Parts(rawValue);
+        if (pieces == null) {
             throw new InvalidSceneSyntaxException("Attribute '" + name + "' must contain exactly 3 numbers");
         }
-        try {
-            return new float[] { Float.parseFloat(pieces[0]), Float.parseFloat(pieces[1]),
-                Float.parseFloat(pieces[2]) };
-        } catch (NumberFormatException e) {
-            throw new InvalidSceneSyntaxException("Attribute '" + name + "' must contain valid numbers");
-        }
+        return pieces;
     }
 
     @Nullable
@@ -977,24 +973,27 @@ public class SceneEditorMarkdownCodec {
 
     private String trimCommonIndent(String text) {
         String normalized = normalizeLineEndings(text);
-        String[] lines = normalized.split("\n", -1);
+        List<String> lines = GuideStringLines.splitLines(normalized);
         int start = 0;
-        int end = lines.length;
-        while (start < end && lines[start].trim()
+        int end = lines.size();
+        while (start < end && lines.get(start)
+            .trim()
             .isEmpty()) {
             start++;
         }
-        while (end > start && lines[end - 1].trim()
+        while (end > start && lines.get(end - 1)
+            .trim()
             .isEmpty()) {
             end--;
         }
         int indent = Integer.MAX_VALUE;
         for (int i = start; i < end; i++) {
-            if (lines[i].trim()
+            if (lines.get(i)
+                .trim()
                 .isEmpty()) {
                 continue;
             }
-            indent = Math.min(indent, countLeadingSpaces(lines[i]));
+            indent = Math.min(indent, countLeadingSpaces(lines.get(i)));
         }
         if (indent == Integer.MAX_VALUE) {
             indent = 0;
@@ -1004,7 +1003,7 @@ public class SceneEditorMarkdownCodec {
             if (i > start) {
                 builder.append('\n');
             }
-            String line = lines[i];
+            String line = lines.get(i);
             builder.append(line.substring(Math.min(indent, line.length())));
         }
         return builder.toString();
@@ -1170,8 +1169,7 @@ public class SceneEditorMarkdownCodec {
     }
 
     private String normalizeLineEndings(String markdown) {
-        return markdown.replace("\r\n", "\n")
-            .replace('\r', '\n');
+        return GuideStringLines.normalizeLineEndings(markdown);
     }
 
     private String formatParseException(ParseException exception) {

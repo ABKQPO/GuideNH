@@ -7,6 +7,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 
 /**
  * Parses a textual file tree into a depth-annotated structure. Two prefix flavors are accepted on
@@ -22,30 +23,28 @@ import com.github.bsideup.jabel.Desugar;
  * {@code "{:iconItem=...}"} which is extracted into {@link FileTreeIcon}; the rest of the payload
  * is returned verbatim and is intended to be re-parsed as inline markdown by the caller.
  */
-public final class FileTreeParser {
+public class FileTreeParser {
 
     private static final int SLOT_WIDTH = 4;
 
-    private FileTreeParser() {}
+    protected FileTreeParser() {}
 
     public static FileTreeModel parse(String source) {
         if (source == null || source.isEmpty()) {
             return new FileTreeModel(Collections.emptyList());
         }
-        String normalized = source.replace("\r\n", "\n")
-            .replace("\r", "\n");
-        String[] lines = normalized.split("\n", -1);
         List<FileTreeEntry> entries = new ArrayList<>();
-        for (String rawLine : lines) {
+        GuideStringLines.visitLines(source, (rawLine, lineIndex) -> {
             if (rawLine.isEmpty() || rawLine.trim()
                 .isEmpty()) {
-                continue;
+                return true;
             }
             FileTreeEntry entry = parseLine(rawLine);
             if (entry != null) {
                 entries.add(entry);
             }
-        }
+            return true;
+        });
         return new FileTreeModel(Collections.unmodifiableList(entries));
     }
 
@@ -217,4 +216,5 @@ public final class FileTreeParser {
 
     @Desugar
     private record IconExtraction(String payload, @Nullable FileTreeIcon icon) {}
+
 }

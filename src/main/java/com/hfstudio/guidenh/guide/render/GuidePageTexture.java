@@ -9,6 +9,9 @@ import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.client.renderer.texture.ITextureObject;
+import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.util.ResourceLocation;
 
 import org.apache.logging.log4j.LogManager;
@@ -17,10 +20,14 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytSize;
 
+import cpw.mods.fml.relauncher.ReflectionHelper;
+
 public class GuidePageTexture {
 
     public static final Logger LOG = LogManager.getLogger("GuideNH/GuidePageTexture");
     public static final GuidePageTexture MISSING = new GuidePageTexture(null, 0, 0, null);
+    private static final String TEXTURE_OBJECTS_FIELD = "mapTextureObjects";
+    private static final String TEXTURE_OBJECTS_SRG_FIELD = "field_110585_a";
 
     public static final Map<ResourceLocation, GuidePageTexture> CACHE = new HashMap<>();
 
@@ -29,7 +36,7 @@ public class GuidePageTexture {
     private final int width;
     private final int height;
     @Nullable
-    private final byte[] imageData;
+    private byte[] imageData;
     @Nullable
     private ResourceLocation texture;
 
@@ -73,11 +80,25 @@ public class GuidePageTexture {
     }
 
     public static synchronized void clear() {
+        TextureManager textureManager = Minecraft.getMinecraft()
+            .getTextureManager();
+        for (GuidePageTexture pageTexture : CACHE.values()) {
+            pageTexture.releaseTexture(textureManager);
+        }
         CACHE.clear();
     }
 
     public static String sanitize(String raw) {
-        return raw.replaceAll("[^a-zA-Z0-9]", "_");
+        StringBuilder sanitized = new StringBuilder(raw.length());
+        for (int i = 0; i < raw.length(); i++) {
+            char ch = raw.charAt(i);
+            sanitized.append(isSafeTextureNameCharacter(ch) ? ch : '_');
+        }
+        return sanitized.toString();
+    }
+
+    private static boolean isSafeTextureNameCharacter(char ch) {
+        return ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9';
     }
 
     @Nullable
@@ -86,10 +107,16 @@ public class GuidePageTexture {
             return texture;
         }
 
+        byte[] data = imageData;
+        if (data == null) {
+            return null;
+        }
+
         try {
-            BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageData));
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
             if (img == null) {
                 LOG.warn("Failed to decode image {} while creating dynamic texture (ImageIO returned null)", sourceId);
+                imageData = null;
                 return null;
             }
             DynamicTexture tex = new DynamicTexture(img);
@@ -97,15 +124,45 @@ public class GuidePageTexture {
             texture = Minecraft.getMinecraft()
                 .getTextureManager()
                 .getDynamicTextureLocation(name, tex);
+            imageData = null;
             return texture;
         } catch (Throwable t) {
             LOG.error("Failed to create guide page dynamic texture {}", sourceId, t);
+            imageData = null;
             return null;
         }
     }
 
     public boolean isMissing() {
         return imageData == null && texture == null;
+    }
+
+    private void releaseTexture(TextureManager textureManager) {
+        if (texture == null || texture == sourceId) {
+            return;
+        }
+        ITextureObject textureObject = removeTextureObject(textureManager, texture);
+        if (textureObject != null) {
+            TextureUtil.deleteTexture(textureObject.getGlTextureId());
+        }
+        texture = null;
+        imageData = null;
+    }
+
+    @Nullable
+    @SuppressWarnings("unchecked")
+    private static ITextureObject removeTextureObject(TextureManager textureManager, ResourceLocation location) {
+        try {
+            Map<ResourceLocation, ITextureObject> textureObjects = ReflectionHelper.getPrivateValue(
+                TextureManager.class,
+                textureManager,
+                TEXTURE_OBJECTS_FIELD,
+                TEXTURE_OBJECTS_SRG_FIELD);
+            return textureObjects.remove(location);
+        } catch (Throwable t) {
+            LOG.warn("Failed to remove dynamic guide page texture {} from Minecraft texture manager", location, t);
+            return null;
+        }
     }
 
     public LytSize getSize() {
