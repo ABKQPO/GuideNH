@@ -23,6 +23,7 @@ import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
+import com.hfstudio.structurelibexport.StructureLibExportBootstrap;
 
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
@@ -51,6 +52,7 @@ public class ClientProxy extends CommonProxy {
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(new GuideReloadListener());
         ClientCommandHandler.instance.registerCommand(new GuideNhClientCommand());
+        StructureLibExportBootstrap.registerClientCommands();
         GuideNhClientBridgeController.init();
         OpenGuideHotkey.init();
         OpenSceneEditorHotkey.init();

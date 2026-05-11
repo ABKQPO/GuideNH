@@ -2,18 +2,22 @@ package com.hfstudio.guidenh.integration.gregtech;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import net.minecraft.block.Block;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
+import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
@@ -26,9 +30,11 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.BaseMetaPipeEntity;
 import gregtech.api.metatileentity.MetaPipeEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.HatchElementBuilder;
 import gregtech.common.blocks.ItemMachines;
+import gregtech.common.misc.GTStructureChannels;
 
 public class GregTechHelpers {
 
@@ -228,6 +234,221 @@ public class GregTechHelpers {
         NBTTagCompound payload = tileTag != null ? tileTag : new NBTTagCompound();
         gtTile.setInitialValuesAsNBT(payload, (short) metaTileId);
         return true;
+    }
+
+    public static boolean isMachineItem(@Nullable Item item) {
+        return item != null && Mods.GregTech.isModLoaded() && isMachineItemImpl(item);
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static boolean isMachineItemImpl(Item item) {
+        return item instanceof ItemMachines;
+    }
+
+    public static boolean isMachineStack(@Nullable ItemStack stack) {
+        return stack != null && Mods.GregTech.isModLoaded() && isMachineStackImpl(stack);
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static boolean isMachineStackImpl(ItemStack stack) {
+        return stack.getItem() instanceof ItemMachines && ItemMachines.getMetaTileEntity(stack) != null;
+    }
+
+    public static void appendMachineStacks(List<ItemStack> stacks) {
+        if (stacks == null || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            appendMachineStacksImpl(stacks);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static void appendMachineStacksImpl(List<ItemStack> stacks) {
+        Block blockMachines = GregTechAPI.sBlockMachines;
+        Object[] metaTileEntities = GregTechAPI.METATILEENTITIES;
+        if (blockMachines == null || metaTileEntities == null) {
+            return;
+        }
+        for (int meta = 1; meta < metaTileEntities.length; meta++) {
+            if (metaTileEntities[meta] != null) {
+                stacks.add(new ItemStack(blockMachines, 1, meta));
+            }
+        }
+    }
+
+    @Nullable
+    public static Integer getMachineControllerBaseMeta(@Nullable Block block, int meta) {
+        if (block == null || meta <= 0 || !Mods.GregTech.isModLoaded()) {
+            return null;
+        }
+        try {
+            return getMachineControllerBaseMetaImpl(block, meta);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    @Optional.Method(modid = "gregtech")
+    @Nullable
+    private static Integer getMachineControllerBaseMetaImpl(Block block, int meta) {
+        Item item = Item.getItemFromBlock(block);
+        if (!(item instanceof ItemMachines)) {
+            return null;
+        }
+        IMetaTileEntity metaTileEntity = ItemMachines.getMetaTileEntity(new ItemStack(item, 1, meta));
+        return metaTileEntity != null ? (int) metaTileEntity.getTileEntityBaseType() : null;
+    }
+
+    @Nullable
+    public static TileEntity createMachineControllerTile(@Nullable World world, @Nullable Block block, int meta,
+        @Nullable ItemStack stack) {
+        if (world == null || block == null || meta <= 0 || !Mods.GregTech.isModLoaded()) {
+            return null;
+        }
+        try {
+            return createMachineControllerTileImpl(world, block, meta, stack);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    @Optional.Method(modid = "gregtech")
+    @Nullable
+    private static TileEntity createMachineControllerTileImpl(World world, Block block, int meta,
+        @Nullable ItemStack stack) {
+        Item item = Item.getItemFromBlock(block);
+        if (!(item instanceof ItemMachines)) {
+            return null;
+        }
+        ItemStack machineStack = stack != null ? stack.copy() : new ItemStack(item, 1, meta);
+        IMetaTileEntity metaTileEntity = ItemMachines.getMetaTileEntity(machineStack);
+        if (metaTileEntity == null) {
+            return null;
+        }
+        int baseMeta = metaTileEntity.getTileEntityBaseType();
+        TileEntity tileEntity = block.createTileEntity(world, baseMeta);
+        if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
+            return null;
+        }
+        return tileEntity;
+    }
+
+    public static boolean initializeMachineControllerTile(@Nullable TileEntity tileEntity, int meta,
+        @Nullable ItemStack stack) {
+        if (tileEntity == null || meta <= 0 || !Mods.GregTech.isModLoaded()) {
+            return false;
+        }
+        try {
+            return initializeMachineControllerTileImpl(tileEntity, meta, stack);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static boolean initializeMachineControllerTileImpl(TileEntity tileEntity, int meta,
+        @Nullable ItemStack stack) {
+        if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
+            return false;
+        }
+        ItemStack machineStack = stack != null ? stack.copy() : null;
+        if (machineStack == null && tileEntity.getBlockType() != null) {
+            Item item = Item.getItemFromBlock(tileEntity.getBlockType());
+            if (item instanceof ItemMachines) {
+                machineStack = new ItemStack(item, 1, meta);
+            }
+        }
+        if (machineStack == null || ItemMachines.getMetaTileEntity(machineStack) == null) {
+            return false;
+        }
+        gtTile.setInitialValuesAsNBT(machineStack.getTagCompound(), (short) meta);
+        IMetaTileEntity createdMetaTileEntity = gtTile.getMetaTileEntity();
+        if (createdMetaTileEntity != null) {
+            createdMetaTileEntity.initDefaultModes(machineStack.getTagCompound());
+            return true;
+        }
+        return false;
+    }
+
+    public static void applyPreviewControllerFacing(@Nullable TileEntity tileEntity) {
+        if (tileEntity == null || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            applyPreviewControllerFacingImpl(tileEntity);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static void applyPreviewControllerFacingImpl(TileEntity tileEntity) {
+        if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
+            return;
+        }
+        if (gtTile.isValidFacing(ForgeDirection.SOUTH)) {
+            gtTile.setFrontFacing(ForgeDirection.SOUTH);
+        }
+    }
+
+    public static void enableHatchPreviewChannel(@Nullable ItemStack triggerStack) {
+        if (triggerStack == null || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            enableHatchPreviewChannelImpl(triggerStack);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static void enableHatchPreviewChannelImpl(ItemStack triggerStack) {
+        ChannelDataAccessor.setChannelData(triggerStack, GTStructureChannels.HATCH.get(), 1);
+    }
+
+    public static void synchronizeMultiblockPreviewState(@Nullable TileEntity controllerTile,
+        @Nullable ItemStack triggerStack, boolean activeController, @Nullable List<String> warnings) {
+        if (controllerTile == null || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            synchronizeMultiblockPreviewStateImpl(controllerTile, triggerStack, activeController, warnings);
+        } catch (Throwable t) {
+            logInfoOnce(
+                "preview-state-sync-exception:" + describeTile(controllerTile),
+                "GregTech preview state sync failed for {}",
+                describeTile(controllerTile));
+        }
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static void synchronizeMultiblockPreviewStateImpl(TileEntity controllerTile,
+        @Nullable ItemStack triggerStack, boolean activeController, @Nullable List<String> warnings) {
+        if (!(controllerTile instanceof IGregTechTileEntity gtTile)) {
+            return;
+        }
+        IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
+        if (!(metaTileEntity instanceof MTEMultiBlockBase multiBlockBase)) {
+            return;
+        }
+
+        try {
+            multiBlockBase.clearHatches();
+            boolean valid = multiBlockBase.checkMachine(gtTile, triggerStack);
+            if (!valid) {
+                logInfoOnce(
+                    "preview-state-sync-invalid:" + describeTile(controllerTile),
+                    "GregTech preview state sync kept invalid structure state for {}",
+                    describeTile(controllerTile));
+            }
+            if (activeController) {
+                gtTile.setActive(true);
+                gtTile.issueTextureUpdate();
+            }
+        } catch (Throwable t) {
+            logInfoOnce(
+                "preview-state-sync-failed:" + describeTile(controllerTile),
+                "GregTech preview state sync could not finish for {}",
+                describeTile(controllerTile));
+        }
     }
 
     public static void applyDefaultFacing(@Nullable TileEntity tileEntity, @Nullable NBTTagCompound tileTag) {

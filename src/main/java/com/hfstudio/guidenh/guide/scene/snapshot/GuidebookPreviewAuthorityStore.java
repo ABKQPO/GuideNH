@@ -42,6 +42,11 @@ public class GuidebookPreviewAuthorityStore {
         byPos.remove(packedPos);
     }
 
+    /** Clears every supplement slot in this store. */
+    public void clear() {
+        byPos.clear();
+    }
+
     public void restoreAt(long packedPos, Map<String, byte[]> snapshot) {
         if (snapshot == null || snapshot.isEmpty()) {
             clearAt(packedPos);

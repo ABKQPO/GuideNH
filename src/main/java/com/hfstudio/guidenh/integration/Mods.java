@@ -20,6 +20,8 @@ public enum Mods implements IMod, ITargetMod {
     StructureLib("structurelib"),
     AE2("appliedenergistics2"),
     GregTech("gregtech"),
+    BartWorks("bartworks"),
+    KubaTech("kubatech"),
     CarpentersBlocks("CarpentersBlocks"),
     ForgeMultipart("ForgeMultipart"),
     BuildCraftTransport("BuildCraft|Transport"),

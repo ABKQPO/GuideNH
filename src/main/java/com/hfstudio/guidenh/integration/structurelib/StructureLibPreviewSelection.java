@@ -11,17 +11,25 @@ import org.jetbrains.annotations.Nullable;
 public class StructureLibPreviewSelection {
 
     public static final int DEFAULT_MASTER_TIER = 1;
+    public static final String SURVIVAL_CONSTRUCT_OPTION = "structurelib.survival_construct";
 
     private final int masterTier;
     private final Map<String, Integer> channelOverrides;
+    private final Map<String, Boolean> integrationOptions;
 
     public StructureLibPreviewSelection() {
-        this(DEFAULT_MASTER_TIER, Collections.emptyMap());
+        this(DEFAULT_MASTER_TIER, Collections.emptyMap(), Collections.emptyMap());
     }
 
     public StructureLibPreviewSelection(int masterTier, @Nullable Map<String, Integer> channelOverrides) {
+        this(masterTier, channelOverrides, Collections.emptyMap());
+    }
+
+    public StructureLibPreviewSelection(int masterTier, @Nullable Map<String, Integer> channelOverrides,
+        @Nullable Map<String, Boolean> integrationOptions) {
         this.masterTier = Math.max(DEFAULT_MASTER_TIER, masterTier);
         this.channelOverrides = immutableChannelOverrides(channelOverrides);
+        this.integrationOptions = immutableIntegrationOptions(integrationOptions);
     }
 
     public static StructureLibPreviewSelection defaultSelection() {
@@ -40,6 +48,10 @@ public class StructureLibPreviewSelection {
         return channelOverrides;
     }
 
+    public Map<String, Boolean> getIntegrationOptions() {
+        return integrationOptions;
+    }
+
     public boolean hasChannelOverride(String channelId) {
         String normalized = normalizeChannelId(channelId);
         return normalized != null && channelOverrides.containsKey(normalized);
@@ -55,7 +67,7 @@ public class StructureLibPreviewSelection {
     }
 
     public StructureLibPreviewSelection withMasterTier(int nextMasterTier) {
-        return new StructureLibPreviewSelection(nextMasterTier, channelOverrides);
+        return new StructureLibPreviewSelection(nextMasterTier, channelOverrides, integrationOptions);
     }
 
     public StructureLibPreviewSelection withChannelOverride(String channelId, int value) {
@@ -69,7 +81,26 @@ public class StructureLibPreviewSelection {
         } else {
             updated.remove(normalized);
         }
-        return new StructureLibPreviewSelection(masterTier, updated);
+        return new StructureLibPreviewSelection(masterTier, updated, integrationOptions);
+    }
+
+    public boolean isIntegrationOptionEnabled(String optionId) {
+        String normalized = normalizeIntegrationOptionId(optionId);
+        return normalized != null && Boolean.TRUE.equals(integrationOptions.get(normalized));
+    }
+
+    public StructureLibPreviewSelection withIntegrationOption(String optionId, boolean enabled) {
+        String normalized = normalizeIntegrationOptionId(optionId);
+        if (normalized == null) {
+            return this;
+        }
+        LinkedHashMap<String, Boolean> updated = new LinkedHashMap<>(integrationOptions);
+        if (enabled) {
+            updated.put(normalized, Boolean.TRUE);
+        } else {
+            updated.remove(normalized);
+        }
+        return new StructureLibPreviewSelection(masterTier, channelOverrides, updated);
     }
 
     public static Map<String, Integer> immutableChannelOverrides(@Nullable Map<String, Integer> source) {
@@ -88,12 +119,38 @@ public class StructureLibPreviewSelection {
         return normalized.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(normalized);
     }
 
+    public static Map<String, Boolean> immutableIntegrationOptions(@Nullable Map<String, Boolean> source) {
+        if (source == null || source.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        LinkedHashMap<String, Boolean> normalized = new LinkedHashMap<>(source.size());
+        for (Map.Entry<String, Boolean> entry : source.entrySet()) {
+            String optionId = normalizeIntegrationOptionId(entry.getKey());
+            if (optionId != null && Boolean.TRUE.equals(entry.getValue())) {
+                normalized.put(optionId, Boolean.TRUE);
+            }
+        }
+        return normalized.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(normalized);
+    }
+
     @Nullable
     public static String normalizeChannelId(@Nullable String channelId) {
         if (channelId == null) {
             return null;
         }
         String trimmed = channelId.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        return trimmed.toLowerCase(Locale.ROOT);
+    }
+
+    @Nullable
+    public static String normalizeIntegrationOptionId(@Nullable String optionId) {
+        if (optionId == null) {
+            return null;
+        }
+        String trimmed = optionId.trim();
         if (trimmed.isEmpty()) {
             return null;
         }
@@ -108,11 +165,12 @@ public class StructureLibPreviewSelection {
         if (!(obj instanceof StructureLibPreviewSelection other)) {
             return false;
         }
-        return masterTier == other.masterTier && channelOverrides.equals(other.channelOverrides);
+        return masterTier == other.masterTier && channelOverrides.equals(other.channelOverrides)
+            && integrationOptions.equals(other.integrationOptions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(masterTier, channelOverrides);
+        return Objects.hash(masterTier, channelOverrides, integrationOptions);
     }
 }

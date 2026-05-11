@@ -63,7 +63,7 @@ public class GuidebookLevelRenderer {
         return INSTANCE;
     }
 
-    private GuidebookLevelRenderer() {}
+    protected GuidebookLevelRenderer() {}
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, float partialTicks) {
@@ -148,6 +148,28 @@ public class GuidebookLevelRenderer {
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
         List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, @Nullable Integer visibleLayerY,
         List<GuidebookSceneParticle> particles) {
+        render(
+            level,
+            camera,
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight,
+            scissorX,
+            scissorY,
+            scissorW,
+            scissorH,
+            partialTicks,
+            annotations,
+            lightDarkMode,
+            GuidebookSceneLayerSelection.fromVisibleLayer(visibleLayerY),
+            particles);
+    }
+
+    public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
+        int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
+        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, GuidebookSceneLayerSelection layerSelection,
+        List<GuidebookSceneParticle> particles) {
 
         int cx0 = Math.max(panelX, scissorX);
         int cy0 = Math.max(panelY, scissorY);
@@ -220,20 +242,20 @@ public class GuidebookLevelRenderer {
                     try {
                         setRenderPass(0);
                         GL11.glDisable(GL_BLEND);
-                        renderBlocksPass(level, filledBlocks, 0, visibleLayerY);
+                        renderBlocksPass(level, filledBlocks, 0, layerSelection);
 
                         setRenderPass(1);
                         GL11.glEnable(GL_BLEND);
                         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                         GL11.glDepthMask(false);
-                        renderBlocksPass(level, filledBlocks, 1, visibleLayerY);
+                        renderBlocksPass(level, filledBlocks, 1, layerSelection);
                         GL11.glDepthMask(true);
                         GL11.glDisable(GL_BLEND);
 
                         setRenderPass(-1);
 
-                        renderBlockEntities(tileEntities, partialTicks, visibleLayerY);
-                        renderEntities(level.getEntities(), partialTicks, visibleLayerY);
+                        renderBlockEntities(tileEntities, partialTicks, layerSelection);
+                        renderEntities(level.getEntities(), partialTicks, layerSelection);
 
                         if (!annotations.isEmpty()) {
                             InWorldAnnotationRenderer.render(annotations, lightDarkMode);
@@ -276,7 +298,7 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
-        @Nullable Integer visibleLayerY) {
+        GuidebookSceneLayerSelection layerSelection) {
         RenderBlocks rb = cachedRenderBlocks;
         if (rb == null || cachedRenderBlocksLevel != level) {
             rb = new RenderBlocks(level.getOrCreateFakeWorld());
@@ -291,9 +313,11 @@ public class GuidebookLevelRenderer {
         tes.startDrawingQuads();
         try {
             tes.setBrightness((15 << 20) | (15 << 4));
-            boolean exactLayerMode = visibleLayerY != null;
+            GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
+                : GuidebookSceneLayerSelection.all();
+            boolean filteredLayerMode = effectiveSelection.shouldRenderAllFaces();
             for (int[] p : filledBlocks) {
-                if (exactLayerMode && p[1] != visibleLayerY) {
+                if (!effectiveSelection.isLayerVisible(p[1])) {
                     continue;
                 }
                 Block block = level.getBlock(p[0], p[1], p[2]);
@@ -318,7 +342,7 @@ public class GuidebookLevelRenderer {
                         level.setTileEntity(p[0], p[1], p[2], promoted);
                         tileEntity = promoted;
                     }
-                    resetRenderBlocksState(rb, fakeWorld, exactLayerMode);
+                    resetRenderBlocksState(rb, fakeWorld, filteredLayerMode);
                     boolean rendered = rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
                     if (!rendered) {
                         GuideNhClientIntegrationRegistry.global()
@@ -356,7 +380,9 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderBlockEntities(Iterable<TileEntity> tileEntities, float partialTicks,
-        @Nullable Integer visibleLayerY) {
+        GuidebookSceneLayerSelection layerSelection) {
+        GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
+            : GuidebookSceneLayerSelection.all();
         TileEntityRendererDispatcher dispatcher = TileEntityRendererDispatcher.instance;
         for (int pass = 0; pass < 2; pass++) {
             setRenderPass(pass);
@@ -375,7 +401,7 @@ public class GuidebookLevelRenderer {
                         GuideGregTechTileSupport.describeTile(te));
                     GuideGregTechTileSupport.repairMetaTileBinding(te);
                 }
-                if (visibleLayerY != null && te.yCoord != visibleLayerY) {
+                if (!effectiveSelection.isLayerVisible(te.yCoord)) {
                     continue;
                 }
                 if (!dispatcher.hasSpecialRenderer(te) || !te.shouldRenderInPass(pass)) {
@@ -397,19 +423,18 @@ public class GuidebookLevelRenderer {
         GL11.glDepthMask(true);
     }
 
-    private void renderEntities(Iterable<Entity> entities, float partialTicks, @Nullable Integer visibleLayerY) {
+    private void renderEntities(Iterable<Entity> entities, float partialTicks,
+        GuidebookSceneLayerSelection layerSelection) {
+        GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
+            : GuidebookSceneLayerSelection.all();
         RenderManager renderManager = RenderManager.instance;
         preparePreviewModelLighting();
         for (Entity entity : entities) {
             if (entity == null || entity.isDead) {
                 continue;
             }
-            if (visibleLayerY != null && entity.boundingBox != null) {
-                double layerMinY = visibleLayerY.doubleValue();
-                double layerMaxY = layerMinY + 1.0D;
-                if (entity.boundingBox.maxY <= layerMinY || entity.boundingBox.minY >= layerMaxY) {
-                    continue;
-                }
+            if (entity.boundingBox != null && !intersectsVisibleLayerSelection(entity, effectiveSelection)) {
+                continue;
             }
             try {
                 preparePreviewModelLighting();
@@ -437,6 +462,21 @@ public class GuidebookLevelRenderer {
         }
         RenderHelper.disableStandardItemLighting();
         GL11.glDisable(GL_LIGHTING);
+    }
+
+    private boolean intersectsVisibleLayerSelection(Entity entity, GuidebookSceneLayerSelection layerSelection) {
+        if (layerSelection == null || layerSelection.getMode() == GuidebookSceneLayerSelection.Mode.ALL
+            || entity.boundingBox == null) {
+            return true;
+        }
+        int minLayer = (int) Math.floor(entity.boundingBox.minY);
+        int maxLayer = Math.max(minLayer, (int) Math.ceil(entity.boundingBox.maxY) - 1);
+        for (int layer = minLayer; layer <= maxLayer; layer++) {
+            if (layerSelection.isLayerVisible(layer)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static int resolveEntityBrightnessForPreview(Entity entity, float partialTicks) {

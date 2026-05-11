@@ -16,7 +16,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.stats.StatBase;
@@ -34,13 +33,16 @@ import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.gtnewhorizon.structurelib.alignment.IAlignment;
+import com.gtnewhorizon.structurelib.alignment.IAlignmentProvider;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructableProvider;
 import com.gtnewhorizon.structurelib.alignment.constructable.IMultiblockInfoContainer;
+import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
+import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -56,6 +58,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     public static final int CONTROLLER_Z = 0;
     public static final int MIN_TIER = 1;
     public static final int MAX_TIER = 50;
+    public static final int SURVIVAL_BUILD_BUDGET = 512;
+    public static final int SURVIVAL_BUILD_MAX_ROUNDS = 256;
     public static final StructureLibPreviewMetadataFactory PREVIEW_METADATA_FACTORY = new StructureLibPreviewMetadataFactory(
         new StructureLibElementTooltipResolver());
     public static final Map<AnalysisKey, ControlAnalysis> CONTROL_ANALYSIS_CACHE = new ConcurrentHashMap<>();
@@ -69,6 +73,20 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     @Override
     public StructureLibImportResult importScene(StructureLibImportRequest request) {
+        try {
+            BuildContext context = new BuildContext();
+            try {
+                return importScene(request, context);
+            } finally {
+                context.clear();
+            }
+        } catch (Throwable t) {
+            GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib preview", t);
+            return StructureLibImportResult.failure("StructureLib preview requires an active client world.");
+        }
+    }
+
+    public StructureLibImportResult importScene(StructureLibImportRequest request, BuildContext context) {
         List<String> warnings = new ArrayList<>();
         ResolvedController controller;
         try {
@@ -82,39 +100,62 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 "StructureLib runtime preview currently uses the controller's default constructable and ignores piece selection.");
         }
 
-        ControlAnalysis controlAnalysis = analyzeControls(request, controller);
-        StructureLibPreviewSelection requestedSelection = request.getPreviewSelection();
-        StructureLibPreviewSelection effectiveSelection = controlAnalysis.clampSelection(requestedSelection);
-        Integer requestedChannel = request.getChannel();
-        if (requestedChannel != null && requestedChannel != effectiveSelection.getMasterTier()) {
-            warnings.add(
-                "Requested StructureLib channel " + requestedChannel
-                    + " was clamped to "
-                    + effectiveSelection.getMasterTier()
-                    + " for preview generation.");
+        try {
+            ControlAnalysis controlAnalysis = analyzeControls(request, controller, context);
+            StructureLibPreviewSelection requestedSelection = request.getPreviewSelection();
+            StructureLibPreviewSelection effectiveSelection = controlAnalysis.clampSelection(requestedSelection);
+            Integer requestedChannel = request.getChannel();
+            if (requestedChannel != null && requestedChannel != effectiveSelection.getMasterTier()) {
+                warnings.add(
+                    "Requested StructureLib channel " + requestedChannel
+                        + " was clamped to "
+                        + effectiveSelection.getMasterTier()
+                        + " for preview generation.");
+            }
+
+            BuildSnapshot snapshot = buildSnapshot(request, controller, effectiveSelection, warnings, context);
+            if (!snapshot.success) {
+                return StructureLibImportResult.failure(snapshot.errorMessage, warnings, null);
+            }
+
+            StructureLibSceneMetadata metadata = PREVIEW_METADATA_FACTORY.createMetadata(
+                request,
+                effectiveSelection,
+                controlAnalysis.maxTotalTier,
+                controlAnalysis.channelMaxTierMap,
+                snapshot.absoluteBlocks,
+                snapshot.visitedElements,
+                snapshot.triggerStack,
+                snapshot.world,
+                snapshot.constructable,
+                snapshot.actor);
+
+            return StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
+        } catch (Throwable t) {
+            GuideDebugLog.warn(LOG, "StructureLib import failed for controller {}", request.getController(), t);
+            return StructureLibImportResult
+                .failure("StructureLib import failed: " + sanitizeMessage(t.getMessage()), warnings, null);
+        } finally {
+            context.clear();
         }
-
-        BuildSnapshot snapshot = buildSnapshot(request, controller, effectiveSelection, warnings);
-        if (!snapshot.success) {
-            return StructureLibImportResult.failure(snapshot.errorMessage, warnings, null);
-        }
-
-        StructureLibSceneMetadata metadata = PREVIEW_METADATA_FACTORY.createMetadata(
-            request,
-            effectiveSelection,
-            controlAnalysis.maxTotalTier,
-            controlAnalysis.channelMaxTierMap,
-            snapshot.absoluteBlocks,
-            snapshot.visitedElements,
-            snapshot.triggerStack,
-            snapshot.world,
-            snapshot.constructable,
-            snapshot.actor);
-
-        return StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
     }
 
     public static ControlAnalysis analyzeControls(StructureLibImportRequest request, ResolvedController controller) {
+        try {
+            BuildContext context = new BuildContext();
+            try {
+                return analyzeControls(request, controller, context);
+            } finally {
+                context.clear();
+            }
+        } catch (Throwable t) {
+            GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib control analysis", t);
+            return new ControlAnalysis(MIN_TIER, Collections.emptyMap());
+        }
+    }
+
+    public static ControlAnalysis analyzeControls(StructureLibImportRequest request, ResolvedController controller,
+        BuildContext context) {
         AnalysisKey key = new AnalysisKey(
             request.getController(),
             request.getPiece(),
@@ -127,11 +168,12 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
 
         LinkedHashSet<String> discoveredChannels = new LinkedHashSet<>();
-        int maxTotalTier = estimateMaxTotalTier(request, controller, discoveredChannels);
+        int maxTotalTier = estimateMaxTotalTier(request, controller, discoveredChannels, context);
         LinkedHashMap<String, Integer> channelMaxTierMap = estimateChannelMaxTiers(
             request,
             controller,
-            discoveredChannels);
+            discoveredChannels,
+            context);
         ControlAnalysis created = new ControlAnalysis(maxTotalTier, channelMaxTierMap);
         CONTROL_ANALYSIS_CACHE.put(key, created);
         return created;
@@ -139,11 +181,27 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     public static int estimateMaxTotalTier(StructureLibImportRequest request, ResolvedController controller,
         Set<String> discoveredChannels) {
+        try {
+            BuildContext context = new BuildContext();
+            try {
+                return estimateMaxTotalTier(request, controller, discoveredChannels, context);
+            } finally {
+                context.clear();
+            }
+        } catch (Throwable t) {
+            GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib tier analysis", t);
+            return MIN_TIER;
+        }
+    }
+
+    public static int estimateMaxTotalTier(StructureLibImportRequest request, ResolvedController controller,
+        Set<String> discoveredChannels, BuildContext context) {
         BuildSnapshot previous = buildSnapshot(
             request,
             controller,
             StructureLibPreviewSelection.ofMasterTier(MIN_TIER),
-            new ArrayList<>());
+            new ArrayList<>(),
+            context);
         if (!previous.success) {
             return MIN_TIER;
         }
@@ -154,7 +212,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 request,
                 controller,
                 StructureLibPreviewSelection.ofMasterTier(tier),
-                new ArrayList<>());
+                new ArrayList<>(),
+                context);
             if (!current.success) {
                 return Math.max(MIN_TIER, tier - 1);
             }
@@ -169,6 +228,21 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     public static LinkedHashMap<String, Integer> estimateChannelMaxTiers(StructureLibImportRequest request,
         ResolvedController controller, Set<String> discoveredChannels) {
+        try {
+            BuildContext context = new BuildContext();
+            try {
+                return estimateChannelMaxTiers(request, controller, discoveredChannels, context);
+            } finally {
+                context.clear();
+            }
+        } catch (Throwable t) {
+            GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib channel analysis", t);
+            return new LinkedHashMap<>();
+        }
+    }
+
+    public static LinkedHashMap<String, Integer> estimateChannelMaxTiers(StructureLibImportRequest request,
+        ResolvedController controller, Set<String> discoveredChannels, BuildContext context) {
         LinkedHashMap<String, Integer> resolved = new LinkedHashMap<>();
         List<String> channelsToProcess = new ArrayList<>(discoveredChannels);
         for (int index = 0; index < channelsToProcess.size(); index++) {
@@ -179,7 +253,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
             StructureLibPreviewSelection baseSelection = StructureLibPreviewSelection.ofMasterTier(MIN_TIER)
                 .withChannelOverride(channelId, MIN_TIER);
-            BuildSnapshot previous = buildSnapshot(request, controller, baseSelection, new ArrayList<>());
+            BuildSnapshot previous = buildSnapshot(request, controller, baseSelection, new ArrayList<>(), context);
             if (!previous.success) {
                 continue;
             }
@@ -194,7 +268,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             for (int tier = MIN_TIER + 1; tier <= MAX_TIER; tier++) {
                 StructureLibPreviewSelection selection = StructureLibPreviewSelection.ofMasterTier(MIN_TIER)
                     .withChannelOverride(channelId, tier);
-                BuildSnapshot current = buildSnapshot(request, controller, selection, new ArrayList<>());
+                BuildSnapshot current = buildSnapshot(request, controller, selection, new ArrayList<>(), context);
                 if (!current.success) {
                     break;
                 }
@@ -232,25 +306,37 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     public static BuildSnapshot buildSnapshot(StructureLibImportRequest request, ResolvedController controller,
         StructureLibPreviewSelection selection, List<String> warnings) {
-        GuidebookLevel level = new GuidebookLevel();
-        World world;
         try {
-            world = level.getOrCreateFakeWorld();
+            BuildContext context = new BuildContext();
+            try {
+                return buildSnapshot(request, controller, selection, warnings, context);
+            } finally {
+                context.clear();
+            }
         } catch (Throwable t) {
             GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib preview", t);
             return BuildSnapshot.failure("StructureLib preview requires an active client world.");
         }
+    }
 
-        PreviewFakePlayer fakePlayer = new PreviewFakePlayer(world);
+    public static BuildSnapshot buildSnapshot(StructureLibImportRequest request, ResolvedController controller,
+        StructureLibPreviewSelection selection, List<String> warnings, BuildContext context) {
+        context.clear();
+        GuidebookLevel level = context.getLevel();
+        World world = context.getWorld();
+        PreviewFakePlayer fakePlayer = context.getFakePlayer();
         TileEntity controllerTile = placeController(level, world, fakePlayer, controller, warnings);
         if (controllerTile == null) {
+            context.clear();
             return BuildSnapshot.failure(
                 "Failed to create a controller tile for " + request.getController() + " in the preview world.");
         }
 
         applyRequestedAlignment(controllerTile, request, warnings);
+        fakePlayer.configureForControllerFacing(resolveControllerFacing(controllerTile));
         IConstructable constructable = resolveConstructable(controllerTile);
         if (constructable == null) {
+            context.clear();
             return BuildSnapshot.failure(
                 "Failed to resolve a StructureLib constructable for controller " + request.getController() + ".");
         }
@@ -279,9 +365,15 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
 
         try {
-            constructable.construct(triggerStack.copy(), false);
+            BuildAttemptResult buildResult = buildConstructable(constructable, triggerStack, fakePlayer, selection);
+            if (!buildResult.success) {
+                context.clear();
+                return BuildSnapshot.failure(buildResult.errorMessage);
+            }
+            synchronizePreviewState(controllerTile, triggerStack, selection, warnings);
         } catch (Throwable t) {
             GuideDebugLog.warn(LOG, "StructureLib construct() failed for controller {}", request.getController(), t);
+            context.clear();
             return BuildSnapshot.failure("StructureLib construct() failed: " + sanitizeMessage(t.getMessage()));
         } finally {
             if (instrumentEnabled) {
@@ -295,9 +387,10 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
         SnapshotBlocksResult snapshotBlocks = snapshotBlocks(level);
         if (snapshotBlocks.blocks.isEmpty()) {
+            context.clear();
             return BuildSnapshot.failure("StructureLib preview did not place any blocks.");
         }
-        return BuildSnapshot.success(
+        BuildSnapshot snapshot = BuildSnapshot.success(
             snapshotBlocks.blocks,
             snapshotBlocks.absoluteBlocks,
             visitedElements,
@@ -306,60 +399,69 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             triggerStack,
             constructable,
             fakePlayer);
+        return snapshot;
     }
 
     public static TileEntity placeController(GuidebookLevel level, World world, PreviewFakePlayer fakePlayer,
         ResolvedController controller, List<String> warnings) {
-        Item item = Item.getItemFromBlock(controller.block);
-        if (item != null) {
-            try {
-                ItemStack stack = new ItemStack(item, 1, controller.meta);
-                fakePlayer.inventory.mainInventory[fakePlayer.inventory.currentItem] = stack;
-                item.onItemUse(
-                    stack,
-                    fakePlayer,
-                    world,
-                    CONTROLLER_X,
-                    CONTROLLER_Y,
-                    CONTROLLER_Z,
-                    0,
-                    CONTROLLER_X,
-                    CONTROLLER_Y - 1,
-                    CONTROLLER_Z);
-            } catch (Throwable t) {
-                warnings.add(
-                    "Controller item placement failed in StructureLib preview, falling back to direct block placement.");
-                GuideDebugLog.warn(LOG, "StructureLib controller item placement failed for {}", controller.blockId, t);
-            }
-        }
-
-        TileEntity tile = world.getTileEntity(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z);
+        TileEntity tile = placeControllerDirectly(level, world, controller, warnings);
         if (tile != null) {
-            level.setExplicitBlockId(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z, controller.blockId);
             return tile;
         }
+        warnings.add("Controller direct placement failed in StructureLib preview.");
+        return null;
+    }
 
-        TileEntity fallbackTile = null;
-        try {
-            if (controller.block.hasTileEntity(controller.meta)) {
-                fallbackTile = controller.block.createTileEntity(world, controller.meta);
+    @Nullable
+    public static TileEntity placeControllerDirectly(GuidebookLevel level, World world, ResolvedController controller,
+        List<String> warnings) {
+        for (StructureLibControllerPlacementIntegration integration : StructureLibControllerIntegrationRegistry.global()
+            .placementIntegrations()) {
+            try {
+                TileEntity integratedTile = integration.placeController(level, world, controller, warnings);
+                if (integratedTile != null) {
+                    return integratedTile;
+                }
+            } catch (Throwable t) {
+                GuideDebugLog.warn(LOG, "StructureLib controller placement integration failed", t);
             }
-        } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "Direct controller tile creation failed for {}", controller.blockId, t);
         }
 
-        level.setBlock(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z, controller.block, controller.meta, fallbackTile);
-        level.setExplicitBlockId(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z, controller.blockId);
-        return world.getTileEntity(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z);
+        TileEntity tile = null;
+        try {
+            if (controller.block.hasTileEntity(controller.meta)) {
+                tile = controller.block.createTileEntity(world, controller.meta);
+            }
+        } catch (Throwable t) {
+            if (warnings != null) {
+                warnings.add("Direct controller tile creation failed for " + controller.blockId + ".");
+            }
+            GuideDebugLog.warn(LOG, "Direct controller tile creation failed for {}", controller.blockId, t);
+            return null;
+        }
+
+        if (tile == null) {
+            return null;
+        }
+
+        level.setBlock(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z, controller.block, controller.meta, tile);
+        TileEntity placedTile = world.getTileEntity(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z);
+        if (placedTile != null) {
+            level.setExplicitBlockId(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z, controller.blockId);
+            return placedTile;
+        }
+        return null;
     }
 
     public static void applyRequestedAlignment(TileEntity controllerTile, StructureLibImportRequest request,
         List<String> warnings) {
-        if (!(controllerTile instanceof IAlignment alignment)) {
-            if (request.getFacing() != null || request.getRotation() != null || request.getFlip() != null) {
-                warnings.add(
-                    "Controller does not expose StructureLib alignment controls; preview used the default facing.");
-            }
+        if (request.getFacing() == null && request.getRotation() == null && request.getFlip() == null) {
+            return;
+        }
+        IAlignment alignment = resolveAlignment(controllerTile);
+        if (alignment == null) {
+            warnings
+                .add("Controller does not expose StructureLib alignment controls; preview used the default facing.");
             return;
         }
 
@@ -371,6 +473,29 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             warnings.add(
                 "Requested StructureLib facing/rotation/flip is not valid for this controller; preview used the default alignment.");
         }
+    }
+
+    public static ForgeDirection resolveControllerFacing(TileEntity controllerTile) {
+        IAlignment alignment = resolveAlignment(controllerTile);
+        if (alignment != null) {
+            ExtendedFacing extendedFacing = alignment.getExtendedFacing();
+            if (extendedFacing != null && extendedFacing.getDirection() != null
+                && extendedFacing.getDirection() != ForgeDirection.UNKNOWN) {
+                return extendedFacing.getDirection();
+            }
+        }
+        return ForgeDirection.SOUTH;
+    }
+
+    @Nullable
+    public static IAlignment resolveAlignment(TileEntity controllerTile) {
+        if (controllerTile instanceof IAlignment alignment) {
+            return alignment;
+        }
+        if (controllerTile instanceof IAlignmentProvider provider) {
+            return provider.getAlignment();
+        }
+        return null;
     }
 
     @Nullable
@@ -387,8 +512,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         if (IMultiblockInfoContainer.contains(controllerTile.getClass())) {
             IMultiblockInfoContainer<TileEntity> container = IMultiblockInfoContainer.get(controllerTile.getClass());
             if (container != null) {
-                ExtendedFacing facing = controllerTile instanceof IAlignment alignment ? alignment.getExtendedFacing()
-                    : ExtendedFacing.DEFAULT;
+                IAlignment alignment = resolveAlignment(controllerTile);
+                ExtendedFacing facing = alignment != null ? alignment.getExtendedFacing() : ExtendedFacing.DEFAULT;
                 return container.toConstructable(controllerTile, facing);
             }
         }
@@ -408,7 +533,51 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 ChannelDataAccessor.setChannelData(triggerStack, entry.getKey(), channelValue);
             }
         }
+        for (StructureLibPreviewItemProvider provider : StructureLibControllerIntegrationRegistry.global()
+            .previewItemProviders()) {
+            provider.configureTrigger(triggerStack, effectiveSelection);
+        }
         return triggerStack;
+    }
+
+    public static BuildAttemptResult buildConstructable(IConstructable constructable, ItemStack triggerStack,
+        PreviewFakePlayer fakePlayer, StructureLibPreviewSelection selection) {
+        boolean useSurvivalConstruct = selection != null
+            && selection.isIntegrationOptionEnabled(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION);
+        if (useSurvivalConstruct && constructable instanceof ISurvivalConstructable survivalConstructable) {
+            ISurvivalBuildEnvironment environment = ISurvivalBuildEnvironment
+                .create(StructureLibPreviewItemSource.create(), fakePlayer);
+            int rounds = 0;
+            while (rounds++ < SURVIVAL_BUILD_MAX_ROUNDS) {
+                int result = survivalConstructable
+                    .survivalConstruct(triggerStack.copy(), SURVIVAL_BUILD_BUDGET, environment);
+                if (result == -1) {
+                    return BuildAttemptResult.success();
+                }
+                if (result == -2) {
+                    break;
+                }
+                if (result <= 0) {
+                    return BuildAttemptResult.failure("StructureLib survival construct made no progress.");
+                }
+            }
+            return BuildAttemptResult
+                .failure("StructureLib survival construct did not finish within the export budget.");
+        }
+        constructable.construct(triggerStack.copy(), false);
+        return BuildAttemptResult.success();
+    }
+
+    public static void synchronizePreviewState(TileEntity controllerTile, ItemStack triggerStack,
+        StructureLibPreviewSelection selection, List<String> warnings) {
+        for (StructureLibPreviewStateSynchronizer synchronizer : StructureLibControllerIntegrationRegistry.global()
+            .previewStateSynchronizers()) {
+            try {
+                synchronizer.synchronizePreviewState(controllerTile, triggerStack, selection, warnings);
+            } catch (Throwable t) {
+                GuideDebugLog.warn(LOG, "StructureLib preview state synchronizer failed", t);
+            }
+        }
     }
 
     public static SnapshotBlocksResult snapshotBlocks(GuidebookLevel level) {
@@ -686,7 +855,15 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             this.channelMaxTierMap = immutableChannelMaxTierMap(channelMaxTierMap);
         }
 
-        private StructureLibPreviewSelection clampSelection(StructureLibPreviewSelection selection) {
+        public int getMaxTotalTier() {
+            return maxTotalTier;
+        }
+
+        public Map<String, Integer> getChannelMaxTierMap() {
+            return channelMaxTierMap;
+        }
+
+        public StructureLibPreviewSelection clampSelection(StructureLibPreviewSelection selection) {
             StructureLibPreviewSelection effectiveSelection = selection != null ? selection
                 : StructureLibPreviewSelection.defaultSelection();
             LinkedHashMap<String, Integer> clampedChannels = new LinkedHashMap<>();
@@ -701,7 +878,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             }
             return new StructureLibPreviewSelection(
                 clamp(effectiveSelection.getMasterTier(), MIN_TIER, maxTotalTier),
-                clampedChannels);
+                clampedChannels,
+                effectiveSelection.getIntegrationOptions());
         }
 
         public static Map<String, Integer> immutableChannelMaxTierMap(@Nullable Map<String, Integer> source) {
@@ -731,6 +909,48 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             this.blockId = blockId;
             this.block = block;
             this.meta = meta;
+        }
+
+        public String getBlockId() {
+            return blockId;
+        }
+
+        public Block getBlock() {
+            return block;
+        }
+
+        public int getMeta() {
+            return meta;
+        }
+    }
+
+    public static class BuildContext {
+
+        private final GuidebookLevel level;
+        private final World world;
+        private final PreviewFakePlayer fakePlayer;
+
+        public BuildContext() {
+            level = new GuidebookLevel();
+            world = level.getOrCreateFakeWorld();
+            fakePlayer = new PreviewFakePlayer(world);
+        }
+
+        public GuidebookLevel getLevel() {
+            return level;
+        }
+
+        public World getWorld() {
+            return world;
+        }
+
+        public PreviewFakePlayer getFakePlayer() {
+            return fakePlayer;
+        }
+
+        public void clear() {
+            level.clear();
+            fakePlayer.inventory.clearInventory(null, -1);
         }
     }
 
@@ -824,6 +1044,25 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
     }
 
+    public static class BuildAttemptResult {
+
+        private final boolean success;
+        private final String errorMessage;
+
+        public BuildAttemptResult(boolean success, String errorMessage) {
+            this.success = success;
+            this.errorMessage = errorMessage;
+        }
+
+        public static BuildAttemptResult success() {
+            return new BuildAttemptResult(true, "");
+        }
+
+        public static BuildAttemptResult failure(String errorMessage) {
+            return new BuildAttemptResult(false, sanitizeMessage(errorMessage));
+        }
+    }
+
     public static class SnapshotBlocksResult {
 
         public static final SnapshotBlocksResult EMPTY = new SnapshotBlocksResult(
@@ -850,6 +1089,32 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             super(world, new GameProfile(UUID.fromString("9c7ef542-6ab6-4524-b7d7-8caaf8df467c"), "GuideNHPreview"));
             capabilities.isCreativeMode = true;
             noClip = true;
+            configureForControllerFacing(ForgeDirection.SOUTH);
+        }
+
+        public void configureForControllerFacing(ForgeDirection controllerFacing) {
+            ForgeDirection facing = controllerFacing != null && controllerFacing != ForgeDirection.UNKNOWN
+                ? controllerFacing
+                : ForgeDirection.SOUTH;
+            double x = CONTROLLER_X + 0.5D + facing.offsetX * 4.0D;
+            double y = CONTROLLER_Y + 1.62D;
+            double z = CONTROLLER_Z + 0.5D + facing.offsetZ * 4.0D;
+            float yaw = yawForFacing(facing);
+            prevPosX = lastTickPosX = posX = x;
+            prevPosY = lastTickPosY = posY = y;
+            prevPosZ = lastTickPosZ = posZ = z;
+            prevRotationYaw = rotationYaw = yaw;
+            prevRotationPitch = rotationPitch = 0.0F;
+            setPositionAndRotation(x, y, z, yaw, 0.0F);
+        }
+
+        private static float yawForFacing(ForgeDirection facing) {
+            return switch (facing) {
+                case EAST -> 90.0F;
+                case SOUTH -> 180.0F;
+                case WEST -> 270.0F;
+                default -> 0.0F;
+            };
         }
 
         @Override

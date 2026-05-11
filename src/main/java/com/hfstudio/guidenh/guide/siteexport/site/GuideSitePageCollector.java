@@ -125,12 +125,7 @@ public class GuideSitePageCollector {
             if (stream == null) {
                 return Optional.empty();
             }
-            return Optional.of(
-                PageCompiler.parse(
-                    "resources:" + namespace,
-                    language,
-                    pageId,
-                    stream));
+            return Optional.of(PageCompiler.parse("resources:" + namespace, language, pageId, stream));
         } catch (Exception e) {
             return Optional.empty();
         }

@@ -95,6 +95,8 @@ public class SceneEditorScreen extends GuiScreen {
         "guidenh",
         "textures/gui/sprites/background.png");
     public static final String MARKDOWN_UNDO_MERGE_KEY = "markdown";
+    public static final String SCREENSHOT_SCALE_UNDO_MERGE_KEY = "screenshot-scale";
+    public static final String SCREENSHOT_SCALE_UNDO_FIELD_KEY = "screenshot:scale";
     public static final long MARKDOWN_LIVE_SYNC_DEBOUNCE_MS = 120L;
 
     public static final int TOOLBAR_MARGIN_X = 10;
@@ -683,6 +685,7 @@ public class SceneEditorScreen extends GuiScreen {
                 if (screenshotScaleField != null) {
                     screenshotScaleField.setText(screenshotMenuController.getScaleDraftText());
                 }
+                recordScreenshotScaleSnapshot(false);
                 return;
             }
             if (focusedParameterRow != null && focusedParameterRow.applyMouseWheel(wheelDelta)) {
@@ -945,6 +948,7 @@ public class SceneEditorScreen extends GuiScreen {
             return;
         }
         if (draggingScreenshotScaleSlider && state != -1) {
+            recordScreenshotScaleSnapshot(false);
             draggingScreenshotScaleSlider = false;
             return;
         }
@@ -2788,6 +2792,11 @@ public class SceneEditorScreen extends GuiScreen {
         if (expandedElementEditor != null) {
             expandedElementEditor.captureUndoState(builder);
         }
+        builder.put(
+            SCREENSHOT_SCALE_UNDO_FIELD_KEY,
+            new SceneEditorUndoFieldState(
+                screenshotMenuController.getScaleDraftText(),
+                screenshotMenuController.hasScaleValidationError()));
         return builder.build();
     }
 
@@ -2801,6 +2810,13 @@ public class SceneEditorScreen extends GuiScreen {
         if (expandedElementEditor != null) {
             expandedElementEditor.restoreUndoState(uiState);
         }
+        uiState.getField(SCREENSHOT_SCALE_UNDO_FIELD_KEY)
+            .ifPresent(state -> {
+                screenshotMenuController.restoreScaleState(state.getDraftText(), state.hasValidationError());
+                if (screenshotScaleField != null) {
+                    screenshotScaleField.setText(screenshotMenuController.getScaleDraftText());
+                }
+            });
     }
 
     private void recordCurrentUiDraftSnapshot(String mergeKey) {
@@ -2809,6 +2825,11 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void recordCurrentUiDraftSnapshot(String mergeKey, boolean keepOpen) {
         textSyncController.recordCurrentSnapshot(mergeKey, captureCurrentUiUndoState(), keepOpen);
+    }
+
+    private void recordScreenshotScaleSnapshot(boolean keepOpen) {
+        textSyncController
+            .recordCurrentSnapshot(SCREENSHOT_SCALE_UNDO_MERGE_KEY, captureCurrentUiUndoState(), keepOpen);
     }
 
     private void scheduleMarkdownLiveSync() {
@@ -3201,6 +3222,9 @@ public class SceneEditorScreen extends GuiScreen {
         }
         boolean committed = screenshotMenuController.commitScaleDraft(screenshotScaleField.getText());
         screenshotScaleField.setText(screenshotMenuController.getScaleDraftText());
+        if (committed) {
+            recordScreenshotScaleSnapshot(false);
+        }
         return committed;
     }
 
@@ -3214,6 +3238,7 @@ public class SceneEditorScreen extends GuiScreen {
         boolean handled = screenshotScaleField.textboxKeyTyped(typedChar, keyCode);
         if (handled) {
             screenshotMenuController.setScaleDraftText(screenshotScaleField.getText());
+            recordScreenshotScaleSnapshot(true);
         }
         return handled;
     }
@@ -3249,6 +3274,7 @@ public class SceneEditorScreen extends GuiScreen {
                 if (screenshotScaleField != null) {
                     screenshotScaleField.setText(screenshotMenuController.getScaleDraftText());
                 }
+                recordScreenshotScaleSnapshot(true);
                 draggingScreenshotScaleSlider = true;
                 return true;
             }

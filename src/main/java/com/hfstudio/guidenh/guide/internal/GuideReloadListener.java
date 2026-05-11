@@ -86,7 +86,13 @@ public class GuideReloadListener implements IResourceManagerReloadListener {
                     pagePath,
                     pageId);
                 if (parsed == null && !lang.equals(defaultLanguage)) {
-                    parsed = tryLoadPage(resourceManager, sourcePack, defaultLanguage, sourceNamespace, folder, pagePath,
+                    parsed = tryLoadPage(
+                        resourceManager,
+                        sourcePack,
+                        defaultLanguage,
+                        sourceNamespace,
+                        folder,
+                        pagePath,
                         pageId);
                 }
                 if (parsed == null) {

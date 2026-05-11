@@ -55,6 +55,27 @@ public class StructureLibSceneImportService {
         }
     }
 
+    public StructureLibImportResult importScene(@Nullable StructureLibImportRequest request,
+        StructureLibRuntimeFacade.BuildContext context) {
+        if (request == null) {
+            return StructureLibImportResult.failure("StructureLib import request cannot be null");
+        }
+        if (context == null || !(facade instanceof StructureLibRuntimeFacade runtimeFacade)) {
+            return importScene(request);
+        }
+
+        try {
+            StructureLibImportResult result = runtimeFacade.importScene(request, context);
+            if (result != null) {
+                return result;
+            }
+            return StructureLibImportResult.failure("StructureLib facade returned no import result");
+        } catch (Throwable t) {
+            GuideDebugLog.warn(LOG, "StructureLib import failed for controller {}", request.getController(), t);
+            return StructureLibImportResult.failure(resolveFailureMessage(t));
+        }
+    }
+
     public static String resolveFailureMessage(Throwable throwable) {
         String message = throwable.getMessage();
         if (message == null || message.trim()

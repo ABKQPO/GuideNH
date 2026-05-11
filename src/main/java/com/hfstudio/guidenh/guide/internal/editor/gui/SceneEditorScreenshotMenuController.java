@@ -160,6 +160,10 @@ public class SceneEditorScreenshotMenuController {
         scaleController.applySliderValue(1f + (MAX_SCREENSHOT_SCALE - 1f) * fraction);
     }
 
+    public void restoreScaleState(String draftText, boolean validationError) {
+        scaleController.restoreDraftState(draftText, validationError);
+    }
+
     public LytRect scaleInputBounds(LytRect menuBounds) {
         int sectionTop = menuBounds.y() + MENU_PADDING
             + SceneEditorScreenshotFormat.values().length * FORMAT_ROW_HEIGHT

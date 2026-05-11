@@ -6,6 +6,7 @@ import com.hfstudio.guidenh.integration.ae2.Ae2FakeWorldIntegration;
 import com.hfstudio.guidenh.integration.ae2.Ae2PreviewPrepareContributor;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
+import com.hfstudio.guidenh.integration.bartworks.BartWorksFakeWorldIntegration;
 import com.hfstudio.guidenh.integration.betterquesting.BetterQuestingQuestHoverProvider;
 import com.hfstudio.guidenh.integration.buildcraft.BuildCraftBlockDisplayProvider;
 import com.hfstudio.guidenh.integration.buildcraft.BuildCraftPreviewPrepareContributor;
@@ -21,6 +22,7 @@ import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartPreviewTile
 import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartPreviewTileEntityProvider;
 import com.hfstudio.guidenh.integration.gregtech.GregTechFakeWorldIntegration;
 import com.hfstudio.guidenh.integration.gregtech.GregTechPreviewPrepareContributor;
+import com.hfstudio.guidenh.integration.gregtech.GregTechStructureLibControllerIntegration;
 import com.hfstudio.guidenh.integration.logisticspipes.LogisticsPipesBlockDisplayProvider;
 import com.hfstudio.guidenh.integration.logisticspipes.LogisticsPipesPreviewPrepareContributor;
 import com.hfstudio.guidenh.integration.nei.NeiRawRecipeHandlerProvider;
@@ -34,6 +36,7 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeHandlerSlotProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeItemTooltipProvider;
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportPreviewPlayerModelProvider;
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportSlimArmProvider;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerIntegrationRegistry;
 import com.hfstudio.guidenh.integration.tinkerconstruct.TinkersConstructPreviewPrepareContributor;
 
 public class GuideNhClientIntegrationBootstrap {
@@ -47,6 +50,7 @@ public class GuideNhClientIntegrationBootstrap {
         registerRecipeProviders();
         registerBlockStatsProviders();
         registerPreviewPrepareContributors();
+        registerStructureLibControllerIntegrations();
         GuideStructureSnapshotRegistration.registerPreviewPrepareContributors();
         GuideNhClientIntegrationRegistry.global()
             .registerPreviewPlayerSlimArmProvider(new SimpleSkinBackportSlimArmProvider());
@@ -83,6 +87,10 @@ public class GuideNhClientIntegrationBootstrap {
     public static void registerFakeWorldIntegrations() {
         GuideNhIntegrationRegistry.global()
             .registerFakeWorldIntegration(new GregTechFakeWorldIntegration());
+        if (Mods.BartWorks.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerFakeWorldIntegration(new BartWorksFakeWorldIntegration());
+        }
         GuideNhIntegrationRegistry.global()
             .registerFakeWorldIntegration(new Ae2FakeWorldIntegration());
         GuideNhIntegrationRegistry.global()
@@ -131,6 +139,20 @@ public class GuideNhClientIntegrationBootstrap {
         if (Mods.AE2.isModLoaded()) {
             GuideNhIntegrationRegistry.global()
                 .registerPreviewPrepareContributor(new Ae2PreviewPrepareContributor());
+        }
+    }
+
+    public static void registerStructureLibControllerIntegrations() {
+        if (Mods.StructureLib.isModLoaded() && Mods.GregTech.isModLoaded()) {
+            GregTechStructureLibControllerIntegration gregTechIntegration = new GregTechStructureLibControllerIntegration();
+            StructureLibControllerIntegrationRegistry.global()
+                .registerDiscoveryIntegration(gregTechIntegration);
+            StructureLibControllerIntegrationRegistry.global()
+                .registerPlacementIntegration(gregTechIntegration);
+            StructureLibControllerIntegrationRegistry.global()
+                .registerPreviewItemProvider(gregTechIntegration);
+            StructureLibControllerIntegrationRegistry.global()
+                .registerPreviewStateSynchronizer(gregTechIntegration);
         }
     }
 }

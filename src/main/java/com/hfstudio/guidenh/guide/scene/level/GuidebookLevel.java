@@ -234,6 +234,39 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         return filledBlocks.isEmpty() && entities.isEmpty();
     }
 
+    public void clear() {
+        for (TileEntity tileEntity : tileEntities.values()) {
+            if (tileEntity != null) {
+                try {
+                    tileEntity.invalidate();
+                } catch (Throwable ignored) {}
+            }
+        }
+        for (Entity entity : entities.values()) {
+            if (entity != null) {
+                entity.setDead();
+            }
+        }
+        chunks.clear();
+        tileEntities.clear();
+        entities.clear();
+        filledBlocks.clear();
+        explicitBlockIds.clear();
+        previewAuthorityStore.clear();
+        minX = Integer.MAX_VALUE;
+        minY = Integer.MAX_VALUE;
+        minZ = Integer.MAX_VALUE;
+        maxX = Integer.MIN_VALUE;
+        maxY = Integer.MIN_VALUE;
+        maxZ = Integer.MIN_VALUE;
+        boundsDirty = true;
+        previewStateDirty = true;
+        if (fakeWorld instanceof GuidebookPreviewWorld previewWorld) {
+            previewWorld.syncLoadedTileEntities(tileEntities.values());
+            previewWorld.syncLoadedEntities(entities.values());
+        }
+    }
+
     public Collection<int[]> getFilledBlocks() {
         return filledBlocksView;
     }
