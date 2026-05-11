@@ -50,6 +50,7 @@ public final class GuideSiteGraphRenderer {
     private static final int LEGEND_SWATCH = 8;
     private static final int LEGEND_GAP = 6;
     private static final int LEGEND_ROW_H = 11;
+    private static final int PIE_OUTSIDE_GAP = 6;
     // Function graph sample count
     private static final int N_SAMPLES = 1024;
     private static final int AUTO_POINT_MAX_PER_PLOT = 96;
@@ -539,14 +540,14 @@ public final class GuideSiteGraphRenderer {
         public final List<SliceData> slices;
         /** Diameter of the inset pie in SVG user-space units. */
         public final int size;
-        /** Corner placement: "right" (top-right), "left" (top-left), "bottom-right", "bottom-left". */
+        /** Corner or side placement: "top-right", "left", "bottom-right", "bottom-left", "right". */
         public final String position;
         public final @Nullable String title;
 
         public PieInsetData(List<SliceData> slices, int size, String position, @Nullable String title) {
             this.slices = slices != null ? slices : new ArrayList<>();
             this.size = Math.max(20, size);
-            this.position = position != null ? position : "right";
+            this.position = position != null ? position : "top-right";
             this.title = title;
         }
     }
@@ -619,7 +620,8 @@ public final class GuideSiteGraphRenderer {
         int legendH = computeLegendH(series, showLegend, w);
 
         int left = PADDING + AXIS_PAD_LEFT;
-        int right = w - PADDING;
+        boolean pieRightOutside = pieInset != null && isPieInsetRightOutside(pieInset.position);
+        int right = w - PADDING - (pieRightOutside ? pieInset.size + PIE_OUTSIDE_GAP : 0);
         int top = titleBottom;
         int bottom = h - PADDING - AXIS_PAD_BOTTOM - legendH;
         int plotW = Math.max(1, right - left);
@@ -755,10 +757,15 @@ public final class GuideSiteGraphRenderer {
             if (total <= 0) total = 1;
             int pr = pieInset.size / 2;
             int pcx, pcy;
-            switch (pieInset.position) {
+            String position = normalizePieInsetPosition(pieInset.position);
+            switch (position) {
                 case "left":
                     pcx = left + pr + 4;
                     pcy = top + pr + 4;
+                    break;
+                case "right":
+                    pcx = w - PADDING - pr;
+                    pcy = top + Math.max(pr, plotH / 2);
                     break;
                 case "bottom-right":
                     pcx = right - pr - 4;
@@ -771,7 +778,7 @@ public final class GuideSiteGraphRenderer {
                 default:
                     pcx = right - pr - 4;
                     pcy = top + pr + 4;
-                    break; // "right"
+                    break;
             }
             // Semi-transparent backing circle
             svg.append("<circle cx=\"")
@@ -840,6 +847,24 @@ public final class GuideSiteGraphRenderer {
         }
         return svg.append("</svg>")
             .toString();
+    }
+
+    private static boolean isPieInsetRightOutside(@Nullable String position) {
+        return "right".equals(normalizePieInsetPosition(position));
+    }
+
+    private static String normalizePieInsetPosition(@Nullable String position) {
+        if (position == null) {
+            return "top-right";
+        }
+        return switch (position.trim()
+            .toLowerCase(Locale.ROOT)) {
+            case "left", "topleft", "top-left", "tl" -> "left";
+            case "bottomright", "bottom-right", "br" -> "bottom-right";
+            case "bottomleft", "bottom-left", "bl" -> "bottom-left";
+            case "right", "rightoutside", "right-outside", "outside", "side" -> "right";
+            default -> "top-right";
+        };
     }
 
     // Bar chart (horizontal bars, categorical Y).

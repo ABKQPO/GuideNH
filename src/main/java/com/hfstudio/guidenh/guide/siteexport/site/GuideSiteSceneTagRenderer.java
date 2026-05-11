@@ -110,6 +110,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                     .append("\"");
             }
         }
+        appendSceneActionAttributes(html, exportedScene);
 
         html.append(">");
         if (hasBlockStats) {
@@ -117,6 +118,28 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                 .append("</div>");
         }
         return html.toString();
+    }
+
+    private void appendSceneActionAttributes(StringBuilder html, GuideSiteExportedScene exportedScene) {
+        if (exportedScene == null) {
+            return;
+        }
+        if (exportedScene.gridButtonEnabled()) {
+            html.append(" data-scene-grid-toggle=\"true\" data-scene-grid-visible=\"")
+                .append(Boolean.toString(exportedScene.gridVisible()))
+                .append("\"");
+            if (exportedScene.gridAnnotationJson() != null && !exportedScene.gridAnnotationJson()
+                .isEmpty()) {
+                html.append(" data-scene-grid-annotations=\"")
+                    .append(escapeAttribute(exportedScene.gridAnnotationJson()))
+                    .append("\"");
+            }
+        }
+        if (exportedScene.blockStatsButtonEnabled()) {
+            html.append(" data-scene-block-stats-toggle=\"true\" data-scene-block-stats-visible=\"")
+                .append(Boolean.toString(exportedScene.blockStatsVisible()))
+                .append("\"");
+        }
     }
 
     public static String renderSceneHtml(int logicalWidth, int logicalHeight, boolean interactive,
@@ -235,8 +258,33 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             html.append(" data-scene-state-manifest-src=\"")
                 .append(
                     escapeAttributeStatic(GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.stateManifestPath()))
-                .append("\"");
+                .append("\" data-scene-state-controls=\"true\"");
         }
+        return html.toString();
+    }
+
+    public static String renderStaticScenePlaceholder(int logicalWidth, int logicalHeight,
+        GuideSiteExportedScene exportedScene) {
+        int normalizedWidth = Math.max(16, logicalWidth);
+        int normalizedHeight = Math.max(16, logicalHeight);
+        String src = exportedScene != null && exportedScene.placeholderPath() != null
+            && !exportedScene.placeholderPath()
+                .isEmpty() ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.placeholderPath()
+                    : TRANSPARENT_PIXEL;
+
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"guide-tooltip-scene-placeholder\" style=\"width:")
+            .append(normalizedWidth)
+            .append("px;height:")
+            .append(normalizedHeight)
+            .append("px;\">")
+            .append("<img src=\"")
+            .append(escapeAttributeStatic(src))
+            .append("\" alt=\"3D scene preview\" loading=\"lazy\" decoding=\"async\" width=\"")
+            .append(normalizedWidth)
+            .append("\" height=\"")
+            .append(normalizedHeight)
+            .append("\"></div>");
         return html.toString();
     }
 

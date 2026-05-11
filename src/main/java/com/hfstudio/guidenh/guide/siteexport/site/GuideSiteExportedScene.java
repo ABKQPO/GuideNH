@@ -11,6 +11,11 @@ public class GuideSiteExportedScene {
     private final String blockStatsHtml;
     private final String blockStatsLayoutClass;
     private final String blockStatsLayoutStyle;
+    private final boolean gridButtonEnabled;
+    private final boolean gridVisible;
+    private final String gridAnnotationJson;
+    private final boolean blockStatsButtonEnabled;
+    private final boolean blockStatsVisible;
 
     public GuideSiteExportedScene(String placeholderPath, String scenePath) {
         this(placeholderPath, scenePath, null, null, null, null);
@@ -47,6 +52,27 @@ public class GuideSiteExportedScene {
     public GuideSiteExportedScene(String placeholderPath, String scenePath, String inWorldJson, String overlayJson,
         String hoverTargetsJson, String stateManifestPath, String blockStatsHtml, String blockStatsLayoutClass,
         String blockStatsLayoutStyle) {
+        this(
+            placeholderPath,
+            scenePath,
+            inWorldJson,
+            overlayJson,
+            hoverTargetsJson,
+            stateManifestPath,
+            blockStatsHtml,
+            blockStatsLayoutClass,
+            blockStatsLayoutStyle,
+            false,
+            false,
+            null,
+            false,
+            false);
+    }
+
+    public GuideSiteExportedScene(String placeholderPath, String scenePath, String inWorldJson, String overlayJson,
+        String hoverTargetsJson, String stateManifestPath, String blockStatsHtml, String blockStatsLayoutClass,
+        String blockStatsLayoutStyle, boolean gridButtonEnabled, boolean gridVisible, String gridAnnotationJson,
+        boolean blockStatsButtonEnabled, boolean blockStatsVisible) {
         this.placeholderPath = placeholderPath;
         this.scenePath = scenePath;
         this.inWorldJson = inWorldJson;
@@ -56,6 +82,11 @@ public class GuideSiteExportedScene {
         this.blockStatsHtml = blockStatsHtml;
         this.blockStatsLayoutClass = blockStatsLayoutClass;
         this.blockStatsLayoutStyle = blockStatsLayoutStyle;
+        this.gridButtonEnabled = gridButtonEnabled;
+        this.gridVisible = gridVisible;
+        this.gridAnnotationJson = gridAnnotationJson;
+        this.blockStatsButtonEnabled = blockStatsButtonEnabled;
+        this.blockStatsVisible = blockStatsVisible;
     }
 
     public String placeholderPath() {
@@ -92,5 +123,25 @@ public class GuideSiteExportedScene {
 
     public String blockStatsLayoutStyle() {
         return blockStatsLayoutStyle;
+    }
+
+    public boolean gridButtonEnabled() {
+        return gridButtonEnabled;
+    }
+
+    public boolean gridVisible() {
+        return gridVisible;
+    }
+
+    public String gridAnnotationJson() {
+        return gridAnnotationJson;
+    }
+
+    public boolean blockStatsButtonEnabled() {
+        return blockStatsButtonEnabled;
+    }
+
+    public boolean blockStatsVisible() {
+        return blockStatsVisible;
     }
 }

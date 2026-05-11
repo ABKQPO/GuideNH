@@ -21,7 +21,7 @@ public class FootnoteListCompiler extends BlockTagCompiler {
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         LytWidthBox box = new LytWidthBox();
         box.setPreferredWidth(MdxAttrs.getInt(compiler, parent, el, "width", 220));
-        compiler.compileBlockTagChildren(el, box);
+        compiler.compileBlockContextInSourceContext(el.children(), box);
         parent.append(box);
     }
 

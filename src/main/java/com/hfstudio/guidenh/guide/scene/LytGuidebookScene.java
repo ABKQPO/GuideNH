@@ -1223,6 +1223,10 @@ public class LytGuidebookScene extends LytBlock {
         return interactive && sceneButtonsVisible ? (BTN_OUTSIDE_GAP + BTN_SIZE) : 0;
     }
 
+    public int getSceneButtonColumnReserveForExport() {
+        return buttonColumnReserve();
+    }
+
     private int blockStatsDockLengthForLayout(boolean horizontal) {
         if (!blockStatsEnabled || !blockStatsVisible
             || blockStatsMode == BlockStatsMode.MANUAL

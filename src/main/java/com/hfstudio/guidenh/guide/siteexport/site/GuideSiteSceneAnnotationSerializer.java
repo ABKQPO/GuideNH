@@ -429,23 +429,7 @@ public final class GuideSiteSceneAnnotationSerializer {
                 GuideSiteExportedScene exportedScene = resolveExportedScene(scene);
                 int width = Math.max(16, scene.getSceneWidth());
                 int height = Math.max(16, scene.getSceneHeight());
-                html.append("<div class=\"guide-tooltip-scene-placeholder\" style=\"width:")
-                    .append(width)
-                    .append("px;height:")
-                    .append(height)
-                    .append("px;\">");
-                if (exportedScene != null && exportedScene.placeholderPath() != null
-                    && !exportedScene.placeholderPath()
-                        .isEmpty()) {
-                    html.append("<img src=\"")
-                        .append(escapeAttribute(exportedScene.placeholderPath()))
-                        .append("\" alt=\"\" width=\"")
-                        .append(width)
-                        .append("\" height=\"")
-                        .append(height)
-                        .append("\" decoding=\"async\">");
-                }
-                html.append("</div>");
+                html.append(GuideSiteSceneTagRenderer.renderStaticScenePlaceholder(width, height, exportedScene));
                 return;
             }
             if (node instanceof LytHeading heading) {

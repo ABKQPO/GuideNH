@@ -11,6 +11,8 @@ const SCENE_BUTTON_ICONS = {
   zoomIn: [48, 16],
   zoomOut: [32, 16],
   resetView: [0, 32],
+  toggleGrid: [16, 64],
+  toggleBlockStats: [0, 0],
 };
 
 function findDescriptor(target, property) {
@@ -105,7 +107,12 @@ function captureSceneDescriptor(node) {
   return {
     attributes,
     interactive: node.dataset.sceneInteractive === "true",
+    stateControls: node.dataset.sceneStateControls === "true" || node.dataset.sceneInteractive === "true",
     stateManifestSrc: node.dataset.sceneStateManifestSrc || "",
+    gridToggle: node.dataset.sceneGridToggle === "true",
+    gridVisible: node.dataset.sceneGridVisible === "true",
+    blockStatsToggle: node.dataset.sceneBlockStatsToggle === "true",
+    blockStatsVisible: node.dataset.sceneBlockStatsVisible === "true",
   };
 }
 
@@ -150,6 +157,7 @@ function createSceneNode(documentRef, descriptor, variant) {
   setOrRemoveAttribute(node, "data-scene-in-world-annotations", variant?.inWorldAnnotationsJson);
   setOrRemoveAttribute(node, "data-scene-overlay-annotations", variant?.overlayAnnotationsJson);
   setOrRemoveAttribute(node, "data-scene-hover-targets", variant?.hoverTargetsJson);
+  applySceneGridDescriptor(node, descriptor);
   return node;
 }
 
@@ -158,6 +166,7 @@ function attachSceneContext(sceneContext) {
   if (wrapper instanceof HTMLElement) {
     wrapper[SCENE_CONTEXT_KEY] = sceneContext;
     normalizeVendorSceneControls(wrapper);
+    mountSceneActionControls(sceneContext);
   }
 }
 
@@ -189,6 +198,48 @@ function setOrRemoveAttribute(node, name, value) {
   } else {
     node.removeAttribute(name);
   }
+}
+
+function parseSceneJsonAttribute(value, fallback) {
+  if (typeof value !== "string" || value.length === 0) {
+    return fallback;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch (error) {
+    console.warn("Failed to parse scene JSON attribute", error);
+    return fallback;
+  }
+}
+
+function serializeSceneJsonAttribute(value) {
+  return JSON.stringify(Array.isArray(value) ? value : []);
+}
+
+function mergedGridAnnotations(descriptor, baseAnnotationsJson) {
+  const baseAnnotations = parseSceneJsonAttribute(baseAnnotationsJson, []).filter(
+    (annotation) => annotation?.siteControl !== "floorGrid",
+  );
+  if (!descriptor.gridVisible) {
+    return baseAnnotations;
+  }
+  const gridAnnotations = parseSceneJsonAttribute(descriptor.attributes["data-scene-grid-annotations"], []).map(
+    (annotation) => ({
+      ...annotation,
+      siteControl: "floorGrid",
+    }),
+  );
+  return [...baseAnnotations, ...gridAnnotations];
+}
+
+function applySceneGridDescriptor(node, descriptor) {
+  if (!(node instanceof HTMLElement) || !descriptor.gridToggle) {
+    return;
+  }
+  node.setAttribute("data-scene-grid-visible", descriptor.gridVisible ? "true" : "false");
+  const annotations = mergedGridAnnotations(descriptor, node.getAttribute("data-scene-in-world-annotations"));
+  node.setAttribute("data-scene-in-world-annotations", serializeSceneJsonAttribute(annotations));
 }
 
 function buildStateKey(state) {
@@ -278,6 +329,103 @@ function normalizeVendorSceneControls(wrapper) {
       button.textContent = "";
     }
   }
+}
+
+function ensureSceneActionControlsHost(wrapper) {
+  if (!(wrapper instanceof HTMLElement)) {
+    return null;
+  }
+  let host = wrapper.querySelector(":scope > .controls");
+  if (!(host instanceof HTMLElement)) {
+    host = wrapper.ownerDocument.createElement("div");
+    host.className = "controls";
+    wrapper.append(host);
+  }
+  return host;
+}
+
+function createSceneActionButton(documentRef, icon, labelText, active, onClick) {
+  const button = documentRef.createElement("button");
+  button.type = "button";
+  button.className = "minecraft-tooltip";
+  applyIconButton(button, icon, labelText);
+  button.setAttribute("aria-pressed", active ? "true" : "false");
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    onClick(button);
+  });
+  return button;
+}
+
+function mountSceneActionControls(sceneContext) {
+  const wrapper = sceneContext?.runtime?.wrapper;
+  if (!(wrapper instanceof HTMLElement)) {
+    return;
+  }
+  const descriptor = sceneContext.descriptor;
+  if (!descriptor?.gridToggle && !descriptor?.blockStatsToggle) {
+    return;
+  }
+
+  const host = ensureSceneActionControlsHost(wrapper);
+  if (!host || host.dataset.siteActionsMounted === "true") {
+    return;
+  }
+  host.dataset.siteActionsMounted = "true";
+  const documentRef = wrapper.ownerDocument;
+
+  if (descriptor.gridToggle) {
+    const gridButton = createSceneActionButton(
+      documentRef,
+      SCENE_BUTTON_ICONS.toggleGrid,
+      "Toggle Floor Grid",
+      descriptor.gridVisible,
+      () => {
+        toggleSceneGrid(sceneContext);
+      },
+    );
+    gridButton.dataset.siteSceneAction = "grid";
+    host.append(gridButton);
+  }
+
+  if (descriptor.blockStatsToggle) {
+    const blockStatsButton = createSceneActionButton(
+      documentRef,
+      SCENE_BUTTON_ICONS.toggleBlockStats,
+      "Toggle Block Stats",
+      descriptor.blockStatsVisible,
+      (button) => {
+        descriptor.blockStatsVisible = !descriptor.blockStatsVisible;
+        button.setAttribute("aria-pressed", descriptor.blockStatsVisible ? "true" : "false");
+        syncBlockStatsVisibility(wrapper, descriptor.blockStatsVisible);
+      },
+    );
+    blockStatsButton.dataset.siteSceneAction = "block-stats";
+    host.append(blockStatsButton);
+    syncBlockStatsVisibility(wrapper, descriptor.blockStatsVisible);
+  }
+}
+
+async function toggleSceneGrid(sceneContext) {
+  if (!sceneContext?.descriptor || sceneContext.transitioning) {
+    return;
+  }
+  sceneContext.descriptor.gridVisible = !sceneContext.descriptor.gridVisible;
+  const currentState = sceneContext.currentState ? cloneState(sceneContext.currentState) : null;
+  const variant = currentState && sceneContext.manifest?.states ? sceneContext.manifest.states[buildStateKey(currentState)]
+    : null;
+  await recreateSceneRuntime(sceneContext, variant);
+  if (currentState) {
+    sceneContext.currentState = currentState;
+  }
+}
+
+function syncBlockStatsVisibility(wrapper, visible) {
+  const frame = wrapper?.closest?.(".guide-scene-export-frame");
+  if (!(frame instanceof HTMLElement)) {
+    return;
+  }
+  frame.classList.toggle("guide-scene-export-frame--block-stats-hidden", !visible);
 }
 
 function createSliderVisual(documentRef, range) {
@@ -489,7 +637,7 @@ function createPonderControl(documentRef, control, currentTick, onChange) {
 }
 
 async function mountSceneStateControls(sceneContext) {
-  if (!sceneContext.runtime?.wrapper || !sceneContext.descriptor.interactive) {
+  if (!sceneContext.runtime?.wrapper || !sceneContext.descriptor.stateControls) {
     return;
   }
 
@@ -594,26 +742,30 @@ async function updateSceneState(sceneContext, patch) {
 
   sceneContext.transitioning = true;
   try {
-    const parent = sceneContext.runtime?.wrapper?.parentNode;
-    if (!parent) {
-      return;
-    }
-
-    const replacement = createSceneNode(parent.ownerDocument, sceneContext.descriptor, variant);
-    parent.insertBefore(replacement, sceneContext.runtime.wrapper);
-
-    disposeSceneContext(sceneContext);
     sceneContext.currentState = nextState;
-    sceneContext.runtime = await setupVendorGameScene(replacement);
-    if (!sceneContext.runtime?.wrapper?.isConnected) {
-      disposeSceneContext(sceneContext, false);
-      return;
-    }
-    attachSceneContext(sceneContext);
-    await mountSceneStateControls(sceneContext);
+    await recreateSceneRuntime(sceneContext, variant);
   } finally {
     sceneContext.transitioning = false;
   }
+}
+
+async function recreateSceneRuntime(sceneContext, variant) {
+  const parent = sceneContext.runtime?.wrapper?.parentNode;
+  if (!parent) {
+    return;
+  }
+
+  const replacement = createSceneNode(parent.ownerDocument, sceneContext.descriptor, variant);
+  parent.insertBefore(replacement, sceneContext.runtime.wrapper);
+
+  disposeSceneContext(sceneContext);
+  sceneContext.runtime = await setupVendorGameScene(replacement);
+  if (!sceneContext.runtime?.wrapper?.isConnected) {
+    disposeSceneContext(sceneContext, false);
+    return;
+  }
+  attachSceneContext(sceneContext);
+  await mountSceneStateControls(sceneContext);
 }
 
 async function initializeScene(node) {
@@ -625,6 +777,7 @@ async function initializeScene(node) {
   ensureDetachedSceneSizeCompat();
 
   const descriptor = captureSceneDescriptor(node);
+  applySceneGridDescriptor(node, descriptor);
   const runtime = await setupVendorGameScene(node);
   if (!runtime) {
     return null;

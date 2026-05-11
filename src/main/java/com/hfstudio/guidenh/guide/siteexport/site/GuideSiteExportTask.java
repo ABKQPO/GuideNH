@@ -591,7 +591,12 @@ public class GuideSiteExportTask {
             manifestPath,
             renderBlockStatsHtml(scene, itemIconResolver),
             blockStatsLayoutClass(scene),
-            blockStatsLayoutStyle(scene));
+            blockStatsLayoutStyle(scene),
+            scene.isGridButtonEnabled(),
+            scene.isGridVisible(),
+            buildGridAnnotationJson(scene),
+            scene.shouldExportBlockStats() && blockStatsButtonEnabled(scene),
+            scene.isBlockStatsVisible());
     }
 
     private GuideSiteExportedScene exportSceneState(ParsedGuidePage parsedPage, LytGuidebookScene scene,
@@ -693,6 +698,48 @@ public class GuideSiteExportTask {
             .append("px");
     }
 
+    private boolean blockStatsButtonEnabled(LytGuidebookScene scene) {
+        if (scene == null || !scene.shouldExportBlockStats()) {
+            return false;
+        }
+        return scene.getSceneButtonColumnReserveForExport() > 0;
+    }
+
+    private String buildGridAnnotationJson(LytGuidebookScene scene) {
+        if (scene == null || scene.getLevel() == null
+            || scene.getLevel()
+                .isEmpty()) {
+            return null;
+        }
+        int[] bounds = scene.getLevel()
+            .getBounds();
+        ArrayList<Map<String, Object>> annotations = new ArrayList<>(bounds[3] - bounds[0] + bounds[5] - bounds[2] + 8);
+        float half = 0.02f;
+        float y = 0.002f;
+        int minX = bounds[0] - 1;
+        int minZ = bounds[2] - 1;
+        int maxX = bounds[3] + 2;
+        int maxZ = bounds[5] + 2;
+        for (int x = minX; x <= maxX; x++) {
+            annotations.add(buildGridLine(x - half, y, minZ, x + half, y, maxZ));
+        }
+        for (int z = minZ; z <= maxZ; z++) {
+            annotations.add(buildGridLine(minX, y, z - half, maxX, y, z + half));
+        }
+        return GSON.toJson(annotations);
+    }
+
+    private Map<String, Object> buildGridLine(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+        LinkedHashMap<String, Object> data = new LinkedHashMap<>();
+        data.put("type", "box");
+        data.put("minCorner", new float[] { Math.min(minX, maxX), Math.min(minY, maxY), Math.min(minZ, maxZ) });
+        data.put("maxCorner", new float[] { Math.max(minX, maxX), Math.max(minY, maxY), Math.max(minZ, maxZ) });
+        data.put("color", "rgba(255,255,255,0.33333334)");
+        data.put("thickness", 0.00390625f);
+        data.put("alwaysOnTop", false);
+        return data;
+    }
+
     private String escapeAttribute(String text) {
         return escapeHtml(text);
     }
@@ -712,7 +759,7 @@ public class GuideSiteExportTask {
         GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
         GuideSiteExportedScene baseScene) throws Exception {
         SceneStateManifestPlan plan = buildSceneStateManifestPlan(scene);
-        if (plan == null || plan.states.size() <= 1) {
+        if (plan == null || (plan.states.size() <= 1 && !plan.controls.containsKey("ponder"))) {
             return null;
         }
 
@@ -722,7 +769,7 @@ public class GuideSiteExportTask {
         try {
             for (SceneVariantState state : plan.states) {
                 GuideSiteExportedScene exportedVariant;
-                if (state.equals(initialState) && !scene.hasPonderData()) {
+                if (state.equals(initialState)) {
                     exportedVariant = baseScene;
                 } else {
                     if (scene.hasPonderData()) {
@@ -758,7 +805,7 @@ public class GuideSiteExportTask {
     }
 
     private SceneStateManifestPlan buildSceneStateManifestPlan(LytGuidebookScene scene) {
-        if (scene == null || !scene.isInteractive()) {
+        if (scene == null || (!scene.isInteractive() && !scene.hasPonderData())) {
             return null;
         }
 
@@ -786,7 +833,7 @@ public class GuideSiteExportTask {
             warnSceneStateVariantLimit(variantCount);
             return null;
         }
-        if (variantCount <= 1) {
+        if (variantCount <= 1 && !scene.hasPonderData()) {
             return null;
         }
 

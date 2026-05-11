@@ -378,6 +378,12 @@ public class GuideSiteHtmlCompiler {
 
     private String compileTooltipContent(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        GuideSiteHtmlCompiler tooltipCompiler = new GuideSiteHtmlCompiler(
+            recipeTagRenderer,
+            tooltipSceneTagRenderer(),
+            imageResolver,
+            mdxTagRenderer,
+            latexExporter);
         MdxJsxAttribute content = element.getAttribute("content");
         if (content != null && content.hasExpressionValue()) {
             String source = normalizeTooltipContentExpression(content.getExpressionValue());
@@ -387,7 +393,7 @@ public class GuideSiteHtmlCompiler {
                         defaultNamespace != null ? defaultNamespace : "guidenh",
                         "site_export_tooltip");
                 ParsedGuidePage parsed = PageCompiler.parse("site-export-tooltip", "en_us", parsePageId, source);
-                return compileFragment(
+                return tooltipCompiler.compileFragment(
                     parsed.getAstRoot()
                         .children(),
                     templates,
@@ -396,7 +402,21 @@ public class GuideSiteHtmlCompiler {
                     currentPageId);
             }
         }
-        return compileChildren(element.children(), templates, defaultNamespace, currentPageId, sceneResolver);
+        return tooltipCompiler
+            .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId);
+    }
+
+    private SceneTagRenderer tooltipSceneTagRenderer() {
+        return (element, defaultNamespace, currentPageId, templates, exportedScene) -> {
+            int width = parseSceneDimension(element.getAttributeString("width", null), 256);
+            int height = parseSceneDimension(element.getAttributeString("height", null), 192);
+            return GuideSiteSceneTagRenderer.renderStaticScenePlaceholder(width, height, exportedScene);
+        };
+    }
+
+    private int parseSceneDimension(@Nullable String raw, int fallback) {
+        Integer value = parsePositiveInt(raw);
+        return value != null ? value : fallback;
     }
 
     private String normalizeTooltipContentExpression(String expression) {
@@ -638,9 +658,8 @@ public class GuideSiteHtmlCompiler {
         if (exported != null) {
             appendCssPx(style, "width", displayWidth(exported, safeScale));
             appendCssPx(style, "height", displayHeight(exported, safeScale));
-            if (!display && (valign == null || valign.trim()
-                .isEmpty() || "baseline".equalsIgnoreCase(valign.trim()))) {
-                appendCssPx(style, "vertical-align", -displayDepth(exported, safeScale));
+            if (!display && isLatexBaselineAlign(valign)) {
+                style.append("vertical-align:bottom;");
             }
         } else {
             String cssColor = parseLatexCssColor(color);
@@ -650,11 +669,15 @@ public class GuideSiteHtmlCompiler {
                     .append(";");
             }
         }
-        if (offsetX != 0 || offsetY != 0) {
+        int visualOffsetY = offsetY;
+        if (exported != null && !display && isLatexBaselineAlign(valign)) {
+            visualOffsetY += displayDepth(exported, safeScale);
+        }
+        if (offsetX != 0 || visualOffsetY != 0) {
             style.append("transform:translate(")
                 .append(offsetX)
                 .append("px,")
-                .append(offsetY)
+                .append(visualOffsetY)
                 .append("px);");
         }
 
@@ -708,6 +731,11 @@ public class GuideSiteHtmlCompiler {
 
     private int displayDepth(GuideSiteLatexExporter.ExportedLatex exported, float scale) {
         return Math.max(0, (int) Math.ceil((double) exported.depthPx() * 20.0d * scale / exported.referenceHeightPx()));
+    }
+
+    private boolean isLatexBaselineAlign(@Nullable String valign) {
+        return valign == null || valign.trim()
+            .isEmpty() || "baseline".equalsIgnoreCase(valign.trim());
     }
 
     private void appendCssPx(StringBuilder style, String property, int value) {
