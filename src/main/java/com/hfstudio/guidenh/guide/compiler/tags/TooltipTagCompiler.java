@@ -39,7 +39,7 @@ public class TooltipTagCompiler implements TagCompiler {
         if (label.isEmpty()) label = "tooltip";
 
         var contentBox = new LytVBox();
-        compiler.compileBlockTagChildren(el, contentBox);
+        compiler.compileBlockContextInSourceContext(el.children(), contentBox);
 
         var span = new LytTooltipSpan();
         span.modifyStyle(style -> style.underlined(true));

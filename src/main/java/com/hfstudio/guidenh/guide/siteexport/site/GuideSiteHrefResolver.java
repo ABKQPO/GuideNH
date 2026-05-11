@@ -49,7 +49,8 @@ public class GuideSiteHrefResolver {
         }
 
         try {
-            ResourceLocation targetPageId = IdUtils.resolveLink(target, currentPageId);
+            ResourceLocation targetPageId = target.isEmpty() ? currentPageId
+                : IdUtils.resolveLink(target, currentPageId);
             return resolvePageAnchor(currentPageId, new PageAnchor(targetPageId, fragment));
         } catch (IllegalArgumentException ignored) {
             return href;

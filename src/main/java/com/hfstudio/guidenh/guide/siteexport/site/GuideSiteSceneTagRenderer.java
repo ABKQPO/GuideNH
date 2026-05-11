@@ -41,11 +41,18 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
 
     public GuideSiteSceneTagRenderer(GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
         GuideSiteHtmlCompiler.ImageResolver imageResolver, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer) {
+        this(recipeTagRenderer, imageResolver, mdxTagRenderer, null);
+    }
+
+    public GuideSiteSceneTagRenderer(GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
+        GuideSiteHtmlCompiler.ImageResolver imageResolver, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer,
+        GuideSiteLatexExporter latexExporter) {
         this.fragmentCompiler = new GuideSiteHtmlCompiler(
             recipeTagRenderer,
             (element, defaultNamespace, currentPageId, templates, exportedScene) -> "",
             imageResolver,
-            mdxTagRenderer != null ? mdxTagRenderer : noopMdxTagRenderer());
+            mdxTagRenderer != null ? mdxTagRenderer : noopMdxTagRenderer(),
+            latexExporter);
     }
 
     @Override
@@ -67,7 +74,20 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             && !exportedScene.blockStatsHtml()
                 .isEmpty();
         if (hasBlockStats) {
-            html.append("<div class=\"guide-scene-export-frame\">");
+            html.append("<div class=\"guide-scene-export-frame");
+            if (exportedScene.blockStatsLayoutClass() != null && !exportedScene.blockStatsLayoutClass()
+                .isEmpty()) {
+                html.append(" ")
+                    .append(escapeAttribute(exportedScene.blockStatsLayoutClass()));
+            }
+            html.append("\"");
+            if (exportedScene.blockStatsLayoutStyle() != null && !exportedScene.blockStatsLayoutStyle()
+                .isEmpty()) {
+                html.append(" style=\"")
+                    .append(escapeAttribute(exportedScene.blockStatsLayoutStyle()))
+                    .append("\"");
+            }
+            html.append(">");
         }
         html.append(
             renderSceneHtml(

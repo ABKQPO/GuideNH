@@ -26,6 +26,7 @@ import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureCoordinateParser;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.siteexport.ExportTask;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteExportOptions;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteExportTask;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteOutputPaths;
 
@@ -33,6 +34,7 @@ public class GuideNhClientCommand extends CommandBase {
 
     public static final String[] ROOT_SUB_COMMANDS = { "editor", "guideeditor", "guideedit", "list", "open", "reload",
         "search", "export", "exportsite", "exportstructure" };
+    public static final String[] EXPORT_SITE_FLAGS = { "--ponder-frames", "--ponder-every-tick" };
 
     @Override
     public String getCommandName() {
@@ -79,6 +81,9 @@ public class GuideNhClientCommand extends CommandBase {
                         .toString());
             }
             return getListOfStringsMatchingLastWord(args, ids.toArray(new String[0]));
+        }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("exportsite")) {
+            return getListOfStringsMatchingLastWord(args, EXPORT_SITE_FLAGS);
         }
         return Collections.emptyList();
     }
@@ -195,11 +200,14 @@ public class GuideNhClientCommand extends CommandBase {
     }
 
     private void exportSite(ICommandSender sender, String[] args) {
+        ExportSiteCommandOptions commandOptions = parseExportSiteCommandOptions(args);
         Path outDir = GuideSiteOutputPaths
-            .resolveRequestedOrDefault(args.length >= 2 ? args[1] : null, Paths.get(""), LocalDateTime.now());
+            .resolveRequestedOrDefault(commandOptions.outDirArgument, Paths.get(""), LocalDateTime.now());
         send(sender, GuidebookText.CommandExportSiteStart, outDir);
         try {
-            GuideSiteExportTask.Result result = new GuideSiteExportTask(outDir).run();
+            GuideSiteExportTask.Result result = new GuideSiteExportTask(
+                outDir,
+                new GuideSiteExportOptions(commandOptions.exportPonderEveryTick)).run();
             send(
                 sender,
                 GuidebookText.CommandExportSiteSuccess,
@@ -210,6 +218,20 @@ public class GuideNhClientCommand extends CommandBase {
         } catch (Throwable t) {
             send(sender, GuidebookText.CommandExportSiteFailure, getErrorMessage(t));
         }
+    }
+
+    private ExportSiteCommandOptions parseExportSiteCommandOptions(String[] args) {
+        String outDirArgument = null;
+        boolean exportPonderEveryTick = false;
+        for (int i = 1; i < args.length; i++) {
+            String arg = args[i];
+            if ("--ponder-frames".equalsIgnoreCase(arg) || "--ponder-every-tick".equalsIgnoreCase(arg)) {
+                exportPonderEveryTick = true;
+            } else if (outDirArgument == null) {
+                outDirArgument = arg;
+            }
+        }
+        return new ExportSiteCommandOptions(outDirArgument, exportPonderEveryTick);
     }
 
     private void exportStructure(ICommandSender sender, String[] args) throws CommandException {
@@ -260,5 +282,16 @@ public class GuideNhClientCommand extends CommandBase {
         return throwable.getMessage() != null ? throwable.getMessage()
             : throwable.getClass()
                 .getSimpleName();
+    }
+
+    public static class ExportSiteCommandOptions {
+
+        private final String outDirArgument;
+        private final boolean exportPonderEveryTick;
+
+        public ExportSiteCommandOptions(String outDirArgument, boolean exportPonderEveryTick) {
+            this.outDirArgument = outDirArgument;
+            this.exportPonderEveryTick = exportPonderEveryTick;
+        }
     }
 }

@@ -13,6 +13,7 @@ import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
@@ -34,6 +35,7 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
+import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportBlockContext;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportSession;
@@ -471,6 +473,7 @@ public class RegionWandItem extends Item {
                 entityNbt.removeTag("Pos");
                 entityNbt.removeTag("Motion");
                 entityNbt.removeTag("id");
+                GuidebookSceneEntityImportSupport.sanitizeCustomName(entityNbt);
                 if (!entityNbt.hasNoTags()) {
                     try {
                         String s = GuideTextNbtCodec.writeTextSafeCompound(entityNbt);
@@ -497,6 +500,12 @@ public class RegionWandItem extends Item {
                 .append('"')
                 .append(" z=\"")
                 .append(rz)
+                .append('"');
+            sb.append(" rotationY=\"")
+                .append(entity.rotationYaw)
+                .append('"')
+                .append(" rotationX=\"")
+                .append(entity.rotationPitch)
                 .append('"');
             if (dataNbt != null && !dataNbt.isEmpty() && !"{}".equals(dataNbt)) {
                 sb.append(" data='")
@@ -616,6 +625,10 @@ public class RegionWandItem extends Item {
                 // issues with Minecraft 1.7.10's text NBT parser.
                 entry.setFloat("yaw", entity.rotationYaw);
                 entry.setFloat("pitch", entity.rotationPitch);
+                if (entity instanceof EntityLivingBase living) {
+                    entry.setFloat("bodyYaw", living.renderYawOffset);
+                    entry.setFloat("headYaw", living.rotationYawHead);
+                }
                 if (playerName != null) {
                     entry.setString("name", playerName);
                 }
@@ -630,6 +643,7 @@ public class RegionWandItem extends Item {
                 entityNbt.removeTag("Motion");
                 entityNbt.removeTag("id");
                 entityNbt.removeTag("Rotation"); // stored separately as yaw/pitch above
+                GuidebookSceneEntityImportSupport.sanitizeCustomName(entityNbt);
                 if (!entityNbt.hasNoTags()) {
                     entry.setTag("nbt", entityNbt);
                 }

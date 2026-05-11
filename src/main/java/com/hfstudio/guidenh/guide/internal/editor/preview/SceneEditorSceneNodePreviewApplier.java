@@ -9,7 +9,6 @@ import java.util.Locale;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -35,7 +34,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
-import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
+import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
@@ -333,35 +332,9 @@ public class SceneEditorSceneNodePreviewApplier {
             NBTTagList entitiesTag = root.getTagList("entities", 10);
             for (int i = 0; i < entitiesTag.tagCount(); i++) {
                 NBTTagCompound et = entitiesTag.getCompoundTagAt(i);
-                String entityId = et.getString("id");
-                if (entityId.isEmpty()) continue;
-                float px = et.getFloat("px");
-                float py = et.getFloat("py");
-                float pz = et.getFloat("pz");
-                String playerName = et.hasKey("name", 8) ? et.getString("name") : null;
-                NBTTagCompound entityNbt = et.hasKey("nbt", 10) ? (NBTTagCompound) et.getCompoundTag("nbt")
-                    .copy() : new NBTTagCompound();
-                Entity entity = null;
-                try {
-                    entity = GuidebookSceneEntityLoader.loadFromNbt(fakeWorld, entityId, entityNbt, playerName, null);
-                } catch (Throwable ignored) {}
+                Entity entity = GuidebookSceneEntityImportSupport
+                    .loadImportedEntityUnclamped(fakeWorld, et, 0f, 0f, 0f);
                 if (entity != null) {
-                    entity.setPosition(px, py, pz);
-                    // Apply explicit yaw/pitch from the entry (overrides any Rotation from NBT).
-                    if (et.hasKey("yaw") || et.hasKey("pitch")) {
-                        float yaw = et.getFloat("yaw");
-                        float pitch = et.getFloat("pitch");
-                        entity.rotationYaw = yaw;
-                        entity.rotationPitch = pitch;
-                        entity.prevRotationYaw = yaw;
-                        entity.prevRotationPitch = pitch;
-                        if (entity instanceof EntityLivingBase living) {
-                            living.renderYawOffset = yaw;
-                            living.prevRenderYawOffset = yaw;
-                            living.rotationYawHead = yaw;
-                            living.prevRotationYawHead = yaw;
-                        }
-                    }
                     level.addEntity(entity);
                 }
             }

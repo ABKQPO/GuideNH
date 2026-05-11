@@ -81,6 +81,7 @@ public class GuideSiteWriter {
         writeResource(
             outDir.resolve("_site/textures/background.png"),
             "/assets/guidenh/siteexport/textures/background.png");
+        writeResource(outDir.resolve("_site/textures/guide/buttons.png"), "/assets/guidenh/textures/guide/buttons.png");
         writeResource(outDir.resolve("_site/textures/slot.png"), "/assets/guidenh/siteexport/textures/slot.png");
         writeResource(
             outDir.resolve("_site/textures/slot_cross.png"),

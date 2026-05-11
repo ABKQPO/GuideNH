@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFence
 import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
@@ -47,6 +48,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstInlineCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLink;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstListItem;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstStrong;
@@ -95,6 +97,7 @@ public class GuideSiteHtmlCompiler {
     private final SceneTagRenderer sceneTagRenderer;
     private final ImageResolver imageResolver;
     private final MdxTagRenderer mdxTagRenderer;
+    private final GuideSiteLatexExporter latexExporter;
 
     public GuideSiteHtmlCompiler() {
         this(new GuideSiteRecipeTagRenderer(), passthroughImageResolver(), noopMdxTagRenderer());
@@ -110,11 +113,17 @@ public class GuideSiteHtmlCompiler {
 
     public GuideSiteHtmlCompiler(RecipeTagRenderer recipeTagRenderer, ImageResolver imageResolver,
         MdxTagRenderer mdxTagRenderer) {
+        this(recipeTagRenderer, imageResolver, mdxTagRenderer, null);
+    }
+
+    public GuideSiteHtmlCompiler(RecipeTagRenderer recipeTagRenderer, ImageResolver imageResolver,
+        MdxTagRenderer mdxTagRenderer, @Nullable GuideSiteLatexExporter latexExporter) {
         this(
             recipeTagRenderer,
-            new GuideSiteSceneTagRenderer(recipeTagRenderer, imageResolver, mdxTagRenderer),
+            new GuideSiteSceneTagRenderer(recipeTagRenderer, imageResolver, mdxTagRenderer, latexExporter),
             imageResolver,
-            mdxTagRenderer);
+            mdxTagRenderer,
+            latexExporter);
     }
 
     public GuideSiteHtmlCompiler(RecipeTagRenderer recipeTagRenderer, SceneTagRenderer sceneTagRenderer) {
@@ -128,10 +137,16 @@ public class GuideSiteHtmlCompiler {
 
     public GuideSiteHtmlCompiler(RecipeTagRenderer recipeTagRenderer, SceneTagRenderer sceneTagRenderer,
         ImageResolver imageResolver, MdxTagRenderer mdxTagRenderer) {
+        this(recipeTagRenderer, sceneTagRenderer, imageResolver, mdxTagRenderer, null);
+    }
+
+    public GuideSiteHtmlCompiler(RecipeTagRenderer recipeTagRenderer, SceneTagRenderer sceneTagRenderer,
+        ImageResolver imageResolver, MdxTagRenderer mdxTagRenderer, @Nullable GuideSiteLatexExporter latexExporter) {
         this.recipeTagRenderer = recipeTagRenderer;
         this.sceneTagRenderer = sceneTagRenderer;
         this.imageResolver = imageResolver;
         this.mdxTagRenderer = mdxTagRenderer;
+        this.latexExporter = latexExporter;
     }
 
     public String compileBody(ParsedGuidePage parsed, GuideSiteTemplateRegistry templates) {
@@ -184,7 +199,7 @@ public class GuideSiteHtmlCompiler {
         if (node instanceof MdAstParagraph paragraph) {
             String displayFormula = extractSoleDisplayLatex(paragraph);
             if (displayFormula != null) {
-                return renderLatex(displayFormula, null, 1.0f, false, null, 0, 0, true, templates);
+                return renderLatex(displayFormula, null, 1.0f, 100.0f, false, null, 0, 0, true, templates);
             }
             return "<p>"
                 + compileChildren(paragraph.children(), templates, defaultNamespace, currentPageId, sceneResolver)
@@ -319,9 +334,7 @@ public class GuideSiteHtmlCompiler {
             }
         }
         if (node instanceof MdAstListItem listItem) {
-            return "<li>"
-                + compileChildren(listItem.children(), templates, defaultNamespace, currentPageId, sceneResolver)
-                + "</li>";
+            return compileListItem(listItem, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if (node instanceof GfmTableRow row) {
             return compileTableRow(row, templates, defaultNamespace, currentPageId, sceneResolver, false, null);
@@ -583,15 +596,27 @@ public class GuideSiteHtmlCompiler {
         }
         String color = element.getAttributeString("color", null);
         float scale = parseFloat(element.getAttributeString("scale", null), 1.0f);
+        float sourceScale = parseFloat(element.getAttributeString("sourceScale", null), 100.0f);
         boolean showTooltip = readBoolean(element, "showTooltip", false);
         String valign = element.getAttributeString("valign", null);
         int offsetX = readInt(element, "offsetX", 0);
         int offsetY = readInt(element, "offsetY", 0);
-        return renderLatex(formula, color, scale, showTooltip, valign, offsetX, offsetY, display, templates);
+        return renderLatex(
+            formula,
+            color,
+            scale,
+            sourceScale,
+            showTooltip,
+            valign,
+            offsetX,
+            offsetY,
+            display,
+            templates);
     }
 
-    private String renderLatex(String formula, @Nullable String color, float scale, boolean showTooltip,
-        @Nullable String valign, int offsetX, int offsetY, boolean display, GuideSiteTemplateRegistry templates) {
+    private String renderLatex(String formula, @Nullable String color, float scale, float sourceScale,
+        boolean showTooltip, @Nullable String valign, int offsetX, int offsetY, boolean display,
+        GuideSiteTemplateRegistry templates) {
         String tag = display ? "div" : "span";
         StringBuilder classes = new StringBuilder(
             display ? "guide-latex guide-latex-display" : "guide-latex guide-latex-inline");
@@ -604,22 +629,33 @@ public class GuideSiteHtmlCompiler {
                             .toLowerCase(Locale.ROOT)));
         }
 
-        String cssColor = parseLatexCssColor(color);
         StringBuilder style = new StringBuilder();
-        if (cssColor != null) {
-            style.append("color:")
-                .append(cssColor)
-                .append(";");
-        }
         float safeScale = Math.max(0.1f, scale);
-        if (safeScale != 1.0f || offsetX != 0 || offsetY != 0) {
+        int fillColorArgb = parseLatexColorArgb(color);
+        GuideSiteLatexExporter.ExportedLatex exported = latexExporter != null
+            ? latexExporter.export(formula, fillColorArgb, Math.max(16f, sourceScale))
+            : null;
+        if (exported != null) {
+            appendCssPx(style, "width", displayWidth(exported, safeScale));
+            appendCssPx(style, "height", displayHeight(exported, safeScale));
+            if (!display && (valign == null || valign.trim()
+                .isEmpty() || "baseline".equalsIgnoreCase(valign.trim()))) {
+                appendCssPx(style, "vertical-align", -displayDepth(exported, safeScale));
+            }
+        } else {
+            String cssColor = parseLatexCssColor(color);
+            if (cssColor != null) {
+                style.append("color:")
+                    .append(cssColor)
+                    .append(";");
+            }
+        }
+        if (offsetX != 0 || offsetY != 0) {
             style.append("transform:translate(")
                 .append(offsetX)
                 .append("px,")
                 .append(offsetY)
-                .append("px) scale(")
-                .append(safeScale)
-                .append(");");
+                .append("px);");
         }
 
         String templateId = null;
@@ -644,11 +680,41 @@ public class GuideSiteHtmlCompiler {
                 .append("\"");
         }
         html.append(">")
-            .append(escapeHtml(formula))
+            .append(renderLatexBody(formula, exported))
             .append("</")
             .append(tag)
             .append(">");
         return html.toString();
+    }
+
+    private String renderLatexBody(String formula, @Nullable GuideSiteLatexExporter.ExportedLatex exported) {
+        if (exported == null) {
+            return escapeHtml(formula);
+        }
+        return "<img class=\"guide-latex-image\" src=\"" + escapeAttribute(exported.src())
+            + "\" alt=\""
+            + escapeAttribute(formula)
+            + "\">";
+    }
+
+    private int displayWidth(GuideSiteLatexExporter.ExportedLatex exported, float scale) {
+        return Math.max(1, (int) Math.ceil((double) exported.widthPx() * 20.0d * scale / exported.referenceHeightPx()));
+    }
+
+    private int displayHeight(GuideSiteLatexExporter.ExportedLatex exported, float scale) {
+        return Math
+            .max(1, (int) Math.ceil((double) exported.heightPx() * 20.0d * scale / exported.referenceHeightPx()));
+    }
+
+    private int displayDepth(GuideSiteLatexExporter.ExportedLatex exported, float scale) {
+        return Math.max(0, (int) Math.ceil((double) exported.depthPx() * 20.0d * scale / exported.referenceHeightPx()));
+    }
+
+    private void appendCssPx(StringBuilder style, String property, int value) {
+        style.append(property)
+            .append(':')
+            .append(value)
+            .append("px;");
     }
 
     private String compileText(String text, GuideSiteTemplateRegistry templates) {
@@ -658,7 +724,7 @@ public class GuideSiteHtmlCompiler {
         StringBuilder html = new StringBuilder();
         for (MarkdownLatexShorthand.Segment segment : MarkdownLatexShorthand.split(text)) {
             if (segment.isFormula()) {
-                html.append(renderLatex(segment.getValue(), null, 1.0f, false, null, 0, 0, false, templates));
+                html.append(renderLatex(segment.getValue(), null, 1.0f, 100.0f, false, null, 0, 0, false, templates));
             } else {
                 html.append(escapeHtml(segment.getValue()));
             }
@@ -785,6 +851,87 @@ public class GuideSiteHtmlCompiler {
             .append(tagName)
             .append(">");
         return html.toString();
+    }
+
+    private String compileListItem(MdAstListItem listItem, GuideSiteTemplateRegistry templates, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        var taskMarker = MarkdownListSemantics.extractTaskMarker(listItem.children());
+        if (taskMarker == null) {
+            return "<li>"
+                + compileChildren(listItem.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</li>";
+        }
+
+        StringBuilder html = new StringBuilder();
+        html.append("<li class=\"guide-task-list-item\">")
+            .append("<input class=\"guide-task-list-checkbox\" type=\"checkbox\" disabled");
+        if (taskMarker.checked()) {
+            html.append(" checked");
+        }
+        html.append(">")
+            .append("<div class=\"guide-task-list-content\">")
+            .append(
+                compileTaskListItemChildren(
+                    listItem,
+                    taskMarker,
+                    templates,
+                    defaultNamespace,
+                    currentPageId,
+                    sceneResolver))
+            .append("</div></li>");
+        return html.toString();
+    }
+
+    private String compileTaskListItemChildren(MdAstListItem listItem, MarkdownListSemantics.TaskMarker taskMarker,
+        GuideSiteTemplateRegistry templates, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+        SceneResolver sceneResolver) {
+        if (listItem.children()
+            .isEmpty()
+            || !(listItem.children()
+                .get(0) instanceof MdAstParagraph paragraph)) {
+            return compileChildren(listItem.children(), templates, defaultNamespace, currentPageId, sceneResolver);
+        }
+
+        StringBuilder html = new StringBuilder();
+        html.append(
+            compileNode(
+                cloneParagraphWithLeadingTextOverride(paragraph, taskMarker.remainingText()),
+                templates,
+                defaultNamespace,
+                currentPageId,
+                sceneResolver));
+        for (int i = 1; i < listItem.children()
+            .size(); i++) {
+            html.append(
+                compileNode(
+                    listItem.children()
+                        .get(i),
+                    templates,
+                    defaultNamespace,
+                    currentPageId,
+                    sceneResolver));
+        }
+        return html.toString();
+    }
+
+    private MdAstParagraph cloneParagraphWithLeadingTextOverride(MdAstParagraph original, String leadingText) {
+        MdAstParagraph copy = new MdAstParagraph();
+        boolean replaced = false;
+        for (var child : original.children()) {
+            if (!replaced && child instanceof MdAstText) {
+                if (leadingText != null && !leadingText.isEmpty()) {
+                    MdAstText text = new MdAstText();
+                    text.setValue(leadingText);
+                    copy.addChild(text);
+                }
+                replaced = true;
+                continue;
+            }
+            if (child instanceof MdAstNode astNode) {
+                copy.addChild(astNode);
+            }
+        }
+        return copy;
     }
 
     private String compileCodeBlock(MdAstCode code) {
@@ -1061,6 +1208,26 @@ public class GuideSiteHtmlCompiler {
             return null;
         }
         return escapeCssColor(raw);
+    }
+
+    private int parseLatexColorArgb(@Nullable String raw) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return 0xFFFFFFFF;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.startsWith("#")) {
+            trimmed = trimmed.substring(1);
+        }
+        try {
+            if (trimmed.length() == 6) {
+                return 0xFF000000 | Integer.parseUnsignedInt(trimmed, 16);
+            }
+            if (trimmed.length() == 8) {
+                return (int) Long.parseLong(trimmed, 16);
+            }
+        } catch (NumberFormatException ignored) {}
+        return 0xFFFFFFFF;
     }
 
     private String escapeCssColor(String raw) {

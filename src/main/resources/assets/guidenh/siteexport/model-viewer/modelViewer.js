@@ -3,6 +3,15 @@ import { setupGameScene as setupVendorGameScene } from "./vendor/modelViewer-A42
 const sceneStateManifestCache = new Map();
 const ROOT_PREFIX_TOKEN = "{{root}}/";
 const SCENE_CONTEXT_KEY = Symbol("guidenhSceneContext");
+const SITE_SCENE_CONTROL_SCALE = 3;
+const SCENE_BUTTON_ICONS = {
+  previousKeyframe: [0, 0],
+  playPause: [0, 64],
+  restart: [0, 32],
+  zoomIn: [48, 16],
+  zoomOut: [32, 16],
+  resetView: [0, 32],
+};
 
 function findDescriptor(target, property) {
   let current = target;
@@ -148,6 +157,7 @@ function attachSceneContext(sceneContext) {
   const wrapper = sceneContext?.runtime?.wrapper;
   if (wrapper instanceof HTMLElement) {
     wrapper[SCENE_CONTEXT_KEY] = sceneContext;
+    normalizeVendorSceneControls(wrapper);
   }
 }
 
@@ -226,18 +236,77 @@ function ensureStateControlsHost(wrapper) {
   if (!(wrapper instanceof HTMLElement)) {
     return null;
   }
-  let controls = wrapper.querySelector(".controls");
-  if (!(controls instanceof HTMLElement)) {
-    return null;
-  }
-  let host = controls.querySelector(".scene-state-controls");
+  let host = wrapper.querySelector(":scope > .scene-state-controls");
   if (!(host instanceof HTMLElement)) {
     host = wrapper.ownerDocument.createElement("div");
     host.className = "scene-state-controls";
-    controls.append(host);
+    wrapper.append(host);
   }
   host.textContent = "";
   return host;
+}
+
+function applyIconButton(button, icon, labelText) {
+  if (!(button instanceof HTMLElement) || !Array.isArray(icon)) {
+    return button;
+  }
+  button.classList.add("scene-icon-button");
+  button.style.setProperty("--scene-icon-x", `${-icon[0] * SITE_SCENE_CONTROL_SCALE}px`);
+  button.style.setProperty("--scene-icon-y", `${-icon[1] * SITE_SCENE_CONTROL_SCALE}px`);
+  if (labelText) {
+    button.setAttribute("aria-label", labelText);
+    button.title = labelText;
+  }
+  return button;
+}
+
+function normalizeVendorSceneControls(wrapper) {
+  const controls = wrapper.querySelector(":scope > .controls");
+  if (!(controls instanceof HTMLElement)) {
+    return;
+  }
+  for (const button of controls.querySelectorAll("button")) {
+    const text = button.textContent?.trim();
+    if (text === "+") {
+      applyIconButton(button, SCENE_BUTTON_ICONS.zoomIn, button.dataset.tooltipText || "Zoom in");
+      button.textContent = "";
+    } else if (text === "-") {
+      applyIconButton(button, SCENE_BUTTON_ICONS.zoomOut, button.dataset.tooltipText || "Zoom out");
+      button.textContent = "";
+    } else if (text === "R") {
+      applyIconButton(button, SCENE_BUTTON_ICONS.resetView, button.dataset.tooltipText || "Reset view");
+      button.textContent = "";
+    }
+  }
+}
+
+function createSliderVisual(documentRef, range) {
+  const visual = documentRef.createElement("span");
+  visual.className = "scene-state-slider-visual";
+
+  const track = documentRef.createElement("span");
+  track.className = "scene-state-slider-track";
+  visual.append(track);
+
+  const fill = documentRef.createElement("span");
+  fill.className = "scene-state-slider-fill";
+  visual.append(fill);
+
+  const thumb = documentRef.createElement("span");
+  thumb.className = "scene-state-slider-thumb";
+  visual.append(thumb);
+
+  const syncFraction = () => {
+    const min = Number(range.min) || 0;
+    const max = Number(range.max) || min;
+    const value = Number(range.value) || min;
+    const fraction = max > min ? (value - min) / (max - min) : 0;
+    visual.style.setProperty("--scene-state-fraction", String(Math.max(0, Math.min(1, fraction))));
+  };
+  range.addEventListener("input", syncFraction);
+  range.addEventListener("change", syncFraction);
+  syncFraction();
+  return visual;
 }
 
 function createRangeControl(documentRef, labelText, min, max, currentValue, formatValue, onChange) {
@@ -277,7 +346,11 @@ function createRangeControl(documentRef, labelText, min, max, currentValue, form
   range.addEventListener("input", syncValue);
   range.addEventListener("change", () => onChange(Number(range.value) || min));
   syncValue();
-  wrapper.append(range);
+  const sliderWrap = documentRef.createElement("span");
+  sliderWrap.className = "scene-state-slider-wrap";
+  sliderWrap.append(createSliderVisual(documentRef, range));
+  sliderWrap.append(range);
+  wrapper.append(sliderWrap);
   return wrapper;
 }
 
@@ -304,23 +377,20 @@ function createPonderControl(documentRef, control, currentTick, onChange) {
 
   const previousButton = documentRef.createElement("button");
   previousButton.type = "button";
-  previousButton.className = "scene-ponder-button";
-  previousButton.textContent = "<";
-  previousButton.title = control.previousLabel || "Previous Keyframe";
+  previousButton.className = "scene-ponder-button scene-icon-button";
+  applyIconButton(previousButton, SCENE_BUTTON_ICONS.previousKeyframe, control.previousLabel || "Previous Keyframe");
   buttons.append(previousButton);
 
   const playButton = documentRef.createElement("button");
   playButton.type = "button";
-  playButton.className = "scene-ponder-button";
-  playButton.textContent = ">";
-  playButton.title = control.playPauseLabel || "Play / Pause";
+  playButton.className = "scene-ponder-button scene-icon-button";
+  applyIconButton(playButton, SCENE_BUTTON_ICONS.playPause, control.playPauseLabel || "Play / Pause");
   buttons.append(playButton);
 
   const restartButton = documentRef.createElement("button");
   restartButton.type = "button";
-  restartButton.className = "scene-ponder-button";
-  restartButton.textContent = "R";
-  restartButton.title = control.restartLabel || "Restart";
+  restartButton.className = "scene-ponder-button scene-icon-button";
+  applyIconButton(restartButton, SCENE_BUTTON_ICONS.restart, control.restartLabel || "Restart");
   buttons.append(restartButton);
 
   const range = documentRef.createElement("input");
@@ -329,7 +399,11 @@ function createPonderControl(documentRef, control, currentTick, onChange) {
   range.min = "0";
   range.max = String(Math.max(0, Number(control.totalTime) || 0));
   range.step = "1";
-  wrapper.append(range);
+  const sliderWrap = documentRef.createElement("span");
+  sliderWrap.className = "scene-state-slider-wrap scene-ponder-slider-wrap";
+  sliderWrap.append(createSliderVisual(documentRef, range));
+  sliderWrap.append(range);
+  wrapper.append(sliderWrap);
 
   const ticks = Array.isArray(control.ticks)
     ? control.ticks.map((tick) => Math.max(0, Number(tick) || 0))
@@ -363,6 +437,7 @@ function createPonderControl(documentRef, control, currentTick, onChange) {
   const setDisplayedTick = (tick) => {
     const normalized = Math.max(0, Math.min(Number(range.max) || 0, Number(tick) || 0));
     range.value = String(normalized);
+    range.dispatchEvent(new Event("input"));
     const displayValue = describeTick(normalized);
     value.textContent = displayValue;
     range.setAttribute("aria-valuetext", displayValue);
@@ -397,7 +472,12 @@ function createPonderControl(documentRef, control, currentTick, onChange) {
     setDisplayedTick(0);
     onChange(0);
   });
-  range.addEventListener("input", () => setDisplayedTick(range.value));
+  range.addEventListener("input", () => {
+    const normalized = Math.max(0, Math.min(Number(range.max) || 0, Number(range.value) || 0));
+    const displayValue = describeTick(normalized);
+    value.textContent = displayValue;
+    range.setAttribute("aria-valuetext", displayValue);
+  });
   range.addEventListener("change", () => {
     const tick = nearestExportedTick(Number(range.value) || 0);
     setDisplayedTick(tick);
@@ -437,21 +517,6 @@ async function mountSceneStateControls(sceneContext) {
     );
   }
 
-  if (controls.visibleLayer && Number.isFinite(Number(controls.visibleLayer.max))) {
-    const maxLayer = Math.max(0, Number(controls.visibleLayer.max) || 0);
-    host.append(
-      createRangeControl(
-        documentRef,
-        controls.visibleLayer.label || "Layer",
-        0,
-        maxLayer,
-        sceneContext.currentState.visibleLayer,
-        (value) => (value === 0 ? controls.visibleLayer.allLabel || "All" : String(value)),
-        (value) => updateSceneState(sceneContext, { visibleLayer: value }),
-      ),
-    );
-  }
-
   if (controls.tier && Number.isFinite(Number(controls.tier.min)) && Number.isFinite(Number(controls.tier.max))) {
     const min = Math.max(1, Number(controls.tier.min) || 1);
     const max = Math.max(min, Number(controls.tier.max) || min);
@@ -464,6 +529,21 @@ async function mountSceneStateControls(sceneContext) {
         sceneContext.currentState.tier,
         (value) => String(value),
         (value) => updateSceneState(sceneContext, { tier: value }),
+      ),
+    );
+  }
+
+  if (controls.visibleLayer && Number.isFinite(Number(controls.visibleLayer.max))) {
+    const maxLayer = Math.max(0, Number(controls.visibleLayer.max) || 0);
+    host.append(
+      createRangeControl(
+        documentRef,
+        controls.visibleLayer.label || "Layer",
+        0,
+        maxLayer,
+        sceneContext.currentState.visibleLayer,
+        (value) => (value === 0 ? controls.visibleLayer.allLabel || "All" : String(value)),
+        (value) => updateSceneState(sceneContext, { visibleLayer: value }),
       ),
     );
   }

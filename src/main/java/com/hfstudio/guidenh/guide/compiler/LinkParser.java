@@ -41,11 +41,15 @@ public class LinkParser {
 
         // Determine the page id, account for relative paths
         ResourceLocation pageId;
-        try {
-            pageId = IdUtils.resolveLink(href, compiler.getPageId());
-        } catch (IllegalArgumentException ignored) {
-            visitor.handleError("Invalid link");
-            return;
+        if (href.isEmpty()) {
+            pageId = compiler.getPageId();
+        } else {
+            try {
+                pageId = IdUtils.resolveLink(href, compiler.getPageId());
+            } catch (IllegalArgumentException ignored) {
+                visitor.handleError("Invalid link");
+                return;
+            }
         }
 
         if (!compiler.getPageCollection()

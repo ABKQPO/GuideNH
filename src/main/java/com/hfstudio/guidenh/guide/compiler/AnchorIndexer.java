@@ -25,6 +25,7 @@ public class AnchorIndexer {
     }
 
     public AnchorTarget get(String anchor) {
+        var normalizedHeadingAnchor = normalizeAnchor(anchor);
         var visitor = new LytVisitor() {
 
             final Stack<LytNode> nodeStack = new Stack<>();
@@ -34,7 +35,7 @@ public class AnchorIndexer {
             public Result beforeNode(LytNode node) {
                 if (node instanceof LytHeading heading) {
                     var headingAnchor = normalizeAnchor(heading.getTextContent());
-                    if (headingAnchor.equals(anchor)) {
+                    if (headingAnchor.equals(normalizedHeadingAnchor)) {
                         target = new AnchorTarget(node, null);
                         return Result.STOP;
                     }

@@ -9,6 +9,8 @@ public class GuideSiteExportedScene {
     private final String hoverTargetsJson;
     private final String stateManifestPath;
     private final String blockStatsHtml;
+    private final String blockStatsLayoutClass;
+    private final String blockStatsLayoutStyle;
 
     public GuideSiteExportedScene(String placeholderPath, String scenePath) {
         this(placeholderPath, scenePath, null, null, null, null);
@@ -30,6 +32,21 @@ public class GuideSiteExportedScene {
 
     public GuideSiteExportedScene(String placeholderPath, String scenePath, String inWorldJson, String overlayJson,
         String hoverTargetsJson, String stateManifestPath, String blockStatsHtml) {
+        this(
+            placeholderPath,
+            scenePath,
+            inWorldJson,
+            overlayJson,
+            hoverTargetsJson,
+            stateManifestPath,
+            blockStatsHtml,
+            null,
+            null);
+    }
+
+    public GuideSiteExportedScene(String placeholderPath, String scenePath, String inWorldJson, String overlayJson,
+        String hoverTargetsJson, String stateManifestPath, String blockStatsHtml, String blockStatsLayoutClass,
+        String blockStatsLayoutStyle) {
         this.placeholderPath = placeholderPath;
         this.scenePath = scenePath;
         this.inWorldJson = inWorldJson;
@@ -37,6 +54,8 @@ public class GuideSiteExportedScene {
         this.hoverTargetsJson = hoverTargetsJson;
         this.stateManifestPath = stateManifestPath;
         this.blockStatsHtml = blockStatsHtml;
+        this.blockStatsLayoutClass = blockStatsLayoutClass;
+        this.blockStatsLayoutStyle = blockStatsLayoutStyle;
     }
 
     public String placeholderPath() {
@@ -65,5 +84,13 @@ public class GuideSiteExportedScene {
 
     public String blockStatsHtml() {
         return blockStatsHtml;
+    }
+
+    public String blockStatsLayoutClass() {
+        return blockStatsLayoutClass;
+    }
+
+    public String blockStatsLayoutStyle() {
+        return blockStatsLayoutStyle;
     }
 }

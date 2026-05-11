@@ -36,6 +36,7 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene.BlockStatsLayoutState;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene.PonderTimelineKeyframe;
 import com.hfstudio.guidenh.guide.scene.SceneBlockStatsEntry;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
@@ -51,9 +52,15 @@ public class GuideSiteExportTask {
     private static final int MAX_SCENE_STATE_VARIANTS = 256;
 
     private final Path outDir;
+    private final GuideSiteExportOptions options;
 
     public GuideSiteExportTask(Path outDir) {
+        this(outDir, GuideSiteExportOptions.DEFAULT);
+    }
+
+    public GuideSiteExportTask(Path outDir, GuideSiteExportOptions options) {
         this.outDir = outDir;
+        this.options = options != null ? options : GuideSiteExportOptions.DEFAULT;
     }
 
     public Result run() throws Exception {
@@ -148,6 +155,7 @@ public class GuideSiteExportTask {
 
                     NavigationTree navigationTree = NavigationTree.build(parsedPages);
                     GuideSiteHtmlCompiler compiler = createHtmlCompiler(
+                        assets,
                         assetExporter,
                         new GuideSiteRecipeTagRenderer(itemIconExporter, neiPhase1Exporter),
                         new GuideSiteMdxTagRenderer(
@@ -444,10 +452,14 @@ public class GuideSiteExportTask {
             assetId -> loadGuideAsset(guide, resourceManager, language, assetId));
     }
 
-    private GuideSiteHtmlCompiler createHtmlCompiler(GuideSitePageAssetExporter assetExporter,
-        GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
+    private GuideSiteHtmlCompiler createHtmlCompiler(GuideSiteAssetRegistry assets,
+        GuideSitePageAssetExporter assetExporter, GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
         GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer) {
-        return new GuideSiteHtmlCompiler(recipeTagRenderer, assetExporter::resolveImageSrc, mdxTagRenderer);
+        return new GuideSiteHtmlCompiler(
+            recipeTagRenderer,
+            assetExporter::resolveImageSrc,
+            mdxTagRenderer,
+            new GuideSiteLatexExporter(assets));
     }
 
     private byte[] loadGuideAsset(MutableGuide guide, IResourceManager resourceManager, String language,
@@ -577,7 +589,9 @@ public class GuideSiteExportTask {
             baseScene.overlayJson(),
             baseScene.hoverTargetsJson(),
             manifestPath,
-            renderBlockStatsHtml(scene, itemIconResolver));
+            renderBlockStatsHtml(scene, itemIconResolver),
+            blockStatsLayoutClass(scene),
+            blockStatsLayoutStyle(scene));
     }
 
     private GuideSiteExportedScene exportSceneState(ParsedGuidePage parsedPage, LytGuidebookScene scene,
@@ -622,6 +636,61 @@ public class GuideSiteExportTask {
         }
         html.append("</div>");
         return html.toString();
+    }
+
+    private String blockStatsLayoutClass(LytGuidebookScene scene) {
+        if (scene == null || !scene.shouldExportBlockStats()) {
+            return null;
+        }
+        BlockStatsLayoutState state = scene.getBlockStatsLayoutStateForExport();
+        StringBuilder cssClass = new StringBuilder("guide-scene-export-frame--block-stats");
+        cssClass.append(" guide-scene-export-frame--block-stats-")
+            .append(
+                state.dock()
+                    .name()
+                    .toLowerCase(Locale.ROOT));
+        cssClass.append(" guide-scene-export-frame--block-stats-corner-")
+            .append(
+                state.corner()
+                    .name()
+                    .toLowerCase(Locale.ROOT)
+                    .replace('_', '-'));
+        cssClass.append(" guide-scene-export-frame--block-stats-mode-")
+            .append(
+                state.mode()
+                    .name()
+                    .toLowerCase(Locale.ROOT));
+        if (!state.visible()) {
+            cssClass.append(" guide-scene-export-frame--block-stats-hidden");
+        }
+        cssClass.append(
+            state.showNames() ? " guide-scene-export-frame--block-stats-names"
+                : " guide-scene-export-frame--block-stats-icons");
+        return cssClass.toString();
+    }
+
+    private String blockStatsLayoutStyle(LytGuidebookScene scene) {
+        if (scene == null || !scene.shouldExportBlockStats()) {
+            return null;
+        }
+        BlockStatsLayoutState state = scene.getBlockStatsLayoutStateForExport();
+        StringBuilder style = new StringBuilder();
+        appendCssPx(style, "--guide-scene-block-stats-max-width", state.maxWidth());
+        appendCssPx(style, "--guide-scene-block-stats-max-height", state.maxHeight());
+        appendCssPx(style, "--guide-scene-logical-width", state.sceneWidth());
+        appendCssPx(style, "--guide-scene-logical-height", state.sceneHeight());
+        appendCssPx(style, "--guide-scene-button-reserve", state.buttonColumnReserve());
+        return style.toString();
+    }
+
+    private void appendCssPx(StringBuilder style, String property, int value) {
+        if (style.length() > 0) {
+            style.append(';');
+        }
+        style.append(property)
+            .append(':')
+            .append(Math.max(0, value))
+            .append("px");
     }
 
     private String escapeAttribute(String text) {
@@ -709,13 +778,13 @@ public class GuideSiteExportTask {
         for (List<Integer> values : channelValues) {
             variantCount *= values.size();
             if (variantCount > MAX_SCENE_STATE_VARIANTS) {
-                FMLLog.getLogger()
-                    .warn(
-                        "[GuideNH] [GuideSiteExportTask] Skipping scene state manifest export because {} variants exceed limit {}.",
-                        variantCount,
-                        MAX_SCENE_STATE_VARIANTS);
+                warnSceneStateVariantLimit(variantCount);
                 return null;
             }
+        }
+        if (variantCount > MAX_SCENE_STATE_VARIANTS) {
+            warnSceneStateVariantLimit(variantCount);
+            return null;
         }
         if (variantCount <= 1) {
             return null;
@@ -879,6 +948,13 @@ public class GuideSiteExportTask {
             return Collections.singletonList(0);
         }
         ArrayList<Integer> states = new ArrayList<>();
+        if (options.exportPonderEveryTick()) {
+            int totalTime = Math.max(0, scene.getPonderTotalTimeForExport());
+            for (int tick = 0; tick <= totalTime; tick++) {
+                states.add(tick);
+            }
+            return states.isEmpty() ? Collections.singletonList(0) : states;
+        }
         addUniquePonderTickState(states, scene.getPonderCurrentTickForExport());
         for (PonderTimelineKeyframe keyframe : scene.getPonderTimelineKeyframesForExport()) {
             addUniquePonderTickState(states, keyframe.getTime());
@@ -892,6 +968,14 @@ public class GuideSiteExportTask {
         if (!states.contains(normalized)) {
             states.add(normalized);
         }
+    }
+
+    private void warnSceneStateVariantLimit(long variantCount) {
+        FMLLog.getLogger()
+            .warn(
+                "[GuideNH] [GuideSiteExportTask] Skipping scene state manifest export because {} variants exceed limit {}.",
+                variantCount,
+                MAX_SCENE_STATE_VARIANTS);
     }
 
     private List<Integer> buildTierStates(LytGuidebookScene scene, StructureLibSceneMetadata metadata) {

@@ -772,6 +772,20 @@ public class LytGuidebookScene extends LytBlock {
         return blockStatsEnabled && !getBlockStatsEntriesForExport().isEmpty();
     }
 
+    public BlockStatsLayoutState getBlockStatsLayoutStateForExport() {
+        return new BlockStatsLayoutState(
+            blockStatsVisible,
+            blockStatsMode,
+            blockStatsCorner,
+            blockStatsDock,
+            blockStatsShowNames,
+            blockStatsMaxWidth,
+            blockStatsMaxHeight,
+            width,
+            height,
+            buttonColumnReserve());
+    }
+
     private void invalidateDocumentLayout() {
         var document = getDocument();
         if (document != null) {
@@ -4342,6 +4356,74 @@ public class LytGuidebookScene extends LytBlock {
             this.entityTypeId = entityTypeId;
             this.playerName = playerName;
             this.playerUuid = playerUuid;
+        }
+    }
+
+    public static class BlockStatsLayoutState {
+
+        private final boolean visible;
+        private final BlockStatsMode mode;
+        private final BlockStatsCorner corner;
+        private final BlockStatsDock dock;
+        private final boolean showNames;
+        private final int maxWidth;
+        private final int maxHeight;
+        private final int sceneWidth;
+        private final int sceneHeight;
+        private final int buttonColumnReserve;
+
+        public BlockStatsLayoutState(boolean visible, BlockStatsMode mode, BlockStatsCorner corner, BlockStatsDock dock,
+            boolean showNames, int maxWidth, int maxHeight, int sceneWidth, int sceneHeight, int buttonColumnReserve) {
+            this.visible = visible;
+            this.mode = mode != null ? mode : BlockStatsMode.AUTO;
+            this.corner = corner != null ? corner : BlockStatsCorner.TOP_RIGHT;
+            this.dock = dock != null ? dock : BlockStatsDock.INSIDE;
+            this.showNames = showNames;
+            this.maxWidth = Math.max(BLOCK_STATS_MIN_WIDTH, maxWidth);
+            this.maxHeight = Math.max(BLOCK_STATS_MIN_HEIGHT, maxHeight);
+            this.sceneWidth = Math.max(16, sceneWidth);
+            this.sceneHeight = Math.max(16, sceneHeight);
+            this.buttonColumnReserve = Math.max(0, buttonColumnReserve);
+        }
+
+        public boolean visible() {
+            return visible;
+        }
+
+        public BlockStatsMode mode() {
+            return mode;
+        }
+
+        public BlockStatsCorner corner() {
+            return corner;
+        }
+
+        public BlockStatsDock dock() {
+            return dock;
+        }
+
+        public boolean showNames() {
+            return showNames;
+        }
+
+        public int maxWidth() {
+            return maxWidth;
+        }
+
+        public int maxHeight() {
+            return maxHeight;
+        }
+
+        public int sceneWidth() {
+            return sceneWidth;
+        }
+
+        public int sceneHeight() {
+            return sceneHeight;
+        }
+
+        public int buttonColumnReserve() {
+            return buttonColumnReserve;
         }
     }
 
