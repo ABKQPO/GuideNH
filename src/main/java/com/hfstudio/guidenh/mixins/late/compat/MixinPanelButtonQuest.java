@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import com.hfstudio.guidenh.compat.betterquesting.BqCompat;
+import com.hfstudio.guidenh.integration.betterquesting.BqCompat;
 
 import betterquesting.api.questing.IQuest;
 import betterquesting.api2.client.gui.controls.PanelButtonQuest;

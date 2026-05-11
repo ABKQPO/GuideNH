@@ -8,6 +8,7 @@ import java.util.List;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiTextField;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
@@ -26,12 +27,15 @@ public class SceneEditorMultilineTextArea {
     public static final int SCROLLBAR_THUMB_COLOR = 0xA0D8D8D8;
     public static final int SELECTION_COLOR = 0x663D89C9;
     public static final int EXTERNAL_HIGHLIGHT_COLOR = 0x4438BDF8;
+    public static final int SYNTAX_WARNING_COLOR = 0xFFFF6767;
+    public static final long IME_DUPLICATE_WINDOW_MILLIS = 250L;
 
     private final FontRenderer fontRenderer;
     private final SceneEditorScrollState scrollState = new SceneEditorScrollState();
     private final SceneEditorTextSelectionModel selectionModel = new SceneEditorTextSelectionModel();
     private final SceneEditorMultilineTextLayoutCache layoutCache = new SceneEditorMultilineTextLayoutCache();
     private final ClipboardAccess clipboardAccess;
+    private final GuiTextField imeFocusProxy;
 
     private int x;
     private int y;
@@ -51,6 +55,11 @@ public class SceneEditorMultilineTextArea {
     private int horizontalScrollbarGrabOffset;
     private int externalHighlightStart;
     private int externalHighlightEnd;
+    private int syntaxWarningStart;
+    private int syntaxWarningEnd;
+    private int pendingImePhysicalDuplicateChar;
+    private int recentPhysicalAsciiChar;
+    private long recentPhysicalAsciiAtMillis;
 
     public SceneEditorMultilineTextArea(FontRenderer fontRenderer) {
         this(fontRenderer, new ClipboardAccess() {
@@ -79,6 +88,9 @@ public class SceneEditorMultilineTextArea {
     public SceneEditorMultilineTextArea(FontRenderer fontRenderer, ClipboardAccess clipboardAccess) {
         this.fontRenderer = fontRenderer;
         this.clipboardAccess = clipboardAccess;
+        this.imeFocusProxy = new GuiTextField(fontRenderer, 0, 0, 1, Math.max(1, fontRenderer.FONT_HEIGHT + 2));
+        this.imeFocusProxy.setEnableBackgroundDrawing(false);
+        this.imeFocusProxy.setMaxStringLength(1);
         this.wrapEnabled = true;
         this.focused = false;
         this.selectingWithMouse = false;
@@ -88,6 +100,11 @@ public class SceneEditorMultilineTextArea {
         this.horizontalScrollbarGrabOffset = 0;
         this.externalHighlightStart = -1;
         this.externalHighlightEnd = -1;
+        this.syntaxWarningStart = -1;
+        this.syntaxWarningEnd = -1;
+        this.pendingImePhysicalDuplicateChar = -1;
+        this.recentPhysicalAsciiChar = -1;
+        this.recentPhysicalAsciiAtMillis = 0L;
     }
 
     public void setBounds(int x, int y, int width, int height) {
@@ -101,6 +118,7 @@ public class SceneEditorMultilineTextArea {
         this.width = safeWidth;
         this.height = safeHeight;
         rebuildLayoutCache();
+        syncImeFocusProxy();
     }
 
     public void setText(String text) {
@@ -117,6 +135,7 @@ public class SceneEditorMultilineTextArea {
                     .length()));
         rebuildLayoutCache();
         ensureCursorVisible();
+        syncImeFocusProxy();
     }
 
     public String getText() {
@@ -125,6 +144,84 @@ public class SceneEditorMultilineTextArea {
 
     public int getCursorIndex() {
         return selectionModel.getCursorIndex();
+    }
+
+    public boolean hasSelection() {
+        return selectionModel.hasSelection();
+    }
+
+    public int getSelectionStart() {
+        return selectionModel.getSelectionStart();
+    }
+
+    public int getSelectionEnd() {
+        return selectionModel.getSelectionEnd();
+    }
+
+    public String getSelectedText() {
+        return selectionModel.getSelectedText();
+    }
+
+    public void selectAll() {
+        selectionModel.selectAll();
+        ensureCursorVisible();
+        syncImeFocusProxy();
+    }
+
+    public void copySelection() {
+        if (!selectionModel.hasSelection()) {
+            return;
+        }
+        clipboardAccess.copy(selectionModel.getSelectedText());
+    }
+
+    public boolean cutSelection() {
+        if (!selectionModel.hasSelection()) {
+            return false;
+        }
+        clipboardAccess.copy(selectionModel.cutSelection());
+        rebuildLayoutCache();
+        ensureCursorVisible();
+        syncImeFocusProxy();
+        return true;
+    }
+
+    public boolean pasteClipboard() {
+        selectionModel.insertText(clipboardAccess.paste());
+        rebuildLayoutCache();
+        ensureCursorVisible();
+        syncImeFocusProxy();
+        return true;
+    }
+
+    public void applyEdit(String text, int selectionStart, int selectionEnd) {
+        selectionModel.setText(text != null ? text : "");
+        selectionModel.setSelection(selectionStart, selectionEnd);
+        rebuildLayoutCache();
+        ensureCursorVisible();
+        syncImeFocusProxy();
+    }
+
+    public void insertAtSelection(String text) {
+        selectionModel.insertText(text);
+        rebuildLayoutCache();
+        ensureCursorVisible();
+        syncImeFocusProxy();
+    }
+
+    public float getVerticalScrollFraction() {
+        int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
+        if (maxOffset <= 0) {
+            return 0f;
+        }
+        return scrollState.getOffsetPixels() / (float) maxOffset;
+    }
+
+    public void setVerticalScrollFraction(float fraction) {
+        int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
+        int offset = Math.round(Math.max(0f, Math.min(1f, fraction)) * maxOffset);
+        scrollState.setOffsetPixels(offset);
+        syncImeFocusProxy();
     }
 
     public boolean isWrapEnabled() {
@@ -141,6 +238,7 @@ public class SceneEditorMultilineTextArea {
         }
         rebuildLayoutCache();
         ensureCursorVisible();
+        syncImeFocusProxy();
     }
 
     public boolean isFocused() {
@@ -157,8 +255,22 @@ public class SceneEditorMultilineTextArea {
         this.externalHighlightEnd = -1;
     }
 
+    public void setSyntaxWarning(int startIndex, int endIndex) {
+        this.syntaxWarningStart = Math.max(0, startIndex);
+        this.syntaxWarningEnd = Math.max(this.syntaxWarningStart, endIndex);
+    }
+
+    public void clearSyntaxWarning() {
+        this.syntaxWarningStart = -1;
+        this.syntaxWarningEnd = -1;
+    }
+
     public void setFocused(boolean focused) {
         this.focused = focused;
+        if (focused) {
+            syncImeFocusProxy();
+        }
+        imeFocusProxy.setFocused(focused);
         if (!focused) {
             selectingWithMouse = false;
             draggingVerticalScrollbar = false;
@@ -176,9 +288,11 @@ public class SceneEditorMultilineTextArea {
         }
         if (!wrapEnabled && horizontalScrollbarVisible && GuiScreen.isShiftKeyDown()) {
             horizontalOffsetPixels = clampHorizontalOffset(horizontalOffsetPixels - Integer.signum(wheelDelta) * 24);
+            syncImeFocusProxy();
             return;
         }
         scrollState.scrollPixels(-Integer.signum(wheelDelta) * 16);
+        syncImeFocusProxy();
     }
 
     public boolean mouseClicked(int mouseX, int mouseY, int button) {
@@ -229,7 +343,7 @@ public class SceneEditorMultilineTextArea {
             return true;
         }
 
-        focused = true;
+        setFocused(true);
         int cursorIndex = getCursorIndexAt(mouseX, mouseY);
         if (button == 0) {
             selectionModel.beginSelection(cursorIndex);
@@ -242,7 +356,9 @@ public class SceneEditorMultilineTextArea {
             selectionModel.insertText("");
         }
         rebuildLayoutCache();
+        syncImeFocusProxy();
         ensureCursorVisible();
+        syncImeFocusProxy();
         return true;
     }
 
@@ -256,6 +372,7 @@ public class SceneEditorMultilineTextArea {
                     getVerticalScrollbarTrackLength(),
                     scrollState.getContentPixels(),
                     scrollState.getViewportPixels()));
+            syncImeFocusProxy();
             return true;
         }
         if (button == 0 && draggingHorizontalScrollbar) {
@@ -267,6 +384,7 @@ public class SceneEditorMultilineTextArea {
                     getHorizontalScrollbarTrackLength(),
                     layoutCache.getContentWidthPixels(),
                     textViewportWidth));
+            syncImeFocusProxy();
             return true;
         }
         if (!focused || button != 0 || !selectingWithMouse) {
@@ -274,6 +392,7 @@ public class SceneEditorMultilineTextArea {
         }
         selectionModel.updateSelection(getCursorIndexAt(mouseX, mouseY));
         ensureCursorVisible();
+        syncImeFocusProxy();
         return true;
     }
 
@@ -290,6 +409,17 @@ public class SceneEditorMultilineTextArea {
             return false;
         }
 
+        boolean handled = handleKeyTyped(typedChar, keyCode);
+        if (handled) {
+            syncImeFocusProxy();
+        }
+        return handled;
+    }
+
+    private boolean handleKeyTyped(char typedChar, int keyCode) {
+        if (shouldConsumeImePhysicalDuplicate(typedChar, keyCode)) {
+            return true;
+        }
         if (isCtrlKeyCombo(keyCode, Keyboard.KEY_A)) {
             selectionModel.selectAll();
             ensureCursorVisible();
@@ -369,12 +499,56 @@ public class SceneEditorMultilineTextArea {
         }
 
         if (typedChar >= 32 || typedChar == ' ') {
+            if (shouldConsumeImeCommittedDuplicate(typedChar, keyCode)) {
+                return true;
+            }
             selectionModel.insertText(Character.toString(typedChar));
+            rememberInsertedAsciiCharacter(typedChar, keyCode);
             rebuildLayoutCache();
             ensureCursorVisible();
             return true;
         }
         return false;
+    }
+
+    private boolean shouldConsumeImePhysicalDuplicate(char typedChar, int keyCode) {
+        if (pendingImePhysicalDuplicateChar < 0) {
+            return false;
+        }
+        if (keyCode == Keyboard.KEY_NONE || typedChar < 32) {
+            return false;
+        }
+        int expectedChar = pendingImePhysicalDuplicateChar;
+        pendingImePhysicalDuplicateChar = -1;
+        return typedChar == expectedChar;
+    }
+
+    private boolean shouldConsumeImeCommittedDuplicate(char typedChar, int keyCode) {
+        if (keyCode != Keyboard.KEY_NONE || typedChar < 32 || typedChar >= 128 || recentPhysicalAsciiChar < 0) {
+            return false;
+        }
+        boolean duplicate = typedChar == recentPhysicalAsciiChar
+            && System.currentTimeMillis() - recentPhysicalAsciiAtMillis <= IME_DUPLICATE_WINDOW_MILLIS;
+        if (duplicate) {
+            recentPhysicalAsciiChar = -1;
+            pendingImePhysicalDuplicateChar = -1;
+        }
+        return duplicate;
+    }
+
+    private void rememberInsertedAsciiCharacter(char typedChar, int keyCode) {
+        if (typedChar < 32 || typedChar >= 128) {
+            pendingImePhysicalDuplicateChar = -1;
+            recentPhysicalAsciiChar = -1;
+            return;
+        }
+        if (keyCode == Keyboard.KEY_NONE) {
+            pendingImePhysicalDuplicateChar = typedChar;
+            return;
+        }
+        pendingImePhysicalDuplicateChar = -1;
+        recentPhysicalAsciiChar = typedChar;
+        recentPhysicalAsciiAtMillis = System.currentTimeMillis();
     }
 
     public void draw(boolean validationError) {
@@ -401,6 +575,7 @@ public class SceneEditorMultilineTextArea {
                 drawExternalHighlightForLine(line, drawY);
                 drawSelectionForLine(line, drawY);
                 fontRenderer.drawString(line.text(), x + PADDING - horizontalOffsetPixels, drawY, 0xF0F0F0);
+                drawSyntaxWarningForLine(line, drawY);
             }
             drawY += lineHeight;
         }
@@ -414,7 +589,13 @@ public class SceneEditorMultilineTextArea {
             Gui.drawRect(cursorX, cursorY, cursorX + 1, cursorY + fontRenderer.FONT_HEIGHT + 1, 0xFFFFFFFF);
         }
 
+        if (focused) {
+            syncImeFocusProxy();
+        }
+
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
         drawVerticalScrollbar();
         drawHorizontalScrollbar();
     }
@@ -450,6 +631,31 @@ public class SceneEditorMultilineTextArea {
         }
         scrollState.setViewportPixels(textViewportHeight);
         scrollState.setContentPixels(layoutCache.getContentHeightPixels());
+    }
+
+    private void syncImeFocusProxy() {
+        int lineHeight = getLineHeight();
+        int cursorX = x + PADDING;
+        int cursorY = y + PADDING;
+        List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
+        if (!lines.isEmpty()) {
+            int cursorLine = getVisualLineIndex(selectionModel.getCursorIndex());
+            SceneEditorMultilineTextLayoutCache.VisualLine visualLine = lines.get(cursorLine);
+            int cursorPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), visualLine);
+            cursorX += cursorPixel - horizontalOffsetPixels;
+            cursorY += cursorLine * lineHeight - scrollState.getOffsetPixels();
+        }
+
+        int contentLeft = x + PADDING;
+        int contentTop = y + PADDING;
+        int contentRight = Math.max(contentLeft, x + getContentClipWidth() - PADDING);
+        int contentBottom = Math.max(contentTop, y + getContentClipHeight() - PADDING);
+        int clampedX = clamp(cursorX, contentLeft, contentRight);
+        int clampedY = clamp(cursorY, contentTop, contentBottom);
+        imeFocusProxy.xPosition = clampedX + 1;
+        imeFocusProxy.yPosition = clampedY + 1;
+        imeFocusProxy.width = 1;
+        imeFocusProxy.height = Math.max(1, lineHeight);
     }
 
     private void drawSelectionForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY) {
@@ -517,6 +723,36 @@ public class SceneEditorMultilineTextArea {
                 highlightX + highlightWidth,
                 drawY + fontRenderer.FONT_HEIGHT + 1,
                 EXTERNAL_HIGHLIGHT_COLOR);
+        }
+    }
+
+    private void drawSyntaxWarningForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY) {
+        if (syntaxWarningStart < 0 || syntaxWarningEnd <= syntaxWarningStart) {
+            return;
+        }
+        boolean spansLineBreak = line.endsWithNewline() && syntaxWarningStart <= line.endIndex()
+            && syntaxWarningEnd > line.endIndex();
+        int highlightStart = Math.max(syntaxWarningStart, line.startIndex());
+        int highlightEnd = Math.min(syntaxWarningEnd, line.endIndex());
+        if (highlightEnd <= highlightStart && !spansLineBreak) {
+            return;
+        }
+
+        String beforeWarning = line.text()
+            .substring(0, Math.max(0, highlightStart - line.startIndex()));
+        String warnedText = line.text()
+            .substring(
+                Math.max(0, highlightStart - line.startIndex()),
+                Math.max(0, Math.min(highlightEnd, line.endIndex()) - line.startIndex()));
+        int warningX = x + PADDING + fontRenderer.getStringWidth(beforeWarning) - horizontalOffsetPixels;
+        int warningWidth = fontRenderer.getStringWidth(warnedText);
+        if (warningWidth <= 0 && spansLineBreak) {
+            warningWidth = 2;
+        }
+        int warningY = drawY + fontRenderer.FONT_HEIGHT + 1;
+        for (int pixelX = warningX; pixelX < warningX + warningWidth; pixelX += 4) {
+            Gui.drawRect(pixelX, warningY, pixelX + 2, warningY + 1, SYNTAX_WARNING_COLOR);
+            Gui.drawRect(pixelX + 2, warningY + 1, pixelX + 4, warningY + 2, SYNTAX_WARNING_COLOR);
         }
     }
 
@@ -710,6 +946,13 @@ public class SceneEditorMultilineTextArea {
             return 0;
         }
         return requestedOffset > maxOffset ? maxOffset : requestedOffset;
+    }
+
+    private int clamp(int value, int min, int max) {
+        if (value < min) {
+            return min;
+        }
+        return value > max ? max : value;
     }
 
     private int getContentClipWidth() {

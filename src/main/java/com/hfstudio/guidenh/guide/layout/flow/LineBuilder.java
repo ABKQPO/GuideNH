@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.flow.InlineBlockAlignment;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowAnchor;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
@@ -50,12 +51,14 @@ class LineBuilder implements Consumer<LytFlowContent> {
     private final StringBuilderCharIterator charIterator = new StringBuilderCharIterator();
 
     /**
-     * Incremental max-bottom and max-right of elements on the current open line.
+     * Incremental min-top, max-bottom, and max-right of elements on the current open line.
      * Updated by {@link #appendToOpenLine} and reset by {@link #endLine}.
      * Eliminates the O(N) scan in {@link #endLine} for line-height and line-width.
      */
+    private int openLineMinTop = Integer.MAX_VALUE;
     private int openLineMaxBottom;
     private int openLineMaxRight;
+    private boolean openLineHasInlineItemImage;
 
     public LineBuilder(LayoutContext context, int x, int y, int availableWidth, List<Line> lines,
         List<LineBlock> floats, TextAlignment alignment) {
@@ -105,7 +108,8 @@ class LineBuilder implements Consumer<LytFlowContent> {
     }
 
     private void appendInlineBlock(LytFlowInlineBlock inlineBlock) {
-        var size = inlineBlock.getPreferredSize(lineBoxWidth);
+        var layoutBounds = inlineBlock.getPreferredBounds(lineBoxWidth);
+        var size = layoutBounds.size();
         var block = inlineBlock.getBlock();
         var marginLeft = block.getMarginLeft();
         var marginRight = block.getMarginRight();
@@ -117,14 +121,14 @@ class LineBuilder implements Consumer<LytFlowContent> {
         ensureSpaceIsAvailable(outerWidth);
 
         var el = new LineBlock(block);
-        el.bounds = new LytRect(innerX + marginLeft, marginTop, size.width(), size.height());
+        el.bounds = new LytRect(innerX + marginLeft, layoutBounds.y(), size.width(), size.height());
         el.flowContent = inlineBlock;
 
         if (inlineBlock.getAlignment() == InlineBlockAlignment.FLOAT_LEFT) {
             // Float it to the left of the actual text content.
             // endLine will take care of moving any existing text in the line
             el.bounds = el.bounds.withX(getInnerLeftEdge() + marginLeft)
-                .withY(lineBoxY + marginTop);
+                .withY(lineBoxY + layoutBounds.y());
             // Update the layout of the contained block to update its absolute position
             block.layout(context, el.bounds.x(), el.bounds.y(), size.width());
             el.floating = true;
@@ -134,7 +138,7 @@ class LineBuilder implements Consumer<LytFlowContent> {
         } else if (inlineBlock.getAlignment() == InlineBlockAlignment.FLOAT_RIGHT) {
             // Float it to the right the actual text content.
             el.bounds = el.bounds.withX(getInnerRightEdge() - el.bounds.width() + marginRight)
-                .withY(lineBoxY + marginTop);
+                .withY(lineBoxY + layoutBounds.y());
             // Update the layout of the contained block to update its absolute position
             block.layout(context, el.bounds.x(), el.bounds.y(), size.width());
             el.floating = true;
@@ -338,9 +342,13 @@ class LineBuilder implements Consumer<LytFlowContent> {
         }
 
         context.clearFloatsAbove(lineBoxY);
+        if (openLineHasInlineItemImage) {
+            alignInlineItemImages();
+            recomputeOpenLineMetrics();
+        }
 
         // Use incrementally tracked values instead of rescanning the linked list.
-        var lineHeight = Math.max(1, openLineMaxBottom);
+        var lineHeight = Math.max(1, openLineMaxBottom - openLineMinTop);
         var lineWidth = openLineMaxRight;
 
         var textAreaStart = getInnerLeftEdge();
@@ -367,12 +375,12 @@ class LineBuilder implements Consumer<LytFlowContent> {
             actualRight = Math.max(actualRight, el.bounds.right());
         }
 
-        var lineBounds = new LytRect(lineBoxX, lineBoxY, actualRight - lineBoxX, lineHeight);
+        var lineBounds = new LytRect(lineBoxX, lineBoxY + openLineMinTop, actualRight - lineBoxX, lineHeight);
         var line = new Line(lineBounds, openLineElement);
         lines.add(line);
 
         // Advance vertically
-        lineBoxY += line.bounds.height();
+        lineBoxY = line.bounds.bottom();
 
         // Close out any floats that are above the fold
         context.clearFloatsAbove(lineBoxY);
@@ -381,8 +389,10 @@ class LineBuilder implements Consumer<LytFlowContent> {
         openLineElement = null;
         openLineTail = null;
         innerX = 0;
+        openLineMinTop = Integer.MAX_VALUE;
         openLineMaxBottom = 0;
         openLineMaxRight = 0;
+        openLineHasInlineItemImage = false;
 
         // Recompute now that floats may have been closed, what the horizontal space really is
         remainingLineWidth = getInnerRightEdge() - getInnerLeftEdge();
@@ -412,10 +422,72 @@ class LineBuilder implements Consumer<LytFlowContent> {
             openLineElement = el;
         }
         openLineTail = el;
+        int top = el.bounds.y();
+        if (top < openLineMinTop) openLineMinTop = top;
         int bottom = el.bounds.bottom();
         if (bottom > openLineMaxBottom) openLineMaxBottom = bottom;
         int right = el.bounds.right();
         if (right > openLineMaxRight) openLineMaxRight = right;
+        if (isInlineItemImage(el)) {
+            openLineHasInlineItemImage = true;
+        }
+    }
+
+    private void alignInlineItemImages() {
+        int targetHeight = getTextLineHeightOrDefault();
+        for (var el = openLineElement; el != null; el = el.next) {
+            if (el instanceof LineBlock lineBlock && lineBlock.getBlock() instanceof LytItemImage itemImage
+                && itemImage.isInline()
+                && itemImage.isShowingIcon()) {
+                int offset = getInlineItemYOffset(itemImage);
+                targetHeight = Math.max(targetHeight, el.bounds.height() + Math.abs(offset) * 2);
+            }
+        }
+
+        for (var el = openLineElement; el != null; el = el.next) {
+            if (el instanceof LineTextRun) {
+                el.bounds = el.bounds.withY((targetHeight - el.bounds.height()) / 2);
+            } else if (el instanceof LineBlock lineBlock && lineBlock.getBlock() instanceof LytItemImage itemImage
+                && itemImage.isInline()
+                && itemImage.isShowingIcon()) {
+                    int centeredTop = (targetHeight - el.bounds.height()) / 2;
+                    el.bounds = el.bounds.withY(centeredTop + getInlineItemYOffset(itemImage));
+                }
+        }
+    }
+
+    private int getInlineItemYOffset(LytItemImage itemImage) {
+        return itemImage.getInlineVerticalOffset();
+    }
+
+    private int getTextLineHeightOrDefault() {
+        int lineHeight = 0;
+        for (var el = openLineElement; el != null; el = el.next) {
+            if (el instanceof LineTextRun) {
+                lineHeight = Math.max(lineHeight, el.bounds.height());
+            }
+        }
+        return lineHeight > 0 ? lineHeight : context.getLineHeight(DefaultStyles.BASE_STYLE);
+    }
+
+    private void recomputeOpenLineMetrics() {
+        openLineMinTop = Integer.MAX_VALUE;
+        openLineMaxBottom = 0;
+        openLineMaxRight = 0;
+        for (var el = openLineElement; el != null; el = el.next) {
+            int top = el.bounds.y();
+            if (top < openLineMinTop) openLineMinTop = top;
+            int bottom = el.bounds.bottom();
+            if (bottom > openLineMaxBottom) openLineMaxBottom = bottom;
+            int right = el.bounds.right();
+            if (right > openLineMaxRight) openLineMaxRight = right;
+        }
+    }
+
+    private boolean isInlineItemImage(LineElement element) {
+        return element instanceof LineBlock lineBlock && lineBlock.getBlock() instanceof LytItemImage itemImage
+            && itemImage.isInline()
+            && itemImage.isShowingIcon();
     }
 
     public void end() {

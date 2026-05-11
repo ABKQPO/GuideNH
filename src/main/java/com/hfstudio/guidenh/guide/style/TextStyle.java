@@ -12,9 +12,11 @@ import com.hfstudio.guidenh.guide.color.ColorValue;
 public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Nullable Boolean italic,
     @Nullable Boolean underlined, @Nullable Boolean wavyUnderline, @Nullable Boolean dottedUnderline,
     @Nullable Boolean strikethrough, @Nullable Boolean obfuscated, @Nullable String font, @Nullable ColorValue color,
-    @Nullable WhiteSpaceMode whiteSpace, @Nullable TextAlignment alignment, @Nullable Boolean dropShadow) {
+    @Nullable WhiteSpaceMode whiteSpace, @Nullable TextAlignment alignment, @Nullable Boolean dropShadow,
+    @Nullable ColorValue backgroundColor) {
 
     public static final TextStyle EMPTY = new TextStyle(
+        null,
         null,
         null,
         null,
@@ -44,6 +46,7 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
         var whiteSpace = this.whiteSpace != null ? this.whiteSpace : base.whiteSpace();
         var alignment = this.alignment != null ? this.alignment : base.alignment();
         var dropShadow = this.dropShadow != null ? this.dropShadow : base.dropShadow();
+        var backgroundColor = this.backgroundColor != null ? this.backgroundColor : base.backgroundColor();
         return new ResolvedTextStyle(
             fontScale,
             bold,
@@ -57,7 +60,8 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
             color,
             whiteSpace,
             alignment,
-            dropShadow);
+            dropShadow,
+            backgroundColor);
     }
 
     public Builder toBuilder() {
@@ -75,6 +79,7 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
         builder.whiteSpace = whiteSpace;
         builder.alignment = alignment;
         builder.dropShadow = dropShadow;
+        builder.backgroundColor = backgroundColor;
         return builder;
     }
 
@@ -97,6 +102,7 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
         private WhiteSpaceMode whiteSpace;
         private TextAlignment alignment;
         private Boolean dropShadow;
+        private ColorValue backgroundColor;
 
         public Builder apply(TextStyle style) {
             if (style.fontScale() != null) {
@@ -137,6 +143,9 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
             }
             if (style.dropShadow != null) {
                 dropShadow = style.dropShadow();
+            }
+            if (style.backgroundColor() != null) {
+                backgroundColor = style.backgroundColor();
             }
             return this;
         }
@@ -206,6 +215,11 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
             return this;
         }
 
+        public Builder backgroundColor(ColorValue backgroundColor) {
+            this.backgroundColor = backgroundColor;
+            return this;
+        }
+
         public TextStyle build() {
             return new TextStyle(
                 fontScale,
@@ -220,7 +234,8 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
                 color,
                 whiteSpace,
                 alignment,
-                dropShadow);
+                dropShadow,
+                backgroundColor);
         }
     }
 }

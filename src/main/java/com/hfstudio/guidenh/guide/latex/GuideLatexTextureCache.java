@@ -1,23 +1,29 @@
 package com.hfstudio.guidenh.guide.latex;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.lwjgl.opengl.GL11;
 
-public final class GuideLatexTextureCache {
+public class GuideLatexTextureCache {
 
     public static final GuideLatexTextureCache INSTANCE = new GuideLatexTextureCache();
 
     private static final int MAX_TEXTURE_ENTRIES = 128;
+    private static final int MAX_FAILURE_ENTRIES = 256;
+    private static final int MAX_SIZE_ENTRIES = 512;
 
     /** Maps cacheKey -> [textureId, widthPx, heightPx]. Evicts LRU entries when full. */
-    private final Map<String, int[]> textureCache = new LinkedHashMap<>(MAX_TEXTURE_ENTRIES + 1, 0.75f, true) {
+    private final Map<String, int[]> textureCache = new LinkedHashMap<String, int[]>(
+        MAX_TEXTURE_ENTRIES + 1,
+        0.75f,
+        true) {
 
         @Override
-        protected boolean removeEldestEntry(Map.Entry<String, int[]> eldest) {
+        protected boolean removeEldestEntry(Entry<String, int[]> eldest) {
             if (size() > MAX_TEXTURE_ENTRIES) {
                 GL11.glDeleteTextures(eldest.getValue()[0]);
                 return true;
@@ -27,12 +33,19 @@ public final class GuideLatexTextureCache {
     };
 
     /** Maps formula string -> error message from parse/render failure. */
-    private final Map<String, String> failureCache = new HashMap<>();
+    private final Map<String, String> failureCache = Collections
+        .synchronizedMap(new LinkedHashMap<String, String>(MAX_FAILURE_ENTRIES + 1, 0.75f, true) {
+
+            @Override
+            protected boolean removeEldestEntry(Entry<String, String> eldest) {
+                return size() > MAX_FAILURE_ENTRIES;
+            }
+        });
 
     /** Maps (formula + sourceScale string) -> [widthPx, heightPx], no GL needed. Layout thread safe. */
     private final ConcurrentHashMap<String, int[]> sizeCache = new ConcurrentHashMap<>();
 
-    private GuideLatexTextureCache() {}
+    protected GuideLatexTextureCache() {}
 
     /**
      * Returns the cached texture entry for the given cache key, or {@code null} if not found.
@@ -69,10 +82,11 @@ public final class GuideLatexTextureCache {
      * @param sizeKey  key produced by {@link #buildSizeCacheKey}
      * @param widthPx  icon width from jlatexmath
      * @param heightPx icon height from jlatexmath
-     * @param depthPx  depth below the math baseline in jlatexmath pixels (≥ 0)
+     * @param depthPx  depth below the math baseline in jlatexmath pixels, always at least zero
      */
     public void putSize(String sizeKey, int widthPx, int heightPx, int depthPx) {
         sizeCache.put(sizeKey, new int[] { widthPx, heightPx, depthPx });
+        trimSizeCacheIfNeeded();
     }
 
     /**
@@ -120,7 +134,7 @@ public final class GuideLatexTextureCache {
      * @return cache key string
      */
     public static String buildTextureCacheKey(String formula, int fillColorArgb, float sourceScale) {
-        return String.format("%08x:%.2f:%s", fillColorArgb, sourceScale, formula);
+        return toHexColor(fillColorArgb) + ':' + buildScaleKey(sourceScale) + ':' + formula;
     }
 
     /**
@@ -131,6 +145,45 @@ public final class GuideLatexTextureCache {
      * @return size cache key string
      */
     public static String buildSizeCacheKey(String formula, float sourceScale) {
-        return String.format("%.2f:%s", sourceScale, formula);
+        return buildScaleKey(sourceScale) + ':' + formula;
+    }
+
+    public static String buildScaleKey(float sourceScale) {
+        int rounded = Math.round(sourceScale * 100f);
+        int absolute = Math.abs(rounded);
+        String sign = rounded < 0 ? "-" : "";
+        return sign + absolute / 100 + "." + twoDigitFraction(absolute % 100);
+    }
+
+    private static String toHexColor(int color) {
+        String hex = Integer.toHexString(color);
+        if (hex.length() >= 8) {
+            return hex;
+        }
+        StringBuilder padded = new StringBuilder(8);
+        for (int i = hex.length(); i < 8; i++) {
+            padded.append('0');
+        }
+        return padded.append(hex)
+            .toString();
+    }
+
+    private static String twoDigitFraction(int fraction) {
+        return fraction < 10 ? "0" + fraction : Integer.toString(fraction);
+    }
+
+    private void trimSizeCacheIfNeeded() {
+        if (sizeCache.size() <= MAX_SIZE_ENTRIES) {
+            return;
+        }
+        int removeCount = sizeCache.size() - MAX_SIZE_ENTRIES;
+        for (String key : sizeCache.keySet()) {
+            if (removeCount <= 0) {
+                return;
+            }
+            if (sizeCache.remove(key) != null) {
+                removeCount--;
+            }
+        }
     }
 }

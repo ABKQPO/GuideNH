@@ -10,9 +10,9 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 
-public final class GuideMarkdownDefinitions {
+public class GuideMarkdownDefinitions {
 
-    private GuideMarkdownDefinitions() {}
+    protected GuideMarkdownDefinitions() {}
 
     public static Map<String, MdAstDefinition> collect(MdAstParent<?> parent) {
         return collect(parent.children());

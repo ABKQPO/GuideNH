@@ -12,6 +12,7 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -93,65 +94,71 @@ public class GuideNavBar {
     public void render(Minecraft mc, @Nullable ResourceLocation currentPageId, int mouseX, int mouseY,
         @Nullable PageCollection pageCollection) {
         if (lastTree == null || rows.isEmpty()) return;
-        int w = currentWidth();
-        int bgTop = 0xE0151515;
-        int bgBot = 0xE0101010;
-        drawVGradient(x, y, w, height, bgTop, bgBot);
-        Gui.drawRect(x + w - 1, y, x + w, y + height, 0xFF2A2A2A);
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
+        try {
+            int w = currentWidth();
+            int bgTop = 0xE0151515;
+            int bgBot = 0xE0101010;
+            drawVGradient(x, y, w, height, bgTop, bgBot);
+            Gui.drawRect(x + w - 1, y, x + w, y + height, 0xFF2A2A2A);
 
-        if (!isOpen()) {
-            drawArrow(x + w / 2 - 2, y + height / 2 - 3, true, 0xFF888888);
-            return;
+            if (!isOpen()) {
+                drawArrow(x + w / 2 - 2, y + height / 2 - 3, true, 0xFF888888);
+                return;
+            }
+
+            int sf = DisplayScale.scaleFactor();
+            GL11.glEnable(GL11.GL_SCISSOR_TEST);
+            GL11.glScissor(x * sf, mc.displayHeight - (y + height) * sf, w * sf, height * sf);
+
+            FontRenderer fr = mc.fontRenderer;
+            int firstVisibleRow = getFirstVisibleRowIndex();
+            for (int rowIndex = firstVisibleRow; rowIndex < rows.size(); rowIndex++) {
+                var row = rows.get(rowIndex);
+                int rowY = getRowY(rowIndex);
+                if (rowY >= y + height) break;
+
+                int indent = row.depth * CHILD_INDENT;
+                int rowX = x + 2 + indent;
+
+                boolean hovered = mouseX >= x && mouseX < x + w - 1 && mouseY >= rowY && mouseY < rowY + ROW_H;
+                boolean current = currentPageId != null && currentPageId.equals(row.node.pageId());
+                if (current) {
+                    Gui.drawRect(x, rowY, x + w - 1, rowY + ROW_H, 0x40FFFFFF);
+                } else if (hovered) {
+                    Gui.drawRect(x, rowY, x + w - 1, rowY + ROW_H, 0x20FFFFFF);
+                }
+
+                boolean hasChildren = !row.node.children()
+                    .isEmpty();
+                if (hasChildren) {
+                    boolean exp = expanded.contains(row.node);
+                    drawArrow(rowX, rowY + 2, !exp, 0xFFCCCCCC);
+                }
+                int textX = rowX + EXPAND_INDENT;
+
+                GuidePageIcon icon = row.node.icon();
+                if (icon != null) {
+                    int iy = rowY + (ROW_H - ICON_SIZE) / 2;
+                    drawMiniIcon(mc, icon, textX, iy);
+                    textX += ICON_SIZE + 2;
+                }
+
+                int maxTw = (x + w - 2) - textX;
+                if (maxTw > 0) {
+                    String title = row.getTitle(fr, maxTw);
+                    boolean failed = row.node.pageId() != null && pageCollection != null
+                        && pageCollection.isPageFailed(row.node.pageId());
+                    int color = getRowTextColor(current, hovered, failed);
+                    fr.drawString(title, textX, rowY + 2, color, false);
+                }
+            }
+        } finally {
+            GL11.glPopAttrib();
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glColor4f(1f, 1f, 1f, 1f);
         }
-
-        int sf = DisplayScale.scaleFactor();
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor(x * sf, mc.displayHeight - (y + height) * sf, w * sf, height * sf);
-
-        FontRenderer fr = mc.fontRenderer;
-        int firstVisibleRow = getFirstVisibleRowIndex();
-        for (int rowIndex = firstVisibleRow; rowIndex < rows.size(); rowIndex++) {
-            var row = rows.get(rowIndex);
-            int rowY = getRowY(rowIndex);
-            if (rowY >= y + height) break;
-
-            int indent = row.depth * CHILD_INDENT;
-            int rowX = x + 2 + indent;
-
-            boolean hovered = mouseX >= x && mouseX < x + w - 1 && mouseY >= rowY && mouseY < rowY + ROW_H;
-            boolean current = currentPageId != null && currentPageId.equals(row.node.pageId());
-            if (current) {
-                Gui.drawRect(x, rowY, x + w - 1, rowY + ROW_H, 0x40FFFFFF);
-            } else if (hovered) {
-                Gui.drawRect(x, rowY, x + w - 1, rowY + ROW_H, 0x20FFFFFF);
-            }
-
-            boolean hasChildren = !row.node.children()
-                .isEmpty();
-            if (hasChildren) {
-                boolean exp = expanded.contains(row.node);
-                drawArrow(rowX, rowY + 2, !exp, 0xFFCCCCCC);
-            }
-            int textX = rowX + EXPAND_INDENT;
-
-            GuidePageIcon icon = row.node.icon();
-            if (icon != null) {
-                int iy = rowY + (ROW_H - ICON_SIZE) / 2;
-                drawMiniIcon(mc, icon, textX, iy);
-                textX += ICON_SIZE + 2;
-            }
-
-            int maxTw = (x + w - 2) - textX;
-            if (maxTw > 0) {
-                String title = row.getTitle(fr, maxTw);
-                boolean failed = row.node.pageId() != null && pageCollection != null
-                    && pageCollection.isPageFailed(row.node.pageId());
-                int color = getRowTextColor(current, hovered, failed);
-                fr.drawString(title, textX, rowY + 2, color, false);
-            }
-        }
-
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
     }
 
     @Nullable
@@ -281,8 +288,12 @@ public class GuideNavBar {
         drawMiniItemIcon(mc, icon.resolveCurrentItemStack(), x, y);
     }
 
-    public static void drawMiniItemIcon(Minecraft mc, net.minecraft.item.ItemStack stack, int x, int y) {
+    public static void drawMiniItemIcon(Minecraft mc, ItemStack stack, int x, int y) {
+        if (stack == null) {
+            return;
+        }
         try {
+            GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
             GL11.glPushMatrix();
             GL11.glTranslatef(x, y, 0);
             float s = (float) ICON_SIZE / 16f;
@@ -297,6 +308,10 @@ public class GuideNavBar {
             GL11.glPopMatrix();
         } catch (Throwable ignored) {
             GL11.glPopMatrix();
+        } finally {
+            GL11.glPopAttrib();
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glColor4f(1f, 1f, 1f, 1f);
         }
     }
 

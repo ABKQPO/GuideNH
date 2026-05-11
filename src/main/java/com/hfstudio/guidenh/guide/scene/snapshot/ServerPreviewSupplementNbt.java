@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Single structure-block root for server authoritative preview supplements. Text-SNBT payloads use Base64(raw bytes).
  */
-public final class ServerPreviewSupplementNbt {
+public class ServerPreviewSupplementNbt {
 
     public static final String TAG_ROOT = "guidenh_server_preview_supplement";
 
@@ -17,7 +17,7 @@ public final class ServerPreviewSupplementNbt {
 
     public static final String KEY_B64 = "b64";
 
-    private ServerPreviewSupplementNbt() {}
+    protected ServerPreviewSupplementNbt() {}
 
     /** Current on-disk wire for per-supplement sub-compounds. */
     public static final int STRUCTURE_WIRE_V1 = 1;

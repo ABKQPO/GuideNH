@@ -5,9 +5,9 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 /**
  * An {@link ItemTooltip} that lets the NEI handler contribute extra lines via
@@ -29,7 +29,8 @@ public class NeiItemTooltip extends ItemTooltip implements ItemTooltipAppender {
     public void appendExtraLines(List<String> base) {
         if (base == null) return;
         List<String> temp = new ArrayList<>();
-        NeiRecipeLookup.appendItemTooltip(handler, getStack(), temp, recipeIndex);
+        GuideNhIntegrationRegistry.global()
+            .appendRecipeItemTooltip(handler, getStack(), temp, recipeIndex);
         for (String line : temp) {
             if (line != null && !line.isEmpty() && !base.contains(line)) base.add(line);
         }

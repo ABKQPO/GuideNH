@@ -100,7 +100,7 @@ categories:
 
 配方框右浮动，左侧文字环绕。
 
-## GameScene 左浮动
+## 游戏场景左浮动
 
 <GameScene wrap="square" align="left" zoom={4} background="transparent" width="120" height="90">
   <Block id="minecraft:furnace" />
@@ -110,7 +110,7 @@ categories:
 文档级浮动，后续段落都会收窄可用宽度直到浮动清除。此处追加额外文字，
 以展示多行文字环绕场景的效果。
 
-## GameScene 居中
+## 游戏场景居中
 
 <GameScene align="center" zoom={4} background="transparent" width="200" height="120">
   <Block id="minecraft:crafting_table" />
@@ -118,7 +118,7 @@ categories:
 
 使用 `align="center"` 将场景水平居中，无浮动效果——文字只出现在场景上方和下方。
 
-## GameScene 右浮动
+## 游戏场景右浮动
 
 <GameScene wrap="square" align="right" zoom={4} background="transparent" width="120" height="90">
   <Block id="minecraft:chest" />

@@ -31,6 +31,21 @@ MDX 组件写法，支持更细粒度的属性控制：
   <Function expr="y = sqrt(x)" color="#44bb88" label="y = √x" />
 </FunctionGraph>
 
+## 新增：图内图例与自动点
+
+`cornerLegend` 会把带 `label` 的函数显示在绘图区内部。`pointEveryX` / `pointEveryY` 可以按固定间隔为指定函数生成点。
+
+```funcgraph
+cornerLegend=topRight xRange=-4..4 yRange=-2..6
+y = x^2 | label="y=x^2" pointEveryX=1 autoPointLabel=x
+y = x^2 - 1 | label="y=x^2-1" pointEveryY=1
+```
+
+<FunctionGraph xMin="-4" xMax="4" yMin="-2" yMax="6" cornerLegend="topRight">
+  <Function expr="y = x^2" color="#4488ff" label="y = x^2" pointEveryX="1" autoPointLabel="x" />
+  <Function expr="y = x^2 - 1" color="#ff6644" label="y = x^2 - 1" pointEveryY="1" />
+</FunctionGraph>
+
 ## `<Function>` 简写
 
 `<Function>` 自带独立 `<FunctionGraph>` 包装器，可当作简洁的单函数展示：

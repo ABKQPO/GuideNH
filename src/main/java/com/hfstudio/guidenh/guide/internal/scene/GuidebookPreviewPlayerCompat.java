@@ -13,8 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.hfstudio.guidenh.compat.etfuturum.EtFuturumHelpers;
-import com.hfstudio.guidenh.compat.simpleskinbackport.SimpleSkinBackportHelpers;
+import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import com.mojang.authlib.properties.Property;
@@ -53,35 +52,34 @@ public final class GuidebookPreviewPlayerCompat {
             }
         }
 
-        Boolean simpleSkinBackportSlim = SimpleSkinBackportHelpers.resolveSlim(player);
-        if (simpleSkinBackportSlim != null) {
-            return simpleSkinBackportSlim;
-        }
-
-        Boolean etFuturumSlim = EtFuturumHelpers.resolveSlim(player);
-        if (etFuturumSlim != null) {
-            return etFuturumSlim;
+        Boolean integrationSlimArms = GuideNhClientIntegrationRegistry.global()
+            .resolveSlimArms(player);
+        if (integrationSlimArms != null) {
+            return integrationSlimArms;
         }
 
         return false;
     }
 
     public static boolean isSimpleSkinBackportAvailable() {
-        return SimpleSkinBackportHelpers.isAvailable();
+        return GuideNhClientIntegrationRegistry.global()
+            .isPreviewPlayerModelProvided();
     }
 
     public static boolean tryInitializeSimpleSkinBackport64xModel(Object model) {
-        return SimpleSkinBackportHelpers.tryInitialize64xModel(model);
+        return GuideNhClientIntegrationRegistry.global()
+            .tryInitializePreviewPlayerModel(model);
     }
 
     public static boolean isEtFuturumElytraStack(@Nullable ItemStack stack) {
-        return EtFuturumHelpers.isElytraStack(stack);
+        return GuideNhClientIntegrationRegistry.global()
+            .isPreviewPlayerElytraStack(stack);
     }
 
     public static boolean tryRenderEtFuturumElytraLayer(EntityLivingBase entity, float limbSwing, float limbSwingAmount,
         float partialTicks, float ageInTicks, float scale) {
-        return EtFuturumHelpers
-            .tryRenderElytraLayer(entity, limbSwing, limbSwingAmount, partialTicks, ageInTicks, scale);
+        return GuideNhClientIntegrationRegistry.global()
+            .tryRenderPreviewPlayerElytraLayer(entity, limbSwing, limbSwingAmount, partialTicks, ageInTicks, scale);
     }
 
     @Nullable

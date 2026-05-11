@@ -25,6 +25,7 @@ public class AnchorIndexer {
     }
 
     public AnchorTarget get(String anchor) {
+        var normalizedHeadingAnchor = normalizeAnchor(anchor);
         var visitor = new LytVisitor() {
 
             final Stack<LytNode> nodeStack = new Stack<>();
@@ -34,7 +35,7 @@ public class AnchorIndexer {
             public Result beforeNode(LytNode node) {
                 if (node instanceof LytHeading heading) {
                     var headingAnchor = normalizeAnchor(heading.getTextContent());
-                    if (headingAnchor.equals(anchor)) {
+                    if (headingAnchor.equals(normalizedHeadingAnchor)) {
                         target = new AnchorTarget(node, null);
                         return Result.STOP;
                     }
@@ -66,9 +67,23 @@ public class AnchorIndexer {
     }
 
     private String normalizeAnchor(String anchor) {
-        return anchor.toLowerCase(Locale.ROOT)
-            .trim()
-            .replaceAll("\\s+", "-");
+        String trimmed = anchor.toLowerCase(Locale.ROOT)
+            .trim();
+        StringBuilder normalized = new StringBuilder(trimmed.length());
+        boolean previousWhitespace = false;
+        for (int i = 0; i < trimmed.length(); i++) {
+            char ch = trimmed.charAt(i);
+            if (Character.isWhitespace(ch)) {
+                if (!previousWhitespace) {
+                    normalized.append('-');
+                    previousWhitespace = true;
+                }
+            } else {
+                normalized.append(ch);
+                previousWhitespace = false;
+            }
+        }
+        return normalized.toString();
     }
 
     @Desugar

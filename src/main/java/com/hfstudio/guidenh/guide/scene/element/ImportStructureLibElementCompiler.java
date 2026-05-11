@@ -7,11 +7,6 @@ import java.util.Set;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 
-import com.hfstudio.guidenh.compat.structurelib.StructureLibImportRequest;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibImportResult;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneImportService;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
@@ -20,6 +15,11 @@ import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class ImportStructureLibElementCompiler implements SceneElementTagCompiler {

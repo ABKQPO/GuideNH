@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorVerticalScrollbar;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguage;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
@@ -403,13 +404,13 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     private List<LytFlowSpan> highlightLines() {
-        String[] lines = normalizedCodeText.split("\n", -1);
+        List<String> lines = GuideStringLines.splitLines(normalizedCodeText);
         String lowerLanguage = detectedLanguageId.toLowerCase(Locale.ROOT);
-        List<LytFlowSpan> result = new ArrayList<>(lines.length);
+        List<LytFlowSpan> result = new ArrayList<>(lines.size());
         for (String line : lines) {
             result.add(highlightLine(line, lowerLanguage));
         }
-        if (lines.length == 0) {
+        if (lines.isEmpty()) {
             result.add(new LytFlowSpan());
         }
         return result;

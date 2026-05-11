@@ -1,7 +1,9 @@
 package com.hfstudio.guidenh.guide.scene.snapshot;
 
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+
 /**
- * Applies structure sidecars into {@link com.hfstudio.guidenh.guide.scene.level.GuidebookLevel} after block placement.
+ * Applies structure sidecars into {@link GuidebookLevel} after block placement.
  */
 public interface StructureImportContributor {
 

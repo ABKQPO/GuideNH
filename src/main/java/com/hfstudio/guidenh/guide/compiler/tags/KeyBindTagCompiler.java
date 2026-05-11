@@ -22,9 +22,9 @@ public class KeyBindTagCompiler extends FlowTagCompiler {
 
     @Override
     protected void compile(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
-        var id = el.getAttributeString("id", null);
+        var id = getKeyBindId(el);
         if (id == null) {
-            parent.appendError(compiler, "Attribute id is required.", el);
+            parent.appendError(compiler, "Attribute id or action is required.", el);
             return;
         }
 
@@ -35,6 +35,22 @@ public class KeyBindTagCompiler extends FlowTagCompiler {
         }
 
         parent.appendText(describeMapping(mapping));
+    }
+
+    public static String getKeyBindId(MdxJsxElementFields el) {
+        if (el == null) {
+            return null;
+        }
+        String id = el.getAttributeString("id", null);
+        if (id == null || id.trim()
+            .isEmpty()) {
+            id = el.getAttributeString("action", null);
+        }
+        if (id == null) {
+            return null;
+        }
+        id = id.trim();
+        return id.isEmpty() ? null : id;
     }
 
     public static KeyBinding findMapping(String id) {

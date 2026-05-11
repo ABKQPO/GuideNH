@@ -6,15 +6,15 @@ import net.minecraft.tileentity.TileEntity;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 /**
  * Backwards-compatible facade. All GregTech integration now lives in
- * {@link com.hfstudio.guidenh.compat.gregtech.GregTechHelpers}.
+ * {@link GregTechHelpers}.
  */
-public final class GuideGregTechTileSupport {
+public class GuideGregTechTileSupport {
 
-    private GuideGregTechTileSupport() {}
+    protected GuideGregTechTileSupport() {}
 
     public static boolean isGregTechTileEntity(@Nullable TileEntity tileEntity) {
         return GregTechHelpers.isGregTechTileEntity(tileEntity);
@@ -34,6 +34,20 @@ public final class GuideGregTechTileSupport {
 
     public static void logInfoOnce(String key, String message, Object... args) {
         GregTechHelpers.logInfoOnce(key, message, args);
+    }
+
+    @Nullable
+    public static Integer getMetaTileBaseType(int metaTileId) {
+        return GregTechHelpers.getMetaTileBaseType(metaTileId);
+    }
+
+    public static boolean initializeMetaTile(@Nullable TileEntity tileEntity, int metaTileId,
+        @Nullable NBTTagCompound tileTag) {
+        return GregTechHelpers.initializeMetaTile(tileEntity, metaTileId, tileTag);
+    }
+
+    public static void applyDefaultFacing(@Nullable TileEntity tileEntity, @Nullable NBTTagCompound tileTag) {
+        GregTechHelpers.applyDefaultFacing(tileEntity, tileTag);
     }
 
     public static String describeBlock(@Nullable Block block) {

@@ -4,7 +4,7 @@ import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
-public final class WorldStructureExportAccess implements StructureExportAccess {
+public class WorldStructureExportAccess implements StructureExportAccess {
 
     private final World world;
 

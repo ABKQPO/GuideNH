@@ -23,8 +23,8 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnota
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
-import com.hfstudio.guidenh.guide.scene.annotation.PonderTextAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderJsonLoader;
@@ -175,17 +175,18 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
                 if (msg == null || msg.isEmpty()) return null;
                 int borderArgb = raw.parseColor(0xFFAAAAAA);
                 int maxW = raw.getMaxWidth(0);
-                PonderTextAnnotation ann;
+                TextAnnotation ann;
                 if (raw.isIndependent()) {
-                    ann = new PonderTextAnnotation(msg, borderArgb, (float) raw.getYOffset(0), maxW);
+                    ann = new TextAnnotation(msg, borderArgb, (float) raw.getYOffset(0), maxW);
                 } else {
-                    ann = new PonderTextAnnotation(pos, msg, borderArgb, maxW);
+                    ann = new TextAnnotation(pos, msg, borderArgb, maxW);
                 }
                 if (compiler != null) {
                     var para = new LytParagraph();
                     compiler.compileInlineMarkdown(msg, para);
                     ann.setRichContent(para);
                 }
+                ann.setBackgroundAlpha(raw.getBackgroundAlpha(TextAnnotation.DEFAULT_BACKGROUND_ALPHA));
                 return ann;
             }
             case "input": {
@@ -210,26 +211,24 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
 
     private static PonderInputAnnotation.InputType resolveInputType(@Nullable String raw) {
         if (raw == null) return PonderInputAnnotation.InputType.LMB;
-        switch (raw.toLowerCase()) {
-            case "rmb":
-                return PonderInputAnnotation.InputType.RMB;
-            case "scroll":
-                return PonderInputAnnotation.InputType.SCROLL;
-            default:
-                return PonderInputAnnotation.InputType.LMB;
-        }
+        return switch (raw.toLowerCase()) {
+            case "rmb" -> PonderInputAnnotation.InputType.RMB;
+            case "scroll" -> PonderInputAnnotation.InputType.SCROLL;
+            default -> PonderInputAnnotation.InputType.LMB;
+        };
     }
 
     @Nullable
     private static ItemStack resolveItemStack(String itemId) {
         if (itemId == null || itemId.isEmpty()) return null;
-        String[] parts = itemId.split(":");
         String registryId;
         int meta = 0;
-        if (parts.length >= 3) {
+        int lastColon = itemId.lastIndexOf(':');
+        int firstColon = itemId.indexOf(':');
+        if (firstColon >= 0 && firstColon != lastColon) {
             try {
-                meta = Integer.parseInt(parts[parts.length - 1]);
-                registryId = parts[0] + ":" + parts[1];
+                meta = Integer.parseInt(itemId.substring(lastColon + 1));
+                registryId = itemId.substring(0, lastColon);
             } catch (NumberFormatException ignored) {
                 registryId = itemId;
             }

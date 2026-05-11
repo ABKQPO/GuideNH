@@ -15,6 +15,7 @@ GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They 
 - `<BoxAnnotation>`
 - `<LineAnnotation>`
 - `<DiamondAnnotation>`
+- `<TextAnnotation>`
 
 GuideNH also supports `<BlockAnnotationTemplate>`, which applies its child annotations to every already-placed matching block in the current scene.
 
@@ -95,6 +96,45 @@ Example:
   ### Activated Beacon
   Hover for rich content.
 </DiamondAnnotation>
+````
+
+## `<TextAnnotation>`
+
+Draws a speech-bubble text label over the scene. It can either follow a world-space anchor point or
+stay fixed relative to the scene center. Unlike the other annotation tags, its child content is the
+bubble text itself rather than a hover tooltip.
+
+| Attribute | Required | Meaning |
+| --- | --- | --- |
+| `pos` | no | `x y z` world-space anchor vector |
+| `x`, `y`, `z` | no | Alternative world-space anchor components when `pos` is omitted |
+| `text` | no | Bubble text; child markdown is used when omitted |
+| `color` | no | Bubble border color; defaults to light grey |
+| `backgroundAlpha` | no | Background opacity from `0` to `255`; defaults to `204` |
+| `maxWidth` | no | Wrap width in pixels; `0` keeps a single line |
+| `independent` | no | `true` keeps the bubble fixed in screen space |
+| `yOffset` | no | Pixel offset from the scene center when `independent={true}` |
+| `hlMinX/Y/Z`, `hlMaxX/Y/Z` | no | Optional companion highlight box bounds |
+| `highlightColor` | no | Optional highlight box color |
+
+World-anchored bubbles draw a connector line down to their anchor. Independent bubbles are centered
+horizontally in the scene and use `yOffset` for vertical placement. The same runtime annotation is
+also used when importing Ponder `text` annotations.
+
+Example:
+
+````md
+<TextAnnotation pos="1.5 2 1.5" color="#FF44AAFF" maxWidth={120} backgroundAlpha={180}>
+  Insert items here with **priority**.
+</TextAnnotation>
+````
+
+Fixed screen-space example:
+
+````md
+<TextAnnotation independent={true} yOffset={40} color="#FFFFCC00" backgroundAlpha={140}>
+  Independent status text
+</TextAnnotation>
 ````
 
 ## Rich Tooltip Content

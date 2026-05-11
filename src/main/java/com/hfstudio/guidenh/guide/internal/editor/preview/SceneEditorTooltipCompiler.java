@@ -39,12 +39,7 @@ final class SceneEditorTooltipCompiler {
         }
 
         ParsedGuidePage parsed = PageCompiler.parse(PREVIEW_SOURCE_PACK, "en_us", PREVIEW_PAGE_ID, tooltipMarkdown);
-        PageCompiler compiler = new PageCompiler(
-            PAGE_COLLECTION,
-            EXTENSIONS,
-            parsed.getSourcePack(),
-            parsed.getId(),
-            parsed.getSource());
+        PageCompiler compiler = createPreviewCompiler(parsed);
         LytVBox contentBox = new LytVBox();
         compiler.compileBlockContext(parsed.getAstRoot(), contentBox);
         if (contentBox.getChildren()
@@ -52,6 +47,20 @@ final class SceneEditorTooltipCompiler {
             return new TextTooltip(tooltipMarkdown);
         }
         return new ContentTooltip(contentBox);
+    }
+
+    public static PageCompiler createPreviewCompiler(String source) {
+        ParsedGuidePage parsed = PageCompiler.parse(PREVIEW_SOURCE_PACK, "en_us", PREVIEW_PAGE_ID, source);
+        return createPreviewCompiler(parsed);
+    }
+
+    public static PageCompiler createPreviewCompiler(ParsedGuidePage parsed) {
+        return new PageCompiler(
+            PAGE_COLLECTION,
+            EXTENSIONS,
+            parsed.getSourcePack(),
+            parsed.getId(),
+            parsed.getSource());
     }
 
     public static ExtensionCollection buildExtensions() {

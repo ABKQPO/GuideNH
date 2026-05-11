@@ -60,6 +60,9 @@ Press ▶ to play, or drag the timeline. The keyframe nodes snap the timeline to
 | `layer` | int? | Visible layer override (`null` = show all) |
 | `annotations` | array? | Annotation objects to show while this keyframe is active |
 | `blockChanges` | array? | Block replacements applied when this keyframe activates |
+| `mergeTileNBT` / `modifyTileNBT` / `removeTileNBT` | array? | Seek-safe tile-entity NBT operations |
+| `createEntities` | array? | Create Ponder-owned entities referenced by `ref` |
+| `setEntityNBT` / `mergeEntityNBT` / `modifyEntityNBT` / `removeEntityNBT` | array? | Seek-safe NBT operations for referenced entities |
 
 ---
 
@@ -225,6 +228,61 @@ one, so seeking backwards always shows the correct state.
 | `x`, `y`, `z` | int | Block position (world coordinates of the structure) |
 | `block` | string | Registry name, e.g. `"minecraft:furnace"`. Use `"minecraft:air"` to remove. |
 | `meta` | int? | Block metadata / damage value; defaults to `0` |
+
+---
+
+## Tile Entity NBT
+
+Tile NBT operations use SNBT strings and `/data`-style paths:
+
+```json
+"mergeTileNBT": [
+  {
+    "x": 2, "y": 1, "z": 1,
+    "nbt": "{Items:[{Slot:0b,id:\"minecraft:iron_ingot\",Count:1b,Damage:0s}]}"
+  }
+],
+"modifyTileNBT": [
+  { "x": 2, "y": 1, "z": 1, "path": "Items[0].Count", "value": "3b" }
+],
+"removeTileNBT": [
+  { "x": 2, "y": 1, "z": 1, "path": "Items[0].tag" }
+]
+```
+
+Use dots for compound keys and `[index]` for list entries, for example
+`InputTanks[0].TankContent.Amount`.
+
+---
+
+## Ponder Entities
+
+`GameScene` supports regular `<Entity>` elements. Ponder can also create timeline-owned entities
+and modify their NBT later by `ref`.
+
+```json
+"createEntities": [
+  {
+    "ref": "marker",
+    "id": "minecraft:pig",
+    "x": 1.5, "y": 1.0, "z": 2.5,
+    "nbt": "{CustomName:\"Before\",CustomNameVisible:1b}"
+  }
+],
+"mergeEntityNBT": [
+  { "ref": "marker", "nbt": "{Saddle:1b}" }
+],
+"modifyEntityNBT": [
+  { "ref": "marker", "path": "CustomName", "value": "\"After\"" }
+],
+"removeEntityNBT": [
+  { "ref": "marker", "path": "CustomNameVisible" }
+]
+```
+
+`setEntityNBT` replaces the referenced entity's NBT with a new SNBT compound. All entity actions
+are replayed from keyframe 0 when seeking, so created entities do not linger when you scrub
+backwards.
 
 ---
 

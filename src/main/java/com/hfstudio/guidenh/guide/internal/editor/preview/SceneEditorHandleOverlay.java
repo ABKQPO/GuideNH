@@ -156,11 +156,13 @@ public class SceneEditorHandleOverlay {
         if (!supportsPointHandle(element)) {
             return;
         }
-        if (element.getType() == SceneEditorElementType.LINE) {
+        if (element.getType()
+            .getPointHandleMode() == SceneEditorElementType.PointHandleMode.LINE) {
             renderWorldPointHandles(element, camera, viewport, LINE_HANDLE_IDS);
             return;
         }
-        if (element.getType() == SceneEditorElementType.BOX) {
+        if (element.getType()
+            .getPointHandleMode() == SceneEditorElementType.PointHandleMode.BOX) {
             renderWorldPointHandles(element, camera, viewport, BOX_HANDLE_IDS);
             return;
         }
@@ -356,13 +358,16 @@ public class SceneEditorHandleOverlay {
         if (element == null) {
             return new String[0];
         }
-        if (element.getType() == SceneEditorElementType.BLOCK || element.getType() == SceneEditorElementType.DIAMOND) {
+        if (element.getType()
+            .getPointHandleMode() == SceneEditorElementType.PointHandleMode.POINT) {
             return POINT_HANDLE_IDS;
         }
-        if (element.getType() == SceneEditorElementType.LINE) {
+        if (element.getType()
+            .getPointHandleMode() == SceneEditorElementType.PointHandleMode.LINE) {
             return LINE_HANDLE_IDS;
         }
-        if (element.getType() == SceneEditorElementType.BOX) {
+        if (element.getType()
+            .getPointHandleMode() == SceneEditorElementType.PointHandleMode.BOX) {
             return BOX_HANDLE_IDS;
         }
         return new String[0];

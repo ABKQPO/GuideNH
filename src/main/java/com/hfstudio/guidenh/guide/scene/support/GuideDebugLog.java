@@ -7,9 +7,9 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
 
-public final class GuideDebugLog {
+public class GuideDebugLog {
 
-    private GuideDebugLog() {}
+    protected GuideDebugLog() {}
 
     public static boolean isEnabled() {
         return ModConfig.debug.enableDebugMode;

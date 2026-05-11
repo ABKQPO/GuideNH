@@ -10,9 +10,9 @@ import net.minecraft.util.EnumChatFormatting;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
 
-public final class GuideItemTooltipLines {
+public class GuideItemTooltipLines {
 
-    private GuideItemTooltipLines() {}
+    protected GuideItemTooltipLines() {}
 
     private static String safeDisplayName(ItemStack stack) {
         try {

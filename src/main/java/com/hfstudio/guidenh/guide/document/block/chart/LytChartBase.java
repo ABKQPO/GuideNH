@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,6 +43,10 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     private ChartLegendPosition legendPosition = ChartLegendPosition.TOP;
     private ChartLabelPosition labelPosition = ChartLabelPosition.NONE;
     private int labelColor = 0xFFEEEEEE;
+    private CornerLegendPosition cornerLegendPosition = CornerLegendPosition.NONE;
+    private int cornerLegendWidth = CornerLegendRenderer.DEFAULT_WIDTH;
+    private int cornerLegendHeight = CornerLegendRenderer.DEFAULT_HEIGHT;
+    private int cornerLegendBackgroundColor = CornerLegendRenderer.DEFAULT_BACKGROUND;
 
     /** Currently hovered hit key; {@code -1} means none. The exact semantics is decided by each subclass. */
     protected int hoveredKey = -1;
@@ -107,6 +112,35 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         this.labelColor = labelColor;
     }
 
+    public CornerLegendPosition getCornerLegendPosition() {
+        return cornerLegendPosition;
+    }
+
+    public void setCornerLegendPosition(CornerLegendPosition cornerLegendPosition) {
+        this.cornerLegendPosition = cornerLegendPosition != null ? cornerLegendPosition : CornerLegendPosition.NONE;
+    }
+
+    public int getCornerLegendWidth() {
+        return cornerLegendWidth;
+    }
+
+    public int getCornerLegendHeight() {
+        return cornerLegendHeight;
+    }
+
+    public void setCornerLegendSize(int width, int height) {
+        this.cornerLegendWidth = width > 0 ? width : CornerLegendRenderer.DEFAULT_WIDTH;
+        this.cornerLegendHeight = height > 0 ? height : CornerLegendRenderer.DEFAULT_HEIGHT;
+    }
+
+    public int getCornerLegendBackgroundColor() {
+        return cornerLegendBackgroundColor;
+    }
+
+    public void setCornerLegendBackgroundColor(int cornerLegendBackgroundColor) {
+        this.cornerLegendBackgroundColor = cornerLegendBackgroundColor;
+    }
+
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int width = explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH;
@@ -163,6 +197,14 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         LytRect plotRect = new LytRect(plotLeft, plotTop, plotRight - plotLeft, plotBottom - plotTop);
 
         renderChart(context, plotRect);
+        CornerLegendRenderer.render(
+            context,
+            plotRect,
+            collectCornerLegendEntries(),
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackgroundColor);
         ChartLegendRenderer.render(context, legendLayout, textStyle);
     }
 
@@ -176,6 +218,10 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
      * Collect legend entries; empty by default. Subclasses override as needed.
      */
     protected abstract List<ChartLegendRenderer.LegendEntry> collectLegendEntries();
+
+    protected List<CornerLegendEntry> collectCornerLegendEntries() {
+        return Collections.emptyList();
+    }
 
     @Override
     public final Optional<GuideTooltip> getTooltip(float x, float y) {
@@ -260,7 +306,8 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
             new ConstantColor(argb),
             WhiteSpaceMode.NORMAL,
             TextAlignment.LEFT,
-            false);
+            false,
+            null);
     }
 
     public static String formatPercent(double ratio) {

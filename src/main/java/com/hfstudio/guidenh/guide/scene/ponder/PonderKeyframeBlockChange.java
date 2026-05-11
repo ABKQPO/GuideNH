@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.ponder;
 
+import net.minecraft.tileentity.TileEntity;
+
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -73,7 +75,7 @@ public class PonderKeyframeBlockChange {
 
     /**
      * Optional SNBT tile-entity tag to apply after placing the block.
-     * When present the tag is parsed and loaded into the block's {@link net.minecraft.tileentity.TileEntity}.
+     * When present the tag is parsed and loaded into the block's {@link TileEntity}.
      */
     @Nullable
     public String getNbt() {

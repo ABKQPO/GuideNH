@@ -47,22 +47,15 @@ public class StructureViewCompiler extends BlockTagCompiler {
             }
         }
 
-        for (String rawLine : text.toString()
-            .split("\\R")) {
-            var line = rawLine.trim();
-            if (line.isEmpty() || line.startsWith("#")) {
-                continue;
-            }
-            parseLine(compiler, parent, view, line, el);
-        }
+        parseLines(compiler, parent, view, text, el);
 
         parent.append(view);
     }
 
     public static void parseLine(PageCompiler compiler, LytBlockContainer parent, LytStructureView view, String line,
         MdxJsxElementFields el) {
-        var parts = line.split("\\s+");
-        if (parts.length < 4) {
+        String[] parts = firstTokens(line, 4);
+        if (parts == null) {
             parent.appendError(compiler, "Structure entry needs '<x> <y> <z> <modid:name>': " + line, el);
             return;
         }
@@ -96,6 +89,66 @@ public class StructureViewCompiler extends BlockTagCompiler {
         }
 
         view.addBlock(x, y, z, stack);
+    }
+
+    private static void parseLines(PageCompiler compiler, LytBlockContainer parent, LytStructureView view,
+        StringBuilder text, MdxJsxElementFields el) {
+        int lineStart = 0;
+        for (int i = 0; i <= text.length(); i++) {
+            if (i < text.length() && text.charAt(i) != '\n' && text.charAt(i) != '\r') {
+                continue;
+            }
+            parseRawLine(
+                compiler,
+                parent,
+                view,
+                text.substring(lineStart, i)
+                    .trim(),
+                el);
+            if (i + 1 < text.length() && text.charAt(i) == '\r' && text.charAt(i + 1) == '\n') {
+                i++;
+            }
+            lineStart = i + 1;
+        }
+    }
+
+    private static void parseRawLine(PageCompiler compiler, LytBlockContainer parent, LytStructureView view,
+        String line, MdxJsxElementFields el) {
+        if (line.isEmpty() || line.startsWith("#")) {
+            return;
+        }
+        parseLine(compiler, parent, view, line, el);
+    }
+
+    private static String[] firstTokens(String line, int count) {
+        String[] tokens = new String[count];
+        int offset = 0;
+        for (int i = 0; i < count; i++) {
+            offset = skipWhitespace(line, offset);
+            if (offset >= line.length()) {
+                return null;
+            }
+            int end = findWhitespace(line, offset);
+            tokens[i] = line.substring(offset, end);
+            offset = end;
+        }
+        return tokens;
+    }
+
+    private static int skipWhitespace(String line, int offset) {
+        int current = offset;
+        while (current < line.length() && Character.isWhitespace(line.charAt(current))) {
+            current++;
+        }
+        return current;
+    }
+
+    private static int findWhitespace(String line, int offset) {
+        int current = offset;
+        while (current < line.length() && !Character.isWhitespace(line.charAt(current))) {
+            current++;
+        }
+        return current;
     }
 
     public static ItemStack resolveStack(String resourceId, int meta) {

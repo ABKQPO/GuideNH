@@ -1,15 +1,15 @@
 ---
 navigation:
-  title: Ponder 动画
+  title: 思索动画
   parent: index.md
   position: 40
 categories:
   - scenes
 ---
 
-# Ponder 动画
+# 思索动画
 
-`<ImportPonder>` 标签为任意 `<GameScene>` 添加完全由关键帧驱动的动画时间轴。
+`<ImportPonder>` 标签为任意游戏场景（`<GameScene>`）添加完全由关键帧驱动的思索动画时间轴。
 所有时间轴数据均在 JSON 文件中声明，包括摄像机插值、每帧的 3D 标注、方块变换和标注淡入过渡。
 
 ## 完整功能演示
@@ -58,6 +58,9 @@ categories:
 | `layer` | int? | 可见层覆盖（`null` = 显示全部） |
 | `annotations` | array? | 该关键帧激活期间显示的标注列表 |
 | `blockChanges` | array? | 该关键帧激活时应用的方块替换列表 |
+| `mergeTileNBT` / `modifyTileNBT` / `removeTileNBT` | array? | 支持定位重放的方块实体 NBT 操作 |
+| `createEntities` | array? | 创建由思索时间轴管理、可用 `ref` 引用的实体 |
+| `setEntityNBT` / `mergeEntityNBT` / `modifyEntityNBT` / `removeEntityNBT` | array? | 对引用实体执行支持定位重放的 NBT 操作 |
 
 ---
 
@@ -221,6 +224,60 @@ categories:
 | `x`, `y`, `z` | int | 方块坐标（结构坐标系） |
 | `block` | string | 注册名，如 `"minecraft:furnace"`。使用 `"minecraft:air"` 删除方块。 |
 | `meta` | int? | 方块元数据/damage 值；默认为 `0` |
+
+---
+
+## 方块实体 NBT
+
+方块实体 NBT 操作使用 SNBT 字符串和类似 `/data` 的路径：
+
+```json
+"mergeTileNBT": [
+  {
+    "x": 2, "y": 1, "z": 1,
+    "nbt": "{Items:[{Slot:0b,id:\"minecraft:iron_ingot\",Count:1b,Damage:0s}]}"
+  }
+],
+"modifyTileNBT": [
+  { "x": 2, "y": 1, "z": 1, "path": "Items[0].Count", "value": "3b" }
+],
+"removeTileNBT": [
+  { "x": 2, "y": 1, "z": 1, "path": "Items[0].tag" }
+]
+```
+
+使用点号进入复合标签，使用 `[index]` 进入列表项，例如
+`InputTanks[0].TankContent.Amount`。
+
+---
+
+## 思索实体
+
+游戏场景（`<GameScene>`）支持普通 `<Entity>` 元素。思索时间轴也可以创建由时间轴管理的实体，并在后续关键帧中通过
+`ref` 修改它们的 NBT。
+
+```json
+"createEntities": [
+  {
+    "ref": "marker",
+    "id": "minecraft:pig",
+    "x": 1.5, "y": 1.0, "z": 2.5,
+    "nbt": "{CustomName:\"Before\",CustomNameVisible:1b}"
+  }
+],
+"mergeEntityNBT": [
+  { "ref": "marker", "nbt": "{Saddle:1b}" }
+],
+"modifyEntityNBT": [
+  { "ref": "marker", "path": "CustomName", "value": "\"After\"" }
+],
+"removeEntityNBT": [
+  { "ref": "marker", "path": "CustomNameVisible" }
+]
+```
+
+`setEntityNBT` 会用新的 SNBT 复合标签替换引用实体的 NBT。所有实体操作在定位时都会从关键帧
+0 重新播放，因此向后拖动时间轴时，思索时间轴创建的实体不会残留在旧状态。
 
 ---
 

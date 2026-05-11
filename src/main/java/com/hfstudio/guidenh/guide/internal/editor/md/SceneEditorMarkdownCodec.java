@@ -12,11 +12,13 @@ import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
+import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -68,6 +70,8 @@ public class SceneEditorMarkdownCodec {
         .unmodifiableSet(new HashSet<>(Arrays.asList("from", "to", "color", "thickness", "alwaysOnTop", "visible")));
     public static final Set<String> DIAMOND_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Arrays.asList("pos", "color", "alwaysOnTop", "visible")));
+    public static final Set<String> TEXT_ATTRIBUTES = Collections.unmodifiableSet(
+        new HashSet<>(Arrays.asList("pos", "x", "y", "z", "color", "maxWidth", "backgroundAlpha", "visible")));
 
     public SceneEditorMarkdownParseResult parse(String markdown) {
         String normalized = normalizeLineEndings(markdown);
@@ -259,7 +263,56 @@ public class SceneEditorMarkdownCodec {
             model.setTooltipMarkdown(extractTooltipMarkdown(element, source));
             return model;
         }
+        if ("TextAnnotation".equals(tagName)) {
+            ensureAllowedAttributes(element, TEXT_ATTRIBUTES, tagName);
+            SceneEditorElementModel model = new SceneEditorElementModel(SceneEditorElementType.TEXT);
+            float[] pos = parseVectorAttribute(element, "pos", null);
+            if (pos == null) {
+                pos = new float[] { parseFloatAttribute(element, "x", 0f), parseFloatAttribute(element, "y", 0f),
+                    parseFloatAttribute(element, "z", 0f) };
+            }
+            model.setPrimaryX(pos[0]);
+            model.setPrimaryY(pos[1]);
+            model.setPrimaryZ(pos[2]);
+            model.setColorLiteral(parseColorAttribute(element, model.getColorLiteral()));
+            model.setMaxWidth(parseIntAttribute(element, "maxWidth", model.getMaxWidth()));
+            model.setBackgroundAlpha(parseAlphaAttribute(element, "backgroundAlpha", model.getBackgroundAlpha()));
+            model.setVisible(parseBooleanAttribute(element, "visible", model.isVisible()));
+            model.setTextMarkdown(parseTextAnnotationText(element, source, model.getTextMarkdown()));
+            return model;
+        }
+        SceneEditorElementType registeredType = SceneEditorElementType.getByTagName(tagName);
+        if (registeredType != null) {
+            return parseGenericElement(element, source, registeredType);
+        }
         throw new UnsupportedSubsetException("Unsupported scene element <" + tagName + ">");
+    }
+
+    private SceneEditorElementModel parseGenericElement(MdxJsxElementFields element, String source,
+        SceneEditorElementType type) {
+        SceneEditorElementModel model = new SceneEditorElementModel(type);
+        float[] pos = parseVectorAttribute(element, "pos", new float[] { 0f, 0f, 0f });
+        applyPrimary(model, pos);
+        model.setColorLiteral(parseColorAttribute(element, model.getColorLiteral()));
+        model.setVisible(parseBooleanAttribute(element, "visible", model.isVisible()));
+        if (type.supportsAlwaysOnTop()) {
+            model.setAlwaysOnTop(parseBooleanAttribute(element, "alwaysOnTop", model.isAlwaysOnTop()));
+        }
+        if (type.supportsThickness()) {
+            model.setThickness(parseFloatAttribute(element, "thickness", model.getThickness()));
+        }
+        if (type.supportsMaxWidth()) {
+            model.setMaxWidth(parseIntAttribute(element, "maxWidth", model.getMaxWidth()));
+        }
+        if (type.supportsBackgroundAlpha()) {
+            model.setBackgroundAlpha(parseAlphaAttribute(element, "backgroundAlpha", model.getBackgroundAlpha()));
+        }
+        if (type.supportsText()) {
+            model.setTextMarkdown(parseTextAnnotationText(element, source, model.getTextMarkdown()));
+        } else if (type.supportsTooltip()) {
+            model.setTooltipMarkdown(extractTooltipMarkdown(element, source));
+        }
+        return model;
     }
 
     private SceneEditorSceneNodeModel parseImportStructureNode(MdxJsxElementFields element) {
@@ -516,12 +569,27 @@ public class SceneEditorMarkdownCodec {
     }
 
     private void appendElement(StringBuilder builder, SceneEditorElementModel element, String indent) {
-        switch (element.getType()) {
-            case BLOCK -> appendBlockElement(builder, element, indent);
-            case BOX -> appendBoxElement(builder, element, indent);
-            case LINE -> appendLineElement(builder, element, indent);
-            case DIAMOND -> appendDiamondElement(builder, element, indent);
+        if (element.getType() == SceneEditorElementType.BLOCK) {
+            appendBlockElement(builder, element, indent);
+            return;
         }
+        if (element.getType() == SceneEditorElementType.BOX) {
+            appendBoxElement(builder, element, indent);
+            return;
+        }
+        if (element.getType() == SceneEditorElementType.LINE) {
+            appendLineElement(builder, element, indent);
+            return;
+        }
+        if (element.getType() == SceneEditorElementType.DIAMOND) {
+            appendDiamondElement(builder, element, indent);
+            return;
+        }
+        if (element.getType() == SceneEditorElementType.TEXT) {
+            appendTextElement(builder, element, indent);
+            return;
+        }
+        appendGenericElement(builder, element, indent);
     }
 
     private void appendBlockElement(StringBuilder builder, SceneEditorElementModel element, String indent) {
@@ -562,6 +630,86 @@ public class SceneEditorMarkdownCodec {
             .append('"');
         appendElementStyleAttributes(tagBuilder, element, "#FF00E000", false);
         appendElementTooltip(builder, indent, "DiamondAnnotation", tagBuilder, element.getTooltipMarkdown());
+    }
+
+    private void appendTextElement(StringBuilder builder, SceneEditorElementModel element, String indent) {
+        StringBuilder tagBuilder = new StringBuilder();
+        tagBuilder.append("<TextAnnotation pos=\"")
+            .append(formatVector(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()))
+            .append('"');
+        if (!"#FFFFFFFF".equalsIgnoreCase(element.getColorLiteral())) {
+            tagBuilder.append(" color=\"")
+                .append(escapeAttribute(element.getColorLiteral()))
+                .append('"');
+        }
+        if (element.getMaxWidth() > 0) {
+            tagBuilder.append(" maxWidth=\"")
+                .append(element.getMaxWidth())
+                .append('"');
+        }
+        if (element.getBackgroundAlpha() != element.getType()
+            .getDefaultBackgroundAlpha()) {
+            tagBuilder.append(" backgroundAlpha=\"")
+                .append(element.getBackgroundAlpha())
+                .append('"');
+        }
+        if (!element.isVisible()) {
+            tagBuilder.append(" visible={false}");
+        }
+        appendTextElementBody(builder, indent, tagBuilder, element.getTextMarkdown());
+    }
+
+    private void appendGenericElement(StringBuilder builder, SceneEditorElementModel element, String indent) {
+        StringBuilder tagBuilder = new StringBuilder();
+        tagBuilder.append('<')
+            .append(
+                element.getType()
+                    .getTagName());
+        if (element.getType()
+            .supportsPrimaryVector()) {
+            tagBuilder.append(" pos=\"")
+                .append(formatVector(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()))
+                .append('"');
+        }
+        appendElementStyleAttributes(
+            tagBuilder,
+            element,
+            element.getType()
+                .getDefaultColorLiteral(),
+            element.getType()
+                .supportsThickness());
+        if (element.getType()
+            .supportsMaxWidth() && element.getMaxWidth() > 0) {
+            tagBuilder.append(" maxWidth=\"")
+                .append(element.getMaxWidth())
+                .append('"');
+        }
+        if (element.getType()
+            .supportsBackgroundAlpha()
+            && element.getBackgroundAlpha() != element.getType()
+                .getDefaultBackgroundAlpha()) {
+            tagBuilder.append(" backgroundAlpha=\"")
+                .append(element.getBackgroundAlpha())
+                .append('"');
+        }
+        if (element.getType()
+            .supportsText()) {
+            appendTextElementBody(
+                builder,
+                indent,
+                tagBuilder,
+                element.getTextMarkdown(),
+                element.getType()
+                    .getTagName());
+            return;
+        }
+        appendElementTooltip(
+            builder,
+            indent,
+            element.getType()
+                .getTagName(),
+            tagBuilder,
+            element.getTooltipMarkdown());
     }
 
     private void appendElementStyleAttributes(StringBuilder builder, SceneEditorElementModel element,
@@ -606,16 +754,43 @@ public class SceneEditorMarkdownCodec {
             .append(">\n");
     }
 
+    private void appendTextElementBody(StringBuilder builder, String indent, StringBuilder openingTag,
+        String textMarkdown) {
+        appendTextElementBody(builder, indent, openingTag, textMarkdown, "TextAnnotation");
+    }
+
+    private void appendTextElementBody(StringBuilder builder, String indent, StringBuilder openingTag,
+        String textMarkdown, String tagName) {
+        if (textMarkdown == null || textMarkdown.isEmpty()) {
+            builder.append(indent)
+                .append(openingTag)
+                .append(" text=\"\" />\n");
+            return;
+        }
+
+        builder.append(indent)
+            .append(openingTag)
+            .append(">\n");
+        appendIndentedTooltip(builder, indent + "    ", textMarkdown);
+        if (!textMarkdown.endsWith("\n")) {
+            builder.append('\n');
+        }
+        builder.append(indent)
+            .append("</")
+            .append(tagName)
+            .append(">\n");
+    }
+
     private void appendIndentedTooltip(StringBuilder builder, String indent, String tooltipMarkdown) {
         String normalizedTooltip = normalizeLineEndings(tooltipMarkdown);
         if (normalizedTooltip.isEmpty()) {
             return;
         }
-        String[] lines = normalizedTooltip.split("\n", -1);
-        for (int i = 0; i < lines.length; i++) {
+        List<String> lines = GuideStringLines.splitLines(normalizedTooltip);
+        for (int i = 0; i < lines.size(); i++) {
             builder.append(indent)
-                .append(lines[i]);
-            if (i < lines.length - 1) {
+                .append(lines.get(i));
+            if (i < lines.size() - 1) {
                 builder.append('\n');
             }
         }
@@ -626,9 +801,6 @@ public class SceneEditorMarkdownCodec {
             if (!(attributeNode instanceof MdxJsxAttribute attribute)) {
                 throw new UnsupportedSubsetException("Spread attributes are not supported on <" + tagName + ">");
             }
-            // Unknown attributes are silently ignored so the editor stays compatible with
-            // attributes that GameScene recognises but the editor doesn't manage.
-            // (Previously this threw UnsupportedSubsetException, blocking the whole sync.)
         }
     }
 
@@ -660,6 +832,10 @@ public class SceneEditorMarkdownCodec {
         } catch (NumberFormatException e) {
             throw new InvalidSceneSyntaxException("Attribute '" + name + "' must be an integer");
         }
+    }
+
+    private int parseAlphaAttribute(MdxJsxElementFields element, String name, int defaultValue) {
+        return Math.max(0, Math.min(255, parseIntAttribute(element, name, defaultValue)));
     }
 
     private void copyOptionalIntegerAttribute(MdxJsxElementFields element, SceneEditorSceneNodeModel node,
@@ -719,20 +895,17 @@ public class SceneEditorMarkdownCodec {
     private float[] parseVectorAttribute(MdxJsxElementFields element, String name, float[] defaultValue) {
         String rawValue = getOptionalAttributeValue(element, name);
         if (rawValue == null) {
+            if (defaultValue == null) {
+                return null;
+            }
             return Arrays.copyOf(defaultValue, defaultValue.length);
         }
 
-        String[] pieces = rawValue.trim()
-            .split("\\s+");
-        if (pieces.length != 3) {
+        float[] pieces = MdxAttrs.parseVector3Parts(rawValue);
+        if (pieces == null) {
             throw new InvalidSceneSyntaxException("Attribute '" + name + "' must contain exactly 3 numbers");
         }
-        try {
-            return new float[] { Float.parseFloat(pieces[0]), Float.parseFloat(pieces[1]),
-                Float.parseFloat(pieces[2]) };
-        } catch (NumberFormatException e) {
-            throw new InvalidSceneSyntaxException("Attribute '" + name + "' must contain valid numbers");
-        }
+        return pieces;
     }
 
     @Nullable
@@ -783,6 +956,65 @@ public class SceneEditorMarkdownCodec {
             return "";
         }
         return rawElement.substring(openingEnd + 1, closingStart);
+    }
+
+    private String parseTextAnnotationText(MdxJsxElementFields element, String source, String defaultValue) {
+        String textAttribute = parseOptionalStringAttribute(element, "text");
+        if (textAttribute != null) {
+            return textAttribute;
+        }
+        String body = extractTooltipMarkdown(element, source);
+        if (body == null || body.trim()
+            .isEmpty()) {
+            return defaultValue;
+        }
+        return trimCommonIndent(body);
+    }
+
+    private String trimCommonIndent(String text) {
+        String normalized = normalizeLineEndings(text);
+        List<String> lines = GuideStringLines.splitLines(normalized);
+        int start = 0;
+        int end = lines.size();
+        while (start < end && lines.get(start)
+            .trim()
+            .isEmpty()) {
+            start++;
+        }
+        while (end > start && lines.get(end - 1)
+            .trim()
+            .isEmpty()) {
+            end--;
+        }
+        int indent = Integer.MAX_VALUE;
+        for (int i = start; i < end; i++) {
+            if (lines.get(i)
+                .trim()
+                .isEmpty()) {
+                continue;
+            }
+            indent = Math.min(indent, countLeadingSpaces(lines.get(i)));
+        }
+        if (indent == Integer.MAX_VALUE) {
+            indent = 0;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = start; i < end; i++) {
+            if (i > start) {
+                builder.append('\n');
+            }
+            String line = lines.get(i);
+            builder.append(line.substring(Math.min(indent, line.length())));
+        }
+        return builder.toString();
+    }
+
+    private int countLeadingSpaces(String line) {
+        int count = 0;
+        while (count < line.length() && line.charAt(count) == ' ') {
+            count++;
+        }
+        return count;
     }
 
     private int findOpeningTagEnd(String rawElement) {
@@ -937,8 +1169,7 @@ public class SceneEditorMarkdownCodec {
     }
 
     private String normalizeLineEndings(String markdown) {
-        return markdown.replace("\r\n", "\n")
-            .replace('\r', '\n');
+        return GuideStringLines.normalizeLineEndings(markdown);
     }
 
     private String formatParseException(ParseException exception) {

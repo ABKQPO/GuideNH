@@ -12,21 +12,13 @@ date: 2024-01-01
 
 欢迎使用 GuideNH 演示指南。本指南展示了作者可用的渲染、布局和场景能力。参见 [导航与索引](./navigation-guide.md) 了解如何构建你自己的指南页面。
 
-## Markdown
-
-<CategoryIndex category="markdown"></CategoryIndex>
-
-## 场景
-
-<CategoryIndex category="scenes"></CategoryIndex>
-
-## 组件
-
-<CategoryIndex category="widgets"></CategoryIndex>
-
-## 其他
-
-<CategoryIndex category="other"></CategoryIndex>
+| 分类 | 页面 |
+|---|---|
+| Markdown | [Markdown 基础](./markdown.md) · [图表](./charts.md) · [函数图](./function-graph.md) |
+| 3D 场景 | [方块场景](./scene-blocks.md) · [实体场景](./scene-entities.md) · [镜头与视口](./scene-camera.md) |
+| 注解 | [注解](./scene-annotations.md) · [导入结构](./scene-import.md) · [思索动画](./ponder.md) |
+| 组件 | [配方](./recipes.md) · [图片](./images.md) · [Tooltip](./tooltips.md) · [内容嵌入](./content-embed.md) |
+| 其他 | [渲染演示](./rendering.md) · [调试](./debug.md) |
 
 ## 行内元素
 

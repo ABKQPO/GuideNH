@@ -2,13 +2,16 @@ package com.hfstudio.guidenh.guide.scene;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
+import net.minecraft.item.ItemStack;
+
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
@@ -18,6 +21,7 @@ import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
@@ -69,7 +73,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
                 .setZoom(zoom);
         }
 
-        // Camera preset (yaw/pitch/roll) — applied before explicit rotateX/Y/Z overrides.
+        // Camera preset (yaw/pitch/roll), applied before explicit rotateX/Y/Z overrides.
         String perspective = MdxAttrs.getString(compiler, parent, el, "perspective", null);
         if (perspective != null && !perspective.isEmpty()) {
             scene.getCamera()
@@ -119,9 +123,12 @@ public class SceneTagCompiler extends BlockTagCompiler {
         scene.setGridButtonEnabled(gridButtonEnabled);
         boolean showGrid = MdxAttrs.getBoolean(compiler, parent, el, "showGrid", false);
         scene.setGridVisible(showGrid);
+        scene.resetBlockStatsConfiguration();
+        boolean blockStatsDeclared = false;
 
         if (el instanceof MdxJsxFlowElement flow) {
-            compileSceneChildren(scene, compiler, parent, flow);
+            blockStatsDeclared = compileSceneChildren(scene, compiler, parent, flow);
+            scene.initializePonderTimelineBaseline();
             scene.setStructureLibSelectionChangeListener(
                 selection -> rebuildSceneForStructureLibSelection(scene, compiler, flow, explicitCenter, selection));
         }
@@ -252,27 +259,32 @@ public class SceneTagCompiler extends BlockTagCompiler {
             }
         }
 
+        applyImplicitBlockStats(scene, blockStatsDeclared);
+        scene.applyDefaultBlockStatsMaxSizeFromScene();
         scene.snapshotInitialCamera();
         scene.captureInitialInteractiveState();
 
         parent.append(scene);
     }
 
-    private void compileSceneChildren(LytGuidebookScene scene, PageCompiler compiler, LytErrorSink errorSink,
+    private boolean compileSceneChildren(LytGuidebookScene scene, PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxFlowElement flow) {
         AnnotationTagCompiler.CURRENT_SCENE.set(scene);
         try {
             List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(flow);
+            boolean[] result = new boolean[1];
             compiler.withBlockTagChildrenSourceContext(
                 flow,
-                () -> compileSceneChildren(scene, compiler, errorSink, children));
+                () -> result[0] = compileSceneChildren(scene, compiler, errorSink, children));
+            return result[0];
         } finally {
             AnnotationTagCompiler.CURRENT_SCENE.remove();
         }
     }
 
-    private void compileSceneChildren(LytGuidebookScene scene, PageCompiler compiler, LytErrorSink errorSink,
+    private boolean compileSceneChildren(LytGuidebookScene scene, PageCompiler compiler, LytErrorSink errorSink,
         List<? extends MdAstAnyContent> children) {
+        boolean blockStatsDeclared = false;
         for (var child : children) {
             UnistNode childNode = child;
             MdxJsxElementFields childEl = unwrapSceneElement(childNode);
@@ -284,12 +296,144 @@ public class SceneTagCompiler extends BlockTagCompiler {
                 continue;
             }
             var elCompiler = elementCompilers.get(name);
+            if ("BlockStats".equals(name)) {
+                compileBlockStatsElement(scene, compiler, errorSink, childEl);
+                blockStatsDeclared = true;
+                continue;
+            }
             if (elCompiler == null) {
                 errorSink.appendError(compiler, "Unknown scene element <" + name + ">", childNode);
                 continue;
             }
             elCompiler.compile(scene.getLevel(), scene.getCamera(), compiler, errorSink, childEl);
         }
+        return blockStatsDeclared;
+    }
+
+    private static void applyImplicitBlockStats(LytGuidebookScene scene, boolean blockStatsDeclared) {
+        if (blockStatsDeclared || scene.getLevel()
+            .isEmpty()) {
+            return;
+        }
+        scene.setBlockStatsEnabled(true);
+        scene.setBlockStatsVisible(ModConfig.ui.sceneBlockStatsVisible);
+        scene.setBlockStatsButtonEnabled(ModConfig.ui.sceneBlockStatsButtonEnabled);
+        scene.setBlockStatsMode(BlockStatsMode.AUTO);
+        scene.setBlockStatsCorner(BlockStatsCorner.TOP_RIGHT);
+        scene.setBlockStatsDock(BlockStatsDock.INSIDE);
+        scene.setBlockStatsShowNames(false);
+        scene.setBlockStatsFilterMode(BlockStatsFilterMode.BLACKLIST);
+        scene.setBlockStatsFilterKeys(Collections.emptySet());
+    }
+
+    private static Set<String> parseBlockStatsFilter(String raw) {
+        Set<String> filter = new HashSet<>();
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return filter;
+        }
+        int start = -1;
+        for (int index = 0, length = raw.length(); index <= length; index++) {
+            char current = index < length ? raw.charAt(index) : ',';
+            if (isBlockStatsFilterSeparator(current)) {
+                if (start >= 0) {
+                    String normalized = LytGuidebookScene.normalizeBlockStatsKey(raw.substring(start, index));
+                    if (normalized != null) {
+                        filter.add(normalized);
+                    }
+                    start = -1;
+                }
+            } else if (start < 0) {
+                start = index;
+            }
+        }
+        return filter;
+    }
+
+    private static boolean isBlockStatsFilterSeparator(char value) {
+        return value == ',' || value == ';' || Character.isWhitespace(value);
+    }
+
+    private void compileBlockStatsElement(LytGuidebookScene scene, PageCompiler compiler, LytErrorSink errorSink,
+        MdxJsxElementFields el) {
+        scene.setBlockStatsEnabled(true);
+        scene.setBlockStatsVisible(
+            MdxAttrs.getBoolean(compiler, errorSink, el, "visible", ModConfig.ui.sceneBlockStatsVisible));
+        scene.setBlockStatsButtonEnabled(
+            MdxAttrs.getBoolean(compiler, errorSink, el, "buttonEnabled", ModConfig.ui.sceneBlockStatsButtonEnabled));
+        scene.setBlockStatsMode(
+            BlockStatsMode.fromString(MdxAttrs.getString(compiler, errorSink, el, "mode", null), BlockStatsMode.AUTO));
+        scene.setBlockStatsCorner(
+            BlockStatsCorner
+                .fromString(MdxAttrs.getString(compiler, errorSink, el, "corner", null), BlockStatsCorner.TOP_RIGHT));
+        scene.setBlockStatsDock(
+            BlockStatsDock
+                .fromString(MdxAttrs.getString(compiler, errorSink, el, "dock", null), BlockStatsDock.INSIDE));
+        scene.setBlockStatsShowNames(MdxAttrs.getBoolean(compiler, errorSink, el, "showNames", false));
+        scene.setBlockStatsFilterMode(
+            BlockStatsFilterMode.fromString(
+                MdxAttrs.getString(compiler, errorSink, el, "filterMode", null),
+                BlockStatsFilterMode.BLACKLIST));
+        scene.setBlockStatsFilterKeys(
+            parseBlockStatsFilter(MdxAttrs.getString(compiler, errorSink, el, "filter", null)));
+        if (el.getAttribute("maxWidth") != null) {
+            scene.setBlockStatsMaxWidth(
+                MdxAttrs.getInt(compiler, errorSink, el, "maxWidth", LytGuidebookScene.BLOCK_STATS_DEFAULT_MAX_WIDTH));
+        }
+        if (el.getAttribute("maxHeight") != null) {
+            scene.setBlockStatsMaxHeight(
+                MdxAttrs
+                    .getInt(compiler, errorSink, el, "maxHeight", LytGuidebookScene.BLOCK_STATS_DEFAULT_MAX_HEIGHT));
+        }
+        scene.clearManualBlockStatsEntries();
+        boolean manualEntries = false;
+        for (MdAstAnyContent child : el.children()) {
+            MdxJsxElementFields childEl = unwrapSceneElement(child);
+            if (childEl == null) {
+                continue;
+            }
+            String name = childEl.name();
+            if (!"BlockStat".equals(name)) {
+                errorSink.appendError(compiler, "Unknown BlockStats element <" + name + ">", child);
+                continue;
+            }
+            ItemStack item = getBlockStatItemStack(compiler, errorSink, childEl);
+            if (item == null) {
+                continue;
+            }
+            int count = Math.max(0, getBlockStatCount(compiler, errorSink, childEl));
+            scene.addManualBlockStatsEntry(item, count);
+            manualEntries = true;
+        }
+        if (manualEntries) {
+            scene.setBlockStatsMode(BlockStatsMode.MANUAL);
+        }
+    }
+
+    private static int getBlockStatCount(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
+        return Math.round(Math.max(0f, MdxAttrs.getFloat(compiler, errorSink, el, "count", 0f)));
+    }
+
+    private static ItemStack getBlockStatItemStack(PageCompiler compiler, LytErrorSink errorSink,
+        MdxJsxElementFields el) {
+        if (el.getAttribute("item") != null && el.getAttribute("id") == null) {
+            String item = MdxAttrs.getString(compiler, errorSink, el, "item", null);
+            if (item == null || item.trim()
+                .isEmpty()) {
+                errorSink.appendError(compiler, "Missing item attribute.", el);
+                return null;
+            }
+            ItemStack stack = IdUtils.resolveItemStack(
+                item.trim(),
+                compiler.getPageId()
+                    .getResourceDomain());
+            if (stack == null) {
+                errorSink.appendError(compiler, "Missing item: " + item, el);
+            }
+            return stack;
+        }
+        var result = MdxAttrs.getRequiredItemStackAndId(compiler, errorSink, el);
+        return result != null ? result.getRight() : null;
     }
 
     private void rebuildSceneForStructureLibSelection(LytGuidebookScene scene, PageCompiler compiler,
@@ -311,11 +455,16 @@ public class SceneTagCompiler extends BlockTagCompiler {
         scene.setStructureLibSceneMetadata(null);
         scene.setPendingStructureLibPreviewSelection(selection);
         scene.setLevel(new GuidebookLevel());
+        scene.resetBlockStatsConfiguration();
+        boolean blockStatsDeclared;
         try {
-            compileSceneChildren(scene, compiler, NOOP_ERROR_SINK, flow);
+            blockStatsDeclared = compileSceneChildren(scene, compiler, NOOP_ERROR_SINK, flow);
+            scene.initializePonderTimelineBaseline();
         } finally {
             scene.setPendingStructureLibPreviewSelection(null);
         }
+        applyImplicitBlockStats(scene, blockStatsDeclared);
+        scene.applyDefaultBlockStatsMaxSizeFromScene();
         if (!scene.getLevel()
             .isEmpty() && !explicitCenter) {
             var center = scene.getLevel()

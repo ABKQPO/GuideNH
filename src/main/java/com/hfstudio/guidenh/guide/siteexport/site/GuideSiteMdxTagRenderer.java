@@ -27,6 +27,7 @@ import com.hfstudio.guidenh.guide.color.SymbolicColorResolver;
 import com.hfstudio.guidenh.guide.compiler.FrontmatterNavigation;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
@@ -34,7 +35,10 @@ import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.StructureViewCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SubPagesCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
+import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytStructureView;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointSpec;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.DomainPredicate;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionExprParser;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionGraphPalette;
@@ -47,6 +51,7 @@ import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -118,6 +123,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if ("Color".equals(name)) {
             return renderColor(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
         }
+        if ("mark".equals(name)) {
+            return renderMark(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+        }
         if ("Row".equals(name)) {
             return renderLayoutBox(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler, true);
         }
@@ -135,6 +143,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         if ("KeyBind".equals(name)) {
             return escapeHtml(resolveKeyBindLabel(element));
+        }
+        if ("Comment".equals(name)) {
+            return "";
         }
         if ("CommandLink".equals(name)) {
             return renderCommandLink(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
@@ -199,7 +210,55 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if ("FunctionGraph".equals(name) || "Function".equals(name)) {
             return renderFunctionGraphTag(element);
         }
+        if ("QuestLink".equals(name)) {
+            return renderQuestLink(element);
+        }
+        if ("QuestCard".equals(name)) {
+            return renderQuestCard(element);
+        }
         return null;
+    }
+
+    private String renderQuestLink(MdxJsxElementFields element) {
+        String id = readOptional(element, "id");
+        if (id == null || id.trim()
+            .isEmpty()) {
+            return renderError("QuestLink requires an id");
+        }
+        String text = readOptional(element, "text");
+        String label = text != null && !text.trim()
+            .isEmpty() ? text : "Quest " + id;
+        return "<span class=\"guide-quest-link\" data-quest-id=\"" + escapeAttribute(id)
+            + "\">"
+            + escapeHtml(label)
+            + "</span>";
+    }
+
+    private String renderQuestCard(MdxJsxElementFields element) {
+        String id = readOptional(element, "id");
+        if (id == null || id.trim()
+            .isEmpty()) {
+            return renderError("QuestCard requires an id");
+        }
+        boolean showDesc = readBoolean(element, "show_desc", true);
+        String title = readOptional(element, "title");
+        if (title == null || title.trim()
+            .isEmpty()) {
+            title = "Quest " + id;
+        }
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"guide-quest-card\" data-quest-id=\"")
+            .append(escapeAttribute(id))
+            .append("\"><div class=\"guide-quest-card-title\">")
+            .append(escapeHtml(title))
+            .append("</div>");
+        if (showDesc) {
+            html.append("<div class=\"guide-quest-card-meta\">")
+                .append(escapeHtml(id))
+                .append("</div>");
+        }
+        html.append("</div>");
+        return html.toString();
     }
 
     private String renderColor(MdxJsxElementFields element, String defaultNamespace,
@@ -214,6 +273,21 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             + ";\">"
             + compiler.compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
             + "</span>";
+    }
+
+    private String renderMark(MdxJsxElementFields element, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+        String rawColor = readOptional(element, "color");
+        String color = rawColor != null ? parseLiteralColor(rawColor) : null;
+        if (color == null) {
+            color = toCssColor(new ConstantColor(PageCompiler.DEFAULT_MARK_BACKGROUND_COLOR));
+        }
+
+        return "<mark class=\"guide-mark\" style=\"background-color:" + escapeAttribute(color)
+            + ";\">"
+            + compiler.compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
+            + "</mark>";
     }
 
     private String renderLayoutBox(MdxJsxElementFields element, String defaultNamespace,
@@ -931,9 +1005,27 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         boolean numericX = readBoolean(element, "numericX", false);
         boolean showPoints = readBoolean(element, "showPoints", true);
         boolean showLegend = readBoolean(element, "showLegend", true);
+        CornerLegendPosition cornerLegendPosition = ChartAttrParser
+            .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
+        int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
+        int cornerLegendHeight = readInt(element, "cornerLegendHeight", 64);
+        int cornerLegendBackground = parseArgbAttr(element, "cornerLegendBackground", 0xAA111922);
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
-        return GuideSiteGraphRenderer
-            .renderLineChart(w, h, bgColor, borderColor, title, categories, series, numericX, showPoints, showLegend);
+        return GuideSiteGraphRenderer.renderLineChart(
+            w,
+            h,
+            bgColor,
+            borderColor,
+            title,
+            categories,
+            series,
+            numericX,
+            showPoints,
+            showLegend,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackground);
     }
 
     private String renderPieChart(MdxJsxElementFields element) {
@@ -954,8 +1046,24 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         int borderColor = parseArgbAttr(element, "border", 0xFF3A4047);
         String title = readOptional(element, "title");
         boolean showLegend = readBoolean(element, "showLegend", true);
+        CornerLegendPosition cornerLegendPosition = ChartAttrParser
+            .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
+        int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
+        int cornerLegendHeight = readInt(element, "cornerLegendHeight", 64);
+        int cornerLegendBackground = parseArgbAttr(element, "cornerLegendBackground", 0xAA111922);
         List<GuideSiteGraphRenderer.SeriesData> series = parseScatterSeriesChildren(element);
-        return GuideSiteGraphRenderer.renderScatterChart(w, h, bgColor, borderColor, title, series, showLegend);
+        return GuideSiteGraphRenderer.renderScatterChart(
+            w,
+            h,
+            bgColor,
+            borderColor,
+            title,
+            series,
+            showLegend,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackground);
     }
 
     private String renderFunctionGraphTag(MdxJsxElementFields element) {
@@ -968,33 +1076,42 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         boolean showGrid = readBoolean(element, "showGrid", true);
         boolean showAxes = readBoolean(element, "showAxes", true);
         String title = readOptional(element, "title");
+        CornerLegendPosition cornerLegendPosition = ChartAttrParser
+            .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
+        int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
+        int cornerLegendHeight = readInt(element, "cornerLegendHeight", 64);
+        int cornerLegendBackground = parseArgbAttr(element, "cornerLegendBackground", 0xAA111922);
         double xMin = parseDoubleAttr(element, "xMin", -10);
         double xMax = parseDoubleAttr(element, "xMax", 10);
         double yMin = parseDoubleAttr(element, "yMin", Double.NaN);
         double yMax = parseDoubleAttr(element, "yMax", Double.NaN);
         String xRange = readOptional(element, "xRange");
-        if (xRange != null && xRange.contains("..")) {
-            String[] parts = xRange.split("\\.\\.");
-            if (parts.length == 2) {
-                try {
-                    xMin = Double.parseDouble(parts[0].trim());
-                } catch (NumberFormatException ignored) {}
-                try {
-                    xMax = Double.parseDouble(parts[1].trim());
-                } catch (NumberFormatException ignored) {}
-            }
+        int xRangeSeparator = rangeSeparatorIndex(xRange);
+        if (xRangeSeparator >= 0) {
+            try {
+                xMin = Double.parseDouble(
+                    xRange.substring(0, xRangeSeparator)
+                        .trim());
+            } catch (NumberFormatException ignored) {}
+            try {
+                xMax = Double.parseDouble(
+                    xRange.substring(xRangeSeparator + 2)
+                        .trim());
+            } catch (NumberFormatException ignored) {}
         }
         String yRange = readOptional(element, "yRange");
-        if (yRange != null && yRange.contains("..")) {
-            String[] parts = yRange.split("\\.\\.");
-            if (parts.length == 2) {
-                try {
-                    yMin = Double.parseDouble(parts[0].trim());
-                } catch (NumberFormatException ignored) {}
-                try {
-                    yMax = Double.parseDouble(parts[1].trim());
-                } catch (NumberFormatException ignored) {}
-            }
+        int yRangeSeparator = rangeSeparatorIndex(yRange);
+        if (yRangeSeparator >= 0) {
+            try {
+                yMin = Double.parseDouble(
+                    yRange.substring(0, yRangeSeparator)
+                        .trim());
+            } catch (NumberFormatException ignored) {}
+            try {
+                yMax = Double.parseDouble(
+                    yRange.substring(yRangeSeparator + 2)
+                        .trim());
+            } catch (NumberFormatException ignored) {}
         }
         List<FunctionPlot> plots = parsePlotChildren(element);
         // Support self-closing usage like <Function expr="x^2" xRange="-2..4" />: when no nested
@@ -1009,6 +1126,12 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 int color = parseArgbAttr(element, "color", FunctionGraphPalette.color(0));
                 String label = readOptional(element, "label");
                 DomainPredicate domain = DomainPredicate.parse(readOptional(element, "domain"));
+                AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
+                    readOptional(element, "pointEveryX"),
+                    readOptional(element, "pointEveryY"),
+                    readOptional(element, "autoPointLabel"),
+                    readOptional(element, "autoPointColor"),
+                    color);
                 plots.add(
                     new FunctionPlot(
                         trimmed,
@@ -1016,7 +1139,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                         inverse,
                         domain,
                         color,
-                        label != null ? label : trimmed));
+                        label != null ? label : trimmed,
+                        autoPointSpec));
             }
         }
         // Auto Y range when not specified
@@ -1061,7 +1185,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             xMin,
             xMax,
             yMin,
-            yMax);
+            yMax,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackground);
+    }
+
+    private int rangeSeparatorIndex(@Nullable String range) {
+        if (range == null) {
+            return -1;
+        }
+        int separator = range.indexOf("..");
+        return separator >= 0 && range.indexOf("..", separator + 2) < 0 ? separator : -1;
     }
 
     /** Parse {@code <Series name="..." data="1,2,3" color="...">} children for bar/column/line charts. */
@@ -1195,6 +1331,12 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             int color = parseArgbAttr(c, "color", FunctionGraphPalette.color(idx));
             String label = readOptional(c, "label");
             DomainPredicate domain = DomainPredicate.parse(readOptional(c, "domain"));
+            AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
+                readOptional(c, "pointEveryX"),
+                readOptional(c, "pointEveryY"),
+                readOptional(c, "autoPointLabel"),
+                readOptional(c, "autoPointColor"),
+                color);
             result.add(
                 new FunctionPlot(
                     exprText,
@@ -1202,7 +1344,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                     inverse,
                     domain,
                     color,
-                    label != null ? label : exprText));
+                    label != null ? label : exprText,
+                    autoPointSpec));
             idx++;
         }
         return result;
@@ -1474,7 +1617,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String resolveKeyBindLabel(MdxJsxElementFields element) {
-        String id = readOptional(element, "id");
+        String id = KeyBindTagCompiler.getKeyBindId(element);
         if (id == null || id.isEmpty()) {
             return "";
         }
@@ -1612,20 +1755,22 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         collectStructureText(rawText, element.children());
 
         List<StructureBlockView> blocks = new ArrayList<>();
-        for (String rawLine : rawText.toString()
-            .split("\\R")) {
+        boolean[] failed = new boolean[1];
+        GuideStringLines.visitLines(rawText.toString(), (rawLine, lineIndex) -> {
             String line = rawLine.trim();
             if (line.isEmpty() || line.startsWith("#")) {
-                continue;
+                return true;
             }
 
             StructureBlockView block = parseStructureBlock(line, currentPageId, templates);
             if (block == null) {
-                return null;
+                failed[0] = true;
+                return false;
             }
             blocks.add(block);
-        }
-        return blocks;
+            return true;
+        });
+        return failed[0] ? null : blocks;
     }
 
     private void collectStructureText(StringBuilder text, List<? extends MdAstAnyContent> children) {
@@ -1648,8 +1793,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     @Nullable
     private StructureBlockView parseStructureBlock(String line, @Nullable ResourceLocation currentPageId,
         GuideSiteTemplateRegistry templates) {
-        String[] parts = line.split("\\s+");
-        if (parts.length < 4) {
+        List<String> parts = splitWhitespaceTokens(line, 4);
+        if (parts.size() < 4) {
             return null;
         }
 
@@ -1657,14 +1802,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         int y;
         int z;
         try {
-            x = Integer.parseInt(parts[0]);
-            y = Integer.parseInt(parts[1]);
-            z = Integer.parseInt(parts[2]);
+            x = Integer.parseInt(parts.get(0));
+            y = Integer.parseInt(parts.get(1));
+            z = Integer.parseInt(parts.get(2));
         } catch (NumberFormatException e) {
             return null;
         }
 
-        String idSpec = parts[3];
+        String idSpec = parts.get(3);
         int meta = 0;
         int firstColon = idSpec.indexOf(':');
         int lastColon = idSpec.lastIndexOf(':');
@@ -1704,6 +1849,26 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             templateId);
     }
 
+    private List<String> splitWhitespaceTokens(String text, int limit) {
+        List<String> tokens = new ArrayList<>(Math.max(1, limit));
+        int start = -1;
+        for (int index = 0, length = text.length(); index <= length; index++) {
+            char value = index < length ? text.charAt(index) : ' ';
+            if (Character.isWhitespace(value)) {
+                if (start >= 0) {
+                    tokens.add(text.substring(start, index));
+                    if (limit > 0 && tokens.size() >= limit) {
+                        return tokens;
+                    }
+                    start = -1;
+                }
+            } else if (start < 0) {
+                start = index;
+            }
+        }
+        return tokens;
+    }
+
     private String abbreviateStructureLabel(String displayName, String itemId) {
         String cleaned = displayName != null ? displayName.trim() : "";
         if (!cleaned.isEmpty()) {
@@ -1718,12 +1883,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             cleaned = cleaned.replace('_', ' ')
                 .replace('-', ' ');
 
-            String[] words = cleaned.split("\\s+");
             StringBuilder initials = new StringBuilder();
-            for (String word : words) {
-                if (word.isEmpty()) {
-                    continue;
-                }
+            for (String word : splitWhitespaceTokens(cleaned, 3)) {
                 char ch = word.charAt(0);
                 if (Character.isLetterOrDigit(ch)) {
                     initials.append(Character.toUpperCase(ch));
@@ -1736,7 +1897,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 return initials.toString();
             }
 
-            String compact = cleaned.replaceAll("[^A-Za-z0-9]", "");
+            String compact = keepAsciiLettersAndDigits(cleaned);
             if (!compact.isEmpty()) {
                 return compact.substring(0, Math.min(3, compact.length()))
                     .toUpperCase(Locale.ROOT);
@@ -1752,12 +1913,23 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if (colon >= 0 && colon + 1 < fallback.length()) {
             fallback = fallback.substring(colon + 1);
         }
-        fallback = fallback.replaceAll("[^A-Za-z0-9]", "");
+        fallback = keepAsciiLettersAndDigits(fallback);
         if (fallback.isEmpty()) {
             fallback = "BLK";
         }
         return fallback.substring(0, Math.min(3, fallback.length()))
             .toUpperCase(Locale.ROOT);
+    }
+
+    private String keepAsciiLettersAndDigits(String value) {
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int index = 0; index < value.length(); index++) {
+            char ch = value.charAt(index);
+            if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')) {
+                builder.append(ch);
+            }
+        }
+        return builder.toString();
     }
 
     private String renderFallbackItemLabel(String itemId, @Nullable ResourceLocation currentPageId,
@@ -1913,7 +2085,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return escapeHtml(text);
     }
 
-    private static final class StructureBlockView {
+    private static class StructureBlockView {
 
         private final int x;
         private final int y;
@@ -1940,7 +2112,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
     }
 
-    private static final class StructureLegendEntry {
+    private static class StructureLegendEntry {
 
         private final GuideSiteExportedItem item;
         private final String abbreviation;

@@ -8,6 +8,7 @@ GuideNH 的运行时页面使用 Markdown 文件，当前解析支持：
 - YAML frontmatter
 - GFM 表格
 - 删除线
+- `==text==` 行内高亮
 - GuideNH 行内下划线扩展：`++text++`（直下划线）、`^^text^^`（波浪下划线）、`::text::`（着重号 / 点状下划线）
 - `{/* ... */}` 形式的 MDX 注释
 - MDX 风格的自定义标签
@@ -19,6 +20,7 @@ GuideNH 页面当前支持示例指南里常用的这些 Markdown 能力：
 - 标题
 - 段落
 - 行内强调、粗体、删除线、行内代码
+- 行内高亮（`==text==`）
 - 行内下划线（`++text++`）、波浪下划线（`^^text^^`）和着重号（`::text::`）
 - 链接与图片
 - 直接写出的 URL、`www.` 域名和邮箱自动链接
@@ -33,6 +35,10 @@ GuideNH 页面当前支持示例指南里常用的这些 Markdown 能力：
 - 页面正文中的 MDX 注释
 
 可参考 `wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/markdown.md` 查看实际运行时示例。
+
+## 高亮
+
+使用 `==text==` 可以生成行内高亮文字。需要自定义颜色时，可以使用 `<mark color="#8A6A00">text</mark>`。默认高亮色是偏暗的金黄色，用于在白色文字下保持可读性。
 
 ## 代码块
 

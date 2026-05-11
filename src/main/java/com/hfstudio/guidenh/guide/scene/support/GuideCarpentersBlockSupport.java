@@ -7,16 +7,16 @@ import net.minecraft.util.MovingObjectPosition;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.carpentersblocks.CarpentersBlocksHelpers;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.carpentersblocks.CarpentersBlocksHelpers;
 
 /**
  * Backwards-compatible facade. Implementation lives in
- * {@link com.hfstudio.guidenh.compat.carpentersblocks.CarpentersBlocksHelpers}.
+ * {@link CarpentersBlocksHelpers}.
  */
-public final class GuideCarpentersBlockSupport {
+public class GuideCarpentersBlockSupport {
 
-    private GuideCarpentersBlockSupport() {}
+    protected GuideCarpentersBlockSupport() {}
 
     public static boolean isCarpentersBlock(@Nullable Block block) {
         return CarpentersBlocksHelpers.isCarpentersBlock(block);

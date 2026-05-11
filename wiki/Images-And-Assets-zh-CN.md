@@ -210,4 +210,4 @@ GuideNH 页面也可以引用非图片类运行时资源，最常见的是结构
 
 - [指南页面格式](Guide-Page-Format-zh-CN)
 - [标签参考](Tags-Reference-zh-CN)
-- [GameScene](GameScene-zh-CN)
+- [游戏场景](GameScene-zh-CN)

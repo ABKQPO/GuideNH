@@ -43,14 +43,15 @@ public class GuideItemLinksPage {
     @Nullable
     public static ItemStack stackFromAnchor(@Nullable PageAnchor anchor) {
         if (!isItemLinksAnchor(anchor) || anchor.anchor() == null) return null;
-        String[] parts = anchor.anchor()
-            .split(":", 3);
-        if (parts.length < 2) return null;
-        String itemName = parts[0] + ":" + parts[1];
+        String rawAnchor = anchor.anchor();
+        int namespaceSeparator = rawAnchor.indexOf(':');
+        if (namespaceSeparator <= 0 || namespaceSeparator >= rawAnchor.length() - 1) return null;
+        int metaSeparator = rawAnchor.indexOf(':', namespaceSeparator + 1);
+        String itemName = metaSeparator >= 0 ? rawAnchor.substring(0, metaSeparator) : rawAnchor;
         int meta = OreDictionary.WILDCARD_VALUE;
-        if (parts.length == 3) {
+        if (metaSeparator >= 0 && metaSeparator < rawAnchor.length() - 1) {
             try {
-                meta = Integer.parseInt(parts[2]);
+                meta = Integer.parseInt(rawAnchor.substring(metaSeparator + 1));
             } catch (NumberFormatException ignored) {
                 meta = OreDictionary.WILDCARD_VALUE;
             }

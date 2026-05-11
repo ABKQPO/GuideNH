@@ -1,11 +1,11 @@
-# Ponder 动画时间轴
+# 思索动画时间轴
 
-GuideNH 在 `<GameScene>` 块中支持思索风格的动画时间轴。你只需提供一个外部 JSON 文件来定义关键帧、摄像机运动和世界内注释，GuideNH 就会在 3D 场景下方渲染一个带播放/暂停控件的交互式进度条。
+GuideNH 在游戏场景（`<GameScene>`）块中支持思索风格的动画时间轴。你只需提供一个外部 JSON 文件来定义关键帧、摄像机运动和世界内注释，GuideNH 就会在 3D 场景下方渲染一个带播放/暂停控件的交互式进度条。
 
 ## 快速上手
 
-1. 创建一个 Ponder JSON 文件，并将其放入资源包（参见[文件位置](#文件位置)）。
-2. 在 guide 页面的 `<GameScene>` 块中，与 `<ImportStructure>` 并列添加 `<ImportPonder src="..."/>`。
+1. 创建一个思索 JSON 文件，并将其放入资源包（参见[文件位置](#文件位置)）。
+2. 在 guide 页面的游戏场景（`<GameScene>`）块中，与 `<ImportStructure>` 并列添加 `<ImportPonder src="..."/>`。
 
 ```mdx
 <GameScene zoom="4" background="#0a0a10">
@@ -14,17 +14,17 @@ GuideNH 在 `<GameScene>` 块中支持思索风格的动画时间轴。你只需
 </GameScene>
 ```
 
-> **注意：** `<ImportPonder>` 必须位于 `<GameScene>` 块内，`src` 属性为必填项。结构数据仍由 `<ImportStructure>` 或 `<ImportStructureLib>` 提供。
+> **注意：** `<ImportPonder>` 必须位于游戏场景（`<GameScene>`）块内，`src` 属性为必填项。结构数据仍由 `<ImportStructure>` 或 `<ImportStructureLib>` 提供。
 
 ## 文件位置
 
-Ponder JSON 文件遵循与 SNBT 结构文件相同的资源包路径规则：
+思索 JSON 文件遵循与 SNBT 结构文件相同的资源包路径规则：
 
 ```
 assets/<modid>/guidebooks/
   pages/machines/my_machine.mdx       ← guide 页面
   pages/machines/my_machine.snbt      ← 结构数据
-  pages/machines/my_machine.json      ← Ponder JSON
+  pages/machines/my_machine.json      ← 思索 JSON
 ```
 
 `src` 属性支持相对路径和绝对 ID：
@@ -54,6 +54,14 @@ assets/<modid>/guidebooks/
 | `layer` | 整数 或 null | 否 | 可见层覆盖。`null` 显示所有层；从 1 开始的整数限制到指定层。 |
 | `annotations` | 数组 | 否 | 该关键帧激活时显示的注释列表。 |
 | `blockChanges` | 数组 | 否 | 该关键帧激活时执行的方块替换列表。 |
+| `mergeTileNBT` | 数组 | 否 | 将 SNBT 复合标签合并到指定坐标的方块实体。 |
+| `modifyTileNBT` | 数组 | 否 | 将某个方块实体 NBT 路径设置为指定 SNBT 值。 |
+| `removeTileNBT` | 数组 | 否 | 删除某个方块实体 NBT 路径。 |
+| `createEntities` | 数组 | 否 | 创建可被后续实体 NBT 操作引用的思索专用实体。 |
+| `setEntityNBT` | 数组 | 否 | 用提供的 SNBT 复合标签替换引用实体的 NBT。 |
+| `mergeEntityNBT` | 数组 | 否 | 将 SNBT 复合标签合并到引用实体。 |
+| `modifyEntityNBT` | 数组 | 否 | 将引用实体的某个 NBT 路径设置为指定 SNBT 值。 |
+| `removeEntityNBT` | 数组 | 否 | 删除引用实体的某个 NBT 路径。 |
 
 ### 摄像机字段（均为可选）
 
@@ -103,6 +111,108 @@ assets/<modid>/guidebooks/
 **支持倒放定位：** 向前或向后拖动进度条时，运行时会先将所有改动过的位置恢复为原始状态，再从第 0 帧重新应用到当前帧。无论如何定位，显示的结构始终正确。
 
 > **关于粒子效果：** 粒子效果只在正向播放、关键帧第一次激活时触发，粒子使用被替换方块的自身贴图。定位（倒带/快进）、重置或初始加载时粒子**不会**触发，已有粒子会被清除。
+
+---
+
+## 方块实体 NBT 操作
+
+当方块本身不变，只需要改变方块实体数据时，可以使用 `mergeTileNBT`、`modifyTileNBT`
+和 `removeTileNBT`。这些操作支持进度条定位：运行时会先恢复初始方块实体 NBT，再从第
+0 帧重放到当前关键帧。
+
+```json
+{
+  "time": 80,
+  "mergeTileNBT": [
+    {
+      "x": 2, "y": 1, "z": 2,
+      "nbt": "{InputTanks:[{Level:{Speed:0.25,Target:0.25,Value:0.0},TankContent:{Amount:250,FluidName:\"minecraft:lava\"}}]}"
+    }
+  ],
+  "modifyTileNBT": [
+    {
+      "x": 2, "y": 1, "z": 2,
+      "path": "InputTanks[0].TankContent.Amount",
+      "value": "500"
+    }
+  ],
+  "removeTileNBT": [
+    { "x": 2, "y": 1, "z": 2, "path": "InputTanks[0].Level.Target" }
+  ]
+}
+```
+
+| 字段 | 适用于 | 说明 |
+|------|--------|------|
+| `x`, `y`, `z` | 全部 | 方块实体所在的结构坐标。 |
+| `nbt` | `mergeTileNBT` | 要合并到方块实体的 SNBT 复合标签。复合标签会递归合并，其他值会覆盖旧值。 |
+| `path` | `modifyTileNBT`、`removeTileNBT` | 带列表索引的点分 NBT 路径，例如 `Items[0].Count` 或 `InputTanks[0].TankContent.Amount`。 |
+| `value` | `modifyTileNBT` | 写入 `path` 的 SNBT 值，例如 `3b`、`500`、`"\"text\""`、`{Count:1b,id:"minecraft:stone"}`。 |
+
+路径写法与 Minecraft `/data` 的思路相同：用 `.` 进入复合标签，用 `[index]` 进入列表。
+列表遍历目前面向常见的“列表内是复合标签”的结构，例如物品栏、流体罐和配方槽。
+
+---
+
+## 实体操作
+
+游戏场景（`<GameScene>`）本身已经支持普通 `<Entity>` 标签。思索时间轴现在也可以通过
+`createEntities` 创建由时间轴管理的实体，并在后续关键帧中通过 `ref` 引用它们。
+
+```json
+{
+  "time": 0,
+  "createEntities": [
+    {
+      "ref": "marker",
+      "id": "minecraft:pig",
+      "x": 1.5, "y": 1.0, "z": 2.5,
+      "yaw": 180,
+      "nbt": "{CustomName:\"Before\",CustomNameVisible:1b}"
+    }
+  ]
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `ref` | 必填，本思索 JSON 内用于后续操作的引用名。 |
+| `id` | 实体 ID，例如 `minecraft:pig`、`Pig` 或场景实体加载器支持的模组实体 ID。 |
+| `x`, `y`, `z` | 可选生成位置。未填写且 `nbt` 没有 `Pos` 时默认为 `0, 0, 0`。 |
+| `yaw`, `pitch` | 可选生成旋转。未填写且 `nbt` 没有 `Rotation` 时默认为 `0, 0`。 |
+| `nbt` | 可选，实体创建时应用的 SNBT 复合标签。 |
+| `name`, `uuid` | 可选，创建预览玩家实体时使用的玩家档案字段。 |
+
+实体创建后，可以使用实体 NBT 操作：
+
+```json
+{
+  "time": 60,
+  "mergeEntityNBT": [
+    { "ref": "marker", "nbt": "{Saddle:1b}" }
+  ],
+  "modifyEntityNBT": [
+    { "ref": "marker", "path": "CustomName", "value": "\"After\"" }
+  ],
+  "removeEntityNBT": [
+    { "ref": "marker", "path": "CustomNameVisible" }
+  ]
+}
+```
+
+如果需要替换实体 NBT，而不是合并，可以使用 `setEntityNBT`：
+
+```json
+{
+  "time": 100,
+  "setEntityNBT": [
+    { "ref": "marker", "nbt": "{Pos:[0.0d,0.0d,0.0d],Rotation:[0.0f,0.0f],CustomName:\"Reset\"}" }
+  ]
+}
+```
+
+与方块实体操作一样，实体操作会在关键帧变化时从头重放；向后拖动进度条时，
+思索时间轴创建的实体会被移除并重新创建到目标时刻的正确状态。
 
 ---
 
@@ -238,6 +348,7 @@ assets/<modid>/guidebooks/
   "type": "text",
   "text": "独立标签",
   "color": "0xFFFFCC00",
+  "backgroundAlpha": 160,
   "independent": true,
   "yOffset": 40
 }
@@ -248,6 +359,7 @@ assets/<modid>/guidebooks/
 | `x`, `y`, `z` | float | `0.0` | 锚点的世界坐标（独立模式下忽略）。 |
 | `text` | 字符串 | — | **必填。** 气泡框中显示的文本。 |
 | `color` | 字符串 | `"0xFFAAAAAA"` | ARGB 边框颜色。 |
+| `backgroundAlpha` | 整数 | `204` | 背景透明度，`0` 为完全透明，`255` 为完全不透明。 |
 | `maxWidth` | 整数 | `0` | 若 &gt; 0，按此像素宽度自动换行；`0` 表示单行。 |
 | `independent` | 布尔值 | `false` | 若为 `true`，位置以场景中心为基准（屏幕坐标），而非世界坐标投影。 |
 | `yOffset` | 整数 | `0` | 相对于场景垂直中心的像素偏移（正值向下）。与 `independent: true` 配合使用。 |
@@ -257,7 +369,7 @@ assets/<modid>/guidebooks/
 
 当任意 `hlMin/Max` 坐标存在时，会为该关键帧额外创建一个 `InWorldBoxAnnotation`，颜色由 `highlightColor` 指定。适合在讲解区域时高亮指定的方块范围。
 
-气泡框背景固定为深色半透明（`#CC0E0E20`）。世界锚定模式下有连接线；独立模式下没有。文本支持完整的 GuideNH 行内富文本语法（Markdown 格式化与 MDX 行内标签），并带阴影渲染。
+气泡框背景默认是深色半透明（`#CC0E0E20`），可用 `backgroundAlpha` 调整透明度。世界锚定模式下有连接线；独立模式下没有。文本支持完整的 GuideNH 行内富文本语法（Markdown 格式化与 MDX 行内标签），并带阴影渲染。
 
 > **富文本支持：** `text` 字段支持 GuideNH 页面中所有行内富文本语法：
 > `**粗体**`、`*斜体*`、`~~删除线~~`、`<Color id="RED">颜色文本</Color>`、
@@ -494,10 +606,11 @@ assets/mymod/guidebooks/
 - 思索进度条绘制在层/StructureLib 滑条上方。播放期间结构滑条被隐藏，暂停后重新出现。
 - 即使某些关键帧仅更改部分摄像机轴，摄像机插值始终平滑（缓入/缓出）。使用 `cameraEaseTicks` 可以让摄像机立即跳转（`0`）或在指定刻数内完成缓动后保持目标位置。
 - 注释属于单个关键帧，仅在该关键帧激活期间（从其 `time` 刻到下一关键帧的 `time` 刻之前）显示。正向播放时叠加文字注释会平滑淡出后切换。
-- 每个 `<GameScene>` 只有一个 `<ImportPonder>` 标签生效，多个标签时后者覆盖前者。
+- 每个游戏场景（`<GameScene>`）只有一个 `<ImportPonder>` 标签生效，多个标签时后者覆盖前者。
 - `text` 字段缺失或为空的 `text` 注释将被静默跳过。
 - `inputType` 字段缺失或无法识别时默认为 `"lmb"`。
 - `blockChanges` 按从第 0 帧到当前帧的顺序应用；在多个关键帧中修改同一位置的方块完全正常。
+- 方块实体和实体 NBT 操作也使用同样的重放模型；向前或向后拖动进度条都能恢复正确状态。
 - `maxWidth` &gt; 0 的 `text` 注释使用原版字体渲染器自动换行；气泡框高度会随多行文本自动调整。
 - `nbt` 字符串中键名必须为**不带引号**的标准 SNBT 格式（MC 1.7.10 `JsonToNBT` 要求）。字符串值仍需引号，例如 `{id:"minecraft:iron_ingot",Count:8b}`。
-
+- `modifyTileNBT` 和 `modifyEntityNBT` 的 `value` 是 SNBT 值，不是 JSON 值。字符串值需要在 JSON 内转义 SNBT 引号：`"value": "\"hello\""`。

@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.scene.snapshot;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class RegisteredServerPreviewSupplement {
+public class RegisteredServerPreviewSupplement {
 
     private final ServerPreviewSupplementSnippetCodec snippetCodec;
     @Nullable

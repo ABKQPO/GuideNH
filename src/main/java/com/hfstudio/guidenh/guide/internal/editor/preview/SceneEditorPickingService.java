@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -64,7 +65,7 @@ public class SceneEditorPickingService {
     }
 
     private List<SceneEditorElementModel> getVisibleElements(SceneEditorSession session) {
-        List<SceneEditorElementModel> visibleElements = new java.util.ArrayList<>();
+        List<SceneEditorElementModel> visibleElements = new ArrayList<>();
         for (SceneEditorElementModel element : session.getSceneModel()
             .getElements()) {
             if (element.isVisible()) {

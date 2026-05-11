@@ -90,6 +90,6 @@ navigation:
 1. [快速开始](Getting-Started-zh-CN)
 2. [指南页面格式](Guide-Page-Format-zh-CN)
 3. [标签参考](Tags-Reference-zh-CN)
-4. [GameScene](GameScene-zh-CN)
+4. [游戏场景](GameScene-zh-CN)
 5. [注解](Annotations-zh-CN)
 6. [配方](Recipes-zh-CN)

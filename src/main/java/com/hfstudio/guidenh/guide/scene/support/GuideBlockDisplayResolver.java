@@ -11,10 +11,8 @@ import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.buildcraft.BuildCraftHelpers;
-import com.hfstudio.guidenh.compat.logisticspipes.LogisticsPipesHelpers;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuideBlockDisplayResolver {
 
@@ -35,23 +33,10 @@ public class GuideBlockDisplayResolver {
             return null;
         }
 
-        if (Mods.LogisticsPipes.isModLoaded()) {
-            ItemStack lpStack = LogisticsPipesHelpers.resolveDisplayStack(level, block, x, y, z);
-            if (lpStack != null) {
-                return lpStack;
-            }
-        }
-
-        if (Mods.BuildCraftTransport.isModLoaded()) {
-            ItemStack bcStack = BuildCraftHelpers.resolveDisplayStack(level, block, x, y, z);
-            if (bcStack != null) {
-                return bcStack;
-            }
-        }
-
-        ItemStack carpentersStack = GuideCarpentersBlockSupport.resolveDisplayStack(level, block, x, y, z, target);
-        if (carpentersStack != null) {
-            return carpentersStack;
+        ItemStack integrationStack = GuideNhIntegrationRegistry.global()
+            .resolveBlockDisplayStack(level, block, x, y, z, target);
+        if (integrationStack != null) {
+            return integrationStack;
         }
 
         ItemStack pickedStack = safeResolvePickedStack(level, block, x, y, z, target);
@@ -80,11 +65,10 @@ public class GuideBlockDisplayResolver {
             return null;
         }
 
-        if (GuideCarpentersBlockSupport.isCarpentersBlock(block)) {
-            String carpentersName = resolveIntrinsicBlockDisplayName(level, block, x, y, z);
-            if (carpentersName != null) {
-                return carpentersName;
-            }
+        String integrationName = GuideNhIntegrationRegistry.global()
+            .resolveBlockDisplayName(level, block, x, y, z, target);
+        if (integrationName != null) {
+            return integrationName;
         }
 
         try {
@@ -96,8 +80,7 @@ public class GuideBlockDisplayResolver {
 
         try {
             String localizedName = block.getLocalizedName();
-            if (localizedName != null && !localizedName.trim()
-                .isEmpty()) {
+            if (hasText(localizedName)) {
                 return localizedName;
             }
         } catch (Throwable ignored) {}
@@ -116,8 +99,7 @@ public class GuideBlockDisplayResolver {
             if (item != null) {
                 ItemStack stack = new ItemStack(item, 1, resolveDisplayMeta(level, block, x, y, z));
                 String displayName = stack.getDisplayName();
-                if (displayName != null && !displayName.trim()
-                    .isEmpty()) {
+                if (hasText(displayName)) {
                     return displayName;
                 }
             }
@@ -125,8 +107,7 @@ public class GuideBlockDisplayResolver {
 
         try {
             String localizedName = block.getLocalizedName();
-            if (localizedName != null && !localizedName.trim()
-                .isEmpty()) {
+            if (hasText(localizedName)) {
                 return localizedName;
             }
         } catch (Throwable ignored) {}
@@ -206,5 +187,17 @@ public class GuideBlockDisplayResolver {
         } catch (Throwable ignored) {
             return null;
         }
+    }
+
+    private static boolean hasText(@Nullable String value) {
+        if (value == null) {
+            return false;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            if (value.charAt(i) > ' ') {
+                return true;
+            }
+        }
+        return false;
     }
 }

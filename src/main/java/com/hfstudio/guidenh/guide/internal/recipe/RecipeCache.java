@@ -2,51 +2,53 @@ package com.hfstudio.guidenh.guide.internal.recipe;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 /**
- * Caches the raw {@link NeiRecipeLookup#queryRawCraftingHandlers(ItemStack)} result per target
- * (item + meta + NBT) for the lifetime of the currently-loaded guide set. Cleared via
- * {@link #clear()} on {@code F3+T} reload (see {@code GuideReloadListener}). A plain HashMap is
- * sufficient: entries are small (a list of handler references) and keyed by a lightweight composite
- * without referencing the original ItemStack.
+ * Caches raw recipe handler results per target (item + meta + NBT) for the lifetime of the
+ * currently-loaded guide set. Cleared via {@link #clear()} on {@code F3+T} reload (see
+ * {@code GuideReloadListener}). A plain HashMap is sufficient: entries are small (a list of handler
+ * references) and keyed by a lightweight composite without referencing the original ItemStack.
  */
 public class RecipeCache {
 
-    public static final Map<Key, List<Object>> HANDLERS = new HashMap<>();
-    public static final Map<Key, List<Object>> USAGE_HANDLERS = new HashMap<>();
+    public static final int MAX_CACHE_ENTRIES = 512;
+    public static final Map<Key, List<Object>> HANDLERS = createCache();
+    public static final Map<Key, List<Object>> USAGE_HANDLERS = createCache();
 
     private RecipeCache() {}
 
     public static synchronized List<Object> getCraftingHandlers(ItemStack target) {
-        if (target == null || !NeiRecipeLookup.isAvailable()) return Collections.emptyList();
+        if (target == null) return Collections.emptyList();
         Key key = Key.of(target);
         List<Object> cached = HANDLERS.get(key);
         if (cached != null) return cached;
-        List<Object> fresh = NeiRecipeLookup.queryRawCraftingHandlers(target);
+        List<Object> fresh = GuideNhIntegrationRegistry.global()
+            .queryRawCraftingHandlers(target);
         List<Object> stored = fresh.isEmpty() ? Collections.emptyList() : new ArrayList<>(fresh);
         HANDLERS.put(key, stored);
         return stored;
     }
 
     /**
-     * Cached equivalent of {@link NeiRecipeLookup#queryRawUsageHandlers(ItemStack)}. Used to cover
-     * handlers that consume {@code target} as an input (anvil / fuel / brewing ingredient) and thus
-     * do not appear in the crafting-handler list.
+     * Cached raw usage handlers. Used to cover handlers that consume {@code target} as an input
+     * (anvil / fuel / brewing ingredient) and thus do not appear in the crafting-handler list.
      */
     public static synchronized List<Object> getUsageHandlers(ItemStack target) {
-        if (target == null || !NeiRecipeLookup.isAvailable()) return Collections.emptyList();
+        if (target == null) return Collections.emptyList();
         Key key = Key.of(target);
         List<Object> cached = USAGE_HANDLERS.get(key);
         if (cached != null) return cached;
-        List<Object> fresh = NeiRecipeLookup.queryRawUsageHandlers(target);
+        List<Object> fresh = GuideNhIntegrationRegistry.global()
+            .queryRawUsageHandlers(target);
         List<Object> stored = fresh.isEmpty() ? Collections.emptyList() : new ArrayList<>(fresh);
         USAGE_HANDLERS.put(key, stored);
         return stored;
@@ -55,6 +57,16 @@ public class RecipeCache {
     public static synchronized void clear() {
         HANDLERS.clear();
         USAGE_HANDLERS.clear();
+    }
+
+    private static Map<Key, List<Object>> createCache() {
+        return new LinkedHashMap<Key, List<Object>>(16, 0.75f, true) {
+
+            @Override
+            protected boolean removeEldestEntry(Entry<Key, List<Object>> eldest) {
+                return size() > MAX_CACHE_ENTRIES;
+            }
+        };
     }
 
     public static class Key {

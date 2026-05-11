@@ -16,10 +16,10 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
-import com.hfstudio.guidenh.compat.neicustomdiagram.NeiCustomDiagramBridge;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.recipe.NeiRecipeLayoutMetrics;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
 
 import cpw.mods.fml.common.FMLLog;
 
@@ -37,7 +37,7 @@ public final class GuideSiteNeiPhase1BackgroundExporter {
      * {@link NeiRecipeLookup#lookupHandlerWidth}/{@link NeiRecipeLookup#lookupHandlerHeight};
      * a flush viewport clips top/right bezel lines and truncates footer text unless we pad here. Site overlays use the
      * same
-     * inset 閳?see {@link com.hfstudio.guidenh.guide.siteexport.site.GuideSiteRecipeExporter#renderNeiPositionedSlots}.
+     * inset 闁?see {@link com.hfstudio.guidenh.guide.siteexport.site.GuideSiteRecipeExporter#renderNeiPositionedSlots}.
      */
     public static final int VIEWPORT_MARGIN_PX = 6;
 

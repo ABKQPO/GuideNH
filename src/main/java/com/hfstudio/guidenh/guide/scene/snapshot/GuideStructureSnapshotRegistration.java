@@ -1,18 +1,13 @@
 package com.hfstudio.guidenh.guide.scene.snapshot;
 
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.ae2.Ae2PreviewPrepareContributor;
-import com.hfstudio.guidenh.compat.buildcraft.BuildCraftPreviewPrepareContributor;
-import com.hfstudio.guidenh.compat.gregtech.GregTechPreviewPrepareContributor;
-import com.hfstudio.guidenh.compat.logisticspipes.LogisticsPipesPreviewPrepareContributor;
-import com.hfstudio.guidenh.compat.preview.GuideCompatStructurePreviewBootstrap;
-import com.hfstudio.guidenh.compat.tinkerconstruct.TinkersConstructPreviewPrepareContributor;
+import com.hfstudio.guidenh.CommonProxy;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.preview.GuideCompatStructurePreviewBootstrap;
 
 /**
- * Registers default structure snapshot / preview contributors. Call once from {@link com.hfstudio.guidenh.CommonProxy}
- * {@code preInit}.
+ * Registers default structure snapshot / preview contributors. Call once from {@link CommonProxy} {@code preInit}.
  */
-public final class GuideStructureSnapshotRegistration {
+public class GuideStructureSnapshotRegistration {
 
     private GuideStructureSnapshotRegistration() {}
 
@@ -21,13 +16,13 @@ public final class GuideStructureSnapshotRegistration {
         StructureExportPipeline.register(new ServerPreviewSupplementStructureExportContributor());
         StructureImportPipeline.register(new ServerPreviewSupplementStructureImportContributor());
 
-        PreviewPreparePipeline.register(new GregTechPreviewPrepareContributor());
-        PreviewPreparePipeline.register(new BuildCraftPreviewPrepareContributor());
-        PreviewPreparePipeline.register(new LogisticsPipesPreviewPrepareContributor());
-        PreviewPreparePipeline.register(new TinkersConstructPreviewPrepareContributor());
+        registerPreviewPrepareContributors();
+    }
 
-        if (Mods.AE2.isModLoaded()) {
-            PreviewPreparePipeline.register(new Ae2PreviewPrepareContributor());
+    public static void registerPreviewPrepareContributors() {
+        for (PreviewPrepareContributor contributor : GuideNhIntegrationRegistry.global()
+            .previewPrepareContributors()) {
+            PreviewPreparePipeline.register(contributor);
         }
     }
 }

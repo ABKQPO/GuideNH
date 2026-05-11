@@ -1,25 +1,23 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
-import java.util.Collections;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
 
-public class InWorldBlockFaceOverlayAnnotation extends InWorldAnnotation {
+public class InWorldBlockFaceOverlayAnnotation extends InWorldBoxFaceOverlayAnnotation {
 
     private final int blockX;
     private final int blockY;
     private final int blockZ;
-    private final ColorValue color;
     private final Set<Long> groupedPositions;
 
     public InWorldBlockFaceOverlayAnnotation(int blockX, int blockY, int blockZ, ColorValue color,
         Set<Long> groupedPositions) {
+        super(blockX, blockY, blockZ, blockX + 1f, blockY + 1f, blockZ + 1f, color);
         this.blockX = blockX;
         this.blockY = blockY;
         this.blockZ = blockZ;
-        this.color = color;
-        this.groupedPositions = groupedPositions != null ? groupedPositions : Collections.emptySet();
+        this.groupedPositions = groupedPositions;
     }
 
     public int getBlockX() {
@@ -34,12 +32,38 @@ public class InWorldBlockFaceOverlayAnnotation extends InWorldAnnotation {
         return blockZ;
     }
 
-    public ColorValue color() {
-        return color;
+    @Override
+    public boolean shouldDrawNegativeXFace() {
+        return !hasGroupedNeighbor(blockX - 1, blockY, blockZ);
+    }
+
+    @Override
+    public boolean shouldDrawPositiveXFace() {
+        return !hasGroupedNeighbor(blockX + 1, blockY, blockZ);
+    }
+
+    @Override
+    public boolean shouldDrawNegativeYFace() {
+        return !hasGroupedNeighbor(blockX, blockY - 1, blockZ);
+    }
+
+    @Override
+    public boolean shouldDrawPositiveYFace() {
+        return !hasGroupedNeighbor(blockX, blockY + 1, blockZ);
+    }
+
+    @Override
+    public boolean shouldDrawNegativeZFace() {
+        return !hasGroupedNeighbor(blockX, blockY, blockZ - 1);
+    }
+
+    @Override
+    public boolean shouldDrawPositiveZFace() {
+        return !hasGroupedNeighbor(blockX, blockY, blockZ + 1);
     }
 
     public boolean hasGroupedNeighbor(int x, int y, int z) {
-        return groupedPositions.contains(packBlockPos(x, y, z));
+        return groupedPositions != null && groupedPositions.contains(packBlockPos(x, y, z));
     }
 
     public static long packBlockPos(int x, int y, int z) {

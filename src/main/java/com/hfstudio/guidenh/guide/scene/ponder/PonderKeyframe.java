@@ -28,6 +28,22 @@ public class PonderKeyframe {
     private List<PonderKeyframeAnnotation> annotations;
     @Nullable
     private List<PonderKeyframeBlockChange> blockChanges;
+    @Nullable
+    private List<PonderKeyframeTileNbtOperation> mergeTileNBT;
+    @Nullable
+    private List<PonderKeyframeTileNbtOperation> modifyTileNBT;
+    @Nullable
+    private List<PonderKeyframeTileNbtOperation> removeTileNBT;
+    @Nullable
+    private List<PonderKeyframeEntityAction> createEntities;
+    @Nullable
+    private List<PonderKeyframeEntityAction> setEntityNBT;
+    @Nullable
+    private List<PonderKeyframeEntityAction> mergeEntityNBT;
+    @Nullable
+    private List<PonderKeyframeEntityAction> modifyEntityNBT;
+    @Nullable
+    private List<PonderKeyframeEntityAction> removeEntityNBT;
     /**
      * Maximum number of ticks over which the camera eases from the previous keyframe's position
      * to this keyframe's position.
@@ -75,6 +91,38 @@ public class PonderKeyframe {
      */
     public List<PonderKeyframeBlockChange> getBlockChanges() {
         return blockChanges != null ? blockChanges : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeTileNbtOperation> getMergeTileNBT() {
+        return mergeTileNBT != null ? mergeTileNBT : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeTileNbtOperation> getModifyTileNBT() {
+        return modifyTileNBT != null ? modifyTileNBT : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeTileNbtOperation> getRemoveTileNBT() {
+        return removeTileNBT != null ? removeTileNBT : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeEntityAction> getCreateEntities() {
+        return createEntities != null ? createEntities : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeEntityAction> getSetEntityNBT() {
+        return setEntityNBT != null ? setEntityNBT : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeEntityAction> getMergeEntityNBT() {
+        return mergeEntityNBT != null ? mergeEntityNBT : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeEntityAction> getModifyEntityNBT() {
+        return modifyEntityNBT != null ? modifyEntityNBT : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeEntityAction> getRemoveEntityNBT() {
+        return removeEntityNBT != null ? removeEntityNBT : Collections.emptyList();
     }
 
     /**

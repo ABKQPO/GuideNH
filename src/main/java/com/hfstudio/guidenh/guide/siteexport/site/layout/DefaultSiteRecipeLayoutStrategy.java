@@ -1,14 +1,17 @@
 package com.hfstudio.guidenh.guide.siteexport.site.layout;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+import java.util.List;
+
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteExportedItem;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteItemIconResolver;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteRecipeExporter;
+import com.hfstudio.guidenh.integration.api.RecipeEntry;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 /**
- * Preserves the historical site layout: 3×3 flow grid + optional supporting column + result slot.
+ * Preserves the historical site layout: 3脳3 flow grid + optional supporting column + result slot.
  */
-public final class DefaultSiteRecipeLayoutStrategy implements SiteRecipeLayoutStrategy {
+public class DefaultSiteRecipeLayoutStrategy implements SiteRecipeLayoutStrategy {
 
     @Override
     public boolean supports(SiteRecipeLayoutContext ctx) {
@@ -28,6 +31,16 @@ public final class DefaultSiteRecipeLayoutStrategy implements SiteRecipeLayoutSt
                     exporter.ingredientItemsFromVanillaEntry(ctx.vanillaEntry(), resolver),
                     exporter.itemInfo(ctx.vanillaEntry().result, resolver));
             }
+            case RECIPE_ENTRY: {
+                RecipeEntry entry = ctx.recipeEntry();
+                if (entry == null || entry.result() == null) {
+                    return "";
+                }
+                return exporter.renderNeiOverlayGridItems(
+                    exporter.ingredientItemsFromRecipeEntry(entry, resolver),
+                    exporter.resultItem(entry.result(), ctx.targetStack(), resolver),
+                    exporter.supportingSlotItemsFromRecipeEntry(entry, resolver));
+            }
             case NEI_ENTRY: {
                 NeiRecipeLookup.Entry entry = ctx.neiEntry();
                 if (entry == null || entry.result == null) {
@@ -45,9 +58,9 @@ public final class DefaultSiteRecipeLayoutStrategy implements SiteRecipeLayoutSt
                     return "";
                 }
                 int idx = ctx.rawRecipeIndex();
-                java.util.List<java.util.List<GuideSiteExportedItem>> ingredients = exporter
+                List<List<GuideSiteExportedItem>> ingredients = exporter
                     .ingredientItemsFromNeiSlots(access.readIngredientSlots(handler, idx), resolver);
-                java.util.List<java.util.List<GuideSiteExportedItem>> supporting = exporter
+                List<List<GuideSiteExportedItem>> supporting = exporter
                     .supportingSlotItemsFromNeiSlots(access.readOtherSlots(handler, idx), resolver);
                 GuideSiteExportedItem resultItem = exporter
                     .resultItem(access.readResultSlot(handler, idx), ctx.targetStack(), resolver);

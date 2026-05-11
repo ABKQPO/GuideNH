@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.mixins;
 import com.gtnewhorizon.gtnhmixins.builders.IMixins;
 import com.gtnewhorizon.gtnhmixins.builders.ITargetMod;
 import com.gtnewhorizon.gtnhmixins.builders.MixinBuilder;
-import com.hfstudio.guidenh.compat.Mods;
+import com.hfstudio.guidenh.integration.Mods;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

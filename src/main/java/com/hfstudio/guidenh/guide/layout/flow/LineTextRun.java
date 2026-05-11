@@ -18,6 +18,9 @@ public class LineTextRun extends LineElement {
     @Override
     public void render(RenderContext context) {
         var style = containsMouse ? this.hoverStyle : this.style;
+        if (style.backgroundColor() != null && bounds.width() > 0 && bounds.height() > 0) {
+            context.fillRect(bounds.expand(1, 1, 1, 0), style.backgroundColor());
+        }
         context.drawText(text, bounds.x(), bounds.y(), style);
     }
 

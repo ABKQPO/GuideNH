@@ -15,11 +15,17 @@ img.game-scene,
     background: rgba(0, 0, 0, 0.2);
 }
 
+img.game-scene.guide-scene {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
 .game-scene-wrapper {
-    display: inline-flex;
-    flex-direction: row;
-    align-items: stretch;
+    position: relative;
+    display: inline-block;
     max-width: 100%;
+    margin-right: calc(19px * var(--gui-scale));
     border: calc(4px * var(--gui-scale)) solid;
     border-image-source: url('textures/background.png');
     border-image-slice: 4 fill;
@@ -33,7 +39,6 @@ img.game-scene,
 
 .game-scene-wrapper .root,
 .game-scene-wrapper .viewport {
-    flex: 0 0 auto;
     width: var(--modelviewer-width);
     max-width: 100%;
     height: auto !important;
@@ -55,68 +60,193 @@ img.game-scene,
     display: flex;
     flex-direction: column;
     gap: calc(2px * var(--gui-scale));
-    padding: calc(4px * var(--gui-scale));
-    min-width: calc(52px * var(--gui-scale));
-    background: rgba(0, 0, 0, 0.3);
-    image-rendering: unset;
+    position: absolute;
+    top: 0;
+    left: calc(100% + calc(3px * var(--gui-scale)));
+    z-index: 4;
+    image-rendering: pixelated;
 }
 
 .game-scene-wrapper .controls button {
     appearance: none;
-    border: 1px solid rgba(124, 124, 124, 0.5);
-    background: rgba(0, 0, 0, 0.45);
-    color: rgb(200, 200, 200);
-    font: inherit;
-    min-width: calc(11px * var(--gui-scale));
-    min-height: calc(11px * var(--gui-scale));
+    display: block;
+    width: calc(16px * var(--gui-scale));
+    height: calc(16px * var(--gui-scale));
+    min-width: calc(16px * var(--gui-scale));
+    min-height: calc(16px * var(--gui-scale));
+    padding: 0;
+    border: 0;
+    background-color: transparent;
+    color: transparent;
     cursor: pointer;
 }
 
 .game-scene-wrapper .controls button:hover {
-    background: rgba(0, 213, 255, 0.15);
-    border-color: rgb(0, 213, 255);
-    color: rgb(0, 213, 255);
+    background-color: transparent;
 }
 
 .scene-state-controls {
     display: flex;
     flex-direction: column;
-    gap: calc(2px * var(--gui-scale));
-    margin-top: calc(1px * var(--gui-scale));
+    gap: 0;
+    width: var(--modelviewer-width);
+    max-width: 100%;
+    image-rendering: unset;
 }
 
 .scene-state-control {
+    position: relative;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    height: calc(14px * var(--gui-scale));
+    padding: 0 calc(8px * var(--gui-scale));
     font-size: 0.65rem;
     color: rgb(210, 210, 210);
     image-rendering: unset;
 }
 
 .scene-state-control-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    position: absolute;
+    inset: 0 calc(8px * var(--gui-scale));
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
 }
 
 .scene-state-control-label {
+    max-width: 100%;
+    overflow: hidden;
+    color: rgb(210, 210, 210);
     font-weight: 700;
     font-family: 'Pixeloid Sans', sans-serif;
-    letter-spacing: 0.02em;
+    text-align: center;
+    text-overflow: ellipsis;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+    white-space: nowrap;
 }
 
 .scene-state-control-value {
-    color: rgba(210, 210, 210, 0.65);
-    font-variant-numeric: tabular-nums;
+    display: none;
+}
+
+.scene-state-slider-wrap {
+    position: relative;
+    display: block;
+    flex: 1;
+    height: calc(10px * var(--gui-scale));
+}
+
+.scene-ponder-buttons {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0;
+}
+
+.game-scene-wrapper .scene-ponder-button {
+    min-width: calc(14px * var(--gui-scale));
+    min-height: calc(14px * var(--gui-scale));
+}
+
+.scene-ponder-control {
+    gap: calc(2px * var(--gui-scale));
+    padding-left: calc(8px * var(--gui-scale));
+    padding-right: calc(8px * var(--gui-scale));
+}
+
+.scene-ponder-control .scene-state-control-header {
+    display: none;
+}
+
+.scene-ponder-control .scene-state-slider-wrap {
+    height: calc(10px * var(--gui-scale));
+}
+
+.scene-icon-button {
+    position: relative;
+    overflow: hidden;
+    background: transparent;
+    filter: opacity(0.75);
+    image-rendering: pixelated;
+}
+
+.scene-icon-button::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc(16px * var(--gui-scale));
+    height: calc(16px * var(--gui-scale));
+    background-image: url('textures/guide/buttons.png');
+    background-position: var(--scene-icon-x) var(--scene-icon-y);
+    background-repeat: no-repeat;
+    background-size: calc(256px * var(--gui-scale)) calc(256px * var(--gui-scale));
+    image-rendering: pixelated;
+}
+
+.scene-ponder-button.scene-icon-button::before {
+    transform: scale(0.875);
+    transform-origin: 0 0;
+}
+
+.scene-icon-button:hover,
+.scene-icon-button:focus-visible {
+    filter: opacity(1) brightness(0) saturate(100%) invert(67%) sepia(93%) saturate(2009%) hue-rotate(143deg) brightness(101%) contrast(104%);
+}
+
+.scene-state-slider-visual {
+    --scene-state-fraction: 0;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(3px * var(--gui-scale));
+    height: calc(4px * var(--gui-scale));
+    pointer-events: none;
+}
+
+.scene-state-slider-track,
+.scene-state-slider-fill,
+.scene-state-slider-thumb {
+    position: absolute;
+    top: 0;
+    display: block;
+    height: calc(4px * var(--gui-scale));
+}
+
+.scene-state-slider-track {
+    left: 0;
+    right: 0;
+    background: rgba(34, 38, 44, 0.4);
+}
+
+.scene-state-slider-fill {
+    left: 0;
+    width: calc((100% - calc(6px * var(--gui-scale))) * var(--scene-state-fraction) + calc(3px * var(--gui-scale)));
+    background: rgba(28, 180, 233, 0.67);
+}
+
+.scene-state-slider-thumb {
+    left: calc((100% - calc(6px * var(--gui-scale))) * var(--scene-state-fraction));
+    top: calc(-2px * var(--gui-scale));
+    width: calc(6px * var(--gui-scale));
+    height: calc(8px * var(--gui-scale));
+    background: rgb(234, 246, 255);
+}
+
+.scene-state-slider-wrap:hover .scene-state-slider-thumb,
+.scene-state-slider-wrap:focus-within .scene-state-slider-thumb {
+    background: rgb(255, 255, 255);
 }
 
 .scene-state-range {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
     width: 100%;
+    height: 100%;
     margin: 0;
-    accent-color: rgb(0, 213, 255);
     cursor: pointer;
+    opacity: 0;
 }
 
 .guide-scene-placeholder {

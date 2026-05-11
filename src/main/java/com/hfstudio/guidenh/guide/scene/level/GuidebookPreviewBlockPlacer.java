@@ -15,19 +15,19 @@ import net.minecraft.nbt.NBTTagIntArray;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.guide.scene.snapshot.ImportBlockContext;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.snapshot.StructureImportPipeline;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuidebookPreviewBlockPlacer {
 
@@ -185,7 +185,7 @@ public class GuidebookPreviewBlockPlacer {
     @Nullable
     private static Integer resolveGregTechBaseMetaUncached(int metaTileId) {
         try {
-            return GregTechHelpers.getMetaTileBaseType(metaTileId);
+            return GuideGregTechTileSupport.getMetaTileBaseType(metaTileId);
         } catch (Throwable t) {
             GuideDebugLog.warn(LOG, "Failed to resolve GregTech base meta for preview block {}", metaTileId, t);
             return null;
@@ -203,7 +203,7 @@ public class GuidebookPreviewBlockPlacer {
                 initTag = (NBTTagCompound) initTag.copy();
                 initTag.setInteger("mID", metaTileId);
             }
-            GregTechHelpers.initializeMetaTile(tileEntity, metaTileId, initTag);
+            GuideGregTechTileSupport.initializeMetaTile(tileEntity, metaTileId, initTag);
         } catch (Throwable t) {
             GuideGregTechTileSupport.logInfoOnce(
                 "preview-gregtech-init-bytearray-shapes:" + metaTileId
@@ -217,7 +217,7 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     public static void applyGregTechDefaultFacing(@Nullable TileEntity tileEntity, @Nullable NBTTagCompound tileTag) {
-        GregTechHelpers.applyDefaultFacing(tileEntity, tileTag);
+        GuideGregTechTileSupport.applyDefaultFacing(tileEntity, tileTag);
     }
 
     public static void applyBartWorksGeneratedBlockMeta(@Nullable TileEntity tileEntity, Block block, int blockMeta) {
@@ -235,7 +235,7 @@ public class GuidebookPreviewBlockPlacer {
         }
     }
 
-    public static void invokeOnBlockAdded(Block block, GuidebookFakeWorld world, int x, int y, int z) {
+    public static void invokeOnBlockAdded(Block block, World world, int x, int y, int z) {
         if (block == null || world == null) {
             return;
         }
@@ -411,25 +411,44 @@ public class GuidebookPreviewBlockPlacer {
             return new byte[0];
         }
 
-        String[] parts = content.split(",");
-        ArrayList<Byte> decoded = new ArrayList<>(parts.length);
-        for (String part : parts) {
-            String numeric = trimNumericSuffix(part);
-            if (numeric.isEmpty()) {
-                continue;
-            }
-            try {
-                decoded.add((byte) Integer.parseInt(numeric));
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
+        int size = countByteArrayLiteralEntries(content);
+        if (size < 0) {
+            return null;
         }
 
-        byte[] result = new byte[decoded.size()];
-        for (int index = 0; index < decoded.size(); index++) {
-            result[index] = decoded.get(index);
+        byte[] decoded = new byte[size];
+        int output = 0;
+        for (int start = 0, i = 0; i <= content.length(); i++) {
+            if (i < content.length() && content.charAt(i) != ',') {
+                continue;
+            }
+            String numeric = trimNumericSuffix(content.substring(start, i));
+            if (!numeric.isEmpty()) {
+                decoded[output++] = (byte) Integer.parseInt(numeric);
+            }
+            start = i + 1;
         }
-        return result;
+        return decoded;
+    }
+
+    private static int countByteArrayLiteralEntries(String content) {
+        int count = 0;
+        for (int start = 0, i = 0; i <= content.length(); i++) {
+            if (i < content.length() && content.charAt(i) != ',') {
+                continue;
+            }
+            String numeric = trimNumericSuffix(content.substring(start, i));
+            if (!numeric.isEmpty()) {
+                try {
+                    Integer.parseInt(numeric);
+                    count++;
+                } catch (NumberFormatException ignored) {
+                    return -1;
+                }
+            }
+            start = i + 1;
+        }
+        return count;
     }
 
     @Nullable
@@ -560,7 +579,7 @@ public class GuidebookPreviewBlockPlacer {
             return null;
         }
 
-        GuidebookFakeWorld world = level.getOrCreateFakeWorld();
+        World world = level.getOrCreateFakeWorld();
         TileEntity residentTile = resolveWorldResidentTile(world, x, y, z, preparedTileEntity);
         if (residentTile == preparedTileEntity) {
             return preparedTileEntity;
@@ -586,7 +605,8 @@ public class GuidebookPreviewBlockPlacer {
     @Nullable
     public static TileEntity finalizeSpecialPreviewTile(GuidebookLevel level, int x, int y, int z,
         @Nullable TileEntity tileEntity) {
-        TileEntity finalizedTile = GuideForgeMultipartSupport.finalizePreviewTile(tileEntity);
+        TileEntity finalizedTile = GuideNhIntegrationRegistry.global()
+            .finalizePreviewTileEntity(level, x, y, z, tileEntity);
         if (finalizedTile != null && finalizedTile != tileEntity) {
             level.setTileEntity(x, y, z, finalizedTile);
         }
@@ -632,8 +652,7 @@ public class GuidebookPreviewBlockPlacer {
         return false;
     }
 
-    public static TileEntity resolveWorldResidentTile(GuidebookFakeWorld world, int x, int y, int z,
-        TileEntity fallback) {
+    public static TileEntity resolveWorldResidentTile(World world, int x, int y, int z, TileEntity fallback) {
         TileEntity resident = world.getTileEntity(x, y, z);
         return resident != null ? resident : fallback;
     }

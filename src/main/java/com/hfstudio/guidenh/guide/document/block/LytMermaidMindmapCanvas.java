@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapLayoutMode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -45,7 +46,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         new ConstantColor(0xFFF1F6FB),
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
-        false);
+        false,
+        null);
     private static final ResolvedTextStyle NODE_TEXT_STYLE = new ResolvedTextStyle(
         1f,
         false,
@@ -59,7 +61,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         new ConstantColor(0xFFD7DEE7),
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
-        false);
+        false,
+        null);
     private static final ResolvedTextStyle ICON_TEXT_STYLE = new ResolvedTextStyle(
         0.85f,
         false,
@@ -73,7 +76,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         new ConstantColor(0xFFB8C2CF),
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
-        false);
+        false,
+        null);
 
     private final MermaidMindmapDocument mindmap;
 
@@ -589,47 +593,65 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
     private List<String> wrapText(LayoutContext context, ResolvedTextStyle style, String text, int maxWidth) {
         List<String> result = new ArrayList<>();
-        String normalized = text != null ? text.replace("\r\n", "\n")
-            .replace('\r', '\n') : "";
-        String[] paragraphs = normalized.split("\n", -1);
-        for (String paragraph : paragraphs) {
+        GuideStringLines.visitLines(text != null ? text : "", (paragraph, lineIndex) -> {
             if (paragraph.isEmpty()) {
                 result.add("");
-                continue;
+                return true;
             }
 
-            String[] words = paragraph.split("\\s+");
             StringBuilder line = new StringBuilder();
-            for (String word : words) {
-                if (line.length() == 0) {
-                    if (measureText(context, style, word) <= maxWidth) {
-                        line.append(word);
-                    } else {
-                        appendBrokenWord(result, line, context, style, word, maxWidth);
-                    }
-                    continue;
-                }
-
-                String candidate = line + " " + word;
-                if (measureText(context, style, candidate) <= maxWidth) {
-                    line.append(' ')
-                        .append(word);
-                    continue;
-                }
-
-                result.add(line.toString());
-                line.setLength(0);
-                if (measureText(context, style, word) <= maxWidth) {
-                    line.append(word);
-                } else {
-                    appendBrokenWord(result, line, context, style, word, maxWidth);
-                }
-            }
+            scanWords(paragraph, word -> appendWrappedWord(result, line, context, style, word, maxWidth));
             if (line.length() > 0) {
                 result.add(line.toString());
             }
-        }
+            return true;
+        });
         return result;
+    }
+
+    private boolean appendWrappedWord(List<String> result, StringBuilder line, LayoutContext context,
+        ResolvedTextStyle style, String word, int maxWidth) {
+        if (line.length() == 0) {
+            if (measureText(context, style, word) <= maxWidth) {
+                line.append(word);
+            } else {
+                appendBrokenWord(result, line, context, style, word, maxWidth);
+            }
+            return true;
+        }
+
+        String candidate = line + " " + word;
+        if (measureText(context, style, candidate) <= maxWidth) {
+            line.append(' ')
+                .append(word);
+            return true;
+        }
+
+        result.add(line.toString());
+        line.setLength(0);
+        if (measureText(context, style, word) <= maxWidth) {
+            line.append(word);
+        } else {
+            appendBrokenWord(result, line, context, style, word, maxWidth);
+        }
+        return true;
+    }
+
+    private void scanWords(String text, WordVisitor visitor) {
+        int start = -1;
+        for (int index = 0, length = text.length(); index <= length; index++) {
+            char value = index < length ? text.charAt(index) : ' ';
+            if (Character.isWhitespace(value)) {
+                if (start >= 0) {
+                    if (!visitor.accept(text.substring(start, index))) {
+                        return;
+                    }
+                    start = -1;
+                }
+            } else if (start < 0) {
+                start = index;
+            }
+        }
     }
 
     private void appendBrokenWord(List<String> result, StringBuilder line, LayoutContext context,
@@ -656,15 +678,22 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             return null;
         }
 
-        String[] parts = icon.trim()
-            .split("\\s+");
-        String leaf = parts[parts.length - 1];
+        String trimmed = icon.trim();
+        String leaf = trimmed.substring(lastWhitespaceSeparatedTokenStart(trimmed));
         if (leaf.startsWith("fa-")) {
             leaf = leaf.substring(3);
         }
         leaf = leaf.replace('-', ' ')
             .trim();
-        return leaf.isEmpty() ? icon.trim() : leaf;
+        return leaf.isEmpty() ? trimmed : leaf;
+    }
+
+    private int lastWhitespaceSeparatedTokenStart(String text) {
+        int index = text.length() - 1;
+        while (index >= 0 && !Character.isWhitespace(text.charAt(index))) {
+            index--;
+        }
+        return index + 1;
     }
 
     private void centerDiagram(int viewportWidth, int viewportHeight) {
@@ -719,7 +748,12 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         float getAdvance(int codePoint, ResolvedTextStyle style);
     }
 
-    public static final class DiagramLayout {
+    private interface WordVisitor {
+
+        boolean accept(String word);
+    }
+
+    public static class DiagramLayout {
 
         private final NodeLayout root;
         private final int diagramWidth;
@@ -750,7 +784,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         }
     }
 
-    public static final class NodeColors {
+    public static class NodeColors {
 
         private final int background;
         private final int border;
@@ -763,7 +797,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         }
     }
 
-    public static final class NodeLayout {
+    public static class NodeLayout {
 
         private final MermaidMindmapNode node;
         private final int depth;

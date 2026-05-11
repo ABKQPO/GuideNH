@@ -25,9 +25,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.ae2.Ae2Helpers;
-import com.hfstudio.guidenh.compat.gregtech.GregTechHelpers;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -36,7 +34,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Lightweight client-only world wrapper backed by a {@link GuidebookLevel}.
  */
 @SideOnly(Side.CLIENT)
-public class GuidebookFakeWorld extends WorldClient {
+public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewWorld {
 
     public static final long FROZEN_WORLD_TIME = 0L;
     public static volatile boolean gregTechDummyWorldRegistrationAttempted;
@@ -84,7 +82,8 @@ public class GuidebookFakeWorld extends WorldClient {
             return;
         }
         gregTechDummyWorldRegistrationAttempted = true;
-        GregTechHelpers.registerDummyWorld(GuidebookFakeWorld.class);
+        GuideNhIntegrationRegistry.global()
+            .registerDummyWorldIntegrations(GuidebookFakeWorld.class);
     }
 
     public GuidebookLevel getGuidebookLevel() {
@@ -220,7 +219,7 @@ public class GuidebookFakeWorld extends WorldClient {
         if (tileEntity == null) {
             return;
         }
-        // AE2 preview: see Ae2Helpers.suppressMarkBlockForUpdateDescriptionResync.
+        // Optional integrations may suppress stale tile description refreshes.
         if (suppressAe2StaleTileDescriptionRefresh(tileEntity)) {
             return;
         }
@@ -415,18 +414,12 @@ public class GuidebookFakeWorld extends WorldClient {
         } catch (Throwable ignored) {}
     }
 
-    /**
-     * @see Ae2Helpers#suppressMarkBlockForUpdateDescriptionResync
-     */
     private boolean suppressAe2StaleTileDescriptionRefresh(@Nullable TileEntity te) {
-        if (level == null || te == null || !Mods.AE2.isModLoaded()) {
+        if (level == null || te == null) {
             return false;
         }
-        try {
-            return Ae2Helpers.suppressMarkBlockForUpdateDescriptionResync(te, level);
-        } catch (Throwable ignored) {
-            return false;
-        }
+        return GuideNhIntegrationRegistry.global()
+            .suppressMarkBlockForUpdateDescriptionResync(te, level);
     }
 
     private Set<Long> getOrCreateMarkBlockForUpdateGuard() {

@@ -1,0 +1,208 @@
+package com.hfstudio.guidenh.guide.internal.editor.guide;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.IResourcePack;
+import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
+import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+
+public final class GuideScreenEditorFileStore {
+
+    private final Path resourcePacksRoot;
+    private final Path packRoot;
+    private final Path packMetaPath;
+
+    public GuideScreenEditorFileStore(Path resourcePacksRoot, Path packRoot) {
+        this.resourcePacksRoot = resourcePacksRoot;
+        this.packRoot = packRoot;
+        this.packMetaPath = packRoot.resolve("pack.mcmeta");
+    }
+
+    public static GuideScreenEditorFileStore createDefault() {
+        Path resourcePacks = Minecraft.getMinecraft().mcDataDir.toPath()
+            .resolve("resourcepacks");
+        Path packRoot = resourcePacks.resolve("NewGuide");
+        return new GuideScreenEditorFileStore(resourcePacks, packRoot);
+    }
+
+    public Path getPackRoot() {
+        return packRoot;
+    }
+
+    public Path resolvePagePath(MutableGuide guide, ResourceLocation pageId, String language) {
+        return resolvePagePath(guide, pageId, language, null);
+    }
+
+    public Path resolvePagePath(MutableGuide guide, ResourceLocation pageId, String language,
+        @Nullable ResourceLocation sourcePageId) {
+        return buildPagePath(resolveWritablePackRoot(guide, sourcePageId, language), guide, pageId, language);
+    }
+
+    private Path buildPagePath(Path root, MutableGuide guide, ResourceLocation pageId, String language) {
+        String namespace = guide.getDefaultNamespace();
+        String folder = guide.getContentRootFolder();
+        String langFolder = "_" + LangUtil.normalizeLanguage(language != null ? language : guide.getDefaultLanguage());
+        String pageFileName = normalizePageFileName(pageId.getResourcePath());
+        return root.resolve("assets")
+            .resolve(namespace)
+            .resolve(folder)
+            .resolve(langFolder)
+            .resolve(pageFileName);
+    }
+
+    public void ensurePackStructure() throws IOException {
+        Files.createDirectories(packRoot);
+        Files.createDirectories(resourcePacksRoot);
+        if (!Files.exists(packMetaPath)) {
+            Files.write(packMetaPath, buildPackMeta().getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public void savePage(MutableGuide guide, ResourceLocation pageId, String language, String text) throws IOException {
+        savePage(guide, pageId, language, text, null);
+    }
+
+    public void savePage(MutableGuide guide, ResourceLocation pageId, String language, String text,
+        @Nullable ResourceLocation sourcePageId) throws IOException {
+        Path targetPackRoot = resolveWritablePackRoot(guide, sourcePageId, language);
+        if (targetPackRoot.equals(packRoot)) {
+            ensurePackStructure();
+        }
+        Path pagePath = buildPagePath(targetPackRoot, guide, pageId, language);
+        Files.createDirectories(pagePath.getParent());
+        Files.write(pagePath, text.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public boolean canSaveBesideSource(MutableGuide guide, @Nullable ResourceLocation sourcePageId, String language) {
+        return sourcePageId != null && findWritableResourcePackRootContaining(guide, sourcePageId, language) != null;
+    }
+
+    @Nullable
+    public String readPageText(MutableGuide guide, ResourceLocation pageId, String language) {
+        Path pagePath = resolveExistingWritablePagePath(guide, pageId, language);
+        if (!Files.isRegularFile(pagePath)) {
+            return null;
+        }
+        try {
+            byte[] bytes = Files.readAllBytes(pagePath);
+            return new String(bytes, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    public boolean hasPage(MutableGuide guide, ResourceLocation pageId, String language) {
+        return Files.isRegularFile(resolveExistingWritablePagePath(guide, pageId, language))
+            || resourcePageExists(guide, pageId, language);
+    }
+
+    public boolean hasPage(MutableGuide guide, ResourceLocation pageId, String language,
+        @Nullable ResourceLocation sourcePageId) {
+        return Files.isRegularFile(resolvePagePath(guide, pageId, language, sourcePageId))
+            || resourcePageExists(guide, pageId, language);
+    }
+
+    private Path resolveExistingWritablePagePath(MutableGuide guide, ResourceLocation pageId, String language) {
+        Path sourcePackRoot = findWritableResourcePackRootContaining(guide, pageId, language);
+        if (sourcePackRoot != null) {
+            return buildPagePath(sourcePackRoot, guide, pageId, language);
+        }
+        Path fallbackPath = buildPagePath(packRoot, guide, pageId, language);
+        if (Files.isRegularFile(fallbackPath)) {
+            return fallbackPath;
+        }
+        return fallbackPath;
+    }
+
+    private Path resolveWritablePackRoot(MutableGuide guide, @Nullable ResourceLocation sourcePageId, String language) {
+        if (sourcePageId != null) {
+            Path sourcePackRoot = findWritableResourcePackRootContaining(guide, sourcePageId, language);
+            if (sourcePackRoot != null) {
+                return sourcePackRoot;
+            }
+        }
+        return packRoot;
+    }
+
+    @Nullable
+    private Path findWritableResourcePackRootContaining(MutableGuide guide, ResourceLocation pageId, String language) {
+        Path root = findWritableResourcePackRootContainingAsset(toResourcePackPageId(guide, pageId, language));
+        if (root != null) {
+            return root;
+        }
+        if (language != null && !language.equals(guide.getDefaultLanguage())) {
+            return findWritableResourcePackRootContainingAsset(
+                toResourcePackPageId(guide, pageId, guide.getDefaultLanguage()));
+        }
+        return null;
+    }
+
+    @Nullable
+    private Path findWritableResourcePackRootContainingAsset(ResourceLocation assetId) {
+        var resourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
+        for (int i = resourcePacks.size() - 1; i >= 0; i--) {
+            IResourcePack resourcePack = resourcePacks.get(i);
+            if (resourcePack == null || !resourcePack.resourceExists(assetId)) {
+                continue;
+            }
+            File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(resourcePack);
+            if (resourcePackFile == null || !resourcePackFile.isDirectory()) {
+                continue;
+            }
+            Path root = resourcePackFile.toPath();
+            if (Files.isWritable(root)) {
+                return root;
+            }
+        }
+        return null;
+    }
+
+    private boolean resourcePageExists(MutableGuide guide, ResourceLocation pageId, String language) {
+        ResourceLocation assetId = toResourcePackPageId(guide, pageId, language);
+        for (IResourcePack resourcePack : DataDrivenGuideLoader.getActiveResourcePacks()) {
+            if (resourcePack != null && resourcePack.resourceExists(assetId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private ResourceLocation toResourcePackPageId(MutableGuide guide, ResourceLocation pageId, String language) {
+        String langFolder = "_" + LangUtil.normalizeLanguage(language != null ? language : guide.getDefaultLanguage());
+        String path = guide.getContentRootFolder() + "/"
+            + langFolder
+            + "/"
+            + normalizePageFileName(pageId.getResourcePath());
+        return new ResourceLocation(guide.getDefaultNamespace(), path);
+    }
+
+    private String buildPackMeta() {
+        return "{\n" + "  \"pack\": {\n"
+            + "    \"pack_format\": 1,\n"
+            + "    \"description\": \"NewGuide\"\n"
+            + "  }\n"
+            + "}\n";
+    }
+
+    private String normalizePageFileName(String pagePath) {
+        if (pagePath == null || pagePath.trim()
+            .isEmpty()) {
+            return "index.md";
+        }
+        String normalized = pagePath.replace('\\', '/');
+        if (normalized.endsWith(".md")) {
+            return normalized;
+        }
+        return normalized + ".md";
+    }
+}

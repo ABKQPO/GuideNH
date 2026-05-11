@@ -7,8 +7,8 @@ import java.util.Set;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.EntityLiving;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.monster.EntityZombie;
+import net.minecraft.world.World;
 
 import org.joml.Vector3f;
 
@@ -50,7 +50,7 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
         Vector3f leftLegRotation = getOptionalVector3(compiler, errorSink, el, "leftLegRotation");
         Vector3f rightLegRotation = getOptionalVector3(compiler, errorSink, el, "rightLegRotation");
         Vector3f capeRotation = getOptionalVector3(compiler, errorSink, el, "capeRotation");
-        net.minecraft.world.World world = null;
+        World world = null;
         try {
             world = level.getOrCreateFakeWorld();
         } catch (IllegalStateException ignored) {
@@ -78,15 +78,7 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
         float rotationX = MdxAttrs.getFloat(compiler, errorSink, el, "rotationX", 0.0f);
 
         entity.setLocationAndAngles(x, y, z, rotationY, rotationX);
-        entity.prevRotationYaw = rotationY;
-        entity.prevRotationPitch = rotationX;
-
-        if (entity instanceof EntityLivingBase living) {
-            living.rotationYawHead = rotationY;
-            living.prevRotationYawHead = rotationY;
-            living.renderYawOffset = rotationY;
-            living.prevRenderYawOffset = rotationY;
-        }
+        GuidebookSceneEntityImportSupport.applyRotation(entity, rotationY, rotationX, rotationY, rotationY);
 
         if (entity instanceof GuidebookNameplateControllable nameplateControllable) {
             boolean defaultVisible = GuidebookSceneEntityLoader.isPreviewPlayerId(id);
@@ -180,19 +172,12 @@ public class EntityElementCompiler implements SceneElementTagCompiler {
             return null;
         }
 
-        String[] parts = raw.trim()
-            .split("\\s+");
-        if (parts.length != 3) {
+        float[] parts = MdxAttrs.parseVector3Parts(raw);
+        if (parts == null) {
             errorSink.appendError(compiler, name + " expects 3 space-separated floats, got: '" + raw + "'", el);
             return null;
         }
-
-        try {
-            return new Vector3f(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]));
-        } catch (NumberFormatException e) {
-            errorSink.appendError(compiler, "Malformed vector3 for " + name + ": '" + raw + "'", el);
-            return null;
-        }
+        return new Vector3f(parts[0], parts[1], parts[2]);
     }
 
     public static boolean tryInvokeBooleanInstanceMethod(Object target, String methodName, boolean argument) {

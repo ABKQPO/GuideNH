@@ -1,0 +1,45 @@
+package com.hfstudio.guidenh.integration.carpentersblocks;
+
+import net.minecraft.block.Block;
+import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.MovingObjectPosition;
+
+import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.api.BlockDisplayProvider;
+
+public class CarpentersBlocksBlockDisplayProvider implements BlockDisplayProvider {
+
+    public CarpentersBlocksBlockDisplayProvider() {}
+
+    @Override
+    @Nullable
+    public ItemStack resolveDisplayStack(GuidebookLevel level, Block block, int x, int y, int z,
+        @Nullable MovingObjectPosition target) {
+        if (!CarpentersBlocksHelpers.isCarpentersBlock(block)) {
+            return null;
+        }
+
+        TileEntity tileEntity = level.getTileEntity(x, y, z);
+        if (!CarpentersBlocksHelpers.isCarpentersTile(tileEntity)) {
+            return null;
+        }
+
+        ItemStack featureSensitiveStack = CarpentersBlocksHelpers.resolveFeatureSensitiveStack(tileEntity, target);
+        if (featureSensitiveStack != null) {
+            return featureSensitiveStack;
+        }
+
+        int preferredSide = CarpentersBlocksHelpers.resolvePreferredSide(target);
+        ItemStack preferredStack = CarpentersBlocksHelpers.resolveCoverStack(tileEntity, preferredSide);
+        if (preferredStack != null) {
+            return preferredStack;
+        }
+
+        return preferredSide != CarpentersBlocksHelpers.BASE_COVER_SIDE
+            ? CarpentersBlocksHelpers.resolveCoverStack(tileEntity, CarpentersBlocksHelpers.BASE_COVER_SIDE)
+            : null;
+    }
+}

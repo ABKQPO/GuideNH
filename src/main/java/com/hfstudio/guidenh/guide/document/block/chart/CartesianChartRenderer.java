@@ -7,9 +7,9 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 /**
  * Shared axis / grid / data-value-label rendering for Cartesian charts (column / bar / line / scatter).
  */
-public final class CartesianChartRenderer {
+public class CartesianChartRenderer {
 
-    private CartesianChartRenderer() {}
+    protected CartesianChartRenderer() {}
 
     /** Compute insets reserved for axis labels; returns [left, top, right, bottom] (pixels). */
     public static int[] computeAxisInsets(RenderContext context, ChartAxisOptions xAxis, ChartAxisOptions yAxis,

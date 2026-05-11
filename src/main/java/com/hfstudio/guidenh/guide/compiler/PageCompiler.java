@@ -26,6 +26,7 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.PageCollection;
+import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
@@ -77,6 +78,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.Blockq
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
@@ -87,6 +89,7 @@ import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
 import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
+import com.hfstudio.guidenh.libs.mdast.guidemark.MdAstMark;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstDottedUnderline;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstUnderline;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstWavyUnderline;
@@ -120,6 +123,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstThematicBreak;
 import com.hfstudio.guidenh.libs.mdx.MdxCommentMasker;
 import com.hfstudio.guidenh.libs.micromark.ParseException;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
+import com.hfstudio.guidenh.libs.unist.UnistPoint;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 import cpw.mods.fml.common.FMLLog;
@@ -132,6 +136,7 @@ public class PageCompiler {
     public static final int DEFAULT_ELEMENT_SPACING = 5;
     public static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
     private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
+    public static final int DEFAULT_MARK_BACKGROUND_COLOR = 0xFF8A6A00;
     private static final Pattern TABLE_ATTRIBUTE_LINE = Pattern.compile("^\\{:\\s*(.+?)\\s*}$");
     private static final Pattern CODEBLOCK_META_HEIGHT = Pattern
         .compile("(^|\\s)height=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
@@ -197,16 +202,22 @@ public class PageCompiler {
         pageContent = normalizeLineEndings(pageContent);
         pageContent = FootnotePreprocessor.preprocess(pageContent);
         var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
-        String parseContent = MdxCommentMasker.mask(pageContent);
+        MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(pageContent);
+        String parseContent = MdxCommentMasker.mask(latexMask.source());
 
         MdAstRoot astRoot;
         String parseFailureMessage = null;
+        UnistPoint parseFailureFrom = null;
+        UnistPoint parseFailureTo = null;
         try {
             astRoot = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
+            MarkdownLatexShorthand.restore(astRoot, latexMask);
             MarkdownHtmlRuntimeNormalizer.normalize(astRoot);
         } catch (ParseException e) {
+            parseFailureFrom = e.getFrom();
+            parseFailureTo = e.getTo();
             var position = "";
-            if (e.getFrom() != null) {
+            if (parseFailureFrom != null) {
                 position = " at line " + e.getFrom()
                     .line()
                     + " column "
@@ -232,29 +243,20 @@ public class PageCompiler {
             frontmatter = sourceFrontmatter;
         }
 
-        return new ParsedGuidePage(sourcePack, id, pageContent, astRoot, frontmatter, language, parseFailureMessage);
+        return new ParsedGuidePage(
+            sourcePack,
+            id,
+            pageContent,
+            astRoot,
+            frontmatter,
+            language,
+            parseFailureMessage,
+            parseFailureFrom,
+            parseFailureTo);
     }
 
     public static String normalizeLineEndings(String pageContent) {
-        int firstCarriageReturn = pageContent.indexOf('\r');
-        if (firstCarriageReturn == -1) {
-            return pageContent;
-        }
-
-        StringBuilder normalized = new StringBuilder(pageContent.length());
-        normalized.append(pageContent, 0, firstCarriageReturn);
-        for (int i = firstCarriageReturn; i < pageContent.length(); i++) {
-            char currentChar = pageContent.charAt(i);
-            if (currentChar == '\r') {
-                normalized.append('\n');
-                if (i + 1 < pageContent.length() && pageContent.charAt(i + 1) == '\n') {
-                    i++;
-                }
-            } else {
-                normalized.append(currentChar);
-            }
-        }
-        return normalized.toString();
+        return GuideStringLines.normalizeLineEndings(pageContent);
     }
 
     public static MdAstRoot buildErrorPage(String errorText) {
@@ -292,12 +294,17 @@ public class PageCompiler {
 
     public static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage) {
         // Translate page tree over to layout pages
-        var document = new PageCompiler(pages, extensions, parsedPage.sourcePack, parsedPage.id, parsedPage.source)
-            .compile(parsedPage.astRoot);
+        var document = new PageCompiler(
+            pages,
+            extensions,
+            parsedPage.getSourcePack(),
+            parsedPage.getId(),
+            parsedPage.getSource()).compile(parsedPage.getAstRoot());
         var titleHeading = extractPageTitleHeading(document);
-        FrontmatterPageMeta pageMeta = parsedPage.frontmatter != null ? parsedPage.frontmatter.parseMeta() : null;
+        FrontmatterPageMeta pageMeta = parsedPage.getFrontmatter() != null ? parsedPage.getFrontmatter()
+            .parseMeta() : null;
         if (pageMeta != null && pageMeta.isEmpty()) pageMeta = null;
-        return new GuidePage(parsedPage.sourcePack, parsedPage.id, document, titleHeading, pageMeta);
+        return new GuidePage(parsedPage.getSourcePack(), parsedPage.getId(), document, titleHeading, pageMeta);
     }
 
     /**
@@ -345,7 +352,7 @@ public class PageCompiler {
             if (child instanceof MdAstYamlFrontmatter frontmatter) {
                 if (result != null) {
                     FMLLog.getLogger()
-                        .error("[GuideNH] [PageCompiler] Found more than one frontmatter!"); // TODO: proper debugging
+                        .error("[GuideNH] [PageCompiler] Found more than one frontmatter!");
                     continue;
                 }
                 try {
@@ -892,6 +899,11 @@ public class PageCompiler {
             span.modifyStyle(style -> style.dottedUnderline(true));
             compileFlowContext(astDotted, span);
             layoutChild = span;
+        } else if (content instanceof MdAstMark astMark) {
+            var span = new LytFlowSpan();
+            span.modifyStyle(style -> style.backgroundColor(new ConstantColor(DEFAULT_MARK_BACKGROUND_COLOR)));
+            compileFlowContext(astMark, span);
+            layoutChild = span;
         } else if (content instanceof MdAstBreak) {
             layoutChild = new LytFlowBreak();
         } else if (content instanceof MdAstLink astLink) {
@@ -1190,24 +1202,27 @@ public class PageCompiler {
             .end()
             .line();
         String sourceText = getCurrentSourceText();
-        String[] lines = sourceText.split("\n", -1);
-        if (endLine <= 0 || endLine > lines.length) {
+        if (endLine <= 0) {
             return new MarkdownTableMeta(Collections.emptyList(), 0);
         }
 
-        for (int lineIndex = Math.max(0, endLine - 1); lineIndex < lines.length; lineIndex++) {
-            String attributeLine = lines[lineIndex].trim();
+        MarkdownTableMeta[] found = new MarkdownTableMeta[1];
+        GuideStringLines.visitLines(sourceText, (line, lineIndex) -> {
+            if (lineIndex + 1 < endLine) {
+                return true;
+            }
+            String attributeLine = line.trim();
             if (attributeLine.isEmpty()) {
-                continue;
+                return true;
             }
             Matcher matcher = TABLE_ATTRIBUTE_LINE.matcher(attributeLine);
             if (matcher.matches()) {
                 List<Integer> widthHints = parseWidthHintsFromMetaExpression(matcher.group(1));
-                return new MarkdownTableMeta(widthHints, 0);
+                found[0] = new MarkdownTableMeta(widthHints, 0);
             }
-            break;
-        }
-        return new MarkdownTableMeta(Collections.emptyList(), 0);
+            return false;
+        });
+        return found[0] != null ? found[0] : new MarkdownTableMeta(Collections.emptyList(), 0);
     }
 
     private @Nullable String getParagraphTextValue(MdAstParagraph paragraph) {
@@ -1232,7 +1247,7 @@ public class PageCompiler {
     }
 
     private List<String> splitMetaTokens(String meta) {
-        List<String> tokens = new java.util.ArrayList<>();
+        List<String> tokens = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         boolean inQuotes = false;
         char quote = 0;
@@ -1350,16 +1365,17 @@ public class PageCompiler {
             return normalized;
         }
 
-        String[] lines = normalized.split("\n", -1);
+        List<String> lines = GuideStringLines.splitLines(normalized);
         int firstContentLine = 0;
-        while (firstContentLine < lines.length && lines[firstContentLine].trim()
+        while (firstContentLine < lines.size() && lines.get(firstContentLine)
+            .trim()
             .isEmpty()) {
             firstContentLine++;
         }
 
         int minIndent = Integer.MAX_VALUE;
-        for (int i = firstContentLine; i < lines.length; i++) {
-            String line = lines[i];
+        for (int i = firstContentLine; i < lines.size(); i++) {
+            String line = lines.get(i);
             if (line.trim()
                 .isEmpty()) {
                 continue;
@@ -1371,11 +1387,11 @@ public class PageCompiler {
         }
 
         StringBuilder result = new StringBuilder(normalized.length());
-        for (int i = firstContentLine; i < lines.length; i++) {
+        for (int i = firstContentLine; i < lines.size(); i++) {
             if (i > firstContentLine) {
                 result.append('\n');
             }
-            result.append(removeLeadingWhitespace(lines[i], minIndent));
+            result.append(removeLeadingWhitespace(lines.get(i), minIndent));
         }
 
         while (result.length() > 0 && result.charAt(result.length() - 1) == '\n') {

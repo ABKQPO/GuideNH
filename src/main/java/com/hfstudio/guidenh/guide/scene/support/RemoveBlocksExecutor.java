@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.support;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import net.minecraft.init.Blocks;
@@ -12,8 +13,9 @@ public class RemoveBlocksExecutor {
     private RemoveBlocksExecutor() {}
 
     public static void execute(GuidebookLevel level, GuideBlockMatcher matcher) {
-        List<int[]> toRemove = new ArrayList<>();
-        for (int[] pos : level.getFilledBlocks()) {
+        Collection<int[]> filledBlocks = level.getFilledBlocks();
+        List<int[]> toRemove = new ArrayList<>(filledBlocks.size());
+        for (int[] pos : filledBlocks) {
             int meta = level.getBlockMetadata(pos[0], pos[1], pos[2]);
             String explicitBlockId = level.getExplicitBlockId(pos[0], pos[1], pos[2]);
             if (matcher.matchesResolvedBlockId(explicitBlockId, meta)

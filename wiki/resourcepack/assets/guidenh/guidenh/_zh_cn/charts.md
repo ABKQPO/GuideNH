@@ -31,6 +31,20 @@ GuideNH 内置五种交互式图表标签：`<ColumnChart>`（竖柱）、`<BarC
   <Series name="金" color="#FFAA00" data="30,50,90,70" />
 </ColumnChart>
 
+## 新增：图内图例
+
+`LineChart` 和 `ScatterChart` 可以使用 `cornerLegend` 在绘图区内部放置半透明图例框：
+
+<LineChart title="图内图例示例" categories="A,B,C,D" cornerLegend="topRight">
+  <Series name="系列 A" color="#4488ff" data="1,3,2,4" />
+  <Series name="系列 B" color="#ff6644" data="2,2,4,3" />
+</LineChart>
+
+<ScatterChart title="散点图内图例" cornerLegend="bottomRight">
+  <Series name="样本 A" color="#4488ff" points="1:1,2:3,3:2,4:4" />
+  <Series name="样本 B" color="#ff6644" points="1:2,2:2,3:4,4:3" />
+</ScatterChart>
+
 ## BarChart
 
 <BarChart

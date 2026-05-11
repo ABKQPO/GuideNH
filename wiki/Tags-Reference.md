@@ -23,8 +23,9 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<sup>` | smaller inline superscript-style text | none |
 | `<Color>` | colored inline text | `id` or `color` |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
+| `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
 | `<PlayerName>` | inserts current player username | none |
-| `<KeyBind>` | inserts keybinding display name | `id` |
+| `<KeyBind>` | inserts keybinding display name | `id` or `action` |
 | `<ItemImage>` | inline item icon | `id` or `ore`, `scale`, `noTooltip`, `showTooltip`, `showIcon`, `label`, `format`, `yOffset`, `labelYOffset` |
 | `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
@@ -210,7 +211,7 @@ Welcome, <PlayerName />!
 
 ### `<KeyBind>`
 
-Looks up a keybinding by id and renders the player's current bound key name.
+Looks up a keybinding by id or action and renders the player's current bound key name.
 
 Accepted ids:
 
@@ -221,6 +222,7 @@ Example:
 
 ````md
 Press <KeyBind id="key.jump" /> to jump.
+Attack with <KeyBind action="key.attack" />.
 ````
 
 ### MDX Comments
@@ -235,6 +237,12 @@ multiline comment
 */}
 
 More visible text.
+````
+
+GuideNH also ignores explicit `<Comment>` tags:
+
+````md
+Visible text. <Comment>This does not render.</Comment> Still visible.
 ````
 
 ### `<ItemImage>`
@@ -531,6 +539,9 @@ See [GameScene](GameScene) for scene import/removal behavior and [Annotations](A
 | `titleColor` / `labelColor` | Title and value-label colors | light grey |
 | `legend` | Legend position: `none` / `top` / `bottom` / `left` / `right` | `top` |
 | `labelPosition` | Value-label position: `none` / `inside` / `outside` / `above` / `below` / `center` | `none` |
+| `cornerLegend` | Internal plot legend position: `none` / `topRight` / `topLeft` / `bottomRight` / `bottomLeft` | `none` |
+| `cornerLegendWidth` / `cornerLegendHeight` | Maximum internal legend box size | `120` / `64` |
+| `cornerLegendBackground` | Internal legend background color | `#AA111922` |
 
 Cartesian charts (Column / Bar / Line / Scatter) additionally accept axis attributes `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` and the matching `yAxis*` set, plus `showXGrid={true}` / `showYGrid={true}` to toggle gridlines.
 
@@ -584,6 +595,8 @@ Extra attributes: `categories` (X-axis or Y-axis labels, comma separated), `barW
 
 Extra attributes: `numericX={true}` to enable a numeric X-axis (children must use `points`); `showPoints={false}` hides point markers. The hovered point is pushed outward by 2px along the curve normal, enlarged, and outlined; the adjacent line segments thicken by 1px.
 
+`<LineChart>` and `<ScatterChart>` can show a compact legend inside the plot area with `cornerLegend="topRight"` or another corner. Entries use existing series names and colors.
+
 ### `<PieChart>`
 
 Extra attributes: `startAngle` (default `-90`, i.e. 12 o'clock); `clockwise={false}` to reverse direction. The hovered slice pops outward 4px along its bisector.
@@ -603,6 +616,7 @@ Panel attributes (accepted by the container, the shorthand, and the fence header
 - `showGrid` / `showAxes` (default `true`)
 - `xRange="a..b"` (or `xMin` / `xMax` separately), `xStep` for tick spacing; same for the Y axis
 - `quadrants="1,2,3,4"` or `quadrants="all"` to force the visible quadrants; omit to start in quadrant 1 with auto-expansion when sampled `y < 0`
+- `cornerLegend`, `cornerLegendWidth`, `cornerLegendHeight`, and `cornerLegendBackground` show a compact legend inside the plot area using non-empty curve labels
 
 Curve children (`<Plot>` / `<Function>`):
 
@@ -610,6 +624,10 @@ Curve children (`<Plot>` / `<Function>`):
 - `inverse={true}` evaluates the expression as `x = f(y)` and rotates the curve.
 - `domain="a..b"` (x bounds shorthand) or comma-separated clauses such as `x>=0, x<5`.
 - `color`, `label`. Any curve with a non-empty `label` is automatically listed in a legend rendered just below the panel: a small color swatch followed by the label, with entries flowing left-to-right and wrapping onto a new row when the next entry would not fit.
+- `pointEveryX="step"` adds generated point markers at regular x intervals on that curve.
+- `pointEveryY="step"` adds generated point markers where the curve intersects regular y intervals, using a bounded search.
+- `autoPointLabel="none|x|y|xy"` controls generated point labels; default is `none`.
+- `autoPointColor="#..."` overrides the generated point color; omitted means inherit the curve color.
 
 Marked points (`<Point>`):
 

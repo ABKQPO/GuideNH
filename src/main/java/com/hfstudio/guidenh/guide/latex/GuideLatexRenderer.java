@@ -6,6 +6,7 @@ import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.client.renderer.Tessellator;
@@ -18,7 +19,7 @@ import org.scilab.forge.jlatexmath.TeXIcon;
 
 import cpw.mods.fml.common.FMLLog;
 
-public final class GuideLatexRenderer {
+public class GuideLatexRenderer {
 
     public static final GuideLatexRenderer INSTANCE = new GuideLatexRenderer();
 
@@ -26,11 +27,12 @@ public final class GuideLatexRenderer {
 
     /** Calibration formula used to determine a reference character height at a given sourceScale. */
     private static final String CALIBRATION_FORMULA = "x";
+    private static final int MAX_REF_HEIGHT_ENTRIES = 16;
 
     /** Maps sourceScale float (rounded to string) -> calibrated reference height in pixels. */
     private final ConcurrentHashMap<String, Integer> refHeightCache = new ConcurrentHashMap<>();
 
-    private GuideLatexRenderer() {}
+    protected GuideLatexRenderer() {}
 
     /**
      * Returns the calibrated reference height (in pixels) for {@code "x"} rendered at
@@ -41,8 +43,8 @@ public final class GuideLatexRenderer {
      * @return pixel height of a lower-case "x" glyph at the given scale
      */
     public int calibrateRefHeight(float sourceScale) {
-        String key = String.format("%.2f", sourceScale);
-        return refHeightCache.computeIfAbsent(key, k -> {
+        String key = GuideLatexTextureCache.buildScaleKey(sourceScale);
+        Integer height = refHeightCache.computeIfAbsent(key, k -> {
             try {
                 TeXFormula formula = new TeXFormula(CALIBRATION_FORMULA);
                 TeXIcon icon = formula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
@@ -58,6 +60,20 @@ public final class GuideLatexRenderer {
                 return 16;
             }
         });
+        trimRefHeightCacheIfNeeded();
+        return height;
+    }
+
+    private void trimRefHeightCacheIfNeeded() {
+        if (refHeightCache.size() <= MAX_REF_HEIGHT_ENTRIES) {
+            return;
+        }
+        for (Map.Entry<String, Integer> entry : refHeightCache.entrySet()) {
+            if (refHeightCache.size() <= MAX_REF_HEIGHT_ENTRIES) {
+                return;
+            }
+            refHeightCache.remove(entry.getKey(), entry.getValue());
+        }
     }
 
     /**
@@ -65,7 +81,7 @@ public final class GuideLatexRenderer {
      * {@code sourceScale}, or {@code null} if the formula is invalid/failed.
      *
      * <p>
-     * {@code depthPx} is the typographic depth in jlatexmath pixels 閳?the number of pixels the formula
+     * {@code depthPx} is the typographic depth in jlatexmath pixels, the number of pixels the formula
      * extends <em>below</em> its math baseline (e.g. denominators in fractions). For formulas with no
      * descenders (letters, superscripts) this is {@code 0}.
      *

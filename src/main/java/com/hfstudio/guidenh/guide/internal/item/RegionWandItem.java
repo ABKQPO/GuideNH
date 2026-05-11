@@ -13,6 +13,7 @@ import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
@@ -34,6 +35,7 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
+import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportBlockContext;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportSession;
@@ -42,6 +44,8 @@ import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportAccess;
 import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportPipeline;
 import com.hfstudio.guidenh.guide.scene.snapshot.WorldStructureExportAccess;
 
+import cpw.mods.fml.common.eventhandler.Event;
+import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
@@ -71,17 +75,34 @@ public class RegionWandItem extends Item {
     }
 
     @Override
+    public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
+        float hitX, float hitY, float hitZ) {
+        handleRightClickBlock(stack, player, world, x, y, z);
+        return true;
+    }
+
+    @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
+        handleRightClickBlock(stack, player, world, x, y, z);
+        return true;
+    }
+
+    @Override
+    public boolean onBlockStartBreak(ItemStack stack, int x, int y, int z, EntityPlayer player) {
+        onLeftClickBlock(stack, player, x, y, z);
+        return true;
+    }
+
+    public static void handleRightClickBlock(ItemStack stack, EntityPlayer player, World world, int x, int y, int z) {
         if (player.isSneaking()) {
             exportToClipboard(stack, player, world);
-            return true;
+            return;
         }
         setPos(stack, /* which= */ 2, x, y, z);
         if (world.isRemote) {
             send(player, GuidebookText.RegionWandChatPos, 2, x, y, z);
         }
-        return true;
     }
 
     @Override
@@ -452,6 +473,7 @@ public class RegionWandItem extends Item {
                 entityNbt.removeTag("Pos");
                 entityNbt.removeTag("Motion");
                 entityNbt.removeTag("id");
+                GuidebookSceneEntityImportSupport.sanitizeCustomName(entityNbt);
                 if (!entityNbt.hasNoTags()) {
                     try {
                         String s = GuideTextNbtCodec.writeTextSafeCompound(entityNbt);
@@ -478,6 +500,12 @@ public class RegionWandItem extends Item {
                 .append('"')
                 .append(" z=\"")
                 .append(rz)
+                .append('"');
+            sb.append(" rotationY=\"")
+                .append(entity.rotationYaw)
+                .append('"')
+                .append(" rotationX=\"")
+                .append(entity.rotationPitch)
                 .append('"');
             if (dataNbt != null && !dataNbt.isEmpty() && !"{}".equals(dataNbt)) {
                 sb.append(" data='")
@@ -597,6 +625,10 @@ public class RegionWandItem extends Item {
                 // issues with Minecraft 1.7.10's text NBT parser.
                 entry.setFloat("yaw", entity.rotationYaw);
                 entry.setFloat("pitch", entity.rotationPitch);
+                if (entity instanceof EntityLivingBase living) {
+                    entry.setFloat("bodyYaw", living.renderYawOffset);
+                    entry.setFloat("headYaw", living.rotationYawHead);
+                }
                 if (playerName != null) {
                     entry.setString("name", playerName);
                 }
@@ -611,6 +643,7 @@ public class RegionWandItem extends Item {
                 entityNbt.removeTag("Motion");
                 entityNbt.removeTag("id");
                 entityNbt.removeTag("Rotation"); // stored separately as yaw/pitch above
+                GuidebookSceneEntityImportSupport.sanitizeCustomName(entityNbt);
                 if (!entityNbt.hasNoTags()) {
                     entry.setTag("nbt", entityNbt);
                 }
@@ -649,15 +682,33 @@ public class RegionWandItem extends Item {
                 .getSimpleName();
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.action != PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) return;
         EntityPlayer player = event.entityPlayer;
         if (player == null) return;
         ItemStack held = player.getHeldItem();
         if (held == null || !(held.getItem() instanceof RegionWandItem)) return;
 
-        RegionWandItem.onLeftClickBlock(held, player, event.x, event.y, event.z);
+        if (event.action == PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) {
+            handleLeftClickBlock(event, held, player);
+            return;
+        }
+        if (event.action == PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK && !event.world.isRemote) {
+            handleRightClickBlock(event, held, player);
+        }
+    }
+
+    public static void handleLeftClickBlock(PlayerInteractEvent event, ItemStack stack, EntityPlayer player) {
+        onLeftClickBlock(stack, player, event.x, event.y, event.z);
+        event.useBlock = Event.Result.DENY;
+        event.useItem = Event.Result.DENY;
+        event.setCanceled(true);
+    }
+
+    public static void handleRightClickBlock(PlayerInteractEvent event, ItemStack stack, EntityPlayer player) {
+        handleRightClickBlock(stack, player, event.world, event.x, event.y, event.z);
+        event.useBlock = Event.Result.DENY;
+        event.useItem = Event.Result.DENY;
         event.setCanceled(true);
     }
 }

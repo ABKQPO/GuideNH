@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import java.util.IllegalFormatException;
+
 /**
  * Cartesian chart axis configuration. All numeric fields use boxed types; {@code null} means auto.
  */
@@ -105,7 +107,7 @@ public class ChartAxisOptions {
         if (tickFormat != null && !tickFormat.isEmpty()) {
             try {
                 text = String.format(tickFormat, value);
-            } catch (java.util.IllegalFormatException ex) {
+            } catch (IllegalFormatException ex) {
                 text = defaultFormat(value);
             }
         } else {

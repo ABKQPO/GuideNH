@@ -23,10 +23,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.compat.distanthorizons.DistantHorizonsCompat;
 import com.hfstudio.guidenh.guide.scene.snapshot.GuidebookPreviewAuthorityStore;
-import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuidePreviewStateSupport;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
@@ -56,7 +55,10 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private final int[] boundsScratch = new int[6];
 
     @Nullable
-    private GuidebookFakeWorld fakeWorld;
+    private static GuidebookPreviewWorldFactory previewWorldFactory;
+
+    @Nullable
+    private World fakeWorld;
 
     private boolean previewStateDirty = true;
 
@@ -64,26 +66,39 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
     private boolean boundsDirty = true;
 
-    public GuidebookFakeWorld getOrCreateFakeWorld() {
+    public static void setPreviewWorldFactory(@Nullable GuidebookPreviewWorldFactory factory) {
+        previewWorldFactory = factory;
+    }
+
+    public World getOrCreateFakeWorld() {
         if (fakeWorld == null) {
-            try (var ignored = DistantHorizonsCompat.suppressClientWorldLoadHooks()) {
-                fakeWorld = new GuidebookFakeWorld(this);
+            GuidebookPreviewWorldFactory factory = previewWorldFactory;
+            if (factory == null) {
+                throw new IllegalStateException("Guidebook preview world is only available on the client.");
+            }
+            try (var ignored = GuideNhIntegrationRegistry.global()
+                .openFakeWorldCreationScope()) {
+                fakeWorld = factory.create(this);
             }
         }
         return fakeWorld;
     }
 
     public void rebindAllTileEntities() {
-        GuidebookFakeWorld world = getOrCreateFakeWorld();
+        World world = getOrCreateFakeWorld();
         for (TileEntity te : tileEntities.values()) {
             bindTileEntity(te, te.xCoord, te.yCoord, te.zCoord, world);
             te.validate();
         }
-        world.syncLoadedTileEntities(tileEntities.values());
+        if (world instanceof GuidebookPreviewWorld previewWorld) {
+            previewWorld.syncLoadedTileEntities(tileEntities.values());
+        }
         for (Entity entity : entities.values()) {
             bindEntity(entity, world);
         }
-        world.syncLoadedEntities(entities.values());
+        if (world instanceof GuidebookPreviewWorld previewWorld) {
+            previewWorld.syncLoadedEntities(entities.values());
+        }
     }
 
     public void prepareForPreview() {
@@ -92,7 +107,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         previewStateDirty = false;
         rebindAllTileEntities();
-        // Tick first so tile entities (e.g. BC pipes) call initialize() → computeConnections()
+        // Tick first so tile entities (e.g. BC pipes) call initialize() 鈫?computeConnections()
         // before compat helpers read their state.
         tickPreviewWorld();
         GuidePreviewStateSupport.prepare(this);
@@ -121,15 +136,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             previewAuthorityStore.clearAt(key);
         } else {
             filledBlocks.put(key, new int[] { x, y, z });
-            // For ForgeMultipart tiles, extract the primary microblock material to get a meaningful
-            // "modid:blockname[:meta]" export ID instead of "ForgeMultipart:multipart".
-            String resolvedBlockId;
-            if (tileEntity != null && GuideForgeMultipartSupport.isForgeMultipartBlock(block)) {
-                String fmpId = GuideForgeMultipartSupport.resolvePrimaryMicroblockId(tileEntity);
-                resolvedBlockId = fmpId != null ? fmpId : resolveBlockId(block);
-            } else {
-                resolvedBlockId = resolveBlockId(block);
-            }
+            String fallbackBlockId = resolveBlockId(block);
+            String resolvedBlockId = GuideNhIntegrationRegistry.global()
+                .resolveBlockExportId(this, block, tileEntity, x, y, z, fallbackBlockId);
             if (resolvedBlockId != null) {
                 explicitBlockIds.put(key, resolvedBlockId);
             } else {
@@ -204,11 +213,11 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     public void setExplicitBlockId(int x, int y, int z, @Nullable String blockId) {
         long key = packPos(x, y, z);
-        if (blockId == null || blockId.trim()
-            .isEmpty()) {
+        String normalizedBlockId = trimToNull(blockId);
+        if (normalizedBlockId == null) {
             explicitBlockIds.remove(key);
         } else {
-            explicitBlockIds.put(key, blockId.trim());
+            explicitBlockIds.put(key, normalizedBlockId);
         }
     }
 
@@ -453,9 +462,13 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     private void tickPreviewWorld() {
-        GuidebookFakeWorld world = getOrCreateFakeWorld();
+        World world = getOrCreateFakeWorld();
+        if (!(world instanceof GuidebookPreviewWorld previewWorld)) {
+            tickPreviewTileEntitiesFallback();
+            return;
+        }
         try {
-            world.updateEntitiesForPreview();
+            previewWorld.updateEntitiesForPreview();
         } catch (Throwable ignored) {
             tickPreviewTileEntitiesFallback();
         }
@@ -519,12 +532,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     @Nullable
     public static String normalizeBlockId(@Nullable String candidate) {
-        if (candidate == null) {
-            return null;
-        }
-
-        String trimmed = candidate.trim();
-        if (trimmed.isEmpty()) {
+        String trimmed = trimToNull(candidate);
+        if (trimmed == null) {
             return null;
         }
 
@@ -538,6 +547,29 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
 
         return trimmed.indexOf(':') >= 0 ? trimmed : "minecraft:" + trimmed;
+    }
+
+    @Nullable
+    private static String trimToNull(@Nullable String value) {
+        if (value == null) {
+            return null;
+        }
+
+        int start = 0;
+        int end = value.length();
+        while (start < end && value.charAt(start) <= ' ') {
+            start++;
+        }
+        while (end > start && value.charAt(end - 1) <= ' ') {
+            end--;
+        }
+        if (start == end) {
+            return null;
+        }
+        if (start == 0 && end == value.length()) {
+            return value;
+        }
+        return value.substring(start, end);
     }
 
 }

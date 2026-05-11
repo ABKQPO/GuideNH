@@ -8,11 +8,11 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class CodeBlockLanguageRegistry {
+public class CodeBlockLanguageRegistry {
 
     private static final Map<String, CodeBlockLanguage> BY_FENCE_NAME = buildFenceMap();
 
-    private CodeBlockLanguageRegistry() {}
+    protected CodeBlockLanguageRegistry() {}
 
     public static @Nullable CodeBlockLanguage findByFenceName(@Nullable String fenceName) {
         if (fenceName == null || fenceName.isEmpty()) {

@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownElementRangeIndex;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownParseResult;
+import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
 public class SceneEditorTextSyncController {
 
@@ -239,8 +240,7 @@ public class SceneEditorTextSyncController {
                     null));
     }
 
-    private void applyParsedModel(com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel model,
-        String synchronizedText, boolean normalizeRawText) {
+    private void applyParsedModel(SceneEditorSceneModel model, String synchronizedText, boolean normalizeRawText) {
         String previousStructureSource = session.getSceneModel()
             .getStructureSource();
         session.setSceneModel(model);

@@ -3,6 +3,17 @@ import { setupGameScene as setupVendorGameScene } from "./vendor/modelViewer-A42
 const sceneStateManifestCache = new Map();
 const ROOT_PREFIX_TOKEN = "{{root}}/";
 const SCENE_CONTEXT_KEY = Symbol("guidenhSceneContext");
+const SITE_SCENE_CONTROL_SCALE = 3;
+const SCENE_BUTTON_ICONS = {
+  previousKeyframe: [0, 0],
+  playPause: [0, 64],
+  restart: [0, 32],
+  zoomIn: [48, 16],
+  zoomOut: [32, 16],
+  resetView: [0, 32],
+  toggleGrid: [16, 64],
+  toggleBlockStats: [0, 0],
+};
 
 function findDescriptor(target, property) {
   let current = target;
@@ -96,7 +107,12 @@ function captureSceneDescriptor(node) {
   return {
     attributes,
     interactive: node.dataset.sceneInteractive === "true",
+    stateControls: node.dataset.sceneStateControls === "true" || node.dataset.sceneInteractive === "true",
     stateManifestSrc: node.dataset.sceneStateManifestSrc || "",
+    gridToggle: node.dataset.sceneGridToggle === "true",
+    gridVisible: node.dataset.sceneGridVisible === "true",
+    blockStatsToggle: node.dataset.sceneBlockStatsToggle === "true",
+    blockStatsVisible: node.dataset.sceneBlockStatsVisible === "true",
   };
 }
 
@@ -141,6 +157,7 @@ function createSceneNode(documentRef, descriptor, variant) {
   setOrRemoveAttribute(node, "data-scene-in-world-annotations", variant?.inWorldAnnotationsJson);
   setOrRemoveAttribute(node, "data-scene-overlay-annotations", variant?.overlayAnnotationsJson);
   setOrRemoveAttribute(node, "data-scene-hover-targets", variant?.hoverTargetsJson);
+  applySceneGridDescriptor(node, descriptor);
   return node;
 }
 
@@ -148,6 +165,8 @@ function attachSceneContext(sceneContext) {
   const wrapper = sceneContext?.runtime?.wrapper;
   if (wrapper instanceof HTMLElement) {
     wrapper[SCENE_CONTEXT_KEY] = sceneContext;
+    normalizeVendorSceneControls(wrapper);
+    mountSceneActionControls(sceneContext);
   }
 }
 
@@ -181,8 +200,50 @@ function setOrRemoveAttribute(node, name, value) {
   }
 }
 
+function parseSceneJsonAttribute(value, fallback) {
+  if (typeof value !== "string" || value.length === 0) {
+    return fallback;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch (error) {
+    console.warn("Failed to parse scene JSON attribute", error);
+    return fallback;
+  }
+}
+
+function serializeSceneJsonAttribute(value) {
+  return JSON.stringify(Array.isArray(value) ? value : []);
+}
+
+function mergedGridAnnotations(descriptor, baseAnnotationsJson) {
+  const baseAnnotations = parseSceneJsonAttribute(baseAnnotationsJson, []).filter(
+    (annotation) => annotation?.siteControl !== "floorGrid",
+  );
+  if (!descriptor.gridVisible) {
+    return baseAnnotations;
+  }
+  const gridAnnotations = parseSceneJsonAttribute(descriptor.attributes["data-scene-grid-annotations"], []).map(
+    (annotation) => ({
+      ...annotation,
+      siteControl: "floorGrid",
+    }),
+  );
+  return [...baseAnnotations, ...gridAnnotations];
+}
+
+function applySceneGridDescriptor(node, descriptor) {
+  if (!(node instanceof HTMLElement) || !descriptor.gridToggle) {
+    return;
+  }
+  node.setAttribute("data-scene-grid-visible", descriptor.gridVisible ? "true" : "false");
+  const annotations = mergedGridAnnotations(descriptor, node.getAttribute("data-scene-in-world-annotations"));
+  node.setAttribute("data-scene-in-world-annotations", serializeSceneJsonAttribute(annotations));
+}
+
 function buildStateKey(state) {
-  let key = `layer=${Math.max(0, Number(state.visibleLayer) || 0)}|tier=${Math.max(1, Number(state.tier) || 1)}`;
+  let key = `layer=${Math.max(0, Number(state.visibleLayer) || 0)}|ponder=${Math.max(0, Number(state.ponderTick) || 0)}|tier=${Math.max(1, Number(state.tier) || 1)}`;
   const channels = state.channels || {};
   for (const channelId of Object.keys(channels)) {
     key += `|channel:${channelId}=${Math.max(0, Number(channels[channelId]) || 0)}`;
@@ -193,6 +254,7 @@ function buildStateKey(state) {
 function cloneState(state) {
   return {
     visibleLayer: Math.max(0, Number(state?.visibleLayer) || 0),
+    ponderTick: Math.max(0, Number(state?.ponderTick) || 0),
     tier: Math.max(1, Number(state?.tier) || 1),
     channels: { ...(state?.channels || {}) },
   };
@@ -225,18 +287,174 @@ function ensureStateControlsHost(wrapper) {
   if (!(wrapper instanceof HTMLElement)) {
     return null;
   }
-  let controls = wrapper.querySelector(".controls");
-  if (!(controls instanceof HTMLElement)) {
-    return null;
-  }
-  let host = controls.querySelector(".scene-state-controls");
+  let host = wrapper.querySelector(":scope > .scene-state-controls");
   if (!(host instanceof HTMLElement)) {
     host = wrapper.ownerDocument.createElement("div");
     host.className = "scene-state-controls";
-    controls.append(host);
+    wrapper.append(host);
   }
   host.textContent = "";
   return host;
+}
+
+function applyIconButton(button, icon, labelText) {
+  if (!(button instanceof HTMLElement) || !Array.isArray(icon)) {
+    return button;
+  }
+  button.classList.add("scene-icon-button");
+  button.style.setProperty("--scene-icon-x", `${-icon[0] * SITE_SCENE_CONTROL_SCALE}px`);
+  button.style.setProperty("--scene-icon-y", `${-icon[1] * SITE_SCENE_CONTROL_SCALE}px`);
+  if (labelText) {
+    button.setAttribute("aria-label", labelText);
+    button.title = labelText;
+  }
+  return button;
+}
+
+function normalizeVendorSceneControls(wrapper) {
+  const controls = wrapper.querySelector(":scope > .controls");
+  if (!(controls instanceof HTMLElement)) {
+    return;
+  }
+  for (const button of controls.querySelectorAll("button")) {
+    const text = button.textContent?.trim();
+    if (text === "+") {
+      applyIconButton(button, SCENE_BUTTON_ICONS.zoomIn, button.dataset.tooltipText || "Zoom in");
+      button.textContent = "";
+    } else if (text === "-") {
+      applyIconButton(button, SCENE_BUTTON_ICONS.zoomOut, button.dataset.tooltipText || "Zoom out");
+      button.textContent = "";
+    } else if (text === "R") {
+      applyIconButton(button, SCENE_BUTTON_ICONS.resetView, button.dataset.tooltipText || "Reset view");
+      button.textContent = "";
+    }
+  }
+}
+
+function ensureSceneActionControlsHost(wrapper) {
+  if (!(wrapper instanceof HTMLElement)) {
+    return null;
+  }
+  let host = wrapper.querySelector(":scope > .controls");
+  if (!(host instanceof HTMLElement)) {
+    host = wrapper.ownerDocument.createElement("div");
+    host.className = "controls";
+    wrapper.append(host);
+  }
+  return host;
+}
+
+function createSceneActionButton(documentRef, icon, labelText, active, onClick) {
+  const button = documentRef.createElement("button");
+  button.type = "button";
+  button.className = "minecraft-tooltip";
+  applyIconButton(button, icon, labelText);
+  button.setAttribute("aria-pressed", active ? "true" : "false");
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    onClick(button);
+  });
+  return button;
+}
+
+function mountSceneActionControls(sceneContext) {
+  const wrapper = sceneContext?.runtime?.wrapper;
+  if (!(wrapper instanceof HTMLElement)) {
+    return;
+  }
+  const descriptor = sceneContext.descriptor;
+  if (!descriptor?.gridToggle && !descriptor?.blockStatsToggle) {
+    return;
+  }
+
+  const host = ensureSceneActionControlsHost(wrapper);
+  if (!host || host.dataset.siteActionsMounted === "true") {
+    return;
+  }
+  host.dataset.siteActionsMounted = "true";
+  const documentRef = wrapper.ownerDocument;
+
+  if (descriptor.gridToggle) {
+    const gridButton = createSceneActionButton(
+      documentRef,
+      SCENE_BUTTON_ICONS.toggleGrid,
+      "Toggle Floor Grid",
+      descriptor.gridVisible,
+      () => {
+        toggleSceneGrid(sceneContext);
+      },
+    );
+    gridButton.dataset.siteSceneAction = "grid";
+    host.append(gridButton);
+  }
+
+  if (descriptor.blockStatsToggle) {
+    const blockStatsButton = createSceneActionButton(
+      documentRef,
+      SCENE_BUTTON_ICONS.toggleBlockStats,
+      "Toggle Block Stats",
+      descriptor.blockStatsVisible,
+      (button) => {
+        descriptor.blockStatsVisible = !descriptor.blockStatsVisible;
+        button.setAttribute("aria-pressed", descriptor.blockStatsVisible ? "true" : "false");
+        syncBlockStatsVisibility(wrapper, descriptor.blockStatsVisible);
+      },
+    );
+    blockStatsButton.dataset.siteSceneAction = "block-stats";
+    host.append(blockStatsButton);
+    syncBlockStatsVisibility(wrapper, descriptor.blockStatsVisible);
+  }
+}
+
+async function toggleSceneGrid(sceneContext) {
+  if (!sceneContext?.descriptor || sceneContext.transitioning) {
+    return;
+  }
+  sceneContext.descriptor.gridVisible = !sceneContext.descriptor.gridVisible;
+  const currentState = sceneContext.currentState ? cloneState(sceneContext.currentState) : null;
+  const variant = currentState && sceneContext.manifest?.states ? sceneContext.manifest.states[buildStateKey(currentState)]
+    : null;
+  await recreateSceneRuntime(sceneContext, variant);
+  if (currentState) {
+    sceneContext.currentState = currentState;
+  }
+}
+
+function syncBlockStatsVisibility(wrapper, visible) {
+  const frame = wrapper?.closest?.(".guide-scene-export-frame");
+  if (!(frame instanceof HTMLElement)) {
+    return;
+  }
+  frame.classList.toggle("guide-scene-export-frame--block-stats-hidden", !visible);
+}
+
+function createSliderVisual(documentRef, range) {
+  const visual = documentRef.createElement("span");
+  visual.className = "scene-state-slider-visual";
+
+  const track = documentRef.createElement("span");
+  track.className = "scene-state-slider-track";
+  visual.append(track);
+
+  const fill = documentRef.createElement("span");
+  fill.className = "scene-state-slider-fill";
+  visual.append(fill);
+
+  const thumb = documentRef.createElement("span");
+  thumb.className = "scene-state-slider-thumb";
+  visual.append(thumb);
+
+  const syncFraction = () => {
+    const min = Number(range.min) || 0;
+    const max = Number(range.max) || min;
+    const value = Number(range.value) || min;
+    const fraction = max > min ? (value - min) / (max - min) : 0;
+    visual.style.setProperty("--scene-state-fraction", String(Math.max(0, Math.min(1, fraction))));
+  };
+  range.addEventListener("input", syncFraction);
+  range.addEventListener("change", syncFraction);
+  syncFraction();
+  return visual;
 }
 
 function createRangeControl(documentRef, labelText, min, max, currentValue, formatValue, onChange) {
@@ -276,12 +494,150 @@ function createRangeControl(documentRef, labelText, min, max, currentValue, form
   range.addEventListener("input", syncValue);
   range.addEventListener("change", () => onChange(Number(range.value) || min));
   syncValue();
-  wrapper.append(range);
+  const sliderWrap = documentRef.createElement("span");
+  sliderWrap.className = "scene-state-slider-wrap";
+  sliderWrap.append(createSliderVisual(documentRef, range));
+  sliderWrap.append(range);
+  wrapper.append(sliderWrap);
+  return wrapper;
+}
+
+function createPonderControl(documentRef, control, currentTick, onChange) {
+  const wrapper = documentRef.createElement("div");
+  wrapper.className = "scene-state-control scene-ponder-control";
+
+  const header = documentRef.createElement("div");
+  header.className = "scene-state-control-header";
+  wrapper.append(header);
+
+  const caption = documentRef.createElement("span");
+  caption.className = "scene-state-control-label";
+  caption.textContent = control.label || "Ponder";
+  header.append(caption);
+
+  const value = documentRef.createElement("span");
+  value.className = "scene-state-control-value";
+  header.append(value);
+
+  const buttons = documentRef.createElement("div");
+  buttons.className = "scene-ponder-buttons";
+  wrapper.append(buttons);
+
+  const previousButton = documentRef.createElement("button");
+  previousButton.type = "button";
+  previousButton.className = "scene-ponder-button scene-icon-button";
+  applyIconButton(previousButton, SCENE_BUTTON_ICONS.previousKeyframe, control.previousLabel || "Previous Keyframe");
+  buttons.append(previousButton);
+
+  const playButton = documentRef.createElement("button");
+  playButton.type = "button";
+  playButton.className = "scene-ponder-button scene-icon-button";
+  applyIconButton(playButton, SCENE_BUTTON_ICONS.playPause, control.playPauseLabel || "Play / Pause");
+  buttons.append(playButton);
+
+  const restartButton = documentRef.createElement("button");
+  restartButton.type = "button";
+  restartButton.className = "scene-ponder-button scene-icon-button";
+  applyIconButton(restartButton, SCENE_BUTTON_ICONS.restart, control.restartLabel || "Restart");
+  buttons.append(restartButton);
+
+  const range = documentRef.createElement("input");
+  range.className = "scene-state-range";
+  range.type = "range";
+  range.min = "0";
+  range.max = String(Math.max(0, Number(control.totalTime) || 0));
+  range.step = "1";
+  const sliderWrap = documentRef.createElement("span");
+  sliderWrap.className = "scene-state-slider-wrap scene-ponder-slider-wrap";
+  sliderWrap.append(createSliderVisual(documentRef, range));
+  sliderWrap.append(range);
+  wrapper.append(sliderWrap);
+
+  const ticks = Array.isArray(control.ticks)
+    ? control.ticks.map((tick) => Math.max(0, Number(tick) || 0))
+    : Array.isArray(control.keyframes)
+      ? control.keyframes.map((keyframe) => Math.max(0, Number(keyframe?.time) || 0))
+      : [];
+  const uniqueTicks = [...new Set([0, ...ticks, Math.max(0, Number(control.totalTime) || 0)])].sort((a, b) => a - b);
+
+  const describeTick = (tick) => {
+    const keyframe = Array.isArray(control.keyframes)
+      ? control.keyframes.find((candidate) => Math.max(0, Number(candidate?.time) || 0) === tick)
+      : null;
+    const label = typeof keyframe?.label === "string" && keyframe.label.length > 0 ? keyframe.label : "";
+    const tickLabel = `${control.timeLabel || "Tick"} ${tick}`;
+    return label ? `${label} - ${tickLabel}` : tickLabel;
+  };
+
+  const nearestExportedTick = (tick) => {
+    let nearest = uniqueTicks[0] ?? 0;
+    let nearestDistance = Math.abs(nearest - tick);
+    for (const candidate of uniqueTicks) {
+      const distance = Math.abs(candidate - tick);
+      if (distance < nearestDistance || (distance === nearestDistance && candidate < nearest)) {
+        nearest = candidate;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  };
+
+  const setDisplayedTick = (tick) => {
+    const normalized = Math.max(0, Math.min(Number(range.max) || 0, Number(tick) || 0));
+    range.value = String(normalized);
+    range.dispatchEvent(new Event("input"));
+    const displayValue = describeTick(normalized);
+    value.textContent = displayValue;
+    range.setAttribute("aria-valuetext", displayValue);
+  };
+
+  previousButton.addEventListener("click", () => {
+    const current = Number(range.value) || 0;
+    let previous = 0;
+    for (const tick of uniqueTicks) {
+      if (tick < current) {
+        previous = tick;
+      } else {
+        break;
+      }
+    }
+    setDisplayedTick(previous);
+    onChange(previous);
+  });
+  playButton.addEventListener("click", () => {
+    const current = Number(range.value) || 0;
+    let next = uniqueTicks[uniqueTicks.length - 1] ?? current;
+    for (const tick of uniqueTicks) {
+      if (tick > current) {
+        next = tick;
+        break;
+      }
+    }
+    setDisplayedTick(next);
+    onChange(next);
+  });
+  restartButton.addEventListener("click", () => {
+    setDisplayedTick(0);
+    onChange(0);
+  });
+  range.addEventListener("input", () => {
+    const normalized = Math.max(0, Math.min(Number(range.max) || 0, Number(range.value) || 0));
+    const displayValue = describeTick(normalized);
+    value.textContent = displayValue;
+    range.setAttribute("aria-valuetext", displayValue);
+  });
+  range.addEventListener("change", () => {
+    const tick = nearestExportedTick(Number(range.value) || 0);
+    setDisplayedTick(tick);
+    onChange(tick);
+  });
+
+  setDisplayedTick(nearestExportedTick(currentTick));
   return wrapper;
 }
 
 async function mountSceneStateControls(sceneContext) {
-  if (!sceneContext.runtime?.wrapper || !sceneContext.descriptor.interactive) {
+  if (!sceneContext.runtime?.wrapper || !sceneContext.descriptor.stateControls) {
     return;
   }
 
@@ -301,17 +657,10 @@ async function mountSceneStateControls(sceneContext) {
   const documentRef = sceneContext.runtime.wrapper.ownerDocument;
   const controls = manifest.controls;
 
-  if (controls.visibleLayer && Number.isFinite(Number(controls.visibleLayer.max))) {
-    const maxLayer = Math.max(0, Number(controls.visibleLayer.max) || 0);
+  if (controls.ponder) {
     host.append(
-      createRangeControl(
-        documentRef,
-        controls.visibleLayer.label || "Layer",
-        0,
-        maxLayer,
-        sceneContext.currentState.visibleLayer,
-        (value) => (value === 0 ? controls.visibleLayer.allLabel || "All" : String(value)),
-        (value) => updateSceneState(sceneContext, { visibleLayer: value }),
+      createPonderControl(documentRef, controls.ponder, sceneContext.currentState.ponderTick, (value) =>
+        updateSceneState(sceneContext, { ponderTick: value }),
       ),
     );
   }
@@ -328,6 +677,21 @@ async function mountSceneStateControls(sceneContext) {
         sceneContext.currentState.tier,
         (value) => String(value),
         (value) => updateSceneState(sceneContext, { tier: value }),
+      ),
+    );
+  }
+
+  if (controls.visibleLayer && Number.isFinite(Number(controls.visibleLayer.max))) {
+    const maxLayer = Math.max(0, Number(controls.visibleLayer.max) || 0);
+    host.append(
+      createRangeControl(
+        documentRef,
+        controls.visibleLayer.label || "Layer",
+        0,
+        maxLayer,
+        sceneContext.currentState.visibleLayer,
+        (value) => (value === 0 ? controls.visibleLayer.allLabel || "All" : String(value)),
+        (value) => updateSceneState(sceneContext, { visibleLayer: value }),
       ),
     );
   }
@@ -378,26 +742,30 @@ async function updateSceneState(sceneContext, patch) {
 
   sceneContext.transitioning = true;
   try {
-    const parent = sceneContext.runtime?.wrapper?.parentNode;
-    if (!parent) {
-      return;
-    }
-
-    const replacement = createSceneNode(parent.ownerDocument, sceneContext.descriptor, variant);
-    parent.insertBefore(replacement, sceneContext.runtime.wrapper);
-
-    disposeSceneContext(sceneContext);
     sceneContext.currentState = nextState;
-    sceneContext.runtime = await setupVendorGameScene(replacement);
-    if (!sceneContext.runtime?.wrapper?.isConnected) {
-      disposeSceneContext(sceneContext, false);
-      return;
-    }
-    attachSceneContext(sceneContext);
-    await mountSceneStateControls(sceneContext);
+    await recreateSceneRuntime(sceneContext, variant);
   } finally {
     sceneContext.transitioning = false;
   }
+}
+
+async function recreateSceneRuntime(sceneContext, variant) {
+  const parent = sceneContext.runtime?.wrapper?.parentNode;
+  if (!parent) {
+    return;
+  }
+
+  const replacement = createSceneNode(parent.ownerDocument, sceneContext.descriptor, variant);
+  parent.insertBefore(replacement, sceneContext.runtime.wrapper);
+
+  disposeSceneContext(sceneContext);
+  sceneContext.runtime = await setupVendorGameScene(replacement);
+  if (!sceneContext.runtime?.wrapper?.isConnected) {
+    disposeSceneContext(sceneContext, false);
+    return;
+  }
+  attachSceneContext(sceneContext);
+  await mountSceneStateControls(sceneContext);
 }
 
 async function initializeScene(node) {
@@ -409,6 +777,7 @@ async function initializeScene(node) {
   ensureDetachedSceneSizeCompat();
 
   const descriptor = captureSceneDescriptor(node);
+  applySceneGridDescriptor(node, descriptor);
   const runtime = await setupVendorGameScene(node);
   if (!runtime) {
     return null;

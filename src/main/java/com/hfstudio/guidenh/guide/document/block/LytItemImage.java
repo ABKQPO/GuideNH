@@ -24,9 +24,10 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     public static final int BASE_SIZE = 16;
 
     private static final int LABEL_GAP = 2;
+    private static final int DEFAULT_INLINE_ITEM_VISUAL_Y_OFFSET = -2;
 
-    public static int DEFAULT_TEXT_INLINE_Y_OFFSET = -3;
-    public static int DEFAULT_INLINE_Y_OFFSET = -4;
+    public static int DEFAULT_TEXT_INLINE_Y_OFFSET = 0;
+    public static int DEFAULT_INLINE_Y_OFFSET = 0;
 
     protected ItemStack stack;
     private float scale = 1f;
@@ -41,6 +42,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     private String labelPosition = null;
     @Nullable
     private String labelFormat = null;
+    private int layoutYOffset = 0;
     @Nullable
     private ResolvedTextStyle cachedLabelStyle = null;
     @Nullable
@@ -73,6 +75,10 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         this.showIcon = show;
     }
 
+    public boolean isShowingIcon() {
+        return showIcon;
+    }
+
     /**
      * Sets the label text position relative to the icon.
      * Accepted values: {@code "left"}, {@code "right"}, or {@code null} for no label.
@@ -93,16 +99,30 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     }
 
     /**
-     * Flag this image as being laid out inline with text. Only inline images receive the
-     * {@link #DEFAULT_INLINE_Y_OFFSET} correction; block-level images render at their raw layout
-     * position so they do not escape their reserved rect.
+     * Flag this image as being laid out inline with text. Inline images can be vertically adjusted
+     * relative to their centered line position.
      */
     public void setInline(boolean inline) {
         this.inline = inline;
     }
 
+    public boolean isInline() {
+        return inline;
+    }
+
     public void setInlineYOffsetOverride(@Nullable Integer override) {
         this.inlineYOffsetOverride = override;
+    }
+
+    public int getInlineVerticalOffset() {
+        if (!inline) return 0;
+        int offset = inlineYOffsetOverride != null ? inlineYOffsetOverride : DEFAULT_INLINE_Y_OFFSET;
+        return Math.round(offset * scale);
+    }
+
+    /** Returns the item-render-only visual correction for Minecraft's item sprite alignment. */
+    public int getInlineVisualYOffset() {
+        return inline && showIcon ? Math.round(DEFAULT_INLINE_ITEM_VISUAL_Y_OFFSET * scale) : 0;
     }
 
     /** Overrides the default inline Y offset for the label text only. Does not affect the icon. */
@@ -117,12 +137,17 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int iconSize = Math.round(BASE_SIZE * scale);
+        int labelYOffset = inline && showIcon
+            ? Math.round((labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET) * scale)
+            : 0;
         boolean hasLabel = labelPosition != null && stack != null;
 
         if (!showIcon && !hasLabel) {
+            layoutYOffset = 0;
             return new LytRect(x, y, 0, 0);
         }
         if (!hasLabel) {
+            layoutYOffset = 0;
             return new LytRect(x, y, iconSize, iconSize);
         }
 
@@ -132,10 +157,15 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         int textH = context.getLineHeight(textStyle);
 
         if (!showIcon) {
+            layoutYOffset = 0;
             return new LytRect(x, y, textW, textH);
         }
+        int textTop = (iconSize - textH) / 2 + labelYOffset;
+        int top = Math.min(0, textTop);
+        int bottom = Math.max(iconSize, textTop + textH);
+        layoutYOffset = top;
         int totalW = iconSize + LABEL_GAP + textW;
-        int totalH = Math.max(iconSize, textH);
+        int totalH = Math.max(0, bottom - top);
         return new LytRect(x, y, totalW, totalH);
     }
 
@@ -147,7 +177,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         if (stack == null || stack.stackSize == 0) return;
 
         int baseX = bounds.x();
-        int baseY = bounds.y();
+        int baseY = bounds.y() - layoutYOffset;
         int iconSize = Math.round(BASE_SIZE * scale);
         boolean hasLabel = labelPosition != null;
 
@@ -161,6 +191,10 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
             int textW = context.getStringWidth(text, textStyle);
             int textH = context.getLineHeight(textStyle);
             int textVCenter = showIcon ? (iconSize - textH) / 2 : 0;
+            int labelYOffset = inline && showIcon
+                ? Math
+                    .round((labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET) * scale)
+                : 0;
 
             if ("left".equals(labelPosition)) {
                 textX = baseX;
@@ -169,21 +203,13 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
                 iconX = baseX;
                 textX = showIcon ? baseX + iconSize + LABEL_GAP : baseX;
             }
-            textY = baseY + textVCenter;
-            if (inline && showIcon) {
-                int base = labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET;
-                textY += Math.round(base * scale);
-            }
+            textY = baseY + textVCenter + labelYOffset;
             context.drawText(text, textX, textY, textStyle);
         }
 
         if (showIcon) {
             int renderX = iconX;
-            int renderY = baseY;
-            if (inline) {
-                int base = inlineYOffsetOverride != null ? inlineYOffsetOverride : DEFAULT_INLINE_Y_OFFSET;
-                renderY += Math.round(base * scale);
-            }
+            int renderY = baseY + getInlineVisualYOffset();
             if (scale == 1f) {
                 context.renderItem(stack, renderX, renderY);
             } else {

@@ -9,17 +9,19 @@ import org.apache.logging.log4j.Logger;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-public final class PreviewPreparePipeline {
+public class PreviewPreparePipeline {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
+    private static final Comparator<PreviewPrepareContributor> PRIORITY_COMPARATOR = Comparator
+        .comparingInt(PreviewPrepareContributor::priority);
 
     private static final List<PreviewPrepareContributor> CONTRIBUTORS = new CopyOnWriteArrayList<>();
 
-    private PreviewPreparePipeline() {}
+    protected PreviewPreparePipeline() {}
 
     public static void register(PreviewPrepareContributor contributor) {
         CONTRIBUTORS.add(contributor);
-        CONTRIBUTORS.sort(Comparator.comparingInt(PreviewPrepareContributor::priority));
+        CONTRIBUTORS.sort(PRIORITY_COMPARATOR);
     }
 
     public static void prepare(GuidebookLevel level) {

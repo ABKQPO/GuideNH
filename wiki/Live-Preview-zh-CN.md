@@ -96,5 +96,5 @@ GuideNH 不会每帧都轮询指南文件。
 
 - [安装](Installation-zh-CN)
 - [快速开始](Getting-Started-zh-CN)
-- [GameScene](GameScene-zh-CN)
+- [游戏场景](GameScene-zh-CN)
 - [常见问题](FAQ-zh-CN)

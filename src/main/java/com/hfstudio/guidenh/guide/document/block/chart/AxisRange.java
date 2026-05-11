@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 /**
  * Utility for automatic axis range and tick calculation.
  */
-public final class AxisRange {
+public class AxisRange {
 
     public final double min;
     public final double max;

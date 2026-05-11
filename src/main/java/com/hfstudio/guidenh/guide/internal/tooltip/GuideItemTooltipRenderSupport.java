@@ -8,9 +8,9 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
 
-public final class GuideItemTooltipRenderSupport {
+public class GuideItemTooltipRenderSupport {
 
-    private GuideItemTooltipRenderSupport() {}
+    protected GuideItemTooltipRenderSupport() {}
 
     public static boolean shouldUseVanillaRenderer(ItemTooltip tooltip) {
         return !(tooltip instanceof ItemTooltipAppender);

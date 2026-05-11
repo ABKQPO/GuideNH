@@ -106,8 +106,43 @@ a:hover {
     text-decoration: underline;
 }
 
+.guide-link {
+    font-weight: 500;
+    color: var(--color-link);
+    text-decoration: none;
+}
+
+.guide-link:hover {
+    text-decoration: underline;
+}
+
 ul {
     list-style-type: square;
+}
+
+.guide-task-list-item {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(5px * var(--gui-scale));
+    list-style: none;
+}
+
+.guide-task-list-checkbox {
+    flex: 0 0 auto;
+    margin: calc(4px * var(--gui-scale)) 0 0;
+    accent-color: var(--color-link);
+}
+
+.guide-task-list-content {
+    min-width: 0;
+}
+
+.guide-task-list-content > p:first-child {
+    margin-top: 0;
+}
+
+.guide-task-list-content > p:last-child {
+    margin-bottom: 0;
 }
 
 hr {
@@ -227,6 +262,11 @@ blockquote {
     -webkit-text-emphasis: dot;
     text-emphasis-position: under;
     -webkit-text-emphasis-position: under;
+}
+
+.guide-mark {
+    background-color: #8A6A00;
+    color: inherit;
 }
 
 p {
@@ -581,6 +621,69 @@ p {
     image-rendering: pixelated;
 }
 
+.guide-floating-image-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: top;
+}
+
+.guide-floating-image-wrap .guide-floating-image {
+    float: none;
+}
+
+.guide-image-annotation {
+    position: absolute;
+    z-index: 2;
+    display: block;
+    pointer-events: auto;
+    border: 0 solid transparent;
+}
+
+.guide-image-annotation.guide-tooltip {
+    cursor: help;
+}
+
+.guide-latex {
+    max-width: 100%;
+    transform-origin: center;
+}
+
+.guide-latex-inline {
+    display: inline-block;
+    vertical-align: baseline;
+    line-height: 0;
+}
+
+.guide-latex-display {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0.5em auto 0.8em;
+    overflow-x: auto;
+    text-align: center;
+    line-height: 0;
+}
+
+.guide-latex-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: auto;
+}
+
+.guide-latex-valign-top {
+    vertical-align: top;
+}
+
+.guide-latex-valign-center {
+    vertical-align: middle;
+}
+
+.guide-latex-valign-bottom {
+    vertical-align: bottom;
+}
+
 .guide-inline-color {
     font-weight: 600;
 }
@@ -678,6 +781,186 @@ p {
 
 .guide-recipe-gallery {
     margin-bottom: 0.8em;
+}
+
+.guide-quest-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px calc(2px * var(--gui-scale));
+    border: 1px solid rgba(124, 124, 124, 0.45);
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--color-link);
+    font-family: var(--minecraft-font);
+    font-size: 0.9em;
+}
+
+.guide-quest-card {
+    border: 1px solid rgba(124, 124, 124, 0.45);
+    background: rgba(0, 0, 0, 0.35);
+    padding: calc(3px * var(--gui-scale));
+    margin-bottom: 0.8em;
+}
+
+.guide-quest-card-title {
+    color: white;
+    font-family: var(--minecraft-font);
+}
+
+.guide-quest-card-meta {
+    margin-top: 3px;
+    color: rgba(210, 210, 210, 0.65);
+    font-family: 'Pixeloid Mono', monospace;
+    font-size: 0.75em;
+}
+
+.guide-scene-export-frame {
+    position: relative;
+    display: inline-block;
+    align-items: flex-start;
+    gap: calc(2px * var(--gui-scale));
+    max-width: 100%;
+    margin-bottom: 0.8em;
+    --guide-scene-logical-width: 256px;
+    --guide-scene-logical-height: 192px;
+    --guide-scene-button-reserve: 0px;
+    --guide-scene-block-stats-max-width: 140px;
+    --guide-scene-block-stats-max-height: 96px;
+    --guide-scene-display-scale: 4;
+    --guide-scene-block-stats-gap: calc(4px * var(--guide-scene-display-scale));
+}
+
+.guide-scene-block-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: calc(var(--guide-scene-block-stats-max-width) * var(--guide-scene-display-scale));
+    max-height: calc(var(--guide-scene-block-stats-max-height) * var(--guide-scene-display-scale));
+    overflow: auto;
+    padding: calc(4px * var(--guide-scene-display-scale));
+    background: rgba(17, 25, 34, 0.67);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.guide-scene-export-frame--block-stats .guide-scene-block-stats {
+    position: absolute;
+    z-index: 5;
+}
+
+.guide-scene-export-frame--block-stats-hidden .guide-scene-block-stats {
+    display: none;
+}
+
+.guide-scene-export-frame--block-stats-inside .guide-scene-block-stats {
+    max-width: min(
+        calc(var(--guide-scene-block-stats-max-width) * var(--guide-scene-display-scale)),
+        calc(100% - calc(8px * var(--guide-scene-display-scale)))
+    );
+    max-height: min(
+        calc(var(--guide-scene-block-stats-max-height) * var(--guide-scene-display-scale)),
+        calc(100% - calc(8px * var(--guide-scene-display-scale)))
+    );
+}
+
+.guide-scene-export-frame--block-stats-inside.guide-scene-export-frame--block-stats-corner-top-right
+    .guide-scene-block-stats {
+    top: var(--guide-scene-block-stats-gap);
+    right: var(--guide-scene-block-stats-gap);
+}
+
+.guide-scene-export-frame--block-stats-inside.guide-scene-export-frame--block-stats-corner-top-left
+    .guide-scene-block-stats {
+    top: var(--guide-scene-block-stats-gap);
+    left: var(--guide-scene-block-stats-gap);
+}
+
+.guide-scene-export-frame--block-stats-inside.guide-scene-export-frame--block-stats-corner-bottom-right
+    .guide-scene-block-stats {
+    right: var(--guide-scene-block-stats-gap);
+    bottom: var(--guide-scene-block-stats-gap);
+}
+
+.guide-scene-export-frame--block-stats-inside.guide-scene-export-frame--block-stats-corner-bottom-left
+    .guide-scene-block-stats {
+    left: var(--guide-scene-block-stats-gap);
+    bottom: var(--guide-scene-block-stats-gap);
+}
+
+.guide-scene-export-frame--block-stats-left {
+    padding-left: calc(var(--guide-scene-block-stats-max-width) * var(--guide-scene-display-scale)
+        + var(--guide-scene-block-stats-gap));
+}
+
+.guide-scene-export-frame--block-stats-left .guide-scene-block-stats {
+    top: 0;
+    left: 0;
+}
+
+.guide-scene-export-frame--block-stats-right {
+    padding-right: calc(var(--guide-scene-block-stats-max-width) * var(--guide-scene-display-scale)
+        + calc(var(--guide-scene-button-reserve) * var(--guide-scene-display-scale))
+        + var(--guide-scene-block-stats-gap));
+}
+
+.guide-scene-export-frame--block-stats-right .guide-scene-block-stats {
+    top: 0;
+    right: 0;
+}
+
+.guide-scene-export-frame--block-stats-top {
+    padding-top: calc(var(--guide-scene-block-stats-max-height) * var(--guide-scene-display-scale)
+        + var(--guide-scene-block-stats-gap));
+}
+
+.guide-scene-export-frame--block-stats-top .guide-scene-block-stats {
+    top: 0;
+    left: 0;
+}
+
+.guide-scene-export-frame--block-stats-bottom {
+    padding-bottom: calc(var(--guide-scene-block-stats-max-height) * var(--guide-scene-display-scale)
+        + var(--guide-scene-block-stats-gap));
+}
+
+.guide-scene-export-frame--block-stats-bottom .guide-scene-block-stats {
+    left: 0;
+    bottom: 0;
+}
+
+.guide-scene-block-stat {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    align-items: center;
+    gap: 4px;
+    min-width: calc(32px * var(--gui-scale));
+    color: var(--color-body-text);
+    font-family: var(--minecraft-font);
+    font-size: 0.75em;
+    white-space: nowrap;
+}
+
+.guide-scene-export-frame--block-stats-icons .guide-scene-block-stat {
+    grid-template-columns: max-content;
+}
+
+.guide-scene-export-frame--block-stats-icons .guide-scene-block-stat-label,
+.guide-scene-export-frame--block-stats-icons .guide-scene-block-stat-count {
+    display: none;
+}
+
+.guide-scene-block-stat-icon {
+    width: calc(12px * var(--gui-scale));
+    height: calc(12px * var(--gui-scale));
+}
+
+.guide-scene-block-stat-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.guide-scene-block-stat-count {
+    color: rgba(210, 210, 210, 0.75);
+    font-family: 'Pixeloid Mono', monospace;
 }
 
 .recipe-grid {

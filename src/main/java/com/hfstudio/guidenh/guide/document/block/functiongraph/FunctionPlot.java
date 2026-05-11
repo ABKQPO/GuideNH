@@ -5,7 +5,7 @@ package com.hfstudio.guidenh.guide.document.block.functiongraph;
  * optional inverse flag (so {@code x = f(y)} curves can be drawn by sweeping y), an optional domain
  * predicate, and the colour / label used for tooltips and legends.
  */
-public final class FunctionPlot {
+public class FunctionPlot {
 
     private final String expressionText;
     private final FunctionExpr expression;
@@ -13,15 +13,22 @@ public final class FunctionPlot {
     private final DomainPredicate domain;
     private final int color;
     private final String label;
+    private final AutoPointSpec autoPointSpec;
 
     public FunctionPlot(String expressionText, FunctionExpr expression, boolean inverse, DomainPredicate domain,
         int color, String label) {
+        this(expressionText, expression, inverse, domain, color, label, AutoPointSpec.NONE);
+    }
+
+    public FunctionPlot(String expressionText, FunctionExpr expression, boolean inverse, DomainPredicate domain,
+        int color, String label, AutoPointSpec autoPointSpec) {
         this.expressionText = expressionText != null ? expressionText : "";
         this.expression = expression != null ? expression : new FunctionExpr.Constant(Double.NaN);
         this.inverse = inverse;
         this.domain = domain != null ? domain : DomainPredicate.ALWAYS;
         this.color = color;
         this.label = label;
+        this.autoPointSpec = autoPointSpec != null ? autoPointSpec : AutoPointSpec.NONE;
     }
 
     public String getExpressionText() {
@@ -46,6 +53,10 @@ public final class FunctionPlot {
 
     public String getLabel() {
         return label;
+    }
+
+    public AutoPointSpec getAutoPointSpec() {
+        return autoPointSpec;
     }
 
     /**

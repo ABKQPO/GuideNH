@@ -140,6 +140,14 @@
       "camera": {
         "rotY": 165.0
       },
+      "mergeTileNBT": [
+        {
+          "x": 2,
+          "y": 1,
+          "z": 1,
+          "nbt": "{Items:[{Slot:0b,id:\"minecraft:iron_ingot\",Count:1b,Damage:0s}]}"
+        }
+      ],
       "annotations": [
         {
           "type": "box",
@@ -176,6 +184,45 @@
         "rotY": 210.0,
         "zoom": 1.8
       },
+      "modifyTileNBT": [
+        {
+          "x": 2,
+          "y": 1,
+          "z": 1,
+          "path": "Items[0].Count",
+          "value": "3b"
+        }
+      ],
+      "createEntities": [
+        {
+          "ref": "finished_pig",
+          "id": "minecraft:pig",
+          "x": 1.5,
+          "y": 1.0,
+          "z": 2.2,
+          "yaw": 180.0,
+          "nbt": "{CustomName:\"Done\",CustomNameVisible:1b}"
+        }
+      ],
+      "mergeEntityNBT": [
+        {
+          "ref": "finished_pig",
+          "nbt": "{Saddle:1b}"
+        }
+      ],
+      "modifyEntityNBT": [
+        {
+          "ref": "finished_pig",
+          "path": "CustomName",
+          "value": "\"Finished cycle\""
+        }
+      ],
+      "removeEntityNBT": [
+        {
+          "ref": "finished_pig",
+          "path": "CustomNameVisible"
+        }
+      ],
       "annotations": [
         {
           "type": "text",

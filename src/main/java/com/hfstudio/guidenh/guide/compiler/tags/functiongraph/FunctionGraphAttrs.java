@@ -4,6 +4,10 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointLabelMode;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointSpec;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.DomainPredicate;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionExpr;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionExprParser;
@@ -18,11 +22,11 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
  * {@code <Plot>} / {@code <Point>} tag families. Mirrors the conventions used by the chart attr
  * parsers so authors who already know one can reuse the same shapes.
  */
-public final class FunctionGraphAttrs {
+public class FunctionGraphAttrs {
 
     public static final int QUADRANT_MASK_AUTO = 0;
 
-    private FunctionGraphAttrs() {}
+    protected FunctionGraphAttrs() {}
 
     /** Apply the panel-level attributes onto {@code graph}. */
     public static void applyContainerAttrs(LytFunctionGraph graph, PageCompiler compiler, LytErrorSink sink,
@@ -50,6 +54,18 @@ public final class FunctionGraphAttrs {
         }
         graph.setShowGrid(MdxAttrs.getBoolean(compiler, sink, el, "showGrid", true));
         graph.setShowAxes(MdxAttrs.getBoolean(compiler, sink, el, "showAxes", true));
+        graph.setCornerLegendPosition(
+            ChartAttrParser.parseCornerLegendPosition(
+                MdxAttrs.getString(compiler, sink, el, "cornerLegend", null),
+                CornerLegendPosition.NONE));
+        graph.setCornerLegendSize(
+            MdxAttrs.getInt(compiler, sink, el, "cornerLegendWidth", CornerLegendRenderer.DEFAULT_WIDTH),
+            MdxAttrs.getInt(compiler, sink, el, "cornerLegendHeight", CornerLegendRenderer.DEFAULT_HEIGHT));
+        String cornerLegendBackground = MdxAttrs.getString(compiler, sink, el, "cornerLegendBackground", null);
+        if (cornerLegendBackground != null) {
+            graph.setCornerLegendBackgroundColor(
+                ChartAttrParser.parseColor(cornerLegendBackground, CornerLegendRenderer.DEFAULT_BACKGROUND));
+        }
 
         applyRange(graph, compiler, sink, el);
         graph.setQuadrantMask(parseQuadrantMask(MdxAttrs.getString(compiler, sink, el, "quadrants", null)));
@@ -107,7 +123,13 @@ public final class FunctionGraphAttrs {
         int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, FunctionGraphPalette.color(paletteIndex))
             : FunctionGraphPalette.color(paletteIndex);
         String label = MdxAttrs.getString(compiler, sink, el, "label", null);
-        return new FunctionPlot(expr, ast, inverse, domain, color, label);
+        AutoPointSpec autoPointSpec = parseAutoPointSpec(
+            MdxAttrs.getString(compiler, sink, el, "pointEveryX", null),
+            MdxAttrs.getString(compiler, sink, el, "pointEveryY", null),
+            MdxAttrs.getString(compiler, sink, el, "autoPointLabel", null),
+            MdxAttrs.getString(compiler, sink, el, "autoPointColor", null),
+            color);
+        return new FunctionPlot(expr, ast, inverse, domain, color, label, autoPointSpec);
     }
 
     /** Parse a single {@code <Point>} child element into a {@link MarkedPoint}. */
@@ -150,8 +172,13 @@ public final class FunctionGraphAttrs {
             return 0xF;
         }
         int mask = 0;
-        for (String raw : trimmed.split(",")) {
-            String part = raw.trim();
+        int start = 0;
+        for (int i = 0; i <= trimmed.length(); i++) {
+            if (i < trimmed.length() && trimmed.charAt(i) != ',') {
+                continue;
+            }
+            String part = trimmed.substring(start, i)
+                .trim();
             try {
                 int q = Integer.parseInt(part);
                 if (q >= 1 && q <= 4) {
@@ -160,6 +187,7 @@ public final class FunctionGraphAttrs {
             } catch (NumberFormatException ex) {
                 // ignored
             }
+            start = i + 1;
         }
         return mask;
     }
@@ -195,5 +223,15 @@ public final class FunctionGraphAttrs {
             return fallback;
         }
         return DomainPredicate.parseNumberOrConstant(trimmed, fallback);
+    }
+
+    public static AutoPointSpec parseAutoPointSpec(String everyXText, String everyYText, String labelModeText,
+        String colorText, int inheritedColor) {
+        double everyX = parseDouble(everyXText, Double.NaN);
+        double everyY = parseDouble(everyYText, Double.NaN);
+        AutoPointLabelMode labelMode = AutoPointLabelMode.fromString(labelModeText, AutoPointLabelMode.NONE);
+        boolean inherit = colorText == null;
+        int color = inherit ? inheritedColor : ChartAttrParser.parseColor(colorText, inheritedColor);
+        return new AutoPointSpec(everyX, everyY, labelMode, color, inherit);
     }
 }

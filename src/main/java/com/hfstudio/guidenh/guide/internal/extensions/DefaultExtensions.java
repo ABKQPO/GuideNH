@@ -8,8 +8,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import com.github.bsideup.jabel.Desugar;
-import com.hfstudio.guidenh.compat.Mods;
-import com.hfstudio.guidenh.compat.betterquesting.BqCompat;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ATagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler;
@@ -19,6 +17,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.BreakCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CategoryIndexCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ColorTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.CommentTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DivTagCompiler;
@@ -31,6 +30,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.ItemLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KbdTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.LatexTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.MarkTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PlayerNameTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
@@ -65,6 +65,9 @@ import com.hfstudio.guidenh.guide.scene.element.PlaceBlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.RemoveBlocksElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ReplaceBlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
+import com.hfstudio.guidenh.guide.scene.element.TextAnnotationElementCompiler;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.api.TagCompilerProvider;
 
 public class DefaultExtensions {
 
@@ -117,7 +120,9 @@ public class DefaultExtensions {
                 new CommandLinkCompiler(),
                 new PlayerNameTagCompiler(),
                 new KeyBindTagCompiler(),
+                new CommentTagCompiler(),
                 new TooltipTagCompiler(),
+                new MarkTagCompiler(),
                 new FootnoteListCompiler(),
                 new StructureViewCompiler(),
                 new MermaidCompiler(),
@@ -130,10 +135,9 @@ public class DefaultExtensions {
                 new FunctionGraphTagCompiler(),
                 new FunctionTagCompiler(),
                 new LatexTagCompiler()));
-        // Conditionally append mod-compat tag compilers. BqCompat itself does not reference any
-        // BetterQuesting types, keeping this branch safe when BQ is absent.
-        if (Mods.BetterQuesting.isModLoaded()) {
-            BqCompat.appendCompilers(compilers);
+        for (TagCompilerProvider provider : GuideNhIntegrationRegistry.global()
+            .tagCompilerProviders()) {
+            provider.appendTagCompilers(compilers);
         }
         return compilers;
     }
@@ -151,6 +155,7 @@ public class DefaultExtensions {
             new LineAnnotationElementCompiler(),
             new DiamondAnnotationElementCompiler(),
             new BlockAnnotationTemplateElementCompiler(),
+            new TextAnnotationElementCompiler(),
             new RemoveBlocksElementCompiler(),
             new ReplaceBlockElementCompiler(),
             new PlaceBlockElementCompiler());

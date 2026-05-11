@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
-public final class GuidebookLevelStructureExportAccess implements StructureExportAccess {
+public class GuidebookLevelStructureExportAccess implements StructureExportAccess {
 
     private final GuidebookLevel level;
 

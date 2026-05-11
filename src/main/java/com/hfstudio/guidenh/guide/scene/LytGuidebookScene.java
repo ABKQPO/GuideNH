@@ -2,20 +2,32 @@ package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagDouble;
+import net.minecraft.nbt.NBTTagFloat;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.IIcon;
@@ -28,9 +40,6 @@ import org.joml.Vector3f;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibTooltipContentBuilder;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
@@ -38,9 +47,11 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
+import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
+import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -50,21 +61,34 @@ import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxFaceOverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneFloorGridAnnotation;
+import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframe;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeBlockChange;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeCameraState;
+import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeEntityAction;
+import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeTileNbtOperation;
+import com.hfstudio.guidenh.guide.scene.ponder.PonderNbtPath;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderSceneData;
+import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityRayPicker;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.ae2.Ae2Helpers;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 public class LytGuidebookScene extends LytBlock {
 
@@ -85,6 +109,25 @@ public class LytGuidebookScene extends LytBlock {
         .mergeWith(DefaultStyles.BASE_STYLE);
     public static final ResolvedTextStyle STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
+    public static final ResolvedTextStyle BLOCK_STATS_TEXT_STYLE = DefaultStyles.BODY_TEXT
+        .mergeWith(DefaultStyles.BASE_STYLE);
+    public static final int BLOCK_STATS_BACKGROUND_COLOR = 0xAA111922;
+    public static final int BLOCK_STATS_BORDER_COLOR = 0x66FFFFFF;
+    public static final int BLOCK_STATS_PADDING_X = 5;
+    public static final int BLOCK_STATS_PADDING_Y = 4;
+    public static final int BLOCK_STATS_GAP = 4;
+    public static final int BLOCK_STATS_ROW_GAP = 2;
+    public static final int BLOCK_STATS_ITEM_SIZE = 16;
+    public static final int BLOCK_STATS_MIN_WIDTH = 32;
+    public static final int BLOCK_STATS_MIN_HEIGHT = 20;
+    public static final int BLOCK_STATS_DEFAULT_MAX_WIDTH = 140;
+    public static final int BLOCK_STATS_DEFAULT_MAX_HEIGHT = 96;
+    public static final int BLOCK_STATS_SCROLLBAR_SIZE = 6;
+    public static final int BLOCK_STATS_SCROLLBAR_MIN_THUMB = 12;
+    public static final int BLOCK_STATS_WHEEL_STEP = 18;
+    public static final int BLOCK_STATS_DOCK_GAP = 4;
+    public static final int BLOCK_STATS_SELECTED_ROW_COLOR = 0x6656C8FF;
+    public static final int BLOCK_STATS_HIGHLIGHT_COLOR = 0x6600F5FF;
 
     private int dragButton = -1;
     private int dragLastX;
@@ -101,6 +144,7 @@ public class LytGuidebookScene extends LytBlock {
     private int ponderCurrentTick = 0;
     private boolean ponderPaused = false;
     private boolean ponderFinished = false;
+    private boolean ponderExportLayerOverrideEnabled;
     private float ponderCamZoom = 1f;
     private float ponderCamRotX = 0f;
     private float ponderCamRotY = 0f;
@@ -115,6 +159,8 @@ public class LytGuidebookScene extends LytBlock {
     private int ponderLastKeyframeIdx = -2;
     private int ponderAnnotationFadeTick = 5;
     private final Map<Long, PonderBlockInfo> ponderBlockSnapshot = new LinkedHashMap<>();
+    private final Map<String, PonderEntityRuntime> ponderEntityRefs = new LinkedHashMap<>();
+    private boolean ponderTimelineBaselineReady;
     @Nullable
     private LytRect cachedPonderBarTrackRect;
     @Nullable
@@ -144,6 +190,8 @@ public class LytGuidebookScene extends LytBlock {
     // Shown when the scene has no annotations at all: drop the annotation toggle entirely.
     public static final GuideIconButton.Role[] SCENE_BUTTONS_NO_ANNOTATIONS = { GuideIconButton.Role.ZOOM_IN,
         GuideIconButton.Role.ZOOM_OUT, GuideIconButton.Role.RESET_VIEW };
+    public static final GuideIconButton.Role[] PONDER_BUTTON_ROLES = { GuideIconButton.Role.PONDER_PREV_KEYFRAME,
+        GuideIconButton.Role.PONDER_PLAY_PAUSE, GuideIconButton.Role.PONDER_RESTART };
 
     public static final int PONDER_BTN_TOTAL_WIDTH = SCENE_SLIDER_AREA_HEIGHT * 3;
     public static final int PONDER_PROGRESS_TRACK_COLOR = 0x40FFFFFF;
@@ -167,6 +215,14 @@ public class LytGuidebookScene extends LytBlock {
     // Reuse annotation partitions instead of allocating new lists every frame.
     private final List<InWorldAnnotation> inWorldScratch = new ArrayList<>();
     private final List<OverlayAnnotation> overlayScratch = new ArrayList<>();
+    private final List<GuideBlockStatsStackResolver.ResolvedStack> blockStatsStackScratch = new ArrayList<>(4);
+    private final List<InWorldBlockFaceOverlayAnnotation> structureLibHatchOverlayAnnotations = new ArrayList<>();
+    @Nullable
+    private SceneFloorGridAnnotation cachedFloorGridAnnotation;
+    private int cachedFloorGridMinX = Integer.MIN_VALUE;
+    private int cachedFloorGridMinZ = Integer.MIN_VALUE;
+    private int cachedFloorGridMaxX = Integer.MIN_VALUE;
+    private int cachedFloorGridMaxZ = Integer.MIN_VALUE;
 
     // Reuse hovered-block overlay objects across frames.
     private final Vector3f hoverBoxMin = new Vector3f();
@@ -176,6 +232,7 @@ public class LytGuidebookScene extends LytBlock {
     private final Vector3f projectedLineToScratch = new Vector3f();
     private final float[] pickRayScratch = new float[6];
     private final ConstantColor hoverBoxColor = new ConstantColor(0xFFFFFFFF);
+    private final ConstantColor blockStatsHighlightColor = new ConstantColor(BLOCK_STATS_HIGHLIGHT_COLOR);
 
     private final ConstantColor originXAxisColor = new ConstantColor(ORIGIN_X_AXIS_COLOR);
     private final ConstantColor originYAxisColor = new ConstantColor(ORIGIN_Y_AXIS_COLOR);
@@ -185,6 +242,7 @@ public class LytGuidebookScene extends LytBlock {
         hoverBoxMax,
         hoverBoxColor,
         1f);
+    private final List<InWorldBoxFaceOverlayAnnotation> blockStatsHighlightAnnotations = new ArrayList<>();
     private final InWorldLineAnnotation originXAxisAnnotation = createOriginAxisAnnotation(
         new Vector3f(ORIGIN_AXIS_LENGTH, 0.0f, 0.0f),
         originXAxisColor);
@@ -205,10 +263,12 @@ public class LytGuidebookScene extends LytBlock {
     private final Map<String, LytRect> cachedChannelSliderHitRects = new LinkedHashMap<>();
     private int sceneButtonsAbsX;
     private int sceneButtonsAbsY;
+    private boolean cachedSceneButtonRolesDirty = true;
     private boolean cachedSceneButtonsVisible = true;
     private boolean cachedSceneHasAnnotations = true;
     private boolean cachedSceneHasStructureLibHatches;
     private boolean cachedGridButtonEnabled = true;
+    private boolean cachedBlockStatsButtonEnabled = true;
     private GuideIconButton.Role[] cachedSceneButtonRoles = SCENE_BUTTONS_SHOWN;
 
     private boolean annotationsVisible = true;
@@ -216,6 +276,7 @@ public class LytGuidebookScene extends LytBlock {
     private Integer visibleLayerOverride;
     @Nullable
     private StructureLibSceneMetadata structureLibSceneMetadata;
+    private final List<StructureLibSceneMetadata.ChannelData> selectableStructureLibChannels = new ArrayList<>();
     private int structureLibCurrentTier = 1;
     private final LinkedHashMap<String, Integer> structureLibChannelOverrides = new LinkedHashMap<>();
     private boolean structureLibHatchHighlightEnabled;
@@ -233,6 +294,51 @@ public class LytGuidebookScene extends LytBlock {
     private boolean gridButtonEnabled = true;
     private boolean gridVisible = false;
     private boolean initialGridVisible = false;
+    private boolean blockStatsEnabled = false;
+    private boolean blockStatsVisible = false;
+    private boolean blockStatsButtonEnabled = false;
+    private BlockStatsMode blockStatsMode = BlockStatsMode.AUTO;
+    private BlockStatsCorner blockStatsCorner = BlockStatsCorner.TOP_RIGHT;
+    private BlockStatsDock blockStatsDock = BlockStatsDock.INSIDE;
+    private boolean blockStatsShowNames;
+    private BlockStatsFilterMode blockStatsFilterMode = BlockStatsFilterMode.BLACKLIST;
+    private final Set<String> blockStatsFilterKeys = new HashSet<>();
+    private final List<SceneBlockStatsEntry> manualBlockStatsEntries = new ArrayList<>();
+    private final List<SceneBlockStatsEntry> cachedBlockStatsEntries = new ArrayList<>();
+    private boolean blockStatsDirty = true;
+    private boolean blockStatsWidthsDirty = true;
+    private int cachedBlockStatsContentWidth;
+    private int blockStatsMaxWidth = BLOCK_STATS_DEFAULT_MAX_WIDTH;
+    private int blockStatsMaxHeight = BLOCK_STATS_DEFAULT_MAX_HEIGHT;
+    private boolean blockStatsMaxWidthExplicit;
+    private boolean blockStatsMaxHeightExplicit;
+    private int blockStatsScrollX;
+    private int blockStatsScrollY;
+    private int blockStatsMaxScrollX;
+    private int blockStatsMaxScrollY;
+    private int blockStatsViewportWidth;
+    private int blockStatsViewportHeight;
+    private int blockStatsContentWidth;
+    private int blockStatsContentHeight;
+    @Nullable
+    private LytRect cachedBlockStatsBoxRect;
+    @Nullable
+    private LytRect cachedBlockStatsViewportRect;
+    @Nullable
+    private LytRect cachedBlockStatsHorizontalTrackRect;
+    @Nullable
+    private LytRect cachedBlockStatsHorizontalThumbRect;
+    @Nullable
+    private LytRect cachedBlockStatsVerticalTrackRect;
+    @Nullable
+    private LytRect cachedBlockStatsVerticalThumbRect;
+    private boolean draggingBlockStatsHorizontalScrollbar;
+    private boolean draggingBlockStatsVerticalScrollbar;
+    private int blockStatsScrollbarGrabOffset;
+    @Nullable
+    private String selectedBlockStatsKey;
+    private final List<BlockStatsHitRegion> cachedBlockStatsHitRegions = new ArrayList<>();
+    private int cachedBlockStatsHitRegionCount;
 
     private float[] initialCam = new float[] { 1f, 0f, 0f, 0f, 0f, 0f };
 
@@ -248,6 +354,9 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private MovingObjectPosition hoveredEntityHitResult;
     private int @Nullable [] hoveredStructureLibHatch;
+    private int currentMouseAbsX = -1;
+    private int currentMouseAbsY = -1;
+    private boolean currentMousePositionAvailable;
 
     public static class PickRay {
 
@@ -276,6 +385,27 @@ public class LytGuidebookScene extends LytBlock {
         }
     }
 
+    public static class PonderTimelineKeyframe {
+
+        private final int time;
+        @Nullable
+        private final String label;
+
+        public PonderTimelineKeyframe(int time, @Nullable String label) {
+            this.time = Math.max(0, time);
+            this.label = label;
+        }
+
+        public int getTime() {
+            return time;
+        }
+
+        @Nullable
+        public String getLabel() {
+            return label;
+        }
+    }
+
     public LytGuidebookScene() {
         camera.setPerspectivePreset(PerspectivePreset.ISOMETRIC_NORTH_EAST);
         snapshotInitialCamera();
@@ -293,6 +423,7 @@ public class LytGuidebookScene extends LytBlock {
         }
         snapshotInitialCamera();
         clearLayerDrivenHoverState();
+        markBlockStatsDirty();
     }
 
     public CameraSettings getCamera() {
@@ -460,6 +591,7 @@ public class LytGuidebookScene extends LytBlock {
 
     public void setGridButtonEnabled(boolean gridButtonEnabled) {
         this.gridButtonEnabled = gridButtonEnabled;
+        this.cachedSceneButtonRolesDirty = true;
     }
 
     public boolean isGridVisible() {
@@ -468,6 +600,198 @@ public class LytGuidebookScene extends LytBlock {
 
     public void setGridVisible(boolean gridVisible) {
         this.gridVisible = gridVisible;
+    }
+
+    public boolean isBlockStatsVisible() {
+        return blockStatsVisible;
+    }
+
+    public void setBlockStatsEnabled(boolean blockStatsEnabled) {
+        this.blockStatsEnabled = blockStatsEnabled;
+        if (!blockStatsEnabled) {
+            this.blockStatsVisible = false;
+            this.blockStatsButtonEnabled = false;
+        }
+        this.cachedSceneButtonRolesDirty = true;
+        clearBlockStatsGeometry();
+    }
+
+    public void resetBlockStatsConfiguration() {
+        blockStatsEnabled = false;
+        blockStatsVisible = false;
+        blockStatsButtonEnabled = false;
+        blockStatsMode = BlockStatsMode.AUTO;
+        blockStatsCorner = BlockStatsCorner.TOP_RIGHT;
+        blockStatsDock = BlockStatsDock.INSIDE;
+        blockStatsShowNames = false;
+        blockStatsFilterMode = BlockStatsFilterMode.BLACKLIST;
+        blockStatsFilterKeys.clear();
+        manualBlockStatsEntries.clear();
+        blockStatsMaxWidth = BLOCK_STATS_DEFAULT_MAX_WIDTH;
+        blockStatsMaxHeight = BLOCK_STATS_DEFAULT_MAX_HEIGHT;
+        blockStatsMaxWidthExplicit = false;
+        blockStatsMaxHeightExplicit = false;
+        selectedBlockStatsKey = null;
+        cachedSceneButtonRolesDirty = true;
+        markBlockStatsDirty();
+    }
+
+    public void setBlockStatsVisible(boolean blockStatsVisible) {
+        boolean newVisible = blockStatsEnabled && blockStatsVisible;
+        if (this.blockStatsVisible != newVisible) {
+            this.blockStatsVisible = newVisible;
+            if (!newVisible) {
+                selectedBlockStatsKey = null;
+            }
+            clearBlockStatsGeometry();
+            invalidateDocumentLayout();
+        }
+    }
+
+    public void setBlockStatsButtonEnabled(boolean blockStatsButtonEnabled) {
+        this.blockStatsButtonEnabled = blockStatsEnabled && blockStatsButtonEnabled;
+        this.cachedSceneButtonRolesDirty = true;
+    }
+
+    public void setBlockStatsMode(BlockStatsMode blockStatsMode) {
+        this.blockStatsMode = blockStatsMode != null ? blockStatsMode : BlockStatsMode.AUTO;
+        if (this.blockStatsMode == BlockStatsMode.MANUAL) {
+            selectedBlockStatsKey = null;
+        }
+        markBlockStatsDirty();
+    }
+
+    public void setBlockStatsCorner(BlockStatsCorner blockStatsCorner) {
+        this.blockStatsCorner = blockStatsCorner != null ? blockStatsCorner : BlockStatsCorner.TOP_RIGHT;
+        clearBlockStatsGeometry();
+    }
+
+    public void setBlockStatsDock(BlockStatsDock blockStatsDock) {
+        this.blockStatsDock = blockStatsDock != null ? blockStatsDock : BlockStatsDock.INSIDE;
+        selectedBlockStatsKey = null;
+        clearBlockStatsGeometry();
+        invalidateDocumentLayout();
+    }
+
+    public void setBlockStatsShowNames(boolean blockStatsShowNames) {
+        this.blockStatsShowNames = blockStatsShowNames;
+        blockStatsWidthsDirty = true;
+        clearBlockStatsGeometry();
+        invalidateDocumentLayout();
+    }
+
+    public void setBlockStatsMaxSize(int maxWidth, int maxHeight) {
+        setBlockStatsMaxWidth(maxWidth);
+        setBlockStatsMaxHeight(maxHeight);
+    }
+
+    public void setBlockStatsMaxWidth(int maxWidth) {
+        blockStatsMaxWidthExplicit = true;
+        this.blockStatsMaxWidth = Math.max(BLOCK_STATS_MIN_WIDTH, maxWidth);
+        clearBlockStatsGeometry();
+        invalidateDocumentLayout();
+    }
+
+    public void setBlockStatsMaxHeight(int maxHeight) {
+        blockStatsMaxHeightExplicit = true;
+        this.blockStatsMaxHeight = Math.max(BLOCK_STATS_MIN_HEIGHT, maxHeight);
+        clearBlockStatsGeometry();
+        invalidateDocumentLayout();
+    }
+
+    public void applyDefaultBlockStatsMaxSizeFromScene() {
+        if (blockStatsMaxWidthExplicit && blockStatsMaxHeightExplicit) {
+            return;
+        }
+        int maxWidth = Math.max(BLOCK_STATS_MIN_WIDTH, width / 4);
+        int maxHeight = Math.max(BLOCK_STATS_MIN_HEIGHT, height / 4);
+        boolean changed = false;
+        if (!blockStatsMaxWidthExplicit) {
+            changed |= blockStatsMaxWidth != maxWidth;
+            blockStatsMaxWidth = maxWidth;
+        }
+        if (!blockStatsMaxHeightExplicit) {
+            changed |= blockStatsMaxHeight != maxHeight;
+            blockStatsMaxHeight = maxHeight;
+        }
+        if (!changed) {
+            return;
+        }
+        clearBlockStatsGeometry();
+        invalidateDocumentLayout();
+    }
+
+    public void setBlockStatsFilterMode(BlockStatsFilterMode blockStatsFilterMode) {
+        this.blockStatsFilterMode = blockStatsFilterMode != null ? blockStatsFilterMode
+            : BlockStatsFilterMode.BLACKLIST;
+        markBlockStatsDirty();
+    }
+
+    public void setBlockStatsFilterKeys(Set<String> filterKeys) {
+        this.blockStatsFilterKeys.clear();
+        if (filterKeys != null) {
+            for (String filterKey : filterKeys) {
+                String normalized = normalizeBlockStatsKey(filterKey);
+                if (normalized != null) {
+                    this.blockStatsFilterKeys.add(normalized);
+                }
+            }
+        }
+        markBlockStatsDirty();
+    }
+
+    public void addManualBlockStatsEntry(ItemStack stack, int count) {
+        if (stack == null || stack.getItem() == null || count <= 0) {
+            return;
+        }
+        String key = blockStatsKey(stack);
+        if (key == null) {
+            return;
+        }
+        ItemStack displayStack = stack.copy();
+        displayStack.stackSize = displayCount(count);
+        manualBlockStatsEntries.add(new SceneBlockStatsEntry(key, displayStack, safeDisplayName(displayStack), count));
+        markBlockStatsDirty();
+    }
+
+    public void clearManualBlockStatsEntries() {
+        manualBlockStatsEntries.clear();
+        markBlockStatsDirty();
+    }
+
+    public List<SceneBlockStatsEntry> getBlockStatsEntriesForExport() {
+        if (!blockStatsEnabled) {
+            return Collections.emptyList();
+        }
+        if (blockStatsDirty) {
+            rebuildBlockStatsEntries();
+        }
+        return Collections.unmodifiableList(new ArrayList<>(cachedBlockStatsEntries));
+    }
+
+    public boolean shouldExportBlockStats() {
+        return blockStatsEnabled && !getBlockStatsEntriesForExport().isEmpty();
+    }
+
+    public BlockStatsLayoutState getBlockStatsLayoutStateForExport() {
+        return new BlockStatsLayoutState(
+            blockStatsVisible,
+            blockStatsMode,
+            blockStatsCorner,
+            blockStatsDock,
+            blockStatsShowNames,
+            blockStatsMaxWidth,
+            blockStatsMaxHeight,
+            width,
+            height,
+            buttonColumnReserve());
+    }
+
+    private void invalidateDocumentLayout() {
+        var document = getDocument();
+        if (document != null) {
+            document.invalidateLayout();
+        }
     }
 
     public boolean hasVisibleLayerData() {
@@ -524,7 +848,7 @@ public class LytGuidebookScene extends LytBlock {
 
     @Nullable
     private Integer resolveVisibleLayerY() {
-        if (ponderSceneData != null && !ponderPaused && !ponderFinished) {
+        if (ponderSceneData != null && ((!ponderPaused && !ponderFinished) || ponderExportLayerOverrideEnabled)) {
             // During active playback the keyframe layer takes precedence.
             int activeIdx = ponderSceneData.resolveActiveKeyframeIndex(ponderCurrentTick);
             if (activeIdx >= 0) {
@@ -549,6 +873,11 @@ public class LytGuidebookScene extends LytBlock {
         return getVisibleLayerMinY() + currentLayer - 1;
     }
 
+    @Nullable
+    public Integer getVisibleLayerYForExport() {
+        return resolveVisibleLayerY();
+    }
+
     private boolean isBlockVisibleForCurrentLayer(int y) {
         Integer visibleLayerY = resolveVisibleLayerY();
         return visibleLayerY == null || y == visibleLayerY;
@@ -568,8 +897,8 @@ public class LytGuidebookScene extends LytBlock {
         if (annotation instanceof InWorldLineAnnotation lineAnnotation) {
             return intersectsVisibleLayer(lineAnnotation.from().y, lineAnnotation.to().y, visibleLayerY);
         }
-        if (annotation instanceof InWorldBlockFaceOverlayAnnotation overlayAnnotation) {
-            return overlayAnnotation.getBlockY() == visibleLayerY;
+        if (annotation instanceof InWorldBoxFaceOverlayAnnotation overlayAnnotation) {
+            return intersectsVisibleLayer(overlayAnnotation.min().y, overlayAnnotation.max().y, visibleLayerY);
         }
         return true;
     }
@@ -598,6 +927,8 @@ public class LytGuidebookScene extends LytBlock {
     public void setStructureLibSceneMetadata(@Nullable StructureLibSceneMetadata structureLibSceneMetadata) {
         this.structureLibSceneMetadata = structureLibSceneMetadata;
         this.structureLibChannelOverrides.clear();
+        this.selectableStructureLibChannels.clear();
+        this.structureLibHatchOverlayAnnotations.clear();
         if (structureLibSceneMetadata == null) {
             this.structureLibCurrentTier = 1;
             this.structureLibHatchHighlightEnabled = false;
@@ -607,9 +938,25 @@ public class LytGuidebookScene extends LytBlock {
         StructureLibSceneMetadata.TierData tierData = structureLibSceneMetadata.getTierData();
         this.structureLibCurrentTier = tierData != null ? tierData.getCurrentValue() : 1;
         for (StructureLibSceneMetadata.ChannelData channelData : structureLibSceneMetadata.getChannelDataList()) {
-            if (channelData != null && channelData.getCurrentValue() > 0) {
+            if (channelData == null) {
+                continue;
+            }
+            if (channelData.isSelectable()) {
+                this.selectableStructureLibChannels.add(channelData);
+            }
+            if (channelData.getCurrentValue() > 0) {
                 this.structureLibChannelOverrides.put(channelData.getChannelId(), channelData.getCurrentValue());
             }
+        }
+        for (StructureLibSceneMetadata.BlockTooltipEntry entry : structureLibSceneMetadata.getHatchTooltipEntries()) {
+            InWorldBlockFaceOverlayAnnotation overlay = new InWorldBlockFaceOverlayAnnotation(
+                entry.getX(),
+                entry.getY(),
+                entry.getZ(),
+                new ConstantColor(StructureLibTooltipContentBuilder.resolveHatchOverlayArgb(entry.getTooltipData())),
+                structureLibSceneMetadata.getHatchTooltipPositions());
+            overlay.setAlwaysOnTop(true);
+            this.structureLibHatchOverlayAnnotations.add(overlay);
         }
         if (!structureLibSceneMetadata.hasHatchTooltipData()) {
             this.structureLibHatchHighlightEnabled = false;
@@ -724,15 +1071,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public boolean hasStructureLibChannelData() {
-        if (structureLibSceneMetadata == null) {
-            return false;
-        }
-        for (StructureLibSceneMetadata.ChannelData channelData : structureLibSceneMetadata.getChannelDataList()) {
-            if (channelData.isSelectable()) {
-                return true;
-            }
-        }
-        return false;
+        return !selectableStructureLibChannels.isEmpty();
     }
 
     public int getBottomControlAreaHeight() {
@@ -741,7 +1080,7 @@ public class LytGuidebookScene extends LytBlock {
         }
         return ponderControlAreaHeight() + visibleLayerSliderAreaHeight()
             + structureLibTierSliderAreaHeight()
-            + structureLibChannelSliderAreaHeight();
+            + selectableStructureLibChannels.size() * SCENE_SLIDER_AREA_HEIGHT;
     }
 
     public boolean hasStructureLibHatchData() {
@@ -788,6 +1127,7 @@ public class LytGuidebookScene extends LytBlock {
     public void addAnnotation(SceneAnnotation annotation) {
         if (annotation != null) {
             annotations.add(annotation);
+            cachedSceneButtonRolesDirty = true;
         }
     }
 
@@ -874,6 +1214,7 @@ public class LytGuidebookScene extends LytBlock {
     public void setAnnotationsVisible(boolean visible) {
         this.annotationsVisible = visible;
         if (!visible) clearAnnotationHover();
+        cachedSceneButtonRolesDirty = true;
     }
 
     // LytBlock
@@ -883,20 +1224,120 @@ public class LytGuidebookScene extends LytBlock {
         return interactive && sceneButtonsVisible ? (BTN_OUTSIDE_GAP + BTN_SIZE) : 0;
     }
 
+    public int getSceneButtonColumnReserveForExport() {
+        return buttonColumnReserve();
+    }
+
+    private int blockStatsDockLengthForLayout(boolean horizontal) {
+        if (!blockStatsEnabled || !blockStatsVisible
+            || blockStatsMode == BlockStatsMode.MANUAL
+            || !blockStatsDock.isOutside()) {
+            return 0;
+        }
+        int count = blockStatsLayoutEntryCount();
+        if (count <= 0) {
+            return 0;
+        }
+        int rowHeight = blockStatsRowHeightForLayout();
+        int maxMain = Math.max(rowHeight, horizontal ? width : height);
+        int rowsOrColumns = Math.max(1, maxMain / rowHeight);
+        int lines = (count + rowsOrColumns - 1) / rowsOrColumns;
+        int cross = lines * blockStatsDockEntryWidthForLayout() + BLOCK_STATS_PADDING_X * 2;
+        return Math.max(BLOCK_STATS_MIN_WIDTH, Math.min(blockStatsMaxWidth, cross));
+    }
+
+    private int blockStatsDockHeightForLayout() {
+        if (!blockStatsEnabled || !blockStatsVisible
+            || blockStatsMode == BlockStatsMode.MANUAL
+            || !blockStatsDock.isOutside()) {
+            return 0;
+        }
+        int count = blockStatsLayoutEntryCount();
+        if (count <= 0) {
+            return 0;
+        }
+        int rowHeight = blockStatsRowHeightForLayout();
+        if (blockStatsDock == BlockStatsDock.TOP || blockStatsDock == BlockStatsDock.BOTTOM) {
+            int entryWidth = blockStatsDockEntryWidthForLayout();
+            int maxMain = Math.max(entryWidth, width);
+            int columns = Math.max(1, maxMain / entryWidth);
+            int rows = (count + columns - 1) / columns;
+            return Math.max(
+                BLOCK_STATS_MIN_HEIGHT,
+                Math.min(blockStatsMaxHeight, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2));
+        }
+        int rows = Math.max(1, Math.min(count, Math.max(1, height / rowHeight)));
+        return Math
+            .max(BLOCK_STATS_MIN_HEIGHT, Math.min(blockStatsMaxHeight, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2));
+    }
+
+    private int blockStatsDockEntryWidthForLayout() {
+        return blockStatsShowNames
+            ? Math.max(96, Math.min(blockStatsMaxWidth, BLOCK_STATS_ITEM_SIZE + BLOCK_STATS_GAP + 72))
+            : BLOCK_STATS_ITEM_SIZE;
+    }
+
+    private int blockStatsRowHeightForLayout() {
+        return BLOCK_STATS_ITEM_SIZE + BLOCK_STATS_ROW_GAP;
+    }
+
+    private int blockStatsLayoutEntryCount() {
+        if (blockStatsMode == BlockStatsMode.MANUAL) {
+            return manualBlockStatsEntries.size();
+        }
+        if (level == null || level.isEmpty()) {
+            return 0;
+        }
+        if (blockStatsDirty) {
+            rebuildBlockStatsEntries();
+        }
+        return cachedBlockStatsEntries.size();
+    }
+
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int reserve = buttonColumnReserve();
-        int totalDesired = width + reserve;
+        int leftDock = blockStatsDock == BlockStatsDock.LEFT
+            ? blockStatsDockLengthForLayout(false) + BLOCK_STATS_DOCK_GAP
+            : 0;
+        int rightDock = blockStatsDock == BlockStatsDock.RIGHT
+            ? blockStatsDockLengthForLayout(false) + BLOCK_STATS_DOCK_GAP
+            : 0;
+        int topDock = blockStatsDock == BlockStatsDock.TOP ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP : 0;
+        int bottomDock = blockStatsDock == BlockStatsDock.BOTTOM
+            ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP
+            : 0;
+        int totalDesired = width + reserve + leftDock + rightDock;
         int w = Math.min(totalDesired, Math.max(reserve + 16, availableWidth));
-        int sceneW = Math.max(16, w - reserve);
+        int availableForDocks = Math.max(0, w - reserve - width);
+        if (leftDock + rightDock > availableForDocks) {
+            if (leftDock > 0 && rightDock > 0) {
+                leftDock = Math.min(leftDock, availableForDocks / 2);
+                rightDock = Math.min(rightDock, availableForDocks - leftDock);
+            } else if (leftDock > 0) {
+                leftDock = Math.min(leftDock, availableForDocks);
+            } else {
+                rightDock = Math.min(rightDock, availableForDocks);
+            }
+        }
+        int minDockSpace = BLOCK_STATS_MIN_WIDTH + BLOCK_STATS_DOCK_GAP;
+        if (leftDock > 0 && leftDock < minDockSpace) {
+            leftDock = 0;
+        }
+        if (rightDock > 0 && rightDock < minDockSpace) {
+            rightDock = 0;
+        }
+        int sceneW = Math.max(16, w - reserve - leftDock - rightDock);
         int buttonCount = interactive && sceneButtonsVisible ? cachedSceneButtonRoles().length : 0;
         int buttonsTotalH = interactive && sceneButtonsVisible
             ? (BTN_SIZE * buttonCount + BTN_GAP * Math.max(0, buttonCount - 1))
             : 0;
         int sceneH = Math.max(height, buttonsTotalH);
-        int h = sceneH + (reserveBottomControlArea ? getBottomControlAreaHeight() : 0);
+        int h = topDock + sceneH + (reserveBottomControlArea ? getBottomControlAreaHeight() : 0) + bottomDock;
         this.layoutSceneWidth = sceneW;
         this.layoutSceneHeight = sceneH;
+        this.layoutSceneOffsetX = leftDock;
+        this.layoutSceneOffsetY = topDock;
         return new LytRect(x, y, w, h);
     }
 
@@ -905,13 +1346,18 @@ public class LytGuidebookScene extends LytBlock {
 
     @Override
     public void render(RenderContext context) {
-        int sceneW = layoutSceneWidth > 0 ? layoutSceneWidth : getBounds().width() - buttonColumnReserve();
-        if (sceneW < 16) sceneW = Math.max(16, getBounds().width() - buttonColumnReserve());
+        int sceneW = layoutSceneWidth > 0 ? layoutSceneWidth
+            : getBounds().width() - buttonColumnReserve() - layoutSceneOffsetX;
+        if (sceneW < 16) sceneW = 16;
         int sliderAreaHeight = getBottomControlAreaHeight();
         int sceneH = layoutSceneHeight > 0 ? layoutSceneHeight : Math.max(16, getBounds().height() - sliderAreaHeight);
         int totalH = reserveBottomControlArea ? Math.max(sceneH + sliderAreaHeight, getBounds().height())
             : Math.max(sceneH, getBounds().height());
-        LytRect outerRect = new LytRect(getBounds().x(), getBounds().y(), sceneW, totalH);
+        LytRect outerRect = new LytRect(
+            getBounds().x() + layoutSceneOffsetX,
+            getBounds().y() + layoutSceneOffsetY,
+            sceneW,
+            sceneH + (reserveBottomControlArea ? sliderAreaHeight : 0));
         LytRect sceneRect = cachedSceneRect = updateCachedRect(
             cachedSceneRect,
             outerRect.x(),
@@ -926,8 +1372,8 @@ public class LytGuidebookScene extends LytBlock {
         int outerAbsY = outerRect.y();
         int clipX = outerAbsX, clipY = outerAbsY, clipW = outerRect.width(), clipH = outerRect.height();
         if (context instanceof VanillaRenderContext mrc) {
-            absX = mrc.getDocumentOriginX() + Math.round(getBounds().x() * docZoom);
-            absY = mrc.getDocumentOriginY() + Math.round((getBounds().y() - mrc.getScrollOffsetY()) * docZoom);
+            absX = mrc.getDocumentOriginX() + Math.round(sceneRect.x() * docZoom);
+            absY = mrc.getDocumentOriginY() + Math.round((sceneRect.y() - mrc.getScrollOffsetY()) * docZoom);
             outerAbsX = absX;
             outerAbsY = absY;
             LytRect vp = mrc.viewport();
@@ -947,6 +1393,7 @@ public class LytGuidebookScene extends LytBlock {
             this.lastAbsY = absY;
             this.lastW = w;
             this.lastH = h;
+            this.lastDocZoom = docZoom;
             this.lastOuterAbsX = outerAbsX;
             this.lastOuterAbsY = outerAbsY;
             this.lastOuterW = outerW;
@@ -954,7 +1401,11 @@ public class LytGuidebookScene extends LytBlock {
             this.cachedScreenRect = updateCachedRect(cachedScreenRect, absX, absY, w, h);
             context.fillRect(sceneRect, sceneBackgroundColor);
             drawBottomControls(context, outerRect);
+            drawBlockStatsOverlay(context, sceneRect, outerRect);
             context.drawBorder(sceneRect, sceneBorderColor, 1);
+            if (interactive && sceneButtonsVisible) {
+                drawSceneButtons(sceneRect.x(), sceneRect.y(), w, h, absX, absY, docZoom);
+            }
             return;
         }
 
@@ -970,6 +1421,7 @@ public class LytGuidebookScene extends LytBlock {
         this.lastAbsY = absY;
         this.lastW = w;
         this.lastH = h;
+        this.lastDocZoom = docZoom;
         this.lastOuterAbsX = outerAbsX;
         this.lastOuterAbsY = outerAbsY;
         this.lastOuterW = outerW;
@@ -993,15 +1445,11 @@ public class LytGuidebookScene extends LytBlock {
         appendOriginAxesAnnotations(inWorld);
         if (gridVisible && !level.isEmpty()) {
             int[] bounds = level.getBounds();
-            SceneFloorGridAnnotation grid = new SceneFloorGridAnnotation(
-                bounds[0] - 1,
-                bounds[2] - 1,
-                bounds[3] + 2,
-                bounds[5] + 2,
-                0f);
+            SceneFloorGridAnnotation grid = getOrCreateFloorGridAnnotation(bounds);
             grid.setShowDebugLabels(ModConfig.debug.enableDebugMode);
             inWorld.add(grid);
         }
+        appendBlockStatsHighlightAnnotations(inWorld);
         for (SceneAnnotation pa : ponderOutgoingAnnotations) {
             if (pa instanceof OverlayAnnotation ov) {
                 ov.setFade(Math.min(1f, ponderOutgoingFadeTick / 5f));
@@ -1107,6 +1555,10 @@ public class LytGuidebookScene extends LytBlock {
                 visibleLayerY,
                 ponderSceneParticles);
 
+        context.restoreExternalRenderState();
+        drawBlockStatsOverlay(context, sceneRect, outerRect);
+        context.restoreExternalRenderState();
+
         if (!overlays.isEmpty()) {
             LytRect viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
             // Scissor overlays to the scene rect so diamond icons etc. cannot escape.
@@ -1132,7 +1584,6 @@ public class LytGuidebookScene extends LytBlock {
             camera.setOffsetY(savedOffY);
         }
 
-        context.restoreExternalRenderState();
         drawBottomControls(context, outerRect);
 
         // Draw border AFTER the 3D content so border pixels always sit on top.
@@ -1147,6 +1598,24 @@ public class LytGuidebookScene extends LytBlock {
     public static final int BTN_GAP = 2;
     public static final int BTN_OUTSIDE_GAP = 3;
 
+    private SceneFloorGridAnnotation getOrCreateFloorGridAnnotation(int[] bounds) {
+        int minX = bounds[0] - 1;
+        int minZ = bounds[2] - 1;
+        int maxX = bounds[3] + 2;
+        int maxZ = bounds[5] + 2;
+        if (cachedFloorGridAnnotation == null || cachedFloorGridMinX != minX
+            || cachedFloorGridMinZ != minZ
+            || cachedFloorGridMaxX != maxX
+            || cachedFloorGridMaxZ != maxZ) {
+            cachedFloorGridAnnotation = new SceneFloorGridAnnotation(minX, minZ, maxX, maxZ, 0f);
+            cachedFloorGridMinX = minX;
+            cachedFloorGridMinZ = minZ;
+            cachedFloorGridMaxX = maxX;
+            cachedFloorGridMaxZ = maxZ;
+        }
+        return cachedFloorGridAnnotation;
+    }
+
     private int lastAbsX, lastAbsY, lastW, lastH;
     private float lastDocZoom = 1.0f;
     private int lastOuterAbsX, lastOuterAbsY, lastOuterW, lastOuterH;
@@ -1154,6 +1623,8 @@ public class LytGuidebookScene extends LytBlock {
     private int layoutSceneWidth;
     /** Height reserved for the inner 3D scene (bounds.height minus the bottom slider band). */
     private int layoutSceneHeight;
+    private int layoutSceneOffsetX;
+    private int layoutSceneOffsetY;
 
     @Nullable
     private LytRect renderedContentClip;
@@ -1181,8 +1652,809 @@ public class LytGuidebookScene extends LytBlock {
         }
     }
 
+    private void appendBlockStatsHighlightAnnotations(List<InWorldAnnotation> inWorld) {
+        int used = 0;
+        if (selectedBlockStatsKey == null || blockStatsMode == BlockStatsMode.MANUAL || level.isEmpty()) {
+            return;
+        }
+        if (blockStatsDirty) {
+            rebuildBlockStatsEntries();
+        }
+        SceneBlockStatsEntry selected = findBlockStatsEntry(selectedBlockStatsKey);
+        if (selected == null) {
+            selectedBlockStatsKey = null;
+            return;
+        }
+        for (SceneBlockStatsEntry.BlockStatsPlacement placement : selected.getPlacements()) {
+            if (!isBlockVisibleForCurrentLayer(placement.y())) {
+                continue;
+            }
+            AxisAlignedBB bounds = placement.bounds();
+            if (bounds == null) {
+                bounds = AxisAlignedBB.getBoundingBox(
+                    placement.x(),
+                    placement.y(),
+                    placement.z(),
+                    placement.x() + 1,
+                    placement.y() + 1,
+                    placement.z() + 1);
+            }
+            InWorldBoxFaceOverlayAnnotation annotation = getOrCreateBlockStatsHighlightAnnotation(used);
+            annotation.setBounds(
+                (float) bounds.minX,
+                (float) bounds.minY,
+                (float) bounds.minZ,
+                (float) bounds.maxX,
+                (float) bounds.maxY,
+                (float) bounds.maxZ);
+            inWorld.add(annotation);
+            used++;
+        }
+    }
+
+    private InWorldBoxFaceOverlayAnnotation getOrCreateBlockStatsHighlightAnnotation(int index) {
+        while (blockStatsHighlightAnnotations.size() <= index) {
+            InWorldBoxFaceOverlayAnnotation annotation = new InWorldBoxFaceOverlayAnnotation(
+                new Vector3f(),
+                new Vector3f(),
+                blockStatsHighlightColor);
+            annotation.setAlwaysOnTop(true);
+            blockStatsHighlightAnnotations.add(annotation);
+        }
+        return blockStatsHighlightAnnotations.get(index);
+    }
+
+    private List<SceneBlockStatsEntry> getCachedBlockStatsEntries(RenderContext context) {
+        if (blockStatsDirty) {
+            rebuildBlockStatsEntries();
+        }
+        if (blockStatsWidthsDirty) {
+            cachedBlockStatsContentWidth = 0;
+            for (SceneBlockStatsEntry entry : cachedBlockStatsEntries) {
+                String text = blockStatsEntryText(entry);
+                int width = context.getStringWidth(text, BLOCK_STATS_TEXT_STYLE);
+                entry.setCachedTextWidth(width);
+                if (width > cachedBlockStatsContentWidth) {
+                    cachedBlockStatsContentWidth = width;
+                }
+            }
+            blockStatsWidthsDirty = false;
+        }
+        return cachedBlockStatsEntries;
+    }
+
+    private void rebuildBlockStatsEntries() {
+        cachedBlockStatsEntries.clear();
+        if (blockStatsMode == BlockStatsMode.MANUAL) {
+            for (SceneBlockStatsEntry entry : manualBlockStatsEntries) {
+                if (entry != null && isBlockStatsKeyAllowed(entry.getKey())) {
+                    ItemStack stack = entry.getStack() != null ? entry.getStack()
+                        .copy() : null;
+                    if (stack != null) {
+                        stack.stackSize = displayCount(entry.getCount());
+                        cachedBlockStatsEntries
+                            .add(new SceneBlockStatsEntry(entry.getKey(), stack, entry.getLabel(), entry.getCount()));
+                    }
+                }
+            }
+        } else {
+            LinkedHashMap<String, SceneBlockStatsEntry> byKey = new LinkedHashMap<>();
+            for (int[] pos : level.getFilledBlocks()) {
+                if (pos == null || pos.length < 3) {
+                    continue;
+                }
+                GuideBlockStatsStackResolver.resolveEntriesInto(level, pos[0], pos[1], pos[2], blockStatsStackScratch);
+                for (GuideBlockStatsStackResolver.ResolvedStack entry : blockStatsStackScratch) {
+                    addBlockStatsStack(byKey, entry.stack(), pos[0], pos[1], pos[2], entry.bounds());
+                }
+            }
+            cachedBlockStatsEntries.addAll(byKey.values());
+        }
+        cachedBlockStatsEntries.sort(
+            Comparator.comparingInt(SceneBlockStatsEntry::getCount)
+                .reversed()
+                .thenComparing(SceneBlockStatsEntry::getLabel)
+                .thenComparing(SceneBlockStatsEntry::getKey));
+        blockStatsDirty = false;
+        blockStatsWidthsDirty = true;
+        if (selectedBlockStatsKey != null && findBlockStatsEntry(selectedBlockStatsKey) == null) {
+            selectedBlockStatsKey = null;
+        }
+    }
+
+    private void addBlockStatsStack(LinkedHashMap<String, SceneBlockStatsEntry> byKey, ItemStack stack, int x, int y,
+        int z, @Nullable AxisAlignedBB bounds) {
+        if (stack == null || stack.getItem() == null) {
+            return;
+        }
+        String key = blockStatsKey(stack);
+        if (key == null || !isBlockStatsKeyAllowed(key)) {
+            return;
+        }
+        int count = Math.max(1, stack.stackSize);
+        SceneBlockStatsEntry entry = byKey.get(key);
+        if (entry == null) {
+            ItemStack displayStack = stack.copy();
+            displayStack.stackSize = displayCount(count);
+            entry = new SceneBlockStatsEntry(key, displayStack, safeDisplayName(displayStack), count);
+            byKey.put(key, entry);
+        } else {
+            entry.addCount(count);
+        }
+        entry.addPlacement(x, y, z, bounds, count);
+    }
+
+    private static int displayCount(int count) {
+        return Math.max(1, Math.min(999, count));
+    }
+
+    private String blockStatsEntryText(SceneBlockStatsEntry entry) {
+        if (!blockStatsShowNames) {
+            return "";
+        }
+        return entry.getLabel() + " x" + entry.getCount();
+    }
+
+    @Nullable
+    private SceneBlockStatsEntry findBlockStatsEntry(String key) {
+        for (SceneBlockStatsEntry entry : cachedBlockStatsEntries) {
+            if (entry.getKey()
+                .equals(key)) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private boolean isBlockStatsKeyAllowed(String key) {
+        String normalized = normalizeBlockStatsKey(key);
+        if (normalized == null) {
+            return false;
+        }
+        boolean matched = blockStatsFilterKeys.contains(normalized)
+            || blockStatsFilterKeys.contains(stripBlockStatsMeta(normalized));
+        return blockStatsFilterMode == BlockStatsFilterMode.WHITELIST ? matched : !matched;
+    }
+
+    @Nullable
+    private static String blockStatsKey(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) {
+            return null;
+        }
+        Object rawName = Item.itemRegistry.getNameForObject(stack.getItem());
+        if (rawName == null) {
+            return null;
+        }
+        int damage = Math.max(0, stack.getItemDamage());
+        return normalizeBlockStatsKey(rawName + ":" + damage);
+    }
+
+    @Nullable
+    public static String normalizeBlockStatsKey(String key) {
+        if (key == null) {
+            return null;
+        }
+        String trimmed = key.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        return trimmed.toLowerCase(Locale.ROOT);
+    }
+
+    @Nullable
+    private static String stripBlockStatsMeta(String key) {
+        if (key == null) {
+            return null;
+        }
+        int lastColon = key.lastIndexOf(':');
+        int firstColon = key.indexOf(':');
+        if (lastColon <= firstColon) {
+            return key;
+        }
+        String metaPart = key.substring(lastColon + 1);
+        for (int i = 0; i < metaPart.length(); i++) {
+            char c = metaPart.charAt(i);
+            if (c < '0' || c > '9') {
+                return key;
+            }
+        }
+        return key.substring(0, lastColon);
+    }
+
+    private static String safeDisplayName(ItemStack stack) {
+        if (stack == null) {
+            return "";
+        }
+        try {
+            String displayName = stack.getDisplayName();
+            if (displayName != null && !displayName.trim()
+                .isEmpty()) {
+                return displayName;
+            }
+        } catch (Throwable ignored) {}
+        Object rawName = stack.getItem() != null ? Item.itemRegistry.getNameForObject(stack.getItem()) : null;
+        return rawName != null ? rawName.toString() : "";
+    }
+
+    private static int clampInt(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private void markBlockStatsDirty() {
+        blockStatsDirty = true;
+        blockStatsWidthsDirty = true;
+        blockStatsScrollX = 0;
+        blockStatsScrollY = 0;
+        clearBlockStatsGeometry();
+        invalidateDocumentLayout();
+    }
+
+    private void clearBlockStatsGeometry() {
+        cachedBlockStatsBoxRect = null;
+        cachedBlockStatsViewportRect = null;
+        cachedBlockStatsHorizontalTrackRect = null;
+        cachedBlockStatsHorizontalThumbRect = null;
+        cachedBlockStatsVerticalTrackRect = null;
+        cachedBlockStatsVerticalThumbRect = null;
+        blockStatsMaxScrollX = 0;
+        blockStatsMaxScrollY = 0;
+        blockStatsViewportWidth = 0;
+        blockStatsViewportHeight = 0;
+        blockStatsContentWidth = 0;
+        blockStatsContentHeight = 0;
+        cachedBlockStatsHitRegionCount = 0;
+    }
+
     private boolean shouldRenderOriginAxes() {
         return !forceHideOriginAxes && (forceOriginAxesVisible || ModConfig.debug.enableDebugMode);
+    }
+
+    private void drawBlockStatsOverlay(RenderContext context, LytRect sceneRect, LytRect outerRect) {
+        cachedBlockStatsHitRegionCount = 0;
+        if (!blockStatsEnabled || !blockStatsVisible || sceneRect == null || sceneRect.isEmpty()) {
+            clearBlockStatsGeometry();
+            return;
+        }
+        List<SceneBlockStatsEntry> entries = getCachedBlockStatsEntries(context);
+        if (entries.isEmpty()) {
+            clearBlockStatsGeometry();
+            return;
+        }
+        if (blockStatsDock.isOutside() && blockStatsMode != BlockStatsMode.MANUAL) {
+            drawDockedBlockStatsOverlay(context, sceneRect, outerRect, entries);
+            return;
+        }
+        int lineHeight = context.getLineHeight(BLOCK_STATS_TEXT_STYLE);
+        int rowHeight = Math.max(BLOCK_STATS_ITEM_SIZE, lineHeight);
+        int rowStride = rowHeight + BLOCK_STATS_ROW_GAP;
+        int rowContentWidth = blockStatsEntryWidth();
+        blockStatsContentWidth = rowContentWidth;
+        blockStatsContentHeight = entries.size() * rowStride - BLOCK_STATS_ROW_GAP;
+        int maxWidth = Math
+            .min(resolveInsideBlockStatsMaxWidth(sceneRect, entries.size(), rowContentWidth), sceneRect.width());
+        int maxHeight = Math
+            .min(resolveInsideBlockStatsMaxHeight(sceneRect, entries.size(), rowHeight), sceneRect.height());
+        if (maxWidth < BLOCK_STATS_MIN_WIDTH || maxHeight < BLOCK_STATS_MIN_HEIGHT
+            || rowContentWidth <= 0
+            || blockStatsContentHeight <= 0) {
+            clearBlockStatsGeometry();
+            return;
+        }
+        int boxWidth = Math.min(maxWidth, Math.max(BLOCK_STATS_MIN_WIDTH, rowContentWidth + BLOCK_STATS_PADDING_X * 2));
+        int boxHeight = Math
+            .min(maxHeight, Math.max(BLOCK_STATS_MIN_HEIGHT, blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2));
+
+        int innerWidth = Math.max(1, boxWidth - BLOCK_STATS_PADDING_X * 2);
+        int innerHeight = Math.max(1, boxHeight - BLOCK_STATS_PADDING_Y * 2);
+        boolean verticalNeeded = blockStatsContentHeight > innerHeight;
+        if (verticalNeeded) {
+            innerWidth = Math.max(1, innerWidth - BLOCK_STATS_SCROLLBAR_SIZE);
+        }
+        boolean horizontalNeeded = rowContentWidth > innerWidth;
+        if (horizontalNeeded) {
+            innerHeight = Math.max(1, innerHeight - BLOCK_STATS_SCROLLBAR_SIZE);
+        }
+        if (!verticalNeeded && blockStatsContentHeight > innerHeight) {
+            verticalNeeded = true;
+            innerWidth = Math.max(1, innerWidth - BLOCK_STATS_SCROLLBAR_SIZE);
+            horizontalNeeded = rowContentWidth > innerWidth;
+        }
+        blockStatsViewportWidth = innerWidth;
+        blockStatsViewportHeight = innerHeight;
+        blockStatsMaxScrollX = Math.max(0, rowContentWidth - innerWidth);
+        blockStatsMaxScrollY = Math.max(0, blockStatsContentHeight - innerHeight);
+        clampBlockStatsScroll();
+
+        int x = switch (blockStatsCorner) {
+            case TOP_LEFT, BOTTOM_LEFT -> sceneRect.x() + BLOCK_STATS_GAP;
+            case TOP_RIGHT, BOTTOM_RIGHT -> sceneRect.right() - boxWidth - BLOCK_STATS_GAP;
+        };
+        int y = switch (blockStatsCorner) {
+            case TOP_LEFT, TOP_RIGHT -> sceneRect.y() + BLOCK_STATS_GAP;
+            case BOTTOM_LEFT, BOTTOM_RIGHT -> sceneRect.bottom() - boxHeight - BLOCK_STATS_GAP;
+        };
+        x = clampInt(x, sceneRect.x(), sceneRect.right() - boxWidth);
+        y = clampInt(y, sceneRect.y(), sceneRect.bottom() - boxHeight);
+        LytRect box = cachedBlockStatsBoxRect = updateCachedRect(cachedBlockStatsBoxRect, x, y, boxWidth, boxHeight);
+        LytRect viewport = cachedBlockStatsViewportRect = updateCachedRect(
+            cachedBlockStatsViewportRect,
+            x + BLOCK_STATS_PADDING_X,
+            y + BLOCK_STATS_PADDING_Y,
+            innerWidth,
+            innerHeight);
+        layoutBlockStatsScrollbars(box, viewport, horizontalNeeded, verticalNeeded);
+
+        context.fillRect(box, BLOCK_STATS_BACKGROUND_COLOR);
+        context.drawBorder(box, BLOCK_STATS_BORDER_COLOR, 1);
+        context.pushLocalScissor(viewport);
+        try {
+            drawLinearBlockStatsRows(context, entries, viewport, rowHeight, rowStride, lineHeight);
+        } finally {
+            context.popScissor();
+        }
+        drawBlockStatsScrollbars(context);
+    }
+
+    private int resolveInsideBlockStatsMaxWidth(LytRect sceneRect, int entryCount, int rowContentWidth) {
+        int maxWidth = blockStatsMaxWidth;
+        if (entryCount == 1) {
+            maxWidth = Math.max(maxWidth, rowContentWidth + BLOCK_STATS_PADDING_X * 2);
+        }
+        return Math.min(maxWidth, sceneRect.width());
+    }
+
+    private int resolveInsideBlockStatsMaxHeight(LytRect sceneRect, int entryCount, int rowHeight) {
+        int maxHeight = blockStatsMaxHeight;
+        if (entryCount == 1) {
+            maxHeight = Math.max(maxHeight, rowHeight + BLOCK_STATS_PADDING_Y * 2);
+        }
+        return Math.min(maxHeight, sceneRect.height());
+    }
+
+    private void drawDockedBlockStatsOverlay(RenderContext context, LytRect sceneRect, LytRect outerRect,
+        List<SceneBlockStatsEntry> entries) {
+        int lineHeight = context.getLineHeight(BLOCK_STATS_TEXT_STYLE);
+        int rowHeight = Math.max(BLOCK_STATS_ITEM_SIZE, lineHeight);
+        int rowStride = rowHeight + BLOCK_STATS_ROW_GAP;
+        int entryWidth = blockStatsEntryWidth();
+        boolean verticalDock = blockStatsDock == BlockStatsDock.LEFT || blockStatsDock == BlockStatsDock.RIGHT;
+        int maxAlong = Math.max(rowStride, verticalDock ? sceneRect.height() : sceneRect.width());
+        int alongSlots = Math.max(1, maxAlong / Math.max(1, verticalDock ? rowStride : entryWidth));
+        int wrappedLines = Math.max(1, (entries.size() + alongSlots - 1) / alongSlots);
+        int usedAlongSlots = Math.min(entries.size(), alongSlots);
+        blockStatsContentWidth = verticalDock ? wrappedLines * entryWidth : usedAlongSlots * entryWidth;
+        blockStatsContentHeight = verticalDock ? usedAlongSlots * rowStride - BLOCK_STATS_ROW_GAP
+            : wrappedLines * rowStride - BLOCK_STATS_ROW_GAP;
+        int maxWidth = verticalDock
+            ? Math.min(blockStatsMaxWidth, Math.max(BLOCK_STATS_MIN_WIDTH, blockStatsContentWidth))
+            : Math.min(blockStatsMaxWidth, sceneRect.width());
+        int maxHeight = verticalDock ? Math.min(blockStatsMaxHeight, sceneRect.height())
+            : Math.min(blockStatsMaxHeight, Math.max(BLOCK_STATS_MIN_HEIGHT, blockStatsContentHeight));
+        if (blockStatsDock == BlockStatsDock.LEFT) {
+            maxWidth = Math.min(maxWidth, Math.max(0, sceneRect.x() - getBounds().x() - BLOCK_STATS_DOCK_GAP));
+        } else if (blockStatsDock == BlockStatsDock.RIGHT) {
+            int rightStart = outerRect.right() + buttonColumnReserve() + BLOCK_STATS_DOCK_GAP;
+            maxWidth = Math.min(maxWidth, Math.max(0, getBounds().right() - rightStart));
+        } else if (blockStatsDock == BlockStatsDock.TOP) {
+            maxHeight = Math.min(maxHeight, Math.max(0, sceneRect.y() - getBounds().y() - BLOCK_STATS_DOCK_GAP));
+        } else if (blockStatsDock == BlockStatsDock.BOTTOM) {
+            maxHeight = Math
+                .min(maxHeight, Math.max(0, getBounds().bottom() - outerRect.bottom() - BLOCK_STATS_DOCK_GAP));
+        }
+        if (maxWidth < BLOCK_STATS_MIN_WIDTH || maxHeight < BLOCK_STATS_MIN_HEIGHT) {
+            clearBlockStatsGeometry();
+            return;
+        }
+        int boxWidth = Math
+            .max(BLOCK_STATS_MIN_WIDTH, Math.min(maxWidth, blockStatsContentWidth + BLOCK_STATS_PADDING_X * 2));
+        int boxHeight = Math
+            .max(BLOCK_STATS_MIN_HEIGHT, Math.min(maxHeight, blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2));
+        int innerWidth = Math.max(1, boxWidth - BLOCK_STATS_PADDING_X * 2);
+        int innerHeight = Math.max(1, boxHeight - BLOCK_STATS_PADDING_Y * 2);
+        boolean verticalNeeded = blockStatsContentHeight > innerHeight;
+        if (verticalNeeded) {
+            innerWidth = Math.max(1, innerWidth - BLOCK_STATS_SCROLLBAR_SIZE);
+        }
+        boolean horizontalNeeded = blockStatsContentWidth > innerWidth;
+        if (horizontalNeeded) {
+            innerHeight = Math.max(1, innerHeight - BLOCK_STATS_SCROLLBAR_SIZE);
+        }
+        if (!verticalNeeded && blockStatsContentHeight > innerHeight) {
+            verticalNeeded = true;
+            innerWidth = Math.max(1, innerWidth - BLOCK_STATS_SCROLLBAR_SIZE);
+            horizontalNeeded = blockStatsContentWidth > innerWidth;
+        }
+        blockStatsViewportWidth = innerWidth;
+        blockStatsViewportHeight = innerHeight;
+        blockStatsMaxScrollX = Math.max(0, blockStatsContentWidth - innerWidth);
+        blockStatsMaxScrollY = Math.max(0, blockStatsContentHeight - innerHeight);
+        clampBlockStatsScroll();
+
+        int x = switch (blockStatsDock) {
+            case LEFT -> sceneRect.x() - BLOCK_STATS_DOCK_GAP - boxWidth;
+            case RIGHT -> outerRect.right() + buttonColumnReserve() + BLOCK_STATS_DOCK_GAP;
+            case TOP -> sceneRect.x();
+            case BOTTOM -> sceneRect.x();
+            case INSIDE -> sceneRect.x();
+        };
+        int y = switch (blockStatsDock) {
+            case LEFT, RIGHT -> sceneRect.y();
+            case TOP -> sceneRect.y() - BLOCK_STATS_DOCK_GAP - boxHeight;
+            case BOTTOM -> outerRect.bottom() + BLOCK_STATS_DOCK_GAP;
+            case INSIDE -> sceneRect.y();
+        };
+        LytRect box = cachedBlockStatsBoxRect = updateCachedRect(cachedBlockStatsBoxRect, x, y, boxWidth, boxHeight);
+        LytRect viewport = cachedBlockStatsViewportRect = updateCachedRect(
+            cachedBlockStatsViewportRect,
+            x + BLOCK_STATS_PADDING_X,
+            y + BLOCK_STATS_PADDING_Y,
+            innerWidth,
+            innerHeight);
+        layoutBlockStatsScrollbars(box, viewport, horizontalNeeded, verticalNeeded);
+        context.fillRect(box, BLOCK_STATS_BACKGROUND_COLOR);
+        context.drawBorder(box, BLOCK_STATS_BORDER_COLOR, 1);
+        context.pushLocalScissor(viewport);
+        try {
+            drawWrappedBlockStatsRows(
+                context,
+                entries,
+                viewport,
+                rowHeight,
+                rowStride,
+                lineHeight,
+                entryWidth,
+                alongSlots,
+                verticalDock);
+        } finally {
+            context.popScissor();
+        }
+        drawBlockStatsScrollbars(context);
+    }
+
+    private int blockStatsEntryWidth() {
+        if (!blockStatsShowNames) {
+            return BLOCK_STATS_ITEM_SIZE;
+        }
+        return BLOCK_STATS_ITEM_SIZE + BLOCK_STATS_GAP + cachedBlockStatsContentWidth;
+    }
+
+    private void drawLinearBlockStatsRows(RenderContext context, List<SceneBlockStatsEntry> entries, LytRect viewport,
+        int rowHeight, int rowStride, int lineHeight) {
+        int firstRow = Math.max(0, blockStatsScrollY / Math.max(1, rowStride));
+        int rowY = viewport.y() - blockStatsScrollY + firstRow * rowStride;
+        int itemX = viewport.x() - blockStatsScrollX;
+        int textX = itemX + BLOCK_STATS_ITEM_SIZE + BLOCK_STATS_GAP;
+        int textOffsetY = Math.max(0, (rowHeight - lineHeight) / 2);
+        int itemOffsetY = Math.max(0, (rowHeight - BLOCK_STATS_ITEM_SIZE) / 2);
+        for (int i = firstRow; i < entries.size() && rowY < viewport.bottom(); i++) {
+            drawBlockStatsEntry(
+                context,
+                entries.get(i),
+                viewport,
+                itemX,
+                rowY,
+                textX,
+                rowHeight,
+                textOffsetY,
+                itemOffsetY);
+            rowY += rowStride;
+        }
+    }
+
+    private void drawWrappedBlockStatsRows(RenderContext context, List<SceneBlockStatsEntry> entries, LytRect viewport,
+        int rowHeight, int rowStride, int lineHeight, int entryWidth, int alongSlots, boolean verticalDock) {
+        int textOffsetY = Math.max(0, (rowHeight - lineHeight) / 2);
+        int itemOffsetY = Math.max(0, (rowHeight - BLOCK_STATS_ITEM_SIZE) / 2);
+        int baseX = viewport.x() - blockStatsScrollX;
+        int baseY = viewport.y() - blockStatsScrollY;
+        for (int i = 0; i < entries.size(); i++) {
+            int along = i % alongSlots;
+            int cross = i / alongSlots;
+            int itemX = verticalDock ? baseX + cross * entryWidth : baseX + along * entryWidth;
+            int rowY = verticalDock ? baseY + along * rowStride : baseY + cross * rowStride;
+            if (rowY + rowHeight < viewport.y() || rowY >= viewport.bottom()
+                || itemX + entryWidth < viewport.x()
+                || itemX >= viewport.right()) {
+                continue;
+            }
+            drawBlockStatsEntry(
+                context,
+                entries.get(i),
+                viewport,
+                itemX,
+                rowY,
+                itemX + BLOCK_STATS_ITEM_SIZE + BLOCK_STATS_GAP,
+                rowHeight,
+                textOffsetY,
+                itemOffsetY);
+        }
+    }
+
+    private void drawBlockStatsEntry(RenderContext context, SceneBlockStatsEntry entry, LytRect viewport, int itemX,
+        int rowY, int textX, int rowHeight, int textOffsetY, int itemOffsetY) {
+        boolean selected = selectedBlockStatsKey != null && selectedBlockStatsKey.equals(entry.getKey());
+        int rowWidth = blockStatsShowNames ? blockStatsEntryWidth() : BLOCK_STATS_ITEM_SIZE;
+        if (selected) {
+            context.fillRect(itemX - 1, rowY, rowWidth + 2, rowHeight, BLOCK_STATS_SELECTED_ROW_COLOR);
+        }
+        int itemY = rowY + itemOffsetY;
+        context.renderItem(entry.getDisplayStack(), itemX, itemY);
+        addBlockStatsHitRegion(entry, itemX, rowY, rowWidth, rowHeight, viewport);
+        if (blockStatsShowNames) {
+            String text = blockStatsEntryText(entry);
+            context.drawText(text, textX, rowY + textOffsetY, BLOCK_STATS_TEXT_STYLE);
+        }
+    }
+
+    private void addBlockStatsHitRegion(SceneBlockStatsEntry entry, int x, int y, int width, int height,
+        LytRect viewport) {
+        int x0 = Math.max(x, viewport.x());
+        int y0 = Math.max(y, viewport.y());
+        int x1 = Math.min(x + width, viewport.right());
+        int y1 = Math.min(y + height, viewport.bottom());
+        if (x1 <= x0 || y1 <= y0) {
+            return;
+        }
+        BlockStatsHitRegion region;
+        if (cachedBlockStatsHitRegionCount < cachedBlockStatsHitRegions.size()) {
+            region = cachedBlockStatsHitRegions.get(cachedBlockStatsHitRegionCount);
+            region.update(x0, y0, x1, y1, entry);
+        } else {
+            region = new BlockStatsHitRegion(x0, y0, x1, y1, entry);
+            cachedBlockStatsHitRegions.add(region);
+        }
+        cachedBlockStatsHitRegionCount++;
+    }
+
+    private void layoutBlockStatsScrollbars(LytRect box, LytRect viewport, boolean horizontalNeeded,
+        boolean verticalNeeded) {
+        cachedBlockStatsHorizontalTrackRect = null;
+        cachedBlockStatsHorizontalThumbRect = null;
+        cachedBlockStatsVerticalTrackRect = null;
+        cachedBlockStatsVerticalThumbRect = null;
+        if (horizontalNeeded) {
+            int trackY = box.bottom() - BLOCK_STATS_PADDING_Y - BLOCK_STATS_SCROLLBAR_SIZE;
+            cachedBlockStatsHorizontalTrackRect = updateCachedRect(
+                cachedBlockStatsHorizontalTrackRect,
+                viewport.x(),
+                trackY,
+                viewport.width(),
+                BLOCK_STATS_SCROLLBAR_SIZE);
+            cachedBlockStatsHorizontalThumbRect = layoutBlockStatsThumb(
+                cachedBlockStatsHorizontalThumbRect,
+                cachedBlockStatsHorizontalTrackRect,
+                viewport.width(),
+                blockStatsContentWidth,
+                blockStatsScrollX,
+                blockStatsMaxScrollX,
+                true);
+        }
+        if (verticalNeeded) {
+            int trackX = box.right() - BLOCK_STATS_PADDING_X - BLOCK_STATS_SCROLLBAR_SIZE;
+            cachedBlockStatsVerticalTrackRect = updateCachedRect(
+                cachedBlockStatsVerticalTrackRect,
+                trackX,
+                viewport.y(),
+                BLOCK_STATS_SCROLLBAR_SIZE,
+                viewport.height());
+            cachedBlockStatsVerticalThumbRect = layoutBlockStatsThumb(
+                cachedBlockStatsVerticalThumbRect,
+                cachedBlockStatsVerticalTrackRect,
+                viewport.height(),
+                blockStatsContentHeight,
+                blockStatsScrollY,
+                blockStatsMaxScrollY,
+                false);
+        }
+    }
+
+    private LytRect layoutBlockStatsThumb(@Nullable LytRect current, LytRect track, int viewportSize, int contentSize,
+        int scroll, int maxScroll, boolean horizontal) {
+        int trackSize = horizontal ? track.width() : track.height();
+        int thumbSize = Math.max(
+            BLOCK_STATS_SCROLLBAR_MIN_THUMB,
+            (int) ((long) trackSize * Math.max(1, viewportSize) / Math.max(1, contentSize)));
+        thumbSize = Math.min(trackSize, thumbSize);
+        int travel = Math.max(0, trackSize - thumbSize);
+        int offset = maxScroll > 0 ? (int) ((long) travel * scroll / maxScroll) : 0;
+        return horizontal ? updateCachedRect(current, track.x() + offset, track.y(), thumbSize, track.height())
+            : updateCachedRect(current, track.x(), track.y() + offset, track.width(), thumbSize);
+    }
+
+    private void drawBlockStatsScrollbars(RenderContext context) {
+        drawBlockStatsScrollbar(context, cachedBlockStatsHorizontalTrackRect, cachedBlockStatsHorizontalThumbRect);
+        drawBlockStatsScrollbar(context, cachedBlockStatsVerticalTrackRect, cachedBlockStatsVerticalThumbRect);
+    }
+
+    private static void drawBlockStatsScrollbar(RenderContext context, @Nullable LytRect track,
+        @Nullable LytRect thumb) {
+        if (track == null || thumb == null || track.isEmpty() || thumb.isEmpty()) {
+            return;
+        }
+        context.fillRect(track, 0x5522262C);
+        context.fillRect(thumb, 0xCCEAF6FF);
+    }
+
+    public static class BlockStatsHitRegion {
+
+        private int x0;
+        private int y0;
+        private int x1;
+        private int y1;
+        private SceneBlockStatsEntry entry;
+
+        public BlockStatsHitRegion(int x0, int y0, int x1, int y1, SceneBlockStatsEntry entry) {
+            update(x0, y0, x1, y1, entry);
+        }
+
+        public void update(int x0, int y0, int x1, int y1, SceneBlockStatsEntry entry) {
+            this.x0 = x0;
+            this.y0 = y0;
+            this.x1 = x1;
+            this.y1 = y1;
+            this.entry = entry;
+        }
+
+        public boolean contains(int mouseX, int mouseY) {
+            return mouseX >= x0 && mouseX < x1 && mouseY >= y0 && mouseY < y1;
+        }
+
+        public SceneBlockStatsEntry entry() {
+            return entry;
+        }
+    }
+
+    private void clampBlockStatsScroll() {
+        blockStatsScrollX = clampInt(blockStatsScrollX, 0, blockStatsMaxScrollX);
+        blockStatsScrollY = clampInt(blockStatsScrollY, 0, blockStatsMaxScrollY);
+    }
+
+    public boolean containsBlockStatsOverlay(int mouseX, int mouseY) {
+        if (!blockStatsEnabled || !blockStatsVisible || cachedBlockStatsBoxRect == null) {
+            return false;
+        }
+        int layoutX = screenToLayoutX(mouseX);
+        int layoutY = screenToLayoutY(mouseY);
+        if (cachedBlockStatsBoxRect.contains(layoutX, layoutY)) {
+            return true;
+        }
+        for (int i = 0; i < cachedBlockStatsHitRegionCount; i++) {
+            BlockStatsHitRegion region = cachedBlockStatsHitRegions.get(i);
+            if (region.contains(layoutX, layoutY)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean startBlockStatsDrag(int mouseX, int mouseY, int button) {
+        if (button != 0 || !containsBlockStatsOverlay(mouseX, mouseY)) {
+            return false;
+        }
+        int layoutX = screenToLayoutX(mouseX);
+        int layoutY = screenToLayoutY(mouseY);
+        if (cachedBlockStatsHorizontalTrackRect != null
+            && cachedBlockStatsHorizontalTrackRect.contains(layoutX, layoutY)) {
+            draggingBlockStatsHorizontalScrollbar = true;
+            blockStatsScrollbarGrabOffset = cachedBlockStatsHorizontalThumbRect != null
+                && cachedBlockStatsHorizontalThumbRect.contains(layoutX, layoutY)
+                    ? layoutX - cachedBlockStatsHorizontalThumbRect.x()
+                    : BLOCK_STATS_SCROLLBAR_MIN_THUMB / 2;
+            updateBlockStatsHorizontalScrollFromMouse(layoutX);
+            return true;
+        }
+        if (cachedBlockStatsVerticalTrackRect != null && cachedBlockStatsVerticalTrackRect.contains(layoutX, layoutY)) {
+            draggingBlockStatsVerticalScrollbar = true;
+            blockStatsScrollbarGrabOffset = cachedBlockStatsVerticalThumbRect != null
+                && cachedBlockStatsVerticalThumbRect.contains(layoutX, layoutY)
+                    ? layoutY - cachedBlockStatsVerticalThumbRect.y()
+                    : BLOCK_STATS_SCROLLBAR_MIN_THUMB / 2;
+            updateBlockStatsVerticalScrollFromMouse(layoutY);
+            return true;
+        }
+        BlockStatsHitRegion hitRegion = blockStatsHitRegionAt(layoutX, layoutY);
+        if (hitRegion != null && blockStatsMode != BlockStatsMode.MANUAL) {
+            toggleSelectedBlockStatsEntry(
+                hitRegion.entry()
+                    .getKey());
+        }
+        return true;
+    }
+
+    @Nullable
+    public GuideTooltip createBlockStatsTooltip(int mouseX, int mouseY) {
+        if (!blockStatsEnabled || !blockStatsVisible) {
+            return null;
+        }
+        BlockStatsHitRegion hitRegion = blockStatsHitRegionAt(screenToLayoutX(mouseX), screenToLayoutY(mouseY));
+        if (hitRegion == null) {
+            return null;
+        }
+        SceneBlockStatsEntry entry = hitRegion.entry();
+        ItemStack stack = entry.copyDisplayStack();
+        if (stack == null) {
+            return null;
+        }
+        return new AppendedItemTooltip(
+            stack,
+            Collections
+                .singletonList(GuidebookText.SceneBlockStatsTooltipCount.text(Integer.toString(entry.getCount()))));
+    }
+
+    @Nullable
+    private BlockStatsHitRegion blockStatsHitRegionAt(int mouseX, int mouseY) {
+        for (int i = cachedBlockStatsHitRegionCount - 1; i >= 0; i--) {
+            BlockStatsHitRegion region = cachedBlockStatsHitRegions.get(i);
+            if (region.contains(mouseX, mouseY)) {
+                return region;
+            }
+        }
+        return null;
+    }
+
+    private int screenToLayoutX(int mouseX) {
+        if (lastDocZoom <= 0f) {
+            return mouseX;
+        }
+        return Math.round((mouseX - lastAbsX) / lastDocZoom) + (cachedSceneRect != null ? cachedSceneRect.x() : 0);
+    }
+
+    private int screenToLayoutY(int mouseY) {
+        if (lastDocZoom <= 0f) {
+            return mouseY;
+        }
+        return Math.round((mouseY - lastAbsY) / lastDocZoom) + (cachedSceneRect != null ? cachedSceneRect.y() : 0);
+    }
+
+    private void toggleSelectedBlockStatsEntry(String key) {
+        if (key == null || key.isEmpty()) {
+            selectedBlockStatsKey = null;
+            return;
+        }
+        selectedBlockStatsKey = key.equals(selectedBlockStatsKey) ? null : key;
+    }
+
+    public boolean isDraggingBlockStatsScrollbar() {
+        return draggingBlockStatsHorizontalScrollbar || draggingBlockStatsVerticalScrollbar;
+    }
+
+    private void updateBlockStatsHorizontalScrollFromMouse(int mouseX) {
+        if (cachedBlockStatsHorizontalTrackRect == null || cachedBlockStatsHorizontalThumbRect == null
+            || blockStatsMaxScrollX <= 0) {
+            return;
+        }
+        int track = Math
+            .max(1, cachedBlockStatsHorizontalTrackRect.width() - cachedBlockStatsHorizontalThumbRect.width());
+        int rel = clampInt(mouseX - blockStatsScrollbarGrabOffset - cachedBlockStatsHorizontalTrackRect.x(), 0, track);
+        blockStatsScrollX = (int) ((long) rel * blockStatsMaxScrollX / track);
+    }
+
+    private void updateBlockStatsVerticalScrollFromMouse(int mouseY) {
+        if (cachedBlockStatsVerticalTrackRect == null || cachedBlockStatsVerticalThumbRect == null
+            || blockStatsMaxScrollY <= 0) {
+            return;
+        }
+        int track = Math
+            .max(1, cachedBlockStatsVerticalTrackRect.height() - cachedBlockStatsVerticalThumbRect.height());
+        int rel = clampInt(mouseY - blockStatsScrollbarGrabOffset - cachedBlockStatsVerticalTrackRect.y(), 0, track);
+        blockStatsScrollY = (int) ((long) rel * blockStatsMaxScrollY / track);
+    }
+
+    private boolean scrollBlockStatsOverlay(int dwheel) {
+        if (dwheel == 0) {
+            return false;
+        }
+        int sign = Integer.signum(dwheel);
+        if (GuiScreen.isShiftKeyDown() && blockStatsMaxScrollX > 0
+            || blockStatsMaxScrollY <= 0 && blockStatsMaxScrollX > 0) {
+            blockStatsScrollX -= sign * BLOCK_STATS_WHEEL_STEP;
+        } else if (blockStatsMaxScrollY > 0) {
+            blockStatsScrollY -= sign * BLOCK_STATS_WHEEL_STEP;
+        } else {
+            return false;
+        }
+        clampBlockStatsScroll();
+        return true;
     }
 
     private static InWorldLineAnnotation createOriginAxisAnnotation(Vector3f to, ConstantColor color) {
@@ -1244,6 +2516,7 @@ public class LytGuidebookScene extends LytBlock {
         int extra = 0;
         if (hasStructureLibHatchData()) extra++;
         if (gridButtonEnabled) extra++;
+        if (blockStatsButtonEnabled) extra++;
         if (extra == 0) {
             return base;
         }
@@ -1251,20 +2524,25 @@ public class LytGuidebookScene extends LytBlock {
         System.arraycopy(base, 0, roles, 0, base.length);
         int i = base.length;
         if (hasStructureLibHatchData()) roles[i++] = GuideIconButton.Role.HIGHLIGHT_STRUCTURELIB_HATCHES;
-        if (gridButtonEnabled) roles[i] = GuideIconButton.Role.TOGGLE_GRID;
+        if (gridButtonEnabled) roles[i++] = GuideIconButton.Role.TOGGLE_GRID;
+        if (blockStatsButtonEnabled) roles[i] = GuideIconButton.Role.TOGGLE_BLOCK_STATS;
         return roles;
     }
 
     private GuideIconButton.Role[] cachedSceneButtonRoles() {
         boolean hasAnnotations = !annotations.isEmpty();
         boolean hasStructureLibHatches = hasStructureLibHatchData();
-        if (cachedSceneButtonsVisible != annotationsVisible || cachedSceneHasAnnotations != hasAnnotations
+        if (cachedSceneButtonRolesDirty || cachedSceneButtonsVisible != annotationsVisible
+            || cachedSceneHasAnnotations != hasAnnotations
             || cachedSceneHasStructureLibHatches != hasStructureLibHatches
-            || cachedGridButtonEnabled != gridButtonEnabled) {
+            || cachedGridButtonEnabled != gridButtonEnabled
+            || cachedBlockStatsButtonEnabled != blockStatsButtonEnabled) {
+            cachedSceneButtonRolesDirty = false;
             cachedSceneButtonsVisible = annotationsVisible;
             cachedSceneHasAnnotations = hasAnnotations;
             cachedSceneHasStructureLibHatches = hasStructureLibHatches;
             cachedGridButtonEnabled = gridButtonEnabled;
+            cachedBlockStatsButtonEnabled = blockStatsButtonEnabled;
             cachedSceneButtonRoles = sceneButtonRoles();
         }
         return cachedSceneButtonRoles;
@@ -1299,7 +2577,8 @@ public class LytGuidebookScene extends LytBlock {
 
     private boolean isSceneButtonActive(GuideIconButton.Role role) {
         return (role == GuideIconButton.Role.HIGHLIGHT_STRUCTURELIB_HATCHES && structureLibHatchHighlightEnabled)
-            || (role == GuideIconButton.Role.TOGGLE_GRID && gridVisible);
+            || (role == GuideIconButton.Role.TOGGLE_GRID && gridVisible)
+            || (role == GuideIconButton.Role.TOGGLE_BLOCK_STATS && blockStatsVisible);
     }
 
     GuideIconButton.Role[] getVisibleSceneButtonRolesForTesting() {
@@ -1578,7 +2857,8 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public boolean containsSceneInteractiveTarget(int mouseX, int mouseY) {
-        return containsSceneViewport(mouseX, mouseY) || containsBottomControlSlider(mouseX, mouseY);
+        return containsSceneViewport(mouseX, mouseY) || containsBottomControlSlider(mouseX, mouseY)
+            || containsBlockStatsOverlay(mouseX, mouseY);
     }
 
     public int @Nullable [] pickBlock(int mouseAbsX, int mouseAbsY) {
@@ -1813,6 +3093,7 @@ public class LytGuidebookScene extends LytBlock {
             case HIGHLIGHT_STRUCTURELIB_HATCHES -> setStructureLibHatchHighlightEnabled(
                 !structureLibHatchHighlightEnabled);
             case TOGGLE_GRID -> setGridVisible(!gridVisible);
+            case TOGGLE_BLOCK_STATS -> setBlockStatsVisible(!blockStatsVisible);
             case ZOOM_IN -> {
                 if (ponderSceneData != null) {
                     ponderCamZoom = Math.min(MAX_ZOOM, ponderCamZoom * 1.25f);
@@ -1853,6 +3134,9 @@ public class LytGuidebookScene extends LytBlock {
 
     public void startDrag(int mouseX, int mouseY, int button) {
         if (!interactive) return;
+        if (startBlockStatsDrag(mouseX, mouseY, button)) {
+            return;
+        }
         if (button == 0 && containsPonderBar(mouseX, mouseY)) {
             draggingPonderBar = true;
             applyPonderBarAt(mouseX);
@@ -1889,6 +3173,14 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void drag(int mouseX, int mouseY) {
+        if (draggingBlockStatsHorizontalScrollbar) {
+            updateBlockStatsHorizontalScrollFromMouse(screenToLayoutX(mouseX));
+            return;
+        }
+        if (draggingBlockStatsVerticalScrollbar) {
+            updateBlockStatsVerticalScrollFromMouse(screenToLayoutY(mouseY));
+            return;
+        }
         if (draggingPonderBar) {
             applyPonderBarAt(mouseX);
             return;
@@ -1907,11 +3199,27 @@ public class LytGuidebookScene extends LytBlock {
         }
         if (dragButton < 0) return;
         if (isPonderPlaying()) return;
-        int dx = mouseX - dragLastX;
-        int dy = mouseY - dragLastY;
         dragLastX = mouseX;
         dragLastY = mouseY;
+    }
 
+    public void pollDrag() {
+        if (!isCameraDragActive()) {
+            return;
+        }
+        float dx = getScaledMouseDeltaX();
+        float dy = getScaledMouseDeltaY();
+        if (dx == 0f && dy == 0f) {
+            return;
+        }
+        updateDragLastPositionFromMouse();
+        applyCameraDrag(dx, dy);
+    }
+
+    private void applyCameraDrag(float dx, float dy) {
+        if (dx == 0f && dy == 0f) {
+            return;
+        }
         // Route to ponderCam* so changes are visible when ponder is active (paused or playing).
         if (ponderSceneData != null) {
             if (isPanButton(dragButton)) {
@@ -1932,24 +3240,70 @@ public class LytGuidebookScene extends LytBlock {
         }
     }
 
+    private boolean isCameraDragActive() {
+        return dragButton >= 0 && !isPonderPlaying()
+            && !draggingBlockStatsHorizontalScrollbar
+            && !draggingBlockStatsVerticalScrollbar
+            && !draggingPonderBar
+            && !draggingStructureLibTierSlider
+            && !draggingVisibleLayerSlider
+            && draggingStructureLibChannelId == null;
+    }
+
+    private static float getScaledMouseDeltaX() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null || mc.displayWidth <= 0 || mc.displayHeight <= 0) {
+            return Mouse.getDX();
+        }
+        ScaledResolution scaledResolution = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
+        return Mouse.getDX() * scaledResolution.getScaledWidth() / (float) mc.displayWidth;
+    }
+
+    private static float getScaledMouseDeltaY() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null || mc.displayWidth <= 0 || mc.displayHeight <= 0) {
+            return -Mouse.getDY();
+        }
+        ScaledResolution scaledResolution = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
+        return -Mouse.getDY() * scaledResolution.getScaledHeight() / (float) mc.displayHeight;
+    }
+
+    private void updateDragLastPositionFromMouse() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null || mc.displayWidth <= 0 || mc.displayHeight <= 0) {
+            return;
+        }
+        ScaledResolution scaledResolution = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
+        dragLastX = Mouse.getX() * scaledResolution.getScaledWidth() / mc.displayWidth;
+        dragLastY = scaledResolution.getScaledHeight()
+            - Mouse.getY() * scaledResolution.getScaledHeight() / mc.displayHeight
+            - 1;
+    }
+
     public void endDrag() {
         this.dragButton = -1;
         this.draggingVisibleLayerSlider = false;
         this.draggingStructureLibTierSlider = false;
         this.draggingStructureLibChannelId = null;
         this.draggingPonderBar = false;
+        this.draggingBlockStatsHorizontalScrollbar = false;
+        this.draggingBlockStatsVerticalScrollbar = false;
     }
 
     public boolean isDragging() {
         return dragButton >= 0 || draggingVisibleLayerSlider
             || draggingStructureLibTierSlider
             || draggingStructureLibChannelId != null
-            || draggingPonderBar;
+            || draggingPonderBar
+            || isDraggingBlockStatsScrollbar();
     }
 
     public void scroll(int mouseX, int mouseY, int dwheel) {
         if (!interactive) return;
         if (dwheel == 0) return;
+        if (containsBlockStatsOverlay(mouseX, mouseY) && scrollBlockStatsOverlay(dwheel)) {
+            return;
+        }
         if (containsStructureLibTierSlider(mouseX, mouseY) && hasStructureLibTierData()) {
             nudgeStructureLibTier(dwheel);
             return;
@@ -2040,30 +3394,17 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void appendStructureLibHatchOverlays(List<InWorldAnnotation> inWorld) {
-        if (!structureLibHatchHighlightEnabled || structureLibSceneMetadata == null) {
+        if (!structureLibHatchHighlightEnabled || structureLibHatchOverlayAnnotations.isEmpty()) {
             return;
         }
-        List<StructureLibSceneMetadata.BlockTooltipEntry> hatchEntries = structureLibSceneMetadata
-            .getHatchTooltipEntries();
-        if (hatchEntries.isEmpty()) {
-            return;
-        }
-
-        for (StructureLibSceneMetadata.BlockTooltipEntry entry : hatchEntries) {
-            if (!isBlockVisibleForCurrentLayer(entry.getY())) {
+        for (InWorldBlockFaceOverlayAnnotation overlay : structureLibHatchOverlayAnnotations) {
+            if (!isBlockVisibleForCurrentLayer(overlay.getBlockY())) {
                 continue;
             }
-            InWorldBlockFaceOverlayAnnotation overlay = new InWorldBlockFaceOverlayAnnotation(
-                entry.getX(),
-                entry.getY(),
-                entry.getZ(),
-                new ConstantColor(StructureLibTooltipContentBuilder.resolveHatchOverlayArgb(entry.getTooltipData())),
-                structureLibSceneMetadata.getHatchTooltipPositions());
-            overlay.setAlwaysOnTop(true);
             overlay.setHovered(
-                hoveredStructureLibHatch != null && hoveredStructureLibHatch[0] == entry.getX()
-                    && hoveredStructureLibHatch[1] == entry.getY()
-                    && hoveredStructureLibHatch[2] == entry.getZ());
+                hoveredStructureLibHatch != null && hoveredStructureLibHatch[0] == overlay.getBlockX()
+                    && hoveredStructureLibHatch[1] == overlay.getBlockY()
+                    && hoveredStructureLibHatch[2] == overlay.getBlockZ());
             inWorld.add(overlay);
         }
     }
@@ -2094,6 +3435,27 @@ public class LytGuidebookScene extends LytBlock {
         return ponderSceneData != null;
     }
 
+    public int getPonderCurrentTickForExport() {
+        return ponderCurrentTick;
+    }
+
+    public int getPonderTotalTimeForExport() {
+        return ponderSceneData != null ? ponderSceneData.getTotalTime() : 0;
+    }
+
+    public List<PonderTimelineKeyframe> getPonderTimelineKeyframesForExport() {
+        if (ponderSceneData == null) {
+            return Collections.emptyList();
+        }
+        ArrayList<PonderTimelineKeyframe> keyframes = new ArrayList<>();
+        for (PonderKeyframe keyframe : ponderSceneData.getKeyframes()) {
+            if (keyframe != null) {
+                keyframes.add(new PonderTimelineKeyframe(keyframe.getTime(), keyframe.getLabel()));
+            }
+        }
+        return Collections.unmodifiableList(keyframes);
+    }
+
     public boolean isPonderPlaying() {
         return ponderSceneData != null && !ponderPaused && !ponderFinished;
     }
@@ -2103,20 +3465,11 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private int structureLibChannelSliderAreaHeight() {
-        return getSelectableStructureLibChannels().size() * SCENE_SLIDER_AREA_HEIGHT;
+        return selectableStructureLibChannels.size() * SCENE_SLIDER_AREA_HEIGHT;
     }
 
     private List<StructureLibSceneMetadata.ChannelData> getSelectableStructureLibChannels() {
-        if (structureLibSceneMetadata == null) {
-            return Collections.emptyList();
-        }
-        List<StructureLibSceneMetadata.ChannelData> selectable = new ArrayList<>();
-        for (StructureLibSceneMetadata.ChannelData channelData : structureLibSceneMetadata.getChannelDataList()) {
-            if (channelData != null && channelData.isSelectable()) {
-                selectable.add(channelData);
-            }
-        }
-        return selectable.isEmpty() ? Collections.emptyList() : selectable;
+        return selectableStructureLibChannels.isEmpty() ? Collections.emptyList() : selectableStructureLibChannels;
     }
 
     public void attachPonderData(PonderSceneData data, List<List<SceneAnnotation>> annotationsByKeyframe) {
@@ -2133,7 +3486,20 @@ public class LytGuidebookScene extends LytBlock {
         this.ponderOutgoingAnnotations.clear();
         this.ponderOutgoingFadeTick = 0;
         this.ponderSceneParticles.clear();
+        updatePonderState();
+    }
+
+    public void initializePonderTimelineBaseline() {
+        if (ponderSceneData == null) {
+            return;
+        }
+        restoreFromPonderSnapshot();
+        clearPonderEntities();
+        ponderBlockSnapshot.clear();
+        ponderEntityRefs.clear();
         snapshotPonderBlocks();
+        ponderTimelineBaselineReady = true;
+        ponderLastKeyframeIdx = -2;
         updatePonderState();
     }
 
@@ -2153,10 +3519,13 @@ public class LytGuidebookScene extends LytBlock {
                 ponderOutgoingAnnotations.clear();
             }
         }
-        ponderSceneParticles.removeIf(p -> {
-            p.tick();
-            return p.isDead();
-        });
+        for (int i = ponderSceneParticles.size() - 1; i >= 0; i--) {
+            GuidebookSceneParticle particle = ponderSceneParticles.get(i);
+            particle.tick();
+            if (particle.isDead()) {
+                ponderSceneParticles.remove(i);
+            }
+        }
         updatePonderState();
     }
 
@@ -2203,9 +3572,20 @@ public class LytGuidebookScene extends LytBlock {
         ponderCurrentTick = Math.max(0, Math.min(ponderSceneData.getTotalTime(), tick));
         ponderPaused = true;
         ponderFinished = ponderCurrentTick >= ponderSceneData.getTotalTime();
+        ponderExportLayerOverrideEnabled = false;
         draggingPonderBar = false;
         ponderAnnotationFadeTick = 5;
         updatePonderState();
+    }
+
+    public void seekToTickForExport(int tick) {
+        seekToTick(tick);
+        ponderExportLayerOverrideEnabled = true;
+    }
+
+    public void restorePonderTickAfterExport(int tick) {
+        seekToTick(tick);
+        ponderExportLayerOverrideEnabled = false;
     }
 
     private void applyPonderBarAt(int mouseAbsX) {
@@ -2257,10 +3637,10 @@ public class LytGuidebookScene extends LytBlock {
             }
 
             ponderAnnotationFadeTick = ponderPaused ? 5 : 0;
-            if (!ponderBlockSnapshot.isEmpty()) {
+            if (hasPonderReplayActions()) {
                 // Trigger particle effects only during forward playback, not on seek or initial load.
                 boolean triggerParticles = !ponderPaused && wasAtValidKeyframe;
-                applyPonderBlockChanges(activeIdx, triggerParticles);
+                applyPonderTimelineActions(activeIdx, triggerParticles);
             }
         }
 
@@ -2355,42 +3735,136 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     @Nullable
-    private static Block resolveBlock(@Nullable String name) {
+    private static Block resolveBlock(@Nullable String name, @Nullable NBTTagCompound tileTag) {
         if (name == null || name.isEmpty()) return null;
-        return (Block) Block.blockRegistry.getObject(name);
+        Block block = (Block) Block.blockRegistry.getObject(name);
+        if (block != null && block != Blocks.air) {
+            return block;
+        }
+        Item item = (Item) Item.itemRegistry.getObject(name);
+        if (item instanceof ItemBlock itemBlock) {
+            block = itemBlock.field_150939_a;
+            if (block != null && block != Blocks.air) {
+                return block;
+            }
+        }
+        if (Mods.AE2.isModLoaded()) {
+            block = Ae2Helpers.resolvePonderBlock(tileTag);
+            if (block != null && block != Blocks.air) {
+                return block;
+            }
+        }
+        return null;
     }
 
     private void snapshotPonderBlocks() {
         ponderBlockSnapshot.clear();
+        ponderEntityRefs.clear();
         if (ponderSceneData == null) return;
         for (PonderKeyframe kf : ponderSceneData.getKeyframes()) {
             for (PonderKeyframeBlockChange bc : kf.getBlockChanges()) {
-                long key = GuidebookLevel.packPos(bc.getX(), bc.getY(), bc.getZ());
-                if (!ponderBlockSnapshot.containsKey(key)) {
-                    int bx = bc.getX(), by = bc.getY(), bz = bc.getZ();
-                    Block existing = level.getBlock(bx, by, bz);
-                    int meta = level.getBlockMetadata(bx, by, bz);
-                    ponderBlockSnapshot
-                        .put(key, new PonderBlockInfo(bx, by, bz, existing == Blocks.air ? null : existing, meta));
-                }
+                snapshotPonderBlockPosition(bc.getX(), bc.getY(), bc.getZ());
+            }
+            for (PonderKeyframeTileNbtOperation op : kf.getMergeTileNBT()) {
+                snapshotPonderBlockPosition(op.getX(), op.getY(), op.getZ());
+            }
+            for (PonderKeyframeTileNbtOperation op : kf.getModifyTileNBT()) {
+                snapshotPonderBlockPosition(op.getX(), op.getY(), op.getZ());
+            }
+            for (PonderKeyframeTileNbtOperation op : kf.getRemoveTileNBT()) {
+                snapshotPonderBlockPosition(op.getX(), op.getY(), op.getZ());
             }
         }
     }
 
-    private void restoreFromPonderSnapshot() {
-        for (PonderBlockInfo info : ponderBlockSnapshot.values()) {
-            level.setBlock(info.x, info.y, info.z, info.initialBlock, info.initialMeta);
+    private void snapshotPonderBlockPosition(int x, int y, int z) {
+        long key = GuidebookLevel.packPos(x, y, z);
+        if (ponderBlockSnapshot.containsKey(key)) {
+            return;
         }
+        Block existing = level.getBlock(x, y, z);
+        int meta = level.getBlockMetadata(x, y, z);
+        TileEntity tileEntity = level.getTileEntity(x, y, z);
+        NBTTagCompound tileNbt = null;
+        if (tileEntity != null) {
+            tileNbt = new NBTTagCompound();
+            try {
+                tileEntity.writeToNBT(tileNbt);
+            } catch (Exception ignored) {
+                tileNbt = null;
+            }
+        }
+        ponderBlockSnapshot.put(
+            key,
+            new PonderBlockInfo(
+                x,
+                y,
+                z,
+                existing == Blocks.air ? null : existing,
+                meta,
+                tileNbt,
+                level.previewAuthorityStore()
+                    .snapshotAt(key)));
+    }
+
+    private boolean restoreFromPonderSnapshot() {
+        boolean changed = false;
+        for (PonderBlockInfo info : ponderBlockSnapshot.values()) {
+            long key = GuidebookLevel.packPos(info.x, info.y, info.z);
+            restorePonderBlockInfo(info);
+            level.previewAuthorityStore()
+                .restoreAt(key, info.initialPreviewSupplements);
+            changed = true;
+        }
+        return changed;
     }
 
     private void clearPonderBlockChanges() {
-        restoreFromPonderSnapshot();
+        if (restoreFromPonderSnapshot()) {
+            markBlockStatsDirty();
+        }
+        clearPonderEntities();
         ponderBlockSnapshot.clear();
+        ponderEntityRefs.clear();
+        ponderTimelineBaselineReady = false;
     }
 
-    private void applyPonderBlockChanges(int upToKeyframeIdx, boolean triggerParticles) {
-        restoreFromPonderSnapshot();
-        if (upToKeyframeIdx < 0 || ponderSceneData == null) return;
+    private boolean hasPonderReplayActions() {
+        if (!ponderTimelineBaselineReady) {
+            return false;
+        }
+        if (!ponderBlockSnapshot.isEmpty() || !ponderEntityRefs.isEmpty()) {
+            return true;
+        }
+        if (ponderSceneData == null) {
+            return false;
+        }
+        for (PonderKeyframe kf : ponderSceneData.getKeyframes()) {
+            if (!kf.getCreateEntities()
+                .isEmpty()
+                || !kf.getSetEntityNBT()
+                    .isEmpty()
+                || !kf.getMergeEntityNBT()
+                    .isEmpty()
+                || !kf.getModifyEntityNBT()
+                    .isEmpty()
+                || !kf.getRemoveEntityNBT()
+                    .isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void applyPonderTimelineActions(int upToKeyframeIdx, boolean triggerParticles) {
+        boolean blocksChanged = restoreFromPonderSnapshot();
+        clearPonderEntities();
+        if (upToKeyframeIdx < 0 || ponderSceneData == null) {
+            if (blocksChanged) {
+                markBlockStatsDirty();
+            }
+            return;
+        }
         for (int i = 0; i <= upToKeyframeIdx && i < ponderSceneData.getKeyframeCount(); i++) {
             PonderKeyframe kf = ponderSceneData.getKeyframe(i);
             if (kf == null) continue;
@@ -2398,9 +3872,21 @@ public class LytGuidebookScene extends LytBlock {
             for (PonderKeyframeBlockChange bc : kf.getBlockChanges()) {
                 Block oldBlock = level.getBlock(bc.getX(), bc.getY(), bc.getZ());
                 int oldMeta = level.getBlockMetadata(bc.getX(), bc.getY(), bc.getZ());
-                Block newBlock = resolveBlock(bc.getBlock());
-                TileEntity te = resolvePonderBlockTileEntity(bc, newBlock);
-                level.setBlock(bc.getX(), bc.getY(), bc.getZ(), newBlock, bc.getMeta(), te);
+                NBTTagCompound targetTag = parsePonderBlockNbt(bc);
+                Block newBlock = resolveBlock(bc.getBlock(), targetTag);
+                long posKey = GuidebookLevel.packPos(bc.getX(), bc.getY(), bc.getZ());
+                Map<String, byte[]> targetPreviewSupplements = readPreviewSupplements(targetTag);
+                placePonderBlockChange(bc, newBlock, targetTag);
+                targetPreviewSupplements = completePonderPreviewSupplements(
+                    targetPreviewSupplements,
+                    bc.getX(),
+                    bc.getY(),
+                    bc.getZ(),
+                    newBlock,
+                    bc.getMeta());
+                blocksChanged = true;
+                level.previewAuthorityStore()
+                    .restoreAt(posKey, targetPreviewSupplements);
                 if (triggerParticles && isTarget && bc.shouldSpawnParticles()) {
                     boolean removing = newBlock == null || newBlock == Blocks.air;
                     Block particleBlock = removing ? oldBlock : newBlock;
@@ -2410,7 +3896,304 @@ public class LytGuidebookScene extends LytBlock {
                     }
                 }
             }
+            applyPonderTileNbtChanges(kf);
+            applyPonderEntityActions(kf);
         }
+        if (blocksChanged) {
+            markBlockStatsDirty();
+        }
+    }
+
+    private void applyPonderTileNbtChanges(PonderKeyframe kf) {
+        for (PonderKeyframeTileNbtOperation op : kf.getMergeTileNBT()) {
+            applyPonderTileNbtMerge(op);
+        }
+        for (PonderKeyframeTileNbtOperation op : kf.getModifyTileNBT()) {
+            applyPonderTileNbtSet(op);
+        }
+        for (PonderKeyframeTileNbtOperation op : kf.getRemoveTileNBT()) {
+            applyPonderTileNbtRemove(op);
+        }
+    }
+
+    private void applyPonderTileNbtMerge(PonderKeyframeTileNbtOperation op) {
+        String nbt = op.getNbt();
+        if (nbt == null || nbt.trim()
+            .isEmpty()) {
+            return;
+        }
+        NBTTagCompound current = readPonderTileNbt(op.getX(), op.getY(), op.getZ());
+        if (current == null) {
+            return;
+        }
+        try {
+            PonderNbtPath.mergeCompound(current, PonderNbtPath.parseCompound(nbt));
+            writePonderTileNbt(op.getX(), op.getY(), op.getZ(), current);
+        } catch (Exception ignored) {}
+    }
+
+    private void applyPonderTileNbtSet(PonderKeyframeTileNbtOperation op) {
+        String path = op.getPath();
+        String value = op.getValue();
+        if (path == null || value == null) {
+            return;
+        }
+        NBTTagCompound current = readPonderTileNbt(op.getX(), op.getY(), op.getZ());
+        if (current == null) {
+            return;
+        }
+        try {
+            if (PonderNbtPath.set(current, path, PonderNbtPath.parseValue(value))) {
+                writePonderTileNbt(op.getX(), op.getY(), op.getZ(), current);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void applyPonderTileNbtRemove(PonderKeyframeTileNbtOperation op) {
+        String path = op.getPath();
+        if (path == null) {
+            return;
+        }
+        NBTTagCompound current = readPonderTileNbt(op.getX(), op.getY(), op.getZ());
+        if (current == null) {
+            return;
+        }
+        if (PonderNbtPath.remove(current, path)) {
+            writePonderTileNbt(op.getX(), op.getY(), op.getZ(), current);
+        }
+    }
+
+    @Nullable
+    private NBTTagCompound readPonderTileNbt(int x, int y, int z) {
+        TileEntity tileEntity = level.getTileEntity(x, y, z);
+        if (tileEntity == null) {
+            Block block = level.getBlock(x, y, z);
+            int meta = level.getBlockMetadata(x, y, z);
+            if (block == null || block == Blocks.air || !block.hasTileEntity(meta)) {
+                return null;
+            }
+            tileEntity = GuidebookTileEntityLoader.load(level.getOrCreateFakeWorld(), block, meta, x, y, z, null);
+            if (tileEntity == null) {
+                return null;
+            }
+            level.setTileEntity(x, y, z, tileEntity);
+        }
+        NBTTagCompound current = new NBTTagCompound();
+        try {
+            tileEntity.writeToNBT(current);
+            return current;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private void writePonderTileNbt(int x, int y, int z, NBTTagCompound tag) {
+        TileEntity tileEntity = level.getTileEntity(x, y, z);
+        if (tileEntity == null) {
+            return;
+        }
+        GuidebookTileEntityLoader.applyTag(tileEntity, tag, x, y, z);
+        level.setTileEntity(x, y, z, tileEntity);
+        markBlockStatsDirty();
+    }
+
+    private void applyPonderEntityActions(PonderKeyframe kf) {
+        for (PonderKeyframeEntityAction action : kf.getCreateEntities()) {
+            createPonderEntity(action);
+        }
+        for (PonderKeyframeEntityAction action : kf.getSetEntityNBT()) {
+            setPonderEntityNbt(action);
+        }
+        for (PonderKeyframeEntityAction action : kf.getMergeEntityNBT()) {
+            mergePonderEntityNbt(action);
+        }
+        for (PonderKeyframeEntityAction action : kf.getModifyEntityNBT()) {
+            modifyPonderEntityNbt(action);
+        }
+        for (PonderKeyframeEntityAction action : kf.getRemoveEntityNBT()) {
+            removePonderEntityNbt(action);
+        }
+    }
+
+    private void createPonderEntity(PonderKeyframeEntityAction action) {
+        String ref = trimToNull(action.getRef());
+        String entityId = trimToNull(action.getId());
+        if (ref == null || entityId == null) {
+            return;
+        }
+        NBTTagCompound tag = new NBTTagCompound();
+        String nbt = action.getNbt();
+        if (nbt != null && !nbt.trim()
+            .isEmpty()) {
+            try {
+                tag = PonderNbtPath.parseCompound(nbt);
+            } catch (Exception ignored) {
+                return;
+            }
+        }
+        applyPonderEntityTransform(tag, action);
+        Entity entity = GuidebookSceneEntityLoader
+            .loadFromNbt(level.getOrCreateFakeWorld(), entityId, tag, action.getName(), action.getUuid());
+        if (entity == null) {
+            return;
+        }
+        PonderEntityRuntime existing = ponderEntityRefs.remove(ref);
+        if (existing != null) {
+            level.removeEntity(existing.entityId);
+        }
+        level.addEntity(entity);
+        ponderEntityRefs
+            .put(ref, new PonderEntityRuntime(entity.getEntityId(), entityId, action.getName(), action.getUuid()));
+    }
+
+    private void setPonderEntityNbt(PonderKeyframeEntityAction action) {
+        Entity entity = resolvePonderEntity(action);
+        String nbt = action.getNbt();
+        if (entity == null || nbt == null
+            || nbt.trim()
+                .isEmpty()) {
+            return;
+        }
+        try {
+            NBTTagCompound tag = PonderNbtPath.parseCompound(nbt);
+            applyPonderEntityNbt(entity, tag);
+        } catch (Exception ignored) {}
+    }
+
+    private void mergePonderEntityNbt(PonderKeyframeEntityAction action) {
+        Entity entity = resolvePonderEntity(action);
+        String nbt = action.getNbt();
+        if (entity == null || nbt == null
+            || nbt.trim()
+                .isEmpty()) {
+            return;
+        }
+        try {
+            NBTTagCompound current = readPonderEntityNbt(entity);
+            PonderNbtPath.mergeCompound(current, PonderNbtPath.parseCompound(nbt));
+            applyPonderEntityNbt(entity, current);
+        } catch (Exception ignored) {}
+    }
+
+    private void modifyPonderEntityNbt(PonderKeyframeEntityAction action) {
+        Entity entity = resolvePonderEntity(action);
+        String path = action.getPath();
+        String value = action.getValue();
+        if (entity == null || path == null || value == null) {
+            return;
+        }
+        try {
+            NBTTagCompound current = readPonderEntityNbt(entity);
+            if (PonderNbtPath.set(current, path, PonderNbtPath.parseValue(value))) {
+                applyPonderEntityNbt(entity, current);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void removePonderEntityNbt(PonderKeyframeEntityAction action) {
+        Entity entity = resolvePonderEntity(action);
+        String path = action.getPath();
+        if (entity == null || path == null) {
+            return;
+        }
+        NBTTagCompound current = readPonderEntityNbt(entity);
+        if (PonderNbtPath.remove(current, path)) {
+            applyPonderEntityNbt(entity, current);
+        }
+    }
+
+    @Nullable
+    private Entity resolvePonderEntity(PonderKeyframeEntityAction action) {
+        String ref = trimToNull(action.getRef());
+        if (ref == null) {
+            return null;
+        }
+        PonderEntityRuntime runtime = ponderEntityRefs.get(ref);
+        return runtime == null ? null : level.getEntity(runtime.entityId);
+    }
+
+    private NBTTagCompound readPonderEntityNbt(Entity entity) {
+        NBTTagCompound tag = new NBTTagCompound();
+        entity.writeToNBT(tag);
+        return tag;
+    }
+
+    private void applyPonderEntityNbt(Entity entity, NBTTagCompound tag) {
+        PonderEntityRuntime runtime = findPonderEntityRuntime(entity);
+        String entityId = runtime != null ? runtime.entityTypeId : null;
+        if (entityId != null) {
+            Entity replacement = GuidebookSceneEntityLoader
+                .loadFromNbt(level.getOrCreateFakeWorld(), entityId, tag, runtime.playerName, runtime.playerUuid);
+            if (replacement != null) {
+                level.removeEntity(entity.getEntityId());
+                level.addEntity(replacement);
+                runtime.entityId = replacement.getEntityId();
+                return;
+            }
+        }
+        entity.readFromNBT(tag);
+        level.addEntity(entity);
+    }
+
+    @Nullable
+    private PonderEntityRuntime findPonderEntityRuntime(Entity entity) {
+        for (PonderEntityRuntime runtime : ponderEntityRefs.values()) {
+            if (runtime.entityId == entity.getEntityId()) {
+                return runtime;
+            }
+        }
+        return null;
+    }
+
+    private void applyPonderEntityTransform(NBTTagCompound tag, PonderKeyframeEntityAction action) {
+        boolean hasPosition = action.getX() != null || action.getY() != null || action.getZ() != null;
+        if (hasPosition || !tag.hasKey("Pos")) {
+            double x = action.getX() != null ? action.getX() : 0.0D;
+            double y = action.getY() != null ? action.getY() : 0.0D;
+            double z = action.getZ() != null ? action.getZ() : 0.0D;
+            tag.setTag("Pos", createDoubleList(x, y, z));
+        }
+        if (!tag.hasKey("Motion")) {
+            tag.setTag("Motion", createDoubleList(0.0D, 0.0D, 0.0D));
+        }
+        boolean hasRotation = action.getYaw() != null || action.getPitch() != null;
+        if (hasRotation || !tag.hasKey("Rotation")) {
+            float yaw = action.getYaw() != null ? action.getYaw() : 0.0F;
+            float pitch = action.getPitch() != null ? action.getPitch() : 0.0F;
+            tag.setTag("Rotation", createFloatList(yaw, pitch));
+        }
+    }
+
+    private NBTTagList createDoubleList(double... values) {
+        NBTTagList list = new NBTTagList();
+        for (double value : values) {
+            list.appendTag(new NBTTagDouble(value));
+        }
+        return list;
+    }
+
+    private NBTTagList createFloatList(float... values) {
+        NBTTagList list = new NBTTagList();
+        for (float value : values) {
+            list.appendTag(new NBTTagFloat(value));
+        }
+        return list;
+    }
+
+    private void clearPonderEntities() {
+        for (PonderEntityRuntime runtime : ponderEntityRefs.values()) {
+            level.removeEntity(runtime.entityId);
+        }
+        ponderEntityRefs.clear();
+    }
+
+    @Nullable
+    private static String trimToNull(@Nullable String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private void spawnBlockParticles(int bx, int by, int bz, Block block, int meta) {
@@ -2452,22 +4235,79 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     @Nullable
-    private TileEntity resolvePonderBlockTileEntity(PonderKeyframeBlockChange bc, @Nullable Block block) {
-        if (block == null) return null;
+    private NBTTagCompound parsePonderBlockNbt(PonderKeyframeBlockChange bc) {
         String nbtStr = bc.getNbt();
-        NBTTagCompound tag = null;
-        if (nbtStr != null && !nbtStr.isEmpty()) {
-            try {
-                tag = GuideTextNbtCodec.readTextSafeCompound(nbtStr);
-            } catch (Exception ignored) {}
+        if (nbtStr == null || nbtStr.isEmpty()) {
+            return null;
         }
-        if (tag == null && !block.hasTileEntity(bc.getMeta())) return null;
-        return GuidebookTileEntityLoader
-            .load(level.getOrCreateFakeWorld(), block, bc.getMeta(), bc.getX(), bc.getY(), bc.getZ(), tag);
+        try {
+            return GuideTextNbtCodec.readTextSafeCompound(nbtStr);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private void restorePonderBlockInfo(PonderBlockInfo info) {
+        if (info.initialBlock == null || info.initialBlock == Blocks.air) {
+            level.setBlock(info.x, info.y, info.z, Blocks.air, 0, null);
+            return;
+        }
+        GuidebookPreviewBlockPlacer.place(
+            level,
+            info.x,
+            info.y,
+            info.z,
+            info.initialBlock,
+            info.initialMeta,
+            info.initialTileNbt != null ? (NBTTagCompound) info.initialTileNbt.copy() : null,
+            GuidebookLevel.resolveBlockId(info.initialBlock));
+    }
+
+    private void placePonderBlockChange(PonderKeyframeBlockChange bc, @Nullable Block block,
+        @Nullable NBTTagCompound tileTag) {
+        if (block == null || block == Blocks.air) {
+            level.setBlock(bc.getX(), bc.getY(), bc.getZ(), Blocks.air, 0, null);
+            return;
+        }
+        GuidebookPreviewBlockPlacer.place(
+            level,
+            bc.getX(),
+            bc.getY(),
+            bc.getZ(),
+            block,
+            bc.getMeta(),
+            tileTag != null ? (NBTTagCompound) tileTag.copy() : null,
+            GuidebookLevel.resolveBlockId(block));
+    }
+
+    private static Map<String, byte[]> readPreviewSupplements(@Nullable NBTTagCompound tag) {
+        if (tag == null || !tag.hasKey(ServerPreviewSupplementNbt.TAG_ROOT, 10)) {
+            return Collections.emptyMap();
+        }
+        NBTTagCompound root = tag.getCompoundTag(ServerPreviewSupplementNbt.TAG_ROOT);
+        Map<String, byte[]> result = new LinkedHashMap<>();
+        for (String supplementId : root.func_150296_c()) {
+            byte[] payload = ServerPreviewSupplementNbt.readSupplement(tag, supplementId);
+            if (payload != null && payload.length > 0) {
+                result.put(supplementId, payload);
+            }
+        }
+        return result.isEmpty() ? Collections.emptyMap() : result;
+    }
+
+    private Map<String, byte[]> completePonderPreviewSupplements(Map<String, byte[]> explicitSupplements, int x, int y,
+        int z, @Nullable Block block, int meta) {
+        if (explicitSupplements != null && !explicitSupplements.isEmpty()) {
+            return explicitSupplements;
+        }
+        if (!Mods.AE2.isModLoaded()) {
+            return Collections.emptyMap();
+        }
+        return Ae2Helpers.capturePonderPreviewSupplements(level, x, y, z, block, meta);
     }
 
     /** Compact holder for the initial block state at a ponder-changed position. */
-    private static final class PonderBlockInfo {
+    private static class PonderBlockInfo {
 
         final int x;
         final int y;
@@ -2475,18 +4315,123 @@ public class LytGuidebookScene extends LytBlock {
         @Nullable
         final Block initialBlock;
         final int initialMeta;
+        @Nullable
+        final NBTTagCompound initialTileNbt;
+        final Map<String, byte[]> initialPreviewSupplements;
 
-        PonderBlockInfo(int x, int y, int z, @Nullable Block initialBlock, int initialMeta) {
+        PonderBlockInfo(int x, int y, int z, @Nullable Block initialBlock, int initialMeta,
+            @Nullable NBTTagCompound initialTileNbt, Map<String, byte[]> initialPreviewSupplements) {
             this.x = x;
             this.y = y;
             this.z = z;
             this.initialBlock = initialBlock;
             this.initialMeta = initialMeta;
+            this.initialTileNbt = initialTileNbt != null ? (NBTTagCompound) initialTileNbt.copy() : null;
+            this.initialPreviewSupplements = copyPreviewSupplements(initialPreviewSupplements);
         }
     }
 
-    private void drawPonderControls(RenderContext context, LytRect outerRect) {
-        int totalControlH = getBottomControlAreaHeight();
+    private static Map<String, byte[]> copyPreviewSupplements(Map<String, byte[]> source) {
+        if (source == null || source.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, byte[]> result = new LinkedHashMap<>();
+        for (Map.Entry<String, byte[]> entry : source.entrySet()) {
+            byte[] payload = entry.getValue();
+            if (entry.getKey() != null && payload != null && payload.length > 0) {
+                result.put(entry.getKey(), payload.clone());
+            }
+        }
+        return result.isEmpty() ? Collections.emptyMap() : result;
+    }
+
+    private static class PonderEntityRuntime {
+
+        private int entityId;
+        private final String entityTypeId;
+        @Nullable
+        private final String playerName;
+        @Nullable
+        private final String playerUuid;
+
+        private PonderEntityRuntime(int entityId, String entityTypeId, @Nullable String playerName,
+            @Nullable String playerUuid) {
+            this.entityId = entityId;
+            this.entityTypeId = entityTypeId;
+            this.playerName = playerName;
+            this.playerUuid = playerUuid;
+        }
+    }
+
+    public static class BlockStatsLayoutState {
+
+        private final boolean visible;
+        private final BlockStatsMode mode;
+        private final BlockStatsCorner corner;
+        private final BlockStatsDock dock;
+        private final boolean showNames;
+        private final int maxWidth;
+        private final int maxHeight;
+        private final int sceneWidth;
+        private final int sceneHeight;
+        private final int buttonColumnReserve;
+
+        public BlockStatsLayoutState(boolean visible, BlockStatsMode mode, BlockStatsCorner corner, BlockStatsDock dock,
+            boolean showNames, int maxWidth, int maxHeight, int sceneWidth, int sceneHeight, int buttonColumnReserve) {
+            this.visible = visible;
+            this.mode = mode != null ? mode : BlockStatsMode.AUTO;
+            this.corner = corner != null ? corner : BlockStatsCorner.TOP_RIGHT;
+            this.dock = dock != null ? dock : BlockStatsDock.INSIDE;
+            this.showNames = showNames;
+            this.maxWidth = Math.max(BLOCK_STATS_MIN_WIDTH, maxWidth);
+            this.maxHeight = Math.max(BLOCK_STATS_MIN_HEIGHT, maxHeight);
+            this.sceneWidth = Math.max(16, sceneWidth);
+            this.sceneHeight = Math.max(16, sceneHeight);
+            this.buttonColumnReserve = Math.max(0, buttonColumnReserve);
+        }
+
+        public boolean visible() {
+            return visible;
+        }
+
+        public BlockStatsMode mode() {
+            return mode;
+        }
+
+        public BlockStatsCorner corner() {
+            return corner;
+        }
+
+        public BlockStatsDock dock() {
+            return dock;
+        }
+
+        public boolean showNames() {
+            return showNames;
+        }
+
+        public int maxWidth() {
+            return maxWidth;
+        }
+
+        public int maxHeight() {
+            return maxHeight;
+        }
+
+        public int sceneWidth() {
+            return sceneWidth;
+        }
+
+        public int sceneHeight() {
+            return sceneHeight;
+        }
+
+        public int buttonColumnReserve() {
+            return buttonColumnReserve;
+        }
+    }
+
+    private void drawPonderControls(RenderContext context, LytRect outerRect, int totalControlH) {
         int renderRowY = outerRect.bottom() - totalControlH;
         int absRowY = lastOuterAbsY + lastOuterH - totalControlH;
 
@@ -2499,25 +4444,22 @@ public class LytGuidebookScene extends LytBlock {
         cachedPonderBtnAbsX = absBtnX;
         cachedPonderBtnAbsY = absRowY;
 
-        int[] mousePos = resolveCurrentMousePosition();
-        int mx = mousePos != null ? mousePos[0] : -1;
-        int my = mousePos != null ? mousePos[1] : -1;
-
-        GuideIconButton.Role[] btnRoles = { GuideIconButton.Role.PONDER_PREV_KEYFRAME,
-            GuideIconButton.Role.PONDER_PLAY_PAUSE, GuideIconButton.Role.PONDER_RESTART };
+        int mx = currentMousePositionAvailable ? currentMouseAbsX : -1;
+        int my = currentMousePositionAvailable ? currentMouseAbsY : -1;
 
         Minecraft mc = Minecraft.getMinecraft();
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
-        for (int i = 0; i < btnRoles.length; i++) {
+        for (int i = 0; i < PONDER_BUTTON_ROLES.length; i++) {
             int absX = absBtnX + i * btnSize;
             boolean hover = mx >= absX && mx < absX + btnSize && my >= absRowY && my < absRowY + btnSize;
-            boolean active = btnRoles[i] == GuideIconButton.Role.PONDER_PLAY_PAUSE && !ponderPaused && !ponderFinished;
+            boolean active = PONDER_BUTTON_ROLES[i] == GuideIconButton.Role.PONDER_PLAY_PAUSE && !ponderPaused
+                && !ponderFinished;
             int color = GuideIconButton.resolveIconColor(true, hover, active);
             int drawX = renderBtnX + i * btnSize;
-            GuideIconButton.drawIcon(mc, btnRoles[i], drawX, renderRowY, btnSize, btnSize, color);
+            GuideIconButton.drawIcon(mc, PONDER_BUTTON_ROLES[i], drawX, renderRowY, btnSize, btnSize, color);
         }
 
         int renderBarLeft = renderBtnX + PONDER_BTN_TOTAL_WIDTH + 2;
@@ -2587,13 +4529,15 @@ public class LytGuidebookScene extends LytBlock {
         clearCachedChannelSliderRects();
         cachedPonderBarTrackRect = null;
         cachedPonderBarHitRect = null;
-        logBottomControlState("evaluate", outerRect);
-        if (getBottomControlAreaHeight() <= 0) {
-            logBottomControlState("skip-empty", outerRect);
+        int bottomControlAreaHeight = getBottomControlAreaHeight();
+        logBottomControlState("evaluate", outerRect, bottomControlAreaHeight);
+        if (bottomControlAreaHeight <= 0) {
+            logBottomControlState("skip-empty", outerRect, bottomControlAreaHeight);
             return;
         }
+        currentMousePositionAvailable = updateCurrentMousePosition();
         if (ponderSceneData != null) {
-            drawPonderControls(context, outerRect);
+            drawPonderControls(context, outerRect, bottomControlAreaHeight);
         }
         if (!isPonderPlaying()) {
             if (hasStructureLibTierData()) {
@@ -2611,18 +4555,23 @@ public class LytGuidebookScene extends LytBlock {
     private int getBottomControlRowCount() {
         return (ponderSceneData != null ? 1 : 0) + (hasStructureLibTierData() ? 1 : 0)
             + (hasVisibleLayerSlider() ? 1 : 0)
-            + getSelectableStructureLibChannels().size();
+            + selectableStructureLibChannels.size();
     }
 
-    private int @Nullable [] resolveCurrentMousePosition() {
+    private boolean updateCurrentMousePosition() {
         try {
             Minecraft mc = Minecraft.getMinecraft();
             int scaledWidth = DisplayScale.scaledWidth();
             int scaledHeight = DisplayScale.scaledHeight();
-            return new int[] { Mouse.getX() * scaledWidth / mc.displayWidth,
-                scaledHeight - Mouse.getY() * scaledHeight / mc.displayHeight - 1 };
+            currentMouseAbsX = Mouse.getX() * scaledWidth / mc.displayWidth;
+            currentMouseAbsY = scaledHeight - Mouse.getY() * scaledHeight / mc.displayHeight - 1;
+            currentMousePositionAvailable = true;
+            return true;
         } catch (Throwable ignored) {
-            return null;
+            currentMouseAbsX = -1;
+            currentMouseAbsY = -1;
+            currentMousePositionAvailable = false;
+            return false;
         }
     }
 
@@ -2733,19 +4682,12 @@ public class LytGuidebookScene extends LytBlock {
         cachedVisibleLayerSliderHitRect = screenGeometry.hitRect();
         boolean highlighted = draggingVisibleLayerSlider;
         if (!highlighted) {
-            int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && screenGeometry.hitRect()
-                .contains(mouse[0], mouse[1]);
+            highlighted = currentMousePositionAvailable && screenGeometry.hitRect()
+                .contains(currentMouseAbsX, currentMouseAbsY);
         }
-        logSliderGeometry("visible-layer", screenGeometry, rowIndex, getVisibleLayerSliderLabel(), outerRect);
-        drawSlider(
-            context,
-            renderGeometry,
-            highlighted,
-            outerRect,
-            rowIndex,
-            getVisibleLayerSliderLabel(),
-            VISIBLE_LAYER_SLIDER_TEXT_STYLE);
+        String label = getVisibleLayerSliderLabel();
+        logSliderGeometry("visible-layer", screenGeometry, rowIndex, label, outerRect);
+        drawSlider(context, renderGeometry, highlighted, outerRect, rowIndex, label, VISIBLE_LAYER_SLIDER_TEXT_STYLE);
     }
 
     private void applyVisibleLayerSliderAt(int mouseX) {
@@ -2810,18 +4752,18 @@ public class LytGuidebookScene extends LytBlock {
         cachedTierSliderHitRect = screenGeometry.hitRect();
         boolean highlighted = draggingStructureLibTierSlider;
         if (!highlighted) {
-            int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && screenGeometry.hitRect()
-                .contains(mouse[0], mouse[1]);
+            highlighted = currentMousePositionAvailable && screenGeometry.hitRect()
+                .contains(currentMouseAbsX, currentMouseAbsY);
         }
-        logSliderGeometry("structurelib-tier", screenGeometry, rowIndex, getStructureLibTierSliderLabel(), outerRect);
+        String label = getStructureLibTierSliderLabel();
+        logSliderGeometry("structurelib-tier", screenGeometry, rowIndex, label, outerRect);
         drawSlider(
             context,
             renderGeometry,
             highlighted,
             outerRect,
             rowIndex,
-            getStructureLibTierSliderLabel(),
+            label,
             STRUCTURELIB_TIER_SLIDER_TEXT_STYLE);
     }
 
@@ -2920,15 +4862,15 @@ public class LytGuidebookScene extends LytBlock {
         boolean highlighted = channelData.getChannelId()
             .equals(draggingStructureLibChannelId);
         if (!highlighted) {
-            int[] mouse = resolveCurrentMousePosition();
-            highlighted = mouse != null && screenGeometry.hitRect()
-                .contains(mouse[0], mouse[1]);
+            highlighted = currentMousePositionAvailable && screenGeometry.hitRect()
+                .contains(currentMouseAbsX, currentMouseAbsY);
         }
+        String label = getStructureLibChannelSliderLabel(channelData);
         logSliderGeometry(
             "structurelib-channel:" + channelData.getChannelId(),
             screenGeometry,
             rowIndex,
-            getStructureLibChannelSliderLabel(channelData),
+            label,
             outerRect);
         drawSlider(
             context,
@@ -2936,7 +4878,7 @@ public class LytGuidebookScene extends LytBlock {
             highlighted,
             outerRect,
             rowIndex,
-            getStructureLibChannelSliderLabel(channelData),
+            label,
             STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE);
     }
 
@@ -2992,22 +4934,25 @@ public class LytGuidebookScene extends LytBlock {
         context.drawText(label, textX, textY, style);
     }
 
-    private void logBottomControlState(String phase, LytRect outerRect) {
+    private void logBottomControlState(String phase, LytRect outerRect, int bottomControlAreaHeight) {
         // Skip the per-frame string construction (key + describeRect + varargs boxing) entirely
         // when debug logging is disabled. logInfoOnce itself also re-checks, but only after we
         // have already paid for the formatting work.
         if (!GuideDebugLog.isEnabled()) {
             return;
         }
-        int selectableChannels = getSelectableStructureLibChannels().size();
+        int selectableChannels = selectableStructureLibChannels.size();
+        int rowCount = (ponderSceneData != null ? 1 : 0) + (hasStructureLibTierData() ? 1 : 0)
+            + (hasVisibleLayerSlider() ? 1 : 0)
+            + selectableChannels;
         GuideGregTechTileSupport.logInfoOnce(
             "scene-bottom-controls:" + Integer.toHexString(System.identityHashCode(this))
                 + ":"
                 + phase
                 + ":"
-                + getBottomControlAreaHeight()
+                + bottomControlAreaHeight
                 + ":"
-                + getBottomControlRowCount()
+                + rowCount
                 + ":"
                 + selectableChannels,
             "Scene bottom controls {}: outerRect={} bottomVisible={} visibleLayerEnabled={} visibleLayerCount={} hasVisibleLayerSlider={} hasTierSlider={} selectableChannels={} bottomAreaHeight={} rowCount={}",
@@ -3019,8 +4964,8 @@ public class LytGuidebookScene extends LytBlock {
             hasVisibleLayerSlider(),
             hasStructureLibTierData(),
             selectableChannels,
-            getBottomControlAreaHeight(),
-            getBottomControlRowCount());
+            bottomControlAreaHeight,
+            rowCount);
     }
 
     private void logSliderSkipped(String sliderId, int rowIndex, LytRect outerRect) {

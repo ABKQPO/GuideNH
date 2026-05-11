@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Configuration for a small pie chart rendered inside another chart's plot area.
@@ -89,7 +90,7 @@ public class PieInsetSpec {
     public static Position parsePosition(String raw, Position fallback) {
         if (raw == null) return fallback;
         switch (raw.trim()
-            .toLowerCase(java.util.Locale.ROOT)) {
+            .toLowerCase(Locale.ROOT)) {
             case "topright":
             case "top-right":
             case "tr":

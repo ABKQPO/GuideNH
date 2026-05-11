@@ -10,8 +10,6 @@ import net.minecraft.util.EnumChatFormatting;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
-import com.hfstudio.guidenh.compat.neicustomdiagram.NeiCustomDiagramBridge;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -19,6 +17,9 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.api.RecipeSlot;
+import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
 
 /**
  * A document block that frames and renders a single NEI recipe using the handler's own
@@ -75,26 +76,27 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     public LytNeiRecipeBox(Object handler, int recipeIndex) {
         this.handler = handler;
         this.recipeIndex = recipeIndex;
-        this.handlerName = stripFormatting(NeiRecipeLookup.lookupHandlerName(handler));
-        ItemStack stack = NeiRecipeLookup.lookupHandlerIcon(handler);
+        GuideNhIntegrationRegistry registry = GuideNhIntegrationRegistry.global();
+        this.handlerName = stripFormatting(registry.lookupRecipeHandlerName(handler));
+        ItemStack stack = registry.lookupRecipeHandlerIcon(handler);
         this.iconStack = stack;
         // Prefer an ItemStack icon when present (classic behaviour); fall back to the
         // DrawableResource the handler may have registered via HandlerInfo.setImage / .setDisplayImage.
-        Object img = stack == null ? NeiRecipeLookup.lookupHandlerImage(handler) : null;
+        Object img = stack == null ? registry.lookupRecipeHandlerImage(handler) : null;
         this.iconImage = img;
-        this.iconImageW = img != null ? Math.max(1, NeiRecipeLookup.drawableWidth(img)) : 0;
-        this.iconImageH = img != null ? Math.max(1, NeiRecipeLookup.drawableHeight(img)) : 0;
+        this.iconImageW = img != null ? Math.max(1, registry.lookupRecipeDrawableWidth(img)) : 0;
+        this.iconImageH = img != null ? Math.max(1, registry.lookupRecipeDrawableHeight(img)) : 0;
 
-        int handlerW = NeiRecipeLookup.lookupHandlerWidth(handler);
-        int handlerH = NeiRecipeLookup.lookupHandlerHeight(handler);
-        int recipeH = NeiRecipeLookup.lookupRecipeHeight(handler, recipeIndex);
+        int handlerW = registry.lookupRecipeHandlerWidth(handler);
+        int handlerH = registry.lookupRecipeHandlerHeight(handler);
+        int recipeH = registry.lookupRecipeHeight(handler, recipeIndex);
         if (handlerW <= 0) handlerW = FALLBACK_BODY_WIDTH;
         if (handlerH <= 0) handlerH = DEFAULT_BODY_HEIGHT;
 
         // Respect the handler's declared background size verbatim; tight-fitting by slot bbox
         // caused visible clipping for some handlers and was reverted.
         this.bodyWidth = handlerW;
-        this.bodyYShift = Math.max(0, NeiRecipeLookup.lookupHandlerYShift(handler));
+        this.bodyYShift = Math.max(0, registry.lookupRecipeHandlerYShift(handler));
         this.bodyTopInset = resolveBodyTopInset(
             handler.getClass()
                 .getName(),
@@ -103,7 +105,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
         int fh = Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
         this.titleHeight = Math.max(ICON_SIZE, fh) + TITLE_PAD_TOP + TITLE_PAD_BOTTOM;
-        this.otherStacksBroken = NeiRecipeLookup.otherStacksThrows(handler, recipeIndex);
+        this.otherStacksBroken = registry.recipeOtherStacksThrows(handler, recipeIndex);
     }
 
     public static String stripFormatting(String s) {
@@ -266,10 +268,8 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     }
 
     /**
-     * Draw a {@code DrawableResource} scaled to a square of {@code size} pixels, preserving aspect
-     * ratio and centering the shorter axis within the icon box. {@code nativeW}/{@code nativeH}
-     * come from {@link NeiRecipeLookup#drawableWidth}/{@code drawableHeight} so we avoid another
-     * reflective call per frame.
+     * Draw an opaque recipe handler image scaled to a square of {@code size} pixels, preserving
+     * aspect ratio and centering the shorter axis within the icon box.
      */
     public static void drawScaledImage(Object image, int x, int y, int size, int nativeW, int nativeH) {
         if (nativeW <= 0 || nativeH <= 0) return;
@@ -283,7 +283,8 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
             GL11.glTranslatef(x + offX, y + offY, 0f);
             GL11.glScalef(scale, scale, 1f);
             GL11.glColor4f(1f, 1f, 1f, 1f);
-            NeiRecipeLookup.drawHandlerImage(image, 0, 0);
+            GuideNhIntegrationRegistry.global()
+                .drawRecipeDrawable(image, 0, 0);
         } finally {
             GL11.glPopMatrix();
             // DrawableResource.draw leaves the color/texture state reasonable, but make sure no
@@ -294,7 +295,8 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
     @Override
     public Optional<GuideTooltip> getTooltip(float mx, float my) {
-        if (!NeiRecipeLookup.isAvailable()) return Optional.empty();
+        GuideNhIntegrationRegistry registry = GuideNhIntegrationRegistry.global();
+        if (!registry.isRecipeIntegrationAvailable()) return Optional.empty();
         int px = (int) mx;
         int py = (int) my;
 
@@ -308,15 +310,15 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
             return Optional.of(customDiagramTooltip);
         }
 
-        ItemStack hit = findSlotHit(NeiRecipeLookup.readIngredientSlots(handler, recipeIndex), bodyX, bodyY, px, py);
+        ItemStack hit = findSlotHit(registry.readRecipeIngredientSlots(handler, recipeIndex), bodyX, bodyY, px, py);
         if (hit == null) {
-            hit = findSlotHit(NeiRecipeLookup.readOtherSlots(handler, recipeIndex), bodyX, bodyY, px, py);
+            hit = findSlotHit(registry.readRecipeOtherSlots(handler, recipeIndex), bodyX, bodyY, px, py);
         }
         if (hit == null) {
-            NeiRecipeLookup.Slot result = NeiRecipeLookup.readResultSlot(handler, recipeIndex);
+            RecipeSlot result = registry.readRecipeResultSlot(handler, recipeIndex);
             if (result != null) {
                 ItemStack shown = pickVisibleStack(result);
-                if (shown != null && isOver(bodyX + result.relx, bodyY + result.rely, SLOT_SIZE, SLOT_SIZE, px, py)) {
+                if (shown != null && isOver(bodyX + result.x(), bodyY + result.y(), SLOT_SIZE, SLOT_SIZE, px, py)) {
                     hit = shown;
                 }
             }
@@ -325,20 +327,22 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         return Optional.of(new NeiItemTooltip(hit, handler, recipeIndex));
     }
 
-    public static @Nullable ItemStack findSlotHit(List<NeiRecipeLookup.Slot> slots, int originX, int originY, int px,
-        int py) {
-        for (NeiRecipeLookup.Slot s : slots) {
-            if (!isOver(originX + s.relx, originY + s.rely, SLOT_SIZE, SLOT_SIZE, px, py)) continue;
+    public static @Nullable ItemStack findSlotHit(List<RecipeSlot> slots, int originX, int originY, int px, int py) {
+        for (RecipeSlot s : slots) {
+            if (!isOver(originX + s.x(), originY + s.y(), SLOT_SIZE, SLOT_SIZE, px, py)) continue;
             ItemStack shown = pickVisibleStack(s);
             if (shown != null) return shown;
         }
         return null;
     }
 
-    public static @Nullable ItemStack pickVisibleStack(NeiRecipeLookup.Slot s) {
-        if (s == null || s.stacks == null || s.stacks.isEmpty()) return null;
-        for (int i = 0, n = s.stacks.size(); i < n; i++) {
-            ItemStack st = s.stacks.get(i);
+    public static @Nullable ItemStack pickVisibleStack(RecipeSlot s) {
+        if (s == null || s.stacks()
+            .isEmpty()) return null;
+        for (int i = 0, n = s.stacks()
+            .size(); i < n; i++) {
+            ItemStack st = s.stacks()
+                .get(i);
             if (st != null && st.stackSize > 0) return st;
         }
         return null;

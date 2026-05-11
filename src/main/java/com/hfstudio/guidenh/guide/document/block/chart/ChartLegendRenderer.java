@@ -12,12 +12,12 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 /**
  * Legend rendering: lay out and draw based on position (horizontal at top/bottom, vertical at left/right).
  */
-public final class ChartLegendRenderer {
+public class ChartLegendRenderer {
 
-    private ChartLegendRenderer() {}
+    protected ChartLegendRenderer() {}
 
     /** A single legend entry. */
-    public static final class LegendEntry {
+    public static class LegendEntry {
 
         public final String name;
         public final int color;
@@ -39,7 +39,7 @@ public final class ChartLegendRenderer {
     }
 
     /** Layout result for the legend and remaining plot area. */
-    public static final class Layout {
+    public static class Layout {
 
         public final List<LegendEntry> entries;
         public final ChartLegendPosition position;

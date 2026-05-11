@@ -54,7 +54,7 @@ public class InWorldAnnotationRenderer {
                 drawAll(annotations, lightDarkMode, /* occluded */ false, /* pass2 */ false);
             }
 
-            // —— Pass 2b: alwaysOnTop ——
+            // Pass 2b: alwaysOnTop.
             if (hasAlwaysOnTop) {
                 GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
                 drawAll(annotations, lightDarkMode, /* occluded */ false, /* pass2 */ true);
@@ -75,10 +75,10 @@ public class InWorldAnnotationRenderer {
             if (a instanceof InWorldBoxAnnotation box) {
                 int color = resolve(box.color(), mode, a.isHovered(), occluded);
                 drawBoxEdges(box.min(), box.max(), color, box.thickness());
-            } else if (a instanceof InWorldBlockFaceOverlayAnnotation overlay) {
+            } else if (a instanceof InWorldBoxFaceOverlayAnnotation overlay) {
                 if (!occluded) {
                     int color = resolve(overlay.color(), mode, a.isHovered(), false);
-                    drawBlockFaceOverlay(overlay, color);
+                    drawBoxFaceOverlay(overlay, color);
                 }
             } else if (a instanceof InWorldLineAnnotation line) {
                 int color = resolve(line.color(), mode, a.isHovered(), occluded);
@@ -300,35 +300,41 @@ public class InWorldAnnotationRenderer {
         quad(argb, 0f, 0f, 1f, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1);
     }
 
-    public static void drawBlockFaceOverlay(InWorldBlockFaceOverlayAnnotation overlay, int argb) {
-        float x0 = overlay.getBlockX();
-        float y0 = overlay.getBlockY();
-        float z0 = overlay.getBlockZ();
-        float x1 = x0 + 1f;
-        float y1 = y0 + 1f;
-        float z1 = z0 + 1f;
+    public static void drawBoxFaceOverlay(InWorldBoxFaceOverlayAnnotation overlay, int argb) {
+        Vector3f min = overlay.min();
+        Vector3f max = overlay.max();
+        float x0 = min.x;
+        float y0 = min.y;
+        float z0 = min.z;
+        float x1 = max.x;
+        float y1 = max.y;
+        float z1 = max.z;
         float eps = 0.002f;
 
         GL11.glBegin(GL11.GL_QUADS);
-        if (!overlay.hasGroupedNeighbor(overlay.getBlockX(), overlay.getBlockY() - 1, overlay.getBlockZ())) {
+        if (overlay.shouldDrawNegativeYFace()) {
             quad(argb, 0f, -1f, 0f, x0, y0 - eps, z0, x1, y0 - eps, z0, x1, y0 - eps, z1, x0, y0 - eps, z1);
         }
-        if (!overlay.hasGroupedNeighbor(overlay.getBlockX(), overlay.getBlockY() + 1, overlay.getBlockZ())) {
+        if (overlay.shouldDrawPositiveYFace()) {
             quad(argb, 0f, 1f, 0f, x0, y1 + eps, z0, x0, y1 + eps, z1, x1, y1 + eps, z1, x1, y1 + eps, z0);
         }
-        if (!overlay.hasGroupedNeighbor(overlay.getBlockX(), overlay.getBlockY(), overlay.getBlockZ() - 1)) {
+        if (overlay.shouldDrawNegativeZFace()) {
             quad(argb, 0f, 0f, -1f, x0, y0, z0 - eps, x0, y1, z0 - eps, x1, y1, z0 - eps, x1, y0, z0 - eps);
         }
-        if (!overlay.hasGroupedNeighbor(overlay.getBlockX(), overlay.getBlockY(), overlay.getBlockZ() + 1)) {
+        if (overlay.shouldDrawPositiveZFace()) {
             quad(argb, 0f, 0f, 1f, x0, y0, z1 + eps, x1, y0, z1 + eps, x1, y1, z1 + eps, x0, y1, z1 + eps);
         }
-        if (!overlay.hasGroupedNeighbor(overlay.getBlockX() - 1, overlay.getBlockY(), overlay.getBlockZ())) {
+        if (overlay.shouldDrawNegativeXFace()) {
             quad(argb, -1f, 0f, 0f, x0 - eps, y0, z0, x0 - eps, y0, z1, x0 - eps, y1, z1, x0 - eps, y1, z0);
         }
-        if (!overlay.hasGroupedNeighbor(overlay.getBlockX() + 1, overlay.getBlockY(), overlay.getBlockZ())) {
+        if (overlay.shouldDrawPositiveXFace()) {
             quad(argb, 1f, 0f, 0f, x1 + eps, y0, z0, x1 + eps, y1, z0, x1 + eps, y1, z1, x1 + eps, y0, z1);
         }
         GL11.glEnd();
+    }
+
+    public static void drawBlockFaceOverlay(InWorldBlockFaceOverlayAnnotation overlay, int argb) {
+        drawBoxFaceOverlay(overlay, argb);
     }
 
     public static void quad(int argb, float nx, float ny, float nz, float x1, float y1, float z1, float x2, float y2,
@@ -381,7 +387,7 @@ public class InWorldAnnotationRenderer {
      *
      * <p>
      * Labels are rendered as vertical signs standing just outside each grid edge, facing the viewer
-     * from outside the grid — matching the Ponder editor overlay style. Text scale is computed so
+     * from outside the grid, matching the Ponder editor overlay style. Text scale is computed so
      * the widest label on each axis fits within one block width, ensuring negative numbers and
      * multi-digit values never overflow their cell.
      */
@@ -452,7 +458,7 @@ public class InWorldAnnotationRenderer {
      *
      * <p>
      * The sign is upright (not flat on the ground). {@code rotateY} spins it to face outward from
-     * its grid edge: 0° faces -Z, 90° faces -X, 180° faces +Z, -90° faces +X.
+     * its grid edge: 0 degrees faces -Z, 90 degrees faces -X, 180 degrees faces +Z, -90 degrees faces +X.
      */
     private static void drawVerticalLabel(FontRenderer fr, String text, float wx, float wy, float wz, float scale,
         int textWidthPx, float rotateYDeg) {
@@ -472,7 +478,7 @@ public class InWorldAnnotationRenderer {
     /**
      * Draws a cardinal direction label lying flat on the ground plane outside a grid edge,
      * with a Ponder-style fading bar-and-dot trail. The label is rotated around Y to face
-     * outward from the correct edge, then tipped 90° around X to lie on the XZ plane.
+     * outward from the correct edge, then tipped 90 degrees around X to lie on the XZ plane.
      */
     private static void drawFloorGridDirLabel(FontRenderer fr, String text, float wx, float wy, float wz, float scale,
         float rotateYDeg) {

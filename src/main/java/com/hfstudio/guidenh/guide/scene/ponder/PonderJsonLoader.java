@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.ponder;
 
+import java.nio.charset.StandardCharsets;
+
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -50,7 +52,7 @@ public class PonderJsonLoader {
         }
 
         try {
-            String json = new String(data, "UTF-8");
+            String json = new String(data, StandardCharsets.UTF_8);
             PonderSceneData result = GSON.fromJson(json, PonderSceneData.class);
             if (result == null) {
                 errorOut[0] = "Ponder JSON is empty: " + absId;

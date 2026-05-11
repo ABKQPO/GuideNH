@@ -55,7 +55,7 @@ GuideNH 共注册了 **3 种** Forge SimpleNetworkWrapper 消息，频道名为 
 
 ## 结构放置流程（客户端 → 服务端）
 
-指南中的 `<GameScene>` 区块支持将场景内的结构"导出并放置"到真实世界中。完整流程如下：
+指南中的游戏场景（`<GameScene>`）区块支持将场景内的结构"导出并放置"到真实世界中。完整流程如下：
 
 ```
 用户点击"放置结构"
@@ -128,5 +128,5 @@ GuideNH 共注册了 **3 种** Forge SimpleNetworkWrapper 消息，频道名为 
 ## 相关页面
 
 - [安装](Installation-zh-CN)
-- [GameScene](GameScene-zh-CN)
+- [游戏场景](GameScene-zh-CN)
 - [快速开始](Getting-Started-zh-CN)

@@ -109,6 +109,22 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
         return folder;
     }
 
+    public static ResourceLocation resolveTranslatedAssetId(ResourceLocation assetId, String language) {
+        if (assetId.getResourcePath()
+            .startsWith("assets/")) {
+            return assetId;
+        }
+        return LangUtil.getTranslatedAsset(assetId, language);
+    }
+
+    public static ResourceLocation resolveGuideAssetId(ResourceLocation assetId, String folder) {
+        String path = assetId.getResourcePath();
+        if (path.startsWith("assets/") || path.startsWith(folder + "/")) {
+            return assetId;
+        }
+        return new ResourceLocation(assetId.getResourceDomain(), folder + "/" + path);
+    }
+
     @Override
     public <T extends PageIndex> T getIndex(Class<T> indexClass) {
         var index = indices.get(indexClass);
@@ -291,7 +307,7 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     /**
      * Called each client tick to pre-compile the guide's start page in the background, eliminating the 5-6 second
      * freeze on first guide open. Compilation is deferred until an active server connection is available (required for
-     * {@link com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld} creation).
+     * guidebook preview world creation).
      */
     public void tickWarmup() {
         if (startPageWarmed || pages == null) {
@@ -479,6 +495,29 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
         }
     }
 
+    public void applyEditorPage(ParsedGuidePage parsedPage) {
+        if (parsedPage == null) {
+            return;
+        }
+        ResourceLocation pageId = parsedPage.getId();
+        developmentPages.put(pageId, parsedPage);
+        synchronized (compiledPages) {
+            compiledPages.remove(parsedPage);
+        }
+        if (parsedPage.hasParseFailure()) {
+            recordParseFailure(parsedPage);
+        } else {
+            clearCompileFailure(pageId);
+            clearParseFailure(pageId);
+        }
+    }
+
+    public void rebuildEditorNavigationState() {
+        rebuildIndices();
+        navigationTree = buildNavigation();
+        refreshPageFailures();
+    }
+
     public GuideItemSettings getItemSettings() {
         return itemSettings;
     }
@@ -575,6 +614,13 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     private void clearCompileFailure(ResourceLocation pageId) {
         var failure = pageFailures.get(pageId);
         if (failure != null && !failure.parseFailure) {
+            pageFailures.remove(pageId);
+        }
+    }
+
+    private void clearParseFailure(ResourceLocation pageId) {
+        var failure = pageFailures.get(pageId);
+        if (failure != null && failure.parseFailure) {
             pageFailures.remove(pageId);
         }
     }

@@ -16,10 +16,10 @@ import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 import com.hfstudio.guidenh.guide.internal.GuideWarmupPump;
-import com.hfstudio.guidenh.network.GuideNhAe2BaseTileNetworkBatchClientHandler;
-import com.hfstudio.guidenh.network.GuideNhAe2BaseTileNetworkBatchReplyMessage;
-import com.hfstudio.guidenh.network.GuideNhAe2CableBatchClientHandler;
-import com.hfstudio.guidenh.network.GuideNhAe2CableBatchReplyMessage;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
+import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
@@ -37,21 +37,12 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
+        GuidebookLevel.setPreviewWorldFactory(GuidebookFakeWorld::new);
+        GuideNhClientIntegrationBootstrap.preInitClient();
         GuideME.initClientProxy();
         GuideNhNetwork.channel()
             .registerMessage(GuideNhClientBridgeHandler.class, GuideNhClientBridgeMessage.class, 2, Side.CLIENT);
-        GuideNhNetwork.channel()
-            .registerMessage(
-                GuideNhAe2CableBatchClientHandler.class,
-                GuideNhAe2CableBatchReplyMessage.class,
-                4,
-                Side.CLIENT);
-        GuideNhNetwork.channel()
-            .registerMessage(
-                GuideNhAe2BaseTileNetworkBatchClientHandler.class,
-                GuideNhAe2BaseTileNetworkBatchReplyMessage.class,
-                6,
-                Side.CLIENT);
+        Ae2NetworkRegistration.registerClientMessages();
     }
 
     @Override

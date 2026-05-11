@@ -7,17 +7,19 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public final class StructureExportPipeline {
+public class StructureExportPipeline {
 
     private static final Logger LOG = LogManager.getLogger("GuideNH/StructureExport");
+    private static final Comparator<StructureExportContributor> PRIORITY_COMPARATOR = Comparator
+        .comparingInt(StructureExportContributor::priority);
 
     private static final List<StructureExportContributor> CONTRIBUTORS = new CopyOnWriteArrayList<>();
 
-    private StructureExportPipeline() {}
+    protected StructureExportPipeline() {}
 
     public static void register(StructureExportContributor contributor) {
         CONTRIBUTORS.add(contributor);
-        CONTRIBUTORS.sort(Comparator.comparingInt(StructureExportContributor::priority));
+        CONTRIBUTORS.sort(PRIORITY_COMPARATOR);
     }
 
     public static void beginExport(ExportSession session) {

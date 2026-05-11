@@ -11,13 +11,13 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.compat.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.api.RecipeSlot;
 
 /**
- * Invokes {@link NeiRecipeLookup}-bound handlers to render a recipe in-place. Relies on
- * {@code TemplateRecipeHandler.drawBackground/drawForeground/drawExtras} being independent of
- * {@code GuiRecipe} state (verified against NEI source). All calls are wrapped in try-catch so a
- * misbehaving third-party handler cannot crash the guide UI.
+ * Invokes registered recipe handlers to render a recipe in-place. Relies on provider-side
+ * drawBackground/drawForeground/drawExtras calls being independent of GUI state. All calls are
+ * wrapped in try-catch so a misbehaving third-party handler cannot crash the guide UI.
  */
 public class NeiHandlerRenderer {
 
@@ -27,8 +27,8 @@ public class NeiHandlerRenderer {
 
     /**
      * Render the background / foreground / extras for {@code handler} at screen offset
-     * {@code (screenX, screenY)} and draw every {@link codechicken.nei.PositionedStack} as a 16x16
-     * item on top. Returns the stack under {@code (mouseX, mouseY)} if any, else {@code null}.
+     * {@code (screenX, screenY)} and draw every positioned stack as a 16x16 item on top. Returns
+     * the stack under {@code (mouseX, mouseY)} if any, else {@code null}.
      */
     public static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int clipX,
         int clipY, int clipWidth, int clipHeight, int mouseX, int mouseY) {
@@ -49,12 +49,13 @@ public class NeiHandlerRenderer {
     /**
      * @param skipForeground when {@code true}, skips {@code drawForeground} and {@code drawExtras}.
      *                       Pass {@code true} for handlers whose {@code getOtherStacks} is known to
-     *                       throw — those methods call GTNH-NEI's safe-wrapper internally, which
+     *                       throw; those methods call GTNH-NEI's safe-wrapper internally, which
      *                       would log "Error in getOtherStacks" spam on every rendered frame.
      */
     public static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int clipX,
         int clipY, int clipWidth, int clipHeight, int mouseX, int mouseY, boolean skipForeground) {
-        if (handler == null || !NeiRecipeLookup.isAvailable()) return null;
+        GuideNhIntegrationRegistry registry = GuideNhIntegrationRegistry.global();
+        if (handler == null || !registry.canRenderRecipeHandler(handler)) return null;
 
         // DiagramGroup is rendered from LytNeiRecipeBox with absolute-GUI scissors (tooltip-safe).
 
@@ -66,11 +67,7 @@ public class NeiHandlerRenderer {
         try {
             GL11.glTranslatef(screenX, screenY, 0f);
             GL11.glColor4f(1f, 1f, 1f, 1f);
-            NeiRecipeLookup.callDrawBackground(handler, recipeIndex);
-            if (!skipForeground) {
-                NeiRecipeLookup.callDrawForeground(handler, recipeIndex);
-                NeiRecipeLookup.callDrawExtras(handler, recipeIndex);
-            }
+            registry.renderRecipeHandler(handler, recipeIndex, skipForeground);
         } catch (Throwable ignored) {} finally {
             GL11.glPopMatrix();
         }
@@ -78,7 +75,7 @@ public class NeiHandlerRenderer {
         // Phase 2: draw every positioned stack on top.
         ItemStack hovered = null;
         hovered = drawSlots(
-            NeiRecipeLookup.readIngredientSlots(handler, recipeIndex),
+            registry.readRecipeIngredientSlots(handler, recipeIndex),
             screenX,
             screenY,
             mouseX,
@@ -86,7 +83,7 @@ public class NeiHandlerRenderer {
             hovered);
         if (!skipForeground) {
             hovered = drawSlots(
-                NeiRecipeLookup.readOtherSlots(handler, recipeIndex),
+                registry.readRecipeOtherSlots(handler, recipeIndex),
                 screenX,
                 screenY,
                 mouseX,
@@ -94,12 +91,12 @@ public class NeiHandlerRenderer {
                 hovered);
         }
 
-        NeiRecipeLookup.Slot result = NeiRecipeLookup.readResultSlot(handler, recipeIndex);
+        RecipeSlot result = registry.readRecipeResultSlot(handler, recipeIndex);
         if (result != null) {
             ItemStack shown = pickVisibleStack(result);
             if (shown != null) {
-                drawStackWithCount(shown, screenX + result.relx, screenY + result.rely);
-                if (isOver(screenX + result.relx, screenY + result.rely, mouseX, mouseY)) {
+                drawStackWithCount(shown, screenX + result.x(), screenY + result.y());
+                if (isOver(screenX + result.x(), screenY + result.y(), mouseX, mouseY)) {
                     hovered = shown;
                 }
             }
@@ -107,25 +104,30 @@ public class NeiHandlerRenderer {
         return hovered;
     }
 
-    private static @Nullable ItemStack drawSlots(List<NeiRecipeLookup.Slot> slots, int screenX, int screenY, int mouseX,
+    private static @Nullable ItemStack drawSlots(List<RecipeSlot> slots, int screenX, int screenY, int mouseX,
         int mouseY, @Nullable ItemStack currentHovered) {
         ItemStack hovered = currentHovered;
-        for (NeiRecipeLookup.Slot s : slots) {
+        for (RecipeSlot s : slots) {
             ItemStack shown = pickVisibleStack(s);
             if (shown == null) continue;
-            drawStackWithCount(shown, screenX + s.relx, screenY + s.rely);
-            if (isOver(screenX + s.relx, screenY + s.rely, mouseX, mouseY)) {
+            drawStackWithCount(shown, screenX + s.x(), screenY + s.y());
+            if (isOver(screenX + s.x(), screenY + s.y(), mouseX, mouseY)) {
                 hovered = shown;
             }
         }
         return hovered;
     }
 
-    public static @Nullable ItemStack pickVisibleStack(NeiRecipeLookup.Slot s) {
-        if (s == null || s.stacks == null || s.stacks.isEmpty()) return null;
+    public static @Nullable ItemStack pickVisibleStack(RecipeSlot s) {
+        if (s == null || s.stacks() == null
+            || s.stacks()
+                .isEmpty())
+            return null;
         ItemStack zeroCountFallback = null;
-        for (int i = 0, n = s.stacks.size(); i < n; i++) {
-            ItemStack st = s.stacks.get(i);
+        for (int i = 0, n = s.stacks()
+            .size(); i < n; i++) {
+            ItemStack st = s.stacks()
+                .get(i);
             if (st == null) continue;
             if (st.stackSize > 0) return st;
             if (zeroCountFallback == null) zeroCountFallback = st;

@@ -20,6 +20,7 @@ GuideNH ships with five interactive chart tags: `<ColumnChart>` clustered column
 * `titleColor` / `labelColor`
 * `legend` position: `none` / `top` / `bottom` / `left` / `right` (default `top`)
 * `labelPosition`: `none` / `inside` / `outside` / `above` / `below` / `center`
+* `cornerLegend`: `none` / `topRight` / `topLeft` / `bottomRight` / `bottomLeft`; compact in-plot legend for line and scatter charts
 
 Color formats: `#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`.
 
@@ -58,13 +59,13 @@ Same attributes as ColumnChart but categories are on the Y-axis.
 Categorical X:
 
 ```mdx
-<LineChart title="Temperature" categories="Mon,Tue,Wed,Thu,Fri" yAxisUnit="C">
+<LineChart title="Temperature" categories="Mon,Tue,Wed,Thu,Fri" yAxisUnit="C" cornerLegend="topRight">
   <Series name="Outdoor" data="5,8,11,9,6" color="#4E79A7"/>
   <Series name="Indoor" data="18,19,20,21,20" color="#E15759"/>
 </LineChart>
 ```
 
-<LineChart title="Temperature" categories="Mon,Tue,Wed,Thu,Fri" yAxisUnit="C">
+<LineChart title="Temperature" categories="Mon,Tue,Wed,Thu,Fri" yAxisUnit="C" cornerLegend="topRight">
   <Series name="Outdoor" data="5,8,11,9,6" color="#4E79A7"/>
   <Series name="Indoor" data="18,19,20,21,20" color="#E15759"/>
 </LineChart>
@@ -108,13 +109,13 @@ Extra: `startAngle` (default -90, i.e. 12 o'clock); `clockwise={false}` to rever
 ## ScatterChart
 
 ```mdx
-<ScatterChart title="Height-Weight" xAxisLabel="Height (cm)" yAxisLabel="Weight (kg)">
+<ScatterChart title="Height-Weight" xAxisLabel="Height (cm)" yAxisLabel="Weight (kg)" cornerLegend="bottomRight">
   <Series name="Sample A" points="160:55,165:58,170:65,175:70,180:78" color="#4E79A7"/>
   <Series name="Sample B" points="158:52,168:62,172:68,178:75" color="#59A14F"/>
 </ScatterChart>
 ```
 
-<ScatterChart title="Height-Weight" xAxisLabel="Height (cm)" yAxisLabel="Weight (kg)">
+<ScatterChart title="Height-Weight" xAxisLabel="Height (cm)" yAxisLabel="Weight (kg)" cornerLegend="bottomRight">
   <Series name="Sample A" points="160:55,165:58,170:65,175:70,180:78" color="#4E79A7"/>
   <Series name="Sample B" points="158:52,168:62,172:68,178:75" color="#59A14F"/>
 </ScatterChart>

@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Locale;
 import java.util.UUID;
 
 public class GuideStructureFileStore {
@@ -43,9 +42,25 @@ public class GuideStructureFileStore {
                 builder.append('-');
             }
         }
-        String normalized = builder.toString()
-            .toLowerCase(Locale.ROOT)
-            .replaceAll("-{2,}", "-");
+        String normalized = collapseRepeatedDashes(builder);
         return normalized.isEmpty() ? "structure" : normalized;
+    }
+
+    private static String collapseRepeatedDashes(StringBuilder source) {
+        StringBuilder collapsed = new StringBuilder(source.length());
+        boolean previousDash = false;
+        for (int index = 0; index < source.length(); index++) {
+            char value = source.charAt(index);
+            if (value == '-') {
+                if (previousDash) {
+                    continue;
+                }
+                previousDash = true;
+            } else {
+                previousDash = false;
+            }
+            collapsed.append(value);
+        }
+        return collapsed.toString();
     }
 }

@@ -8,7 +8,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
-import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuidebookTileEntityLoader {
 
@@ -19,7 +19,8 @@ public class GuidebookTileEntityLoader {
     @Nullable
     public static TileEntity load(World world, Block block, int meta, int x, int y, int z,
         @Nullable NBTTagCompound tag) {
-        TileEntity tileEntity = GuideForgeMultipartSupport.loadPreviewTile(world, block, meta, x, y, z, tag);
+        TileEntity tileEntity = GuideNhIntegrationRegistry.global()
+            .loadPreviewTileEntity(world, block, meta, x, y, z, tag);
         if (tileEntity != null) {
             bindTile(tileEntity, world, block, meta, x, y, z);
             return tileEntity;

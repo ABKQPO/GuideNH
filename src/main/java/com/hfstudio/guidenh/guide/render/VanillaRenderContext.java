@@ -285,9 +285,9 @@ public class VanillaRenderContext implements RenderContext {
             if (drawOverlay) {
                 ITEM_RENDERER.renderItemOverlayIntoGUI(fontRenderer, mc.getTextureManager(), stack, x, y);
             }
-            ITEM_RENDERER.zLevel = 0f;
             RenderHelper.disableStandardItemLighting();
         } finally {
+            ITEM_RENDERER.zLevel = 0f;
             OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glDisable(GL11.GL_LIGHTING);
@@ -324,9 +324,15 @@ public class VanillaRenderContext implements RenderContext {
             drawBorder(rect, 0xFFFF00FF, 1);
             return;
         }
+        ResourceLocation resolvedTexture = texture.getTexture();
+        if (resolvedTexture == null) {
+            fillRect(rect, 0xFF333333);
+            drawBorder(rect, 0xFFFF00FF, 1);
+            return;
+        }
         Minecraft.getMinecraft()
             .getTextureManager()
-            .bindTexture(texture.getTexture());
+            .bindTexture(resolvedTexture);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glEnable(GL11.GL_TEXTURE_2D);

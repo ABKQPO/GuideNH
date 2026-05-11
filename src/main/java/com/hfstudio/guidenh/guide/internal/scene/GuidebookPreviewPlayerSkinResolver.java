@@ -5,8 +5,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,13 +42,14 @@ public class GuidebookPreviewPlayerSkinResolver {
 
     private static final String PREVIEW_SKIN_RESOURCE_DOMAIN = "guidenh";
     private static final String PREVIEW_SKIN_RESOURCE_PATH_PREFIX = "preview-skins/";
+    private static final int MAX_RESOLVED_SKINS = 256;
     public static final ExecutorService LOOKUP_EXECUTOR = Executors
         .newSingleThreadExecutor(new GuidebookPreviewPlayerSkinThreadFactory());
-    public static final Map<String, ResolvedPreviewPlayerSkin> RESOLVED_SKINS = new ConcurrentHashMap<>();
+    public static final Map<String, ResolvedPreviewPlayerSkin> RESOLVED_SKINS = createResolvedSkinCache();
     public static final Map<String, List<WeakReference<GuidebookScenePreviewPlayerEntity>>> PENDING_ENTITIES = new ConcurrentHashMap<>();
     public static final Set<String> INFLIGHT_LOOKUPS = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    private GuidebookPreviewPlayerSkinResolver() {}
+    protected GuidebookPreviewPlayerSkinResolver() {}
 
     static void queueSkinRefresh(GuidebookScenePreviewPlayerEntity entity) {
         GameProfile currentProfile = entity.getGameProfile();
@@ -89,7 +93,7 @@ public class GuidebookPreviewPlayerSkinResolver {
     }
 
     public static void resolveSkinInBackground(String cacheKey, String playerName, GameProfile lookupProfile) {
-        ResolvedPreviewPlayerSkin resolvedSkin = resolvePreviewPlayerSkin(playerName, lookupProfile);
+        ResolvedPreviewPlayerSkin resolvedSkin = resolvePreviewPlayerSkinSafely(playerName, lookupProfile);
         Minecraft minecraft = Minecraft.getMinecraft();
         minecraft.func_152344_a(() -> applyResolvedSkinOnMainThread(cacheKey, playerName, resolvedSkin));
     }
@@ -130,6 +134,16 @@ public class GuidebookPreviewPlayerSkinResolver {
 
         GameProfile resolvedProfile = GuidebookSceneEntityLoader.lookupProfileFromRepository(playerName);
         return resolveTexturesForProfile(resolvedProfile);
+    }
+
+    @Nullable
+    private static ResolvedPreviewPlayerSkin resolvePreviewPlayerSkinSafely(String playerName,
+        GameProfile lookupProfile) {
+        try {
+            return resolvePreviewPlayerSkin(playerName, lookupProfile);
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     public static ResolvedPreviewPlayerSkin resolveTexturesForProfile(GameProfile profile) {
@@ -255,7 +269,7 @@ public class GuidebookPreviewPlayerSkinResolver {
 
     public static String normalizeCacheKey(String playerName) {
         String trimmedName = trimToNull(playerName);
-        return trimmedName == null ? null : trimmedName.toLowerCase(java.util.Locale.ROOT);
+        return trimmedName == null ? null : trimmedName.toLowerCase(Locale.ROOT);
     }
 
     public static String trimToNull(String value) {
@@ -276,7 +290,18 @@ public class GuidebookPreviewPlayerSkinResolver {
         }
     }
 
-    public static final class ResolvedPreviewPlayerSkin {
+    private static Map<String, ResolvedPreviewPlayerSkin> createResolvedSkinCache() {
+        return Collections
+            .synchronizedMap(new LinkedHashMap<String, ResolvedPreviewPlayerSkin>(MAX_RESOLVED_SKINS + 1, 0.75f, true) {
+
+                @Override
+                protected boolean removeEldestEntry(Entry<String, ResolvedPreviewPlayerSkin> eldest) {
+                    return size() > MAX_RESOLVED_SKINS;
+                }
+            });
+    }
+
+    public static class ResolvedPreviewPlayerSkin {
 
         private final GameProfile profile;
         private final MinecraftProfileTexture skinTexture;
@@ -297,7 +322,7 @@ public class GuidebookPreviewPlayerSkinResolver {
         }
     }
 
-    public static final class GuidebookPreviewPlayerSkinThreadFactory implements ThreadFactory {
+    public static class GuidebookPreviewPlayerSkinThreadFactory implements ThreadFactory {
 
         @Override
         public Thread newThread(@NotNull Runnable runnable) {

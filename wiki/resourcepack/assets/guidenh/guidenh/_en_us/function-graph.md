@@ -14,16 +14,16 @@ Desmos-style interactive function graphs. Three variants: `funcgraph` fenced blo
 
 All variants share the same panel: configurable size, X/Y range, optional grid/axes, automatic quadrant expansion, and per-curve domain limits. Hold the mouse on a curve and drag to scrub a labelled point along it; the tooltip stays anchored above the point and flips below when there is no room.
 
-Any curve given a `label` is also listed in a legend rendered just below the panel. Each entry is a small colour swatch followed by the label; entries flow left-to-right and wrap onto a new row whenever the next entry would not fit.
+Any curve given a `label` is also listed in a legend rendered just below the panel. Add `cornerLegend="topRight"` to show a compact semi-transparent legend inside the plot area instead.
 
 ## Fenced Block
 
 The first line of a `funcgraph` fence sets panel-wide attributes (`width`, `height`, `xRange=a..b` / `xMin` / `xMax` / `xStep`, `yRange` / `yMin` / `yMax` / `yStep`, `quadrants=1,2,3,4` or `all`, `title`, `background`, `border`, `axisColor`, `gridColor`, `showGrid`, `showAxes`). Each subsequent non-blank line is either an expression with optional pipe-delimited attributes, an explicit point `:x,y`, or a plot-anchored point `@plot=N atX=v` / `@plot=N atY=v`. Comments start with `#`.
 
 ```funcgraph
-width=360 height=220 xRange=-pi..pi yRange=-2..2 quadrants=all
-sin(x)        | color=#ff5566 label="sin"
-cos(x)        | color=#3399ff label="cos"
+width=360 height=220 xRange=-pi..pi yRange=-2..2 quadrants=all cornerLegend=topRight
+sin(x)        | color=#ff5566 label="sin" pointEveryX=1 autoPointLabel=x
+cos(x)        | color=#3399ff label="cos" pointEveryY=1
 x/2           | color=#88cc77 domain=-pi..pi
 :0,0
 @plot=0 atX=1.5708
@@ -34,19 +34,19 @@ x/2           | color=#88cc77 domain=-pi..pi
 The container accepts the same panel attributes as the fence header. Children are `<Plot expr="..." />` (or `<Function expr="..." />`) for curves and `<Point ... />` for marked points. Plot attributes: `expr`, `inverse={true}` to treat the expression as `x = f(y)`, `domain="a..b"` or comma-separated clauses like `x>=0, x<=pi`, `color`, `label`. Point attributes: explicit `x` + `y`, or `plot="N"` plus either `atX="v"` or `atY="v"` to anchor on a curve.
 
 ```mdx
-<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all">
-  <Plot expr="sin(x)" color="#ff5566" label="sin x"/>
+<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all" cornerLegend="topRight">
+  <Plot expr="sin(x)" color="#ff5566" label="sin x" pointEveryX="1" autoPointLabel="x"/>
   <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
-  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1"/>
+  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1" pointEveryY="1"/>
   <Point x="0" y="0"/>
   <Point plot="0" atX="1.5708"/>
 </FunctionGraph>
 ```
 
-<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all">
-  <Plot expr="sin(x)" color="#ff5566" label="sin x"/>
+<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all" cornerLegend="topRight">
+  <Plot expr="sin(x)" color="#ff5566" label="sin x" pointEveryX="1" autoPointLabel="x"/>
   <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
-  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1"/>
+  <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1" pointEveryY="1"/>
   <Point x="0" y="0"/>
   <Point plot="0" atX="1.5708"/>
 </FunctionGraph>

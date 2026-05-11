@@ -43,8 +43,8 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.guide.scene.support.GuideForgeMultipartSupport;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
+import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 
 public class GuidebookLevelRenderer {
@@ -53,6 +53,7 @@ public class GuidebookLevelRenderer {
     public static final int FULL_BRIGHTNESS = 15728880;
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
+    private final GuideEntityRenderStateResolver.ResolvedEntityRenderState entityRenderState = new GuideEntityRenderStateResolver.ResolvedEntityRenderState();
 
     // Rebind RenderBlocks only when the level instance changes.
     private RenderBlocks cachedRenderBlocks;
@@ -311,23 +312,17 @@ public class GuidebookLevelRenderer {
                             GuideGregTechTileSupport.describeTile(tileEntity));
                         GuideGregTechTileSupport.repairMetaTileBinding(tileEntity);
                     }
-                    // FMP's MultipartRenderer.renderWorldBlock requires the tile to be a TileMultipartClient
-                    // trait. Server-side TileMultipart instances (produced by createFromNBT) silently fail to
-                    // render even though tooltips and collisions still work via BlockMultipart.getTile. Promote
-                    // here as a safety net before dispatching to vanilla ISBRH.
-                    if (GuideForgeMultipartSupport.isForgeMultipartBlock(block)
-                        && GuideForgeMultipartSupport.isMultipartTileEntity(tileEntity)
-                        && !GuideForgeMultipartSupport.isClientMultipartTileEntity(tileEntity)) {
-                        TileEntity promoted = GuideForgeMultipartSupport.ensureClientMultipartTile(tileEntity);
-                        if (promoted != null && promoted != tileEntity) {
-                            level.setTileEntity(p[0], p[1], p[2], promoted);
-                            tileEntity = promoted;
-                        }
+                    TileEntity promoted = GuideNhClientIntegrationRegistry.global()
+                        .promotePreviewBlockTileEntity(block, tileEntity);
+                    if (promoted != null && promoted != tileEntity) {
+                        level.setTileEntity(p[0], p[1], p[2], promoted);
+                        tileEntity = promoted;
                     }
                     resetRenderBlocksState(rb, fakeWorld, exactLayerMode);
                     boolean rendered = rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
-                    if (!rendered && GuideForgeMultipartSupport.isForgeMultipartBlock(block)) {
-                        GuideForgeMultipartSupport.renderWorldBlock(rb, fakeWorld, block, p[0], p[1], p[2]);
+                    if (!rendered) {
+                        GuideNhClientIntegrationRegistry.global()
+                            .tryRenderPreviewWorldBlock(rb, fakeWorld, block, p[0], p[1], p[2]);
                     }
                 } catch (Throwable t) {
                     log(t);
@@ -419,7 +414,7 @@ public class GuidebookLevelRenderer {
             try {
                 preparePreviewModelLighting();
                 GuideEntityRenderStateResolver.ResolvedEntityRenderState renderState = GuideEntityRenderStateResolver
-                    .resolve(entity, partialTicks);
+                    .resolve(entity, partialTicks, entityRenderState);
                 int brightness = resolveEntityBrightnessForPreview(entity, partialTicks);
                 int lowerBits = brightness % 65536;
                 int upperBits = brightness / 65536;
@@ -431,10 +426,10 @@ public class GuidebookLevelRenderer {
                 // preview player position a second time via renderEntityStatic().
                 renderManager.renderEntityWithPosYaw(
                     entity,
-                    renderState.x,
-                    renderState.y,
-                    renderState.z,
-                    renderState.yaw,
+                    renderState.x(),
+                    renderState.y(),
+                    renderState.z(),
+                    renderState.yaw(),
                     partialTicks);
             } catch (Throwable t) {
                 log(t);

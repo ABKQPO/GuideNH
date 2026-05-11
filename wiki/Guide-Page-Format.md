@@ -6,6 +6,7 @@ GuideNH runtime pages are markdown files parsed with:
 - YAML frontmatter
 - GFM tables
 - strikethrough
+- mark highlight with `==text==`
 - GuideNH inline underline extensions: `++text++` (straight underline), `^^text^^` (wavy underline), `::text::` (emphasis dots / dotted underline)
 - MDX comments using `{/* ... */}`
 - MDX-style custom tags
@@ -17,6 +18,7 @@ GuideNH pages support the common markdown features used in the example guide:
 - headings
 - paragraphs
 - inline emphasis, bold, strike, and code
+- inline mark highlight (`==text==`)
 - inline underline (`++text++`), wavy underline (`^^text^^`), and emphasis dots (`::text::`)
 - links and images
 - literal autolinks for direct URLs, `www.` hosts, and email addresses
@@ -34,6 +36,10 @@ GuideNH pages support the common markdown features used in the example guide:
 - MDX comments in page text
 
 See `wiki/resourcepack/assets/guidenh/guidenh/_en_us/markdown.md` for a live sample page.
+
+## Highlight
+
+Use `==text==` for inline highlighted text. Use `<mark color="#8A6A00">text</mark>` when a custom highlight color is needed. The default mark background is a dark golden yellow chosen to keep white text readable.
 
 ## Code Blocks
 

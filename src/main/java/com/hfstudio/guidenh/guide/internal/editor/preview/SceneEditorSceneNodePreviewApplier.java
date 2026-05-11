@@ -9,7 +9,6 @@ import java.util.Locale;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -20,13 +19,12 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
-import com.hfstudio.guidenh.compat.structurelib.StructureLibImportRequest;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibImportResult;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
+import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
@@ -35,13 +33,19 @@ import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
-import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
+import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
+import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.RemoveBlocksExecutor;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 
 public class SceneEditorSceneNodePreviewApplier {
 
@@ -188,7 +192,7 @@ public class SceneEditorSceneNodePreviewApplier {
         }
 
         scene.setStructureLibSceneMetadata(
-            new com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata(
+            new StructureLibSceneMetadata(
                 request.getController(),
                 request.getPiece(),
                 request.getFacing(),
@@ -328,35 +332,9 @@ public class SceneEditorSceneNodePreviewApplier {
             NBTTagList entitiesTag = root.getTagList("entities", 10);
             for (int i = 0; i < entitiesTag.tagCount(); i++) {
                 NBTTagCompound et = entitiesTag.getCompoundTagAt(i);
-                String entityId = et.getString("id");
-                if (entityId.isEmpty()) continue;
-                float px = et.getFloat("px");
-                float py = et.getFloat("py");
-                float pz = et.getFloat("pz");
-                String playerName = et.hasKey("name", 8) ? et.getString("name") : null;
-                NBTTagCompound entityNbt = et.hasKey("nbt", 10) ? (NBTTagCompound) et.getCompoundTag("nbt")
-                    .copy() : new NBTTagCompound();
-                Entity entity = null;
-                try {
-                    entity = GuidebookSceneEntityLoader.loadFromNbt(fakeWorld, entityId, entityNbt, playerName, null);
-                } catch (Throwable ignored) {}
+                Entity entity = GuidebookSceneEntityImportSupport
+                    .loadImportedEntityUnclamped(fakeWorld, et, 0f, 0f, 0f);
                 if (entity != null) {
-                    entity.setPosition(px, py, pz);
-                    // Apply explicit yaw/pitch from the entry (overrides any Rotation from NBT).
-                    if (et.hasKey("yaw") || et.hasKey("pitch")) {
-                        float yaw = et.getFloat("yaw");
-                        float pitch = et.getFloat("pitch");
-                        entity.rotationYaw = yaw;
-                        entity.rotationPitch = pitch;
-                        entity.prevRotationYaw = yaw;
-                        entity.prevRotationPitch = pitch;
-                        if (entity instanceof EntityLivingBase living) {
-                            living.renderYawOffset = yaw;
-                            living.prevRenderYawOffset = yaw;
-                            living.rotationYawHead = yaw;
-                            living.prevRotationYawHead = yaw;
-                        }
-                    }
                     level.addEntity(entity);
                 }
             }
@@ -365,47 +343,56 @@ public class SceneEditorSceneNodePreviewApplier {
 
     private SceneAnnotation toRuntimeAnnotation(SceneEditorElementModel element) {
         ConstantColor color = parseColor(element.getColorLiteral());
-        switch (element.getType()) {
-            case BLOCK: {
-                Vector3f min = new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ());
-                Vector3f max = new Vector3f(
-                    element.getPrimaryX() + 1f,
-                    element.getPrimaryY() + 1f,
-                    element.getPrimaryZ() + 1f);
-                InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
-                annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                applyTooltip(annotation, element.getTooltipMarkdown());
-                return annotation;
-            }
-            case BOX: {
-                Vector3f min = new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ());
-                Vector3f max = new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ());
-                normalizeBounds(min, max);
-                InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
-                annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                applyTooltip(annotation, element.getTooltipMarkdown());
-                return annotation;
-            }
-            case LINE: {
-                InWorldLineAnnotation annotation = new InWorldLineAnnotation(
-                    new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
-                    new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ()),
-                    color,
-                    element.getThickness());
-                annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                applyTooltip(annotation, element.getTooltipMarkdown());
-                return annotation;
-            }
-            case DIAMOND:
-            default: {
-                DiamondAnnotation annotation = new DiamondAnnotation(
-                    new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
-                    color);
-                annotation.setAlwaysOnTop(element.isAlwaysOnTop());
-                applyTooltip(annotation, element.getTooltipMarkdown());
-                return annotation;
-            }
+        if (element.getType() == SceneEditorElementType.BLOCK) {
+            Vector3f min = new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ());
+            Vector3f max = new Vector3f(
+                element.getPrimaryX() + 1f,
+                element.getPrimaryY() + 1f,
+                element.getPrimaryZ() + 1f);
+            InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
+            annotation.setAlwaysOnTop(element.isAlwaysOnTop());
+            applyTooltip(annotation, element.getTooltipMarkdown());
+            return annotation;
         }
+        if (element.getType() == SceneEditorElementType.BOX) {
+            Vector3f min = new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ());
+            Vector3f max = new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ());
+            normalizeBounds(min, max);
+            InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(min, max, color, element.getThickness());
+            annotation.setAlwaysOnTop(element.isAlwaysOnTop());
+            applyTooltip(annotation, element.getTooltipMarkdown());
+            return annotation;
+        }
+        if (element.getType() == SceneEditorElementType.LINE) {
+            InWorldLineAnnotation annotation = new InWorldLineAnnotation(
+                new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
+                new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ()),
+                color,
+                element.getThickness());
+            annotation.setAlwaysOnTop(element.isAlwaysOnTop());
+            applyTooltip(annotation, element.getTooltipMarkdown());
+            return annotation;
+        }
+        if (element.getType() == SceneEditorElementType.TEXT) {
+            String text = element.getTextMarkdown();
+            TextAnnotation annotation = new TextAnnotation(
+                new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
+                text,
+                color,
+                element.getMaxWidth());
+            annotation.setBackgroundAlpha(element.getBackgroundAlpha());
+            LytParagraph paragraph = new LytParagraph();
+            PageCompiler compiler = SceneEditorTooltipCompiler.createPreviewCompiler(text);
+            compiler.compileInlineMarkdown(text, paragraph);
+            annotation.setRichContent(paragraph);
+            return annotation;
+        }
+        DiamondAnnotation annotation = new DiamondAnnotation(
+            new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()),
+            color);
+        annotation.setAlwaysOnTop(element.isAlwaysOnTop());
+        applyTooltip(annotation, element.getTooltipMarkdown());
+        return annotation;
     }
 
     private void applyTooltip(SceneAnnotation annotation, @Nullable String tooltipMarkdown) {

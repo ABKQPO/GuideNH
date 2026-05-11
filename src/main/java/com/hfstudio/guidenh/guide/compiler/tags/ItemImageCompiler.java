@@ -29,8 +29,8 @@ public class ItemImageCompiler extends FlowTagCompiler {
         img.setScale(scale);
         img.setInline(true);
 
-        // Allow MDX authors to override the default inline vertical nudge for the icon.
-        // e.g. <ItemImage id="minecraft:diamond" yOffset="0" /> to disable the upward shift.
+        // Allow MDX authors to nudge the icon after its default inline vertical centering.
+        // e.g. <ItemImage id="minecraft:diamond" yOffset="2" /> to move it down by 2px.
         String yOffRaw = el.getAttributeString("yOffset", null);
         if (yOffRaw != null && !yOffRaw.isEmpty()) {
             try {

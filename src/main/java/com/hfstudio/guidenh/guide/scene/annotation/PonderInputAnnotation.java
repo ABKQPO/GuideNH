@@ -138,8 +138,8 @@ public class PonderInputAnnotation extends OverlayAnnotation {
             GL11.glDisable(GL11.GL_TEXTURE_2D);
         }
 
-        PonderTextAnnotation.drawFilledRect(bx - 1, by - 1, bx + boxW + 1, by + boxH + 1, applyFade(0x80AAAADD, fade));
-        PonderTextAnnotation.drawFilledRect(bx, by, bx + boxW, by + boxH, applyFade(0xCC0E0E20, fade));
+        TextAnnotation.drawFilledRect(bx - 1, by - 1, bx + boxW + 1, by + boxH + 1, applyFade(0x80AAAADD, fade));
+        TextAnnotation.drawFilledRect(bx, by, bx + boxW, by + boxH, applyFade(0xCC0E0E20, fade));
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 

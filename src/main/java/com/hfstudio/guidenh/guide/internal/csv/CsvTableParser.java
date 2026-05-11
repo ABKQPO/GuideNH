@@ -3,9 +3,9 @@ package com.hfstudio.guidenh.guide.internal.csv;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class CsvTableParser {
+public class CsvTableParser {
 
-    private CsvTableParser() {}
+    protected CsvTableParser() {}
 
     public static List<List<String>> parse(String rawText) {
         String text = normalize(rawText);

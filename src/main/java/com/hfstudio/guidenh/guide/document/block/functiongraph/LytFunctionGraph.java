@@ -7,6 +7,9 @@ import java.util.Optional;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendEntry;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
@@ -50,6 +53,11 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     private static final int LEGEND_ITEM_GAP = 10;
     private static final int LEGEND_SWATCH_SIZE = 7;
     private static final int LEGEND_SWATCH_TEXT_GAP = 4;
+    private static final int AUTO_POINT_MAX_PER_PLOT = 96;
+    private static final int AUTO_POINT_MAX_TARGETS_PER_PLOT = 256;
+    private static final int AUTO_POINT_Y_SCAN_STEPS = 128;
+    private static final int AUTO_POINT_SOLVE_STEPS = 24;
+    private static final int AUTO_POINT_LABEL_GAP = 3;
 
     private static final ResolvedTextStyle TITLE_STYLE = makeStyle(0xFFE6E6E6, true);
     private static final ResolvedTextStyle AXIS_LABEL_STYLE = makeStyle(0xFFB8C2CF, false);
@@ -69,6 +77,10 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     private int gridColor = 0x33B8C2CF;
     private boolean showGrid = true;
     private boolean showAxes = true;
+    private CornerLegendPosition cornerLegendPosition = CornerLegendPosition.NONE;
+    private int cornerLegendWidth = CornerLegendRenderer.DEFAULT_WIDTH;
+    private int cornerLegendHeight = CornerLegendRenderer.DEFAULT_HEIGHT;
+    private int cornerLegendBackgroundColor = CornerLegendRenderer.DEFAULT_BACKGROUND;
 
     private double explicitXMin = Double.NaN;
     private double explicitXMax = Double.NaN;
@@ -150,6 +162,19 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         this.showAxes = showAxes;
     }
 
+    public void setCornerLegendPosition(CornerLegendPosition cornerLegendPosition) {
+        this.cornerLegendPosition = cornerLegendPosition != null ? cornerLegendPosition : CornerLegendPosition.NONE;
+    }
+
+    public void setCornerLegendSize(int width, int height) {
+        this.cornerLegendWidth = width > 0 ? width : CornerLegendRenderer.DEFAULT_WIDTH;
+        this.cornerLegendHeight = height > 0 ? height : CornerLegendRenderer.DEFAULT_HEIGHT;
+    }
+
+    public void setCornerLegendBackgroundColor(int cornerLegendBackgroundColor) {
+        this.cornerLegendBackgroundColor = cornerLegendBackgroundColor;
+    }
+
     public void setExplicitXRange(double min, double max) {
         this.explicitXMin = min;
         this.explicitXMax = max;
@@ -206,6 +231,22 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
 
     public boolean isShowAxes() {
         return showAxes;
+    }
+
+    public CornerLegendPosition getCornerLegendPosition() {
+        return cornerLegendPosition;
+    }
+
+    public int getCornerLegendWidth() {
+        return cornerLegendWidth;
+    }
+
+    public int getCornerLegendHeight() {
+        return cornerLegendHeight;
+    }
+
+    public int getCornerLegendBackgroundColor() {
+        return cornerLegendBackgroundColor;
     }
 
     public double getExplicitXMin() {
@@ -298,10 +339,12 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         }
 
         renderMarkedPoints(context, plotRect);
+        renderAutoPoints(context, plotRect);
 
         if (activePlotIndex >= 0 && activePlotIndex < plots.size()) {
             renderActiveOverlay(context, plotRect);
         }
+        renderCornerLegend(context, plotRect);
 
         if (legendHeight > 0) {
             int legendTop = plotRect.bottom() + AXIS_PAD_BOTTOM + LEGEND_GAP_ABOVE;
@@ -676,6 +719,218 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         }
     }
 
+    private void renderAutoPoints(RenderContext context, LytRect plotRect) {
+        for (FunctionPlot plot : plots) {
+            AutoPointSpec spec = plot.getAutoPointSpec();
+            if (spec == null || !spec.isEnabled()) {
+                continue;
+            }
+            int color = spec.colorInherit() ? plot.getColor() : spec.color();
+            int drawn = 0;
+            if (!Double.isNaN(spec.everyX())) {
+                drawn = renderAutoPointsEveryX(context, plotRect, plot, spec, color, drawn);
+            }
+            if (!Double.isNaN(spec.everyY()) && drawn < AUTO_POINT_MAX_PER_PLOT) {
+                renderAutoPointsEveryY(context, plotRect, plot, spec, color, drawn);
+            }
+        }
+    }
+
+    private int renderAutoPointsEveryX(RenderContext context, LytRect plotRect, FunctionPlot plot, AutoPointSpec spec,
+        int color, int drawn) {
+        if (plot.isInverse()) {
+            return renderAutoPointIntersectionsForAxis(
+                context,
+                plotRect,
+                plot,
+                spec,
+                color,
+                spec.everyX(),
+                effectiveXMin,
+                effectiveXMax,
+                true,
+                drawn);
+        }
+        double min = effectiveXMin;
+        double max = effectiveXMax;
+        double step = spec.everyX();
+        double value = Math.ceil(min / step) * step;
+        int targets = 0;
+        while (value <= max + 1e-9 && drawn < AUTO_POINT_MAX_PER_PLOT && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
+            double dataX = value;
+            double dataY = plot.evaluate(value);
+            if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode())) {
+                drawn++;
+            }
+            value += step;
+            targets++;
+        }
+        return drawn;
+    }
+
+    private int renderAutoPointsEveryY(RenderContext context, LytRect plotRect, FunctionPlot plot, AutoPointSpec spec,
+        int color, int drawn) {
+        if (plot.isInverse()) {
+            double step = spec.everyY();
+            double value = Math.ceil(effectiveYMin / step) * step;
+            int targets = 0;
+            while (value <= effectiveYMax + 1e-9 && drawn < AUTO_POINT_MAX_PER_PLOT
+                && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
+                double dataY = value;
+                double dataX = plot.evaluate(value);
+                if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode())) {
+                    drawn++;
+                }
+                value += step;
+                targets++;
+            }
+            return drawn;
+        }
+        double step = spec.everyY();
+        double value = Math.ceil(effectiveYMin / step) * step;
+        int targets = 0;
+        while (value <= effectiveYMax + 1e-9 && drawn < AUTO_POINT_MAX_PER_PLOT
+            && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
+            drawn = renderAutoPointIntersectionsForAxis(
+                context,
+                plotRect,
+                plot,
+                spec,
+                color,
+                value,
+                effectiveYMin,
+                effectiveYMax,
+                false,
+                drawn);
+            value += step;
+            targets++;
+        }
+        return drawn;
+    }
+
+    private int renderAutoPointIntersectionsForAxis(RenderContext context, LytRect plotRect, FunctionPlot plot,
+        AutoPointSpec spec, int color, double target, double targetMin, double targetMax, boolean targetX, int drawn) {
+        double independentMin = plot.isInverse() ? effectiveYMin : effectiveXMin;
+        double independentMax = plot.isInverse() ? effectiveYMax : effectiveXMax;
+        double prevIndependent = independentMin;
+        double prevValue = autoPointTargetDifference(plot, prevIndependent, target, targetX);
+        for (int i = 1; i <= AUTO_POINT_Y_SCAN_STEPS && drawn < AUTO_POINT_MAX_PER_PLOT; i++) {
+            double t = (double) i / (double) AUTO_POINT_Y_SCAN_STEPS;
+            double independent = independentMin + (independentMax - independentMin) * t;
+            double value = autoPointTargetDifference(plot, independent, target, targetX);
+            if (Double.isFinite(prevValue) && Double.isFinite(value) && prevValue * value <= 0d) {
+                double solved = solveIndependentForAxis(plot, target, targetX, prevIndependent, independent, prevValue);
+                double dataX;
+                double dataY;
+                if (plot.isInverse()) {
+                    dataY = solved;
+                    dataX = plot.evaluate(solved);
+                } else {
+                    dataX = solved;
+                    dataY = plot.evaluate(solved);
+                }
+                double targetValue = targetX ? dataX : dataY;
+                if (targetValue < targetMin - 1e-9 || targetValue > targetMax + 1e-9) {
+                    prevIndependent = independent;
+                    prevValue = value;
+                    continue;
+                }
+                if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode())) {
+                    drawn++;
+                }
+            }
+            prevIndependent = independent;
+            prevValue = value;
+        }
+        return drawn;
+    }
+
+    private double autoPointTargetDifference(FunctionPlot plot, double independent, double target, boolean targetX) {
+        double dataX = plot.isInverse() ? plot.evaluate(independent) : independent;
+        double dataY = plot.isInverse() ? independent : plot.evaluate(independent);
+        return (targetX ? dataX : dataY) - target;
+    }
+
+    private double solveIndependentForAxis(FunctionPlot plot, double target, boolean targetX, double lo, double hi,
+        double fLo) {
+        for (int i = 0; i < AUTO_POINT_SOLVE_STEPS; i++) {
+            double mid = (lo + hi) * 0.5d;
+            double fMid = autoPointTargetDifference(plot, mid, target, targetX);
+            if (!Double.isFinite(fMid) || Math.abs(fMid) < 1e-9) {
+                return mid;
+            }
+            if (fLo * fMid <= 0d) {
+                hi = mid;
+            } else {
+                lo = mid;
+                fLo = fMid;
+            }
+        }
+        return (lo + hi) * 0.5d;
+    }
+
+    private boolean drawAutoPoint(RenderContext context, LytRect plotRect, double dataX, double dataY, int color,
+        AutoPointLabelMode labelMode) {
+        if (!Double.isFinite(dataX) || !Double.isFinite(dataY)) {
+            return false;
+        }
+        float sx = (float) mapX(dataX);
+        float sy = (float) mapY(dataY);
+        if (sx < plotRect.x() - POINT_RADIUS || sx > plotRect.right() + POINT_RADIUS) {
+            return false;
+        }
+        if (sy < plotRect.y() - POINT_RADIUS || sy > plotRect.bottom() + POINT_RADIUS) {
+            return false;
+        }
+        context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF);
+        context.fillCircle(sx, sy, POINT_RADIUS, color);
+        if (labelMode != null && labelMode != AutoPointLabelMode.NONE) {
+            String label = autoPointLabel(labelMode, dataX, dataY);
+            int width = context.getStringWidth(label, TOOLTIP_BODY_STYLE);
+            int lineHeight = context.getLineHeight(TOOLTIP_BODY_STYLE);
+            int x = (int) sx + AUTO_POINT_LABEL_GAP;
+            if (x + width > plotRect.right()) {
+                x = (int) sx - width - AUTO_POINT_LABEL_GAP;
+            }
+            int y = (int) sy - lineHeight - AUTO_POINT_LABEL_GAP;
+            if (y < plotRect.y()) {
+                y = (int) sy + AUTO_POINT_LABEL_GAP;
+            }
+            context.drawText(label, x, y, TOOLTIP_BODY_STYLE);
+        }
+        return true;
+    }
+
+    private String autoPointLabel(AutoPointLabelMode labelMode, double dataX, double dataY) {
+        return switch (labelMode) {
+            case X -> formatValue(dataX);
+            case Y -> formatValue(dataY);
+            case XY -> "(" + formatValue(dataX) + ", " + formatValue(dataY) + ")";
+            case NONE -> "";
+        };
+    }
+
+    private void renderCornerLegend(RenderContext context, LytRect plotRect) {
+        if (cornerLegendPosition == CornerLegendPosition.NONE) {
+            return;
+        }
+        List<CornerLegendEntry> entries = new ArrayList<>();
+        for (FunctionPlot plot : plots) {
+            if (plot.getLabel() != null && !plot.getLabel()
+                .isEmpty()) {
+                entries.add(new CornerLegendEntry(plot.getLabel(), plot.getColor(), true));
+            }
+        }
+        CornerLegendRenderer.render(
+            context,
+            plotRect,
+            entries,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackgroundColor);
+    }
+
     private void renderActiveOverlay(RenderContext context, LytRect plotRect) {
         FunctionPlot plot = plots.get(activePlotIndex);
         double dataX = activeDataX;
@@ -961,7 +1216,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             new ConstantColor(argb),
             WhiteSpaceMode.NORMAL,
             TextAlignment.LEFT,
-            false);
+            false,
+            null);
     }
 
     @SuppressWarnings("unused")

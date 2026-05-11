@@ -181,18 +181,7 @@ public class GuideSiteSceneRuntimeExporter {
 
     @Nullable
     private Integer resolveVisibleLayerY(LytGuidebookScene scene) {
-        if (scene == null || scene.getLevel() == null
-            || scene.getLevel()
-                .isEmpty()) {
-            return null;
-        }
-        int currentLayer = scene.getCurrentVisibleLayer();
-        if (currentLayer <= 0) {
-            return null;
-        }
-        return scene.getLevel()
-            .getBounds()[1] + currentLayer
-            - 1;
+        return scene != null ? scene.getVisibleLayerYForExport() : null;
     }
 
     private byte[] encodeScene(CameraSettings camera, GuideSiteSceneTessellatorCapture.RecordingResult result)

@@ -1,75 +1,113 @@
-# GuideNH
+<p align="center">
+    <img width="690" src="./src/main/resources/assets/logo.png" alt="GuideNH" style="image-rendering: pixelated;">
+</p>
+<hr>
+<p align="center">
+    <img src="https://img.shields.io/badge/Available%20for-MC%201.7.10-c70039" alt="Supported Minecraft Version">
+    <img src="https://img.shields.io/badge/Forge-10.13.4.1614-f6a21a" alt="Supported Forge Version">
+    <img src="https://img.shields.io/badge/license-LGPL--3.0-green" alt="License">
+</p>
 
-[简体中文](README_zh.md)
+<p align="center">
+    <a href="README.md">English</a> |
+    <a href="README_zh.md">简体中文</a>
+</p>
 
-**GuideNH** is a port of GuideME to Minecraft **1.7.10** / Forge **10.13.4.1614**. It provides an in-game Markdown-driven guide system for GTNH-style modpacks.
+## **Introduction**
 
-## Features
+* <span style="color: #ff6600;">GuideNH</span> is an in-game guide framework for Minecraft **1.7.10** / Forge **10.13.4.1614**.
+* It ports and extends GuideME-style Markdown documentation for GTNH-era modpacks.
+* It is designed for authoring rich guide books directly from resource-pack style Markdown files.
 
-* Full Markdown rendering (headings, paragraphs, lists, links, images, blockquotes, code, tables via GFM)
-* Custom MDX-style tags such as `<A>`, `<Box>`, `<Color>`, `<ItemLink>`, `<Recipe>`, `<Structure>`, `<GameScene>`, `<ImportStructureLib>`, `<RemoveBlocks>`, `<BlockAnnotationTemplate>`, `<ItemGrid>`, `<KeyBind>`, and `<PlayerName>`
-* Multi-page guides discovered directly from the resource tree
-* Multi-language pages with automatic fallback (`zh_cn` -> `en_us`)
-* Item index support: hold `G` on any item to jump straight to the relevant guide page
-* Multi-block structure preview (2.5D isometric MVP, item-icon based)
-* Interactive 3D scene previews with StructureLib import, scene annotations, block cleanup tags, layer controls, and channel controls
-* F3+T resource reload picks up edited `.md` files
-* Vanilla `GuiScreen`-based UI with no ModularUI or Blaze3D dependency
+## **Features**
 
-## Getting Started
+* Markdown pages with YAML frontmatter, navigation metadata, categories, anchors, tables, footnotes, Mermaid, LaTeX, charts, and highlighted text.
+* MDX-style runtime tags such as `<ItemLink>`, `<ItemImage>`, `<Recipe>`, `<GameScene>`, `<BlockStats>`, `<Tooltip>`, `<KeyBind>`, and `<PlayerName>`.
+* Interactive 3D GameScene previews with block/entity placement, StructureLib import, Ponder playback, layer sliders, grid controls, annotations, and block statistics.
+* Live guide editing mode with split editor/preview, toolbar actions, debounced saving, external-change handling, and resource-pack page creation.
+* Multi-language guide folders with fallback, item index navigation, search, server integration, and resource reload support.
+
+## **Authors**
+
+- Programmer: `HFstudio`
+- Upstream inspiration: [GuideME](https://github.com/AppliedEnergistics/GuideME)
+
+## **License**
+
+- Code: [LGPL-3.0](LICENSE.txt)
+- Bundled third-party libraries keep their own licenses.
+
+## **Wiki**
+
+* [English Wiki](wiki/Home-en-US.md)
+* [中文 Wiki](wiki/Home-zh-CN.md)
+* [Runtime example resource pack](wiki/resourcepack)
+
+## **Quick Start**
 
 ```powershell
-gradlew spotlessApply
-gradlew build
-gradlew runClient
+.\gradlew.bat spotlessApply
+.\gradlew.bat build
+.\gradlew.bat runClient
 ```
 
-In-game:
+In game:
 
-* `/give Developer guidenh:guide` to get the demo guide book
-* Hover any item with a registered guide entry and hold `G` for about 10 ticks to jump
-* Press `F3+T` to hot-reload guide content during development
+* Use `/give Developer guidenh:guide` to get the demo guide book.
+* Hold `G` while hovering an indexed item to jump to its guide entry.
+* Press `F3+T` to reload edited guide resources.
 
-## Demo Guide Resources
+## **Authoring Example**
+
+```md
+---
+navigation:
+  title: Machines
+  parent: index.md
+author: GuideNH
+date: 2026-05-10
+---
+
+# Machines
+
+Press <KeyBind action="key.attack" /> to interact.
+
+<GameScene width="220" height="150" interactive={true}>
+  <Block id="minecraft:furnace" />
+  <BlockStats corner="topRight" maxWidth="120" maxHeight="72" />
+</GameScene>
+```
+
+## **Develop**
+
+### **Guide Folder**
 
 ```text
-wiki/resourcepack/assets/guidenh/guidenh/
+assets/<modid>/guidenh/
 |-- assets/
-|   `-- example_structure.snbt
+|   `-- shared_structure.snbt
 |-- _en_us/
 |   |-- index.md
-|   |-- rendering.md
-|   `-- structure.md
+|   `-- machines.md
 `-- _zh_cn/
     |-- index.md
-    |-- rendering.md
-    `-- structure.md
+    `-- machines.md
 ```
 
-GuideNH now discovers guide pages directly from `assets/<modid>/guidenh/_<lang>/...`, so `_manifest.json` is no longer required.
-
-The bundled `index.md` examples now cover `ImportStructureLib`, `RemoveBlocks`, and `BlockAnnotationTemplate` alongside the existing recipe, tooltip, and scene samples.
-
-## Adding Content
-
-1. Create `assets/<modid>/guidenh/_<lang>/`
-2. Add one or more `.md` pages such as `index.md`
-3. Add page-local assets beside the page, or shared assets under `assets/<modid>/guidenh/assets/`
-4. Register a guide in code when you need explicit API control, or rely on the auto-discovered `<modid>:guidenh` guide tree
+### **Register A Guide**
 
 ```java
 Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
 ```
 
-## Extending
+### **Verification**
 
-| Goal | Entry point |
-| --- | --- |
-| Custom tag | `TagCompiler` + `DefaultExtensions` |
-| Layout node | `LytBlock` / `LytFlowContent` |
-| Rendering | `MinecraftRenderContext` |
-| Hotkey | `OpenGuideHotkey` |
+```powershell
+.\gradlew.bat spotlessApply
+.\gradlew.bat build --rerun-tasks
+```
 
-## License
+## **Credits**
 
-LGPL-3.0
+GuideNH is based on ideas from [GuideME](https://github.com/AppliedEnergistics/GuideME), distributed under LGPL-3.0.
+It also uses open-source libraries including SnakeYAML, Apache Lucene, Apache Commons Lang, FlatBuffers Java, and JLaTeXMath.

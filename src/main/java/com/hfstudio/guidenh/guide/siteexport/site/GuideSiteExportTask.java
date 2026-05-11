@@ -19,12 +19,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.Language;
 import net.minecraft.client.resources.LanguageManager;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.compat.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -37,6 +36,11 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene.BlockStatsLayoutState;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene.PonderTimelineKeyframe;
+import com.hfstudio.guidenh.guide.scene.SceneBlockStatsEntry;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 
 import cpw.mods.fml.common.FMLLog;
 
@@ -48,9 +52,15 @@ public class GuideSiteExportTask {
     private static final int MAX_SCENE_STATE_VARIANTS = 256;
 
     private final Path outDir;
+    private final GuideSiteExportOptions options;
 
     public GuideSiteExportTask(Path outDir) {
+        this(outDir, GuideSiteExportOptions.DEFAULT);
+    }
+
+    public GuideSiteExportTask(Path outDir, GuideSiteExportOptions options) {
         this.outDir = outDir;
+        this.options = options != null ? options : GuideSiteExportOptions.DEFAULT;
     }
 
     public Result run() throws Exception {
@@ -145,6 +155,7 @@ public class GuideSiteExportTask {
 
                     NavigationTree navigationTree = NavigationTree.build(parsedPages);
                     GuideSiteHtmlCompiler compiler = createHtmlCompiler(
+                        assets,
                         assetExporter,
                         new GuideSiteRecipeTagRenderer(itemIconExporter, neiPhase1Exporter),
                         new GuideSiteMdxTagRenderer(
@@ -441,10 +452,14 @@ public class GuideSiteExportTask {
             assetId -> loadGuideAsset(guide, resourceManager, language, assetId));
     }
 
-    private GuideSiteHtmlCompiler createHtmlCompiler(GuideSitePageAssetExporter assetExporter,
-        GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
+    private GuideSiteHtmlCompiler createHtmlCompiler(GuideSiteAssetRegistry assets,
+        GuideSitePageAssetExporter assetExporter, GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
         GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer) {
-        return new GuideSiteHtmlCompiler(recipeTagRenderer, assetExporter::resolveImageSrc, mdxTagRenderer);
+        return new GuideSiteHtmlCompiler(
+            recipeTagRenderer,
+            assetExporter::resolveImageSrc,
+            mdxTagRenderer,
+            new GuideSiteLatexExporter(assets));
     }
 
     private byte[] loadGuideAsset(MutableGuide guide, IResourceManager resourceManager, String language,
@@ -573,7 +588,15 @@ public class GuideSiteExportTask {
             baseScene.inWorldJson(),
             baseScene.overlayJson(),
             baseScene.hoverTargetsJson(),
-            manifestPath);
+            manifestPath,
+            renderBlockStatsHtml(scene, itemIconResolver),
+            blockStatsLayoutClass(scene),
+            blockStatsLayoutStyle(scene),
+            scene.isGridButtonEnabled(),
+            scene.isGridVisible(),
+            buildGridAnnotationJson(scene),
+            scene.shouldExportBlockStats() && blockStatsButtonEnabled(scene),
+            scene.isBlockStatsVisible());
     }
 
     private GuideSiteExportedScene exportSceneState(ParsedGuidePage parsedPage, LytGuidebookScene scene,
@@ -594,12 +617,149 @@ public class GuideSiteExportTask {
             hoverTargetsJson);
     }
 
+    private String renderBlockStatsHtml(LytGuidebookScene scene, GuideSiteItemIconResolver itemIconResolver) {
+        if (scene == null || !scene.shouldExportBlockStats()) {
+            return null;
+        }
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"guide-scene-block-stats\" data-scene-block-stats>");
+        for (SceneBlockStatsEntry entry : scene.getBlockStatsEntriesForExport()) {
+            ItemStack displayStack = entry != null ? entry.copyDisplayStack() : null;
+            if (displayStack == null) {
+                continue;
+            }
+            GuideSiteExportedItem item = GuideSiteItemSupport.export(displayStack, itemIconResolver);
+            html.append("<div class=\"guide-scene-block-stat\" data-block-stat-key=\"")
+                .append(escapeAttribute(entry.getKey()))
+                .append("\">");
+            GuideSiteItemHtml.appendIcon(html, item, "guide-scene-block-stat-icon", 0.75f, true);
+            html.append("<span class=\"guide-scene-block-stat-label\">")
+                .append(escapeHtml(entry.getLabel()))
+                .append("</span><span class=\"guide-scene-block-stat-count\">x")
+                .append(entry.getCount())
+                .append("</span></div>");
+        }
+        html.append("</div>");
+        return html.toString();
+    }
+
+    private String blockStatsLayoutClass(LytGuidebookScene scene) {
+        if (scene == null || !scene.shouldExportBlockStats()) {
+            return null;
+        }
+        BlockStatsLayoutState state = scene.getBlockStatsLayoutStateForExport();
+        StringBuilder cssClass = new StringBuilder("guide-scene-export-frame--block-stats");
+        cssClass.append(" guide-scene-export-frame--block-stats-")
+            .append(
+                state.dock()
+                    .name()
+                    .toLowerCase(Locale.ROOT));
+        cssClass.append(" guide-scene-export-frame--block-stats-corner-")
+            .append(
+                state.corner()
+                    .name()
+                    .toLowerCase(Locale.ROOT)
+                    .replace('_', '-'));
+        cssClass.append(" guide-scene-export-frame--block-stats-mode-")
+            .append(
+                state.mode()
+                    .name()
+                    .toLowerCase(Locale.ROOT));
+        if (!state.visible()) {
+            cssClass.append(" guide-scene-export-frame--block-stats-hidden");
+        }
+        cssClass.append(
+            state.showNames() ? " guide-scene-export-frame--block-stats-names"
+                : " guide-scene-export-frame--block-stats-icons");
+        return cssClass.toString();
+    }
+
+    private String blockStatsLayoutStyle(LytGuidebookScene scene) {
+        if (scene == null || !scene.shouldExportBlockStats()) {
+            return null;
+        }
+        BlockStatsLayoutState state = scene.getBlockStatsLayoutStateForExport();
+        StringBuilder style = new StringBuilder();
+        appendCssPx(style, "--guide-scene-block-stats-max-width", state.maxWidth());
+        appendCssPx(style, "--guide-scene-block-stats-max-height", state.maxHeight());
+        appendCssPx(style, "--guide-scene-logical-width", state.sceneWidth());
+        appendCssPx(style, "--guide-scene-logical-height", state.sceneHeight());
+        appendCssPx(style, "--guide-scene-button-reserve", state.buttonColumnReserve());
+        return style.toString();
+    }
+
+    private void appendCssPx(StringBuilder style, String property, int value) {
+        if (style.length() > 0) {
+            style.append(';');
+        }
+        style.append(property)
+            .append(':')
+            .append(Math.max(0, value))
+            .append("px");
+    }
+
+    private boolean blockStatsButtonEnabled(LytGuidebookScene scene) {
+        if (scene == null || !scene.shouldExportBlockStats()) {
+            return false;
+        }
+        return scene.getSceneButtonColumnReserveForExport() > 0;
+    }
+
+    private String buildGridAnnotationJson(LytGuidebookScene scene) {
+        if (scene == null || scene.getLevel() == null
+            || scene.getLevel()
+                .isEmpty()) {
+            return null;
+        }
+        int[] bounds = scene.getLevel()
+            .getBounds();
+        ArrayList<Map<String, Object>> annotations = new ArrayList<>(bounds[3] - bounds[0] + bounds[5] - bounds[2] + 8);
+        float half = 0.02f;
+        float y = 0.002f;
+        int minX = bounds[0] - 1;
+        int minZ = bounds[2] - 1;
+        int maxX = bounds[3] + 2;
+        int maxZ = bounds[5] + 2;
+        for (int x = minX; x <= maxX; x++) {
+            annotations.add(buildGridLine(x - half, y, minZ, x + half, y, maxZ));
+        }
+        for (int z = minZ; z <= maxZ; z++) {
+            annotations.add(buildGridLine(minX, y, z - half, maxX, y, z + half));
+        }
+        return GSON.toJson(annotations);
+    }
+
+    private Map<String, Object> buildGridLine(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+        LinkedHashMap<String, Object> data = new LinkedHashMap<>();
+        data.put("type", "box");
+        data.put("minCorner", new float[] { Math.min(minX, maxX), Math.min(minY, maxY), Math.min(minZ, maxZ) });
+        data.put("maxCorner", new float[] { Math.max(minX, maxX), Math.max(minY, maxY), Math.max(minZ, maxZ) });
+        data.put("color", "rgba(255,255,255,0.33333334)");
+        data.put("thickness", 0.00390625f);
+        data.put("alwaysOnTop", false);
+        return data;
+    }
+
+    private String escapeAttribute(String text) {
+        return escapeHtml(text);
+    }
+
+    private String escapeHtml(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;");
+    }
+
     private String exportSceneStateManifest(ParsedGuidePage parsedPage, LytGuidebookScene scene,
         GuideSiteTemplateRegistry templates, GuideSiteAssetRegistry assets, GuideSiteSceneRuntimeExporter exporter,
         GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
         GuideSiteExportedScene baseScene) throws Exception {
         SceneStateManifestPlan plan = buildSceneStateManifestPlan(scene);
-        if (plan == null || plan.states.size() <= 1) {
+        if (plan == null || (plan.states.size() <= 1 && !plan.controls.containsKey("ponder"))) {
             return null;
         }
 
@@ -612,6 +772,9 @@ public class GuideSiteExportTask {
                 if (state.equals(initialState)) {
                     exportedVariant = baseScene;
                 } else {
+                    if (scene.hasPonderData()) {
+                        applySceneVariantState(scene, initialState, plan.channelIds);
+                    }
                     applySceneVariantState(scene, state, plan.channelIds);
                     exportedVariant = exportSceneState(
                         parsedPage,
@@ -642,11 +805,12 @@ public class GuideSiteExportTask {
     }
 
     private SceneStateManifestPlan buildSceneStateManifestPlan(LytGuidebookScene scene) {
-        if (scene == null || !scene.isInteractive()) {
+        if (scene == null || (!scene.isInteractive() && !scene.hasPonderData())) {
             return null;
         }
 
         List<Integer> visibleLayers = buildVisibleLayerStates(scene);
+        List<Integer> ponderTicks = buildPonderTickStates(scene);
         StructureLibSceneMetadata metadata = scene.getStructureLibSceneMetadata();
         List<Integer> tiers = buildTierStates(scene, metadata);
         List<StructureLibSceneMetadata.ChannelData> selectableChannels = buildSelectableChannels(metadata);
@@ -657,19 +821,19 @@ public class GuideSiteExportTask {
             channelValues.add(buildChannelStates(channelData));
         }
 
-        long variantCount = (long) visibleLayers.size() * (long) tiers.size();
+        long variantCount = (long) visibleLayers.size() * (long) ponderTicks.size() * (long) tiers.size();
         for (List<Integer> values : channelValues) {
             variantCount *= values.size();
             if (variantCount > MAX_SCENE_STATE_VARIANTS) {
-                FMLLog.getLogger()
-                    .warn(
-                        "[GuideNH] [GuideSiteExportTask] Skipping scene state manifest export because {} variants exceed limit {}.",
-                        variantCount,
-                        MAX_SCENE_STATE_VARIANTS);
+                warnSceneStateVariantLimit(variantCount);
                 return null;
             }
         }
-        if (variantCount <= 1) {
+        if (variantCount > MAX_SCENE_STATE_VARIANTS) {
+            warnSceneStateVariantLimit(variantCount);
+            return null;
+        }
+        if (variantCount <= 1 && !scene.hasPonderData()) {
             return null;
         }
 
@@ -680,6 +844,25 @@ public class GuideSiteExportTask {
             visibleLayerControl.put("allLabel", GuidebookText.SceneAll.text());
             visibleLayerControl.put("max", visibleLayers.get(visibleLayers.size() - 1));
             controls.put("visibleLayer", visibleLayerControl);
+        }
+        if (scene.hasPonderData() && !ponderTicks.isEmpty()) {
+            LinkedHashMap<String, Object> ponderControl = new LinkedHashMap<>();
+            ponderControl.put("label", "Ponder");
+            ponderControl.put("timeLabel", "Tick");
+            ponderControl.put("previousLabel", GuidebookText.PonderPrevKeyframe.text());
+            ponderControl.put("playPauseLabel", GuidebookText.PonderPlayPause.text());
+            ponderControl.put("restartLabel", GuidebookText.PonderRestart.text());
+            ponderControl.put("totalTime", scene.getPonderTotalTimeForExport());
+            ponderControl.put("ticks", new ArrayList<>(ponderTicks));
+            ArrayList<Map<String, Object>> keyframes = new ArrayList<>();
+            for (PonderTimelineKeyframe keyframe : scene.getPonderTimelineKeyframesForExport()) {
+                LinkedHashMap<String, Object> serializedKeyframe = new LinkedHashMap<>();
+                serializedKeyframe.put("time", keyframe.getTime());
+                serializedKeyframe.put("label", keyframe.getLabel());
+                keyframes.add(serializedKeyframe);
+            }
+            ponderControl.put("keyframes", keyframes);
+            controls.put("ponder", ponderControl);
         }
         if (tiers.size() > 1 && metadata != null && metadata.getTierData() != null) {
             LinkedHashMap<String, Object> tierControl = new LinkedHashMap<>();
@@ -709,21 +892,31 @@ public class GuideSiteExportTask {
         }
 
         ArrayList<SceneVariantState> states = new ArrayList<>((int) variantCount);
-        appendSceneVariantStates(states, visibleLayers, tiers, channelIds, channelValues, 0, new ArrayList<>());
+        appendSceneVariantStates(
+            states,
+            visibleLayers,
+            ponderTicks,
+            tiers,
+            channelIds,
+            channelValues,
+            0,
+            new ArrayList<>());
         return new SceneStateManifestPlan(states, channelIds, controls);
     }
 
     private void appendSceneVariantStates(List<SceneVariantState> states, List<Integer> visibleLayers,
-        List<Integer> tiers, List<String> channelIds, List<List<Integer>> channelValues, int channelIndex,
-        List<Integer> currentChannels) {
+        List<Integer> ponderTicks, List<Integer> tiers, List<String> channelIds, List<List<Integer>> channelValues,
+        int channelIndex, List<Integer> currentChannels) {
         if (channelIndex >= channelValues.size()) {
             for (Integer visibleLayer : visibleLayers) {
-                for (Integer tier : tiers) {
-                    LinkedHashMap<String, Integer> channelState = new LinkedHashMap<>(channelIds.size());
-                    for (int i = 0; i < channelIds.size(); i++) {
-                        channelState.put(channelIds.get(i), currentChannels.get(i));
+                for (Integer ponderTick : ponderTicks) {
+                    for (Integer tier : tiers) {
+                        LinkedHashMap<String, Integer> channelState = new LinkedHashMap<>(channelIds.size());
+                        for (int i = 0; i < channelIds.size(); i++) {
+                            channelState.put(channelIds.get(i), currentChannels.get(i));
+                        }
+                        states.add(new SceneVariantState(visibleLayer, ponderTick, tier, channelState));
                     }
-                    states.add(new SceneVariantState(visibleLayer, tier, channelState));
                 }
             }
             return;
@@ -734,6 +927,7 @@ public class GuideSiteExportTask {
             appendSceneVariantStates(
                 states,
                 visibleLayers,
+                ponderTicks,
                 tiers,
                 channelIds,
                 channelValues,
@@ -751,6 +945,13 @@ public class GuideSiteExportTask {
         for (String channelId : channelIds) {
             int value = state.channels.containsKey(channelId) ? state.channels.get(channelId) : 0;
             scene.setStructureLibChannelValue(channelId, value);
+        }
+        if (scene.hasPonderData()) {
+            if (state.exportState) {
+                scene.seekToTickForExport(state.ponderTick);
+            } else {
+                scene.restorePonderTickAfterExport(state.ponderTick);
+            }
         }
         scene.setVisibleLayer(state.visibleLayer);
     }
@@ -787,6 +988,41 @@ public class GuideSiteExportTask {
             layers.add(layer);
         }
         return layers;
+    }
+
+    private List<Integer> buildPonderTickStates(LytGuidebookScene scene) {
+        if (scene == null || !scene.hasPonderData()) {
+            return Collections.singletonList(0);
+        }
+        ArrayList<Integer> states = new ArrayList<>();
+        if (options.exportPonderEveryTick()) {
+            int totalTime = Math.max(0, scene.getPonderTotalTimeForExport());
+            for (int tick = 0; tick <= totalTime; tick++) {
+                states.add(tick);
+            }
+            return states.isEmpty() ? Collections.singletonList(0) : states;
+        }
+        addUniquePonderTickState(states, scene.getPonderCurrentTickForExport());
+        for (PonderTimelineKeyframe keyframe : scene.getPonderTimelineKeyframesForExport()) {
+            addUniquePonderTickState(states, keyframe.getTime());
+        }
+        addUniquePonderTickState(states, scene.getPonderTotalTimeForExport());
+        return states.isEmpty() ? Collections.singletonList(0) : states;
+    }
+
+    private void addUniquePonderTickState(List<Integer> states, int tick) {
+        int normalized = Math.max(0, tick);
+        if (!states.contains(normalized)) {
+            states.add(normalized);
+        }
+    }
+
+    private void warnSceneStateVariantLimit(long variantCount) {
+        FMLLog.getLogger()
+            .warn(
+                "[GuideNH] [GuideSiteExportTask] Skipping scene state manifest export because {} variants exceed limit {}.",
+                variantCount,
+                MAX_SCENE_STATE_VARIANTS);
     }
 
     private List<Integer> buildTierStates(LytGuidebookScene scene, StructureLibSceneMetadata metadata) {
@@ -861,13 +1097,22 @@ public class GuideSiteExportTask {
     private static final class SceneVariantState {
 
         private final int visibleLayer;
+        private final int ponderTick;
         private final int tier;
         private final LinkedHashMap<String, Integer> channels;
+        private final boolean exportState;
 
-        private SceneVariantState(int visibleLayer, int tier, LinkedHashMap<String, Integer> channels) {
+        private SceneVariantState(int visibleLayer, int ponderTick, int tier, LinkedHashMap<String, Integer> channels) {
+            this(visibleLayer, ponderTick, tier, channels, true);
+        }
+
+        private SceneVariantState(int visibleLayer, int ponderTick, int tier, LinkedHashMap<String, Integer> channels,
+            boolean exportState) {
             this.visibleLayer = Math.max(0, visibleLayer);
+            this.ponderTick = Math.max(0, ponderTick);
             this.tier = Math.max(1, tier);
             this.channels = channels != null ? new LinkedHashMap<>(channels) : new LinkedHashMap<>();
+            this.exportState = exportState;
         }
 
         private static SceneVariantState capture(LytGuidebookScene scene, List<String> channelIds) {
@@ -879,14 +1124,18 @@ public class GuideSiteExportTask {
             }
             return new SceneVariantState(
                 scene != null ? scene.getCurrentVisibleLayer() : 0,
+                scene != null ? scene.getPonderCurrentTickForExport() : 0,
                 scene != null ? scene.getStructureLibCurrentTier() : StructureLibPreviewSelection.DEFAULT_MASTER_TIER,
-                channels);
+                channels,
+                false);
         }
 
         private String key() {
             StringBuilder key = new StringBuilder();
             key.append("layer=")
                 .append(visibleLayer)
+                .append("|ponder=")
+                .append(ponderTick)
                 .append("|tier=")
                 .append(tier);
             for (Map.Entry<String, Integer> channelEntry : channels.entrySet()) {
@@ -901,6 +1150,7 @@ public class GuideSiteExportTask {
         private Map<String, Object> toMap() {
             LinkedHashMap<String, Object> state = new LinkedHashMap<>();
             state.put("visibleLayer", visibleLayer);
+            state.put("ponderTick", ponderTick);
             state.put("tier", tier);
             state.put("channels", new LinkedHashMap<>(channels));
             return state;
@@ -914,12 +1164,14 @@ public class GuideSiteExportTask {
             if (!(obj instanceof SceneVariantState other)) {
                 return false;
             }
-            return visibleLayer == other.visibleLayer && tier == other.tier && channels.equals(other.channels);
+            return visibleLayer == other.visibleLayer && ponderTick == other.ponderTick
+                && tier == other.tier
+                && channels.equals(other.channels);
         }
 
         @Override
         public int hashCode() {
-            return 31 * (31 * visibleLayer + tier) + channels.hashCode();
+            return 31 * (31 * (31 * visibleLayer + ponderTick) + tier) + channels.hashCode();
         }
     }
 

@@ -5,7 +5,6 @@ import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ResourceLocation;
@@ -152,35 +151,9 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             NBTTagList entitiesTag = root.getTagList("entities", 10);
             for (int i = 0; i < entitiesTag.tagCount(); i++) {
                 NBTTagCompound et = entitiesTag.getCompoundTagAt(i);
-                String entityId = et.getString("id");
-                if (entityId.isEmpty()) continue;
-                float px = et.getFloat("px") + offsetX;
-                float py = Math.max(0f, Math.min(et.getFloat("py") + offsetY, level.getHeight() - 1f));
-                float pz = et.getFloat("pz") + offsetZ;
-                String playerName = et.hasKey("name", 8) ? et.getString("name") : null;
-                NBTTagCompound entityNbt = et.hasKey("nbt", 10) ? (NBTTagCompound) et.getCompoundTag("nbt")
-                    .copy() : new NBTTagCompound();
-                Entity entity = null;
-                try {
-                    entity = GuidebookSceneEntityLoader.load(fakeWorld, entityId, entityNbt, playerName, null);
-                } catch (Throwable ignored) {}
+                Entity entity = GuidebookSceneEntityImportSupport
+                    .loadImportedEntity(fakeWorld, et, offsetX, offsetY, offsetZ, level.getHeight() - 1f);
                 if (entity != null) {
-                    entity.setPosition(px, py, pz);
-                    // Apply explicit yaw/pitch from the entry (overrides any Rotation from NBT).
-                    if (et.hasKey("yaw") || et.hasKey("pitch")) {
-                        float yaw = et.getFloat("yaw");
-                        float pitch = et.getFloat("pitch");
-                        entity.rotationYaw = yaw;
-                        entity.rotationPitch = pitch;
-                        entity.prevRotationYaw = yaw;
-                        entity.prevRotationPitch = pitch;
-                        if (entity instanceof EntityLivingBase living) {
-                            living.renderYawOffset = yaw;
-                            living.prevRenderYawOffset = yaw;
-                            living.rotationYawHead = yaw;
-                            living.prevRotationYawHead = yaw;
-                        }
-                    }
                     level.addEntity(entity);
                 }
             }

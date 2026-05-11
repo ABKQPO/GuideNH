@@ -32,7 +32,7 @@
 - [搜索](Search-zh-CN)
 - [图片与资源](Images-And-Assets-zh-CN)
 - [标签参考](Tags-Reference-zh-CN)
-- [GameScene](GameScene-zh-CN)
+- [游戏场景](GameScene-zh-CN)
 - [注解](Annotations-zh-CN)
 - [思索](Ponder-zh-CN)
 - [配方](Recipes-zh-CN)

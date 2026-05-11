@@ -29,7 +29,8 @@ public class DefaultStyles {
         SymbolicColor.BODY_TEXT,
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
-        false);
+        false,
+        null);
 
     public static final TextStyle BODY_TEXT = TextStyle.builder()
         .font(UNIFORM_FONT)

@@ -5,6 +5,8 @@ import java.util.Set;
 
 import net.minecraft.client.Minecraft;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -52,10 +54,11 @@ public class CommandLinkCompiler extends FlowTagCompiler {
         parent.append(link);
     }
 
-    public static TextTooltip buildTooltip(String title, String command) {
+    public static TextTooltip buildTooltip(@Nullable String title, String command) {
+        var tooltipTitle = title == null ? "" : title;
         var sb = new StringBuilder();
-        if (!title.isEmpty()) {
-            sb.append(title)
+        if (!tooltipTitle.isEmpty()) {
+            sb.append(tooltipTitle)
                 .append("\n");
         }
         var displayCmd = command.length() > 25 ? command.substring(0, 25) + "..." : command;

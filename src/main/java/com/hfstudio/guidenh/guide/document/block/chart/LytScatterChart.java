@@ -50,6 +50,18 @@ public class LytScatterChart extends LytChartBase {
     }
 
     @Override
+    protected List<CornerLegendEntry> collectCornerLegendEntries() {
+        List<CornerLegendEntry> entries = new ArrayList<>();
+        for (ChartSeries s : series) {
+            if (s.getName() != null && !s.getName()
+                .isEmpty()) {
+                entries.add(new CornerLegendEntry(s.getName(), s.getColor(), false));
+            }
+        }
+        return entries;
+    }
+
+    @Override
     protected void renderChart(RenderContext context, LytRect plotRect) {
         if (series.isEmpty()) return;
         double xMin = Double.POSITIVE_INFINITY;
