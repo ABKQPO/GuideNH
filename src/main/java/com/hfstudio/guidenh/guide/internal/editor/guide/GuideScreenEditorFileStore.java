@@ -60,6 +60,10 @@ public final class GuideScreenEditorFileStore {
             .resolve(pageFileName);
     }
 
+    public Path buildPagePathInRoot(Path root, MutableGuide guide, ResourceLocation pageId, String language) {
+        return buildPagePath(root, guide, pageId, language);
+    }
+
     public void ensurePackStructure() throws IOException {
         Files.createDirectories(packRoot);
         Files.createDirectories(resourcePacksRoot);
@@ -83,8 +87,20 @@ public final class GuideScreenEditorFileStore {
         Files.write(pagePath, text.getBytes(StandardCharsets.UTF_8));
     }
 
+    public void savePageInRoot(Path root, MutableGuide guide, ResourceLocation pageId, String language, String text)
+        throws IOException {
+        Path pagePath = buildPagePath(root, guide, pageId, language);
+        Files.createDirectories(pagePath.getParent());
+        Files.write(pagePath, text.getBytes(StandardCharsets.UTF_8));
+    }
+
     public boolean canSaveBesideSource(MutableGuide guide, @Nullable ResourceLocation sourcePageId, String language) {
         return sourcePageId != null && findWritableResourcePackRootContaining(guide, sourcePageId, language) != null;
+    }
+
+    @Nullable
+    public Path findWritablePageResourcePackRoot(MutableGuide guide, ResourceLocation pageId, String language) {
+        return findWritableResourcePackRootContaining(guide, pageId, language);
     }
 
     @Nullable
@@ -110,6 +126,16 @@ public final class GuideScreenEditorFileStore {
         @Nullable ResourceLocation sourcePageId) {
         return Files.isRegularFile(resolvePagePath(guide, pageId, language, sourcePageId))
             || resourcePageExists(guide, pageId, language);
+    }
+
+    public boolean hasPageInRoot(Path root, MutableGuide guide, ResourceLocation pageId, String language) {
+        return Files.isRegularFile(buildPagePath(root, guide, pageId, language))
+            || resourcePageExists(guide, pageId, language);
+    }
+
+    public boolean hasWritablePage(MutableGuide guide, ResourceLocation pageId, String language) {
+        Path sourcePackRoot = findWritableResourcePackRootContaining(guide, pageId, language);
+        return sourcePackRoot != null && Files.isRegularFile(buildPagePath(sourcePackRoot, guide, pageId, language));
     }
 
     private Path resolveExistingWritablePagePath(MutableGuide guide, ResourceLocation pageId, String language) {

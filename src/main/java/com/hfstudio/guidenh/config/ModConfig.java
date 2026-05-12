@@ -144,6 +144,9 @@ public class ModConfig {
         @Comment("Default author name inserted into new guide pages.")
         public String guideEditorDefaultAuthor = "GuideNH";
 
+        @Comment("Last path used by the guide editor new page dialog.")
+        public String guideEditorNewPagePath = "NewGuide.md";
+
         @Comment("How long page-wheel scrolling temporarily blocks 3D preview wheel interactions. "
             + "Value is in milliseconds. Default: 750.")
         public int sceneWheelInteractionDelayMillis = 750;

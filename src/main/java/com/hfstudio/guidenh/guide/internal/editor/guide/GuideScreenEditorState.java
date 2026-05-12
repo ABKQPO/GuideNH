@@ -5,6 +5,7 @@ import com.hfstudio.guidenh.config.ModConfig;
 public final class GuideScreenEditorState {
 
     private static final String DEFAULT_AUTHOR = "GuideNH";
+    private static final String DEFAULT_NEW_PAGE_PATH = "NewGuide.md";
 
     private GuideScreenEditorState() {}
 
@@ -56,6 +57,18 @@ public final class GuideScreenEditorState {
 
     public static void setDefaultAuthor(String author) {
         ModConfig.ui.guideEditorDefaultAuthor = author != null ? author : DEFAULT_AUTHOR;
+        ModConfig.save();
+    }
+
+    public static String getNewPagePath() {
+        String path = ModConfig.ui.guideEditorNewPagePath;
+        return path != null && !path.trim()
+            .isEmpty() ? path.trim() : DEFAULT_NEW_PAGE_PATH;
+    }
+
+    public static void setNewPagePath(String path) {
+        ModConfig.ui.guideEditorNewPagePath = path != null && !path.trim()
+            .isEmpty() ? path.trim() : DEFAULT_NEW_PAGE_PATH;
         ModConfig.save();
     }
 

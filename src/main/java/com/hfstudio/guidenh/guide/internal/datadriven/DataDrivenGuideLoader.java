@@ -29,7 +29,7 @@ public class DataDrivenGuideLoader {
 
     public static final String AUTO_GUIDE_FOLDER = "guidenh";
     public static final String LANGUAGE_FOLDER_PREFIX = "_";
-    public static final ResourceLocation MERGED_GUIDE_ID = new ResourceLocation("guidenh", "guide");
+    public static final ResourceLocation MERGED_GUIDE_ID = new ResourceLocation("guidenh", AUTO_GUIDE_FOLDER);
 
     private DataDrivenGuideLoader() {}
 

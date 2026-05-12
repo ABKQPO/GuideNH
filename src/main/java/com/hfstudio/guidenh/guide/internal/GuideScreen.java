@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.internal;
 
 import java.awt.Desktop;
 import java.net.URI;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
@@ -70,6 +71,7 @@ import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorContext
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorFileStore;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorLayoutMode;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorMerge;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorNewPagePrompt;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorState;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorTextActions;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorUndoHistory;
@@ -229,6 +231,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private String guideEditorDraftSource;
     @Nullable
     private String guideEditorSavedSource;
+    private boolean guideEditorExternalFileCheckEnabled;
     private boolean guideEditorDirty;
     private boolean guideEditorPreviewDirty = true;
     private long guideEditorNextSaveAtMillis;
@@ -548,23 +551,48 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             return;
         }
 
+        mc.displayGuiScreen(
+            new GuideScreenEditorNewPagePrompt(
+                this,
+                GuideScreenEditorState.getNewPagePath(),
+                new GuideScreenEditorNewPagePrompt.Callback() {
+
+                    @Override
+                    public void create(String path) {
+                        mc.displayGuiScreen(GuideScreen.this);
+                        createGuideEditorPageAtPath(path);
+                    }
+
+                    @Override
+                    public void cancel() {}
+                }));
+    }
+
+    private void createGuideEditorPageAtPath(String requestedPath) {
+        if (!isGuideEditorActive()) {
+            return;
+        }
+        ParsedGuidePage currentParsedPage = guide.getParsedPage(currentAnchor.pageId());
+        if (currentParsedPage == null) {
+            return;
+        }
+
         String language = currentParsedPage.getLanguage();
         String titleText = resolveGuideEditorNewPageTitle();
         ResourceLocation parentId = resolveGuideEditorNewPageParent(currentParsedPage);
-        ResourceLocation sourcePageId = resolveGuideEditorNewPageSource(currentParsedPage);
-        ResourceLocation newPageId = resolveGuideEditorNewPageId(language, sourcePageId);
         String pageText = buildGuideEditorNewPageText(titleText, parentId);
-        boolean canApplyImmediately = guideEditorFileStore.canSaveBesideSource(guide, sourcePageId, language);
+        Path sourceRoot = guideEditorFileStore
+            .findWritablePageResourcePackRoot(guide, currentParsedPage.getId(), language);
+        if (sourceRoot == null) {
+            FMLLog.warning("Failed to create guide editor page because current page has no writable resource pack");
+            return;
+        }
 
         try {
-            guideEditorFileStore.savePage(guide, newPageId, language, pageText, sourcePageId);
-            if (!canApplyImmediately) {
-                FMLLog.info(
-                    "Created guide editor page {} in fallback resource pack {}. Enable that resource pack to load it.",
-                    newPageId,
-                    guideEditorFileStore.getPackRoot());
-                return;
-            }
+            String normalizedPath = normalizeGuideEditorNewPagePath(requestedPath);
+            GuideScreenEditorState.setNewPagePath(normalizedPath);
+            ResourceLocation newPageId = resolveGuideEditorNewPageId(language, sourceRoot, normalizedPath);
+            guideEditorFileStore.savePageInRoot(sourceRoot, guide, newPageId, language, pageText);
             ParsedGuidePage parsedNewPage = PageCompiler
                 .parse(currentParsedPage.getSourcePack(), language, newPageId, pageText);
             applyGuideEditorPageWithoutReload(parsedNewPage);
@@ -573,24 +601,62 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             refreshGuideEditorDraft(true);
             rebuildToolbar();
         } catch (Throwable t) {
-            FMLLog.warning("Failed to create guide editor page {}", newPageId, t);
+            FMLLog.warning("Failed to create guide editor page from path {}", requestedPath, t);
         }
     }
 
-    private ResourceLocation resolveGuideEditorNewPageId(String language, @Nullable ResourceLocation sourcePageId) {
-        String sourcePath = currentAnchor.pageId()
-            .getResourcePath();
-        int slash = sourcePath.lastIndexOf('/');
-        String folder = slash >= 0 ? sourcePath.substring(0, slash) : "";
-        String baseName = "new_guide";
-        String candidate = folder.isEmpty() ? baseName + ".md" : folder + "/" + baseName + ".md";
+    private ResourceLocation resolveGuideEditorNewPageId(String language, Path sourceRoot, String normalizedPath) {
+        String candidate = normalizedPath;
         int index = 2;
-        while (guideEditorFileStore
-            .hasPage(guide, new ResourceLocation(guide.getDefaultNamespace(), candidate), language, sourcePageId)) {
-            String suffix = "-" + index++;
-            candidate = folder.isEmpty() ? baseName + suffix + ".md" : folder + "/" + baseName + suffix + ".md";
+        ResourceLocation candidateId = new ResourceLocation(guide.getDefaultNamespace(), candidate);
+        while (guideEditorFileStore.hasPageInRoot(sourceRoot, guide, candidateId, language)) {
+            candidate = addWindowsStyleCopySuffix(normalizedPath, index++);
+            candidateId = new ResourceLocation(guide.getDefaultNamespace(), candidate);
         }
-        return new ResourceLocation(guide.getDefaultNamespace(), candidate);
+        return candidateId;
+    }
+
+    private String normalizeGuideEditorNewPagePath(String requestedPath) {
+        String path = requestedPath != null ? requestedPath.trim()
+            .replace('\\', '/') : "";
+        if (path.isEmpty()) {
+            return "NewGuide.md";
+        }
+        while (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        while (path.contains("//")) {
+            path = path.replace("//", "/");
+        }
+        if (path.contains(":") || path.equals("..") || path.startsWith("../") || path.contains("/../")) {
+            throw new IllegalArgumentException("Invalid guide page path: " + requestedPath);
+        }
+        if (path.endsWith("/")) {
+            return path + "NewGuide.md";
+        }
+        int slash = path.lastIndexOf('/');
+        String lastSegment = slash >= 0 ? path.substring(slash + 1) : path;
+        if (!lastSegment.contains(".")) {
+            return path + "/NewGuide.md";
+        }
+        if (!path.endsWith(".md")) {
+            return path + ".md";
+        }
+        return path;
+    }
+
+    private String addWindowsStyleCopySuffix(String path, int index) {
+        int slash = path.lastIndexOf('/');
+        String folder = slash >= 0 ? path.substring(0, slash + 1) : "";
+        String fileName = slash >= 0 ? path.substring(slash + 1) : path;
+        String baseName = fileName;
+        String extension = "";
+        int dot = fileName.lastIndexOf('.');
+        if (dot > 0) {
+            baseName = fileName.substring(0, dot);
+            extension = fileName.substring(dot);
+        }
+        return folder + baseName + " (" + index + ")" + extension;
     }
 
     private ResourceLocation resolveGuideEditorNewPageParent(ParsedGuidePage currentParsedPage) {
@@ -604,19 +670,6 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 .parent();
         }
         return guide.getStartPage();
-    }
-
-    private ResourceLocation resolveGuideEditorNewPageSource(ParsedGuidePage currentParsedPage) {
-        if (currentParsedPage.getFrontmatter() != null && currentParsedPage.getFrontmatter()
-            .navigationEntry() != null
-            && currentParsedPage.getFrontmatter()
-                .navigationEntry()
-                .parent() != null) {
-            return currentParsedPage.getFrontmatter()
-                .navigationEntry()
-                .parent();
-        }
-        return currentParsedPage.getId();
     }
 
     private String resolveGuideEditorNewPageTitle() {
@@ -666,6 +719,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             guideEditorDraftSource = null;
             guideEditorDraftPage = null;
             guideEditorPreviewPage = null;
+            guideEditorExternalFileCheckEnabled = false;
             return;
         }
 
@@ -682,6 +736,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         guideEditorDraftPage = parsedPage;
         guideEditorDraftSource = text;
         guideEditorSavedSource = text;
+        guideEditorExternalFileCheckEnabled = guideEditorFileStore
+            .hasWritablePage(guide, currentAnchor.pageId(), parsedPage.getLanguage());
         guideEditorDirty = false;
         guideEditorPreviewDirty = true;
         guideEditorNextSaveAtMillis = 0L;
@@ -903,6 +959,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             guideEditorDirty = false;
             guideEditorPreviewDirty = true;
             guideEditorDraftPage = parsedDraft;
+            guideEditorExternalFileCheckEnabled = guideEditorFileStore
+                .hasWritablePage(guide, currentAnchor.pageId(), parsedDraft.getLanguage());
             guideEditorNextSaveAtMillis = 0L;
             guideEditorNextPreviewCompileAtMillis = 0L;
             guideEditorNextExternalCheckAtMillis = System.currentTimeMillis() + 250L;
@@ -913,7 +971,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     }
 
     private void pollGuideEditorExternalChanges() {
-        if (!isGuideEditorActive() || guideEditorDraftPage == null) {
+        if (!isGuideEditorActive() || guideEditorDraftPage == null || !guideEditorExternalFileCheckEnabled) {
             return;
         }
         long now = System.currentTimeMillis();
@@ -927,7 +985,11 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
         String externalSource = guideEditorFileStore
             .readPageText(guide, currentAnchor.pageId(), guideEditorDraftPage.getLanguage());
-        if (externalSource == null || Objects.equals(externalSource, guideEditorDraftSource)
+        if (externalSource == null) {
+            guideEditorExternalFileCheckEnabled = false;
+            return;
+        }
+        if (Objects.equals(externalSource, guideEditorDraftSource)
             || Objects.equals(externalSource, guideEditorSavedSource)) {
             return;
         }
@@ -966,6 +1028,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
         guideEditorDraftSource = safeSource;
         guideEditorSavedSource = safeSource;
+        guideEditorExternalFileCheckEnabled = guideEditorFileStore
+            .hasWritablePage(guide, currentAnchor.pageId(), guideEditorDraftPage.getLanguage());
         guideEditorDirty = false;
         guideEditorPreviewDirty = true;
         guideEditorNextSaveAtMillis = 0L;
@@ -3916,6 +3980,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         guideEditorDraftPage = null;
         guideEditorDraftSource = null;
         guideEditorSavedSource = null;
+        guideEditorExternalFileCheckEnabled = false;
         guideEditorTextArea = null;
         guideEditorContextMenu = null;
         cachedGuideEditorPreviewInteractionState = null;
