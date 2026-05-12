@@ -366,7 +366,12 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
 
         try {
-            BuildAttemptResult buildResult = buildConstructable(constructable, triggerStack, fakePlayer, selection);
+            BuildAttemptResult buildResult = buildConstructable(
+                constructable,
+                triggerStack,
+                fakePlayer,
+                selection,
+                warnings);
             if (!buildResult.success) {
                 context.clear();
                 return BuildSnapshot.failure(buildResult.errorMessage);
@@ -559,10 +564,37 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     public static BuildAttemptResult buildConstructable(IConstructable constructable, ItemStack triggerStack,
-        PreviewFakePlayer fakePlayer, StructureLibPreviewSelection selection) {
+        PreviewFakePlayer fakePlayer, StructureLibPreviewSelection selection, List<String> warnings) {
         boolean useSurvivalConstruct = selection != null
             && selection.isIntegrationOptionEnabled(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION);
         if (useSurvivalConstruct && constructable instanceof ISurvivalConstructable survivalConstructable) {
+            boolean fillEmptyHatchesOnly = selection
+                .isIntegrationOptionEnabled(StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION);
+            if (fillEmptyHatchesOnly) {
+                constructable.construct(triggerStack.copy(), false);
+                ItemStack hatchTriggerStack = triggerStack.copy();
+                enablePreviewHatchPlacement(hatchTriggerStack, selection);
+                BuildAttemptResult result = runSurvivalConstruct(
+                    survivalConstructable,
+                    hatchTriggerStack,
+                    fakePlayer,
+                    warnings);
+                if (!result.success && warnings != null) {
+                    warnings.add(result.errorMessage + " Keeping the normal StructureLib construct() result.");
+                }
+                return BuildAttemptResult.success();
+            }
+            BuildAttemptResult result = runSurvivalConstruct(survivalConstructable, triggerStack, fakePlayer, warnings);
+            return result.success ? result
+                : fallbackToCreativeConstruct(constructable, triggerStack, warnings, result.errorMessage);
+        }
+        constructable.construct(triggerStack.copy(), false);
+        return BuildAttemptResult.success();
+    }
+
+    private static BuildAttemptResult runSurvivalConstruct(ISurvivalConstructable survivalConstructable,
+        ItemStack triggerStack, PreviewFakePlayer fakePlayer, List<String> warnings) {
+        try {
             ISurvivalBuildEnvironment environment = ISurvivalBuildEnvironment
                 .create(StructureLibPreviewItemSource.create(), fakePlayer);
             int rounds = 0;
@@ -581,9 +613,28 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             }
             return BuildAttemptResult
                 .failure("StructureLib survival construct did not finish within the export budget.");
+        } catch (Throwable t) {
+            return BuildAttemptResult
+                .failure("StructureLib survival construct failed: " + sanitizeMessage(t.getMessage()));
+        }
+    }
+
+    private static BuildAttemptResult fallbackToCreativeConstruct(IConstructable constructable, ItemStack triggerStack,
+        List<String> warnings, String reason) {
+        if (warnings != null) {
+            warnings.add(reason + " Falling back to normal StructureLib construct().");
         }
         constructable.construct(triggerStack.copy(), false);
         return BuildAttemptResult.success();
+    }
+
+    private static void enablePreviewHatchPlacement(ItemStack triggerStack, StructureLibPreviewSelection selection) {
+        for (StructureLibPreviewItemProvider provider : StructureLibControllerIntegrationRegistry.global()
+            .previewItemProviders()) {
+            provider.configureTrigger(
+                triggerStack,
+                selection.withIntegrationOption(StructureLibPreviewSelection.FORCE_HATCH_PLACEMENT_OPTION, true));
+        }
     }
 
     public static void synchronizePreviewState(TileEntity controllerTile, ItemStack triggerStack,

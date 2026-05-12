@@ -48,7 +48,10 @@ public class StructureLibSceneBuilder {
         StructureLibPreviewSelection selection = new StructureLibPreviewSelection(task.getTier(), task.getChannels())
             .withIntegrationOption(GREGTECH_ACTIVE_CONTROLLER_OPTION, task.isGtActiveController())
             .withIntegrationOption(GREGTECH_PLACE_HATCHES_OPTION, task.isGtPlaceHatches())
-            .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, useSurvivalConstruct);
+            .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, useSurvivalConstruct)
+            .withIntegrationOption(
+                StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION,
+                useSurvivalConstruct && !task.isGtPlaceHatches());
         StructureLibImportRequest request = new StructureLibImportRequest(
             task.getController()
                 .getControllerArgument(),

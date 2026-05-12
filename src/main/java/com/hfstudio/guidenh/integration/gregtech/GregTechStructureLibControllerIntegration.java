@@ -110,7 +110,8 @@ public class GregTechStructureLibControllerIntegration implements StructureLibCo
 
     @Override
     public void configureTrigger(ItemStack triggerStack, StructureLibPreviewSelection selection) {
-        if (selection != null && selection.isIntegrationOptionEnabled(PLACE_HATCHES_OPTION)) {
+        if (selection != null && (selection.isIntegrationOptionEnabled(PLACE_HATCHES_OPTION)
+            || selection.isIntegrationOptionEnabled(StructureLibPreviewSelection.FORCE_HATCH_PLACEMENT_OPTION))) {
             GregTechHelpers.enableHatchPreviewChannel(triggerStack);
         }
     }
