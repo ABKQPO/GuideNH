@@ -11,7 +11,7 @@ public class GuideNhServerHelloHandler implements IMessageHandler<GuideNhServerH
     @Override
     public IMessage onMessage(GuideNhServerHelloMessage message, MessageContext ctx) {
         GuideNhStructureRuntime.setServerStructureCommandsAvailable(true);
-        GuideNhStructureRuntime.setClientStructureSyncNeeded(true);
+        GuideNhStructureRuntime.setClientStructureSyncNeeded(false);
         return null;
     }
 }

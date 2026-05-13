@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.network;
 
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChatComponentTranslation;
 
@@ -14,6 +17,8 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 
 public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhStructureRequestMessage, IMessage> {
 
+    private static final ConcurrentHashMap<TransferKey, GuideNhStructureChunkAssembler> CHUNK_TRANSFERS = new ConcurrentHashMap<>();
+
     @Override
     public IMessage onMessage(GuideNhStructureRequestMessage message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().playerEntity;
@@ -24,9 +29,23 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
         var sessionStore = GuideNhStructureRuntime.getServerSessionStore();
 
         try {
-            switch (message.getAction()) {
+            byte action = message.getAction();
+            String structureText = message.getStructureText();
+            if (message.isChunkedStructureTransfer()) {
+                TransferKey key = new TransferKey(playerId, message.getAction(), message.getTransferId());
+                GuideNhStructureChunkAssembler assembler = CHUNK_TRANSFERS
+                    .computeIfAbsent(key, ignored -> new GuideNhStructureChunkAssembler(message.getChunkCount()));
+                structureText = assembler.accept(message);
+                if (structureText == null) {
+                    return null;
+                }
+                CHUNK_TRANSFERS.remove(key);
+                action = message.getCompletedChunkAction();
+            }
+
+            switch (action) {
                 case GuideNhStructureRequestMessage.ACTION_CACHE:
-                    sessionStore.remember(playerId, "client-cache", message.getStructureText());
+                    sessionStore.remember(playerId, "client-cache", structureText);
                     break;
                 case GuideNhStructureRequestMessage.ACTION_IMPORT_AND_PLACE:
                     if (!player.canCommandSenderUseCommand(3, "guidenh")) {
@@ -34,7 +53,7 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
                         break;
                     }
                     GuideStructureMemoryStore.Entry entry = sessionStore
-                        .remember(playerId, "client-import", message.getStructureText());
+                        .remember(playerId, "client-import", structureText);
                     GuideNhStructureRuntime.getPlacementService()
                         .place(
                             new GuideStructureWorldPlacementTarget(player.worldObj),
@@ -91,5 +110,37 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
         return throwable.getMessage() != null ? throwable.getMessage()
             : throwable.getClass()
                 .getSimpleName();
+    }
+
+    private static final class TransferKey {
+
+        private final UUID playerId;
+        private final byte action;
+        private final int transferId;
+
+        private TransferKey(UUID playerId, byte action, int transferId) {
+            this.playerId = playerId;
+            this.action = action;
+            this.transferId = transferId;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof TransferKey other)) {
+                return false;
+            }
+            return action == other.action && transferId == other.transferId && playerId.equals(other.playerId);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = playerId.hashCode();
+            result = 31 * result + action;
+            result = 31 * result + transferId;
+            return result;
+        }
     }
 }

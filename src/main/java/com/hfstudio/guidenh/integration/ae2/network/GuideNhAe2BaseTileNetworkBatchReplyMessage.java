@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.integration.ae2.network;
 
 import com.hfstudio.guidenh.integration.ae2.Ae2BaseTileNetworkStreamPreview;
+import com.hfstudio.guidenh.network.GuideNhCustomPayloadLimits;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
@@ -9,6 +10,11 @@ import io.netty.buffer.ByteBuf;
 public class GuideNhAe2BaseTileNetworkBatchReplyMessage implements IMessage {
 
     public static final int FORMAT_V1 = 1;
+
+    public static final int MAX_REPLY_PAYLOAD_BYTES = GuideNhCustomPayloadLimits.MAX_PAYLOAD_BYTES;
+
+    private static final int HEADER_BYTES = Long.BYTES + 1 + Integer.BYTES;
+    private static final int FIXED_ENTRY_BYTES = Short.BYTES;
 
     private long corrId;
     private byte[][] xpPayloads;
@@ -20,7 +26,7 @@ public class GuideNhAe2BaseTileNetworkBatchReplyMessage implements IMessage {
 
     public GuideNhAe2BaseTileNetworkBatchReplyMessage(long corrId, byte[][] xpPayloads) {
         this.corrId = corrId;
-        this.xpPayloads = xpPayloads != null ? xpPayloads : new byte[0][];
+        this.xpPayloads = budgetPayloads(xpPayloads);
     }
 
     public long getCorrId() {
@@ -36,6 +42,16 @@ public class GuideNhAe2BaseTileNetworkBatchReplyMessage implements IMessage {
             return false;
         }
         return xpPayloads != null && xpPayloads.length == n;
+    }
+
+    public int serializedSizeBytes() {
+        int n = xpPayloads != null ? xpPayloads.length : 0;
+        int total = HEADER_BYTES + n * FIXED_ENTRY_BYTES;
+        for (int i = 0; i < n; i++) {
+            byte[] chunk = xpPayloads[i] != null ? xpPayloads[i] : new byte[0];
+            total += Math.min(chunk.length, Ae2BaseTileNetworkStreamPreview.MAX_X_PAYLOAD_BYTES);
+        }
+        return total;
     }
 
     @Override
@@ -82,5 +98,30 @@ public class GuideNhAe2BaseTileNetworkBatchReplyMessage implements IMessage {
                 buf.writeBytes(chunk, 0, len);
             }
         }
+    }
+
+    private static byte[][] budgetPayloads(byte[][] source) {
+        int n = source != null ? Math.min(source.length, GuideNhAe2BaseTileNetworkBatchRequestMessage.MAX_POSITIONS)
+            : 0;
+        byte[][] out = new byte[n][];
+        int remaining = MAX_REPLY_PAYLOAD_BYTES - HEADER_BYTES - n * FIXED_ENTRY_BYTES;
+        int maxPayload = Ae2BaseTileNetworkStreamPreview.MAX_X_PAYLOAD_BYTES;
+        for (int i = 0; i < n; i++) {
+            byte[] chunk = source[i] != null ? source[i] : new byte[0];
+            int len = Math.min(chunk.length, maxPayload);
+            if (len <= 0 || len > remaining) {
+                out[i] = new byte[0];
+                continue;
+            }
+            if (len == chunk.length) {
+                out[i] = chunk;
+            } else {
+                byte[] trimmed = new byte[len];
+                System.arraycopy(chunk, 0, trimmed, 0, len);
+                out[i] = trimmed;
+            }
+            remaining -= len;
+        }
+        return out;
     }
 }

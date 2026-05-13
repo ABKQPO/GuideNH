@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.integration.ae2.network;
 
 import com.hfstudio.guidenh.integration.ae2.Ae2CableBusPartStreamCodec;
+import com.hfstudio.guidenh.network.GuideNhCustomPayloadLimits;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
@@ -9,6 +10,11 @@ import io.netty.buffer.ByteBuf;
 public class GuideNhAe2CableBatchReplyMessage implements IMessage {
 
     public static final int FORMAT_V1 = 1;
+
+    public static final int MAX_REPLY_PAYLOAD_BYTES = GuideNhCustomPayloadLimits.MAX_PAYLOAD_BYTES;
+
+    private static final int HEADER_BYTES = Long.BYTES + 1 + Integer.BYTES;
+    private static final int FIXED_ENTRY_BYTES = 1 + 1 + Integer.BYTES + Short.BYTES;
 
     private long corrId;
 
@@ -31,10 +37,11 @@ public class GuideNhAe2CableBatchReplyMessage implements IMessage {
 
     public GuideNhAe2CableBatchReplyMessage(long corrId, byte[] hit, byte[] cs, int[] sideOut, byte[][] partPacked) {
         this.corrId = corrId;
-        this.hit = hit != null ? hit : new byte[0];
-        this.cs = cs != null ? cs : new byte[0];
-        this.sideOut = sideOut != null ? sideOut : new int[0];
-        this.partPacked = partPacked != null ? partPacked : new byte[0][];
+        int n = safeEntryCount(hit, cs, sideOut, partPacked);
+        this.hit = copyBytes(hit, n);
+        this.cs = copyBytes(cs, n);
+        this.sideOut = copyInts(sideOut, n);
+        this.partPacked = budgetPartPayloads(partPacked, n);
     }
 
     public long getCorrId() {
@@ -72,6 +79,16 @@ public class GuideNhAe2CableBatchReplyMessage implements IMessage {
             return false;
         }
         return true;
+    }
+
+    public int serializedSizeBytes() {
+        int n = hit != null ? hit.length : 0;
+        int total = HEADER_BYTES + n * FIXED_ENTRY_BYTES;
+        for (int i = 0; i < n; i++) {
+            byte[] chunk = i < partPacked.length && partPacked[i] != null ? partPacked[i] : new byte[0];
+            total += Math.min(chunk.length, 0xFFFF);
+        }
+        return total;
     }
 
     @Override
@@ -129,5 +146,44 @@ public class GuideNhAe2CableBatchReplyMessage implements IMessage {
             buf.writeShort(chunk.length);
             buf.writeBytes(chunk);
         }
+    }
+
+    private static int safeEntryCount(byte[] hit, byte[] cs, int[] sideOut, byte[][] partPacked) {
+        int n = hit != null ? hit.length : 0;
+        n = Math.min(n, cs != null ? cs.length : 0);
+        n = Math.min(n, sideOut != null ? sideOut.length : 0);
+        n = Math.min(n, partPacked != null ? partPacked.length : 0);
+        return Math.max(0, Math.min(n, GuideNhAe2CableBatchRequestMessage.MAX_POSITIONS));
+    }
+
+    private static byte[] copyBytes(byte[] source, int n) {
+        byte[] out = new byte[n];
+        if (source != null && n > 0) {
+            System.arraycopy(source, 0, out, 0, Math.min(source.length, n));
+        }
+        return out;
+    }
+
+    private static int[] copyInts(int[] source, int n) {
+        int[] out = new int[n];
+        if (source != null && n > 0) {
+            System.arraycopy(source, 0, out, 0, Math.min(source.length, n));
+        }
+        return out;
+    }
+
+    private static byte[][] budgetPartPayloads(byte[][] source, int n) {
+        byte[][] out = new byte[n][];
+        int remaining = MAX_REPLY_PAYLOAD_BYTES - HEADER_BYTES - n * FIXED_ENTRY_BYTES;
+        for (int i = 0; i < n; i++) {
+            byte[] chunk = source != null && i < source.length && source[i] != null ? source[i] : new byte[0];
+            if (chunk.length <= 0 || chunk.length > 0xFFFF || chunk.length > remaining) {
+                out[i] = new byte[0];
+                continue;
+            }
+            out[i] = chunk;
+            remaining -= chunk.length;
+        }
+        return out;
     }
 }

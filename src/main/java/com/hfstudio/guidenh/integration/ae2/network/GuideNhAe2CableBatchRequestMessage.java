@@ -6,7 +6,7 @@ import io.netty.buffer.ByteBuf;
 /** Client asks server to snapshot AE2 cable stream bytes at world coords (server runs PartCable.writeToStream). */
 public class GuideNhAe2CableBatchRequestMessage implements IMessage {
 
-    public static final int MAX_POSITIONS = 512;
+    public static final int MAX_POSITIONS = 64;
 
     private long corrId;
     private int dim;

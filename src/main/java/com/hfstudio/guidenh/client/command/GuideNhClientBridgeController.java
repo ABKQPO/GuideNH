@@ -14,7 +14,7 @@ import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureImportS
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureRuntime;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
-import com.hfstudio.guidenh.network.GuideNhStructureRequestMessage;
+import com.hfstudio.guidenh.network.GuideNhStructureRequestSender;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -56,7 +56,6 @@ public class GuideNhClientBridgeController {
     public Path exportStructureToFile(String prefix, String structureText) throws Exception {
         var entry = GuideNhStructureRuntime.getClientMemoryStore()
             .remember(prefix, structureText);
-        syncEntryToServerIfAvailable(entry);
         return structureFileStore.saveExport(prefix, structureText);
     }
 
@@ -78,15 +77,14 @@ public class GuideNhClientBridgeController {
             sendClient(GuidebookText.CommandStructureServerRequired);
             return;
         }
-        GuideNhNetwork.channel()
-            .sendToServer(GuideNhStructureRequestMessage.placeAll(x, y, z));
+        syncAllClientStructuresToServer();
+        GuideNhStructureRequestSender.sendPlaceAll(GuideNhNetwork.channel(), x, y, z);
     }
 
     public void rememberScene(String label, String structureText) {
         try {
             var entry = GuideNhStructureRuntime.getClientMemoryStore()
                 .remember(label, structureText);
-            syncEntryToServerIfAvailable(entry);
         } catch (Exception e) {
             // Silently ignore parse failures for auto-registered scenes
         }
@@ -94,7 +92,7 @@ public class GuideNhClientBridgeController {
 
     public void onServerHello() {
         GuideNhStructureRuntime.setServerStructureCommandsAvailable(true);
-        GuideNhStructureRuntime.setClientStructureSyncNeeded(true);
+        GuideNhStructureRuntime.setClientStructureSyncNeeded(false);
     }
 
     public void onServerDisconnected() {
@@ -133,10 +131,12 @@ public class GuideNhClientBridgeController {
             }
             var entry = GuideNhStructureRuntime.getClientMemoryStore()
                 .remember(result.getDisplayPath(), result.getStructureText());
-            GuideNhNetwork.channel()
-                .sendToServer(
-                    GuideNhStructureRequestMessage
-                        .importAndPlace(request.x, request.y, request.z, entry.getStructureText()));
+            GuideNhStructureRequestSender.sendImportAndPlace(
+                GuideNhNetwork.channel(),
+                request.x,
+                request.y,
+                request.z,
+                entry.getStructureText());
         } catch (CompletionException e) {
             sendClient(
                 GuidebookText.CommandStructureImportFailure,
@@ -167,8 +167,7 @@ public class GuideNhClientBridgeController {
         if (!isServerStructureCommandsAvailable()) {
             return;
         }
-        GuideNhNetwork.channel()
-            .sendToServer(GuideNhStructureRequestMessage.cache(entry.getStructureText()));
+        GuideNhStructureRequestSender.sendCache(GuideNhNetwork.channel(), entry.getStructureText());
     }
 
     private void sendClient(GuidebookText key, Object... args) {

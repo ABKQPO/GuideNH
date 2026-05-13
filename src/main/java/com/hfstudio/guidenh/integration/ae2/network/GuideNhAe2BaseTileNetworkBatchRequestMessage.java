@@ -6,7 +6,7 @@ import io.netty.buffer.ByteBuf;
 /** Client asks server for AE2 AEBaseTile description {@code X} payloads (eligible non-cable tiles) at world coords. */
 public class GuideNhAe2BaseTileNetworkBatchRequestMessage implements IMessage {
 
-    public static final int MAX_POSITIONS = 512;
+    public static final int MAX_POSITIONS = 64;
 
     private long corrId;
     private int dim;
