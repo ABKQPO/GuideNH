@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.internal;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
@@ -94,8 +94,10 @@ public final class GuideDevelopmentResourcePack implements IResourcePack {
 
         try (var children = Files.list(assetsDir)) {
             children.filter(Files::isDirectory)
-                .forEach(child -> domains.add(child.getFileName()
-                    .toString()));
+                .forEach(
+                    child -> domains.add(
+                        child.getFileName()
+                            .toString()));
         } catch (IOException ignored) {}
 
         return domains;

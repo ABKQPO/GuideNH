@@ -15,8 +15,9 @@ public final class GuideDevelopmentSourceArguments {
     private GuideDevelopmentSourceArguments() {}
 
     public static List<Path> parseConfiguredResourcePackRoots() {
-        return parseConfiguredResourcePackRoots(ManagementFactory.getRuntimeMXBean()
-            .getInputArguments());
+        return parseConfiguredResourcePackRoots(
+            ManagementFactory.getRuntimeMXBean()
+                .getInputArguments());
     }
 
     public static List<Path> parseConfiguredResourcePackRoots(List<String> inputArguments) {

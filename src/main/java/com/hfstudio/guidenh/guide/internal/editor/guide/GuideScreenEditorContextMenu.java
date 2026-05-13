@@ -23,6 +23,8 @@ public final class GuideScreenEditorContextMenu {
     private static final int PADDING_Y = 4;
     private static final int ICON_SIZE = 10;
     private static final int ICON_TEXT_GAP = 4;
+    private static final int TEXT_Y_OFFSET = 2;
+    private static final int TEXT_VISUAL_HEIGHT = 9;
     private static final int SCROLLBAR_W = SceneEditorMultilineTextArea.SCROLLBAR_SIZE;
     private static final int BACKGROUND_COLOR = 0xF0181C22;
     private static final int BORDER_COLOR = 0xFF4D5661;
@@ -380,13 +382,13 @@ public final class GuideScreenEditorContextMenu {
                     Gui.drawRect(x + 1, drawY - 1, x + width - 1, drawY + ITEM_HEIGHT - 1, HOVER_COLOR);
                 }
                 int textX = x + PADDING_X + ICON_SIZE + ICON_TEXT_GAP;
-                drawEntryIcon(minecraft, entry, x + PADDING_X, drawY + (ITEM_HEIGHT - ICON_SIZE) / 2);
-                fontRenderer.drawString(entry.getLabel(), textX, drawY + 2, TEXT_COLOR);
+                drawEntryIcon(minecraft, entry, x + PADDING_X, computeIconYForRow(drawY));
+                fontRenderer.drawString(entry.getLabel(), textX, drawY + TEXT_Y_OFFSET, TEXT_COLOR);
                 if (entry.hasChildren()) {
                     fontRenderer.drawString(
                         ">",
                         x + width - PADDING_X - fontRenderer.getStringWidth(">"),
-                        drawY + 2,
+                        drawY + TEXT_Y_OFFSET,
                         TEXT_COLOR);
                 }
             }
@@ -403,6 +405,11 @@ public final class GuideScreenEditorContextMenu {
             return;
         }
         GuideIconButton.drawIcon(minecraft, action.toRole(), x, y, ICON_SIZE, ICON_SIZE, 0xD8FFFFFF);
+    }
+
+    static int computeIconYForRow(int rowY) {
+        int textVisualCenter = rowY + TEXT_Y_OFFSET + TEXT_VISUAL_HEIGHT / 2;
+        return textVisualCenter - ICON_SIZE / 2;
     }
 
     private int computeMenuWidth(List<Entry> itemEntries, FontRenderer fontRenderer) {

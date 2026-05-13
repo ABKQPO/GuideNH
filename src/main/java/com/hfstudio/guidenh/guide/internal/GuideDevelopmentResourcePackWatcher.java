@@ -9,6 +9,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.logging.log4j.Logger;
+
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -16,7 +18,6 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import io.methvin.watcher.DirectoryChangeEvent;
 import io.methvin.watcher.DirectoryChangeListener;
 import io.methvin.watcher.DirectoryWatcher;
-import org.apache.logging.log4j.Logger;
 
 public final class GuideDevelopmentResourcePackWatcher implements AutoCloseable {
 
@@ -158,7 +159,8 @@ public final class GuideDevelopmentResourcePackWatcher implements AutoCloseable 
         public void onException(Exception e) {
             Logger logger = FMLLog.getLogger();
             if (logger != null) {
-                logger.error("[GuideNH] [GuideDevelopmentResourcePackWatcher] Failed watching development resources", e);
+                logger
+                    .error("[GuideNH] [GuideDevelopmentResourcePackWatcher] Failed watching development resources", e);
             }
         }
     }
