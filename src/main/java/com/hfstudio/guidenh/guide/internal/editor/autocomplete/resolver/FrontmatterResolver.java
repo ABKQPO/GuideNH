@@ -53,7 +53,7 @@ public final class FrontmatterResolver implements SyntaxContextResolver {
         if (cursorIndex >= valueAbsStart && cursorIndex <= valueAbsEnd) {
             String partialText = text.substring(valueAbsStart, cursorIndex);
             return new TextSyntaxContext(SyntaxElementType.WORD, valueAbsStart, valueAbsEnd,
-                new FrontmatterContext(key, valueAbsStart, valueAbsEnd, partialText));
+                new FrontmatterContext(key, true, valueAbsStart, valueAbsEnd, partialText));
         }
 
         // Cursor is on the key
@@ -61,7 +61,7 @@ public final class FrontmatterResolver implements SyntaxContextResolver {
         int keyEnd = keyStart + key.length();
         if (cursorIndex >= keyStart && cursorIndex <= keyEnd) {
             return new TextSyntaxContext(SyntaxElementType.WORD, keyStart, keyEnd,
-                new FrontmatterContext(key, keyStart, keyEnd,
+                new FrontmatterContext(key, false, keyStart, keyEnd,
                     text.substring(keyStart, cursorIndex)));
         }
 

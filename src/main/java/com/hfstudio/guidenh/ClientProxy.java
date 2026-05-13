@@ -27,9 +27,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AnchorPr
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AttributeNameProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteProviders;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.BlockIdProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.BooleanProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.ColorProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.DataProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.CommandProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.DomainProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.EntityNameProvider;
@@ -41,15 +39,10 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.Frontmat
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.FrontmatterValueProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.ItemIdProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.KeyBindProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.MarkdownBlockProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.MarkdownInlineProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.NbtProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.NumericValueProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.OreDictProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.PageReferenceProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.RecipeFilterProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.TagNameProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.Vector3Provider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TagAttributeRegistry;
 import com.hfstudio.structurelibexport.StructureExportBootstrap;
 
@@ -87,7 +80,6 @@ public class ClientProxy extends CommonProxy {
         AutocompleteProviders.register(new ItemIdProvider());
         TagAttributeRegistry.initialize();
         AutocompleteProviders.register(new AttributeNameProvider());
-        AutocompleteProviders.register(new BooleanProvider());
         AutocompleteProviders.register(new EnumValueProvider());
         AutocompleteProviders.register(new ColorProvider());
         AutocompleteProviders.register(new OreDictProvider());
@@ -101,16 +93,10 @@ public class ClientProxy extends CommonProxy {
         AutocompleteProviders.register(new ExpressionProvider());
         AutocompleteProviders.register(new DomainProvider());
         AutocompleteProviders.register(new FormatPatternProvider());
-        AutocompleteProviders.register(new RecipeFilterProvider());
         AutocompleteProviders.register(new TagNameProvider());
         AutocompleteProviders.register(new FrontmatterKeyProvider());
         AutocompleteProviders.register(new FrontmatterValueProvider());
-        AutocompleteProviders.register(new MarkdownInlineProvider());
-        AutocompleteProviders.register(new MarkdownBlockProvider());
         AutocompleteProviders.register(new FencedBlockLanguageProvider());
-        AutocompleteProviders.register(new NbtProvider());
-        AutocompleteProviders.register(new Vector3Provider());
-        AutocompleteProviders.register(new DataProvider());
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
         GuideWarmupPump.init();
         MinecraftForge.EVENT_BUS.register(this);

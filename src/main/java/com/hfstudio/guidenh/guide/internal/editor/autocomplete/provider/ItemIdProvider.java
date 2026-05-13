@@ -14,9 +14,24 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteConte
 public class ItemIdProvider implements AutocompleteProvider {
 
     // Tags whose "id" attribute refers to a Minecraft item registry key
-    private static final Set<AutocompleteKey> KEYS = buildKeys(
-        "ItemImage", "ItemLink", "Recipe", "RecipeFor", "RecipesFor"
+    private static Set<AutocompleteKey> KEYS = buildKeys(
+        // item id attributes
+        "ItemImage", "ItemLink", "Recipe", "RecipeFor", "RecipesFor",
+        // recipe filter attributes
+        "Recipe", "RecipeFor", "RecipesFor"
     );
+
+    // Also add these extra keys after buildKeys:
+    static {
+        Set<AutocompleteKey> allKeys = new HashSet<>(KEYS);
+        allKeys.add(AutocompleteKey.forValue("Recipe", "input"));
+        allKeys.add(AutocompleteKey.forValue("Recipe", "output"));
+        allKeys.add(AutocompleteKey.forValue("RecipeFor", "input"));
+        allKeys.add(AutocompleteKey.forValue("RecipeFor", "output"));
+        allKeys.add(AutocompleteKey.forValue("RecipesFor", "input"));
+        allKeys.add(AutocompleteKey.forValue("RecipesFor", "output"));
+        KEYS = Collections.unmodifiableSet(allKeys);
+    }
 
     private static Set<AutocompleteKey> buildKeys(String... tagNames) {
         Set<AutocompleteKey> keys = new HashSet<>();
