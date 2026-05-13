@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SelectionStrategy;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxElementType;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxUtils;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
 
 public final class SelectionStrategies {
@@ -25,7 +26,7 @@ public final class SelectionStrategies {
         @Override
         public int getSelectionStart(TextSyntaxContext ctx, String text, int cursorIndex) {
             int pos = cursorIndex;
-            while (pos > 0 && isWordChar(text.charAt(pos - 1))) {
+            while (pos > 0 && SyntaxUtils.isWordChar(text.charAt(pos - 1))) {
                 pos--;
             }
             return pos;
@@ -35,14 +36,10 @@ public final class SelectionStrategies {
         public int getSelectionEnd(TextSyntaxContext ctx, String text, int cursorIndex) {
             int pos = cursorIndex;
             int len = text.length();
-            while (pos < len && isWordChar(text.charAt(pos))) {
+            while (pos < len && SyntaxUtils.isWordChar(text.charAt(pos))) {
                 pos++;
             }
             return pos;
-        }
-
-        private static boolean isWordChar(char c) {
-            return Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '.' || c == ':';
         }
     }
 

@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.ui;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,9 +27,12 @@ public final class AutocompletePopup {
     public static final int HOVER_COLOR = 0xCC2A3A46;
     public static final int SCROLLBAR_TRACK_COLOR = 0x35101010;
     public static final int SCROLLBAR_THUMB_COLOR = 0xA0D8D8D8;
+    /** Gap between popup and cursor when flipped above (roughly FONT_HEIGHT + cursor gap). */
+    private static final int FLIP_GAP = 22;
 
     private boolean open;
     private List<AutocompleteCandidate> candidates = Collections.emptyList();
+    private List<String> lastCandidateKeys = Collections.emptyList();
     private int selectedIndex;
     private int scrollY;
     private int x, y, width, height;
@@ -39,24 +43,46 @@ public final class AutocompletePopup {
     public void show(List<AutocompleteCandidate> candidates, int anchorX, int anchorY,
                      int viewportWidth, int viewportHeight, FontRenderer fontRenderer) {
         this.candidates = candidates != null ? candidates : Collections.emptyList();
-        this.selectedIndex = this.candidates.isEmpty() ? -1 : 0;
-        this.scrollY = 0;
-        this.viewportWidth = viewportWidth;
-        this.viewportHeight = viewportHeight;
 
         if (this.candidates.isEmpty()) {
             open = false;
             return;
         }
 
-        computeSize(fontRenderer);
+        // Preserve scroll/selection when candidate list hasn't changed
+        boolean sameList = keysMatch(this.candidates, lastCandidateKeys);
+        if (!sameList) {
+            this.selectedIndex = 0;
+            this.scrollY = 0;
+            lastCandidateKeys = candidateKeys(this.candidates);
+            computeSize(fontRenderer);
+        }
+        this.viewportWidth = viewportWidth;
+        this.viewportHeight = viewportHeight;
+
         placePopup(anchorX, anchorY, viewportWidth, viewportHeight);
+        if (selectedIndex >= this.candidates.size()) selectedIndex = 0;
         this.open = true;
+    }
+
+    private static List<String> candidateKeys(List<AutocompleteCandidate> list) {
+        List<String> keys = new ArrayList<>(list.size());
+        for (AutocompleteCandidate c : list) keys.add(c.displayText());
+        return keys;
+    }
+
+    private static boolean keysMatch(List<AutocompleteCandidate> list, List<String> keys) {
+        if (list.size() != keys.size()) return false;
+        for (int i = 0; i < list.size(); i++) {
+            if (!list.get(i).displayText().equals(keys.get(i))) return false;
+        }
+        return true;
     }
 
     public void close() {
         open = false;
         candidates = Collections.emptyList();
+        lastCandidateKeys = Collections.emptyList();
         selectedIndex = -1;
     }
 
@@ -85,7 +111,6 @@ public final class AutocompletePopup {
     public void reposition(int anchorX, int anchorY, int viewportWidth, int viewportHeight,
                            FontRenderer fontRenderer) {
         if (!open) return;
-        computeSize(fontRenderer);
         placePopup(anchorX, anchorY, viewportWidth, viewportHeight);
         this.scrollY = clampScroll(scrollY);
     }
@@ -101,7 +126,7 @@ public final class AutocompletePopup {
             return;
         }
         // Not enough room below — flip above cursor
-        int aboveY = anchorY - height - 18;
+        int aboveY = anchorY - height - FLIP_GAP;
         LytRect above = SceneEditorPopupLayout.clampToViewport(
             anchorX, aboveY, width, height, viewportWidth, viewportHeight, 2);
         this.x = above.x();

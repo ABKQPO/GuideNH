@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxContextResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxElementType;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxUtils;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
@@ -26,26 +27,35 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     // Matches open MDX tag: <TagName ... attrName="partialValue  (unclosed, no > required)
     // Group 1: tag name, Group 2: attribute name, Group 3: partial value text
     private static final Pattern FALLBACK_TAG =
-        Pattern.compile("<(\\p{Upper}\\w*)[^>]*?\\s+(\\w+)\\s*=\\s*\"([^\">]*)$");
+        Pattern.compile("<([A-Za-z]\\w*)[^>]*?\\s+(\\w+)\\s*=\\s*\"([^\">]*)$");
+
+    // AST cache: re-parse only when text changes; cursor-only moves walk cached tree
+    @Nullable
+    private String cachedText;
+    @Nullable
+    private MdAstRoot cachedRoot;
 
     @Override
     @Nullable
     public TextSyntaxContext resolve(String text, int cursorIndex) {
         if (text == null || text.isEmpty()) return null;
 
-        try {
-            MdAstRoot root = MdAst.fromMarkdown(text, PARSE_OPTIONS);
-            TextSyntaxContext result = resolveFromAst(root, text, cursorIndex);
-            System.out.println("[AC-271afa] R:AST " + (result != null ? result.getElementType() : "null")
-                + " auto=" + (result != null ? result.shouldAutocomplete() : false));
-            return result;
-        } catch (ParseException e) {
-            TextSyntaxContext result = resolveFromFallback(text, cursorIndex);
-            System.out.println("[AC-271afa] R:FB " + (result != null ? result.getElementType() : "null")
-                + " auto=" + (result != null ? result.shouldAutocomplete() : false)
-                + " err=" + e.getMessage().substring(0, Math.min(40, e.getMessage().length())));
-            return result;
+        MdAstRoot root;
+        if (text.equals(cachedText) && cachedRoot != null) {
+            root = cachedRoot;
+        } else {
+            try {
+                root = MdAst.fromMarkdown(text, PARSE_OPTIONS);
+            } catch (ParseException e) {
+                cachedText = null;
+                cachedRoot = null;
+                return resolveFromFallback(text, cursorIndex);
+            }
+            cachedText = text;
+            cachedRoot = root;
         }
+
+        return resolveFromAst(root, text, cursorIndex);
     }
 
     @Nullable
@@ -141,11 +151,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     private TextSyntaxContext resolvePlainTextWord(String text, int cursorIndex) {
-        int start = cursorIndex;
-        while (start > 0 && isWordChar(text.charAt(start - 1))) start--;
-        int end = cursorIndex;
-        while (end < text.length() && isWordChar(text.charAt(end))) end++;
-        return new TextSyntaxContext(SyntaxElementType.WORD, start, end, null);
+        return SyntaxUtils.resolveWord(text, cursorIndex);
     }
 
     @Nullable
@@ -191,9 +197,5 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             if (c == '>' || c == '\n') return i;
         }
         return len;
-    }
-
-    private static boolean isWordChar(char c) {
-        return Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '.' || c == ':';
     }
 }

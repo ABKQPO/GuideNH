@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -12,8 +13,18 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteConte
 
 public class ItemIdProvider implements AutocompleteProvider {
 
-    private static final Set<AutocompleteKey> KEYS =
-        Collections.singleton(new AutocompleteKey("*", "id"));
+    // Tags whose "id" attribute refers to a Minecraft item registry key
+    private static final Set<AutocompleteKey> KEYS = buildKeys(
+        "ItemImage", "ItemLink", "Recipe", "RecipeFor", "RecipesFor"
+    );
+
+    private static Set<AutocompleteKey> buildKeys(String... tagNames) {
+        Set<AutocompleteKey> keys = new HashSet<>();
+        for (String tag : tagNames) {
+            keys.add(new AutocompleteKey(tag, "id"));
+        }
+        return Collections.unmodifiableSet(keys);
+    }
 
     @Override
     public Set<AutocompleteKey> getSupportedKeys() {

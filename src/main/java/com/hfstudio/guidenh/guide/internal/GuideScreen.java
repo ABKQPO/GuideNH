@@ -37,6 +37,7 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SelectionStrategy;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxContextResolver;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxElementType;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteProviders;
@@ -254,10 +255,10 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private String autocompleteLastText;
     private int autocompleteLastCursor;
     private static final long AUTOCOMPLETE_DEBOUNCE_MS = 100;
-    private static final long AUTOCOMPLETE_LOG_THROTTLE_MS = 3000;
-    private long autocompleteLastLogTime;
-    private String autocompleteLastLogKey;
-    private java.util.Map autocompleteSelectionStrategies;
+    private static final int AUTOCOMPLETE_CURSOR_GAP_Y = 14;
+    @Nullable
+    private AutocompleteContext pendingAutocompleteContext;
+    private Map<SyntaxElementType, SelectionStrategy> autocompleteSelectionStrategies;
     private boolean guideEditorDraggingDivider;
     private int guideEditorDividerGrabOffset;
     private boolean guideEditorDraggingPreviewScrollbar;
@@ -741,8 +742,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                     String text = guideEditorTextArea.getText();
                     TextSyntaxContext ctx = autocompleteResolver.resolve(text, cursorIndex);
                     if (ctx == null) return;
-                    SelectionStrategy strategy = (SelectionStrategy)
-                        ((java.util.Map) autocompleteSelectionStrategies).get(ctx.getElementType());
+                    SelectionStrategy strategy = autocompleteSelectionStrategies.get(ctx.getElementType());
                     if (strategy == null) return;
                     int start = strategy.getSelectionStart(ctx, text, cursorIndex);
                     int end = strategy.getSelectionEnd(ctx, text, cursorIndex);
@@ -2018,12 +2018,20 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
 
         if (autocompletePopup != null && autocompletePopup.isOpen()) {
-            int anchorX = contentX + guideEditorTextArea.getCursorPixelX();
-            int anchorY = getGuideEditorContentTop() + guideEditorTextArea.getCursorPixelY()
-                + fontRendererObj.FONT_HEIGHT + 12;
-            autocompletePopup.reposition(anchorX, anchorY, width, height, fontRendererObj);
+            autocompletePopup.reposition(getAutocompleteAnchorX(), getAutocompleteAnchorY(),
+                width, height, fontRendererObj);
             autocompletePopup.draw(fontRendererObj, mouseX, mouseY);
         }
+    }
+
+    private int getAutocompleteAnchorX() {
+        return contentX + (guideEditorTextArea != null ? guideEditorTextArea.getCursorPixelX() : 0);
+    }
+
+    private int getAutocompleteAnchorY() {
+        return getGuideEditorContentTop()
+            + (guideEditorTextArea != null ? guideEditorTextArea.getCursorPixelY() : 0)
+            + fontRendererObj.FONT_HEIGHT + AUTOCOMPLETE_CURSOR_GAP_Y;
     }
 
     private int resolveGuideEditorDividerColor() {
@@ -2211,18 +2219,15 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             guideEditorSuppressTextFocusUntilGuideHotkeyRelease = false;
         }
         if (autocompletePopup != null && autocompletePopup.isOpen()) {
-            System.out.println("[AC-271afa] KEY popup: keyCode=" + keyCode + " char=" + (int) typedChar);
             switch (keyCode) {
                 case Keyboard.KEY_ESCAPE:
                     autocompletePopup.close();
                     return true;
                 case Keyboard.KEY_UP:
                     autocompletePopup.moveSelection(-1);
-                    System.out.println("[AC-271afa] KEY up: selectedIndex moved");
                     return true;
                 case Keyboard.KEY_DOWN:
                     autocompletePopup.moveSelection(1);
-                    System.out.println("[AC-271afa] KEY down: selectedIndex moved");
                     return true;
                 case Keyboard.KEY_RETURN:
                 case Keyboard.KEY_NUMPADENTER:
@@ -2315,25 +2320,6 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
         TextSyntaxContext ctx = autocompleteResolver.resolve(text, cursor);
 
-        boolean shouldLog = false;
-        String logKey = "ctx=" + (ctx != null ? ctx.getElementType() : "null")
-            + " auto=" + (ctx != null ? ctx.shouldAutocomplete() : false)
-            + " popup=" + (autocompletePopup != null && autocompletePopup.isOpen())
-            + " cursor=" + cursor;
-        if (!logKey.equals(autocompleteLastLogKey)
-            || System.currentTimeMillis() - autocompleteLastLogTime > AUTOCOMPLETE_LOG_THROTTLE_MS) {
-            shouldLog = true;
-            autocompleteLastLogTime = System.currentTimeMillis();
-            autocompleteLastLogKey = logKey;
-        }
-
-        if (shouldLog) {
-            System.out.println("[AC-271afa] cursor=" + cursor + " textLen=" + text.length()
-                + " textChanged=" + textChanged + " cursorMoved=" + cursorMoved
-                + " ctx=" + (ctx != null ? ctx.getElementType() : "null")
-                + " auto=" + (ctx != null ? ctx.shouldAutocomplete() : false));
-        }
-
         if (ctx != null && ctx.shouldAutocomplete()) {
             java.util.List<AutocompleteCandidate> candidates =
                 AutocompleteProviders.query(ctx.getAutocomplete(), 20);
@@ -2341,18 +2327,13 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 if (autocompletePopup == null) {
                     autocompletePopup = new AutocompletePopup();
                 }
-                int anchorX = contentX + guideEditorTextArea.getCursorPixelX();
-                int anchorY = getGuideEditorContentTop() + guideEditorTextArea.getCursorPixelY()
-                    + fontRendererObj.FONT_HEIGHT + 12;
-                autocompletePopup.show(candidates, anchorX, anchorY,
+                pendingAutocompleteContext = ctx.getAutocomplete();
+                autocompletePopup.show(candidates, getAutocompleteAnchorX(), getAutocompleteAnchorY(),
                     width, height, fontRendererObj);
-                System.out.println("[AC-271afa] POPUP SHOWN: candidates=" + candidates.size()
-                    + " pos=(" + anchorX + "," + anchorY + ")");
                 return;
-            } else {
-                System.out.println("[AC-271afa] query returned 0 candidates");
             }
         }
+        pendingAutocompleteContext = null;
         if (autocompletePopup != null && autocompletePopup.isOpen()) {
             autocompletePopup.close();
         }
@@ -2361,29 +2342,21 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private void commitAutocompleteSelection() {
         if (autocompletePopup == null || !autocompletePopup.isOpen() || guideEditorTextArea == null) return;
         AutocompleteCandidate selected = autocompletePopup.getSelected();
-        if (selected == null) {
+        if (selected == null || pendingAutocompleteContext == null) {
             autocompletePopup.close();
+            pendingAutocompleteContext = null;
             return;
         }
-        if (autocompleteResolver == null) {
-            autocompletePopup.close();
-            return;
-        }
-        TextSyntaxContext ctx = autocompleteResolver.resolve(
-            guideEditorTextArea.getText(), guideEditorTextArea.getCursorIndex());
-        if (ctx != null && ctx.shouldAutocomplete()) {
-            AutocompleteContext ac = ctx.getAutocomplete();
-            if (ac != null) {
-                String text = guideEditorTextArea.getText();
-                String before = text.substring(0, ac.replaceStart());
-                String after = text.substring(ac.replaceEnd());
-                String newText = before + selected.replacementText() + after;
-                int newCursor = ac.replaceStart() + selected.replacementText().length();
-                guideEditorTextArea.applyEdit(newText, newCursor, newCursor);
-                updateGuideEditorTextFromArea();
-            }
-        }
+        AutocompleteContext ac = pendingAutocompleteContext;
+        String text = guideEditorTextArea.getText();
+        String before = text.substring(0, ac.replaceStart());
+        String after = text.substring(ac.replaceEnd());
+        String newText = before + selected.replacementText() + after;
+        int newCursor = ac.replaceStart() + selected.replacementText().length();
+        guideEditorTextArea.applyEdit(newText, newCursor, newCursor);
+        updateGuideEditorTextFromArea();
         autocompletePopup.close();
+        pendingAutocompleteContext = null;
     }
 
     private boolean handleGuideEditorMouseClicked(int mouseX, int mouseY, int button) {

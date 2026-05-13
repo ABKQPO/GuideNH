@@ -3,14 +3,13 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxAutocompleteContext;
 
 public final class AutocompleteProviders {
 
-    private static final List<AutocompleteProvider> providers = new CopyOnWriteArrayList<>();
+    private static final List<AutocompleteProvider> providers = new ArrayList<>();
 
     private AutocompleteProviders() {}
 
