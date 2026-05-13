@@ -23,6 +23,8 @@ import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteProviders;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.ItemIdProvider;
 import com.hfstudio.structurelibexport.StructureExportBootstrap;
 
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -56,6 +58,7 @@ public class ClientProxy extends CommonProxy {
         GuideNhClientBridgeController.init();
         OpenGuideHotkey.init();
         OpenSceneEditorHotkey.init();
+        AutocompleteProviders.register(new ItemIdProvider());
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
         GuideWarmupPump.init();
         MinecraftForge.EVENT_BUS.register(this);

@@ -34,6 +34,16 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SelectionStrategy;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxContextResolver;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteProviders;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxSyntaxResolver;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.SelectionStrategies;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.ui.AutocompletePopup;
+
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
@@ -237,6 +247,14 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private long guideEditorNextSaveAtMillis;
     private long guideEditorNextPreviewCompileAtMillis;
     private long guideEditorNextExternalCheckAtMillis;
+    @Nullable
+    private AutocompletePopup autocompletePopup;
+    private SyntaxContextResolver autocompleteResolver;
+    private long autocompleteNextQueryAtMillis;
+    private String autocompleteLastText;
+    private int autocompleteLastCursor;
+    private static final long AUTOCOMPLETE_DEBOUNCE_MS = 100;
+    private java.util.Map autocompleteSelectionStrategies;
     private boolean guideEditorDraggingDivider;
     private int guideEditorDividerGrabOffset;
     private boolean guideEditorDraggingPreviewScrollbar;
@@ -429,6 +447,10 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
         rebuildToolbar();
         ensureGuideEditorTextArea();
+        if (autocompleteResolver == null) {
+            autocompleteResolver = new MdxSyntaxResolver();
+            autocompleteSelectionStrategies = SelectionStrategies.defaults();
+        }
         refreshGuideEditorDraft(true);
         ensureLayout();
         scrollToCurrentAnchor();
@@ -458,6 +480,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 itemLinksKeyTicksHeld = Math.max(0, itemLinksKeyTicksHeld - 2);
             }
             pendingItemLinksStack = null;
+        }
+        if (isGuideEditorActive()) {
+            performAutocompleteCheck();
         }
     }
 
@@ -706,6 +731,23 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private void ensureGuideEditorTextArea() {
         if (guideEditorTextArea == null) {
             guideEditorTextArea = new SceneEditorMultilineTextArea(fontRendererObj);
+            guideEditorTextArea.setDoubleClickHandler(new SceneEditorMultilineTextArea.DoubleClickHandler() {
+                @Override
+                public void onDoubleClick(int cursorIndex) {
+                    if (autocompleteResolver == null) return;
+                    String text = guideEditorTextArea.getText();
+                    TextSyntaxContext ctx = autocompleteResolver.resolve(text, cursorIndex);
+                    if (ctx == null) return;
+                    SelectionStrategy strategy = (SelectionStrategy)
+                        ((java.util.Map) autocompleteSelectionStrategies).get(ctx.getElementType());
+                    if (strategy == null) return;
+                    int start = strategy.getSelectionStart(ctx, text, cursorIndex);
+                    int end = strategy.getSelectionEnd(ctx, text, cursorIndex);
+                    if (start != end) {
+                        guideEditorTextArea.applyEdit(text, start, end);
+                    }
+                }
+            });
             guideEditorTextArea.setWrapEnabled(false);
         }
     }
@@ -817,6 +859,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
         pushGuideEditorHistoryState(before, beforeSelectionStart, beforeSelectionEnd);
         markGuideEditorTextChanged();
+        scheduleAutocompleteCheck();
         pushGuideEditorCurrentHistoryState();
     }
 
@@ -1971,6 +2014,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             renderGuideEditorPreview(previewPaneX, editorTop, previewPaneWidth, editorHeight);
         }
 
+        if (autocompletePopup != null && autocompletePopup.isOpen()) {
+            autocompletePopup.draw(fontRendererObj, mouseX, mouseY);
+        }
     }
 
     private int resolveGuideEditorDividerColor() {
@@ -2157,6 +2203,27 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             }
             guideEditorSuppressTextFocusUntilGuideHotkeyRelease = false;
         }
+        if (autocompletePopup != null && autocompletePopup.isOpen()) {
+            switch (keyCode) {
+                case Keyboard.KEY_ESCAPE:
+                    autocompletePopup.close();
+                    return true;
+                case Keyboard.KEY_UP:
+                    autocompletePopup.moveSelection(-1);
+                    return true;
+                case Keyboard.KEY_DOWN:
+                    autocompletePopup.moveSelection(1);
+                    return true;
+                case Keyboard.KEY_RETURN:
+                case Keyboard.KEY_NUMPADENTER:
+                case Keyboard.KEY_TAB:
+                    commitAutocompleteSelection();
+                    return true;
+                default:
+                    autocompletePopup.close();
+                    return false;
+            }
+        }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             if (keyCode == Keyboard.KEY_ESCAPE) {
                 closeGuideEditorContextMenu();
@@ -2205,9 +2272,86 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         return false;
     }
 
+    private void scheduleAutocompleteCheck() {
+        if (autocompleteResolver == null || guideEditorTextArea == null) return;
+        autocompleteNextQueryAtMillis = System.currentTimeMillis() + AUTOCOMPLETE_DEBOUNCE_MS;
+        autocompleteLastText = guideEditorTextArea.getText();
+        autocompleteLastCursor = guideEditorTextArea.getCursorIndex();
+    }
+
+    private void performAutocompleteCheck() {
+        if (autocompleteResolver == null || guideEditorTextArea == null) return;
+        long now = System.currentTimeMillis();
+        if (now < autocompleteNextQueryAtMillis) return;
+        if (autocompleteLastText == null) return;
+        autocompleteNextQueryAtMillis = 0;
+
+        String text = guideEditorTextArea.getText();
+        int cursor = guideEditorTextArea.getCursorIndex();
+        if (!text.equals(autocompleteLastText) || cursor != autocompleteLastCursor) return;
+
+        TextSyntaxContext ctx = autocompleteResolver.resolve(text, cursor);
+        if (ctx != null && ctx.shouldAutocomplete()) {
+            java.util.List<AutocompleteCandidate> candidates =
+                AutocompleteProviders.query(ctx.getAutocomplete(), 20);
+            if (!candidates.isEmpty()) {
+                if (autocompletePopup == null) {
+                    autocompletePopup = new AutocompletePopup();
+                }
+                int areaX = contentX;
+                int areaY = getGuideEditorContentTop();
+                autocompletePopup.show(candidates, areaX + 40, areaY + fontRendererObj.FONT_HEIGHT + 6,
+                    width, height, fontRendererObj);
+                return;
+            }
+        }
+        if (autocompletePopup != null && autocompletePopup.isOpen()) {
+            autocompletePopup.close();
+        }
+    }
+
+    private void commitAutocompleteSelection() {
+        if (autocompletePopup == null || !autocompletePopup.isOpen() || guideEditorTextArea == null) return;
+        AutocompleteCandidate selected = autocompletePopup.getSelected();
+        if (selected == null) {
+            autocompletePopup.close();
+            return;
+        }
+        if (autocompleteResolver == null) {
+            autocompletePopup.close();
+            return;
+        }
+        TextSyntaxContext ctx = autocompleteResolver.resolve(
+            guideEditorTextArea.getText(), guideEditorTextArea.getCursorIndex());
+        if (ctx != null && ctx.shouldAutocomplete()) {
+            AutocompleteContext ac = ctx.getAutocomplete();
+            if (ac != null) {
+                String text = guideEditorTextArea.getText();
+                String before = text.substring(0, ac.replaceStart());
+                String after = text.substring(ac.replaceEnd());
+                String newText = before + selected.replacementText() + after;
+                int newCursor = ac.replaceStart() + selected.replacementText().length();
+                guideEditorTextArea.applyEdit(newText, newCursor, newCursor);
+                updateGuideEditorTextFromArea();
+            }
+        }
+        autocompletePopup.close();
+    }
+
     private boolean handleGuideEditorMouseClicked(int mouseX, int mouseY, int button) {
         if (!isGuideEditorActive()) {
             return false;
+        }
+        if (autocompletePopup != null && autocompletePopup.isOpen()) {
+            if (autocompletePopup.contains(mouseX, mouseY)) {
+                autocompletePopup.mouseClicked(mouseX, mouseY);
+                if (autocompletePopup.getSelected() != null) {
+                    commitAutocompleteSelection();
+                }
+                return true;
+            } else if (button == 0) {
+                autocompletePopup.close();
+            }
         }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             return guideEditorContextMenu

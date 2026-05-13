@@ -5,6 +5,8 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
@@ -60,6 +62,12 @@ public class SceneEditorMultilineTextArea {
     private int pendingImePhysicalDuplicateChar;
     private int recentPhysicalAsciiChar;
     private long recentPhysicalAsciiAtMillis;
+
+    // Double-click word selection
+    private long lastClickTimeMillis;
+    private static final long DOUBLE_CLICK_WINDOW_MS = 400;
+    @Nullable
+    private DoubleClickHandler doubleClickHandler;
 
     public SceneEditorMultilineTextArea(FontRenderer fontRenderer) {
         this(fontRenderer, new ClipboardAccess() {
@@ -347,6 +355,13 @@ public class SceneEditorMultilineTextArea {
         int cursorIndex = getCursorIndexAt(mouseX, mouseY);
         if (button == 0) {
             selectionModel.beginSelection(cursorIndex);
+            long now = System.currentTimeMillis();
+            long elapsed = now - lastClickTimeMillis;
+            lastClickTimeMillis = now;
+            if (elapsed < DOUBLE_CLICK_WINDOW_MS && doubleClickHandler != null) {
+                doubleClickHandler.onDoubleClick(selectionModel.getCursorIndex());
+                return true;
+            }
             selectingWithMouse = true;
         } else {
             selectionModel.setCursorIndex(cursorIndex);
@@ -847,6 +862,10 @@ public class SceneEditorMultilineTextArea {
         ensureCursorVisible();
     }
 
+    public int getCursorIndexAtPublic(int mouseX, int mouseY) {
+        return getCursorIndexAt(mouseX, mouseY);
+    }
+
     private int getCursorIndexAt(int mouseX, int mouseY) {
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         if (lines.isEmpty()) {
@@ -982,6 +1001,14 @@ public class SceneEditorMultilineTextArea {
     public static boolean isCtrlKeyCombo(int keyCode, int expectedKeyCode) {
         return keyCode == expectedKeyCode
             && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL));
+    }
+
+    public void setDoubleClickHandler(@Nullable DoubleClickHandler handler) {
+        this.doubleClickHandler = handler;
+    }
+
+    public interface DoubleClickHandler {
+        void onDoubleClick(int cursorIndex);
     }
 
     public interface ClipboardAccess {
