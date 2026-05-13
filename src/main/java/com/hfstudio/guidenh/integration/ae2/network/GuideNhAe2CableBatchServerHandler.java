@@ -10,9 +10,10 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.Ae2CableBusPartStreamCodec;
 import com.hfstudio.guidenh.integration.ae2.Ae2CableBusSideStreams;
+import com.hfstudio.guidenh.integration.ae2.Ae2CableStructureSupport;
 
+import appeng.parts.CableBusContainer;
 import appeng.parts.networking.PartCable;
-import appeng.tile.networking.TileCableBus;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
@@ -53,7 +54,8 @@ public class GuideNhAe2CableBatchServerHandler
             int y = xyz[i * 3 + 1];
             int z = xyz[i * 3 + 2];
             TileEntity te = ws.getTileEntity(x, y, z);
-            if (!(te instanceof TileCableBus bus)) {
+            CableBusContainer container = Ae2CableStructureSupport.resolveCableContainer(te);
+            if (container == null) {
                 hit[i] = 0;
                 cs[i] = 0;
                 sideOut[i] = 0;
@@ -61,7 +63,7 @@ public class GuideNhAe2CableBatchServerHandler
                 continue;
             }
 
-            if (bus.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable) {
+            if (container.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable) {
                 ByteBuf buf = Unpooled.buffer(5);
                 try {
                     cable.writeToStream(buf);
@@ -83,7 +85,7 @@ public class GuideNhAe2CableBatchServerHandler
                 sideOut[i] = 0;
             }
 
-            Ae2CableBusSideStreams parts = Ae2CableBusPartStreamCodec.captureFromBus(bus);
+            Ae2CableBusSideStreams parts = Ae2CableBusPartStreamCodec.captureFromContainer(container);
             partPacked[i] = Ae2CableBusPartStreamCodec.pack(parts);
         }
 

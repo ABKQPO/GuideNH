@@ -7,6 +7,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.jetbrains.annotations.Nullable;
 
 import appeng.api.parts.IPart;
+import appeng.parts.CableBusContainer;
 import appeng.tile.networking.TileCableBus;
 import cpw.mods.fml.common.Optional;
 import io.netty.buffer.ByteBuf;
@@ -24,13 +25,18 @@ public final class Ae2CableBusPartStreamCodec {
 
     @Optional.Method(modid = "appliedenergistics2")
     public static Ae2CableBusSideStreams captureFromBus(TileCableBus bus) {
+        return captureFromContainer(bus.getCableBus());
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    public static Ae2CableBusSideStreams captureFromContainer(CableBusContainer container) {
         byte[][] slots = new byte[6][];
         for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
             int o = dir.ordinal();
             if (o < 0 || o >= 6) {
                 continue;
             }
-            IPart part = bus.getPart(dir);
+            IPart part = container.getPart(dir);
             if (part == null) {
                 continue;
             }

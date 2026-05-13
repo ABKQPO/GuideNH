@@ -37,6 +37,7 @@ import appeng.api.parts.PartItemStack;
 import appeng.api.util.AECableType;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
+import appeng.parts.CableBusContainer;
 import appeng.parts.networking.PartCable;
 import appeng.tile.AEBaseTile;
 import appeng.tile.crafting.TileCraftingTile;
@@ -149,9 +150,10 @@ public final class Ae2Helpers {
             }
         }
         for (TileEntity te : level.getTileEntities()) {
-            if (te instanceof TileCableBus cableBusTile) {
-                syncCableBusConnections(cableBusTile, level);
-                syncCableBusSidePartStreams(cableBusTile, level);
+            CableBusContainer container = resolveCableContainer(te);
+            if (container != null) {
+                syncCableBusConnections(container, level);
+                syncCableBusSidePartStreams(container, level);
             }
         }
         if (level.getOrCreateFakeWorld() instanceof GuidebookPreviewWorld previewWorld) {
@@ -227,12 +229,18 @@ public final class Ae2Helpers {
 
     @Optional.Method(modid = "appliedenergistics2")
     public static void syncCableBusConnections(TileCableBus cableBusTile, GuidebookLevel level) {
-        if (!(cableBusTile.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
+        syncCableBusConnections(cableBusTile.getCableBus(), level);
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    public static void syncCableBusConnections(CableBusContainer container, GuidebookLevel level) {
+        if (!(container.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
             return;
         }
 
-        int csDirections = computeCableConnectionMask(cableBusTile, level);
-        long posKey = GuidebookLevel.packPos(cableBusTile.xCoord, cableBusTile.yCoord, cableBusTile.zCoord);
+        int csDirections = computeCableConnectionMask(container, level);
+        TileEntity tile = container.getTile();
+        long posKey = GuidebookLevel.packPos(tile.xCoord, tile.yCoord, tile.zCoord);
         byte[] raw = level.previewAuthorityStore()
             .get(posKey, Ae2ServerPreviewRegistration.SUPPLEMENT_ID);
         Ae2CablePreviewSnapshot snap = raw != null ? Ae2CablePreviewWireCodec.decode(raw)
@@ -262,7 +270,13 @@ public final class Ae2Helpers {
 
     @Optional.Method(modid = "appliedenergistics2")
     public static void syncCableBusSidePartStreams(TileCableBus cableBusTile, GuidebookLevel level) {
-        long posKey = GuidebookLevel.packPos(cableBusTile.xCoord, cableBusTile.yCoord, cableBusTile.zCoord);
+        syncCableBusSidePartStreams(cableBusTile.getCableBus(), level);
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    public static void syncCableBusSidePartStreams(CableBusContainer container, GuidebookLevel level) {
+        TileEntity tile = container.getTile();
+        long posKey = GuidebookLevel.packPos(tile.xCoord, tile.yCoord, tile.zCoord);
         byte[] raw = level.previewAuthorityStore()
             .get(posKey, Ae2ServerPreviewRegistration.SUPPLEMENT_ID);
         if (raw == null || raw.length == 0) {
@@ -275,7 +289,7 @@ public final class Ae2Helpers {
         }
 
         NBTTagCompound baseline = new NBTTagCompound();
-        cableBusTile.writeToNBT(baseline);
+        container.writeToNBT(baseline);
 
         for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
             byte[] blob = snap.sideStreams()
@@ -283,13 +297,13 @@ public final class Ae2Helpers {
             if (blob == null || blob.length == 0) {
                 continue;
             }
-            if (cableBusTile.getPart(dir) == null) {
+            if (container.getPart(dir) == null) {
                 continue;
             }
 
-            cableBusTile.readFromNBT((NBTTagCompound) baseline.copy());
-            cableBusTile.validate();
-            IPart part = cableBusTile.getPart(dir);
+            container.readFromNBT((NBTTagCompound) baseline.copy());
+            tile.validate();
+            IPart part = container.getPart(dir);
             if (part == null) {
                 continue;
             }
@@ -297,14 +311,14 @@ public final class Ae2Helpers {
             try {
                 part.readFromStream(buf);
                 if (buf.readableBytes() == 0) {
-                    cableBusTile.writeToNBT(baseline);
+                    container.writeToNBT(baseline);
                 } else {
-                    cableBusTile.readFromNBT((NBTTagCompound) baseline.copy());
-                    cableBusTile.validate();
+                    container.readFromNBT((NBTTagCompound) baseline.copy());
+                    tile.validate();
                 }
             } catch (Throwable ignored) {
-                cableBusTile.readFromNBT((NBTTagCompound) baseline.copy());
-                cableBusTile.validate();
+                container.readFromNBT((NBTTagCompound) baseline.copy());
+                tile.validate();
             }
         }
     }
@@ -444,43 +458,78 @@ public final class Ae2Helpers {
 
     @Optional.Method(modid = "appliedenergistics2")
     public static int computeCableConnectionMask(TileCableBus cableBusTile, GuidebookLevel level) {
-        int x = cableBusTile.xCoord;
-        int y = cableBusTile.yCoord;
-        int z = cableBusTile.zCoord;
+        return computeCableConnectionMask(cableBusTile.getCableBus(), level);
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    public static int computeCableConnectionMask(CableBusContainer container, GuidebookLevel level) {
+        TileEntity tile = container.getTile();
+        int x = tile.xCoord;
+        int y = tile.yCoord;
+        int z = tile.zCoord;
 
         int cs = 0;
         for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
-            if (cableBusTile.getPart(dir) != null) {
-                continue;
-            }
-            var adj = level.getTileEntity(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ);
-            if (!(adj instanceof IGridHost adjHost)) {
-                continue;
-            }
-            AECableType myType = cableBusTile.getCableConnectionType(dir);
-            if (myType == AECableType.NONE) {
-                continue;
-            }
-            boolean adjCanConnect;
-            if (adjHost instanceof IGridProxyable adjProxyable) {
-                AENetworkProxy proxy = null;
-                try {
-                    proxy = adjProxyable.getProxy();
-                } catch (Throwable ignored) {}
-                if (proxy == null) {
-                    continue;
+            TileEntity adj = level.getTileEntity(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ);
+            CableBusContainer adjContainer = resolveCableContainer(adj);
+            boolean sourceHasSidePart = container.getPart(dir) != null;
+            boolean sourceBlocked = isBlocked(container, dir);
+            boolean sourceCanConnect = container.getCableConnectionType(dir) != AECableType.NONE;
+            boolean neighborCanConnect;
+            boolean neighborHasSidePart = false;
+            boolean neighborBlocked = false;
+            boolean neighborAcceptsSide = true;
+
+            if (adjContainer != null) {
+                ForgeDirection opposite = dir.getOpposite();
+                neighborCanConnect = adjContainer.getCableConnectionType(opposite) != AECableType.NONE;
+                neighborHasSidePart = adjContainer.getPart(opposite) != null;
+                neighborBlocked = isBlocked(adjContainer, opposite);
+            } else if (adj instanceof IGridHost adjHost) {
+                ForgeDirection opposite = dir.getOpposite();
+                neighborCanConnect = adjHost.getCableConnectionType(opposite) != AECableType.NONE;
+                if (adjHost instanceof IGridProxyable adjProxyable) {
+                    AENetworkProxy proxy = null;
+                    try {
+                        proxy = adjProxyable.getProxy();
+                    } catch (Throwable ignored) {}
+                    if (proxy == null) {
+                        continue;
+                    }
+                    neighborAcceptsSide = proxy.getConnectableSides()
+                        .contains(opposite);
                 }
-                adjCanConnect = proxy.getConnectableSides()
-                    .contains(dir.getOpposite());
             } else {
-                adjCanConnect = adjHost.getCableConnectionType(dir.getOpposite()) != AECableType.NONE;
+                continue;
             }
-            if (!adjCanConnect) {
+
+            if (!Ae2CableConnectionRules.shouldConnect(
+                sourceHasSidePart,
+                sourceBlocked,
+                sourceCanConnect,
+                neighborCanConnect,
+                neighborHasSidePart,
+                neighborBlocked,
+                neighborAcceptsSide)) {
                 continue;
             }
             cs |= (1 << dir.ordinal());
         }
         return cs;
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    @Nullable
+    private static CableBusContainer resolveCableContainer(@Nullable TileEntity tileEntity) {
+        return Ae2CableStructureSupport.resolveCableContainer(tileEntity);
+    }
+
+    private static boolean isBlocked(CableBusContainer container, ForgeDirection direction) {
+        try {
+            return container.isBlocked(direction);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     @Optional.Method(modid = "appliedenergistics2")

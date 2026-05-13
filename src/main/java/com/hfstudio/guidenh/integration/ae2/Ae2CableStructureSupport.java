@@ -83,7 +83,7 @@ public final class Ae2CableStructureSupport {
             for (int z = minZ; z <= maxZ; z++) {
                 for (int x = minX; x <= maxX; x++) {
                     TileEntity te = lookup.getTile(x, y, z);
-                    if (te instanceof TileCableBus) {
+                    if (resolveCableContainer(te) != null) {
                         coords.add(new int[] { x, y, z });
                     }
                 }
@@ -224,7 +224,7 @@ public final class Ae2CableStructureSupport {
     @Optional.Method(modid = "appliedenergistics2")
     public static void attachCableStreamToExport(@Nullable TileEntity tileEntity, NBTTagCompound structureBlockTag,
         @Nullable World exportWorldForAe2, @Nullable Ae2CableMpSnapshot mpSnapshot) {
-        if (tileEntity == null || !(tileEntity instanceof TileCableBus)) {
+        if (tileEntity == null || resolveCableContainer(tileEntity) == null) {
             return;
         }
         int wx = tileEntity.xCoord;
@@ -248,11 +248,12 @@ public final class Ae2CableStructureSupport {
     private static Ae2CablePreviewSnapshot captureSnapshotFromWorldTile(TileEntity tileEntity,
         @Nullable World exportWorldForAe2) {
         TileEntity workTe = resolveServerCableBusTile(tileEntity, exportWorldForAe2);
-        if (!(workTe instanceof TileCableBus resolvedBus)) {
+        appeng.parts.CableBusContainer container = resolveCableContainer(workTe);
+        if (container == null) {
             return null;
         }
-        Ae2CableBusSideStreams parts = Ae2CableBusPartStreamCodec.captureFromBus(resolvedBus);
-        if (!(resolvedBus.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
+        Ae2CableBusSideStreams parts = Ae2CableBusPartStreamCodec.captureFromContainer(container);
+        if (!(container.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
             return parts.isEmpty() ? null : new Ae2CablePreviewSnapshot(false, 0, 0, parts);
         }
         ByteBuf buf = Unpooled.buffer(5);
@@ -312,9 +313,21 @@ public final class Ae2CableStructureSupport {
         }
 
         TileEntity srv = sw.getTileEntity(x, y, z);
-        if (srv instanceof TileCableBus) {
+        if (resolveCableContainer(srv) != null) {
             return srv;
         }
         return clientTe;
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    @Nullable
+    public static appeng.parts.CableBusContainer resolveCableContainer(@Nullable TileEntity tileEntity) {
+        if (tileEntity instanceof TileCableBus cableBus) {
+            return cableBus.getCableBus();
+        }
+        if (!Mods.ForgeMultipart.isModLoaded()) {
+            return null;
+        }
+        return Ae2ForgeMultipartBridge.resolveCableContainer(tileEntity);
     }
 }
