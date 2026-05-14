@@ -445,11 +445,11 @@ public class PageCompiler {
             return;
         }
 
-        ParsedGuidePage parsed = parse(sourcePack, "en_us", pageId, reparsed.source());
+        MdAstRoot root = parseFragmentRoot(reparsed.source());
         Map<String, MdAstDefinition> previousDefinitions = new HashMap<>(definitions);
-        definitions.putAll(GuideMarkdownDefinitions.collect(parsed.getAstRoot()));
+        definitions.putAll(GuideMarkdownDefinitions.collect(root));
         try {
-            withSourceSlice(reparsed.source(), () -> compileBlockContext(parsed.getAstRoot(), layoutParent));
+            withSourceSlice(reparsed.source(), () -> compileBlockContext(root, layoutParent));
         } finally {
             definitions.clear();
             definitions.putAll(previousDefinitions);
@@ -461,9 +461,7 @@ public class PageCompiler {
         if (reparsed == null) {
             return element.children();
         }
-        ParsedGuidePage parsed = parse(sourcePack, "en_us", pageId, reparsed.source());
-        return parsed.getAstRoot()
-            .children();
+        return parseFragmentRoot(reparsed.source()).children();
     }
 
     /**
@@ -490,9 +488,8 @@ public class PageCompiler {
             layoutParent.appendText(source);
             return;
         }
-        ParsedGuidePage parsed = parse(sourcePack, "en_us", pageId, source);
-        for (MdAstAnyContent child : parsed.getAstRoot()
-            .children()) {
+        MdAstRoot root = parseFragmentRoot(source);
+        for (MdAstAnyContent child : root.children()) {
             if (child instanceof MdAstParagraph paragraph) {
                 compileFlowContext(paragraph, layoutParent);
             } else if (child instanceof MdAstParent<?>nestedParent) {
@@ -503,6 +500,39 @@ public class PageCompiler {
                 compileFlowContent(layoutParent, child);
             }
         }
+    }
+
+    private MdAstRoot parseFragmentRoot(String source) {
+        String fragmentSource = source != null ? source : "";
+        try {
+            fragmentSource = normalizeLineEndings(fragmentSource);
+            fragmentSource = FootnotePreprocessor.preprocess(fragmentSource);
+            MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(fragmentSource);
+            String parseContent = MdxCommentMasker.mask(latexMask.source());
+            MdAstRoot root = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
+            MarkdownLatexShorthand.restore(root, latexMask);
+            MarkdownHtmlRuntimeNormalizer.normalize(root);
+            return root;
+        } catch (RuntimeException e) {
+            UnistPoint from = e instanceof ParseException parseException ? parseException.getFrom() : null;
+            String errorMessage = formatFragmentParseFailureMessage(pageId, sourcePack, from);
+            logError("[GuideNH] [PageCompiler] {}", e, errorMessage);
+            return buildErrorPage(errorMessage + ": \n" + e);
+        }
+    }
+
+    private static String formatFragmentParseFailureMessage(ResourceLocation id, String sourcePack,
+        @Nullable UnistPoint position) {
+        String positionText = "";
+        if (position != null) {
+            positionText = " at line " + position.line() + " column " + position.column();
+        }
+        return String.format(
+            Locale.ROOT,
+            "Failed to parse GuideME markdown fragment in page %s%s from %s",
+            id,
+            positionText,
+            sourcePack);
     }
 
     private static boolean isPlainInlineMarkdown(String source) {
@@ -1675,7 +1705,7 @@ public class PageCompiler {
             span.appendText(line);
             span.appendBreak();
 
-            String tildes = new String(new char[Math.max(0, pos.column() - 1)]).replace('\0', '~');
+            String tildes = repeatChar('~', Math.max(0, pos.column() - 1));
             span.appendText(tildes + "^");
             span.appendBreak();
 
@@ -1685,6 +1715,17 @@ public class PageCompiler {
         }
 
         return span;
+    }
+
+    private static String repeatChar(char value, int count) {
+        if (count <= 0) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(count);
+        for (int i = 0; i < count; i++) {
+            builder.append(value);
+        }
+        return builder.toString();
     }
 
     private static void logInfo(String message, Object... args) {
