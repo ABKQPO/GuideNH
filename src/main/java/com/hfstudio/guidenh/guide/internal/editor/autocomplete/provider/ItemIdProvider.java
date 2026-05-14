@@ -30,6 +30,7 @@ public class ItemIdProvider implements AutocompleteProvider {
         allKeys.add(AutocompleteKey.forValue("RecipeFor", "output"));
         allKeys.add(AutocompleteKey.forValue("RecipesFor", "input"));
         allKeys.add(AutocompleteKey.forValue("RecipesFor", "output"));
+        allKeys.add(AutocompleteKey.forValue("ItemIcon", "id"));
         KEYS = Collections.unmodifiableSet(allKeys);
     }
 

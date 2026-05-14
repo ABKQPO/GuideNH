@@ -46,7 +46,7 @@ public final class AutocompleteProviders {
         if (ctx instanceof com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext) {
             com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext fmc =
                 (com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext) ctx;
-            String attr = fmc.isValue() ? "fm_value" : "fm_key";
+            String attr = fmc.isValue() ? fmc.getKey() : "fm_key";
             return key.matches(AutocompleteKey.MatchType.ATTR_VALUE, "*", attr);
         }
         return false;

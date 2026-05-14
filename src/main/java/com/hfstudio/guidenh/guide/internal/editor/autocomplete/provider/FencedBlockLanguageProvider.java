@@ -4,6 +4,9 @@ import java.util.*;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 
+// TODO: re-enable when fence-block context resolver is implemented.
+// Currently forTag() causes these suggestions to appear in the tag name popup.
+
 /** Suggests language identifiers after ``` for fenced code blocks. */
 public class FencedBlockLanguageProvider implements AutocompleteProvider {
 

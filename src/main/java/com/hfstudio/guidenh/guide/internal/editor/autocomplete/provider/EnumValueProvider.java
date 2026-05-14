@@ -9,6 +9,9 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TagAttributeRegis
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
 import com.hfstudio.guidenh.guide.compiler.tags.SerializedEnum;
 
+// TODO: require TagAttributeRegistry entries with AttrType.ENUM.
+// Currently no attributes use ENUM type, so this provider never fires.
+
 /** Suggests enum values for enum-typed attributes. */
 public class EnumValueProvider implements AutocompleteProvider {
 

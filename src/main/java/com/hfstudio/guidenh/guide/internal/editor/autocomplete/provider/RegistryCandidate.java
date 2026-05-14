@@ -44,7 +44,7 @@ public class RegistryCandidate implements AutocompleteCandidate {
     @Override public String displayText() { return key; }
     @Override public String replacementText() { return key; }
     @Override public int renderHeight() { return subtitle != null ? 28 : 16; }
-    @Override public int renderWidth(FontRenderer fr) { return icon != null ? ICON_SIZE + 4 : 0; }
+    @Override public int renderWidth(FontRenderer fr) { return icon != null ? ICON_SIZE + 4 + fr.getStringWidth(key) : 0; }
 
     @Override
     public void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered) {

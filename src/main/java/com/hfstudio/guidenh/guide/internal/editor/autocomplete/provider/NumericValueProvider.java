@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 import java.util.*;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
 
 /** Suggests common numeric values for INT/FLOAT attributes. */
 public class NumericValueProvider implements AutocompleteProvider {
@@ -32,16 +33,18 @@ public class NumericValueProvider implements AutocompleteProvider {
 
     @Override
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
+        if (!(ctx instanceof MdxValueContext)) return Collections.emptyList();
+        String attrName = ((MdxValueContext) ctx).getAttrName();
+        String[] vals = SUGGESTIONS.get(attrName);
+        if (vals == null) return Collections.emptyList();
+
         String partial = ctx.getPartialText();
         List<AutocompleteCandidate> results = new ArrayList<>();
-        // Generic — return all suggestions for any recognized attr
-        for (String[] vals : SUGGESTIONS.values()) {
-            for (String v : vals) {
-                if (results.size() >= limit) break;
-                if (partial.isEmpty() || v.startsWith(partial)) {
-                    results.add(new TextCandidate(v));
-                }
+        for (String v : vals) {
+            if (partial.isEmpty() || v.startsWith(partial)) {
+                results.add(new TextCandidate(v));
             }
+            if (results.size() >= limit) break;
         }
         return results;
     }

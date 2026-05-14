@@ -40,7 +40,7 @@ public class AnchorProvider implements AutocompleteProvider {
             String heading = m.group(1).trim();
             String anchor = heading.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
             if (query.isEmpty() || anchor.contains(query)) {
-                results.add(new TextCandidate("#" + anchor + " (" + heading + ")"));
+                results.add(new RegistryCandidate("#" + anchor, heading));
             }
         }
         return results;

@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteConte
 public class BlockIdProvider implements AutocompleteProvider {
 
     private static final Set<AutocompleteKey> KEYS = buildKeys(
-        "BlockImage", "PlaceBlock", "RemoveBlocks"
+        "BlockImage", "PlaceBlock", "RemoveBlocks", "Block"
     );
 
     private static Set<AutocompleteKey> buildKeys(String... tagNames) {

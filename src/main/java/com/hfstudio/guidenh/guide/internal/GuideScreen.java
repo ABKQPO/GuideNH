@@ -44,6 +44,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.Autocomp
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.CompositeResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxSyntaxResolver;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.SelectionStrategies;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.WordBoundaryResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AnchorProvider;
@@ -2373,8 +2374,16 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         String text = guideEditorTextArea.getText();
         String before = text.substring(0, ac.replaceStart());
         String after = text.substring(ac.replaceEnd());
-        String newText = before + selected.replacementText() + after;
-        int newCursor = ac.replaceStart() + selected.replacementText().length();
+        String replaced = selected.replacementText();
+
+        // Auto-close quote for MDX attribute values when the closing quote is missing
+        if (ac instanceof MdxValueContext && !after.isEmpty()
+            && after.charAt(0) != '"' && after.charAt(0) != '\'' && after.charAt(0) != '}') {
+            replaced += "\"";
+        }
+
+        String newText = before + replaced + after;
+        int newCursor = ac.replaceStart() + replaced.length();
         guideEditorTextArea.applyEdit(newText, newCursor, newCursor);
         updateGuideEditorTextFromArea();
         autocompletePopup.close();

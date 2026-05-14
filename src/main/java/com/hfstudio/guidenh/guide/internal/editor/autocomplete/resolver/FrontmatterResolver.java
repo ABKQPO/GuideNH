@@ -44,10 +44,16 @@ public final class FrontmatterResolver implements SyntaxContextResolver {
         int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
         int valueAbsStart = lineStart + valueStart;
         int valueAbsEnd = lineStart + line.length();
+        // Extend to include trailing newline so candidates with \n prefix replace cleanly
+        if (valueAbsEnd < text.length() && text.charAt(valueAbsEnd) == '\n') {
+            valueAbsEnd++;
+        }
 
-        // Trim trailing comment from value end
+        // Trim trailing comment from value end (unless # is inside quotes)
         int hashIdx = line.indexOf(" #", valueStart);
-        if (hashIdx >= 0) valueAbsEnd = lineStart + hashIdx;
+        if (hashIdx >= 0 && !isInsideQuotes(line, valueStart, hashIdx)) {
+            valueAbsEnd = lineStart + hashIdx;
+        }
         valueAbsEnd = Math.min(valueAbsEnd, secondStart);
 
         if (cursorIndex >= valueAbsStart && cursorIndex <= valueAbsEnd) {
@@ -66,6 +72,17 @@ public final class FrontmatterResolver implements SyntaxContextResolver {
         }
 
         return SyntaxUtils.resolveWord(text, cursorIndex);
+    }
+
+    /** Check if position {@code pos} in {@code line} is inside paired quotes. */
+    private static boolean isInsideQuotes(String line, int from, int pos) {
+        boolean inSingle = false, inDouble = false;
+        for (int i = from; i < pos; i++) {
+            char c = line.charAt(i);
+            if (c == '\'' && !inDouble) inSingle = !inSingle;
+            else if (c == '"' && !inSingle) inDouble = !inDouble;
+        }
+        return inSingle || inDouble;
     }
 
     @Nullable

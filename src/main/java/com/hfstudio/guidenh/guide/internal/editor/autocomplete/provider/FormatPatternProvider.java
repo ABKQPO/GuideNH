@@ -11,7 +11,7 @@ public class FormatPatternProvider implements AutocompleteProvider {
         Collections.singleton(AutocompleteKey.forValue("ItemImage", "format"));
 
     private static final String[] PATTERNS = {
-        "%s", "%d", "%.1f", "%.2f", "%s items", "x%d", "%d / %d"
+        "%s", "%s items", "**%s**", "*%s*", "~~%s~~"
     };
 
     @Override

@@ -2,12 +2,9 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
 import java.util.*;
 
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AttributeSpec;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AttrType;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TagAttributeRegistry;
 
-/** Suggests hex color values and SymbolicColor names for color-typed attributes. */
+/** Suggests SymbolicColor names for &lt;Color id&gt; attributes. */
 public class ColorProvider implements AutocompleteProvider {
 
     private static final String[] SYMBOLIC_NAMES = {
@@ -23,15 +20,7 @@ public class ColorProvider implements AutocompleteProvider {
 
     @Override
     public Set<AutocompleteKey> getSupportedKeys() {
-        Set<AutocompleteKey> keys = new HashSet<>();
-        for (String tag : TagAttributeRegistry.getRegisteredTags()) {
-            for (AttributeSpec spec : TagAttributeRegistry.get(tag)) {
-                if (spec.getType() == AttrType.COLOR) {
-                    keys.add(AutocompleteKey.forValue(tag, spec.getName()));
-                }
-            }
-        }
-        return Collections.unmodifiableSet(keys);
+        return Collections.singleton(AutocompleteKey.forValue("Color", "id"));
     }
 
     @Override

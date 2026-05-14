@@ -13,8 +13,8 @@ public class DomainProvider implements AutocompleteProvider {
     ));
 
     private static final String[] DOMAINS = {
-        "(-inf, inf)", "[-10, 10]", "(-pi, pi)", "[0, 2*pi)",
-        "(-inf, 0]", "[0, inf)", "(-5, 5)", "[-1, 1]"
+        "-inf..inf", "-10..10", "-pi..pi", "0..2*pi",
+        "..0", "0..", "-5..5", "-1..1"
     };
 
     @Override

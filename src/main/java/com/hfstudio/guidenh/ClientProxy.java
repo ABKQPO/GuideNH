@@ -31,9 +31,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.ColorPro
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.CommandProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.DomainProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.EntityNameProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.EnumValueProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.ExpressionProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.FencedBlockLanguageProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.FormatPatternProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.FrontmatterKeyProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.FrontmatterValueProvider;
@@ -81,7 +79,7 @@ public class ClientProxy extends CommonProxy {
         AutocompleteProviders.register(new ItemIdProvider());
         TagAttributeRegistry.initialize();
         AutocompleteProviders.register(new AttributeNameProvider());
-        AutocompleteProviders.register(new EnumValueProvider());
+
         AutocompleteProviders.register(new ColorProvider());
         AutocompleteProviders.register(new OreDictProvider());
         AutocompleteProviders.register(new BlockIdProvider());
@@ -97,7 +95,7 @@ public class ClientProxy extends CommonProxy {
         AutocompleteProviders.register(new TagNameProvider());
         AutocompleteProviders.register(new FrontmatterKeyProvider());
         AutocompleteProviders.register(new FrontmatterValueProvider());
-        AutocompleteProviders.register(new FencedBlockLanguageProvider());
+
         AutocompleteProviders.register(new ImagePathProvider());
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
         GuideWarmupPump.init();

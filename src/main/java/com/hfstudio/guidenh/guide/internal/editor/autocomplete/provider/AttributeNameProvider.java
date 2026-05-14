@@ -16,8 +16,19 @@ public class AttributeNameProvider implements AutocompleteProvider {
     @Override
     public Set<AutocompleteKey> getSupportedKeys() { return KEYS; }
 
+    //
+    // TODO: Currently disabled because the resolver layer (MdxSyntaxResolver) does not
+    // reliably distinguish attribute-name positions from plain text. When the parser
+    // supports error-recovery or the resolver can accurately detect tag-internal
+    // whitespace without false positives, set this to true.
+    //
+    private static volatile boolean enabled = false;
+
+    public static void setEnabled(boolean value) { enabled = value; }
+
     @Override
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
+        if (!enabled) return Collections.emptyList();
         if (!(ctx instanceof MdxAttrNameContext)) return Collections.emptyList();
         MdxAttrNameContext mdx = (MdxAttrNameContext) ctx;
 

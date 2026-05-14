@@ -4,11 +4,21 @@ import java.util.*;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 
+//
+// TODO: Disabled. Right-click context menu provides tag insertion as an alternative.
+// The tag name popup was unreliable — caching wrong after parse errors — and the
+// self-closing suffix (/>) was inappropriate for container tags like Row, Column,
+// Scene, etc. Revisit after parser layer supports error-recovery.
+//
 /** Suggests MDX tag names when cursor is right after '&lt;'. */
 public class TagNameProvider implements AutocompleteProvider {
 
     private static final Set<AutocompleteKey> KEYS =
         Collections.singleton(AutocompleteKey.forTag());
+
+    private static volatile boolean enabled = false;
+
+    public static void setEnabled(boolean value) { enabled = value; }
 
     // Grouped by category for future grouping in UI
     private static final String[] TAG_NAMES = {
@@ -38,13 +48,14 @@ public class TagNameProvider implements AutocompleteProvider {
 
     @Override
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
+        if (!enabled) return Collections.emptyList();
         String partial = ctx.getPartialText();
         String lower = partial != null ? partial.toLowerCase() : "";
         List<AutocompleteCandidate> results = new ArrayList<>();
         for (String name : TAG_NAMES) {
             if (results.size() >= limit) break;
             if (lower.isEmpty() || name.toLowerCase().startsWith(lower)) {
-                results.add(new TextCandidate(name));
+                results.add(new TextCandidate(name + " />"));
             }
         }
         return results;

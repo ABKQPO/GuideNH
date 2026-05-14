@@ -29,6 +29,23 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     private static final Pattern FALLBACK_TAG =
         Pattern.compile("<([A-Za-z]\\w*)[^>]*?\\s+(\\w+)\\s*=\\s*\"([^\">]*)$");
 
+    //
+    // TODO: Fallback is intentionally limited for now.
+    //
+    // When the full-document AST parse throws ParseException (e.g. mismatched MDX tags,
+    // unexpected closing slashes, etc.), the entire autocomplete system degrades to this
+    // regex-based fallback. Currently it only covers the attribute-value-in-double-quotes
+    // case. Missing cases that need parser-level error recovery first:
+    //
+    //   - Attribute-name completion inside an open tag  (<Entity |id=...>)
+    //   - Single-quoted / brace-delimited / unquoted values
+    //   - Cursor right after '=' with no opening quote yet
+    //
+    // Once the Micromark/MdastCompiler pipeline supports error-recovery (partial AST on
+    // failure), extend resolveFromFallback to handle these cases. The extra patterns and
+    // context-detection logic are ready but disabled until then.
+    //
+
     // AST cache: re-parse only when text changes; cursor-only moves walk cached tree
     @Nullable
     private String cachedText;
@@ -61,9 +78,8 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     @Nullable
     private TextSyntaxContext resolveFromAst(MdAstRoot root, String text, int cursorIndex) {
         if (cursorIndex > 0 && text.charAt(cursorIndex - 1) == '<') {
-            int tagStart = cursorIndex - 1;
-            return new TextSyntaxContext(SyntaxElementType.TAG_START, tagStart, cursorIndex,
-                new TagStartContext(tagStart, cursorIndex, ""));
+            return new TextSyntaxContext(SyntaxElementType.TAG_START, cursorIndex, cursorIndex,
+                new TagStartContext(cursorIndex, cursorIndex, ""));
         }
         MdxJsxElementFields element = findEnclosingMdxElement(root, cursorIndex);
         if (element != null) {
@@ -177,9 +193,8 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     @Nullable
     private TextSyntaxContext resolveFromFallback(String text, int cursorIndex) {
         if (cursorIndex > 0 && text.charAt(cursorIndex - 1) == '<') {
-            int tagStart = cursorIndex - 1;
-            return new TextSyntaxContext(SyntaxElementType.TAG_START, tagStart, cursorIndex,
-                new TagStartContext(tagStart, cursorIndex, ""));
+            return new TextSyntaxContext(SyntaxElementType.TAG_START, cursorIndex, cursorIndex,
+                new TagStartContext(cursorIndex, cursorIndex, ""));
         }
         String prefix = text.substring(0, Math.min(cursorIndex, text.length()));
         Matcher m = FALLBACK_TAG.matcher(prefix);
