@@ -25,11 +25,6 @@ public class GuideNhNetwork {
             GuideNhRegionExportRequestMessage.class,
             7,
             Side.SERVER);
-        CHANNEL.registerMessage(
-            GuideNhRegionExportClientHandler.class,
-            GuideNhRegionExportReplyMessage.class,
-            8,
-            Side.CLIENT);
         Ae2NetworkRegistration.registerCommonMessages();
     }
 
