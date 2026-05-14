@@ -8,7 +8,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxUtils;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
 
 /** Detects cursor position inside YAML frontmatter (between --- delimiters at document start). */
-public final class FrontmatterResolver implements SyntaxContextResolver {
+public class FrontmatterResolver implements SyntaxContextResolver {
 
     private static final String DELIM = "---";
 
@@ -32,7 +32,8 @@ public final class FrontmatterResolver implements SyntaxContextResolver {
         int colonIdx = line.indexOf(':');
         if (colonIdx < 0) return SyntaxUtils.resolveWord(text, cursorIndex);
 
-        String key = line.substring(0, colonIdx).trim();
+        String key = line.substring(0, colonIdx)
+            .trim();
         // Skip YAML comments and list markers
         if (key.isEmpty() || key.startsWith("#") || key.startsWith("- ")) {
             return SyntaxUtils.resolveWord(text, cursorIndex);
@@ -58,7 +59,10 @@ public final class FrontmatterResolver implements SyntaxContextResolver {
 
         if (cursorIndex >= valueAbsStart && cursorIndex <= valueAbsEnd) {
             String partialText = text.substring(valueAbsStart, cursorIndex);
-            return new TextSyntaxContext(SyntaxElementType.WORD, valueAbsStart, valueAbsEnd,
+            return new TextSyntaxContext(
+                SyntaxElementType.WORD,
+                valueAbsStart,
+                valueAbsEnd,
                 new FrontmatterContext(key, true, valueAbsStart, valueAbsEnd, partialText));
         }
 
@@ -66,9 +70,11 @@ public final class FrontmatterResolver implements SyntaxContextResolver {
         int keyStart = lineStart + line.indexOf(key);
         int keyEnd = keyStart + key.length();
         if (cursorIndex >= keyStart && cursorIndex <= keyEnd) {
-            return new TextSyntaxContext(SyntaxElementType.WORD, keyStart, keyEnd,
-                new FrontmatterContext(key, false, keyStart, keyEnd,
-                    text.substring(keyStart, cursorIndex)));
+            return new TextSyntaxContext(
+                SyntaxElementType.WORD,
+                keyStart,
+                keyEnd,
+                new FrontmatterContext(key, false, keyStart, keyEnd, text.substring(keyStart, cursorIndex)));
         }
 
         return SyntaxUtils.resolveWord(text, cursorIndex);

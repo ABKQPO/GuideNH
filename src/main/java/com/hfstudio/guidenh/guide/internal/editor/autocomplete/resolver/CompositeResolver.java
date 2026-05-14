@@ -9,7 +9,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxContextReso
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
 
 /** Chains multiple resolvers; first non-null result wins. */
-public final class CompositeResolver implements SyntaxContextResolver {
+public class CompositeResolver implements SyntaxContextResolver {
 
     private final List<SyntaxContextResolver> chain;
 

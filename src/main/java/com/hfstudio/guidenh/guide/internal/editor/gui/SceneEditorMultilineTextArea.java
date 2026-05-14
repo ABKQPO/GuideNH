@@ -5,13 +5,12 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
@@ -1025,6 +1024,7 @@ public class SceneEditorMultilineTextArea {
     }
 
     public interface DoubleClickHandler {
+
         void onDoubleClick(int cursorIndex);
     }
 

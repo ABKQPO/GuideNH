@@ -2,8 +2,8 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 
-/** Context for attribute NAME completion — cursor is in tag body whitespace, not in a value. */
-public final class MdxAttrNameContext implements AutocompleteContext {
+public class MdxAttrNameContext implements AutocompleteContext {
+
     private final String tagName;
     private final int replaceStart;
     private final int replaceEnd;
@@ -16,9 +16,22 @@ public final class MdxAttrNameContext implements AutocompleteContext {
         this.partialText = partialText;
     }
 
-    public String getTagName() { return tagName; }
+    public String getTagName() {
+        return tagName;
+    }
 
-    @Override public int replaceStart() { return replaceStart; }
-    @Override public int replaceEnd() { return replaceEnd; }
-    @Override public String getPartialText() { return partialText; }
+    @Override
+    public int replaceStart() {
+        return replaceStart;
+    }
+
+    @Override
+    public int replaceEnd() {
+        return replaceEnd;
+    }
+
+    @Override
+    public String getPartialText() {
+        return partialText;
+    }
 }

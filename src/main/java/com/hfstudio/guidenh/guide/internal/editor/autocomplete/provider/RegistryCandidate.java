@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GL12;
 
 /** Candidate displaying a registry key with optional item icon and subtitle. */
 public class RegistryCandidate implements AutocompleteCandidate {
+
     private final String key;
     @Nullable
     private final String subtitle;
@@ -41,10 +42,25 @@ public class RegistryCandidate implements AutocompleteCandidate {
         this.icon = icon;
     }
 
-    @Override public String displayText() { return key; }
-    @Override public String replacementText() { return key; }
-    @Override public int renderHeight() { return subtitle != null ? 28 : 16; }
-    @Override public int renderWidth(FontRenderer fr) { return icon != null ? ICON_SIZE + 4 + fr.getStringWidth(key) : 0; }
+    @Override
+    public String displayText() {
+        return key;
+    }
+
+    @Override
+    public String replacementText() {
+        return key;
+    }
+
+    @Override
+    public int renderHeight() {
+        return subtitle != null ? 28 : 16;
+    }
+
+    @Override
+    public int renderWidth(FontRenderer fr) {
+        return icon != null ? ICON_SIZE + 4 + fr.getStringWidth(key) : 0;
+    }
 
     @Override
     public void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered) {
@@ -58,8 +74,11 @@ public class RegistryCandidate implements AutocompleteCandidate {
             renderItem.zLevel = 0;
             renderItem.renderItemAndEffectIntoGUI(
                 Minecraft.getMinecraft().fontRenderer,
-                Minecraft.getMinecraft().getTextureManager(),
-                icon, x, y - 1);
+                Minecraft.getMinecraft()
+                    .getTextureManager(),
+                icon,
+                x,
+                y - 1);
             RenderHelper.disableStandardItemLighting();
             GL11.glDisable(GL11.GL_BLEND);
             GL11.glPopMatrix();

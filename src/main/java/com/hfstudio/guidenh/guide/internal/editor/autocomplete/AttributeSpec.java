@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
-public final class AttributeSpec {
+public class AttributeSpec {
+
     private final String name;
     private final AttrType type;
     private final Class<? extends Enum<?>> enumClass;
@@ -15,7 +16,15 @@ public final class AttributeSpec {
         this.enumClass = enumClass;
     }
 
-    public String getName() { return name; }
-    public AttrType getType() { return type; }
-    public Class<? extends Enum<?>> getEnumClass() { return enumClass; }
+    public String getName() {
+        return name;
+    }
+
+    public AttrType getType() {
+        return type;
+    }
+
+    public Class<? extends Enum<?>> getEnumClass() {
+        return enumClass;
+    }
 }

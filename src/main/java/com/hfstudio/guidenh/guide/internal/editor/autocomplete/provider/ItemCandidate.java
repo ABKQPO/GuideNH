@@ -10,6 +10,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
 public class ItemCandidate implements AutocompleteCandidate {
+
     private final String id;
     private final ItemStack stack;
     private static final int ICON_SIZE = 16;
@@ -22,9 +23,20 @@ public class ItemCandidate implements AutocompleteCandidate {
         this.stack = stack;
     }
 
-    @Override public String displayText() { return id; }
-    @Override public String replacementText() { return id; }
-    @Override public int renderHeight() { return 16; }
+    @Override
+    public String displayText() {
+        return id;
+    }
+
+    @Override
+    public String replacementText() {
+        return id;
+    }
+
+    @Override
+    public int renderHeight() {
+        return 16;
+    }
 
     @Override
     public void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered) {
@@ -37,8 +49,11 @@ public class ItemCandidate implements AutocompleteCandidate {
         // renderItemAndEffectIntoGUI draws in a 16x16 box; center it vertically in our 16px row
         renderItem.renderItemAndEffectIntoGUI(
             Minecraft.getMinecraft().fontRenderer,
-            Minecraft.getMinecraft().getTextureManager(),
-            stack, x, y - 1);
+            Minecraft.getMinecraft()
+                .getTextureManager(),
+            stack,
+            x,
+            y - 1);
         RenderHelper.disableStandardItemLighting();
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glPopMatrix();

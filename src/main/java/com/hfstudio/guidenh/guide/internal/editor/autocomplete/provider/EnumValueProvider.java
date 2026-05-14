@@ -1,18 +1,18 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AttributeSpec;
+import com.hfstudio.guidenh.guide.compiler.tags.SerializedEnum;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AttrType;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AttributeSpec;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TagAttributeRegistry;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
-import com.hfstudio.guidenh.guide.compiler.tags.SerializedEnum;
 
-// TODO: require TagAttributeRegistry entries with AttrType.ENUM.
-// Currently no attributes use ENUM type, so this provider never fires.
-
-/** Suggests enum values for enum-typed attributes. */
 public class EnumValueProvider implements AutocompleteProvider {
 
     @Override
@@ -34,18 +34,22 @@ public class EnumValueProvider implements AutocompleteProvider {
         MdxValueContext mdx = (MdxValueContext) ctx;
 
         for (AttributeSpec spec : TagAttributeRegistry.get(mdx.getTagName())) {
-            if (!spec.getName().equals(mdx.getAttrName())) continue;
+            if (!spec.getName()
+                .equals(mdx.getAttrName())) continue;
             if (spec.getType() != AttrType.ENUM || spec.getEnumClass() == null) continue;
 
-            String partial = mdx.getPartialText().toLowerCase();
+            String partial = mdx.getPartialText()
+                .toLowerCase();
             List<AutocompleteCandidate> results = new ArrayList<>();
-            for (Enum<?> e : spec.getEnumClass().getEnumConstants()) {
+            for (Enum<?> e : spec.getEnumClass()
+                .getEnumConstants()) {
                 if (results.size() >= limit) break;
                 String name = e.name();
                 if (e instanceof SerializedEnum) {
                     name = ((SerializedEnum) e).getSerializedName();
                 }
-                if (partial.isEmpty() || name.toLowerCase().contains(partial)) {
+                if (partial.isEmpty() || name.toLowerCase()
+                    .contains(partial)) {
                     results.add(new TextCandidate(name));
                 }
             }

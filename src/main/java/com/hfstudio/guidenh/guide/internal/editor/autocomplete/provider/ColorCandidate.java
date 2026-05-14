@@ -4,6 +4,7 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 
 public class ColorCandidate implements AutocompleteCandidate {
+
     private final String name;
     private final int color;
     private static final int SWATCH_SIZE = 12;
@@ -15,9 +16,20 @@ public class ColorCandidate implements AutocompleteCandidate {
         this.color = color;
     }
 
-    @Override public String displayText() { return name; }
-    @Override public String replacementText() { return name; }
-    @Override public int renderHeight() { return 16; }
+    @Override
+    public String displayText() {
+        return name;
+    }
+
+    @Override
+    public String replacementText() {
+        return name;
+    }
+
+    @Override
+    public int renderHeight() {
+        return 16;
+    }
 
     @Override
     public int renderWidth(FontRenderer fontRenderer) {

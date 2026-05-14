@@ -6,6 +6,7 @@ public enum SyntaxElementType {
     TAG_START,
     ATTRIBUTE_NAME,
     ATTRIBUTE_VALUE,
+    FENCE_LANGUAGE,
     FRONTMATTER_KEY,
     OTHER
 }

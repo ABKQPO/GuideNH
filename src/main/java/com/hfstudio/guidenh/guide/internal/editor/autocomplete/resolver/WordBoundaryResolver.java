@@ -7,7 +7,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxElementType
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxUtils;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
 
-public final class WordBoundaryResolver implements SyntaxContextResolver {
+public class WordBoundaryResolver implements SyntaxContextResolver {
 
     @Override
     @Nullable

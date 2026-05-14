@@ -1083,8 +1083,15 @@ public class GuideSiteHtmlCompiler {
             }
             case "funcgraph", "functiongraph" -> {
                 String src = code.value != null ? code.value : "";
-                LytFunctionGraph graph = FunctionGraphFenceParser.parse(src);
-                return GuideSiteGraphRenderer.renderFunctionGraph(graph);
+                try {
+                    LytFunctionGraph graph = FunctionGraphFenceParser.parse(src);
+                    return GuideSiteGraphRenderer.renderFunctionGraph(graph);
+                } catch (RuntimeException ignored) {
+                    return "<pre><code class=\"language-" + escapeHtml(lang)
+                        + "\">"
+                        + escapeHtml(src)
+                        + "</code></pre>";
+                }
             }
         }
         // Forced viewport: ```<lang> width=220 height=96 - emits a sized scrollable container.

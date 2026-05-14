@@ -1,8 +1,20 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-public final class TagAttributeRegistry {
+import com.hfstudio.guidenh.guide.document.block.AlignItems;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointLabelMode;
+
+public class TagAttributeRegistry {
 
     private static final Map<String, List<AttributeSpec>> registry = new LinkedHashMap<>();
 
@@ -14,8 +26,7 @@ public final class TagAttributeRegistry {
     }
 
     public static List<AttributeSpec> get(String tagName) {
-        return Collections.unmodifiableList(
-            registry.getOrDefault(tagName, Collections.emptyList()));
+        return Collections.unmodifiableList(registry.getOrDefault(tagName, Collections.emptyList()));
     }
 
     public static Set<String> getRegisteredTags() {
@@ -25,7 +36,8 @@ public final class TagAttributeRegistry {
     /** Populate the registry with all known tag→attribute mappings. */
     public static void initialize() {
         // Inline/Flow tags
-        register("ItemImage",
+        register(
+            "ItemImage",
             new AttributeSpec("id", AttrType.ITEM_ID),
             new AttributeSpec("ore", AttrType.ORE_DICT),
             new AttributeSpec("scale", AttrType.FLOAT),
@@ -36,37 +48,38 @@ public final class TagAttributeRegistry {
             new AttributeSpec("showIcon", AttrType.STRING),
             new AttributeSpec("label", AttrType.STRING),
             new AttributeSpec("format", AttrType.FORMAT_PATTERN));
-        register("ItemLink",
+        register(
+            "ItemLink",
             new AttributeSpec("id", AttrType.ITEM_ID),
             new AttributeSpec("ore", AttrType.ORE_DICT),
             new AttributeSpec("noTooltip", AttrType.BOOLEAN),
             new AttributeSpec("showTooltip", AttrType.BOOLEAN),
             new AttributeSpec("showIcon", AttrType.STRING),
             new AttributeSpec("linksTo", AttrType.PAGE_PATH));
-        register("BlockImage",
+        register(
+            "BlockImage",
             new AttributeSpec("id", AttrType.BLOCK_ID),
             new AttributeSpec("ore", AttrType.ORE_DICT),
             new AttributeSpec("scale", AttrType.FLOAT),
             new AttributeSpec("wrap", AttrType.STRING),
             new AttributeSpec("align", AttrType.STRING),
             new AttributeSpec("float", AttrType.STRING));
-        register("FloatingImage",
+        register(
+            "FloatingImage",
             new AttributeSpec("src", AttrType.FILE_PATH),
             new AttributeSpec("align", AttrType.STRING),
             new AttributeSpec("title", AttrType.STRING),
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT));
-        register("Color",
-            new AttributeSpec("id", AttrType.COLOR),
-            new AttributeSpec("color", AttrType.COLOR));
-        register("KeyBind",
-            new AttributeSpec("id", AttrType.KEY_BIND),
-            new AttributeSpec("action", AttrType.STRING));
-        register("CommandLink",
+        register("Color", new AttributeSpec("id", AttrType.COLOR), new AttributeSpec("color", AttrType.COLOR));
+        register("KeyBind", new AttributeSpec("id", AttrType.KEY_BIND), new AttributeSpec("action", AttrType.STRING));
+        register(
+            "CommandLink",
             new AttributeSpec("command", AttrType.COMMAND),
             new AttributeSpec("close", AttrType.BOOLEAN),
             new AttributeSpec("title", AttrType.STRING));
-        register("Recipe",
+        register(
+            "Recipe",
             new AttributeSpec("id", AttrType.ITEM_ID),
             new AttributeSpec("fallbackText", AttrType.STRING),
             new AttributeSpec("handlerName", AttrType.STRING),
@@ -75,7 +88,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("input", AttrType.STRING),
             new AttributeSpec("output", AttrType.STRING),
             new AttributeSpec("limit", AttrType.INT));
-        register("RecipeFor",
+        register(
+            "RecipeFor",
             new AttributeSpec("id", AttrType.ITEM_ID),
             new AttributeSpec("fallbackText", AttrType.STRING),
             new AttributeSpec("handlerName", AttrType.STRING),
@@ -84,7 +98,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("input", AttrType.STRING),
             new AttributeSpec("output", AttrType.STRING),
             new AttributeSpec("limit", AttrType.INT));
-        register("RecipesFor",
+        register(
+            "RecipesFor",
             new AttributeSpec("id", AttrType.ITEM_ID),
             new AttributeSpec("fallbackText", AttrType.STRING),
             new AttributeSpec("handlerName", AttrType.STRING),
@@ -93,61 +108,57 @@ public final class TagAttributeRegistry {
             new AttributeSpec("input", AttrType.STRING),
             new AttributeSpec("output", AttrType.STRING),
             new AttributeSpec("limit", AttrType.INT));
-        register("SubPages",
+        register(
+            "SubPages",
             new AttributeSpec("id", AttrType.PAGE_PATH),
             new AttributeSpec("alphabetical", AttrType.BOOLEAN));
-        register("CategoryIndex",
-            new AttributeSpec("category", AttrType.STRING));
-        register("Structure",
-            new AttributeSpec("width", AttrType.INT),
-            new AttributeSpec("height", AttrType.INT));
-        register("Mermaid",
+        register("CategoryIndex", new AttributeSpec("category", AttrType.STRING));
+        register("Structure", new AttributeSpec("width", AttrType.INT), new AttributeSpec("height", AttrType.INT));
+        register(
+            "Mermaid",
             new AttributeSpec("src", AttrType.FILE_PATH),
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT));
-        register("CsvTable",
+        register(
+            "CsvTable",
             new AttributeSpec("src", AttrType.FILE_PATH),
             new AttributeSpec("header", AttrType.BOOLEAN),
             new AttributeSpec("widths", AttrType.STRING));
-        register("details",
-            new AttributeSpec("open", AttrType.BOOLEAN));
-        register("Row",
+        register("details", new AttributeSpec("open", AttrType.BOOLEAN));
+        register(
+            "Row",
             new AttributeSpec("gap", AttrType.INT),
-            new AttributeSpec("alignItems", AttrType.STRING),
+            new AttributeSpec("alignItems", AttrType.ENUM, AlignItems.class),
             new AttributeSpec("fullWidth", AttrType.BOOLEAN),
             new AttributeSpec("width", AttrType.INT));
-        register("Column",
+        register(
+            "Column",
             new AttributeSpec("gap", AttrType.INT),
-            new AttributeSpec("alignItems", AttrType.STRING),
+            new AttributeSpec("alignItems", AttrType.ENUM, AlignItems.class),
             new AttributeSpec("fullWidth", AttrType.BOOLEAN),
             new AttributeSpec("width", AttrType.INT));
-        register("a",
+        register(
+            "a",
             new AttributeSpec("name", AttrType.STRING),
             new AttributeSpec("href", AttrType.PAGE_PATH),
             new AttributeSpec("title", AttrType.STRING));
-        register("br",
-            new AttributeSpec("clear", AttrType.STRING));
-        register("ImportPonder",
-            new AttributeSpec("src", AttrType.FILE_PATH));
-        register("RemoveBlocks",
-            new AttributeSpec("id", AttrType.BLOCK_ID));
-        register("IsometricCamera",
+        register("br", new AttributeSpec("clear", AttrType.STRING));
+        register("ImportPonder", new AttributeSpec("src", AttrType.FILE_PATH));
+        register("RemoveBlocks", new AttributeSpec("id", AttrType.BLOCK_ID));
+        register(
+            "IsometricCamera",
             new AttributeSpec("yaw", AttrType.FLOAT),
             new AttributeSpec("pitch", AttrType.FLOAT),
             new AttributeSpec("roll", AttrType.FLOAT));
-        register("Tooltip",
-            new AttributeSpec("label", AttrType.STRING));
-        register("mark",
-            new AttributeSpec("color", AttrType.COLOR));
-        register("FileTree",
-            new AttributeSpec("indent", AttrType.INT),
-            new AttributeSpec("gap", AttrType.INT));
+        register("Tooltip", new AttributeSpec("label", AttrType.STRING));
+        register("mark", new AttributeSpec("color", AttrType.COLOR));
+        register("FileTree", new AttributeSpec("indent", AttrType.INT), new AttributeSpec("gap", AttrType.INT));
         register("ItemGrid"); // no attributes - uses child elements
-        register("FootnoteList",
-            new AttributeSpec("width", AttrType.INT));
+        register("FootnoteList", new AttributeSpec("width", AttrType.INT));
 
         // === Charts (all five types share CommonChartAttrs) ===
-        register("BarChart",
+        register(
+            "BarChart",
             new AttributeSpec("title", AttrType.STRING),
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT),
@@ -155,9 +166,9 @@ public final class TagAttributeRegistry {
             new AttributeSpec("border", AttrType.COLOR),
             new AttributeSpec("titleColor", AttrType.COLOR),
             new AttributeSpec("labelColor", AttrType.COLOR),
-            new AttributeSpec("legend", AttrType.STRING),
-            new AttributeSpec("labelPosition", AttrType.STRING),
-            new AttributeSpec("cornerLegend", AttrType.STRING),
+            new AttributeSpec("legend", AttrType.ENUM, ChartLegendPosition.class),
+            new AttributeSpec("labelPosition", AttrType.ENUM, ChartLabelPosition.class),
+            new AttributeSpec("cornerLegend", AttrType.ENUM, CornerLegendPosition.class),
             new AttributeSpec("cornerLegendWidth", AttrType.INT),
             new AttributeSpec("cornerLegendHeight", AttrType.INT),
             new AttributeSpec("cornerLegendBackground", AttrType.COLOR),
@@ -179,7 +190,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("xGridColor", AttrType.COLOR),
             new AttributeSpec("yGridColor", AttrType.COLOR),
             new AttributeSpec("barWidthRatio", AttrType.FLOAT));
-        register("ColumnChart",
+        register(
+            "ColumnChart",
             new AttributeSpec("title", AttrType.STRING),
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT),
@@ -187,9 +199,9 @@ public final class TagAttributeRegistry {
             new AttributeSpec("border", AttrType.COLOR),
             new AttributeSpec("titleColor", AttrType.COLOR),
             new AttributeSpec("labelColor", AttrType.COLOR),
-            new AttributeSpec("legend", AttrType.STRING),
-            new AttributeSpec("labelPosition", AttrType.STRING),
-            new AttributeSpec("cornerLegend", AttrType.STRING),
+            new AttributeSpec("legend", AttrType.ENUM, ChartLegendPosition.class),
+            new AttributeSpec("labelPosition", AttrType.ENUM, ChartLabelPosition.class),
+            new AttributeSpec("cornerLegend", AttrType.ENUM, CornerLegendPosition.class),
             new AttributeSpec("cornerLegendWidth", AttrType.INT),
             new AttributeSpec("cornerLegendHeight", AttrType.INT),
             new AttributeSpec("cornerLegendBackground", AttrType.COLOR),
@@ -211,7 +223,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("xGridColor", AttrType.COLOR),
             new AttributeSpec("yGridColor", AttrType.COLOR),
             new AttributeSpec("barWidthRatio", AttrType.FLOAT));
-        register("LineChart",
+        register(
+            "LineChart",
             new AttributeSpec("title", AttrType.STRING),
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT),
@@ -219,9 +232,9 @@ public final class TagAttributeRegistry {
             new AttributeSpec("border", AttrType.COLOR),
             new AttributeSpec("titleColor", AttrType.COLOR),
             new AttributeSpec("labelColor", AttrType.COLOR),
-            new AttributeSpec("legend", AttrType.STRING),
-            new AttributeSpec("labelPosition", AttrType.STRING),
-            new AttributeSpec("cornerLegend", AttrType.STRING),
+            new AttributeSpec("legend", AttrType.ENUM, ChartLegendPosition.class),
+            new AttributeSpec("labelPosition", AttrType.ENUM, ChartLabelPosition.class),
+            new AttributeSpec("cornerLegend", AttrType.ENUM, CornerLegendPosition.class),
             new AttributeSpec("cornerLegendWidth", AttrType.INT),
             new AttributeSpec("cornerLegendHeight", AttrType.INT),
             new AttributeSpec("cornerLegendBackground", AttrType.COLOR),
@@ -244,7 +257,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("yGridColor", AttrType.COLOR),
             new AttributeSpec("numericX", AttrType.BOOLEAN),
             new AttributeSpec("showPoints", AttrType.BOOLEAN));
-        register("ScatterChart",
+        register(
+            "ScatterChart",
             new AttributeSpec("title", AttrType.STRING),
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT),
@@ -252,9 +266,9 @@ public final class TagAttributeRegistry {
             new AttributeSpec("border", AttrType.COLOR),
             new AttributeSpec("titleColor", AttrType.COLOR),
             new AttributeSpec("labelColor", AttrType.COLOR),
-            new AttributeSpec("legend", AttrType.STRING),
-            new AttributeSpec("labelPosition", AttrType.STRING),
-            new AttributeSpec("cornerLegend", AttrType.STRING),
+            new AttributeSpec("legend", AttrType.ENUM, ChartLegendPosition.class),
+            new AttributeSpec("labelPosition", AttrType.ENUM, ChartLabelPosition.class),
+            new AttributeSpec("cornerLegend", AttrType.ENUM, CornerLegendPosition.class),
             new AttributeSpec("cornerLegendWidth", AttrType.INT),
             new AttributeSpec("cornerLegendHeight", AttrType.INT),
             new AttributeSpec("cornerLegendBackground", AttrType.COLOR),
@@ -274,7 +288,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("showYGrid", AttrType.BOOLEAN),
             new AttributeSpec("xGridColor", AttrType.COLOR),
             new AttributeSpec("yGridColor", AttrType.COLOR));
-        register("PieChart",
+        register(
+            "PieChart",
             new AttributeSpec("title", AttrType.STRING),
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT),
@@ -282,9 +297,9 @@ public final class TagAttributeRegistry {
             new AttributeSpec("border", AttrType.COLOR),
             new AttributeSpec("titleColor", AttrType.COLOR),
             new AttributeSpec("labelColor", AttrType.COLOR),
-            new AttributeSpec("legend", AttrType.STRING),
-            new AttributeSpec("labelPosition", AttrType.STRING),
-            new AttributeSpec("cornerLegend", AttrType.STRING),
+            new AttributeSpec("legend", AttrType.ENUM, ChartLegendPosition.class),
+            new AttributeSpec("labelPosition", AttrType.ENUM, ChartLabelPosition.class),
+            new AttributeSpec("cornerLegend", AttrType.ENUM, CornerLegendPosition.class),
             new AttributeSpec("cornerLegendWidth", AttrType.INT),
             new AttributeSpec("cornerLegendHeight", AttrType.INT),
             new AttributeSpec("cornerLegendBackground", AttrType.COLOR),
@@ -292,7 +307,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("clockwise", AttrType.BOOLEAN));
 
         // === Chart child tags ===
-        register("Series",
+        register(
+            "Series",
             new AttributeSpec("name", AttrType.STRING),
             new AttributeSpec("data", AttrType.STRING),
             new AttributeSpec("points", AttrType.STRING),
@@ -300,21 +316,24 @@ public final class TagAttributeRegistry {
             new AttributeSpec("icon", AttrType.ITEM_ID),
             new AttributeSpec("iconImage", AttrType.FILE_PATH),
             new AttributeSpec("tooltip", AttrType.STRING));
-        register("LineSeries",
+        register(
+            "LineSeries",
             new AttributeSpec("name", AttrType.STRING),
             new AttributeSpec("data", AttrType.STRING),
             new AttributeSpec("color", AttrType.COLOR),
             new AttributeSpec("icon", AttrType.ITEM_ID),
             new AttributeSpec("iconImage", AttrType.FILE_PATH),
             new AttributeSpec("tooltip", AttrType.STRING));
-        register("Slice",
+        register(
+            "Slice",
             new AttributeSpec("label", AttrType.STRING),
             new AttributeSpec("value", AttrType.FLOAT),
             new AttributeSpec("color", AttrType.COLOR),
             new AttributeSpec("icon", AttrType.ITEM_ID),
             new AttributeSpec("iconImage", AttrType.FILE_PATH),
             new AttributeSpec("tooltip", AttrType.STRING));
-        register("PieInset",
+        register(
+            "PieInset",
             new AttributeSpec("size", AttrType.FLOAT),
             new AttributeSpec("position", AttrType.STRING),
             new AttributeSpec("startAngleDeg", AttrType.FLOAT),
@@ -323,7 +342,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("titleColor", AttrType.COLOR));
 
         // === FunctionGraph child tags ===
-        register("Plot",
+        register(
+            "Plot",
             new AttributeSpec("expr", AttrType.EXPRESSION),
             new AttributeSpec("inverse", AttrType.BOOLEAN),
             new AttributeSpec("domain", AttrType.DOMAIN),
@@ -331,9 +351,10 @@ public final class TagAttributeRegistry {
             new AttributeSpec("label", AttrType.STRING),
             new AttributeSpec("pointEveryX", AttrType.FLOAT),
             new AttributeSpec("pointEveryY", AttrType.FLOAT),
-            new AttributeSpec("autoPointLabel", AttrType.STRING),
+            new AttributeSpec("autoPointLabel", AttrType.ENUM, AutoPointLabelMode.class),
             new AttributeSpec("autoPointColor", AttrType.COLOR));
-        register("Point",
+        register(
+            "Point",
             new AttributeSpec("x", AttrType.FLOAT),
             new AttributeSpec("y", AttrType.FLOAT),
             new AttributeSpec("color", AttrType.COLOR),
@@ -345,7 +366,8 @@ public final class TagAttributeRegistry {
         // === Fix and extend existing registrations ===
 
         // GameScene: add camera attributes
-        register("Scene",
+        register(
+            "Scene",
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT),
             new AttributeSpec("zoom", AttrType.FLOAT),
@@ -364,7 +386,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("showGrid", AttrType.BOOLEAN));
 
         // GameScene: also register as "GameScene" with same attrs (SceneTagCompiler handles both)
-        register("GameScene",
+        register(
+            "GameScene",
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT),
             new AttributeSpec("zoom", AttrType.FLOAT),
@@ -383,7 +406,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("showGrid", AttrType.BOOLEAN));
 
         // Function: add missing container + plot attrs
-        register("Function",
+        register(
+            "Function",
             new AttributeSpec("title", AttrType.STRING),
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT),
@@ -402,7 +426,7 @@ public final class TagAttributeRegistry {
             new AttributeSpec("xRange", AttrType.STRING),
             new AttributeSpec("yRange", AttrType.STRING),
             new AttributeSpec("quadrants", AttrType.STRING),
-            new AttributeSpec("cornerLegend", AttrType.STRING),
+            new AttributeSpec("cornerLegend", AttrType.ENUM, CornerLegendPosition.class),
             new AttributeSpec("cornerLegendWidth", AttrType.INT),
             new AttributeSpec("cornerLegendHeight", AttrType.INT),
             new AttributeSpec("cornerLegendBackground", AttrType.COLOR),
@@ -413,11 +437,12 @@ public final class TagAttributeRegistry {
             new AttributeSpec("label", AttrType.STRING),
             new AttributeSpec("pointEveryX", AttrType.FLOAT),
             new AttributeSpec("pointEveryY", AttrType.FLOAT),
-            new AttributeSpec("autoPointLabel", AttrType.STRING),
+            new AttributeSpec("autoPointLabel", AttrType.ENUM, AutoPointLabelMode.class),
             new AttributeSpec("autoPointColor", AttrType.COLOR));
 
         // FunctionGraph: add missing container attrs
-        register("FunctionGraph",
+        register(
+            "FunctionGraph",
             new AttributeSpec("title", AttrType.STRING),
             new AttributeSpec("width", AttrType.INT),
             new AttributeSpec("height", AttrType.INT),
@@ -436,13 +461,14 @@ public final class TagAttributeRegistry {
             new AttributeSpec("xRange", AttrType.STRING),
             new AttributeSpec("yRange", AttrType.STRING),
             new AttributeSpec("quadrants", AttrType.STRING),
-            new AttributeSpec("cornerLegend", AttrType.STRING),
+            new AttributeSpec("cornerLegend", AttrType.ENUM, CornerLegendPosition.class),
             new AttributeSpec("cornerLegendWidth", AttrType.INT),
             new AttributeSpec("cornerLegendHeight", AttrType.INT),
             new AttributeSpec("cornerLegendBackground", AttrType.COLOR));
 
         // Entity: add missing rotation attrs
-        register("Entity",
+        register(
+            "Entity",
             new AttributeSpec("id", AttrType.ENTITY_ID),
             new AttributeSpec("data", AttrType.SNBT),
             new AttributeSpec("name", AttrType.STRING),
@@ -463,7 +489,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("capeRotation", AttrType.STRING));
 
         // Latex: add missing attrs
-        register("Latex",
+        register(
+            "Latex",
             new AttributeSpec("formula", AttrType.STRING),
             new AttributeSpec("color", AttrType.COLOR),
             new AttributeSpec("scale", AttrType.FLOAT),
@@ -474,7 +501,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("offsetY", AttrType.INT));
 
         // ImportStructureLib: add offset attrs
-        register("ImportStructureLib",
+        register(
+            "ImportStructureLib",
             new AttributeSpec("controller", AttrType.STRING),
             new AttributeSpec("piece", AttrType.STRING),
             new AttributeSpec("channel", AttrType.STRING),
@@ -486,7 +514,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("offsetZ", AttrType.INT));
 
         // PlaceBlock: add dx/dy/dz
-        register("PlaceBlock",
+        register(
+            "PlaceBlock",
             new AttributeSpec("id", AttrType.BLOCK_ID),
             new AttributeSpec("nbt", AttrType.SNBT),
             new AttributeSpec("x", AttrType.INT),
@@ -497,7 +526,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("dz", AttrType.INT));
 
         // ReplaceBlock: add bounds attrs
-        register("ReplaceBlock",
+        register(
+            "ReplaceBlock",
             new AttributeSpec("from", AttrType.BLOCK_ID),
             new AttributeSpec("to", AttrType.BLOCK_ID),
             new AttributeSpec("from_nbt", AttrType.SNBT),
@@ -510,7 +540,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("dz", AttrType.INT));
 
         // ImportStructure: fix types + add x/y/z
-        register("ImportStructure",
+        register(
+            "ImportStructure",
             new AttributeSpec("src", AttrType.FILE_PATH),
             new AttributeSpec("x", AttrType.INT),
             new AttributeSpec("y", AttrType.INT),
@@ -520,7 +551,8 @@ public final class TagAttributeRegistry {
             new AttributeSpec("offsetZ", AttrType.INT));
 
         // Block scene element
-        register("Block",
+        register(
+            "Block",
             new AttributeSpec("id", AttrType.BLOCK_ID),
             new AttributeSpec("ore", AttrType.ORE_DICT),
             new AttributeSpec("x", AttrType.INT),

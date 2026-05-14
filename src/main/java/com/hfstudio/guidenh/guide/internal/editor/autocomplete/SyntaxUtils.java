@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
 /** Shared text-scanning utilities for syntax resolvers. */
-public final class SyntaxUtils {
+public class SyntaxUtils {
 
     private SyntaxUtils() {}
 

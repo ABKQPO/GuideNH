@@ -1,33 +1,33 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 
-// TODO: re-enable when fence-block context resolver is implemented.
-// Currently forTag() causes these suggestions to appear in the tag name popup.
-
-/** Suggests language identifiers after ``` for fenced code blocks. */
 public class FencedBlockLanguageProvider implements AutocompleteProvider {
 
-    private static final Set<AutocompleteKey> KEYS =
-        Collections.singleton(AutocompleteKey.forTag());
-
-    private static final String[] LANGUAGES = {
-        "java", "python", "javascript", "json", "yaml", "xml",
-        "sh", "bash", "text", "funcgraph", "mermaid"
-    };
+    private static final Set<AutocompleteKey> KEYS = Collections.singleton(AutocompleteKey.forFenceLanguage());
+    private static final String[] LANGUAGES = { "text", "java", "kotlin", "scala", "groovy", "lua", "json", "yaml",
+        "xml", "properties", "bash", "sh", "powershell", "markdown", "csv", "mermaid", "tree", "filetree",
+        "funcgraph" };
 
     @Override
-    public Set<AutocompleteKey> getSupportedKeys() { return KEYS; }
+    public Set<AutocompleteKey> getSupportedKeys() {
+        return KEYS;
+    }
 
     @Override
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
-        String partial = ctx.getPartialText().toLowerCase();
+        String partial = ctx.getPartialText();
+        String lower = partial != null ? partial.toLowerCase() : "";
         List<AutocompleteCandidate> results = new ArrayList<>();
         for (String lang : LANGUAGES) {
             if (results.size() >= limit) break;
-            if (partial.isEmpty() || lang.toLowerCase().startsWith(partial)) {
+            if (lower.isEmpty() || lang.toLowerCase()
+                .startsWith(lower)) {
                 results.add(new TextCandidate(lang));
             }
         }

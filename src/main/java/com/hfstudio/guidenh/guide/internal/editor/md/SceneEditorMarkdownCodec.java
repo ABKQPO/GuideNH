@@ -86,13 +86,13 @@ public class SceneEditorMarkdownCodec {
         new HashSet<>(Arrays.asList("pos", "x", "y", "z", "color", "maxWidth", "backgroundAlpha", "visible")));
 
     public SceneEditorMarkdownParseResult parse(String markdown) {
-        String normalized = normalizeLineEndings(markdown);
-        String parseSource = MdxCommentMasker.mask(normalized);
+        String normalized = normalizeLineEndings(markdown != null ? markdown : "");
 
         MdAstRoot root;
         try {
+            String parseSource = MdxCommentMasker.mask(normalized);
             root = MdAst.fromMarkdown(parseSource, PARSE_OPTIONS);
-        } catch (ParseException e) {
+        } catch (RuntimeException e) {
             return new SceneEditorMarkdownParseResult.SyntaxError(formatParseException(e));
         }
 
@@ -104,6 +104,8 @@ public class SceneEditorMarkdownCodec {
             return new SceneEditorMarkdownParseResult.Unsupported(e.getMessage());
         } catch (InvalidSceneSyntaxException e) {
             return new SceneEditorMarkdownParseResult.SyntaxError(e.getMessage());
+        } catch (RuntimeException e) {
+            return new SceneEditorMarkdownParseResult.SyntaxError(formatParseException(e));
         }
     }
 
@@ -1215,17 +1217,27 @@ public class SceneEditorMarkdownCodec {
         return GuideStringLines.normalizeLineEndings(markdown);
     }
 
-    private String formatParseException(ParseException exception) {
-        if (exception.getFrom() == null) {
-            return exception.getMessage();
+    private String formatParseException(RuntimeException exception) {
+        if (!(exception instanceof ParseException parseException)) {
+            return describeException(exception);
         }
-        return exception.getMessage() + " (line "
-            + exception.getFrom()
+        if (parseException.getFrom() == null) {
+            return parseException.getMessage();
+        }
+        return parseException.getMessage() + " (line "
+            + parseException.getFrom()
                 .line()
             + ", column "
-            + exception.getFrom()
+            + parseException.getFrom()
                 .column()
             + ")";
+    }
+
+    private String describeException(RuntimeException exception) {
+        String message = exception.getMessage();
+        return message != null && !message.isEmpty() ? message
+            : exception.getClass()
+                .getSimpleName();
     }
 
     public static class UnsupportedSubsetException extends RuntimeException {

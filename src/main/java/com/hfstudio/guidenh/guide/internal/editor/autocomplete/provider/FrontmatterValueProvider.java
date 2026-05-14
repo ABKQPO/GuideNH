@@ -1,6 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext;
@@ -10,7 +16,9 @@ public class FrontmatterValueProvider implements AutocompleteProvider {
 
     private static final Map<String, String[]> HINTS = new LinkedHashMap<>();
     static {
-        HINTS.put("navigation", new String[]{"\n  title:", "\n  parent:", "\n  position:", "\n  icon:", "\n  icon_texture:"});
+        HINTS.put(
+            "navigation",
+            new String[] { "\n  title:", "\n  parent:", "\n  position:", "\n  icon:", "\n  icon_texture:" });
     }
 
     private static final Set<AutocompleteKey> KEYS = buildKeys();
@@ -24,18 +32,22 @@ public class FrontmatterValueProvider implements AutocompleteProvider {
     }
 
     @Override
-    public Set<AutocompleteKey> getSupportedKeys() { return KEYS; }
+    public Set<AutocompleteKey> getSupportedKeys() {
+        return KEYS;
+    }
 
     @Override
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
         if (!(ctx instanceof FrontmatterContext)) return Collections.emptyList();
         FrontmatterContext fmc = (FrontmatterContext) ctx;
         String[] suggestions = HINTS.getOrDefault(fmc.getKey(), new String[0]);
-        String partial = fmc.getPartialText().toLowerCase();
+        String partial = fmc.getPartialText()
+            .toLowerCase();
         List<AutocompleteCandidate> results = new ArrayList<>();
         for (String s : suggestions) {
             if (results.size() >= limit) break;
-            if (partial.isEmpty() || s.toLowerCase().contains(partial)) {
+            if (partial.isEmpty() || s.toLowerCase()
+                .contains(partial)) {
                 results.add(new TextCandidate(s));
             }
         }

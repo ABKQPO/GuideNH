@@ -8,7 +8,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxElementType
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxUtils;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
 
-public final class SelectionStrategies {
+public class SelectionStrategies {
 
     private SelectionStrategies() {}
 
@@ -16,13 +16,16 @@ public final class SelectionStrategies {
         EnumMap<SyntaxElementType, SelectionStrategy> map = new EnumMap<>(SyntaxElementType.class);
         map.put(SyntaxElementType.WORD, new WordSelection());
         map.put(SyntaxElementType.TAG_NAME, new ElementBoundarySelection());
+        map.put(SyntaxElementType.TAG_START, new ElementBoundarySelection());
         map.put(SyntaxElementType.ATTRIBUTE_NAME, new ElementBoundarySelection());
         map.put(SyntaxElementType.ATTRIBUTE_VALUE, new ElementBoundarySelection());
+        map.put(SyntaxElementType.FENCE_LANGUAGE, new ElementBoundarySelection());
         map.put(SyntaxElementType.OTHER, new NoOpSelection());
         return map;
     }
 
-    public static final class WordSelection implements SelectionStrategy {
+    public static class WordSelection implements SelectionStrategy {
+
         @Override
         public int getSelectionStart(TextSyntaxContext ctx, String text, int cursorIndex) {
             int pos = cursorIndex;
@@ -43,7 +46,8 @@ public final class SelectionStrategies {
         }
     }
 
-    public static final class ElementBoundarySelection implements SelectionStrategy {
+    public static class ElementBoundarySelection implements SelectionStrategy {
+
         @Override
         public int getSelectionStart(TextSyntaxContext ctx, String text, int cursorIndex) {
             return ctx.getElementStart();
@@ -55,7 +59,8 @@ public final class SelectionStrategies {
         }
     }
 
-    public static final class NoOpSelection implements SelectionStrategy {
+    public static class NoOpSelection implements SelectionStrategy {
+
         @Override
         public int getSelectionStart(TextSyntaxContext ctx, String text, int cursorIndex) {
             return cursorIndex;

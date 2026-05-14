@@ -4,19 +4,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.GL11;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
+
+import org.jetbrains.annotations.Nullable;
+import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 
-public final class AutocompletePopup {
+public class AutocompletePopup {
 
     public static final int MAX_VISIBLE_ITEMS = 5;
     public static final int PADDING_X = 6;
@@ -38,10 +38,12 @@ public final class AutocompletePopup {
     private int x, y, width, height;
     private int viewportWidth, viewportHeight;
 
-    public boolean isOpen() { return open; }
+    public boolean isOpen() {
+        return open;
+    }
 
-    public void show(List<AutocompleteCandidate> candidates, int anchorX, int anchorY,
-                     int viewportWidth, int viewportHeight, FontRenderer fontRenderer) {
+    public void show(List<AutocompleteCandidate> candidates, int anchorX, int anchorY, int viewportWidth,
+        int viewportHeight, FontRenderer fontRenderer) {
         this.candidates = candidates != null ? candidates : Collections.emptyList();
 
         if (this.candidates.isEmpty()) {
@@ -74,7 +76,9 @@ public final class AutocompletePopup {
     private static boolean keysMatch(List<AutocompleteCandidate> list, List<String> keys) {
         if (list.size() != keys.size()) return false;
         for (int i = 0; i < list.size(); i++) {
-            if (!list.get(i).displayText().equals(keys.get(i))) return false;
+            if (!list.get(i)
+                .displayText()
+                .equals(keys.get(i))) return false;
         }
         return true;
     }
@@ -108,8 +112,7 @@ public final class AutocompletePopup {
     }
 
     /** Recompute popup position without changing candidates or selection. */
-    public void reposition(int anchorX, int anchorY, int viewportWidth, int viewportHeight,
-                           FontRenderer fontRenderer) {
+    public void reposition(int anchorX, int anchorY, int viewportWidth, int viewportHeight, FontRenderer fontRenderer) {
         if (!open) return;
         placePopup(anchorX, anchorY, viewportWidth, viewportHeight);
         this.scrollY = clampScroll(scrollY);
@@ -118,17 +121,17 @@ public final class AutocompletePopup {
     /** Place popup below the anchor; flip above if it doesn't fit. */
     private void placePopup(int anchorX, int anchorY, int viewportWidth, int viewportHeight) {
         // Try below cursor first
-        LytRect below = SceneEditorPopupLayout.clampToViewport(
-            anchorX, anchorY, width, height, viewportWidth, viewportHeight, 2);
+        LytRect below = SceneEditorPopupLayout
+            .clampToViewport(anchorX, anchorY, width, height, viewportWidth, viewportHeight, 2);
         if (below.y() >= anchorY - 2) {
             this.x = below.x();
             this.y = below.y();
             return;
         }
-        // Not enough room below — flip above cursor
+        // Not enough room below �?flip above cursor
         int aboveY = anchorY - height - FLIP_GAP;
-        LytRect above = SceneEditorPopupLayout.clampToViewport(
-            anchorX, aboveY, width, height, viewportWidth, viewportHeight, 2);
+        LytRect above = SceneEditorPopupLayout
+            .clampToViewport(anchorX, aboveY, width, height, viewportWidth, viewportHeight, 2);
         this.x = above.x();
         this.y = above.y();
     }
@@ -174,7 +177,10 @@ public final class AutocompletePopup {
                 if (itemIndex == selectedIndex) {
                     Gui.drawRect(x + 1, drawY - 1, x + width - SCROLLBAR_W - 1, drawY + itemHeight - 1, HOVER_COLOR);
                 }
-                candidate.render(fontRenderer, x + PADDING_X, drawY,
+                candidate.render(
+                    fontRenderer,
+                    x + PADDING_X,
+                    drawY,
                     width - PADDING_X * 2 - (hasScrollbar() ? SCROLLBAR_W : 0),
                     itemIndex == selectedIndex);
             }
@@ -258,8 +264,7 @@ public final class AutocompletePopup {
 
     private boolean isInsideScrollbar(int mouseX, int mouseY) {
         if (!hasScrollbar()) return false;
-        return mouseX >= x + width - SCROLLBAR_W && mouseX < x + width
-            && mouseY >= y && mouseY < y + height;
+        return mouseX >= x + width - SCROLLBAR_W && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
     private int clampScroll(int value) {

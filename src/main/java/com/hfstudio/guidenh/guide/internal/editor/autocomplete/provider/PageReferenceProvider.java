@@ -1,6 +1,11 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -28,16 +33,20 @@ public class PageReferenceProvider implements AutocompleteProvider {
     }
 
     @Override
-    public Set<AutocompleteKey> getSupportedKeys() { return KEYS; }
+    public Set<AutocompleteKey> getSupportedKeys() {
+        return KEYS;
+    }
 
     @Override
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
         if (pagePaths == null) return Collections.emptyList();
-        String partial = ctx.getPartialText().toLowerCase();
+        String partial = ctx.getPartialText()
+            .toLowerCase();
         List<AutocompleteCandidate> results = new ArrayList<>();
         for (String path : pagePaths) {
             if (results.size() >= limit) break;
-            if (partial.isEmpty() || path.toLowerCase().contains(partial)) {
+            if (partial.isEmpty() || path.toLowerCase()
+                .contains(partial)) {
                 results.add(new TextCandidate(path));
             }
         }

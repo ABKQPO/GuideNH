@@ -35,24 +35,6 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SelectionStrategy;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxContextResolver;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxElementType;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteProviders;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.CompositeResolver;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterResolver;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxSyntaxResolver;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.SelectionStrategies;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.WordBoundaryResolver;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AnchorProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.ImagePathProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.PageReferenceProvider;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.ui.AutocompletePopup;
-
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
@@ -85,6 +67,24 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SelectionStrategy;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxContextResolver;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxElementType;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AnchorProvider;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteProviders;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.ImagePathProvider;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.PageReferenceProvider;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.CompositeResolver;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FencedBlockLanguageResolver;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterResolver;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxSyntaxResolver;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.SelectionStrategies;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.WordBoundaryResolver;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.ui.AutocompletePopup;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorConflictPrompt;
@@ -487,9 +487,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (autocompleteResolver == null) {
             autocompleteResolver = new CompositeResolver(
                 new FrontmatterResolver(),
+                new FencedBlockLanguageResolver(),
                 new MdxSyntaxResolver(),
-                new WordBoundaryResolver()
-            );
+                new WordBoundaryResolver());
             autocompleteSelectionStrategies = SelectionStrategies.defaults();
         }
         refreshGuideEditorDraft(true);
@@ -528,7 +528,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             if (guide != null) {
                 List<String> pagePaths = new ArrayList<>();
                 for (ParsedGuidePage page : guide.getPages()) {
-                    pagePaths.add(page.getId().toString());
+                    pagePaths.add(
+                        page.getId()
+                            .toString());
                 }
                 PageReferenceProvider.setPages(pagePaths);
                 ImagePathProvider.refreshFromGuide(guide);
@@ -793,6 +795,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (guideEditorTextArea == null) {
             guideEditorTextArea = new SceneEditorMultilineTextArea(fontRendererObj);
             guideEditorTextArea.setDoubleClickHandler(new SceneEditorMultilineTextArea.DoubleClickHandler() {
+
                 @Override
                 public void onDoubleClick(int cursorIndex) {
                     if (autocompleteResolver == null) return;
@@ -2129,8 +2132,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
 
         if (autocompletePopup != null && autocompletePopup.isOpen()) {
-            autocompletePopup.reposition(getAutocompleteAnchorX(), getAutocompleteAnchorY(),
-                width, height, fontRendererObj);
+            autocompletePopup
+                .reposition(getAutocompleteAnchorX(), getAutocompleteAnchorY(), width, height, fontRendererObj);
             autocompletePopup.draw(fontRendererObj, mouseX, mouseY);
         }
     }
@@ -2140,9 +2143,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     }
 
     private int getAutocompleteAnchorY() {
-        return getGuideEditorContentTop()
-            + (guideEditorTextArea != null ? guideEditorTextArea.getCursorPixelY() : 0)
-            + fontRendererObj.FONT_HEIGHT + AUTOCOMPLETE_CURSOR_GAP_Y;
+        return getGuideEditorContentTop() + (guideEditorTextArea != null ? guideEditorTextArea.getCursorPixelY() : 0)
+            + fontRendererObj.FONT_HEIGHT
+            + AUTOCOMPLETE_CURSOR_GAP_Y;
     }
 
     private int resolveGuideEditorDividerColor() {
@@ -2432,15 +2435,19 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         TextSyntaxContext ctx = autocompleteResolver.resolve(text, cursor);
 
         if (ctx != null && ctx.shouldAutocomplete()) {
-            java.util.List<AutocompleteCandidate> candidates =
-                AutocompleteProviders.query(ctx.getAutocomplete(), 20);
+            List<AutocompleteCandidate> candidates = AutocompleteProviders.query(ctx.getAutocomplete(), 20);
             if (!candidates.isEmpty()) {
                 if (autocompletePopup == null) {
                     autocompletePopup = new AutocompletePopup();
                 }
                 pendingAutocompleteContext = ctx.getAutocomplete();
-                autocompletePopup.show(candidates, getAutocompleteAnchorX(), getAutocompleteAnchorY(),
-                    width, height, fontRendererObj);
+                autocompletePopup.show(
+                    candidates,
+                    getAutocompleteAnchorX(),
+                    getAutocompleteAnchorY(),
+                    width,
+                    height,
+                    fontRendererObj);
                 return;
             }
         }
@@ -2464,10 +2471,11 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         String after = text.substring(ac.replaceEnd());
         String replaced = selected.replacementText();
 
-        // Auto-close quote for MDX attribute values when the closing quote is missing
-        if (ac instanceof MdxValueContext && !after.isEmpty()
-            && after.charAt(0) != '"' && after.charAt(0) != '\'' && after.charAt(0) != '}') {
-            replaced += "\"";
+        if (ac instanceof MdxValueContext) {
+            char missingTerminator = ((MdxValueContext) ac).getMissingValueTerminator();
+            if (missingTerminator != '\0') {
+                replaced += missingTerminator;
+            }
         }
 
         String newText = before + replaced + after;

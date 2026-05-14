@@ -16,10 +16,15 @@ public class ItemIdProvider implements AutocompleteProvider {
     // Tags whose "id" attribute refers to a Minecraft item registry key
     private static Set<AutocompleteKey> KEYS = buildKeys(
         // item id attributes
-        "ItemImage", "ItemLink", "Recipe", "RecipeFor", "RecipesFor",
+        "ItemImage",
+        "ItemLink",
+        "Recipe",
+        "RecipeFor",
+        "RecipesFor",
         // recipe filter attributes
-        "Recipe", "RecipeFor", "RecipesFor"
-    );
+        "Recipe",
+        "RecipeFor",
+        "RecipesFor");
 
     // Also add these extra keys after buildKeys:
     static {
@@ -56,7 +61,8 @@ public class ItemIdProvider implements AutocompleteProvider {
         for (Object obj : Item.itemRegistry.getKeys()) {
             if (results.size() >= limit) break;
             if (obj instanceof String key) {
-                if (lower.isEmpty() || key.toLowerCase().contains(lower)) {
+                if (lower.isEmpty() || key.toLowerCase()
+                    .contains(lower)) {
                     Item item = (Item) Item.itemRegistry.getObject(key);
                     if (item != null) {
                         results.add(new ItemCandidate(key, new ItemStack(item)));
