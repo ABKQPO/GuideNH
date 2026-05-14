@@ -82,4 +82,4 @@ This example references `assets/example_structure.snbt`: a 5×3×5 cobblestone p
   </LineAnnotation>
 </GameScene>
 
-The region wand defaults to the SNBT mode and exports a structure compatible with `<ImportStructure>` on sneak + right-click. Right-click in air to toggle between `snbt` and the legacy `blocks` mode that emits an inline `<GameScene><Block .../>...</GameScene>`.
+The region wand uses one client-side global selection shared by all wand stacks. Left click sets Pos1, right click sets Pos2, and both clicks can target air at the cursor reach endpoint. Sneak + left click clears the current selection; sneak + right click exports with the wand's current mode. You can also use `/guidenhc pos1 <x> <y> <z>`, `/guidenhc pos2 <x> <y> <z>`, and `/guidenhc clearselection`; `~` coordinates are relative to the player. `/guidenhc exportstructure [--mode snbt|snbt_e|blocks|blocks_e]` exports the current selection, or accepts an explicit `<x> <y> <z> <sizeX> <sizeY> <sizeZ>`. Scene Editor reads the same client-side selection and, when the server also has GuideNH, first asks the server to export the selected blocks so TileEntity data comes from the authoritative world.

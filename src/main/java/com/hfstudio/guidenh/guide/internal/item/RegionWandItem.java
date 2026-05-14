@@ -23,8 +23,12 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.util.MathHelper;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 import org.jetbrains.annotations.Nullable;
@@ -54,7 +58,16 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  */
 public class RegionWandItem extends Item {
 
-    public static final int MAX_EXPORT_BLOCKS = 4096;
+    public static final int MAX_EXPORT_BLOCKS = 1_000_000;
+    public static final double DEFAULT_REACH_DISTANCE = 5.0D;
+    private static final long CLIENT_ACTION_DEBOUNCE_MILLIS = 180L;
+    private static long lastClientSelectionActionMillis;
+    @Nullable
+    private static SelectionAction lastClientSelectionAction;
+    private static int lastClientSelectionX;
+    private static int lastClientSelectionY;
+    private static int lastClientSelectionZ;
+    private static long lastClientExportActionMillis;
 
     /** New default: SNBT structure compatible with {@code <ImportStructure>}. */
     public static final String MODE_SNBT = "snbt";
@@ -77,20 +90,20 @@ public class RegionWandItem extends Item {
     @Override
     public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
-        handleRightClickBlock(stack, player, world, x, y, z);
-        return true;
+        return false;
     }
 
     @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
-        handleRightClickBlock(stack, player, world, x, y, z);
-        return true;
+        return false;
     }
 
     @Override
     public boolean onBlockStartBreak(ItemStack stack, int x, int y, int z, EntityPlayer player) {
-        onLeftClickBlock(stack, player, x, y, z);
+        if (player.worldObj.isRemote) {
+            applySelectionAction(stack, player, SelectionAction.POS1, x, y, z);
+        }
         return true;
     }
 
@@ -99,21 +112,23 @@ public class RegionWandItem extends Item {
             exportToClipboard(stack, player, world);
             return;
         }
-        setPos(stack, /* which= */ 2, x, y, z);
-        if (world.isRemote) {
-            send(player, GuidebookText.RegionWandChatPos, 2, x, y, z);
-        }
+        applySelectionAction(stack, player, SelectionAction.POS2, x, y, z);
     }
 
     @Override
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
         if (player.isSneaking()) {
-            exportToClipboard(stack, player, world);
+            if (!world.isRemote || beginClientExportAction()) {
+                exportToClipboard(stack, player, world);
+            }
         } else {
-            // Plain right-click in air toggles the export mode.
-            String next = nextMode(getExportMode(stack));
-            setExportMode(stack, next);
-            if (world.isRemote) {
+            int[] target = world.isRemote ? resolveLookingAtSelection(player, world, true) : null;
+            if (target != null) {
+                applySelectionAction(stack, player, SelectionAction.POS2, target[0], target[1], target[2]);
+            } else if (world.isRemote) {
+                // Fallback only; normal air use should resolve to the reach endpoint.
+                String next = nextMode(getExportMode(stack));
+                setExportMode(stack, next);
                 send(player, GuidebookText.RegionWandModeSwitched, modeDisplay(next));
             }
         }
@@ -121,30 +136,16 @@ public class RegionWandItem extends Item {
     }
 
     public static void onLeftClickBlock(ItemStack stack, EntityPlayer player, int x, int y, int z) {
-        setPos(stack, /* which= */ 1, x, y, z);
-        if (player.worldObj.isRemote) {
-            send(player, GuidebookText.RegionWandChatPos, 1, x, y, z);
-        }
+        applySelectionAction(stack, player, SelectionAction.POS1, x, y, z);
     }
 
     public static void setPos(ItemStack stack, int which, int x, int y, int z) {
-        if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());
-        var nbt = stack.getTagCompound();
-        var sub = new NBTTagCompound();
-        sub.setInteger("X", x);
-        sub.setInteger("Y", y);
-        sub.setInteger("Z", z);
-        nbt.setTag(which == 1 ? "Pos1" : "Pos2", sub);
+        RegionWandSelection.setPos(which, x, y, z);
     }
 
     @Nullable
     public static int[] getPos(ItemStack stack, int which) {
-        if (stack == null || !stack.hasTagCompound()) return null;
-        var nbt = stack.getTagCompound();
-        String key = which == 1 ? "Pos1" : "Pos2";
-        if (!nbt.hasKey(key)) return null;
-        var sub = nbt.getCompoundTag(key);
-        return new int[] { sub.getInteger("X"), sub.getInteger("Y"), sub.getInteger("Z") };
+        return RegionWandSelection.getPos(which);
     }
 
     public static String getExportMode(ItemStack stack) {
@@ -159,13 +160,17 @@ public class RegionWandItem extends Item {
     }
 
     public static boolean hasCompleteSelection(ItemStack stack) {
-        return getPos(stack, 1) != null && getPos(stack, 2) != null;
+        return RegionWandSelection.hasCompleteSelection();
     }
 
     public static void setExportMode(ItemStack stack, String mode) {
         if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());
         stack.getTagCompound()
             .setString("ExportMode", mode);
+    }
+
+    public static void clearSelection(ItemStack stack) {
+        RegionWandSelection.clear();
     }
 
     public static String nextMode(String current) {
@@ -193,24 +198,23 @@ public class RegionWandItem extends Item {
 
     @Nullable
     public static String exportSelectionAsStructureSnbt(World world, ItemStack stack, boolean includeEntities) {
-        if (world == null || stack == null) {
+        if (world == null) {
             return null;
         }
-        int[] p1 = getPos(stack, 1);
-        int[] p2 = getPos(stack, 2);
-        if (p1 == null || p2 == null) {
+        RegionWandSelection.Bounds bounds = RegionWandSelection.getBounds();
+        if (bounds == null) {
             return null;
         }
 
-        int minX = Math.min(p1[0], p2[0]);
-        int minY = Math.min(p1[1], p2[1]);
-        int minZ = Math.min(p1[2], p2[2]);
-        int maxX = Math.max(p1[0], p2[0]);
-        int maxY = Math.max(p1[1], p2[1]);
-        int maxZ = Math.max(p1[2], p2[2]);
-        int dx = maxX - minX + 1;
-        int dy = maxY - minY + 1;
-        int dz = maxZ - minZ + 1;
+        int minX = bounds.minX();
+        int minY = bounds.minY();
+        int minZ = bounds.minZ();
+        int maxX = bounds.maxX();
+        int maxY = bounds.maxY();
+        int maxZ = bounds.maxZ();
+        int dx = bounds.sizeX();
+        int dy = bounds.sizeY();
+        int dz = bounds.sizeZ();
         if (!includeEntities) {
             return exportRegionAsStructureSnbt(world, minX, minY, minZ, dx, dy, dz);
         }
@@ -231,24 +235,20 @@ public class RegionWandItem extends Item {
 
     @Nullable
     public static String exportSelectionAsStructureSnbt(GuidebookLevel level, ItemStack stack) {
-        if (level == null || stack == null) {
+        if (level == null) {
             return null;
         }
-        int[] p1 = getPos(stack, 1);
-        int[] p2 = getPos(stack, 2);
-        if (p1 == null || p2 == null) {
+        RegionWandSelection.Bounds bounds = RegionWandSelection.getBounds();
+        if (bounds == null) {
             return null;
         }
 
-        int minX = Math.min(p1[0], p2[0]);
-        int minY = Math.min(p1[1], p2[1]);
-        int minZ = Math.min(p1[2], p2[2]);
-        int maxX = Math.max(p1[0], p2[0]);
-        int maxY = Math.max(p1[1], p2[1]);
-        int maxZ = Math.max(p1[2], p2[2]);
-        int dx = maxX - minX + 1;
-        int dy = maxY - minY + 1;
-        int dz = maxZ - minZ + 1;
+        int minX = bounds.minX();
+        int minY = bounds.minY();
+        int minZ = bounds.minZ();
+        int dx = bounds.sizeX();
+        int dy = bounds.sizeY();
+        int dz = bounds.sizeZ();
         return exportRegionAsStructureSnbt(level, minX, minY, minZ, dx, dy, dz);
     }
 
@@ -303,9 +303,8 @@ public class RegionWandItem extends Item {
     }
 
     public static void exportToClipboard(ItemStack stack, EntityPlayer player, World world) {
-        int[] p1 = getPos(stack, 1);
-        int[] p2 = getPos(stack, 2);
-        if (p1 == null || p2 == null) {
+        RegionWandSelection.Bounds bounds = RegionWandSelection.getBounds();
+        if (bounds == null) {
             if (world.isRemote) {
                 send(player, GuidebookText.RegionWandNeedTwoCorners);
             }
@@ -313,15 +312,15 @@ public class RegionWandItem extends Item {
         }
         if (!world.isRemote) return;
 
-        int minX = Math.min(p1[0], p2[0]);
-        int minY = Math.min(p1[1], p2[1]);
-        int minZ = Math.min(p1[2], p2[2]);
-        int maxX = Math.max(p1[0], p2[0]);
-        int maxY = Math.max(p1[1], p2[1]);
-        int maxZ = Math.max(p1[2], p2[2]);
-        int dx = maxX - minX + 1;
-        int dy = maxY - minY + 1;
-        int dz = maxZ - minZ + 1;
+        int minX = bounds.minX();
+        int minY = bounds.minY();
+        int minZ = bounds.minZ();
+        int maxX = bounds.maxX();
+        int maxY = bounds.maxY();
+        int maxZ = bounds.maxZ();
+        int dx = bounds.sizeX();
+        int dy = bounds.sizeY();
+        int dz = bounds.sizeZ();
 
         long total = GuideStructureVolume.blockCount(dx, dy, dz);
         if (total > MAX_EXPORT_BLOCKS) {
@@ -392,7 +391,7 @@ public class RegionWandItem extends Item {
         return exportBlocks(world, minX, minY, minZ, maxX, maxY, maxZ, Collections.emptyList());
     }
 
-    private static ExportResult exportBlocks(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+    public static ExportResult exportBlocks(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
         List<Entity> entities) {
         StringBuilder sb = new StringBuilder();
         sb.append("<GameScene zoom={4} interactive={true}>\n");
@@ -524,7 +523,7 @@ public class RegionWandItem extends Item {
         return exportSnbt(new WorldStructureExportAccess(world), minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz);
     }
 
-    private static ExportResult exportSnbt(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+    public static ExportResult exportSnbt(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
         int dx, int dy, int dz, List<Entity> entities) {
         return exportSnbt(
             new WorldStructureExportAccess(world),
@@ -658,7 +657,7 @@ public class RegionWandItem extends Item {
     }
 
     @Desugar
-    private record ExportResult(String text, int nonAir, int teCount, int entityCount) {}
+    public record ExportResult(String text, int nonAir, int teCount, int entityCount) {}
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
@@ -682,10 +681,111 @@ public class RegionWandItem extends Item {
                 .getSimpleName();
     }
 
+    public static int[] floorBlockPosition(double x, double y, double z) {
+        return new int[] { MathHelper.floor_double(x), MathHelper.floor_double(y), MathHelper.floor_double(z) };
+    }
+
+    @Nullable
+    public static int[] resolveLookingAtSelection(EntityPlayer player, World world, boolean selectBlockBody) {
+        return resolveLookingAtSelection(player, world, selectBlockBody, DEFAULT_REACH_DISTANCE);
+    }
+
+    @Nullable
+    public static int[] resolveLookingAtSelection(EntityPlayer player, World world, boolean selectBlockBody,
+        double reachDistance) {
+        if (player == null || world == null) {
+            return null;
+        }
+        Vec3 start = getEyePosition(player, world);
+        Vec3 look = player.getLook(1.0F);
+        Vec3 end = start
+            .addVector(look.xCoord * reachDistance, look.yCoord * reachDistance, look.zCoord * reachDistance);
+        MovingObjectPosition hit = world.func_147447_a(start, end, false, true, false);
+        if (hit != null && hit.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+            return selectionPositionFromHit(hit, selectBlockBody);
+        }
+        return floorBlockPosition(end.xCoord, end.yCoord, end.zCoord);
+    }
+
+    public static int[] selectionPositionFromHit(MovingObjectPosition hit, boolean selectBlockBody) {
+        int x = hit.blockX;
+        int y = hit.blockY;
+        int z = hit.blockZ;
+        if (!selectBlockBody) {
+            ForgeDirection side = ForgeDirection.getOrientation(hit.sideHit);
+            x += side.offsetX;
+            y += side.offsetY;
+            z += side.offsetZ;
+        }
+        return new int[] { x, y, z };
+    }
+
+    private static Vec3 getEyePosition(EntityPlayer player, World world) {
+        float partialTicks = 1.0F;
+        double x = player.prevPosX + (player.posX - player.prevPosX) * partialTicks;
+        double y = player.prevPosY + (player.posY - player.prevPosY) * partialTicks
+            + (world.isRemote ? player.getEyeHeight() - player.getDefaultEyeHeight() : player.getEyeHeight());
+        double z = player.prevPosZ + (player.posZ - player.prevPosZ) * partialTicks;
+        return Vec3.createVectorHelper(x, y, z);
+    }
+
+    public static void applySelectionAction(ItemStack stack, EntityPlayer player, SelectionAction action, int x, int y,
+        int z) {
+        applySelectionAction(stack, player, action, x, y, z, true);
+    }
+
+    public static void applySelectionAction(ItemStack stack, EntityPlayer player, SelectionAction action, int x, int y,
+        int z, boolean sendFeedback) {
+        if (stack == null || player == null || action == null) {
+            return;
+        }
+        if (sendFeedback && player.worldObj != null
+            && player.worldObj.isRemote
+            && !beginClientSelectionAction(action, x, y, z)) {
+            return;
+        }
+        switch (action) {
+            case POS1:
+                setPos(stack, 1, x, y, z);
+                if (sendFeedback) {
+                    send(player, GuidebookText.RegionWandChatPos, 1, x, y, z);
+                }
+                break;
+            case POS2:
+                setPos(stack, 2, x, y, z);
+                if (sendFeedback) {
+                    send(player, GuidebookText.RegionWandChatPos, 2, x, y, z);
+                }
+                break;
+            case CLEAR:
+                clearSelection(stack);
+                if (sendFeedback) {
+                    send(player, GuidebookText.RegionWandSelectionCleared);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    public static boolean applySelectionActionFromNetwork(EntityPlayer player, SelectionAction action, int x, int y,
+        int z) {
+        if (player == null || action == null) {
+            return false;
+        }
+        ItemStack held = player.getHeldItem();
+        if (held == null || !(held.getItem() instanceof RegionWandItem)) {
+            return false;
+        }
+        applySelectionAction(held, player, action, x, y, z);
+        return true;
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
         EntityPlayer player = event.entityPlayer;
         if (player == null) return;
+        if (event.world == null || !event.world.isRemote) return;
         ItemStack held = player.getHeldItem();
         if (held == null || !(held.getItem() instanceof RegionWandItem)) return;
 
@@ -693,22 +793,107 @@ public class RegionWandItem extends Item {
             handleLeftClickBlock(event, held, player);
             return;
         }
-        if (event.action == PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK && !event.world.isRemote) {
+        if (event.action == PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK) {
             handleRightClickBlock(event, held, player);
+            return;
+        }
+        if (event.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR && player.isSneaking()) {
+            handleRightClickAir(event, held, player);
         }
     }
 
     public static void handleLeftClickBlock(PlayerInteractEvent event, ItemStack stack, EntityPlayer player) {
-        onLeftClickBlock(stack, player, event.x, event.y, event.z);
+        if (player.isSneaking()) {
+            applySelectionAction(stack, player, SelectionAction.CLEAR, 0, 0, 0);
+        } else {
+            int[] target = resolveLookingAtSelection(player, event.world, true);
+            if (target != null) {
+                applySelectionAction(stack, player, SelectionAction.POS1, target[0], target[1], target[2]);
+            } else {
+                onLeftClickBlock(stack, player, event.x, event.y, event.z);
+            }
+        }
         event.useBlock = Event.Result.DENY;
         event.useItem = Event.Result.DENY;
         event.setCanceled(true);
     }
 
     public static void handleRightClickBlock(PlayerInteractEvent event, ItemStack stack, EntityPlayer player) {
-        handleRightClickBlock(stack, player, event.world, event.x, event.y, event.z);
+        if (player.isSneaking()) {
+            if (beginClientExportAction()) {
+                exportToClipboard(stack, player, event.world);
+            }
+        } else {
+            int[] target = resolveLookingAtSelection(player, event.world, true);
+            if (target != null) {
+                applySelectionAction(stack, player, SelectionAction.POS2, target[0], target[1], target[2]);
+            } else {
+                handleRightClickBlock(stack, player, event.world, event.x, event.y, event.z);
+            }
+        }
         event.useBlock = Event.Result.DENY;
         event.useItem = Event.Result.DENY;
         event.setCanceled(true);
+    }
+
+    public static void handleRightClickAir(PlayerInteractEvent event, ItemStack stack, EntityPlayer player) {
+        if (beginClientExportAction()) {
+            exportToClipboard(stack, player, event.world);
+        }
+        event.useBlock = Event.Result.DENY;
+        event.useItem = Event.Result.DENY;
+        event.setCanceled(true);
+    }
+
+    public static boolean beginClientSelectionAction(SelectionAction action, int x, int y, int z) {
+        long now = System.currentTimeMillis();
+        if (lastClientSelectionAction == action && lastClientSelectionX == x
+            && lastClientSelectionY == y
+            && lastClientSelectionZ == z
+            && now - lastClientSelectionActionMillis < CLIENT_ACTION_DEBOUNCE_MILLIS) {
+            return false;
+        }
+        lastClientSelectionAction = action;
+        lastClientSelectionX = x;
+        lastClientSelectionY = y;
+        lastClientSelectionZ = z;
+        lastClientSelectionActionMillis = now;
+        return true;
+    }
+
+    public static boolean beginClientExportAction() {
+        long now = System.currentTimeMillis();
+        if (now - lastClientExportActionMillis < CLIENT_ACTION_DEBOUNCE_MILLIS) {
+            return false;
+        }
+        lastClientExportActionMillis = now;
+        return true;
+    }
+
+    public enum SelectionAction {
+
+        POS1(1),
+        POS2(2),
+        CLEAR(3);
+
+        private final int id;
+
+        SelectionAction(int id) {
+            this.id = id;
+        }
+
+        public int id() {
+            return id;
+        }
+
+        @Nullable
+        public static SelectionAction byId(int id) {
+            for (SelectionAction action : values()) {
+                if (action.id == id) {
+                    return action;
+                }
+            }
+            return null;
+        }
     }
 }

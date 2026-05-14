@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.integration.ae2.network;
 
+import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 
 import cpw.mods.fml.relauncher.Side;
@@ -14,6 +15,9 @@ public final class Ae2NetworkRegistration {
     private Ae2NetworkRegistration() {}
 
     public static void registerCommonMessages() {
+        if (!Mods.AE2.isModLoaded()) {
+            return;
+        }
         GuideNhNetwork.channel()
             .registerMessage(
                 GuideNhAe2CableBatchServerHandler.class,
@@ -29,6 +33,9 @@ public final class Ae2NetworkRegistration {
     }
 
     public static void registerClientMessages() {
+        if (!Mods.AE2.isModLoaded()) {
+            return;
+        }
         GuideNhNetwork.channel()
             .registerMessage(
                 GuideNhAe2CableBatchClientHandler.class,

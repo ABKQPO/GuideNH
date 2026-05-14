@@ -24,6 +24,8 @@ import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
+import com.hfstudio.guidenh.network.GuideNhRegionExportClientHandler;
+import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
 import com.hfstudio.structurelibexport.StructureExportBootstrap;
 
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -44,6 +46,12 @@ public class ClientProxy extends CommonProxy {
         GuideME.initClientProxy();
         GuideNhNetwork.channel()
             .registerMessage(GuideNhClientBridgeHandler.class, GuideNhClientBridgeMessage.class, 2, Side.CLIENT);
+        GuideNhNetwork.channel()
+            .registerMessage(
+                GuideNhRegionExportClientHandler.class,
+                GuideNhRegionExportReplyMessage.class,
+                8,
+                Side.CLIENT);
         Ae2NetworkRegistration.registerClientMessages();
     }
 

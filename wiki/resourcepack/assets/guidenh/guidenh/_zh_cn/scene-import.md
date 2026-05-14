@@ -81,4 +81,4 @@ categories:
   </LineAnnotation>
 </GameScene>
 
-搭配区域选择魔棒：默认即 SNBT 模式，潜行+右键导出当前 `<ImportStructure>` 兼容的 SNBT；空中右键可在 `snbt` 与 `blocks`（旧版 `<Block>` 列表，向下兼容）之间切换。
+搭配区域选择魔棒：选区是客户端全局状态，所有魔棒共享同一组 Pos1/Pos2。左键设置 Pos1，右键设置 Pos2；两种点击都可以对准空气，按光标 reach 终点选取坐标。潜行 + 左键清空当前选区，潜行 + 右键按当前模式导出。也可以使用 `/guidenhc pos1 <x> <y> <z>`、`/guidenhc pos2 <x> <y> <z>`、`/guidenhc clearselection`，其中 `~` 坐标相对玩家。`/guidenhc exportstructure [--mode snbt|snbt_e|blocks|blocks_e]` 会导出当前选区，也可以额外传入 `<x> <y> <z> <sizeX> <sizeY> <sizeZ>`。Scene Editor 读取同一片客户端选区；如果服务端也安装了 GuideNH，会优先请求服务端按选区导出方块数据，从权威世界取得 TileEntity 信息。

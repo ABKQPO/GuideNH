@@ -27,6 +27,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -183,6 +184,7 @@ public class SceneEditorScreen extends GuiScreen {
     private final SceneEditorHandleOverlay handleOverlay;
     private final SceneEditorCameraMarkerOverlay cameraMarkerOverlay;
     private final SceneEditorPointDragService pointDragService;
+    private final SceneEditorStructureCache structureCache;
     private final SceneEditorSaveService saveService;
     private final SceneEditorScreenshotExportService screenshotExportService;
     private final SceneEditorScreenshotMenuController screenshotMenuController;
@@ -209,6 +211,10 @@ public class SceneEditorScreen extends GuiScreen {
     private GuiTextField screenshotScaleField;
     @Nullable
     private CompletableFuture<SceneEditorStructureImportService.ImportResult> pendingStructureImport;
+    @Nullable
+    private CompletableFuture<String> pendingServerSelectionSync;
+    @Nullable
+    private String pendingServerSelectionBaseSnbt;
 
     private int leftPanelX;
     private int leftPanelY;
@@ -312,7 +318,7 @@ public class SceneEditorScreen extends GuiScreen {
         this.handleOverlay = new SceneEditorHandleOverlay();
         this.cameraMarkerOverlay = new SceneEditorCameraMarkerOverlay();
         this.pointDragService = new SceneEditorPointDragService(new SceneEditorSnapService());
-        SceneEditorStructureCache structureCache = SceneEditorStructureCache.createDefault();
+        this.structureCache = SceneEditorStructureCache.createDefault();
         this.saveService = new SceneEditorSaveService(structureCache, new SceneEditorClipboardExporter());
         Minecraft minecraft = Minecraft.getMinecraft();
         Path screenshotRoot = minecraft != null ? minecraft.mcDataDir.toPath() : Paths.get(".");
@@ -373,14 +379,29 @@ public class SceneEditorScreen extends GuiScreen {
         if (mc == null) {
             return;
         }
-        SceneEditorOpenService.OpenResult openResult = new SceneEditorOpenService().createInitialSession(mc.thePlayer);
+        SceneEditorOpenService openService = new SceneEditorOpenService();
+        SceneEditorOpenService.OpenResult openResult = openService.createInitialSession(mc.thePlayer);
+        SceneEditorScreen screen = open(openResult);
+        if (screen != null) {
+            screen.requestServerSelectionSync(openService.createServerSelectionRequest(mc.thePlayer));
+        }
+    }
+
+    @Nullable
+    private static SceneEditorScreen open(SceneEditorOpenService.OpenResult openResult) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null) {
+            return null;
+        }
         if (openResult.getOpenFeedbackMessage() != null && mc.thePlayer != null) {
             mc.thePlayer.addChatMessage(
                 new ChatComponentTranslation(
                     openResult.getOpenFeedbackMessage()
                         .getTranslationKey()));
         }
-        mc.displayGuiScreen(new SceneEditorScreen(openResult.getSession()));
+        SceneEditorScreen screen = new SceneEditorScreen(openResult.getSession());
+        mc.displayGuiScreen(screen);
+        return screen;
     }
 
     @Override
@@ -482,8 +503,90 @@ public class SceneEditorScreen extends GuiScreen {
         if (screenshotScaleField != null) {
             screenshotScaleField.updateCursorCounter();
         }
+        processPendingServerSelectionSync();
         processPendingStructureImport();
         processPendingMarkdownLiveSync();
+    }
+
+    private void requestServerSelectionSync(@Nullable SceneEditorOpenService.ServerSelectionRequest request) {
+        if (request == null) {
+            return;
+        }
+        try {
+            CompletableFuture<String> future = GuideNhClientBridgeController.getInstance()
+                .requestRegionExport(
+                    request.getX(),
+                    request.getY(),
+                    request.getZ(),
+                    request.getSizeX(),
+                    request.getSizeY(),
+                    request.getSizeZ(),
+                    request.isIncludeEntities());
+            if (future == null || future.isDone() && future.getNow(null) == null) {
+                return;
+            }
+            pendingServerSelectionSync = future;
+            pendingServerSelectionBaseSnbt = session.getImportedStructureSnbt();
+        } catch (Throwable ignored) {
+            pendingServerSelectionSync = null;
+            pendingServerSelectionBaseSnbt = null;
+        }
+    }
+
+    private void processPendingServerSelectionSync() {
+        if (pendingServerSelectionSync == null || !pendingServerSelectionSync.isDone()) {
+            return;
+        }
+        CompletableFuture<String> future = pendingServerSelectionSync;
+        String baseSnbt = pendingServerSelectionBaseSnbt;
+        pendingServerSelectionSync = null;
+        pendingServerSelectionBaseSnbt = null;
+        try {
+            String serverSnbt = future.join();
+            if (serverSnbt == null || serverSnbt.isEmpty()) {
+                return;
+            }
+            applyServerSelectionSnbt(serverSnbt, baseSnbt);
+        } catch (CompletionException ignored) {
+            // Keep the client-first editor usable even if the optional server sync fails.
+        } catch (Exception ignored) {
+            // Keep the client-first editor usable even if the optional server sync fails.
+        }
+    }
+
+    private void applyServerSelectionSnbt(String serverSnbt, @Nullable String baseSnbt) {
+        String currentSnbt = session.getImportedStructureSnbt();
+        if (baseSnbt == null && currentSnbt == null) {
+            applyServerSelectionToBlankSession(serverSnbt);
+            return;
+        }
+        if (baseSnbt == null || currentSnbt == null || !baseSnbt.equals(currentSnbt)) {
+            return;
+        }
+        if (serverSnbt.equals(currentSnbt)) {
+            return;
+        }
+        session.setImportedStructureSnbt(serverSnbt);
+        previewDirty = true;
+        preservePreviewCameraOnNextRebuild = true;
+    }
+
+    private void applyServerSelectionToBlankSession(String serverSnbt) {
+        if (session.isDirty() || session.getSceneModel()
+            .getStructureSource() != null) {
+            return;
+        }
+        session.getSceneModel()
+            .setStructureSource(structureCache.createStructureSource());
+        session.setImportedStructureSnbt(serverSnbt);
+        new SceneEditorOpenService(structureCache).applyImportedStructureDefaults(session, serverSnbt);
+        String serialized = markdownCodec.serialize(session.getSceneModel());
+        session.markSaved(serialized);
+        if (markdownTextArea != null) {
+            markdownTextArea.setText(serialized);
+        }
+        previewDirty = true;
+        preservePreviewCameraOnNextRebuild = false;
     }
 
     private void pollActivePreviewSceneDrag() {

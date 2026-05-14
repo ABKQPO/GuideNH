@@ -10,11 +10,14 @@ import java.util.List;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 
+import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideMEProxy;
@@ -23,6 +26,7 @@ import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorScreen;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureCoordinateParser;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.siteexport.ExportTask;
@@ -33,7 +37,8 @@ import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteOutputPaths;
 public class GuideNhClientCommand extends CommandBase {
 
     public static final String[] ROOT_SUB_COMMANDS = { "editor", "guideeditor", "guideedit", "list", "open", "reload",
-        "search", "export", "exportsite", "exportstructure" };
+        "search", "export", "exportsite", "exportstructure", "pos1", "pos2", "clearselection" };
+    public static final String[] EXPORT_STRUCTURE_FLAGS = { "--mode", "snbt", "snbt_e", "blocks", "blocks_e" };
     public static final String[] EXPORT_SITE_FLAGS = { "--ponder-frames", "--ponder-every-tick" };
 
     @Override
@@ -63,6 +68,9 @@ public class GuideNhClientCommand extends CommandBase {
             case "export" -> exportGuide(sender, args);
             case "exportsite" -> exportSite(sender, args);
             case "exportstructure" -> exportStructure(sender, args);
+            case "pos1" -> setSelectionPos(sender, args, 1);
+            case "pos2" -> setSelectionPos(sender, args, 2);
+            case "clearselection" -> clearSelection(sender);
             default -> send(sender, GuidebookText.CommandClientUsage);
         }
     }
@@ -84,6 +92,9 @@ public class GuideNhClientCommand extends CommandBase {
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("exportsite")) {
             return getListOfStringsMatchingLastWord(args, EXPORT_SITE_FLAGS);
+        }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("exportstructure")) {
+            return getListOfStringsMatchingLastWord(args, EXPORT_STRUCTURE_FLAGS);
         }
         return Collections.emptyList();
     }
@@ -235,29 +246,50 @@ public class GuideNhClientCommand extends CommandBase {
     }
 
     private void exportStructure(ICommandSender sender, String[] args) throws CommandException {
-        if (args.length < 7) {
+        EntityPlayer player = getCommandSenderAsPlayer(sender);
+        ExportStructureOptions options = parseExportStructureOptions(args);
+        if (options.coordinateStartIndex > 0 && args.length - options.coordinateStartIndex < 6) {
             send(sender, GuidebookText.CommandExportStructureUsage);
             return;
         }
 
-        EntityPlayer player = getCommandSenderAsPlayer(sender);
-        int baseX = MathHelper.floor_double(player.posX);
-        int baseY = MathHelper.floor_double(player.posY);
-        int baseZ = MathHelper.floor_double(player.posZ);
         try {
-            int x = GuideStructureCoordinateParser.parsePosition(baseX, args[1]);
-            int y = GuideStructureCoordinateParser.parsePosition(baseY, args[2]);
-            int z = GuideStructureCoordinateParser.parsePosition(baseZ, args[3]);
-            int sizeX = GuideStructureCoordinateParser.parseSize(args[4]);
-            int sizeY = GuideStructureCoordinateParser.parseSize(args[5]);
-            int sizeZ = GuideStructureCoordinateParser.parseSize(args[6]);
+            int x;
+            int y;
+            int z;
+            int sizeX;
+            int sizeY;
+            int sizeZ;
+            if (options.coordinateStartIndex > 0) {
+                int baseX = MathHelper.floor_double(player.posX);
+                int baseY = MathHelper.floor_double(player.posY);
+                int baseZ = MathHelper.floor_double(player.posZ);
+                int i = options.coordinateStartIndex;
+                x = GuideStructureCoordinateParser.parsePosition(baseX, args[i]);
+                y = GuideStructureCoordinateParser.parsePosition(baseY, args[i + 1]);
+                z = GuideStructureCoordinateParser.parsePosition(baseZ, args[i + 2]);
+                sizeX = GuideStructureCoordinateParser.parseSize(args[i + 3]);
+                sizeY = GuideStructureCoordinateParser.parseSize(args[i + 4]);
+                sizeZ = GuideStructureCoordinateParser.parseSize(args[i + 5]);
+            } else {
+                RegionWandSelection.Bounds bounds = RegionWandSelection.getBounds();
+                if (bounds == null) {
+                    send(sender, GuidebookText.RegionWandNeedTwoCorners);
+                    return;
+                }
+                x = bounds.minX();
+                y = bounds.minY();
+                z = bounds.minZ();
+                sizeX = bounds.sizeX();
+                sizeY = bounds.sizeY();
+                sizeZ = bounds.sizeZ();
+            }
             if (sizeX <= 0 || sizeY <= 0 || sizeZ <= 0) {
                 send(sender, GuidebookText.CommandStructureInvalidSize);
                 return;
             }
 
-            String structureText = RegionWandItem
-                .exportRegionAsStructureSnbt(player.worldObj, x, y, z, sizeX, sizeY, sizeZ);
+            String structureText = exportRegion(player, x, y, z, sizeX, sizeY, sizeZ, options.mode);
             if (structureText == null) {
                 send(
                     sender,
@@ -267,11 +299,91 @@ public class GuideNhClientCommand extends CommandBase {
             }
 
             Path savedPath = GuideNhClientBridgeController.getInstance()
-                .exportStructureToFile("exportstructure", structureText);
+                .exportStructureToFile("exportstructure-" + RegionWandItem.modeDisplay(options.mode), structureText);
             send(sender, GuidebookText.CommandStructureSaved, savedPath.toString());
         } catch (Throwable t) {
             send(sender, GuidebookText.CommandExportFailure, getErrorMessage(t));
         }
+    }
+
+    private String exportRegion(EntityPlayer player, int x, int y, int z, int sizeX, int sizeY, int sizeZ,
+        String mode) {
+        int maxX = x + sizeX - 1;
+        int maxY = y + sizeY - 1;
+        int maxZ = z + sizeZ - 1;
+        boolean includeEntities = RegionWandItem.includeEntities(mode);
+        List<Entity> entities = includeEntities ? collectEntities(player, x, y, z, maxX, maxY, maxZ)
+            : Collections.emptyList();
+        if (RegionWandItem.MODE_BLOCKS.equals(mode) || RegionWandItem.MODE_BLOCKS_ENTITIES.equals(mode)) {
+            return RegionWandItem.exportBlocks(player.worldObj, x, y, z, maxX, maxY, maxZ, entities)
+                .text();
+        }
+        if (!includeEntities) {
+            return RegionWandItem.exportRegionAsStructureSnbt(player.worldObj, x, y, z, sizeX, sizeY, sizeZ);
+        }
+        return RegionWandItem.exportSnbt(player.worldObj, x, y, z, maxX, maxY, maxZ, sizeX, sizeY, sizeZ, entities)
+            .text();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Entity> collectEntities(EntityPlayer player, int minX, int minY, int minZ, int maxX, int maxY,
+        int maxZ) {
+        List<Entity> all = player.worldObj.getEntitiesWithinAABBExcludingEntity(
+            null,
+            AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1));
+        return all != null ? all : Collections.emptyList();
+    }
+
+    private ExportStructureOptions parseExportStructureOptions(String[] args) {
+        String mode = RegionWandItem.MODE_SNBT;
+        int coordinateStart = -1;
+        for (int i = 1; i < args.length; i++) {
+            String arg = args[i];
+            if ("--mode".equalsIgnoreCase(arg) && i + 1 < args.length) {
+                mode = normalizeExportMode(args[++i]);
+            } else if (arg.startsWith("--mode=")) {
+                mode = normalizeExportMode(arg.substring("--mode=".length()));
+            } else if (!arg.startsWith("--") && coordinateStart < 0) {
+                coordinateStart = i;
+            }
+        }
+        return new ExportStructureOptions(mode, coordinateStart);
+    }
+
+    private String normalizeExportMode(String mode) {
+        if (RegionWandItem.MODE_BLOCKS.equalsIgnoreCase(mode)) return RegionWandItem.MODE_BLOCKS;
+        if (RegionWandItem.MODE_BLOCKS_ENTITIES.equalsIgnoreCase(mode) || "blocks+entities".equalsIgnoreCase(mode)) {
+            return RegionWandItem.MODE_BLOCKS_ENTITIES;
+        }
+        if (RegionWandItem.MODE_SNBT_ENTITIES.equalsIgnoreCase(mode) || "snbt+entities".equalsIgnoreCase(mode)) {
+            return RegionWandItem.MODE_SNBT_ENTITIES;
+        }
+        return RegionWandItem.MODE_SNBT;
+    }
+
+    private void setSelectionPos(ICommandSender sender, String[] args, int which) throws CommandException {
+        if (args.length < 4) {
+            send(sender, GuidebookText.CommandRegionWandPosUsage);
+            return;
+        }
+        EntityPlayer player = getCommandSenderAsPlayer(sender);
+        int baseX = MathHelper.floor_double(player.posX);
+        int baseY = MathHelper.floor_double(player.posY);
+        int baseZ = MathHelper.floor_double(player.posZ);
+        try {
+            int x = GuideStructureCoordinateParser.parsePosition(baseX, args[1]);
+            int y = GuideStructureCoordinateParser.parsePosition(baseY, args[2]);
+            int z = GuideStructureCoordinateParser.parsePosition(baseZ, args[3]);
+            RegionWandSelection.setPos(which, x, y, z);
+            send(sender, GuidebookText.RegionWandChatPos, which, x, y, z);
+        } catch (Throwable t) {
+            send(sender, GuidebookText.CommandExportFailure, getErrorMessage(t));
+        }
+    }
+
+    private void clearSelection(ICommandSender sender) {
+        RegionWandSelection.clear();
+        send(sender, GuidebookText.RegionWandSelectionCleared);
     }
 
     public static void send(ICommandSender sender, GuidebookText key, Object... args) {
@@ -294,4 +406,7 @@ public class GuideNhClientCommand extends CommandBase {
             this.exportPonderEveryTick = exportPonderEveryTick;
         }
     }
+
+    @Desugar
+    private record ExportStructureOptions(String mode, int coordinateStartIndex) {}
 }

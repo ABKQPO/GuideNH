@@ -1,5 +1,9 @@
 package com.hfstudio.guidenh.integration.railcraft;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,12 +14,20 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.Mods;
 
 import cpw.mods.fml.common.Optional;
+import mods.railcraft.common.blocks.RailcraftTileEntity;
 import mods.railcraft.common.blocks.machine.TileMultiBlock;
+import mods.railcraft.common.blocks.machine.beta.TileBoiler;
+import mods.railcraft.common.blocks.machine.beta.TileBoilerFirebox;
 
 public class RailcraftPreviewHelpers {
 
     public static final boolean RAILCRAFT_PREVIEW_WORLD_REMOTE = false;
     public static final boolean RAILCRAFT_PREVIEW_RESETS_CLIENT_TEST_STATE = true;
+    public static final boolean RAILCRAFT_PREVIEW_SYNCS_PACKET_STATE = true;
+    public static final boolean RAILCRAFT_PREVIEW_PRIORITIZES_BOILER_MASTERS = true;
+    public static final boolean RAILCRAFT_PREVIEW_SKIPS_BOILER_NON_MASTERS = true;
+    private static final String TILE_BOILER_FIREBOX_CLASS = "mods.railcraft.common.blocks.machine.beta.TileBoilerFirebox";
+    private static final String TILE_BOILER_CLASS = "mods.railcraft.common.blocks.machine.beta.TileBoiler";
 
     private RailcraftPreviewHelpers() {}
 
@@ -39,10 +51,47 @@ public class RailcraftPreviewHelpers {
         try {
             resetRailcraftMultiblocks(multiblocks);
             notifyRailcraftMultiblocks(multiblocks);
-            tickRailcraftMultiblocks(multiblocks);
+            tickRailcraftMultiblocks(prioritizeRailcraftMasters(multiblocks));
+            syncRailcraftTilePackets(multiblocks);
         } finally {
             world.isRemote = previousRemote;
         }
+    }
+
+    @Optional.Method(modid = "Railcraft")
+    private static List<TileMultiBlock> prioritizeRailcraftMasters(List<TileMultiBlock> multiblocks) {
+        List<TileMultiBlock> prioritized = new ArrayList<>(multiblocks.size());
+        for (TileMultiBlock multiblock : multiblocks) {
+            if (multiblock instanceof TileBoilerFirebox) {
+                prioritized.add(multiblock);
+            }
+        }
+        for (TileMultiBlock multiblock : multiblocks) {
+            if (!(multiblock instanceof TileBoiler)) {
+                prioritized.add(multiblock);
+            }
+        }
+        return prioritized;
+    }
+
+    @Optional.Method(modid = "Railcraft")
+    private static void syncRailcraftTilePackets(List<TileMultiBlock> multiblocks) {
+        for (TileMultiBlock multiblock : multiblocks) {
+            if (!isUsable(multiblock)) {
+                continue;
+            }
+            syncRailcraftTilePacket(multiblock);
+        }
+    }
+
+    @Optional.Method(modid = "Railcraft")
+    private static void syncRailcraftTilePacket(RailcraftTileEntity tile) {
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            DataOutputStream data = new DataOutputStream(bytes);
+            tile.writePacketData(data);
+            tile.readPacketData(new DataInputStream(new ByteArrayInputStream(bytes.toByteArray())));
+        } catch (Throwable ignored) {}
     }
 
     @Optional.Method(modid = "Railcraft")
@@ -90,5 +139,17 @@ public class RailcraftPreviewHelpers {
     @Optional.Method(modid = "Railcraft")
     private static boolean isUsable(TileMultiBlock multiblock) {
         return multiblock != null && !multiblock.isInvalid() && multiblock.getWorldObj() != null;
+    }
+
+    private static boolean isInstanceOf(Object value, String className) {
+        if (value == null || className == null || className.isEmpty()) {
+            return false;
+        }
+        for (Class<?> type = value.getClass(); type != null; type = type.getSuperclass()) {
+            if (className.equals(type.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

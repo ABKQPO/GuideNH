@@ -206,39 +206,43 @@ public class MdxAttrs {
     public static GuideItemReferenceResolver.ResolvedBlockReference getRequiredBlockReference(PageCompiler compiler,
         LytErrorSink errorSink, MdxJsxElementFields el, String attribute) {
         String oreName = GuideItemReferenceResolver.trimToNull(getString(compiler, errorSink, el, "ore", null));
-        if (oreName != null) {
-            GuideItemReferenceResolver.ResolvedBlockReference resolved = GuideItemReferenceResolver
-                .resolveBlockReference(
-                    compiler.getPageId()
-                        .getResourceDomain(),
-                    null,
-                    oreName);
-            if (resolved == null) {
-                ItemStack stack = GuideItemReferenceResolver.resolveOreDictionaryStack(oreName);
-                if (stack == null || stack.getItem() == null) {
-                    errorSink.appendError(compiler, "Missing ore dictionary entry: " + oreName, el);
-                } else {
-                    errorSink.appendError(
-                        compiler,
-                        "Ore dictionary entry '" + oreName + "' does not resolve to a block item",
-                        el);
-                }
-                return null;
-            }
+        String raw = getString(compiler, errorSink, el, attribute, null);
+        GuideItemReferenceResolver.ResolvedBlockReference resolved = GuideItemReferenceResolver.resolveBlockReference(
+            compiler.getPageId()
+                .getResourceDomain(),
+            raw,
+            oreName);
+        if (resolved != null) {
             return resolved;
         }
 
-        var blockAndId = getRequiredBlockAndId(compiler, errorSink, el, attribute);
-        if (blockAndId == null) {
+        if (oreName != null) {
+            ItemStack stack = GuideItemReferenceResolver.resolveOreDictionaryStack(oreName);
+            if (stack == null || stack.getItem() == null) {
+                errorSink.appendError(compiler, "Missing ore dictionary entry: " + oreName, el);
+            } else {
+                errorSink.appendError(
+                    compiler,
+                    "Ore dictionary entry '" + oreName + "' does not resolve to a block item",
+                    el);
+            }
             return null;
         }
 
-        Item item = Item.getItemFromBlock(blockAndId.getRight());
-        ItemStack stack = item != null ? new ItemStack(item) : null;
-        return new GuideItemReferenceResolver.ResolvedBlockReference(
-            blockAndId.getLeft(),
-            blockAndId.getRight(),
-            stack);
+        if (raw == null) {
+            errorSink.appendError(compiler, "Missing " + attribute + " attribute.", el);
+            return null;
+        }
+        errorSink.appendError(compiler, "Missing block: " + raw.trim(), el);
+        return null;
+    }
+
+    @Nullable
+    public static GuideItemReferenceResolver.ResolvedBlockReference getBlockReference(MdxJsxElementFields el,
+        String attribute, String defaultNamespace) {
+        String oreName = GuideItemReferenceResolver.trimToNull(getString(el, "ore", null));
+        String raw = getString(el, attribute, null);
+        return GuideItemReferenceResolver.resolveBlockReference(defaultNamespace, raw, oreName);
     }
 
     @Nullable

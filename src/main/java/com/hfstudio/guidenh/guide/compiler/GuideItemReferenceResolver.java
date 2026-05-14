@@ -22,7 +22,8 @@ public final class GuideItemReferenceResolver {
     public record ResolvedItemReference(ResourceLocation registryId, ItemStack stack) {}
 
     @Desugar
-    public record ResolvedBlockReference(ResourceLocation registryId, Block block, @Nullable ItemStack stack) {}
+    public record ResolvedBlockReference(ResourceLocation registryId, Block block, @Nullable ItemStack stack,
+        boolean hasExplicitMeta) {}
 
     @Nullable
     public static ResolvedItemReference resolveItemReference(String defaultNamespace, @Nullable String idText,
@@ -67,7 +68,7 @@ public final class GuideItemReferenceResolver {
             if (block == null || block == Blocks.air || registryId == null) {
                 return null;
             }
-            return new ResolvedBlockReference(registryId, block, stack);
+            return new ResolvedBlockReference(registryId, block, stack, true);
         }
 
         String trimmedIdText = trimToNull(idText);
@@ -75,15 +76,23 @@ public final class GuideItemReferenceResolver {
             return null;
         }
 
-        ResourceLocation blockId = IdUtils.resolveId(trimmedIdText, defaultNamespace);
-        Block block = (Block) Block.blockRegistry.getObject(IdUtils.rawRegistryKey(trimmedIdText, defaultNamespace));
+        IdUtils.ParsedItemRef ref = IdUtils.parseItemRef(trimmedIdText, defaultNamespace);
+        if (ref == null) {
+            return null;
+        }
+
+        Block block = (Block) Block.blockRegistry.getObject(ref.rawKey());
         if (block == null) {
             return null;
         }
 
         Item item = Item.getItemFromBlock(block);
-        ItemStack stack = item != null ? new ItemStack(item) : null;
-        return new ResolvedBlockReference(blockId, block, stack);
+        ItemStack stack = item != null ? new ItemStack(item, 1, ref.hasExplicitMeta() ? ref.meta() : 0) : null;
+        if (stack != null && ref.nbt() != null) {
+            stack.stackTagCompound = (net.minecraft.nbt.NBTTagCompound) ref.nbt()
+                .copy();
+        }
+        return new ResolvedBlockReference(ref.id(), block, stack, ref.hasExplicitMeta());
     }
 
     @Nullable

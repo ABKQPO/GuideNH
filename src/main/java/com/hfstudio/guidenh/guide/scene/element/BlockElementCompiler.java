@@ -38,9 +38,9 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
         int meta = MdxAttrs.getInt(compiler, errorSink, el, "meta", Integer.MIN_VALUE);
         String facing = MdxAttrs.getString(compiler, errorSink, el, "facing", null);
         if (meta == Integer.MIN_VALUE) {
-            int stackMeta = blockReference.stack() != null ? blockReference.stack()
+            int stackMeta = blockReference.hasExplicitMeta() && blockReference.stack() != null ? blockReference.stack()
                 .getItemDamage() : 0;
-            if (stackMeta != 0 && stackMeta != OreDictionary.WILDCARD_VALUE) {
+            if (blockReference.hasExplicitMeta() && stackMeta != OreDictionary.WILDCARD_VALUE) {
                 meta = stackMeta;
             } else {
                 meta = defaultMetaFor(block, facing);

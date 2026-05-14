@@ -1,8 +1,13 @@
 package com.hfstudio.guidenh.client.command;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
@@ -14,6 +19,9 @@ import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureImportS
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureRuntime;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
+import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
+import com.hfstudio.guidenh.network.GuideNhRegionExportRequestMessage;
+import com.hfstudio.guidenh.network.GuideNhStructureRequestMessage;
 import com.hfstudio.guidenh.network.GuideNhStructureRequestSender;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -30,6 +38,9 @@ public class GuideNhClientBridgeController {
 
     private final SceneEditorStructureImportService structureImportService;
     private final GuideStructureFileStore structureFileStore;
+    private final AtomicInteger nextRegionExportRequestId;
+    private final Map<Integer, CompletableFuture<String>> pendingRegionExports;
+    private final Map<Integer, RegionReplyAssembler> pendingRegionExportChunks;
 
     private CompletableFuture<SceneEditorStructureImportService.ImportResult> pendingImport;
     private PendingImportRequest pendingImportRequest;
@@ -37,6 +48,9 @@ public class GuideNhClientBridgeController {
     private GuideNhClientBridgeController() {
         this.structureImportService = new SceneEditorStructureImportService(SceneEditorStructureCache.createDefault());
         this.structureFileStore = GuideStructureFileStore.createDefault();
+        this.nextRegionExportRequestId = new AtomicInteger(1);
+        this.pendingRegionExports = new HashMap<>();
+        this.pendingRegionExportChunks = new HashMap<>();
     }
 
     public static GuideNhClientBridgeController getInstance() {
@@ -100,6 +114,54 @@ public class GuideNhClientBridgeController {
         GuideNhStructureRuntime.setClientStructureSyncNeeded(false);
         pendingImport = null;
         pendingImportRequest = null;
+        for (CompletableFuture<String> future : pendingRegionExports.values()) {
+            future.complete(null);
+        }
+        pendingRegionExports.clear();
+        pendingRegionExportChunks.clear();
+    }
+
+    public CompletableFuture<String> requestRegionExport(int x, int y, int z, int sizeX, int sizeY, int sizeZ,
+        boolean includeEntities) {
+        if (!isServerStructureCommandsAvailable()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        int requestId = nextRegionExportRequestId.getAndIncrement();
+        CompletableFuture<String> future = new CompletableFuture<>();
+        pendingRegionExports.put(requestId, future);
+        GuideNhNetwork.channel()
+            .sendToServer(
+                new GuideNhRegionExportRequestMessage(requestId, x, y, z, sizeX, sizeY, sizeZ, includeEntities));
+        return future;
+    }
+
+    public void handleRegionExportReply(GuideNhRegionExportReplyMessage message) {
+        CompletableFuture<String> future = pendingRegionExports.get(message.getRequestId());
+        if (future == null) {
+            return;
+        }
+        if (message.getAction() == GuideNhRegionExportReplyMessage.ACTION_ERROR) {
+            pendingRegionExports.remove(message.getRequestId());
+            pendingRegionExportChunks.remove(message.getRequestId());
+            future.complete(null);
+            return;
+        }
+        if (message.getAction() == GuideNhRegionExportReplyMessage.ACTION_COMPLETE) {
+            pendingRegionExports.remove(message.getRequestId());
+            pendingRegionExportChunks.remove(message.getRequestId());
+            future.complete(message.getPayloadText());
+            return;
+        }
+        if (message.getAction() == GuideNhRegionExportReplyMessage.ACTION_CHUNK) {
+            RegionReplyAssembler assembler = pendingRegionExportChunks
+                .computeIfAbsent(message.getRequestId(), ignored -> new RegionReplyAssembler(message.getChunkCount()));
+            String completed = assembler.accept(message);
+            if (completed != null) {
+                pendingRegionExports.remove(message.getRequestId());
+                pendingRegionExportChunks.remove(message.getRequestId());
+                future.complete(completed);
+            }
+        }
     }
 
     @SubscribeEvent
@@ -194,6 +256,44 @@ public class GuideNhClientBridgeController {
             this.x = x;
             this.y = y;
             this.z = z;
+        }
+    }
+
+    private static final class RegionReplyAssembler {
+
+        private final byte[][] chunks;
+        private int received;
+        private int totalBytes;
+
+        private RegionReplyAssembler(int chunkCount) {
+            if (chunkCount <= 0 || chunkCount > GuideNhStructureRequestMessage.MAX_CHUNKS_PER_STRUCTURE) {
+                throw new IllegalArgumentException("Invalid region export chunk count: " + chunkCount);
+            }
+            this.chunks = new byte[chunkCount][];
+        }
+
+        private synchronized String accept(GuideNhRegionExportReplyMessage message) {
+            int index = message.getChunkIndex();
+            if (message.getChunkCount() != chunks.length || index < 0 || index >= chunks.length) {
+                return null;
+            }
+            byte[] bytes = message.getPayloadBytes();
+            if (chunks[index] == null) {
+                chunks[index] = bytes;
+                received++;
+                totalBytes += bytes.length;
+            }
+            if (received != chunks.length) {
+                return null;
+            }
+            ByteArrayOutputStream out = new ByteArrayOutputStream(totalBytes);
+            for (byte[] chunk : chunks) {
+                if (chunk == null) {
+                    return null;
+                }
+                out.write(chunk, 0, chunk.length);
+            }
+            return new String(out.toByteArray(), StandardCharsets.UTF_8);
         }
     }
 }

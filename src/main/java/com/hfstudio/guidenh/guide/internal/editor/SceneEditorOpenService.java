@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
 
 public class SceneEditorOpenService {
 
@@ -29,14 +30,11 @@ public class SceneEditorOpenService {
             return new OpenResult(SceneEditorSession.createBlank(), false, null);
         }
 
-        ItemStack held = player.getHeldItem();
-        boolean isWand = held != null && held.getItem() instanceof RegionWandItem
-            && RegionWandItem.hasCompleteSelection(held);
-
-        if (!isWand) {
+        if (!RegionWandSelection.hasCompleteSelection()) {
             return createInitialSession(false, null);
         }
 
+        ItemStack held = player.getHeldItem();
         String mode = RegionWandItem.getExportMode(held);
         // blocks/blocks_e modes generate <GameScene><Block> MDX, not SNBT ImportStructure.
         // Open blank so the editor doesn't pre-fill with the wrong format.
@@ -47,6 +45,30 @@ public class SceneEditorOpenService {
         boolean includeEntities = RegionWandItem.includeEntities(mode);
         String structureSnbt = RegionWandItem.exportSelectionAsStructureSnbt(player.worldObj, held, includeEntities);
         return createInitialSession(true, structureSnbt);
+    }
+
+    @Nullable
+    public ServerSelectionRequest createServerSelectionRequest(@Nullable EntityPlayer player) {
+        if (player == null || !RegionWandSelection.hasCompleteSelection()) {
+            return null;
+        }
+        ItemStack held = player.getHeldItem();
+        String mode = RegionWandItem.getExportMode(held);
+        if (RegionWandItem.MODE_BLOCKS.equals(mode) || RegionWandItem.MODE_BLOCKS_ENTITIES.equals(mode)) {
+            return null;
+        }
+        RegionWandSelection.Bounds bounds = RegionWandSelection.getBounds();
+        if (bounds == null) {
+            return null;
+        }
+        return new ServerSelectionRequest(
+            bounds.minX(),
+            bounds.minY(),
+            bounds.minZ(),
+            bounds.sizeX(),
+            bounds.sizeY(),
+            bounds.sizeZ(),
+            RegionWandItem.includeEntities(mode));
     }
 
     OpenResult createInitialSession(@Nullable ItemStack held, @Nullable String structureSnbt) {
@@ -66,7 +88,7 @@ public class SceneEditorOpenService {
         return new OpenResult(session, false, GuidebookText.SceneEditorImportedSession);
     }
 
-    private void applyImportedStructureDefaults(SceneEditorSession session, String structureSnbt) {
+    void applyImportedStructureDefaults(SceneEditorSession session, String structureSnbt) {
         float[] structureCenter = extractStructureCenter(structureSnbt);
         if (structureCenter == null) {
             return;
@@ -121,6 +143,55 @@ public class SceneEditorOpenService {
         @Nullable
         public GuidebookText getOpenFeedbackMessage() {
             return openFeedbackMessage;
+        }
+    }
+
+    public static class ServerSelectionRequest {
+
+        private final int x;
+        private final int y;
+        private final int z;
+        private final int sizeX;
+        private final int sizeY;
+        private final int sizeZ;
+        private final boolean includeEntities;
+
+        private ServerSelectionRequest(int x, int y, int z, int sizeX, int sizeY, int sizeZ, boolean includeEntities) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.sizeX = sizeX;
+            this.sizeY = sizeY;
+            this.sizeZ = sizeZ;
+            this.includeEntities = includeEntities;
+        }
+
+        public int getX() {
+            return x;
+        }
+
+        public int getY() {
+            return y;
+        }
+
+        public int getZ() {
+            return z;
+        }
+
+        public int getSizeX() {
+            return sizeX;
+        }
+
+        public int getSizeY() {
+            return sizeY;
+        }
+
+        public int getSizeZ() {
+            return sizeZ;
+        }
+
+        public boolean isIncludeEntities() {
+            return includeEntities;
         }
     }
 }

@@ -87,6 +87,10 @@ public class ModConfig {
         @DefaultBoolean(false)
         public boolean sceneEditorSnapCenterEnabled = false;
 
+        @Comment("Whether the Region Wand selection box remains visible after switching away from the wand.")
+        @DefaultBoolean(true)
+        public boolean regionWandPersistentSelectionRender = true;
+
         @Comment("Maximum undo history entries kept by the scene editor.")
         public int sceneEditorUndoHistoryLimit = 15;
 

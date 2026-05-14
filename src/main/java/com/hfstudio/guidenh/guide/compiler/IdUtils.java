@@ -48,11 +48,13 @@ public class IdUtils {
     /**
      * A parsed {@code modid:name[:meta][:snbt]} reference. {@link #meta} is
      * {@link OreDictionary#WILDCARD_VALUE} when the source asked for the wildcard, or 0 when the
-     * meta segment is absent. {@link #nbt} is {@code null} when no SNBT tail was provided or when
-     * SNBT parsing failed (a warning is logged in that case).
+     * meta segment is absent. {@link #hasExplicitMeta} distinguishes an omitted meta from an
+     * explicit {@code :0}. {@link #nbt} is {@code null} when no SNBT tail was provided or when SNBT
+     * parsing failed (a warning is logged in that case).
      */
     @Desugar
-    public record ParsedItemRef(ResourceLocation id, int meta, @Nullable NBTTagCompound nbt, String rawKey) {
+    public record ParsedItemRef(ResourceLocation id, int meta, boolean hasExplicitMeta, @Nullable NBTTagCompound nbt,
+        String rawKey) {
 
         public boolean isWildcardMeta() {
             return meta == OreDictionary.WILDCARD_VALUE;
@@ -119,6 +121,7 @@ public class IdUtils {
         ResourceLocation id;
         String rawKey;
         int meta = 0;
+        boolean hasExplicitMeta = false;
         // head is name | modid:name | modid:name:meta
         int firstColon = head.indexOf(':');
         if (firstColon < 0) {
@@ -134,9 +137,10 @@ public class IdUtils {
                 id = new ResourceLocation(rawKey);
                 String metaStr = head.substring(secondColon + 1);
                 meta = parseMeta(metaStr);
+                hasExplicitMeta = true;
             }
         }
-        ParsedItemRef result = new ParsedItemRef(id, meta, nbt, rawKey);
+        ParsedItemRef result = new ParsedItemRef(id, meta, hasExplicitMeta, nbt, rawKey);
         if (cacheable) {
             PARSE_CACHE.put(cacheKey, result);
         }
