@@ -24,6 +24,7 @@ public enum Mods implements IMod, ITargetMod {
     KubaTech("kubatech"),
     CarpentersBlocks("CarpentersBlocks"),
     ForgeMultipart("ForgeMultipart"),
+    Railcraft("Railcraft"),
     BuildCraftTransport("BuildCraft|Transport"),
     LogisticsPipes("LogisticsPipes"),
     DistantHorizons("distanthorizons"),

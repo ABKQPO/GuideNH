@@ -34,6 +34,7 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeHandlerMetadataProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeHandlerRenderProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeHandlerSlotProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeItemTooltipProvider;
+import com.hfstudio.guidenh.integration.railcraft.RailcraftPreviewPrepareContributor;
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportPreviewPlayerModelProvider;
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportSlimArmProvider;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerIntegrationRegistry;
@@ -51,91 +52,162 @@ public class GuideNhClientIntegrationBootstrap {
         registerBlockStatsProviders();
         registerPreviewPrepareContributors();
         registerStructureLibControllerIntegrations();
+
         GuideStructureSnapshotRegistration.registerPreviewPrepareContributors();
-        GuideNhClientIntegrationRegistry.global()
-            .registerPreviewPlayerSlimArmProvider(new SimpleSkinBackportSlimArmProvider());
-        GuideNhClientIntegrationRegistry.global()
-            .registerPreviewPlayerSlimArmProvider(new EtFuturumSlimArmProvider());
-        GuideNhClientIntegrationRegistry.global()
-            .registerPreviewPlayerModelProvider(new SimpleSkinBackportPreviewPlayerModelProvider());
-        GuideNhClientIntegrationRegistry.global()
-            .registerPreviewPlayerElytraProvider(new EtFuturumPreviewPlayerElytraProvider());
-        GuideNhClientIntegrationRegistry.global()
-            .registerPreviewBlockRenderProvider(new ForgeMultipartPreviewBlockRenderProvider());
-        GuideNhClientIntegrationRegistry.global()
-            .registerQuestHoverProvider(new BetterQuestingQuestHoverProvider());
+
+        if (Mods.SimpleSkinBackport.isModLoaded()) {
+            GuideNhClientIntegrationRegistry.global()
+                .registerPreviewPlayerSlimArmProvider(new SimpleSkinBackportSlimArmProvider());
+
+            GuideNhClientIntegrationRegistry.global()
+                .registerPreviewPlayerModelProvider(new SimpleSkinBackportPreviewPlayerModelProvider());
+        }
+
+        if (Mods.EtFuturum.isModLoaded()) {
+            GuideNhClientIntegrationRegistry.global()
+                .registerPreviewPlayerSlimArmProvider(new EtFuturumSlimArmProvider());
+
+            GuideNhClientIntegrationRegistry.global()
+                .registerPreviewPlayerElytraProvider(new EtFuturumPreviewPlayerElytraProvider());
+        }
+
+        if (Mods.ForgeMultipart.isModLoaded()) {
+            GuideNhClientIntegrationRegistry.global()
+                .registerPreviewBlockRenderProvider(new ForgeMultipartPreviewBlockRenderProvider());
+        }
+
+        if (Mods.BetterQuesting.isModLoaded()) {
+            GuideNhClientIntegrationRegistry.global()
+                .registerQuestHoverProvider(new BetterQuestingQuestHoverProvider());
+        }
     }
 
     public static void registerBlockDisplayProviders() {
-        GuideNhIntegrationRegistry.global()
-            .registerBlockDisplayProvider(new LogisticsPipesBlockDisplayProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerBlockDisplayProvider(new BuildCraftBlockDisplayProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerBlockDisplayProvider(new CarpentersBlocksBlockDisplayProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerBlockDisplayNameProvider(new CarpentersBlocksBlockDisplayNameProvider());
+        if (Mods.LogisticsPipes.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerBlockDisplayProvider(new LogisticsPipesBlockDisplayProvider());
+        }
+
+        if (Mods.BuildCraftTransport.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerBlockDisplayProvider(new BuildCraftBlockDisplayProvider());
+        }
+
+        if (Mods.CarpentersBlocks.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerBlockDisplayProvider(new CarpentersBlocksBlockDisplayProvider());
+
+            GuideNhIntegrationRegistry.global()
+                .registerBlockDisplayNameProvider(new CarpentersBlocksBlockDisplayNameProvider());
+        }
     }
 
     public static void registerPreviewTileEntityProviders() {
-        GuideNhIntegrationRegistry.global()
-            .registerPreviewTileEntityProvider(new ForgeMultipartPreviewTileEntityProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerPreviewTileEntityFinalizer(new ForgeMultipartPreviewTileEntityFinalizer());
+        if (Mods.ForgeMultipart.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerPreviewTileEntityProvider(new ForgeMultipartPreviewTileEntityProvider());
+
+            GuideNhIntegrationRegistry.global()
+                .registerPreviewTileEntityFinalizer(new ForgeMultipartPreviewTileEntityFinalizer());
+        }
     }
 
     public static void registerFakeWorldIntegrations() {
-        GuideNhIntegrationRegistry.global()
-            .registerFakeWorldIntegration(new GregTechFakeWorldIntegration());
+        if (Mods.GregTech.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerFakeWorldIntegration(new GregTechFakeWorldIntegration());
+        }
+
         if (Mods.BartWorks.isModLoaded()) {
             GuideNhIntegrationRegistry.global()
                 .registerFakeWorldIntegration(new BartWorksFakeWorldIntegration());
         }
-        GuideNhIntegrationRegistry.global()
-            .registerFakeWorldIntegration(new Ae2FakeWorldIntegration());
-        GuideNhIntegrationRegistry.global()
-            .registerFakeWorldIntegration(new DistantHorizonsFakeWorldIntegration());
+
+        if (Mods.AE2.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerFakeWorldIntegration(new Ae2FakeWorldIntegration());
+        }
+
+        if (Mods.DistantHorizons.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerFakeWorldIntegration(new DistantHorizonsFakeWorldIntegration());
+        }
     }
 
     public static void registerRecipeProviders() {
-        GuideNhIntegrationRegistry.global()
-            .registerRawRecipeHandlerProvider(new NeiRawRecipeHandlerProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerRecipeEntryProvider(new NeiRecipeEntryProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerRecipeItemTooltipProvider(new NeiRecipeItemTooltipProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerRecipeAnimationUpdateProvider(new NeiRecipeAnimationUpdateProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerRecipeHandlerMetadataProvider(new NeiRecipeHandlerMetadataProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerRecipeHandlerSlotProvider(new NeiRecipeHandlerSlotProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerRecipeAvailabilityProvider(new NeiRecipeAvailabilityProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerRecipeDrawableRenderProvider(new NeiRecipeDrawableRenderProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerRecipeHandlerRenderProvider(new NeiRecipeHandlerRenderProvider());
+        if (Mods.NotEnoughItems.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerRawRecipeHandlerProvider(new NeiRawRecipeHandlerProvider());
+
+            GuideNhIntegrationRegistry.global()
+                .registerRecipeEntryProvider(new NeiRecipeEntryProvider());
+
+            GuideNhIntegrationRegistry.global()
+                .registerRecipeItemTooltipProvider(new NeiRecipeItemTooltipProvider());
+
+            GuideNhIntegrationRegistry.global()
+                .registerRecipeAnimationUpdateProvider(new NeiRecipeAnimationUpdateProvider());
+
+            GuideNhIntegrationRegistry.global()
+                .registerRecipeHandlerMetadataProvider(new NeiRecipeHandlerMetadataProvider());
+
+            GuideNhIntegrationRegistry.global()
+                .registerRecipeHandlerSlotProvider(new NeiRecipeHandlerSlotProvider());
+
+            GuideNhIntegrationRegistry.global()
+                .registerRecipeAvailabilityProvider(new NeiRecipeAvailabilityProvider());
+
+            GuideNhIntegrationRegistry.global()
+                .registerRecipeDrawableRenderProvider(new NeiRecipeDrawableRenderProvider());
+
+            GuideNhIntegrationRegistry.global()
+                .registerRecipeHandlerRenderProvider(new NeiRecipeHandlerRenderProvider());
+        }
     }
 
     public static void registerBlockStatsProviders() {
-        GuideNhIntegrationRegistry.global()
-            .registerBlockStatsProvider(new Ae2BlockStatsProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerBlockStatsProvider(new ForgeMultipartBlockStatsProvider());
-        GuideNhIntegrationRegistry.global()
-            .registerBlockStatsProvider(new CarpentersBlocksBlockStatsProvider());
+        if (Mods.AE2.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerBlockStatsProvider(new Ae2BlockStatsProvider());
+        }
+
+        if (Mods.ForgeMultipart.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerBlockStatsProvider(new ForgeMultipartBlockStatsProvider());
+        }
+
+        if (Mods.CarpentersBlocks.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerBlockStatsProvider(new CarpentersBlocksBlockStatsProvider());
+        }
     }
 
     public static void registerPreviewPrepareContributors() {
-        GuideNhIntegrationRegistry.global()
-            .registerPreviewPrepareContributor(new GregTechPreviewPrepareContributor());
-        GuideNhIntegrationRegistry.global()
-            .registerPreviewPrepareContributor(new BuildCraftPreviewPrepareContributor());
-        GuideNhIntegrationRegistry.global()
-            .registerPreviewPrepareContributor(new LogisticsPipesPreviewPrepareContributor());
-        GuideNhIntegrationRegistry.global()
-            .registerPreviewPrepareContributor(new TinkersConstructPreviewPrepareContributor());
+        if (Mods.GregTech.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerPreviewPrepareContributor(new GregTechPreviewPrepareContributor());
+        }
+
+        if (Mods.BuildCraftTransport.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerPreviewPrepareContributor(new BuildCraftPreviewPrepareContributor());
+        }
+
+        if (Mods.LogisticsPipes.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerPreviewPrepareContributor(new LogisticsPipesPreviewPrepareContributor());
+        }
+
+        if (Mods.TinkersConstruct.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerPreviewPrepareContributor(new TinkersConstructPreviewPrepareContributor());
+        }
+
+        if (Mods.Railcraft.isModLoaded()) {
+            GuideNhIntegrationRegistry.global()
+                .registerPreviewPrepareContributor(new RailcraftPreviewPrepareContributor());
+        }
+
         if (Mods.AE2.isModLoaded()) {
             GuideNhIntegrationRegistry.global()
                 .registerPreviewPrepareContributor(new Ae2PreviewPrepareContributor());
@@ -145,12 +217,16 @@ public class GuideNhClientIntegrationBootstrap {
     public static void registerStructureLibControllerIntegrations() {
         if (Mods.StructureLib.isModLoaded() && Mods.GregTech.isModLoaded()) {
             GregTechStructureLibControllerIntegration gregTechIntegration = new GregTechStructureLibControllerIntegration();
+
             StructureLibControllerIntegrationRegistry.global()
                 .registerDiscoveryIntegration(gregTechIntegration);
+
             StructureLibControllerIntegrationRegistry.global()
                 .registerPlacementIntegration(gregTechIntegration);
+
             StructureLibControllerIntegrationRegistry.global()
                 .registerPreviewItemProvider(gregTechIntegration);
+
             StructureLibControllerIntegrationRegistry.global()
                 .registerPreviewStateSynchronizer(gregTechIntegration);
         }
