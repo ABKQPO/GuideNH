@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
 
@@ -21,6 +22,7 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge.EditorAccess;
 
 import codechicken.nei.ItemPanels;
+import codechicken.nei.LayoutManager;
 import codechicken.nei.NEIClientConfig;
 import codechicken.nei.PositionedStack;
 import codechicken.nei.api.IGuiContainerOverlay;
@@ -37,11 +39,13 @@ public class GuideScreenNeiNativeBridge {
 
     private static final int MIN_COMPRESSED_SIDE_WIDTH = 84;
     private static final int BOTTOM_PANEL_HEIGHT = 24;
+    private static int lastInputLayoutVersion = Integer.MIN_VALUE;
+    private static int lastInputLayoutScreenHash;
 
     protected GuideScreenNeiNativeBridge() {}
 
     public static boolean isNativeEditorNeiEnabled(EditorAccess editorAccess) {
-        return isEnabledByMods() && isConfiguredForEditor(editorAccess);
+        return isConfiguredForEditor(editorAccess) && isEnabledByMods();
     }
 
     public static int reservedSidePixels(EditorAccess editorAccess) {
@@ -55,11 +59,23 @@ public class GuideScreenNeiNativeBridge {
         return isNativeEditorNeiEnabled(editorAccess) ? BOTTOM_PANEL_HEIGHT : 0;
     }
 
+    public static int layoutStateVersion(EditorAccess editorAccess) {
+        if (!isConfiguredForEditor(editorAccess)) {
+            return 0;
+        }
+        boolean available = isAvailableByMods();
+        boolean enabled = available && NEIClientConfig.isEnabled();
+        int result = available ? 1 : 0;
+        result = 31 * result + (enabled ? 1 : 0);
+        result = 31 * result + (available && NEIClientConfig.isHidden() ? 1 : 0);
+        return result;
+    }
+
     public static boolean handleItemDrop(EditorAccess editorAccess, int mouseX, int mouseY) {
         if (!isNativeEditorNeiEnabled(editorAccess) || !editorAccess.canDropIntoEditor(mouseX, mouseY)) {
             return false;
         }
-        ItemStack draggedStack = ItemPanels.itemPanel.draggedStack;
+        ItemStack draggedStack = draggedStack();
         if (draggedStack == null) {
             return false;
         }
@@ -71,7 +87,7 @@ public class GuideScreenNeiNativeBridge {
             formatEditorDropText(editorAccess, draggedStack, itemReference, mouseX, mouseY),
             mouseX,
             mouseY);
-        ItemPanels.itemPanel.draggedStack = null;
+        clearDraggedStack();
         return true;
     }
 
@@ -89,19 +105,28 @@ public class GuideScreenNeiNativeBridge {
             return false;
         }
         Block block = Block.getBlockFromItem(stack.getItem());
-        return block != null && block != Block.getBlockFromName("air");
+        return block != null && block != Blocks.air;
     }
 
     public static boolean isNeiMouseOver(EditorAccess editorAccess, int mouseX, int mouseY) {
         GuiContainerManager manager = nativeManager(editorAccess);
-        return manager != null && isNeiMouseOver(manager, mouseX, mouseY);
+        if (manager == null) {
+            return false;
+        }
+        return withNeiLayout(editorAccess, new NeiLayoutAction<Boolean>() {
+
+            @Override
+            public Boolean run() {
+                return isNeiMouseOver(manager, mouseX, mouseY);
+            }
+        });
     }
 
     public static boolean isDraggingItem() {
         if (!isEnabledByMods()) {
             return false;
         }
-        return ItemPanels.itemPanel.draggedStack != null;
+        return draggedStack() != null;
     }
 
     public static boolean mouseClicked(EditorAccess editorAccess, int mouseX, int mouseY, int button) {
@@ -115,7 +140,12 @@ public class GuideScreenNeiNativeBridge {
 
                 @Override
                 public Boolean run() {
-                    return manager.mouseClicked(mouseX, mouseY, button);
+                    LayoutManager.layout(editorAccess.container());
+                    boolean handled = manager.mouseClicked(mouseX, mouseY, button);
+                    if (handled) {
+                        invalidateInputLayout();
+                    }
+                    return handled;
                 }
             });
         } finally {
@@ -134,6 +164,7 @@ public class GuideScreenNeiNativeBridge {
 
             @Override
             public Boolean run() {
+                layoutForInput(editorAccess);
                 manager.mouseDragged(mouseX, mouseY, button, heldTime);
                 return isDraggingItem() || isNeiMouseOver(manager, mouseX, mouseY);
             }
@@ -151,10 +182,13 @@ public class GuideScreenNeiNativeBridge {
 
                 @Override
                 public Boolean run() {
+                    LayoutManager.layout(editorAccess.container());
                     if (manager.overrideMouseUp(mouseX, mouseY, button)) {
+                        invalidateInputLayout();
                         return true;
                     }
                     manager.mouseUp(mouseX, mouseY, button);
+                    invalidateInputLayout();
                     return isNeiMouseOver(manager, mouseX, mouseY);
                 }
             });
@@ -167,14 +201,19 @@ public class GuideScreenNeiNativeBridge {
 
     public static boolean mouseScrolled(EditorAccess editorAccess, int mouseX, int mouseY, int wheelDelta) {
         GuiContainerManager manager = nativeManager(editorAccess);
-        if (manager == null || !isNeiMouseOver(manager, mouseX, mouseY)) {
+        if (manager == null) {
             return false;
         }
         return withNeiLayout(editorAccess, new NeiLayoutAction<Boolean>() {
 
             @Override
             public Boolean run() {
+                LayoutManager.layout(editorAccess.container());
+                if (!isNeiMouseOver(manager, mouseX, mouseY)) {
+                    return false;
+                }
                 manager.mouseScrolled(Integer.signum(wheelDelta));
+                invalidateInputLayout();
                 return true;
             }
         });
@@ -197,9 +236,14 @@ public class GuideScreenNeiNativeBridge {
                 public Boolean run() {
                     boolean firstHandled = manager.firstKeyTyped(typedChar, keyCode);
                     if (firstHandled) {
+                        invalidateInputLayout();
                         return true;
                     }
-                    return manager.lastKeyTyped(keyCode, typedChar);
+                    boolean lastHandled = manager.lastKeyTyped(keyCode, typedChar);
+                    if (lastHandled) {
+                        invalidateInputLayout();
+                    }
+                    return lastHandled;
                 }
             });
             return handled;
@@ -288,7 +332,11 @@ public class GuideScreenNeiNativeBridge {
     }
 
     private static boolean isEnabledByMods() {
-        return Mods.NotEnoughItems.isModLoaded() && NEIClientConfig.isEnabled() && NEIClientConfig.isLoaded();
+        return isAvailableByMods() && NEIClientConfig.isEnabled();
+    }
+
+    private static boolean isAvailableByMods() {
+        return Mods.NotEnoughItems.isModLoaded() && NEIClientConfig.isLoaded();
     }
 
     private static @Nullable GuiContainerManager nativeManager(EditorAccess editorAccess) {
@@ -307,6 +355,32 @@ public class GuideScreenNeiNativeBridge {
 
     private static boolean isNeiMouseOver(GuiContainerManager manager, int mouseX, int mouseY) {
         return manager.objectUnderMouse(mouseX, mouseY);
+    }
+
+    private static @Nullable ItemStack draggedStack() {
+        ItemStack itemPanelStack = ItemPanels.itemPanel.draggedStack;
+        return itemPanelStack != null ? itemPanelStack : ItemPanels.bookmarkPanel.draggedStack;
+    }
+
+    private static void clearDraggedStack() {
+        ItemPanels.itemPanel.draggedStack = null;
+        ItemPanels.bookmarkPanel.draggedStack = null;
+    }
+
+    private static void layoutForInput(EditorAccess editorAccess) {
+        int layoutVersion = editorAccess.neiLayoutVersion();
+        int screenHash = System.identityHashCode(editorAccess.container());
+        if (lastInputLayoutScreenHash == screenHash && lastInputLayoutVersion == layoutVersion) {
+            return;
+        }
+        LayoutManager.layout(editorAccess.container());
+        lastInputLayoutScreenHash = screenHash;
+        lastInputLayoutVersion = layoutVersion;
+    }
+
+    private static void invalidateInputLayout() {
+        lastInputLayoutVersion = Integer.MIN_VALUE;
+        lastInputLayoutScreenHash = 0;
     }
 
     private static <T> T withNeiLayout(EditorAccess editorAccess, NeiLayoutAction<T> action) {

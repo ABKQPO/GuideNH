@@ -19,6 +19,10 @@ public class GuideScreenNeiBridge {
         return isNeiLoaded() ? GuideScreenNeiNativeBridge.reservedBottomPixels(editorAccess) : 0;
     }
 
+    public static int layoutStateVersion(EditorAccess editorAccess) {
+        return isNeiLoaded() ? GuideScreenNeiNativeBridge.layoutStateVersion(editorAccess) : 0;
+    }
+
     public static boolean isDraggingItem() {
         return isNeiLoaded() && GuideScreenNeiNativeBridge.isDraggingItem();
     }
@@ -90,6 +94,8 @@ public class GuideScreenNeiBridge {
         int neiLayoutWidth();
 
         int neiLayoutLeft();
+
+        int neiLayoutVersion();
 
         void beginNeiLayout();
 
