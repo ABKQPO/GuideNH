@@ -218,6 +218,82 @@ public class SceneEditorMultilineTextArea {
         syncImeFocusProxy();
     }
 
+    public boolean isRichTagInsertionSafeAtMouse(int mouseX, int mouseY) {
+        int cursorIndex = getCursorIndexAt(mouseX, mouseY);
+        return isRichTagInsertionSafeAt(cursorIndex);
+    }
+
+    private boolean isRichTagInsertionSafeAt(int cursorIndex) {
+        String text = selectionModel.getText();
+        int index = clamp(cursorIndex, 0, text.length());
+        if (isInsideOpenTag(text, index)) {
+            return false;
+        }
+        return hasTagBoundaryBefore(text, index) && hasTagBoundaryAfter(text, index);
+    }
+
+    private boolean isInsideOpenTag(String text, int cursorIndex) {
+        boolean inQuote = false;
+        char quote = 0;
+        boolean openTag = false;
+        for (int i = 0; i < cursorIndex; i++) {
+            char c = text.charAt(i);
+            if (inQuote) {
+                if (c == quote && !isEscaped(text, i)) {
+                    inQuote = false;
+                }
+                continue;
+            }
+            if (c == '"' || c == '\'') {
+                if (openTag) {
+                    quote = c;
+                    inQuote = true;
+                }
+                continue;
+            }
+            if (c == '>') {
+                openTag = false;
+                continue;
+            }
+            if (c == '<') {
+                openTag = true;
+            }
+        }
+        return openTag || inQuote;
+    }
+
+    private boolean hasTagBoundaryBefore(String text, int cursorIndex) {
+        int index = cursorIndex - 1;
+        while (index >= 0 && Character.isWhitespace(text.charAt(index))) {
+            index--;
+        }
+        if (index < 0) {
+            return true;
+        }
+        char c = text.charAt(index);
+        return c == '>' || c == ')' || c == ']' || c == '}' || c == '`' || c == '.' || c == ',' || c == ':' || c == ';';
+    }
+
+    private boolean hasTagBoundaryAfter(String text, int cursorIndex) {
+        int index = cursorIndex;
+        while (index < text.length() && Character.isWhitespace(text.charAt(index))) {
+            index++;
+        }
+        if (index >= text.length()) {
+            return true;
+        }
+        char c = text.charAt(index);
+        return c == '<' || c == '(' || c == '[' || c == '{' || c == '`' || c == '.' || c == ',' || c == ':' || c == ';';
+    }
+
+    private boolean isEscaped(String text, int index) {
+        int count = 0;
+        for (int i = index - 1; i >= 0 && text.charAt(i) == '\\'; i--) {
+            count++;
+        }
+        return count % 2 == 1;
+    }
+
     public float getVerticalScrollFraction() {
         int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
         if (maxOffset <= 0) {

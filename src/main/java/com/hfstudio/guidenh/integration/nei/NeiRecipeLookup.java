@@ -186,6 +186,15 @@ public class NeiRecipeLookup {
         }
     }
 
+    public static @Nullable String lookupHandlerId(Object handler) {
+        if (!AVAILABLE || handler == null) return null;
+        try {
+            return NeiDirectCalls.handlerId(handler);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     public static void callOnUpdate(Object handler) {
         if (!AVAILABLE || handler == null) return;
         try {

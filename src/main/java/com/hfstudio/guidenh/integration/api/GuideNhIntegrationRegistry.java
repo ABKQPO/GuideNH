@@ -524,6 +524,19 @@ public class GuideNhIntegrationRegistry {
         return "";
     }
 
+    public String lookupRecipeHandlerId(@Nullable Object handler) {
+        if (handler == null) {
+            return "";
+        }
+        for (RecipeHandlerMetadataProvider provider : recipeHandlerMetadataProviders()) {
+            String id = provider.lookupHandlerId(handler);
+            if (id != null) {
+                return id;
+            }
+        }
+        return "";
+    }
+
     public int lookupRecipeHandlerRecipeCount(@Nullable Object handler) {
         if (handler == null) {
             return 0;

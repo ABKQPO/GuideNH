@@ -99,6 +99,20 @@ public class RecipeCompiler extends BlockTagCompiler {
                 return;
             }
         }
+        String recipeIndexStr = MdxAttrs.getString(compiler, parent, el, "recipeIndex", null);
+        int exactRecipeIndex = -1;
+        if (recipeIndexStr != null && !recipeIndexStr.isEmpty()) {
+            try {
+                exactRecipeIndex = Integer.parseInt(recipeIndexStr.trim());
+                if (exactRecipeIndex < 0) {
+                    parent.appendError(compiler, "recipeIndex must be a non-negative integer", el);
+                    return;
+                }
+            } catch (NumberFormatException ignored) {
+                parent.appendError(compiler, "recipeIndex must be a non-negative integer", el);
+                return;
+            }
+        }
 
         FilterExpr inputExpr = parseFilterExpr(compiler, parent, el, "input", defaultNs);
         FilterExpr outputExpr = parseFilterExpr(compiler, parent, el, "output", defaultNs);
@@ -146,13 +160,19 @@ public class RecipeCompiler extends BlockTagCompiler {
                 Object handler = handlers.get(hi);
                 int num = GuideNhIntegrationRegistry.global()
                     .lookupRecipeHandlerRecipeCount(handler);
-                for (int ri = 0; ri < num && boxes.size() < limit; ri++) {
+                int recipeStart = exactRecipeIndex >= 0 ? exactRecipeIndex : 0;
+                int recipeEnd = exactRecipeIndex >= 0 ? Math.min(num, exactRecipeIndex + 1) : num;
+                for (int ri = recipeStart; ri < recipeEnd && boxes.size() < limit; ri++) {
                     if (hasRecipeFilter && !recipeMatches(handler, ri, inputExpr, outputExpr)) continue;
                     boxes.add(new LytNeiRecipeBox(handler, ri));
                 }
             }
             if (!boxes.isEmpty()) {
                 appendRecipes(parent, boxes, multi);
+                return;
+            }
+            if (exactRecipeIndex >= 0) {
+                appendRecipeNotFoundFallback(compiler, parent, el, fallbackText, usageQuery, ref);
                 return;
             }
         } else if (hasHandlerFilter) {
@@ -180,7 +200,10 @@ public class RecipeCompiler extends BlockTagCompiler {
                 .findCraftingRecipeEntries(targetStack);
         if (!recipeEntries.isEmpty()) {
             List<LytStandardRecipeBox> boxes = new ArrayList<>();
-            for (int i = 0; i < recipeEntries.size() && boxes.size() < limit; i++) {
+            int entryStart = exactRecipeIndex >= 0 ? exactRecipeIndex : 0;
+            int entryEnd = exactRecipeIndex >= 0 ? Math.min(recipeEntries.size(), exactRecipeIndex + 1)
+                : recipeEntries.size();
+            for (int i = entryStart; i < entryEnd && boxes.size() < limit; i++) {
                 var e = recipeEntries.get(i);
                 if (e.result() == null || e.ingredients()
                     .isEmpty()) continue;
@@ -227,14 +250,20 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
 
         List<LytStandardRecipeBox> boxes = new ArrayList<>();
-        for (int i = 0; i < entries.size() && boxes.size() < limit; i++) {
+        int vanillaStart = exactRecipeIndex >= 0 ? exactRecipeIndex : 0;
+        int vanillaEnd = exactRecipeIndex >= 0 ? Math.min(entries.size(), exactRecipeIndex + 1) : entries.size();
+        for (int i = vanillaStart; i < vanillaEnd && boxes.size() < limit; i++) {
             var e = entries.get(i);
             if (hasRecipeFilter && !vanillaEntryMatches(e, inputExpr, outputExpr)) continue;
             var box = e.shapeless ? LytStandardRecipeBox.shapeless(RecipeLookup.asList(e), e.result)
                 : LytStandardRecipeBox.shaped3x3(RecipeLookup.asList(e), e.result);
             boxes.add(box);
         }
-        appendRecipes(parent, boxes, multi);
+        if (!boxes.isEmpty()) {
+            appendRecipes(parent, boxes, multi);
+            return;
+        }
+        appendRecipeNotFoundFallback(compiler, parent, el, fallbackText, usageQuery, ref);
     }
 
     /**
@@ -280,6 +309,11 @@ public class RecipeCompiler extends BlockTagCompiler {
                 String oid = metadataReader.overlayIdentifier(h);
                 boolean match = oid != null && oid.toLowerCase(Locale.ROOT)
                     .equals(idLower);
+                if (!match) {
+                    String hid = metadataReader.handlerId(h);
+                    match = hid != null && hid.toLowerCase(Locale.ROOT)
+                        .equals(idLower);
+                }
                 if (!match) {
                     // Secondary: match the handler class simple-name (case-insensitive substring).
                     // Covers handlers whose overlay identifier differs from their canonical name.
@@ -359,6 +393,9 @@ public class RecipeCompiler extends BlockTagCompiler {
         String handlerName(Object handler);
 
         @Nullable
+        String handlerId(Object handler);
+
+        @Nullable
         String overlayIdentifier(Object handler);
     }
 
@@ -387,11 +424,26 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
 
         @Override
+        public @Nullable String handlerId(Object handler) {
+            return GuideNhIntegrationRegistry.global()
+                .lookupRecipeHandlerId(handler);
+        }
+
+        @Override
         public @Nullable String overlayIdentifier(Object handler) {
             return GuideNhIntegrationRegistry.global()
                 .lookupRecipeHandlerOverlayIdentifier(handler);
         }
     };
+
+    private static void appendRecipeNotFoundFallback(PageCompiler compiler, LytBlockContainer parent,
+        MdxJsxElementFields el, @Nullable String fallbackText, boolean usageQuery, IdUtils.ParsedItemRef ref) {
+        if (fallbackText != null) {
+            if (!fallbackText.isEmpty()) parent.append(LytParagraph.of(fallbackText));
+            return;
+        }
+        parent.appendError(compiler, "Couldn't find " + (usageQuery ? "usage" : "recipe") + " for " + ref.id(), el);
+    }
 
     private static final RecipeSlotAccess REGISTRY_RECIPE_SLOT_ACCESS = new RecipeSlotAccess() {
 

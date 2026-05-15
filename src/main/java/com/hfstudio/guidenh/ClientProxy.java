@@ -20,7 +20,9 @@ import com.hfstudio.guidenh.guide.internal.GuideWarmupPump;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
+import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
+import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
 import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
@@ -63,6 +65,9 @@ public class ClientProxy extends CommonProxy {
         ClientCommandHandler.instance.registerCommand(new GuideNhClientCommand());
         StructureExportBootstrap.registerClientCommands();
         GuideNhClientBridgeController.init();
+        if (Mods.NotEnoughItems.isModLoaded()) {
+            GuideScreenNeiBridge.init();
+        }
         OpenGuideHotkey.init();
         OpenSceneEditorHotkey.init();
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());

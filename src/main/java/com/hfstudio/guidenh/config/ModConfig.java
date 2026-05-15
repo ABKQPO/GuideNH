@@ -149,6 +149,14 @@ public class ModConfig {
         @DefaultBoolean(false)
         public boolean guideEditorNeiItemPanelOutsideWindow = false;
 
+        @Comment("Manual GuideScreen window width in non-full-width layout, as a percentage of screen width. "
+            + "Set to 0 to use the automatic size. Valid values are clamped to 0 through 100.")
+        public int nonFullWidthWindowWidthPercent = 0;
+
+        @Comment("Manual GuideScreen window height in non-full-width layout, as a percentage of screen height. "
+            + "Set to 0 to use the automatic size. Valid values are clamped to 0 through 100.")
+        public int nonFullWidthWindowHeightPercent = 0;
+
         @Comment("Whether the guide editor saves shortly after edits and when closing the screen.")
         @DefaultBoolean(true)
         public boolean guideEditorAutosaveEnabled = true;

@@ -31,6 +31,9 @@ public interface RecipeHandlerMetadataProvider {
     String lookupHandlerOverlayIdentifier(Object handler);
 
     @Nullable
+    String lookupHandlerId(Object handler);
+
+    @Nullable
     Integer lookupRecipeCount(Object handler);
 
     @Nullable

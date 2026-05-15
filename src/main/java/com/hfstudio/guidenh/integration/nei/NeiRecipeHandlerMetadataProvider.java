@@ -49,6 +49,11 @@ public class NeiRecipeHandlerMetadataProvider implements RecipeHandlerMetadataPr
     }
 
     @Override
+    public String lookupHandlerId(Object handler) {
+        return NeiRecipeLookup.lookupHandlerId(handler);
+    }
+
+    @Override
     public Integer lookupRecipeCount(Object handler) {
         return NeiRecipeLookup.lookupNumRecipes(handler);
     }

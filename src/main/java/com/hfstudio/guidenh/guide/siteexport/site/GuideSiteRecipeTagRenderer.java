@@ -133,6 +133,11 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             }
 
             @Override
+            public @Nullable String handlerId(Object handler) {
+                return NeiRecipeLookup.lookupHandlerId(handler);
+            }
+
+            @Override
             public @Nullable String overlayIdentifier(Object handler) {
                 return NeiRecipeLookup.lookupOverlayIdentifier(handler);
             }
@@ -184,6 +189,11 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
                 @Override
                 public @Nullable String handlerName(Object handler) {
+                    return null;
+                }
+
+                @Override
+                public @Nullable String handlerId(Object handler) {
                     return null;
                 }
 
@@ -282,6 +292,11 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 }
 
                 @Override
+                public @Nullable String handlerId(Object handler) {
+                    return null;
+                }
+
+                @Override
                 public @Nullable String overlayIdentifier(Object handler) {
                     return null;
                 }
@@ -317,6 +332,11 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         if (handlerOrderRaw != null && parsedHandlerOrder == null) {
             return fallbackParagraph(fallbackText);
         }
+        String recipeIndexRaw = RecipeCompiler.trimToNull(element.getAttributeString("recipeIndex", null));
+        Integer parsedRecipeIndex = parseInteger(recipeIndexRaw);
+        if (recipeIndexRaw != null && (parsedRecipeIndex == null || parsedRecipeIndex < 0)) {
+            return fallbackParagraph(fallbackText);
+        }
 
         String limitRaw = RecipeCompiler.trimToNull(element.getAttributeString("limit", null));
         Integer parsedLimit = parseInteger(limitRaw);
@@ -346,6 +366,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 RecipeCompiler.parseFilterExpr(
                     RecipeCompiler.trimToNull(element.getAttributeString("output", null)),
                     defaultNamespace),
+                parsedRecipeIndex != null ? parsedRecipeIndex : -1,
                 limit,
                 multi,
                 usageQuery));
@@ -364,6 +385,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 -1,
                 RecipeCompiler.parseFilterExpr(null, defaultNamespace),
                 RecipeCompiler.parseFilterExpr(null, defaultNamespace),
+                -1,
                 1,
                 false,
                 false));
@@ -435,7 +457,9 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         for (int hi = 0; hi < handlers.size() && renderedRecipes.size() < request.limit; hi++) {
             Object handler = handlers.get(hi);
             int recipeCount = handlerRuntime.recipeCount(handler);
-            for (int recipeIndex = 0; recipeIndex < recipeCount
+            int recipeStart = request.recipeIndex >= 0 ? request.recipeIndex : 0;
+            int recipeEnd = request.recipeIndex >= 0 ? Math.min(recipeCount, request.recipeIndex + 1) : recipeCount;
+            for (int recipeIndex = recipeStart; recipeIndex < recipeEnd
                 && renderedRecipes.size() < request.limit; recipeIndex++) {
                 if (hasRecipeFilter && !RecipeCompiler
                     .recipeMatches(handler, recipeIndex, request.inputExpr, request.outputExpr, handlerRuntime)) {
@@ -463,6 +487,9 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         List<String> renderedRecipes = new ArrayList<>();
         for (int i = 0; i < refs.size() && renderedRecipes.size() < request.limit; i++) {
             NeiRecipeLookup.CraftingRecipeRef ref = refs.get(i);
+            if (request.recipeIndex >= 0 && (ref == null || ref.recipeIndex != request.recipeIndex)) {
+                continue;
+            }
             NeiRecipeLookup.Entry entry = ref != null ? ref.entry : null;
             if (entry == null || !neiEntryHasAnySlots(entry)) {
                 continue;
@@ -498,7 +525,9 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         }
 
         List<String> renderedRecipes = new ArrayList<>();
-        for (int i = 0; i < entries.size() && renderedRecipes.size() < request.limit; i++) {
+        int entryStart = request.recipeIndex >= 0 ? request.recipeIndex : 0;
+        int entryEnd = request.recipeIndex >= 0 ? Math.min(entries.size(), request.recipeIndex + 1) : entries.size();
+        for (int i = entryStart; i < entryEnd && renderedRecipes.size() < request.limit; i++) {
             NeiRecipeLookup.Entry entry = entries.get(i);
             if (entry == null || !neiEntryHasAnySlots(entry)) {
                 continue;
@@ -525,7 +554,10 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         }
 
         List<String> renderedRecipes = new ArrayList<>();
-        for (int i = 0; i < vanillaEntries.size() && renderedRecipes.size() < request.limit; i++) {
+        int entryStart = request.recipeIndex >= 0 ? request.recipeIndex : 0;
+        int entryEnd = request.recipeIndex >= 0 ? Math.min(vanillaEntries.size(), request.recipeIndex + 1)
+            : vanillaEntries.size();
+        for (int i = entryStart; i < entryEnd && renderedRecipes.size() < request.limit; i++) {
             RecipeLookup.Entry entry = vanillaEntries.get(i);
             if (entry == null || entry.result == null) {
                 continue;
@@ -660,7 +692,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             .replace("\"", "&quot;");
     }
 
-    private static final class RenderRequest {
+    private static class RenderRequest {
 
         private final String tagName;
         private final String recipeId;
@@ -673,14 +705,15 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         private final int handlerOrder;
         private final RecipeCompiler.FilterExpr inputExpr;
         private final RecipeCompiler.FilterExpr outputExpr;
+        private final int recipeIndex;
         private final int limit;
         private final boolean multi;
         private final boolean usageQuery;
 
         private RenderRequest(String tagName, String recipeId, String fallbackText, String defaultNamespace,
             @Nullable String handlerNameFilter, @Nullable String handlerIdFilter, int handlerOrder,
-            RecipeCompiler.FilterExpr inputExpr, RecipeCompiler.FilterExpr outputExpr, int limit, boolean multi,
-            boolean usageQuery) {
+            RecipeCompiler.FilterExpr inputExpr, RecipeCompiler.FilterExpr outputExpr, int recipeIndex, int limit,
+            boolean multi, boolean usageQuery) {
             this.tagName = tagName;
             this.recipeId = recipeId;
             this.fallbackText = fallbackText;
@@ -690,13 +723,14 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             this.handlerOrder = handlerOrder;
             this.inputExpr = inputExpr;
             this.outputExpr = outputExpr;
+            this.recipeIndex = recipeIndex;
             this.limit = Math.max(1, limit);
             this.multi = multi;
             this.usageQuery = usageQuery;
         }
     }
 
-    private static final class RawHandlerRenderResult {
+    private static class RawHandlerRenderResult {
 
         private final List<String> renderedRecipes;
         private final boolean hadHandlersAfterFilter;
