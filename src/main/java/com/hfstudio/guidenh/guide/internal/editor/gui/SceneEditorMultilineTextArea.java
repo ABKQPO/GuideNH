@@ -209,6 +209,15 @@ public class SceneEditorMultilineTextArea {
         syncImeFocusProxy();
     }
 
+    public void insertAtMouse(String text, int mouseX, int mouseY) {
+        int cursorIndex = getCursorIndexAt(mouseX, mouseY);
+        selectionModel.setSelection(cursorIndex, cursorIndex);
+        selectionModel.insertText(text);
+        rebuildLayoutCache();
+        ensureCursorVisible();
+        syncImeFocusProxy();
+    }
+
     public float getVerticalScrollFraction() {
         int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
         if (maxOffset <= 0) {

@@ -485,6 +485,7 @@ public class GuideSiteHtmlCompiler {
 
     private boolean isRecipeElement(MdxJsxElementFields element) {
         return "Recipe".equals(element.name()) || "RecipeFor".equals(element.name())
+            || "RecipeUsage".equals(element.name())
             || "RecipesFor".equals(element.name());
     }
 

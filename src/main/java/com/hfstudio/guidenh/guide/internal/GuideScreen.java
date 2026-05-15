@@ -98,6 +98,8 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.nei.GuideScreenNeiItemPanel;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
 import cpw.mods.fml.common.FMLLog;
@@ -231,6 +233,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     @Nullable
     private SceneEditorMultilineTextArea guideEditorTextArea;
     @Nullable
+    private GuideScreenNeiItemPanel guideEditorNeiItemPanel;
+    @Nullable
     private GuideScreenEditorContextMenu guideEditorContextMenu;
     @Nullable
     private ParsedGuidePage guideEditorDraftPage;
@@ -279,6 +283,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private URI pendingExternalUri;
 
     private final Set<LytGuidebookScene> registeredScenes = Collections.newSetFromMap(new IdentityHashMap<>());
+    private int lastMouseX;
+    private int lastMouseY;
 
     public static class SceneButtonHit {
 
@@ -448,6 +454,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     public void initGui() {
         super.initGui();
         Keyboard.enableRepeatEvents(true);
+        ensureGuideEditorNeiItemPanel();
         syncGuideEditorStateFromConfig();
         recomputePanelBounds();
         if (document == null) {
@@ -1923,6 +1930,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
         hoveredItemStack = null;
         drawTiledBackground();
         recomputePanelBounds();
@@ -1987,8 +1996,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         navBar.render(mc, currentAnchor != null ? currentAnchor.pageId() : null, mouseX, mouseY, guide);
         if (isGuideEditorActive()) {
             drawGuideEditorContextMenu(mouseX, mouseY);
+            drawGuideEditorNeiItemPanel(mouseX, mouseY);
         }
 
+        if (drawGuideEditorNeiTooltip(mouseX, mouseY)) {
+            return;
+        }
         drawButtonTooltip(mouseX, mouseY);
     }
 
@@ -2126,6 +2139,27 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         guideEditorContextMenu.setViewport(this.width, this.height, fontRendererObj);
         guideEditorContextMenu.update(mouseX, mouseY, this.width, this.height, fontRendererObj);
         guideEditorContextMenu.draw(fontRendererObj, mouseX, mouseY);
+    }
+
+    private void ensureGuideEditorNeiItemPanel() {
+        if (guideEditorNeiItemPanel != null) {
+            return;
+        }
+        if (!Mods.NotEnoughItems.isModLoaded()) {
+            return;
+        }
+        guideEditorNeiItemPanel = new GuideScreenNeiItemPanel(mc, new GuideScreenNeiEditorAccess());
+    }
+
+    private void drawGuideEditorNeiItemPanel(int mouseX, int mouseY) {
+        ensureGuideEditorNeiItemPanel();
+        if (guideEditorNeiItemPanel != null) {
+            guideEditorNeiItemPanel.draw(mouseX, mouseY);
+        }
+    }
+
+    private boolean drawGuideEditorNeiTooltip(int mouseX, int mouseY) {
+        return guideEditorNeiItemPanel != null && guideEditorNeiItemPanel.drawTooltip(mouseX, mouseY);
     }
 
     private int layoutGuideEditorActionButtons(int startX, int startY, int availableWidth) {
@@ -2297,6 +2331,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (!isGuideEditorActive()) {
             return false;
         }
+        if (guideEditorNeiItemPanel != null && guideEditorNeiItemPanel.isDraggingItem()) {
+            return false;
+        }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             return guideEditorContextMenu
                 .mouseClicked(mouseX, mouseY, button, new GuideScreenEditorContextMenu.Listener() {
@@ -2449,6 +2486,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     private boolean handleGuideEditorMouseReleased(int mouseX, int mouseY, int state) {
         if (!isGuideEditorActive()) {
+            return false;
+        }
+        if (guideEditorNeiItemPanel != null && guideEditorNeiItemPanel.isDraggingItem()) {
             return false;
         }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
@@ -2729,6 +2769,98 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         int editorAreaWidth = Math.max(20, contentW);
         int leftPaneWidth = resolveGuideEditorLeftPaneWidth(editorAreaWidth);
         return contentX + leftPaneWidth;
+    }
+
+    private class GuideScreenNeiEditorAccess implements GuideScreenNeiItemPanel.EditorAccess {
+
+        @Override
+        public boolean isEditorActive() {
+            return GuideScreen.this.isGuideEditorActive()
+                && guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY
+                && guideEditorTextArea != null;
+        }
+
+        @Override
+        public boolean isFullWidth() {
+            return fullWidth;
+        }
+
+        @Override
+        public int screenWidth() {
+            return width;
+        }
+
+        @Override
+        public int panelRight() {
+            return panelX + panelW;
+        }
+
+        @Override
+        public int panelTop() {
+            return panelY;
+        }
+
+        @Override
+        public int panelBottom() {
+            return panelY + panelH;
+        }
+
+        @Override
+        public int mouseX() {
+            return lastMouseX;
+        }
+
+        @Override
+        public int mouseY() {
+            return lastMouseY;
+        }
+
+        @Override
+        public @Nullable SceneEditorMultilineTextArea textArea() {
+            return guideEditorTextArea;
+        }
+
+        @Override
+        public boolean canDropIntoEditor(int mouseX, int mouseY) {
+            return isEditorActive() && guideEditorTextArea != null && guideEditorTextArea.contains(mouseX, mouseY);
+        }
+
+        @Override
+        public void insertAtMouse(String text, int mouseX, int mouseY) {
+            if (!canDropIntoEditor(mouseX, mouseY)) {
+                return;
+            }
+            runGuideEditorTextMutation(new Runnable() {
+
+                @Override
+                public void run() {
+                    guideEditorTextArea.setFocused(true);
+                    guideEditorTextArea.insertAtMouse(text, mouseX, mouseY);
+                }
+            });
+            syncGuideEditorPreviewScrollFromEditor();
+        }
+
+        @Override
+        public void insertAtSelection(String text) {
+            if (!isEditorActive() || guideEditorTextArea == null) {
+                return;
+            }
+            runGuideEditorTextMutation(new Runnable() {
+
+                @Override
+                public void run() {
+                    guideEditorTextArea.setFocused(true);
+                    guideEditorTextArea.insertAtSelection(text);
+                }
+            });
+            syncGuideEditorPreviewScrollFromEditor();
+        }
+
+        @Override
+        public void drawTooltip(List<String> lines, int mouseX, int mouseY) {
+            drawHoveringText(lines, mouseX, mouseY, fontRendererObj);
+        }
     }
 
     private String buildBottomBarText(@Nullable FrontmatterPageMeta meta) {
@@ -3456,6 +3588,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             if (handleGuideEditorWheel(mouseX, mouseY, dwheel)) {
                 return;
             }
+            if (guideEditorNeiItemPanel != null && guideEditorNeiItemPanel.mouseWheel(mouseX, mouseY, dwheel)) {
+                return;
+            }
             LytGuidebookScene scene = sceneAt(mouseX, mouseY);
             boolean sceneWheelBlocked = isSceneWheelInteractionBlocked(now);
             if (scene != null && scene.isInteractive()
@@ -3520,7 +3655,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int button) {
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
         if (handleGuideEditorToolbarRightClick(mouseX, mouseY, button)) {
+            return;
+        }
+        if (guideEditorNeiItemPanel != null && guideEditorNeiItemPanel.mouseClicked(mouseX, mouseY, button)) {
             return;
         }
         if (button == 0 && navBar.contains(mouseX, mouseY)) {
@@ -3708,6 +3848,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+        if (guideEditorNeiItemPanel != null
+            && guideEditorNeiItemPanel.mouseDragged(mouseX, mouseY, clickedMouseButton)) {
+            return;
+        }
         if (handleGuideEditorMouseDragged(mouseX, mouseY, clickedMouseButton)) {
             return;
         }
@@ -3736,6 +3882,11 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+        if (guideEditorNeiItemPanel != null && guideEditorNeiItemPanel.mouseReleased(mouseX, mouseY, state)) {
+            return;
+        }
         if (handleGuideEditorMouseReleased(mouseX, mouseY, state)) {
             return;
         }
@@ -3984,6 +4135,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
+        if (guideEditorNeiItemPanel != null && guideEditorNeiItemPanel.keyTyped(typedChar, keyCode)) return;
         if (handleSearchFieldKey(typedChar, keyCode)) return;
         if (handleGuideEditorKey(typedChar, keyCode)) return;
         if (keyCode == Keyboard.KEY_ESCAPE) {
@@ -4107,6 +4259,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         guideEditorSavedSource = null;
         guideEditorExternalFileCheckEnabled = false;
         guideEditorTextArea = null;
+        guideEditorNeiItemPanel = null;
         guideEditorContextMenu = null;
         cachedGuideEditorPreviewInteractionState = null;
     }

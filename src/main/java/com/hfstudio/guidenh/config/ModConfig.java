@@ -145,6 +145,10 @@ public class ModConfig {
         @DefaultBoolean(false)
         public boolean guideEditorAdvancedToolbarVisible = false;
 
+        @Comment("Whether GuideScreen editor shows the NEI item panel outside the guide window when not full-width.")
+        @DefaultBoolean(false)
+        public boolean guideEditorNeiItemPanelOutsideWindow = false;
+
         @Comment("Whether the guide editor saves shortly after edits and when closing the screen.")
         @DefaultBoolean(true)
         public boolean guideEditorAutosaveEnabled = true;

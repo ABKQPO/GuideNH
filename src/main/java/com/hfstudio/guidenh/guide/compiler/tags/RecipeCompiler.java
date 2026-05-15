@@ -41,7 +41,7 @@ public class RecipeCompiler extends BlockTagCompiler {
 
     @Override
     public Set<String> getTagNames() {
-        return new HashSet<>(Arrays.asList("Recipe", "RecipeFor", "RecipesFor"));
+        return new HashSet<>(Arrays.asList("Recipe", "RecipeFor", "RecipeUsage", "RecipesFor"));
     }
 
     @Override
@@ -78,6 +78,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
 
         boolean multi = "RecipesFor".equals(el.name());
+        boolean usageQuery = "RecipeUsage".equals(el.name());
 
         // Build the concrete query stack with meta + nbt (wildcard meta collapses to 0).
         ItemStack targetStack = new ItemStack(item, 1, ref.concreteMeta());
@@ -117,11 +118,12 @@ public class RecipeCompiler extends BlockTagCompiler {
         boolean hasHandlerFilter = handlerNameFilter != null || handlerIdFilter != null || handlerOrder >= 0;
 
         // Prefer NEI-native handler rendering if available.
-        List<Object> rawHandlers = RecipeCache.getCraftingHandlers(targetStack);
+        List<Object> rawHandlers = usageQuery ? RecipeCache.getUsageHandlers(targetStack)
+            : RecipeCache.getCraftingHandlers(targetStack);
         // When a handler filter is specified, also consult usage handlers. This covers NEI handlers
         // that treat the target as an input rather than an output. Anvil, repair, fuel, and brewing
         // ingredients never show up under getCraftingHandlers.
-        if (hasHandlerFilter) {
+        if (!usageQuery && hasHandlerFilter) {
             List<Object> usage = RecipeCache.getUsageHandlers(targetStack);
             if (!usage.isEmpty()) {
                 if (rawHandlers.isEmpty()) {
@@ -173,8 +175,9 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
 
         // Legacy fallback: raw slot data coming from NEI (no handler draw) or from vanilla crafting registry.
-        List<RecipeEntry> recipeEntries = GuideNhIntegrationRegistry.global()
-            .findCraftingRecipeEntries(targetStack);
+        List<RecipeEntry> recipeEntries = usageQuery ? Collections.<RecipeEntry>emptyList()
+            : GuideNhIntegrationRegistry.global()
+                .findCraftingRecipeEntries(targetStack);
         if (!recipeEntries.isEmpty()) {
             List<LytStandardRecipeBox> boxes = new ArrayList<>();
             for (int i = 0; i < recipeEntries.size() && boxes.size() < limit; i++) {
@@ -209,12 +212,16 @@ public class RecipeCompiler extends BlockTagCompiler {
             }
         }
 
-        List<RecipeLookup.Entry> entries = RecipeLookup.findByOutput(item);
+        List<RecipeLookup.Entry> entries = usageQuery ? Collections.<RecipeLookup.Entry>emptyList()
+            : RecipeLookup.findByOutput(item);
         if (entries.isEmpty()) {
             if (fallbackText != null) {
                 if (!fallbackText.isEmpty()) parent.append(LytParagraph.of(fallbackText));
             } else {
-                parent.appendError(compiler, "Couldn't find recipe for " + ref.id(), el);
+                parent.appendError(
+                    compiler,
+                    "Couldn't find " + (usageQuery ? "usage" : "recipe") + " for " + ref.id(),
+                    el);
             }
             return;
         }
