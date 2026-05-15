@@ -1,7 +1,9 @@
 package com.hfstudio.guidenh.guide.compiler;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -28,7 +30,23 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
         var yaml = YAML.get();
 
         FrontmatterNavigation navigation = null;
-        Map<String, Object> data = yaml.load(yamlText);
+        Object loaded = yaml.load(yamlText);
+        if (loaded == null) {
+            return new Frontmatter(null, Collections.emptyMap());
+        }
+        if (!(loaded instanceof Map<?, ?>loadedMap)) {
+            throw new IllegalArgumentException("Frontmatter root has to be a map");
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        for (Map.Entry<?, ?> entry : loadedMap.entrySet()) {
+            Object key = entry.getKey();
+            if (!(key instanceof String)) {
+                throw new IllegalArgumentException("Frontmatter keys have to be strings");
+            }
+            data.put((String) key, entry.getValue());
+        }
+
         var navigationObj = data.remove("navigation");
         if (navigationObj != null) {
             if (!(navigationObj instanceof Map<?, ?>navigationMap)) {
@@ -317,8 +335,8 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
             String s = ((String) value).trim();
             return s.isEmpty() ? null : s;
         }
-        if (value instanceof java.util.Date) {
-            return new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format((java.util.Date) value);
+        if (value instanceof Date) {
+            return new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format((Date) value);
         }
         return value.toString();
     }

@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
@@ -35,6 +36,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
+import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
@@ -46,6 +48,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
 public class SceneEditorSceneNodePreviewApplier {
 
@@ -139,19 +142,24 @@ public class SceneEditorSceneNodePreviewApplier {
             return;
         }
         GuidebookLevel level = scene.getLevel();
+        Integer legacyChannel = parseIntegerAttribute(node.getAttribute("channel"));
+        StructureLibSceneOptions options = readStructureLibSceneOptions(node);
+        StructureLibPreviewSelection defaultSelection = options.createSelection(legacyChannel);
+        StructureLibPreviewSelection selection = structureLibSelectionOverride != null
+            ? ImportStructureLibElementCompiler
+                .mergePersistentOptions(structureLibSelectionOverride, defaultSelection, options)
+            : defaultSelection;
 
         StructureLibImportRequest request = new StructureLibImportRequest(
             controller,
             node.getAttribute("piece"),
-            node.getAttribute("facing"),
-            node.getAttribute("rotation"),
-            node.getAttribute("flip"),
-            structureLibSelectionOverride != null ? Integer.valueOf(structureLibSelectionOverride.getMasterTier())
-                : parseIntegerAttribute(node.getAttribute("channel")),
-            structureLibSelectionOverride != null ? structureLibSelectionOverride
-                : parseIntegerAttribute(node.getAttribute("channel")) != null
-                    ? StructureLibPreviewSelection.ofMasterTier(parseIntegerAttribute(node.getAttribute("channel")))
-                    : StructureLibPreviewSelection.defaultSelection());
+            StructureLibSceneOptions.resolveFacing(node.getAttribute("facing"), options),
+            StructureLibSceneOptions.resolveRotation(node.getAttribute("rotation"), options),
+            StructureLibSceneOptions.resolveFlip(node.getAttribute("flip"), options),
+            Integer.valueOf(selection.getMasterTier()),
+            ImportStructureLibElementCompiler.applyControllerDefaults(controller, selection, options),
+            options);
+        scene.setStructureLibInitialSelection(request.getPreviewSelection());
         StructureLibImportResult result = structureLibImportService.importScene(request);
         attachStructureLibMetadata(scene, request, result);
         if (!result.isSuccess()) {
@@ -179,6 +187,28 @@ public class SceneEditorSceneNodePreviewApplier {
                 placedBlock.getZ(),
                 placedBlock.getBlockId());
         }
+    }
+
+    private StructureLibSceneOptions readStructureLibSceneOptions(SceneEditorSceneNodeModel node) {
+        StructureLibSceneOptions.Builder builder = StructureLibSceneOptions.builder();
+        builder.tier(parseIntegerAttribute(node.getAttribute("tier")));
+        builder.facing(node.getAttribute("defaultFacing"));
+        builder.rotation(node.getAttribute("defaultRotation"));
+        builder.flip(node.getAttribute("defaultFlip"));
+        builder.gregTechActiveController(parseBooleanAttribute(node.getAttribute("gtActiveController")));
+        builder.gregTechPlaceHatches(parseBooleanAttribute(node.getAttribute("gtPlaceHatches")));
+        for (Map.Entry<String, String> entry : node.getAttributes()
+            .entrySet()) {
+            String key = entry.getKey();
+            if (!key.startsWith("channel.")) {
+                continue;
+            }
+            Integer value = parseIntegerAttribute(entry.getValue());
+            if (value != null) {
+                builder.channel(key.substring("channel.".length()), value);
+            }
+        }
+        return builder.build();
     }
 
     private void attachStructureLibMetadata(LytGuidebookScene scene, StructureLibImportRequest request,
@@ -452,5 +482,10 @@ public class SceneEditorSceneNodePreviewApplier {
         } catch (NumberFormatException ignored) {
             return null;
         }
+    }
+
+    public static boolean parseBooleanAttribute(@Nullable String value) {
+        String normalized = normalizeAttribute(value);
+        return normalized != null && Boolean.parseBoolean(normalized);
     }
 }

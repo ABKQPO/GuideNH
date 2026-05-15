@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
@@ -203,50 +204,35 @@ public class PageCompiler {
     }
 
     public static ParsedGuidePage parse(String sourcePack, String language, ResourceLocation id, String pageContent) {
-        // Normalize line ending
-        pageContent = normalizeLineEndings(pageContent);
-        pageContent = FootnotePreprocessor.preprocess(pageContent);
-        var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
-        MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(pageContent);
-        String parseContent = MdxCommentMasker.mask(latexMask.source());
-
+        pageContent = pageContent != null ? pageContent : "";
         MdAstRoot astRoot;
+        Frontmatter sourceFrontmatter = new Frontmatter(null, Collections.emptyMap());
         String parseFailureMessage = null;
         UnistPoint parseFailureFrom = null;
         UnistPoint parseFailureTo = null;
         try {
+            pageContent = normalizeLineEndings(pageContent);
+            pageContent = FootnotePreprocessor.preprocess(pageContent);
+            sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
+            MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(pageContent);
+            String parseContent = MdxCommentMasker.mask(latexMask.source());
             astRoot = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
             MarkdownLatexShorthand.restore(astRoot, latexMask);
             MarkdownHtmlRuntimeNormalizer.normalize(astRoot);
-        } catch (ParseException e) {
-            parseFailureFrom = e.getFrom();
-            parseFailureTo = e.getTo();
-            var position = "";
-            if (parseFailureFrom != null) {
-                position = " at line " + e.getFrom()
-                    .line()
-                    + " column "
-                    + e.getFrom()
-                        .column();
+        } catch (RuntimeException t) {
+            if (t instanceof ParseException e) {
+                parseFailureFrom = e.getFrom();
+                parseFailureTo = e.getTo();
             }
-            var errorMessage = String.format(
-                Locale.ROOT,
-                "Failed to parse GuideME page %s (lang: %s)%s from resource pack %s",
-                id,
-                language,
-                position,
-                sourcePack);
-            FMLLog.getLogger()
-                .error("[GuideNH] [PageCompiler] {}", errorMessage, e);
-            parseFailureMessage = errorMessage + ": \n" + e;
+            String errorMessage = formatParseFailureMessage(id, language, sourcePack, parseFailureFrom);
+            logError("[GuideNH] [PageCompiler] {}", t, errorMessage);
+            parseFailureMessage = errorMessage + ": \n" + t;
             astRoot = buildErrorPage(parseFailureMessage);
         }
 
         // Find front-matter
-        var frontmatter = parseFrontmatter(id, astRoot);
-        if (parseFailureMessage != null && sourceFrontmatter.navigationEntry() != null) {
-            frontmatter = sourceFrontmatter;
-        }
+        var frontmatter = parseFailureMessage == null ? sourceFrontmatter : parseFrontmatter(id, astRoot);
+        if (parseFailureMessage != null && sourceFrontmatter.navigationEntry() != null) frontmatter = sourceFrontmatter;
 
         return new ParsedGuidePage(
             sourcePack,
@@ -262,6 +248,30 @@ public class PageCompiler {
 
     public static String normalizeLineEndings(String pageContent) {
         return GuideStringLines.normalizeLineEndings(pageContent);
+    }
+
+    private static String formatParseFailureMessage(ResourceLocation id, String language, String sourcePack,
+        @Nullable UnistPoint position) {
+        String positionText = "";
+        if (position != null) {
+            positionText = " at line " + position.line() + " column " + position.column();
+        }
+        return String.format(
+            Locale.ROOT,
+            "Failed to parse GuideME page %s (lang: %s)%s from resource pack %s",
+            id,
+            language,
+            positionText,
+            sourcePack);
+    }
+
+    private static String formatCompileFailureMessage(ResourceLocation id, String language, String sourcePack) {
+        return String.format(
+            Locale.ROOT,
+            "Failed to compile GuideME page %s (lang: %s) from resource pack %s",
+            id,
+            language,
+            sourcePack);
     }
 
     public static MdAstRoot buildErrorPage(String errorText) {
@@ -299,17 +309,34 @@ public class PageCompiler {
 
     public static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage) {
         // Translate page tree over to layout pages
-        var document = new PageCompiler(
+        PageCompiler compiler = new PageCompiler(
             pages,
             extensions,
             parsedPage.getSourcePack(),
             parsedPage.getId(),
-            parsedPage.getSource()).compile(parsedPage.getAstRoot());
-        var titleHeading = extractPageTitleHeading(document);
-        FrontmatterPageMeta pageMeta = parsedPage.getFrontmatter() != null ? parsedPage.getFrontmatter()
-            .parseMeta() : null;
-        if (pageMeta != null && pageMeta.isEmpty()) pageMeta = null;
-        return new GuidePage(parsedPage.getSourcePack(), parsedPage.getId(), document, titleHeading, pageMeta);
+            parsedPage.getSource());
+        try {
+            var document = compiler.compile(parsedPage.getAstRoot());
+            var titleHeading = extractPageTitleHeading(document);
+            FrontmatterPageMeta pageMeta = parsedPage.getFrontmatter() != null ? parsedPage.getFrontmatter()
+                .parseMeta() : null;
+            if (pageMeta != null && pageMeta.isEmpty()) pageMeta = null;
+            return new GuidePage(parsedPage.getSourcePack(), parsedPage.getId(), document, titleHeading, pageMeta);
+        } catch (RuntimeException t) {
+            String errorMessage = formatCompileFailureMessage(
+                parsedPage.getId(),
+                parsedPage.getLanguage(),
+                parsedPage.getSourcePack());
+            logError("[GuideNH] [PageCompiler] {}", t, errorMessage);
+            return buildErrorGuidePage(
+                pages,
+                extensions,
+                parsedPage.getSourcePack(),
+                parsedPage.getId(),
+                parsedPage.getSource(),
+                "COMPILATION ERROR",
+                errorMessage + ": \n" + t);
+        }
     }
 
     /**
@@ -356,15 +383,13 @@ public class PageCompiler {
         for (var child : root.children()) {
             if (child instanceof MdAstYamlFrontmatter frontmatter) {
                 if (result != null) {
-                    FMLLog.getLogger()
-                        .error("[GuideNH] [PageCompiler] Found more than one frontmatter!");
+                    logError("[GuideNH] [PageCompiler] Found more than one frontmatter!");
                     continue;
                 }
                 try {
                     result = Frontmatter.parse(pageId, frontmatter.value);
                 } catch (Exception e) {
-                    FMLLog.getLogger()
-                        .error("[GuideNH] [PageCompiler] Failed to parse frontmatter for page {}", pageId, e);
+                    logFrontmatterFailure(pageId, e);
                     break;
                 }
             }
@@ -382,10 +407,13 @@ public class PageCompiler {
         try {
             return Frontmatter.parse(pageId, yamlText);
         } catch (Exception e) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [PageCompiler] Failed to parse frontmatter for page {}", pageId, e);
+            logFrontmatterFailure(pageId, e);
             return new Frontmatter(null, Collections.emptyMap());
         }
+    }
+
+    private static void logFrontmatterFailure(ResourceLocation pageId, Exception e) {
+        logWarn("[GuideNH] [PageCompiler] Failed to parse frontmatter for page {}: {}", pageId, describeThrowable(e));
     }
 
     public static @Nullable String extractFrontmatterText(String pageContent) {
@@ -417,11 +445,11 @@ public class PageCompiler {
             return;
         }
 
-        ParsedGuidePage parsed = parse(sourcePack, "en_us", pageId, reparsed.source());
+        MdAstRoot root = parseFragmentRoot(reparsed.source());
         Map<String, MdAstDefinition> previousDefinitions = new HashMap<>(definitions);
-        definitions.putAll(GuideMarkdownDefinitions.collect(parsed.getAstRoot()));
+        definitions.putAll(GuideMarkdownDefinitions.collect(root));
         try {
-            withSourceSlice(reparsed.source(), () -> compileBlockContext(parsed.getAstRoot(), layoutParent));
+            withSourceSlice(reparsed.source(), () -> compileBlockContext(root, layoutParent));
         } finally {
             definitions.clear();
             definitions.putAll(previousDefinitions);
@@ -433,9 +461,7 @@ public class PageCompiler {
         if (reparsed == null) {
             return element.children();
         }
-        ParsedGuidePage parsed = parse(sourcePack, "en_us", pageId, reparsed.source());
-        return parsed.getAstRoot()
-            .children();
+        return parseFragmentRoot(reparsed.source()).children();
     }
 
     /**
@@ -458,9 +484,12 @@ public class PageCompiler {
         if (source == null || source.isEmpty()) {
             return;
         }
-        ParsedGuidePage parsed = parse(sourcePack, "en_us", pageId, source);
-        for (MdAstAnyContent child : parsed.getAstRoot()
-            .children()) {
+        if (isPlainInlineMarkdown(source)) {
+            layoutParent.appendText(source);
+            return;
+        }
+        MdAstRoot root = parseFragmentRoot(source);
+        for (MdAstAnyContent child : root.children()) {
             if (child instanceof MdAstParagraph paragraph) {
                 compileFlowContext(paragraph, layoutParent);
             } else if (child instanceof MdAstParent<?>nestedParent) {
@@ -471,6 +500,66 @@ public class PageCompiler {
                 compileFlowContent(layoutParent, child);
             }
         }
+    }
+
+    private MdAstRoot parseFragmentRoot(String source) {
+        String fragmentSource = source != null ? source : "";
+        try {
+            fragmentSource = normalizeLineEndings(fragmentSource);
+            fragmentSource = FootnotePreprocessor.preprocess(fragmentSource);
+            MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(fragmentSource);
+            String parseContent = MdxCommentMasker.mask(latexMask.source());
+            MdAstRoot root = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
+            MarkdownLatexShorthand.restore(root, latexMask);
+            MarkdownHtmlRuntimeNormalizer.normalize(root);
+            return root;
+        } catch (RuntimeException e) {
+            UnistPoint from = e instanceof ParseException parseException ? parseException.getFrom() : null;
+            String errorMessage = formatFragmentParseFailureMessage(pageId, sourcePack, from);
+            logError("[GuideNH] [PageCompiler] {}", e, errorMessage);
+            return buildErrorPage(errorMessage + ": \n" + e);
+        }
+    }
+
+    private static String formatFragmentParseFailureMessage(ResourceLocation id, String sourcePack,
+        @Nullable UnistPoint position) {
+        String positionText = "";
+        if (position != null) {
+            positionText = " at line " + position.line() + " column " + position.column();
+        }
+        return String.format(
+            Locale.ROOT,
+            "Failed to parse GuideME markdown fragment in page %s%s from %s",
+            id,
+            positionText,
+            sourcePack);
+    }
+
+    private static boolean isPlainInlineMarkdown(String source) {
+        for (int i = 0; i < source.length(); i++) {
+            char current = source.charAt(i);
+            switch (current) {
+                case '<':
+                case '[':
+                case ']':
+                case '(':
+                case ')':
+                case '*':
+                case '_':
+                case '`':
+                case '\\':
+                case '&':
+                case '$':
+                case '=':
+                case '~':
+                case '\n':
+                case '\r':
+                    return false;
+                default:
+                    break;
+            }
+        }
+        return true;
     }
 
     public void compileBlockContextInSourceContext(List<? extends MdAstAnyContent> children,
@@ -532,7 +621,15 @@ public class PageCompiler {
                     layoutChild = createErrorBlock("Unhandled MDX element in block context", child);
                 } else {
                     layoutChild = null;
-                    compiler.compileBlockContext(this, layoutParent, el);
+                    try {
+                        compiler.compileBlockContext(this, layoutParent, el);
+                    } catch (RuntimeException e) {
+                        appendUnexpectedNodeError(
+                            layoutParent,
+                            "Failed to compile MDX block <" + el.name() + ">",
+                            el,
+                            e);
+                    }
                 }
             } else if (child instanceof MdAstPhrasingContent phrasingContent) {
                 // Wrap in a paragraph with no margins, but try appending to an existing paragraph before this
@@ -936,7 +1033,11 @@ public class PageCompiler {
                 layoutChild = createErrorFlowContent("Unhandled MDX element in flow context", content);
             } else {
                 layoutChild = null;
-                compiler.compileFlowContext(this, layoutParent, el);
+                try {
+                    compiler.compileFlowContext(this, layoutParent, el);
+                } catch (RuntimeException e) {
+                    appendUnexpectedNodeError(layoutParent, "Failed to compile MDX inline <" + el.name() + ">", el, e);
+                }
             }
         } else {
             layoutChild = createErrorFlowContent("Unhandled Markdown node in flow context", content);
@@ -1103,7 +1204,7 @@ public class PageCompiler {
             return FileTreeCompiler.compile(this, astCode.value);
         }
         if (isFunctionGraphFence(astCode.lang)) {
-            return FunctionGraphFenceParser.parse(astCode.value);
+            return compileFunctionGraphCodeBlock(astCode);
         }
         if ("mermaid".equals(language.id())) {
             LytMermaidMindmap mermaidBlock = tryCompileMermaidMindmap(astCode.value);
@@ -1146,6 +1247,14 @@ public class PageCompiler {
         String trimmed = fenceLanguage.trim();
         return "funcgraph".equalsIgnoreCase(trimmed) || "function".equalsIgnoreCase(trimmed)
             || "functiongraph".equalsIgnoreCase(trimmed);
+    }
+
+    private LytBlock compileFunctionGraphCodeBlock(MdAstCode astCode) {
+        try {
+            return FunctionGraphFenceParser.parse(astCode.value);
+        } catch (RuntimeException e) {
+            return createErrorBlock("Invalid function graph fence: " + describeThrowable(e), astCode);
+        }
     }
 
     private LytBlock compileCsvCodeBlock(MdAstCode astCode) {
@@ -1486,19 +1595,17 @@ public class PageCompiler {
         try {
             String normalized = MermaidMindmapParser.normalize(source);
             LytMermaidMindmap block = new LytMermaidMindmap(MermaidMindmapParser.parse(normalized), normalized);
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [PageCompiler] Compiled fenced Mermaid runtime block for page {} ({} chars)",
-                    pageId,
-                    normalized.length());
+            logInfo(
+                "[GuideNH] [PageCompiler] Compiled fenced Mermaid runtime block for page {} ({} chars)",
+                pageId,
+                normalized.length());
             return block;
         } catch (IllegalArgumentException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [PageCompiler] Failed to compile fenced Mermaid runtime block for page {} from source: {}",
-                    pageId,
-                    source,
-                    e);
+            logWarn(
+                "[GuideNH] [PageCompiler] Failed to compile fenced Mermaid runtime block for page {} from source: {}",
+                e,
+                pageId,
+                source);
             return null;
         }
     }
@@ -1552,14 +1659,12 @@ public class PageCompiler {
             var imageId = IdUtils.resolveLink(astImage.url, pageId);
             var imageContent = pages.loadAsset(imageId);
             if (imageContent == null) {
-                FMLLog.getLogger()
-                    .error("[GuideNH] [PageCompiler] Couldn't find image {}", astImage.url);
+                logError("[GuideNH] [PageCompiler] Couldn't find image {}", astImage.url);
                 image.setTitle("Missing image: " + astImage.url);
             }
             image.setImage(imageId, imageContent);
         } catch (IllegalArgumentException e) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [PageCompiler] Invalid image id: {}", astImage.url);
+            logError("[GuideNH] [PageCompiler] Invalid image id: {}", astImage.url);
             image.setTitle("Invalid image URL: " + astImage.url);
         }
         return image;
@@ -1571,23 +1676,26 @@ public class PageCompiler {
         return paragraph;
     }
 
+    private void appendUnexpectedNodeError(LytErrorSink errorSink, String message, UnistNode node, RuntimeException e) {
+        logWarn("[GuideNH] [PageCompiler] {} in page {}", e, message, pageId);
+        errorSink.appendError(this, message + ": " + describeThrowable(e), node);
+    }
+
     public LytFlowContent createErrorFlowContent(String text, UnistNode child) {
         LytFlowSpan span = new LytFlowSpan();
         span.modifyStyle(
             style -> style.color(SymbolicColor.ERROR_TEXT)
                 .whiteSpace(WhiteSpaceMode.PRE));
 
-        // Find the position in the source
         var position = child.position();
-        if (position != null) {
-            var pos = position.start();
+        var pos = position != null ? position.start() : null;
+        if (pos != null) {
             String sourceText = getCurrentSourceText();
-            var startOfLine = sourceText.lastIndexOf('\n', pos.offset()) + 1;
-            var endOfLine = sourceText.indexOf('\n', pos.offset() + 1);
-            if (endOfLine == -1) {
-                endOfLine = sourceText.length();
-            }
-            var line = sourceText.substring(startOfLine, endOfLine);
+            int safeOffset = Math.max(0, Math.min(pos.offset(), sourceText.length()));
+            var startOfLine = sourceText.lastIndexOf('\n', safeOffset) + 1;
+            var endOfLine = sourceText.indexOf('\n', safeOffset);
+            if (endOfLine == -1) endOfLine = sourceText.length();
+            var line = sourceText.substring(Math.min(startOfLine, sourceText.length()), endOfLine);
 
             text += " " + child.type() + " (" + MdAstPosition.stringify(pos) + ")";
 
@@ -1597,18 +1705,76 @@ public class PageCompiler {
             span.appendText(line);
             span.appendBreak();
 
-            String tildes = new String(new char[pos.column() - 1]).replace('\0', '~');
+            String tildes = repeatChar('~', Math.max(0, pos.column() - 1));
             span.appendText(tildes + "^");
             span.appendBreak();
 
-            FMLLog.getLogger()
-                .warn("[GuideNH] [PageCompiler] {}\n{}\n{}\n", text, line, tildes + "^");
+            logWarn("[GuideNH] [PageCompiler] {}\n{}\n{}\n", text, line, tildes + "^");
         } else {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [PageCompiler] {}\n", text);
+            logWarn("[GuideNH] [PageCompiler] {}\n", text);
         }
 
         return span;
+    }
+
+    private static String repeatChar(char value, int count) {
+        if (count <= 0) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(count);
+        for (int i = 0; i < count; i++) {
+            builder.append(value);
+        }
+        return builder.toString();
+    }
+
+    private static void logInfo(String message, Object... args) {
+        Logger logger = FMLLog.getLogger();
+        if (logger != null) {
+            logger.info(message, args);
+        }
+    }
+
+    private static void logWarn(String message, Object... args) {
+        Logger logger = FMLLog.getLogger();
+        if (logger != null) {
+            logger.warn(message, args);
+        }
+    }
+
+    private static void logWarn(String message, Throwable throwable, Object... args) {
+        Logger logger = FMLLog.getLogger();
+        if (logger != null) {
+            logger.warn(message, appendThrowable(args, throwable));
+        }
+    }
+
+    private static void logError(String message, Object... args) {
+        Logger logger = FMLLog.getLogger();
+        if (logger != null) {
+            logger.error(message, args);
+        }
+    }
+
+    private static void logError(String message, Throwable throwable, Object... args) {
+        Logger logger = FMLLog.getLogger();
+        if (logger != null) {
+            logger.error(message, appendThrowable(args, throwable));
+        }
+    }
+
+    private static Object[] appendThrowable(Object[] args, Throwable throwable) {
+        Object[] combined = new Object[args.length + 1];
+        System.arraycopy(args, 0, combined, 0, args.length);
+        combined[args.length] = throwable;
+        return combined;
+    }
+
+    private static String describeThrowable(Throwable throwable) {
+        String message = throwable.getMessage();
+        return message != null && !message.isEmpty() ? message
+            : throwable.getClass()
+                .getSimpleName();
     }
 
     public ResourceLocation resolveId(String idText) {

@@ -353,6 +353,39 @@ Example:
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
 ````
 
+StructureLib defaults can also be supplied as child tags. These defaults are part of the scene's
+initial interactive state, so the reset-view button restores them after the user changes tier or
+channel sliders.
+
+| Child tag | Meaning |
+| --- | --- |
+| `<Tier value="1" />` | Master tier value. |
+| `<Channel name="channelName" value="1" />` | Named StructureLib channel override. Repeat for multiple channels. |
+| `<Facing value="north" />` | Default facing. |
+| `<Rotation value="normal" />` | Default rotation. |
+| `<Flip value="none" />` | Default flip/mirror. |
+| `<Orientation value="north:normal:none" />` | Facing, rotation, and flip in one tag. |
+| `<GregTechActiveController />` | GregTech only: render the controller with its active texture when possible. |
+| `<GregTechPlaceHatches />` | GregTech only: place normal GT hatches for hatch-only preview positions. Without this, GT previews still use survival construct for hatch-aware machines, but empty hatch positions fall back to casing blocks. |
+
+For GregTech controllers, GuideNH now uses the same StructureLib survival-preview path as the
+export command. This fixes hatch-only positions that normal `construct()` cannot populate while
+keeping fallback casings by default.
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
+    <Tier value="4" />
+    <Channel name="voltage" value="4" />
+    <Facing value="north" />
+    <Rotation value="normal" />
+    <Flip value="none" />
+    <GregTechActiveController />
+    <GregTechPlaceHatches />
+  </ImportStructureLib>
+</GameScene>
+````
+
 ## `<IsometricCamera>`
 
 Applies explicit isometric camera yaw/pitch/roll.

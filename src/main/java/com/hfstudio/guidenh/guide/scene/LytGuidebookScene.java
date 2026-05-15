@@ -292,6 +292,7 @@ public class LytGuidebookScene extends LytBlock {
     private Consumer<StructureLibPreviewSelection> structureLibSelectionChangeListener;
     @Nullable
     private StructureLibPreviewSelection pendingStructureLibPreviewSelection;
+    private StructureLibPreviewSelection structureLibInitialSelection = StructureLibPreviewSelection.defaultSelection();
     private boolean initialStateCaptured;
     private boolean initialAnnotationsVisible = true;
     @Nullable
@@ -491,6 +492,7 @@ public class LytGuidebookScene extends LytBlock {
             structureLibChannelOverrides.putAll(initialStructureLibChannelOverrides);
             structureLibHatchHighlightEnabled = initialStructureLibHatchHighlightEnabled;
             gridVisible = initialGridVisible;
+            notifyStructureLibSelectionChanged();
         }
         if (ponderSceneData != null) {
             ponderCurrentTick = 0;
@@ -1118,7 +1120,15 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public StructureLibPreviewSelection getStructureLibPreviewSelection() {
-        return new StructureLibPreviewSelection(structureLibCurrentTier, structureLibChannelOverrides);
+        return new StructureLibPreviewSelection(
+            structureLibCurrentTier,
+            structureLibChannelOverrides,
+            structureLibInitialSelection.getIntegrationOptions());
+    }
+
+    public void setStructureLibInitialSelection(StructureLibPreviewSelection selection) {
+        this.structureLibInitialSelection = selection != null ? selection
+            : StructureLibPreviewSelection.defaultSelection();
     }
 
     @Nullable
@@ -3268,7 +3278,7 @@ public class LytGuidebookScene extends LytBlock {
                     camera.setZoom(Math.max(MIN_ZOOM, camera.getZoom() / 1.25f));
                 }
             }
-            case RESET_VIEW -> resetViewToInitialCamera();
+            case RESET_VIEW -> resetViewToInitialState();
             case PONDER_PREV_KEYFRAME -> ponderPrevKeyframe();
             case PONDER_PLAY_PAUSE -> ponderTogglePlay();
             case PONDER_RESTART -> ponderRestart();
@@ -3290,6 +3300,16 @@ public class LytGuidebookScene extends LytBlock {
             camera.setOffsetX(initialCam[4]);
             camera.setOffsetY(initialCam[5]);
         }
+    }
+
+    private void resetViewToInitialState() {
+        if (initialStateCaptured) {
+            structureLibCurrentTier = initialStructureLibCurrentTier;
+            structureLibChannelOverrides.clear();
+            structureLibChannelOverrides.putAll(initialStructureLibChannelOverrides);
+            notifyStructureLibSelectionChanged();
+        }
+        resetViewToInitialCamera();
     }
 
     public void startDrag(int mouseX, int mouseY, int button) {

@@ -71,6 +71,11 @@
 | `<GameScene>`, `<Scene>` | 3D 指南游戏场景 | 详见 [游戏场景](GameScene-zh-CN) |
 | `<QuestCard>` | 块级 BetterQuesting 任务摘要卡片（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `show_desc` |
 
+`<ImportStructureLib>` 是 `<GameScene>` 的子标签。它支持 `controller`、`piece`、`facing`、
+`rotation`、`flip`、`channel` 属性，也支持用于设置 StructureLib 默认值的子标签：
+`<Tier>`、`<Channel>`、`<Facing>`、`<Rotation>`、`<Flip>`、`<Orientation>`、
+`<GregTechActiveController>`、`<GregTechPlaceHatches>`。
+
 ## 标签细节
 
 ### `<a>`

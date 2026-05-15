@@ -1,8 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.screen;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -34,9 +33,10 @@ public class GuideNavBar {
     public static final int CHILD_INDENT = 12;
     public static final int EXPAND_INDENT = 8;
     public static final int ICON_SIZE = 9;
+    private static final int ARROW_HIT_WIDTH = EXPAND_INDENT;
 
     private final List<Row> rows = new ArrayList<>();
-    private final Set<NavigationNode> expanded = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ResourceLocation> expandedPageIds = new HashSet<>();
     @Nullable
     private NavigationTree lastTree;
 
@@ -77,14 +77,29 @@ public class GuideNavBar {
         rows.clear();
         lastTree = tree;
         if (tree == null) return;
+        Set<ResourceLocation> visiblePageIds = new HashSet<>();
+        for (var root : tree.getRootNodes()) {
+            collectPageIds(root, visiblePageIds);
+        }
+        expandedPageIds.retainAll(visiblePageIds);
         for (var root : tree.getRootNodes()) {
             addRowRecursive(root, 0);
+        }
+        clampScroll();
+    }
+
+    private void collectPageIds(NavigationNode node, Set<ResourceLocation> pageIds) {
+        if (node.pageId() != null) {
+            pageIds.add(node.pageId());
+        }
+        for (var child : node.children()) {
+            collectPageIds(child, pageIds);
         }
     }
 
     private void addRowRecursive(NavigationNode node, int depth) {
         rows.add(new Row(node, depth));
-        if (expanded.contains(node)) {
+        if (isExpanded(node)) {
             for (var child : node.children()) {
                 addRowRecursive(child, depth + 1);
             }
@@ -132,8 +147,8 @@ public class GuideNavBar {
                 boolean hasChildren = !row.node.children()
                     .isEmpty();
                 if (hasChildren) {
-                    boolean exp = expanded.contains(row.node);
-                    drawArrow(rowX, rowY + 2, !exp, 0xFFCCCCCC);
+                    boolean exp = isExpanded(row.node);
+                    drawArrow(getRowArrowX(row), rowY + 2, !exp, 0xFFCCCCCC);
                 }
                 int textX = rowX + EXPAND_INDENT;
 
@@ -175,13 +190,14 @@ public class GuideNavBar {
         boolean hasChildren = !row.node.children()
             .isEmpty();
         if (hasChildren) {
-            boolean alreadyExpanded = expanded.contains(row.node);
+            if (isInsideRowArrow(row, mouseX)) {
+                toggleExpand(row.node);
+                return null;
+            }
+            boolean alreadyExpanded = isExpanded(row.node);
             if (!alreadyExpanded) {
-                // Collapsed → expand (and navigate if the node has a page).
                 toggleExpand(row.node);
             } else {
-                // Already expanded: only collapse when already on this exact page;
-                // otherwise just navigate there without touching the expand state.
                 boolean onThisPage = row.node.pageId() != null && row.node.pageId()
                     .equals(currentPageId);
                 if (onThisPage) {
@@ -204,8 +220,7 @@ public class GuideNavBar {
         int contentH = rows.size() * ROW_H + CONTENT_PADDING * 2;
         int max = Math.max(0, contentH - height);
         scrollY -= Integer.signum(dwheel) * ROW_H * 2;
-        if (scrollY < 0) scrollY = 0;
-        if (scrollY > max) scrollY = max;
+        clampScroll(max);
     }
 
     private int getFirstVisibleRowIndex() {
@@ -223,15 +238,41 @@ public class GuideNavBar {
         return rowIndex >= 0 && rowIndex < rows.size() ? rowIndex : -1;
     }
 
+    private boolean isInsideRowArrow(Row row, int mouseX) {
+        int arrowX = getRowArrowX(row);
+        return mouseX >= arrowX && mouseX < arrowX + ARROW_HIT_WIDTH;
+    }
+
+    private int getRowArrowX(Row row) {
+        return x + 2 + row.depth * CHILD_INDENT;
+    }
+
     private int getRowY(int rowIndex) {
         return y + CONTENT_PADDING - scrollY + rowIndex * ROW_H;
     }
 
     private void toggleExpand(@Nullable NavigationNode node) {
         if (node == null) return;
-        if (expanded.contains(node)) expanded.remove(node);
-        else expanded.add(node);
+        ResourceLocation pageId = node.pageId();
+        if (pageId == null) return;
+        if (expandedPageIds.contains(pageId)) expandedPageIds.remove(pageId);
+        else expandedPageIds.add(pageId);
         rebuildRows(lastTree);
+    }
+
+    private boolean isExpanded(NavigationNode node) {
+        ResourceLocation pageId = node.pageId();
+        return pageId != null && expandedPageIds.contains(pageId);
+    }
+
+    private void clampScroll() {
+        int contentH = rows.size() * ROW_H + CONTENT_PADDING * 2;
+        clampScroll(Math.max(0, contentH - height));
+    }
+
+    private void clampScroll(int max) {
+        if (scrollY < 0) scrollY = 0;
+        if (scrollY > max) scrollY = max;
     }
 
     public static int getRowTextColor(boolean current, boolean hovered, boolean failed) {

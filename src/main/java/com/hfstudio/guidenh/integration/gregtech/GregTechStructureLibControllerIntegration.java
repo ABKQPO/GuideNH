@@ -25,12 +25,13 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewItemProv
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewStateSynchronizer;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
 public class GregTechStructureLibControllerIntegration implements StructureLibControllerDiscoveryIntegration,
     StructureLibControllerPlacementIntegration, StructureLibPreviewItemProvider, StructureLibPreviewStateSynchronizer {
 
-    public static final String ACTIVE_CONTROLLER_OPTION = "gregtech.active_controller";
-    public static final String PLACE_HATCHES_OPTION = "gregtech.place_hatches";
+    public static final String ACTIVE_CONTROLLER_OPTION = StructureLibSceneOptions.GREGTECH_ACTIVE_CONTROLLER_OPTION;
+    public static final String PLACE_HATCHES_OPTION = StructureLibSceneOptions.GREGTECH_PLACE_HATCHES_OPTION;
 
     public GregTechStructureLibControllerIntegration() {}
 

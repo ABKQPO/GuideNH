@@ -69,6 +69,11 @@ Inline markdown also supports action links for sound playback:
 | `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
 | `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc` |
 
+`<ImportStructureLib>` is a `<GameScene>` child tag. It accepts `controller`, `piece`, `facing`,
+`rotation`, `flip`, and `channel` attributes, and also supports StructureLib default child tags:
+`<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
+`<GregTechActiveController>`, and `<GregTechPlaceHatches>`.
+
 ## Tag Details
 
 ### `<a>`

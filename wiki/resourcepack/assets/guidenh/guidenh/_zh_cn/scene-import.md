@@ -19,6 +19,20 @@ categories:
   <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 </GameScene>
 
+StructureLib 默认值可以写成子标签，点击 reset view 时会恢复这些默认值：
+
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
+    <Tier value="4" />
+    <Channel name="hatch" value="1" />
+    <Facing value="north" />
+    <Rotation value="normal" />
+    <Flip value="none" />
+    <GregTechActiveController />
+    <GregTechPlaceHatches />
+  </ImportStructureLib>
+</GameScene>
+
 将光标移到 StructureLib 结构方块上可以看到额外的结构说明；按住 `Shift` 会展开候选替换方块。如果该结构提供仓室或信道元数据，还会自动出现仓室高亮按钮和底部滑条。
 
 ## ImportStructure + RemoveBlocks
