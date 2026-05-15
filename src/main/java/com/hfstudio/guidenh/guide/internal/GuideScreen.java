@@ -70,6 +70,7 @@ import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteCommit;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteCommitService;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteKeyPolicy;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SelectionStrategy;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxContextResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxElementType;
@@ -94,6 +95,7 @@ import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorFileSto
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorLayoutMode;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorMerge;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorNewPagePrompt;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorSourceState;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorState;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorTextActions;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorUndoHistory;
@@ -180,6 +182,16 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private static final int GUIDE_EDITOR_DIVIDER_HOVER_DELAY_MILLIS = 1000;
     private static final long GUIDE_EDITOR_SAFETY_AUTOSAVE_INTERVAL_MILLIS = 5L * 60L * 1000L;
     private static final long GUIDE_EDITOR_NAVIGATION_REFRESH_DELAY_MILLIS = 1500L;
+    private static final int GUIDE_EDITOR_UNSAVED_DIALOG_WIDTH = 260;
+    private static final int GUIDE_EDITOR_UNSAVED_DIALOG_HEIGHT = 110;
+    private static final int GUIDE_EDITOR_UNSAVED_BUTTON_WIDTH = 78;
+    private static final int GUIDE_EDITOR_UNSAVED_BUTTON_HEIGHT = 20;
+    private static final int GUIDE_EDITOR_UNSAVED_BUTTON_GAP = 10;
+    private static final int GUIDE_EDITOR_UNSAVED_DIALOG_OVERLAY_COLOR = 0xAA000000;
+    private static final int GUIDE_EDITOR_UNSAVED_DIALOG_COLOR = 0xF0181C22;
+    private static final int GUIDE_EDITOR_UNSAVED_DIALOG_BORDER_COLOR = 0xFF4D5661;
+    private static final int GUIDE_EDITOR_UNSAVED_DIALOG_HOVER_COLOR = 0xFF24303A;
+    private static final GuideEditorUnsavedAction[] GUIDE_EDITOR_UNSAVED_ACTIONS = GuideEditorUnsavedAction.values();
     private boolean fullWidth;
 
     private final GuideNavBar navBar = new GuideNavBar();
@@ -291,6 +303,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private boolean guideEditorSuppressUndoRecording;
     private boolean guideEditorSuppressReloadFromEditorApply;
     private boolean guideEditorSuppressTextFocusUntilGuideHotkeyRelease;
+    private boolean guideEditorUnsavedPromptOpen;
+    @Nullable
+    private Runnable guideEditorPendingUnsavedAction;
     private GuideScreenEditorLayoutMode guideEditorLayoutMode = GuideScreenEditorLayoutMode.SPLIT;
     private boolean guideEditorAdvancedToolbarVisible;
     private int guideEditorDividerPercent = GuideScreenEditorState.getDividerPercent();
@@ -611,6 +626,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         guideEditorLayoutMode = mode;
         if (mode == GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null) {
             guideEditorTextArea.setFocused(false);
+            closeAutocompletePopup();
         }
         guideEditorPreviewDirty = true;
     }
@@ -837,6 +853,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 text = parsedPage.getSource();
             }
         }
+        text = GuideScreenEditorSourceState.normalizeEditorText(text);
 
         boolean preserveHistory = guideEditorTextArea != null && Objects.equals(guideEditorTextArea.getText(), text)
             && Objects.equals(guideEditorDraftSource, text);
@@ -878,13 +895,14 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             return;
         }
         guideEditorDraftSource = text;
-        guideEditorDirty = !Objects.equals(text, guideEditorSavedSource);
+        guideEditorDirty = GuideScreenEditorSourceState.isDirty(text, guideEditorSavedSource);
         guideEditorPreviewDirty = true;
         guideEditorUndoHistory
             .push(text, guideEditorTextArea.getSelectionStart(), guideEditorTextArea.getSelectionEnd());
         long now = System.currentTimeMillis();
         scheduleGuideEditorSaveAfterEdit(now);
         guideEditorNextPreviewCompileAtMillis = now + 100L;
+        updateToolbarButtonState();
     }
 
     private void pushGuideEditorCurrentHistoryState() {
@@ -906,12 +924,13 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             return;
         }
         guideEditorDraftSource = guideEditorTextArea.getText();
-        guideEditorDirty = !Objects.equals(guideEditorDraftSource, guideEditorSavedSource);
+        guideEditorDirty = GuideScreenEditorSourceState.isDirty(guideEditorDraftSource, guideEditorSavedSource);
         guideEditorPreviewDirty = true;
         long now = System.currentTimeMillis();
         scheduleGuideEditorSaveAfterEdit(now);
         guideEditorNextPreviewCompileAtMillis = now + 100L;
         syncGuideEditorPreviewScrollFromEditor();
+        updateToolbarButtonState();
     }
 
     private void scheduleGuideEditorSaveAfterEdit() {
@@ -943,7 +962,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     }
 
     private void updateGuideEditorAutosave() {
-        if (!isGuideEditorActive()) {
+        if (!isGuideEditorActive() || guideEditorUnsavedPromptOpen) {
             return;
         }
         pollGuideEditorExternalChanges();
@@ -981,7 +1000,17 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             }
             guideEditorPreviewDirty = false;
             if (canApplyGuideEditorParsedPage(parsedDraft)) {
+                applyGuideEditorPageWithoutReload(parsedDraft);
                 guideEditorDraftPage = parsedDraft;
+                if (currentAnchor != null && parsedDraft.getId()
+                    .equals(currentAnchor.pageId())) {
+                    currentPage = guideEditorPreviewPage;
+                    document = currentPage != null ? currentPage.document() : null;
+                    refreshCurrentPageTitle();
+                    cachedBottomBarText = null;
+                    cachedBottomBarPage = null;
+                }
+                scheduleGuideEditorNavigationRefresh();
             }
             cachedGuideEditorPreviewInteractionState = null;
         } catch (Throwable t) {
@@ -1063,9 +1092,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         return index;
     }
 
-    private void saveGuideEditorDraft() {
+    private boolean saveGuideEditorDraft() {
         if (!isGuideEditorActive() || guideEditorDraftSource == null || guideEditorDraftPage == null) {
-            return;
+            return false;
         }
         updateGuideEditorTextFromArea();
         try {
@@ -1090,8 +1119,10 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 scheduleGuideEditorNavigationRefresh();
             }
             updateToolbarButtonState();
+            return true;
         } catch (Throwable t) {
             FMLLog.warning("Failed to autosave guide editor page {}", currentAnchor.pageId(), t);
+            return false;
         }
     }
 
@@ -1114,8 +1145,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             guideEditorExternalFileCheckEnabled = false;
             return;
         }
-        if (Objects.equals(externalSource, guideEditorDraftSource)
-            || Objects.equals(externalSource, guideEditorSavedSource)) {
+        externalSource = GuideScreenEditorSourceState.normalizeEditorText(externalSource);
+        if (!GuideScreenEditorSourceState.isDirty(externalSource, guideEditorDraftSource)
+            || !GuideScreenEditorSourceState.isDirty(externalSource, guideEditorSavedSource)) {
             return;
         }
         if (!guideEditorDirty) {
@@ -1142,7 +1174,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (guideEditorTextArea == null) {
             return;
         }
-        String safeSource = source != null ? source : "";
+        String safeSource = GuideScreenEditorSourceState.normalizeEditorText(source);
         int selectionStart = Math.min(guideEditorTextArea.getSelectionStart(), safeSource.length());
         int selectionEnd = Math.min(guideEditorTextArea.getSelectionEnd(), safeSource.length());
         guideEditorSuppressUndoRecording = true;
@@ -1204,6 +1236,83 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                         saveGuideEditorDraft();
                     }
                 }));
+    }
+
+    private boolean handleGuideEditorPotentialUnsavedAction(Runnable action) {
+        if (!hasUnsavedGuideEditorChanges()) {
+            action.run();
+            return true;
+        }
+        openGuideEditorUnsavedPrompt(action);
+        return false;
+    }
+
+    private void openGuideEditorUnsavedPrompt(Runnable action) {
+        guideEditorPendingUnsavedAction = action;
+        guideEditorUnsavedPromptOpen = true;
+        closeAutocompletePopup();
+        closeGuideEditorContextMenu();
+        if (guideEditorTextArea != null) {
+            guideEditorTextArea.setFocused(false);
+        }
+    }
+
+    private boolean hasUnsavedGuideEditorChanges() {
+        if (!isGuideEditorActive()) {
+            return false;
+        }
+        updateGuideEditorTextFromArea();
+        return guideEditorDirty;
+    }
+
+    private void closeGuideEditorUnsavedPrompt() {
+        guideEditorUnsavedPromptOpen = false;
+        guideEditorPendingUnsavedAction = null;
+    }
+
+    private void completeGuideEditorUnsavedPrompt(GuideEditorUnsavedAction action) {
+        Runnable pendingAction = guideEditorPendingUnsavedAction;
+        if (pendingAction == null) {
+            closeGuideEditorUnsavedPrompt();
+            return;
+        }
+        if (action == GuideEditorUnsavedAction.CANCEL) {
+            closeGuideEditorUnsavedPrompt();
+            return;
+        }
+        if (action == GuideEditorUnsavedAction.SAVE && !saveGuideEditorDraft()) {
+            return;
+        }
+        if (action == GuideEditorUnsavedAction.DISCARD) {
+            discardGuideEditorUnsavedChanges();
+        }
+        closeGuideEditorUnsavedPrompt();
+        pendingAction.run();
+    }
+
+    private void discardGuideEditorUnsavedChanges() {
+        guideEditorDirty = false;
+        guideEditorNextSaveAtMillis = 0L;
+        guideEditorNextSafetySaveAtMillis = 0L;
+        refreshGuideEditorDraft(true);
+        updateToolbarButtonState();
+    }
+
+    private enum GuideEditorUnsavedAction {
+
+        SAVE(GuidebookText.SceneEditorSave),
+        DISCARD(GuidebookText.SceneEditorDiscard),
+        CANCEL(GuidebookText.SceneEditorCancel);
+
+        private final GuidebookText text;
+
+        GuideEditorUnsavedAction(GuidebookText text) {
+            this.text = text;
+        }
+
+        private GuidebookText text() {
+            return text;
+        }
     }
 
     private boolean canApplyGuideEditorParsedPage(ParsedGuidePage parsedPage) {
@@ -1344,7 +1453,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             guideEditorSuppressUndoRecording = false;
         }
         guideEditorDraftSource = entry.getText();
-        guideEditorDirty = !Objects.equals(guideEditorDraftSource, guideEditorSavedSource);
+        guideEditorDirty = GuideScreenEditorSourceState.isDirty(guideEditorDraftSource, guideEditorSavedSource);
         guideEditorPreviewDirty = true;
         long now = System.currentTimeMillis();
         if (guideEditorDirty) {
@@ -1355,6 +1464,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
         guideEditorNextPreviewCompileAtMillis = now + 100L;
         syncGuideEditorPreviewScrollFromEditor();
+        updateToolbarButtonState();
     }
 
     private void ensureGuideEditorCurrentStateInUndoHistory() {
@@ -1768,20 +1878,38 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     @Override
     protected void actionPerformed(GuiButton btn) {
         if (btn == btnClose) {
-            close();
+            handleGuideEditorPotentialUnsavedAction(new Runnable() {
+
+                @Override
+                public void run() {
+                    closeWithoutGuideEditorUnsavedPrompt();
+                }
+            });
         } else if (btn == btnBack) {
             if (!history.isEmpty()) {
-                forwardHistory.push(currentAnchor);
-                var prev = history.pop();
-                navigateWithoutHistory(prev);
-                rebuildToolbar();
+                handleGuideEditorPotentialUnsavedAction(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        forwardHistory.push(currentAnchor);
+                        var prev = history.pop();
+                        navigateWithoutHistory(prev);
+                        rebuildToolbar();
+                    }
+                });
             }
         } else if (btn == btnForward) {
             if (!forwardHistory.isEmpty()) {
-                history.push(currentAnchor);
-                var next = forwardHistory.pop();
-                navigateWithoutHistory(next);
-                rebuildToolbar();
+                handleGuideEditorPotentialUnsavedAction(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        history.push(currentAnchor);
+                        var next = forwardHistory.pop();
+                        navigateWithoutHistory(next);
+                        rebuildToolbar();
+                    }
+                });
             }
         } else if (btn == btnFullWidth) {
             fullWidth = !fullWidth;
@@ -1801,13 +1929,25 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             if (isSearchPage()) {
                 return;
             } else {
-                navigateTo(GuideSearchPage.anchorForQuery(""));
-                focusSearchField();
+                handleGuideEditorPotentialUnsavedAction(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        navigateTo(GuideSearchPage.anchorForQuery(""));
+                        focusSearchField();
+                    }
+                });
             }
         } else if (btn == btnGuideEditorToggle) {
             toggleGuideEditorEnabled();
         } else if (btn == btnGuideEditorNewPage) {
-            createGuideEditorPage();
+            handleGuideEditorPotentialUnsavedAction(new Runnable() {
+
+                @Override
+                public void run() {
+                    createGuideEditorPage();
+                }
+            });
         } else if (btn == btnGuideEditorAutosave) {
             toggleGuideEditorAutosave();
         } else if (btn == btnGuideEditorSave) {
@@ -1958,7 +2098,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             return;
         }
 
-        LytHeading extracted = currentPage != null ? currentPage.titleHeading() : null;
+        GuidePage titlePage = isGuideEditorActive() && guideEditorPreviewPage != null ? guideEditorPreviewPage
+            : currentPage;
+        LytHeading extracted = titlePage != null ? titlePage.titleHeading() : null;
 
         if (extracted != null) {
             for (var flowContent : extracted.getContent()) {
@@ -2026,8 +2168,13 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         navBar.setBounds(navX, navY, navH);
         int navMouseX = mouseX;
         int navMouseY = mouseY;
-        if (isGuideEditorActive() && isInsideGuideEditorContent(mouseX, mouseY)
-            && (Mouse.isButtonDown(0) || Mouse.isButtonDown(2))) {
+        boolean navigationContainsMouse = navBar.contains(mouseX, mouseY);
+        if (GuideScreenInputPolicy.shouldSuppressNavigationHoverForEditorMouseDown(
+            isGuideEditorActive(),
+            isInsideGuideEditorContent(mouseX, mouseY),
+            Mouse.isButtonDown(0) || Mouse.isButtonDown(2),
+            navBar.isOpen(),
+            navigationContainsMouse)) {
             navMouseX = Integer.MIN_VALUE;
             navMouseY = Integer.MIN_VALUE;
         }
@@ -2082,8 +2229,13 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (isGuideEditorActive()) {
             drawGuideEditorContextMenu(mouseX, mouseY);
         }
+        if (guideEditorUnsavedPromptOpen) {
+            drawGuideEditorUnsavedPrompt(mouseX, mouseY);
+        }
 
-        drawButtonTooltip(mouseX, mouseY);
+        if (!guideEditorUnsavedPromptOpen) {
+            drawButtonTooltip(mouseX, mouseY);
+        }
     }
 
     private void drawBottomBar() {
@@ -2120,6 +2272,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private void drawGuideEditorScreen(int mouseX, int mouseY) {
         ensureGuideEditorTextArea();
         updateGuideEditorTextFromArea();
+        if (guideEditorUnsavedPromptOpen && guideEditorTextArea != null) {
+            guideEditorTextArea.setFocused(false);
+        }
         if (guideEditorPreviewDirty && System.currentTimeMillis() >= guideEditorNextPreviewCompileAtMillis) {
             rebuildGuideEditorPreview();
         }
@@ -2142,6 +2297,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null) {
             guideEditorTextArea.setBounds(contentX, editorTop, Math.max(1, leftPaneWidth), editorHeight);
             guideEditorTextArea.draw(false);
+        } else if (guideEditorTextArea != null) {
+            guideEditorTextArea.setFocused(false);
         }
 
         if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.SPLIT) {
@@ -2360,6 +2517,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (!isGuideEditorActive() || guideEditorTextArea == null) {
             return false;
         }
+        if (guideEditorUnsavedPromptOpen) {
+            return true;
+        }
+        if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.PREVIEW_ONLY) {
+            guideEditorTextArea.setFocused(false);
+        }
         if (guideEditorSuppressTextFocusUntilGuideHotkeyRelease) {
             if (keyCode == OpenGuideHotkey.OPEN_GUIDE_KEY.getKeyCode() || OpenGuideHotkey.isKeyHeld()) {
                 guideEditorTextArea.setFocused(false);
@@ -2384,6 +2547,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                     commitAutocompleteSelection();
                     return true;
                 default:
+                    if (!AutocompleteKeyPolicy.shouldCloseForKey(typedChar, keyCode)) {
+                        return true;
+                    }
                     closeAutocompletePopup();
                     if (guideEditorTextArea != null) {
                         guideEditorTextArea.keyTyped(typedChar, keyCode);
@@ -2421,6 +2587,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (keyCode == Keyboard.KEY_S
             && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL))) {
             saveGuideEditorDraft();
+            return true;
+        }
+        if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.PREVIEW_ONLY) {
             return true;
         }
         if (!guideEditorTextArea.isFocused()) {
@@ -2525,6 +2694,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private boolean handleGuideEditorMouseClicked(int mouseX, int mouseY, int button) {
         if (!isGuideEditorActive()) {
             return false;
+        }
+        if (guideEditorUnsavedPromptOpen) {
+            return true;
         }
         if (autocompletePopup != null && autocompletePopup.isOpen()) {
             if (autocompletePopup.contains(mouseX, mouseY)) {
@@ -3153,6 +3325,73 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
     }
 
+    private void drawGuideEditorUnsavedPrompt(int mouseX, int mouseY) {
+        drawRect(0, 0, this.width, this.height, GUIDE_EDITOR_UNSAVED_DIALOG_OVERLAY_COLOR);
+        LytRect bounds = getGuideEditorUnsavedPromptBounds();
+        drawRect(bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), GUIDE_EDITOR_UNSAVED_DIALOG_COLOR);
+        drawBorder(bounds.x(), bounds.y(), bounds.width(), bounds.height(), GUIDE_EDITOR_UNSAVED_DIALOG_BORDER_COLOR);
+        drawCenteredString(
+            fontRendererObj,
+            GuidebookText.GuideEditorSave.text(),
+            this.width / 2,
+            bounds.y() + 12,
+            0xFFF0F0F0);
+        drawCenteredString(
+            fontRendererObj,
+            GuidebookText.SceneEditorClosePrompt.text(),
+            this.width / 2,
+            bounds.y() + 34,
+            0xFFD0D8E0);
+        for (GuideEditorUnsavedAction action : GUIDE_EDITOR_UNSAVED_ACTIONS) {
+            drawGuideEditorUnsavedPromptButton(action, mouseX, mouseY);
+        }
+    }
+
+    private void drawGuideEditorUnsavedPromptButton(GuideEditorUnsavedAction action, int mouseX, int mouseY) {
+        LytRect bounds = getGuideEditorUnsavedButtonBounds(action);
+        boolean hovered = bounds.contains(mouseX, mouseY);
+        drawRect(
+            bounds.x(),
+            bounds.y(),
+            bounds.right(),
+            bounds.bottom(),
+            hovered ? GUIDE_EDITOR_UNSAVED_DIALOG_HOVER_COLOR : 0xFF20242B);
+        drawBorder(
+            bounds.x(),
+            bounds.y(),
+            bounds.width(),
+            bounds.height(),
+            hovered ? 0xFF00CAF2 : GUIDE_EDITOR_UNSAVED_DIALOG_BORDER_COLOR);
+        drawCenteredString(
+            fontRendererObj,
+            action.text()
+                .text(),
+            bounds.x() + bounds.width() / 2,
+            bounds.y() + 6,
+            0xFFF0F0F0);
+    }
+
+    private LytRect getGuideEditorUnsavedPromptBounds() {
+        return new LytRect(
+            (this.width - GUIDE_EDITOR_UNSAVED_DIALOG_WIDTH) / 2,
+            (this.height - GUIDE_EDITOR_UNSAVED_DIALOG_HEIGHT) / 2,
+            GUIDE_EDITOR_UNSAVED_DIALOG_WIDTH,
+            GUIDE_EDITOR_UNSAVED_DIALOG_HEIGHT);
+    }
+
+    private LytRect getGuideEditorUnsavedButtonBounds(GuideEditorUnsavedAction action) {
+        LytRect dialogBounds = getGuideEditorUnsavedPromptBounds();
+        int totalWidth = GUIDE_EDITOR_UNSAVED_BUTTON_WIDTH * 3 + GUIDE_EDITOR_UNSAVED_BUTTON_GAP * 2;
+        int startX = dialogBounds.x() + (dialogBounds.width() - totalWidth) / 2;
+        int y = dialogBounds.bottom() - GUIDE_EDITOR_UNSAVED_BUTTON_HEIGHT - 14;
+        int index = action.ordinal();
+        return new LytRect(
+            startX + index * (GUIDE_EDITOR_UNSAVED_BUTTON_WIDTH + GUIDE_EDITOR_UNSAVED_BUTTON_GAP),
+            y,
+            GUIDE_EDITOR_UNSAVED_BUTTON_WIDTH,
+            GUIDE_EDITOR_UNSAVED_BUTTON_HEIGHT);
+    }
+
     private void drawButtonTooltip(int mouseX, int mouseY) {
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             String menuTooltip = guideEditorContextMenu.getHoveredTooltip();
@@ -3605,7 +3844,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             btnGuideEditorAutosave.setActive(GuideScreenEditorState.isAutosaveEnabled());
         }
         if (btnGuideEditorSave != null) {
-            btnGuideEditorSave.enabled = isGuideEditorActive() && guideEditorDirty;
+            btnGuideEditorSave.enabled = isGuideEditorActive();
         }
     }
 
@@ -3691,6 +3930,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     @Override
     public void handleMouseInput() {
         super.handleMouseInput();
+        if (guideEditorUnsavedPromptOpen) {
+            return;
+        }
         int dwheel = Mouse.getEventDWheel();
         if (dwheel != 0) {
             long now = System.currentTimeMillis();
@@ -3748,8 +3990,11 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     }
 
     private boolean isFocusedTextInputReadyForCommittedCharacter() {
-        return isGuideEditorActive() && guideEditorTextArea != null && guideEditorTextArea.isFocused()
-            || searchField != null && searchField.isFocused();
+        boolean guideEditorTextFocused = isGuideEditorActive()
+            && guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY
+            && guideEditorTextArea != null
+            && guideEditorTextArea.isFocused();
+        return guideEditorTextFocused || searchField != null && searchField.isFocused();
     }
 
     private boolean isSceneWheelInteractionBlocked(long now) {
@@ -3767,22 +4012,51 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int button) {
+        if (guideEditorUnsavedPromptOpen) {
+            if (button == 0) {
+                for (GuideEditorUnsavedAction action : GUIDE_EDITOR_UNSAVED_ACTIONS) {
+                    if (getGuideEditorUnsavedButtonBounds(action).contains(mouseX, mouseY)) {
+                        completeGuideEditorUnsavedPrompt(action);
+                        return;
+                    }
+                }
+            }
+            return;
+        }
         if (handleGuideEditorToolbarRightClick(mouseX, mouseY, button)) {
+            return;
+        }
+        if (GuideScreenInputPolicy
+            .shouldRouteNavigationClickBeforeEditor(navBar.isOpen(), navBar.contains(mouseX, mouseY), button)) {
+            var target = navBar.mouseClicked(mouseX, mouseY, currentAnchor != null ? currentAnchor.pageId() : null);
+            if (target != null) {
+                PageAnchor nextAnchor = PageAnchor.page(target);
+                if (nextAnchor.equals(currentAnchor)) {
+                    mc.getSoundHandler()
+                        .playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("gui.button.press"), 1.0F));
+                    return;
+                }
+                handleGuideEditorPotentialUnsavedAction(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
+                        history.push(currentAnchor);
+                        forwardHistory.clear();
+                        navigateWithoutHistory(nextAnchor);
+                        rebuildToolbar();
+                        mc.getSoundHandler()
+                            .playSound(
+                                PositionedSoundRecord.func_147674_a(new ResourceLocation("gui.button.press"), 1.0F));
+                    }
+                });
+            }
             return;
         }
         if (isGuideEditorActive() && (button == 0 || button == 2) && isInsideGuideEditorContent(mouseX, mouseY)) {
             if (handleGuideEditorMouseClicked(mouseX, mouseY, button)) {
                 return;
             }
-        }
-        if (button == 0 && navBar.contains(mouseX, mouseY)) {
-            var target = navBar.mouseClicked(mouseX, mouseY, currentAnchor != null ? currentAnchor.pageId() : null);
-            if (target != null) {
-                navigateTo(PageAnchor.page(target));
-                mc.getSoundHandler()
-                    .playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("gui.button.press"), 1.0F));
-            }
-            return;
         }
         if (searchField != null) {
             boolean insideField = isInsideSearchField(mouseX, mouseY);
@@ -3960,6 +4234,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        if (guideEditorUnsavedPromptOpen) {
+            return;
+        }
         if (handleGuideEditorMouseDragged(mouseX, mouseY, clickedMouseButton)) {
             return;
         }
@@ -3988,6 +4265,9 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
+        if (guideEditorUnsavedPromptOpen) {
+            return;
+        }
         if (handleGuideEditorMouseReleased(mouseX, mouseY, state)) {
             return;
         }
@@ -4236,6 +4516,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
+        if (guideEditorUnsavedPromptOpen) {
+            if (keyCode == Keyboard.KEY_ESCAPE) {
+                completeGuideEditorUnsavedPrompt(GuideEditorUnsavedAction.CANCEL);
+            }
+            return;
+        }
         if (handleSearchFieldKey(typedChar, keyCode)) return;
         if (handleGuideEditorKey(typedChar, keyCode)) return;
         if (keyCode == Keyboard.KEY_ESCAPE) {
@@ -4244,10 +4530,16 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
         if (keyCode == Keyboard.KEY_BACK) {
             if (!history.isEmpty()) {
-                forwardHistory.push(currentAnchor);
-                var prev = history.pop();
-                navigateWithoutHistory(prev);
-                rebuildToolbar();
+                handleGuideEditorPotentialUnsavedAction(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        forwardHistory.push(currentAnchor);
+                        var prev = history.pop();
+                        navigateWithoutHistory(prev);
+                        rebuildToolbar();
+                    }
+                });
             }
             return;
         }
@@ -4284,6 +4576,16 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     @Override
     public void navigateTo(PageAnchor anchor) {
         if (anchor == null || anchor.equals(currentAnchor)) return;
+        if (hasUnsavedGuideEditorChanges()) {
+            openGuideEditorUnsavedPrompt(new Runnable() {
+
+                @Override
+                public void run() {
+                    navigateTo(anchor);
+                }
+            });
+            return;
+        }
         suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
         history.push(currentAnchor);
         forwardHistory.clear();
@@ -4321,6 +4623,20 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     @Override
     public void close() {
+        if (hasUnsavedGuideEditorChanges()) {
+            openGuideEditorUnsavedPrompt(new Runnable() {
+
+                @Override
+                public void run() {
+                    closeWithoutGuideEditorUnsavedPrompt();
+                }
+            });
+            return;
+        }
+        closeWithoutGuideEditorUnsavedPrompt();
+    }
+
+    private void closeWithoutGuideEditorUnsavedPrompt() {
         GuideSoundPlayback.stopAll();
         mc.displayGuiScreen(parentScreen);
         if (mc.currentScreen == null) {
@@ -4332,9 +4648,6 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     public void onGuiClosed() {
         super.onGuiClosed();
         GuideSoundPlayback.stopAll();
-        if (GuideScreenEditorState.isAutosaveEnabled() && guideEditorDirty) {
-            saveGuideEditorDraft();
-        }
         Keyboard.enableRepeatEvents(false);
         document = null;
         layoutDocument = null;
@@ -4360,6 +4673,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         guideEditorExternalFileCheckEnabled = false;
         guideEditorTextArea = null;
         guideEditorContextMenu = null;
+        guideEditorUnsavedPromptOpen = false;
+        guideEditorPendingUnsavedAction = null;
         cachedGuideEditorPreviewInteractionState = null;
     }
 

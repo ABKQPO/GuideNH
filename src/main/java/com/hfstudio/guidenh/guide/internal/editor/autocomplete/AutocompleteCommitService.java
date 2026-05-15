@@ -46,7 +46,7 @@ public class AutocompleteCommitService {
             }
         }
         String text = tagName + " />";
-        return Replacement.cursorAtEnd(text);
+        return new Replacement(text, text.length() - 2, text.length() - 2);
     }
 
     private static Replacement createAttributeNameReplacement(String source, MdxAttrNameContext context,

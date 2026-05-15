@@ -2,9 +2,11 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.item.Item;
@@ -40,6 +42,9 @@ public class ItemIdProvider implements AutocompleteProvider {
         KEYS = Collections.unmodifiableSet(allKeys);
     }
 
+    private List<String> cachedSortedKeys = Collections.emptyList();
+    private int cachedRegistryKeyCount = -1;
+
     private static Set<AutocompleteKey> buildKeys(String... tagNames) {
         Set<AutocompleteKey> keys = new HashSet<>();
         for (String tag : tagNames) {
@@ -56,43 +61,89 @@ public class ItemIdProvider implements AutocompleteProvider {
     @Override
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
         String partial = ctx.getPartialText();
-        String lower = partial != null ? partial.toLowerCase() : "";
-
+        List<String> keys = getSortedRegistryKeys();
         List<AutocompleteCandidate> results = new ArrayList<>();
-        if (lower.indexOf(':') < 0) {
-            addNamespaceCandidates(results, lower, limit);
-        }
-        for (Object obj : Item.itemRegistry.getKeys()) {
-            if (results.size() >= limit) break;
-            if (obj instanceof String key) {
-                if (lower.isEmpty() || key.toLowerCase()
-                    .contains(lower)) {
-                    Item item = (Item) Item.itemRegistry.getObject(key);
-                    if (item != null) {
-                        results.add(new ItemCandidate(key, new ItemStack(item)));
-                    }
-                }
+        for (String candidate : collectCandidateTexts(keys, partial, limit, false)) {
+            if (candidate.endsWith(":")) {
+                results.add(new TextCandidate(candidate));
+                continue;
+            }
+            Item item = (Item) Item.itemRegistry.getObject(candidate);
+            if (item != null) {
+                results.add(new ItemCandidate(candidate, new ItemStack(item)));
             }
         }
         return results;
     }
 
-    private void addNamespaceCandidates(List<AutocompleteCandidate> results, String lower, int limit) {
+    private List<String> getSortedRegistryKeys() {
+        Set<?> keysView = Item.itemRegistry.getKeys();
+        if (cachedRegistryKeyCount == keysView.size()) {
+            return cachedSortedKeys;
+        }
+        List<String> keys = new ArrayList<>();
+        for (Object obj : keysView) {
+            if (obj instanceof String key) {
+                keys.add(key);
+            }
+        }
+        cachedSortedKeys = sortedKeys(keys);
+        cachedRegistryKeyCount = keysView.size();
+        return cachedSortedKeys;
+    }
+
+    public static List<String> collectCandidateTexts(List<String> keys, String partial, int limit) {
+        return collectCandidateTexts(keys, partial, limit, true);
+    }
+
+    private static List<String> collectCandidateTexts(List<String> keys, String partial, int limit, boolean sortKeys) {
+        int safeLimit = Math.max(0, limit);
+        if (safeLimit <= 0) {
+            return Collections.emptyList();
+        }
+        String lower = partial != null ? partial.toLowerCase(Locale.ROOT) : "";
+        List<String> candidates = new ArrayList<>(Math.min(safeLimit, keys.size()));
+        List<String> sortedKeys = sortKeys ? sortedKeys(keys) : keys;
+        if (lower.indexOf(':') < 0) {
+            addNamespaceCandidateTexts(candidates, sortedKeys, lower, safeLimit);
+        }
+        addItemCandidateTexts(candidates, sortedKeys, lower, safeLimit);
+        return candidates;
+    }
+
+    private static void addNamespaceCandidateTexts(List<String> results, List<String> sortedKeys, String lower,
+        int limit) {
         Set<String> namespaces = new LinkedHashSet<>();
-        for (Object obj : Item.itemRegistry.getKeys()) {
-            if (!(obj instanceof String)) continue;
-            String key = (String) obj;
+        for (String key : sortedKeys) {
             int separator = key.indexOf(':');
             if (separator <= 0) continue;
             String namespace = key.substring(0, separator);
-            String namespaceLower = namespace.toLowerCase();
+            String namespaceLower = namespace.toLowerCase(Locale.ROOT);
             if (lower.isEmpty() || namespaceLower.startsWith(lower)) {
                 namespaces.add(namespace);
             }
         }
         for (String namespace : namespaces) {
             if (results.size() >= limit) break;
-            results.add(new TextCandidate(namespace + ":"));
+            results.add(namespace + ":");
         }
+    }
+
+    private static void addItemCandidateTexts(List<String> results, List<String> sortedKeys, String lower, int limit) {
+        for (String key : sortedKeys) {
+            if (results.size() >= limit) break;
+            if (lower.isEmpty() || key.toLowerCase(Locale.ROOT)
+                .contains(lower)) {
+                results.add(key);
+            }
+        }
+    }
+
+    private static List<String> sortedKeys(List<String> keys) {
+        List<String> sorted = new ArrayList<>(keys);
+        sorted.sort(
+            Comparator.comparing((String key) -> key.toLowerCase(Locale.ROOT))
+                .thenComparing(Comparator.naturalOrder()));
+        return sorted;
     }
 }
