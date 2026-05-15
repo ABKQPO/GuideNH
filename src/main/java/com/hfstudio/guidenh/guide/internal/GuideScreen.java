@@ -67,6 +67,8 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteCommit;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteCommitService;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SelectionStrategy;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxContextResolver;
@@ -81,7 +83,6 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.Composit
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FencedBlockLanguageResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxSyntaxResolver;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.SelectionStrategies;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.WordBoundaryResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.ui.AutocompletePopup;
@@ -271,6 +272,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     private long autocompleteNextQueryAtMillis;
     private String autocompleteLastText;
     private int autocompleteLastCursor;
+    private boolean autocompleteQueryRequestedByEdit;
     private static final long AUTOCOMPLETE_DEBOUNCE_MS = 100;
     private static final int AUTOCOMPLETE_CURSOR_GAP_Y = 14;
     @Nullable
@@ -1302,6 +1304,17 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
             case SELECT_ALL:
                 guideEditorTextArea.selectAll();
                 return;
+            case FORMAT_DOCUMENT:
+                runGuideEditorTextMutation(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        String formatted = GuideScreenEditorTextActions.formatDocument(guideEditorTextArea.getText());
+                        int cursor = Math.min(guideEditorTextArea.getCursorIndex(), formatted.length());
+                        guideEditorTextArea.applyEdit(formatted, cursor, cursor);
+                    }
+                });
+                return;
             default:
                 GuideScreenEditorTextActions.Result result = GuideScreenEditorTextActions.apply(
                     action,
@@ -1379,6 +1392,8 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COPY));
         editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PASTE));
         editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SELECT_ALL));
+        editEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FORMAT_DOCUMENT));
 
         List<GuideScreenEditorContextMenu.Entry> insertEntries = new ArrayList<>();
         insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_1));
@@ -2009,7 +2024,14 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         int bottomBarH = hasBottomBar() ? TOOLBAR_H : 0;
         int navH = Math.max(20, panelH - TOOLBAR_H - 1 - bottomBarH);
         navBar.setBounds(navX, navY, navH);
-        navBar.update(mouseX, mouseY, guide.getNavigationTree());
+        int navMouseX = mouseX;
+        int navMouseY = mouseY;
+        if (isGuideEditorActive() && isInsideGuideEditorContent(mouseX, mouseY)
+            && (Mouse.isButtonDown(0) || Mouse.isButtonDown(2))) {
+            navMouseX = Integer.MIN_VALUE;
+            navMouseY = Integer.MIN_VALUE;
+        }
+        navBar.update(navMouseX, navMouseY, guide.getNavigationTree());
         int contentMouseX = mouseX;
         int contentMouseY = mouseY;
         if (navBar.isOpen() && navBar.contains(mouseX, mouseY)) {
@@ -2132,10 +2154,23 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         }
 
         if (autocompletePopup != null && autocompletePopup.isOpen()) {
+            if (!isAutocompleteAnchorVisible()) {
+                closeAutocompletePopup();
+                return;
+            }
             autocompletePopup
                 .reposition(getAutocompleteAnchorX(), getAutocompleteAnchorY(), width, height, fontRendererObj);
             autocompletePopup.draw(fontRendererObj, mouseX, mouseY);
         }
+    }
+
+    private boolean isAutocompleteAnchorVisible() {
+        if (guideEditorTextArea == null) {
+            return false;
+        }
+        int anchorY = getAutocompleteAnchorY();
+        return guideEditorTextArea.isCursorVisibleInViewport() && anchorY >= guideEditorEditorTop
+            && anchorY <= getGuideEditorContentBottom();
     }
 
     private int getAutocompleteAnchorX() {
@@ -2335,7 +2370,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (autocompletePopup != null && autocompletePopup.isOpen()) {
             switch (keyCode) {
                 case Keyboard.KEY_ESCAPE:
-                    autocompletePopup.close();
+                    closeAutocompletePopup();
                     return true;
                 case Keyboard.KEY_UP:
                     autocompletePopup.moveSelection(-1);
@@ -2349,9 +2384,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                     commitAutocompleteSelection();
                     return true;
                 default:
-                    // Close popup and forward key to text area so it isn't
-                    // consumed by GuideScreen.keyTyped navigation handlers.
-                    autocompletePopup.close();
+                    closeAutocompletePopup();
                     if (guideEditorTextArea != null) {
                         guideEditorTextArea.keyTyped(typedChar, keyCode);
                         updateGuideEditorTextFromArea();
@@ -2410,6 +2443,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
     private void scheduleAutocompleteCheck() {
         if (autocompleteResolver == null || guideEditorTextArea == null) return;
+        autocompleteQueryRequestedByEdit = true;
         autocompleteNextQueryAtMillis = System.currentTimeMillis() + AUTOCOMPLETE_DEBOUNCE_MS;
     }
 
@@ -2423,14 +2457,26 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         boolean textChanged = firstRun || !text.equals(autocompleteLastText);
         boolean cursorMoved = firstRun || cursor != autocompleteLastCursor;
 
-        // Nothing changed — skip
         if (!textChanged && !cursorMoved) return;
 
-        // Text changed but debounce not expired — wait for typing to settle
+        if (!textChanged && cursorMoved) {
+            autocompleteLastCursor = cursor;
+            closeAutocompletePopup();
+            return;
+        }
+
+        if (!autocompleteQueryRequestedByEdit) {
+            autocompleteLastText = text;
+            autocompleteLastCursor = cursor;
+            closeAutocompletePopup();
+            return;
+        }
+
         if (textChanged && !firstRun && System.currentTimeMillis() < autocompleteNextQueryAtMillis) return;
 
         autocompleteLastText = text;
         autocompleteLastCursor = cursor;
+        autocompleteQueryRequestedByEdit = false;
 
         TextSyntaxContext ctx = autocompleteResolver.resolve(text, cursor);
 
@@ -2451,7 +2497,12 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 return;
             }
         }
+        closeAutocompletePopup();
+    }
+
+    private void closeAutocompletePopup() {
         pendingAutocompleteContext = null;
+        autocompleteQueryRequestedByEdit = false;
         if (autocompletePopup != null && autocompletePopup.isOpen()) {
             autocompletePopup.close();
         }
@@ -2461,29 +2512,14 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (autocompletePopup == null || !autocompletePopup.isOpen() || guideEditorTextArea == null) return;
         AutocompleteCandidate selected = autocompletePopup.getSelected();
         if (selected == null || pendingAutocompleteContext == null) {
-            autocompletePopup.close();
-            pendingAutocompleteContext = null;
+            closeAutocompletePopup();
             return;
         }
-        AutocompleteContext ac = pendingAutocompleteContext;
-        String text = guideEditorTextArea.getText();
-        String before = text.substring(0, ac.replaceStart());
-        String after = text.substring(ac.replaceEnd());
-        String replaced = selected.replacementText();
-
-        if (ac instanceof MdxValueContext) {
-            char missingTerminator = ((MdxValueContext) ac).getMissingValueTerminator();
-            if (missingTerminator != '\0') {
-                replaced += missingTerminator;
-            }
-        }
-
-        String newText = before + replaced + after;
-        int newCursor = ac.replaceStart() + replaced.length();
-        guideEditorTextArea.applyEdit(newText, newCursor, newCursor);
+        AutocompleteCommit commit = AutocompleteCommitService
+            .commit(guideEditorTextArea.getText(), pendingAutocompleteContext, selected);
+        guideEditorTextArea.applyEdit(commit.getText(), commit.getSelectionStart(), commit.getSelectionEnd());
         updateGuideEditorTextFromArea();
-        autocompletePopup.close();
-        pendingAutocompleteContext = null;
+        closeAutocompletePopup();
     }
 
     private boolean handleGuideEditorMouseClicked(int mouseX, int mouseY, int button) {
@@ -2498,7 +2534,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 }
                 return true;
             } else if (button == 0) {
-                autocompletePopup.close();
+                closeAutocompletePopup();
             }
         }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
@@ -2693,7 +2729,6 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
                 autocompletePopup.scrollWheel(dwheel);
                 return true;
             }
-            // mouse outside popup: let scroll pass through to editor
         }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             guideEditorContextMenu.scrollWheel(mouseX, mouseY, dwheel, this.width, this.height, fontRendererObj);
@@ -2702,6 +2737,7 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null
             && guideEditorTextArea.contains(mouseX, mouseY)) {
             guideEditorTextArea.scrollWheel(dwheel);
+            closeAutocompletePopup();
             updateGuideEditorTextFromArea();
             syncGuideEditorPreviewScrollFromEditor();
             return true;
@@ -3733,6 +3769,11 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
     protected void mouseClicked(int mouseX, int mouseY, int button) {
         if (handleGuideEditorToolbarRightClick(mouseX, mouseY, button)) {
             return;
+        }
+        if (isGuideEditorActive() && (button == 0 || button == 2) && isInsideGuideEditorContent(mouseX, mouseY)) {
+            if (handleGuideEditorMouseClicked(mouseX, mouseY, button)) {
+                return;
+            }
         }
         if (button == 0 && navBar.contains(mouseX, mouseY)) {
             var target = navBar.mouseClicked(mouseX, mouseY, currentAnchor != null ? currentAnchor.pageId() : null);

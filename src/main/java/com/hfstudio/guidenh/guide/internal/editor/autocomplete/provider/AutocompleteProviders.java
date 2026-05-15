@@ -36,9 +36,28 @@ public class AutocompleteProviders {
         List<AutocompleteCandidate> results = new ArrayList<>();
         for (AutocompleteProvider provider : resolveProviders(ctx)) {
             results.addAll(provider.provide(ctx, Math.max(0, limit - results.size())));
+            removeExactPartialMatch(results, ctx.getPartialText());
             if (results.size() >= limit) break;
         }
+        if (results.size() > limit) {
+            return new ArrayList<>(results.subList(0, limit));
+        }
         return results;
+    }
+
+    private static void removeExactPartialMatch(List<AutocompleteCandidate> results, String partialText) {
+        if (partialText == null || partialText.isEmpty()) {
+            return;
+        }
+        String partial = partialText.toLowerCase();
+        for (int i = results.size() - 1; i >= 0; i--) {
+            String replacement = results.get(i)
+                .replacementText();
+            if (replacement != null && replacement.toLowerCase()
+                .equals(partial)) {
+                results.remove(i);
+            }
+        }
     }
 
     private static List<AutocompleteProvider> resolveProviders(AutocompleteContext ctx) {

@@ -33,7 +33,7 @@ public class TagAttributeRegistry {
         return Collections.unmodifiableSet(registry.keySet());
     }
 
-    /** Populate the registry with all known tag→attribute mappings. */
+    /** Populate the registry with all known tag-to-attribute mappings. */
     public static void initialize() {
         // Inline/Flow tags
         register(
@@ -156,7 +156,7 @@ public class TagAttributeRegistry {
         register("ItemGrid"); // no attributes - uses child elements
         register("FootnoteList", new AttributeSpec("width", AttrType.INT));
 
-        // === Charts (all five types share CommonChartAttrs) ===
+        // Charts share CommonChartAttrs.
         register(
             "BarChart",
             new AttributeSpec("title", AttrType.STRING),
@@ -306,7 +306,7 @@ public class TagAttributeRegistry {
             new AttributeSpec("startAngle", AttrType.FLOAT),
             new AttributeSpec("clockwise", AttrType.BOOLEAN));
 
-        // === Chart child tags ===
+        // Chart child tags.
         register(
             "Series",
             new AttributeSpec("name", AttrType.STRING),
@@ -341,7 +341,7 @@ public class TagAttributeRegistry {
             new AttributeSpec("title", AttrType.STRING),
             new AttributeSpec("titleColor", AttrType.COLOR));
 
-        // === FunctionGraph child tags ===
+        // FunctionGraph child tags.
         register(
             "Plot",
             new AttributeSpec("expr", AttrType.EXPRESSION),
@@ -363,7 +363,7 @@ public class TagAttributeRegistry {
             new AttributeSpec("atX", AttrType.FLOAT),
             new AttributeSpec("atY", AttrType.FLOAT));
 
-        // === Fix and extend existing registrations ===
+        // Existing registrations with extended attributes.
 
         // GameScene: add camera attributes
         register(
@@ -512,6 +512,21 @@ public class TagAttributeRegistry {
             new AttributeSpec("offsetX", AttrType.INT),
             new AttributeSpec("offsetY", AttrType.INT),
             new AttributeSpec("offsetZ", AttrType.INT));
+        register("Tier", new AttributeSpec("value", AttrType.INT), new AttributeSpec("expr", AttrType.INT));
+        register(
+            "Channel",
+            new AttributeSpec("name", AttrType.STRING),
+            new AttributeSpec("id", AttrType.STRING),
+            new AttributeSpec("value", AttrType.INT),
+            new AttributeSpec("expr", AttrType.INT));
+        register("Facing", new AttributeSpec("value", AttrType.STRING));
+        register("Rotation", new AttributeSpec("value", AttrType.STRING));
+        register("Flip", new AttributeSpec("value", AttrType.STRING));
+        register("Orientation", new AttributeSpec("value", AttrType.STRING));
+        register("GregTechActiveController");
+        register("GtActiveController");
+        register("GregTechPlaceHatches");
+        register("GtPlaceHatches");
 
         // PlaceBlock: add dx/dy/dz
         register(

@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -58,6 +59,9 @@ public class ItemIdProvider implements AutocompleteProvider {
         String lower = partial != null ? partial.toLowerCase() : "";
 
         List<AutocompleteCandidate> results = new ArrayList<>();
+        if (lower.indexOf(':') < 0) {
+            addNamespaceCandidates(results, lower, limit);
+        }
         for (Object obj : Item.itemRegistry.getKeys()) {
             if (results.size() >= limit) break;
             if (obj instanceof String key) {
@@ -71,5 +75,24 @@ public class ItemIdProvider implements AutocompleteProvider {
             }
         }
         return results;
+    }
+
+    private void addNamespaceCandidates(List<AutocompleteCandidate> results, String lower, int limit) {
+        Set<String> namespaces = new LinkedHashSet<>();
+        for (Object obj : Item.itemRegistry.getKeys()) {
+            if (!(obj instanceof String)) continue;
+            String key = (String) obj;
+            int separator = key.indexOf(':');
+            if (separator <= 0) continue;
+            String namespace = key.substring(0, separator);
+            String namespaceLower = namespace.toLowerCase();
+            if (lower.isEmpty() || namespaceLower.startsWith(lower)) {
+                namespaces.add(namespace);
+            }
+        }
+        for (String namespace : namespaces) {
+            if (results.size() >= limit) break;
+            results.add(new TextCandidate(namespace + ":"));
+        }
     }
 }

@@ -58,8 +58,10 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
     @Nullable
     private TextSyntaxContext resolveFromAst(MdAstRoot root, String text, int cursorIndex) {
-        TextSyntaxContext tagStart = resolveTagStart(text, cursorIndex);
-        if (tagStart != null) return tagStart;
+        TextSyntaxContext fallback = resolveFromFallback(text, cursorIndex);
+        if (fallback != null && fallback.getElementType() != SyntaxElementType.WORD) {
+            return fallback;
+        }
 
         MdxJsxElementFields element = findEnclosingMdxElement(root, cursorIndex);
         if (element != null) {

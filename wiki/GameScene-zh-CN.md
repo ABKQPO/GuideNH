@@ -333,6 +333,37 @@ GuideNH 当前注册了以下场景子标签：
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
 ````
 
+StructureLib 默认值也可以写成子标签。这些默认值会成为场景的初始交互状态，
+所以用户拖动 tier 或 channel 滑条后，点击重置视图按钮会回到这些默认值。
+
+| 子标签 | 含义 |
+| --- | --- |
+| `<Tier value="1" />` | 主 tier 值。 |
+| `<Channel name="channelName" value="1" />` | 具名 StructureLib channel 覆盖值；可以重复。 |
+| `<Facing value="north" />` | 默认朝向。 |
+| `<Rotation value="normal" />` | 默认旋转。 |
+| `<Flip value="none" />` | 默认翻转 / 镜像。 |
+| `<Orientation value="north:normal:none" />` | 在一个标签内同时指定朝向、旋转、翻转。 |
+| `<GregTechActiveController />` | 仅 GregTech：尽可能使用机器激活状态的控制器贴图。 |
+| `<GregTechPlaceHatches />` | 仅 GregTech：为仅允许仓室的位置放置真实 GT 仓室；省略时仍会使用 GT survival preview，但空仓室位置默认回退为外壳。 |
+
+对 GregTech 控制器，GuideNH 现在会使用与导出命令一致的 StructureLib survival preview 路径。
+这可以修复普通 `construct()` 无法填充的仓室专用位置，同时默认保留外壳 fallback 行为。
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
+    <Tier value="4" />
+    <Channel name="voltage" value="4" />
+    <Facing value="north" />
+    <Rotation value="normal" />
+    <Flip value="none" />
+    <GregTechActiveController />
+    <GregTechPlaceHatches />
+  </ImportStructureLib>
+</GameScene>
+````
+
 ## `<IsometricCamera>`
 
 显式指定等轴相机的 yaw/pitch/roll。

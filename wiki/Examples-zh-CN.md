@@ -60,9 +60,19 @@ navigation:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
-  <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
+  <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
+    <Tier value="4" />
+    <Channel name="hatch" value="1" />
+    <Facing value="north" />
+    <Rotation value="normal" />
+    <Flip value="none" />
+    <GregTechActiveController />
+    <GregTechPlaceHatches />
+  </ImportStructureLib>
 </GameScene>
 ````
+
+子标签会设置 StructureLib 场景默认值，点击 reset view 时会恢复这些默认值。
 
 ### 导入结构后的清理
 

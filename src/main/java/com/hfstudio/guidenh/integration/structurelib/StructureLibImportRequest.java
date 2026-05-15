@@ -16,6 +16,7 @@ public class StructureLibImportRequest {
     @Nullable
     private final Integer channel;
     private final StructureLibPreviewSelection previewSelection;
+    private final StructureLibSceneOptions sceneOptions;
 
     public StructureLibImportRequest(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip, @Nullable Integer channel) {
@@ -27,12 +28,19 @@ public class StructureLibImportRequest {
             flip,
             channel,
             channel != null ? StructureLibPreviewSelection.ofMasterTier(channel)
-                : StructureLibPreviewSelection.defaultSelection());
+                : StructureLibPreviewSelection.defaultSelection(),
+            StructureLibSceneOptions.empty());
     }
 
     public StructureLibImportRequest(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip, @Nullable Integer channel,
         @Nullable StructureLibPreviewSelection previewSelection) {
+        this(controller, piece, facing, rotation, flip, channel, previewSelection, StructureLibSceneOptions.empty());
+    }
+
+    public StructureLibImportRequest(String controller, @Nullable String piece, @Nullable String facing,
+        @Nullable String rotation, @Nullable String flip, @Nullable Integer channel,
+        @Nullable StructureLibPreviewSelection previewSelection, @Nullable StructureLibSceneOptions sceneOptions) {
         this.controller = requireController(controller);
         this.piece = normalizeOptional(piece);
         this.facing = normalizeOptional(facing);
@@ -41,6 +49,7 @@ public class StructureLibImportRequest {
         this.channel = channel;
         this.previewSelection = previewSelection != null ? previewSelection
             : StructureLibPreviewSelection.defaultSelection();
+        this.sceneOptions = sceneOptions != null ? sceneOptions : StructureLibSceneOptions.empty();
     }
 
     public String getController() {
@@ -74,6 +83,10 @@ public class StructureLibImportRequest {
 
     public StructureLibPreviewSelection getPreviewSelection() {
         return previewSelection;
+    }
+
+    public StructureLibSceneOptions getSceneOptions() {
+        return sceneOptions;
     }
 
     public static String requireController(@Nullable String controller) {

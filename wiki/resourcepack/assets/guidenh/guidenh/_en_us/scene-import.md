@@ -21,6 +21,20 @@ categories:
 
 Hover blocks in the StructureLib preview to inspect the extra structure text. Hold `Shift` to expand replacement candidates. If the imported structure exposes hatch or channel metadata, the preview also adds the hatch highlight button and the bottom sliders automatically.
 
+Defaults can be written as child tags. Reset view restores these values after interactive slider
+changes, and GregTech controllers use the survival preview path so hatch-only positions are filled
+correctly:
+
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
+    <Tier value="4" />
+    <Channel name="voltage" value="4" />
+    <Facing value="north" />
+    <GregTechActiveController />
+    <GregTechPlaceHatches />
+  </ImportStructureLib>
+</GameScene>
+
 ## ImportStructure + RemoveBlocks
 
 `<ImportStructure src="..." />` expands an external SNBT/NBT file. `<RemoveBlocks id="..." />` strips blocks by id after import:

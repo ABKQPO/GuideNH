@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,6 +25,7 @@ import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdx.MdxCommentMasker;
 import com.hfstudio.guidenh.libs.micromark.ParseException;
@@ -58,6 +60,21 @@ public class SceneEditorMarkdownCodec {
         .unmodifiableSet(new HashSet<>(Collections.singletonList("src")));
     public static final Set<String> IMPORT_STRUCTURE_LIB_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Arrays.asList("controller", "piece", "facing", "rotation", "flip", "channel")));
+    public static final Set<String> STRUCTURE_LIB_OPTION_ATTRIBUTES = Collections.unmodifiableSet(
+        new HashSet<>(Arrays.asList("name", "id", "value", "expr", "tier", "facing", "rotation", "flip", "channel")));
+    public static final Set<String> STRUCTURE_LIB_OPTION_TAGS = Collections.unmodifiableSet(
+        new HashSet<>(
+            Arrays.asList(
+                "Tier",
+                "Channel",
+                "Facing",
+                "Rotation",
+                "Flip",
+                "Orientation",
+                "GregTechActiveController",
+                "GtActiveController",
+                "GregTechPlaceHatches",
+                "GtPlaceHatches")));
     public static final Set<String> REMOVE_BLOCKS_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Collections.singletonList("id")));
     public static final Set<String> BLOCK_ANNOTATION_TEMPLATE_ATTRIBUTES = Collections
@@ -202,7 +219,7 @@ public class SceneEditorMarkdownCodec {
                 continue;
             }
 
-            // Unknown element — try to parse as a known annotation type.
+            // Unknown element: try to parse as a known annotation type.
             // If unsupported, preserve raw source text as an opaque passthrough node.
             try {
                 model.addElement(parseElement(element, source));
@@ -361,7 +378,121 @@ public class SceneEditorMarkdownCodec {
         copyOptionalAttribute(element, node, "rotation");
         copyOptionalAttribute(element, node, "flip");
         copyOptionalIntegerAttribute(element, node, "channel");
+        copyStructureLibOptionChildren(element, node);
         return node;
+    }
+
+    private void copyStructureLibOptionChildren(MdxJsxElementFields element, SceneEditorSceneNodeModel node) {
+        for (Object child : element.children()) {
+            if (!(child instanceof UnistNode childNode)) {
+                continue;
+            }
+            MdxJsxElementFields childElement = unwrapJsxElement(childNode, "");
+            if (childElement == null || childElement.name() == null) {
+                continue;
+            }
+            if (!STRUCTURE_LIB_OPTION_TAGS.contains(childElement.name())) {
+                continue;
+            }
+            copyStructureLibOptionChild(childElement, node);
+        }
+    }
+
+    private void copyStructureLibOptionChild(MdxJsxElementFields childElement, SceneEditorSceneNodeModel node) {
+        ensureAllowedAttributes(childElement, STRUCTURE_LIB_OPTION_ATTRIBUTES, childElement.name());
+        String name = childElement.name();
+        switch (name) {
+            case "Tier":
+                copyStructureLibScalarOption(childElement, node, "tier");
+                break;
+            case "Channel":
+                copyStructureLibChannelOption(childElement, node);
+                break;
+            case "Facing":
+                copyStructureLibScalarOption(childElement, node, "defaultFacing");
+                break;
+            case "Rotation":
+                copyStructureLibScalarOption(childElement, node, "defaultRotation");
+                break;
+            case "Flip":
+                copyStructureLibScalarOption(childElement, node, "defaultFlip");
+                break;
+            case "Orientation":
+                copyStructureLibOrientationOption(childElement, node);
+                break;
+            case "GregTechActiveController":
+            case "GtActiveController":
+                node.setAttribute("gtActiveController", "true");
+                break;
+            case "GregTechPlaceHatches":
+            case "GtPlaceHatches":
+                node.setAttribute("gtPlaceHatches", "true");
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void copyStructureLibScalarOption(MdxJsxElementFields element, SceneEditorSceneNodeModel node,
+        String targetAttribute) {
+        String value = firstOptionValue(element, "value", "expr", "name");
+        if (value != null && !value.isEmpty()) {
+            node.setAttribute(targetAttribute, value);
+        }
+    }
+
+    private void copyStructureLibChannelOption(MdxJsxElementFields element, SceneEditorSceneNodeModel node) {
+        String channelName = firstOptionValue(element, "name", "id");
+        String channelValue = firstOptionValue(element, "value", "expr", "channel");
+        if (channelName != null && !channelName.isEmpty() && channelValue != null && !channelValue.isEmpty()) {
+            node.setAttribute("channel." + channelName, channelValue);
+        }
+    }
+
+    private void copyStructureLibOrientationOption(MdxJsxElementFields element, SceneEditorSceneNodeModel node) {
+        String value = firstOptionValue(element, "value", "expr", "name");
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+        String[] parts = value.split(":");
+        if (parts.length > 0) {
+            node.setAttribute("defaultFacing", parts[0]);
+        }
+        if (parts.length > 1) {
+            node.setAttribute("defaultRotation", parts[1]);
+        }
+        if (parts.length > 2) {
+            node.setAttribute("defaultFlip", parts[2]);
+        }
+    }
+
+    @Nullable
+    private String firstOptionValue(MdxJsxElementFields element, String... attributes) {
+        for (String attribute : attributes) {
+            String value = parseOptionalStringAttribute(element, attribute);
+            if (value != null && !value.isEmpty()) {
+                return value;
+            }
+        }
+        String text = extractOptionText(element);
+        return text != null && !text.isEmpty() ? text : null;
+    }
+
+    @Nullable
+    private String extractOptionText(MdxJsxElementFields element) {
+        if (element.children() == null || element.children()
+            .isEmpty()) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (Object child : element.children()) {
+            if (child instanceof MdAstNode node) {
+                builder.append(node.toText());
+            }
+        }
+        String text = builder.toString()
+            .trim();
+        return text.isEmpty() ? null : text;
     }
 
     private SceneEditorSceneNodeModel parseRemoveBlocksNode(MdxJsxElementFields element) {
@@ -535,7 +666,70 @@ public class SceneEditorMarkdownCodec {
         appendSceneNodeAttribute(builder, sceneNode, "rotation");
         appendSceneNodeAttribute(builder, sceneNode, "flip");
         appendSceneNodeAttribute(builder, sceneNode, "channel");
-        builder.append(" />\n");
+        if (!hasStructureLibOptionAttributes(sceneNode)) {
+            builder.append(" />\n");
+            return;
+        }
+        builder.append(">\n");
+        appendStructureLibOptionChildren(builder, sceneNode);
+        builder.append("    </ImportStructureLib>\n");
+    }
+
+    private boolean hasStructureLibOptionAttributes(SceneEditorSceneNodeModel sceneNode) {
+        return sceneNode.getAttribute("tier") != null || sceneNode.getAttribute("defaultFacing") != null
+            || sceneNode.getAttribute("defaultRotation") != null
+            || sceneNode.getAttribute("defaultFlip") != null
+            || "true".equals(sceneNode.getAttribute("gtActiveController"))
+            || "true".equals(sceneNode.getAttribute("gtPlaceHatches"))
+            || hasStructureLibChannelAttributes(sceneNode);
+    }
+
+    private boolean hasStructureLibChannelAttributes(SceneEditorSceneNodeModel sceneNode) {
+        for (String key : sceneNode.getAttributes()
+            .keySet()) {
+            if (key.startsWith("channel.")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void appendStructureLibOptionChildren(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {
+        appendStructureLibScalarOption(builder, "Tier", sceneNode.getAttribute("tier"));
+        appendStructureLibScalarOption(builder, "Facing", sceneNode.getAttribute("defaultFacing"));
+        appendStructureLibScalarOption(builder, "Rotation", sceneNode.getAttribute("defaultRotation"));
+        appendStructureLibScalarOption(builder, "Flip", sceneNode.getAttribute("defaultFlip"));
+        for (Map.Entry<String, String> entry : sceneNode.getAttributes()
+            .entrySet()) {
+            if (entry.getKey()
+                .startsWith("channel.")) {
+                builder.append("        <Channel name=\"")
+                    .append(
+                        escapeAttribute(
+                            entry.getKey()
+                                .substring("channel.".length())))
+                    .append("\" value=\"")
+                    .append(escapeAttribute(entry.getValue()))
+                    .append("\" />\n");
+            }
+        }
+        if ("true".equals(sceneNode.getAttribute("gtActiveController"))) {
+            builder.append("        <GregTechActiveController />\n");
+        }
+        if ("true".equals(sceneNode.getAttribute("gtPlaceHatches"))) {
+            builder.append("        <GregTechPlaceHatches />\n");
+        }
+    }
+
+    private void appendStructureLibScalarOption(StringBuilder builder, String tagName, @Nullable String value) {
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+        builder.append("        <")
+            .append(tagName)
+            .append(" value=\"")
+            .append(escapeAttribute(value))
+            .append("\" />\n");
     }
 
     private void appendRemoveBlocksNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {

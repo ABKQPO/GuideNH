@@ -199,6 +199,7 @@ guideme.guidebook.GuideEditorPageItemIds=页面物品 ID
 guideme.guidebook.GuideEditorPageMetadata=页面元数据
 guideme.guidebook.GuideEditorPageOreIds=页面矿辞 ID
 guideme.guidebook.GuideEditorPaste=粘贴
+guideme.guidebook.GuideEditorFormatDocument=整理格式
 guideme.guidebook.GuideEditorPieChart=饼图
 guideme.guidebook.GuideEditorPlaceBlock=放置方块
 guideme.guidebook.GuideEditorPlayerName=玩家名

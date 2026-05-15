@@ -199,6 +199,7 @@ guideme.guidebook.GuideEditorPageItemIds=Page Item IDs
 guideme.guidebook.GuideEditorPageMetadata=Page Metadata
 guideme.guidebook.GuideEditorPageOreIds=Page Ore IDs
 guideme.guidebook.GuideEditorPaste=Paste
+guideme.guidebook.GuideEditorFormatDocument=Format Document
 guideme.guidebook.GuideEditorPieChart=Pie Chart
 guideme.guidebook.GuideEditorPlaceBlock=Place Block
 guideme.guidebook.GuideEditorPlayerName=Player Name

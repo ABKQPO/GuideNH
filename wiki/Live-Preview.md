@@ -85,26 +85,6 @@ resource reload so the merged guide and scene content refresh together.
 
 Relative page ids after `!` resolve against the guide namespace, so `index.md` becomes `guidenh:index.md`.
 
-## Gradle Run Tasks In This Repository
-
-This repository now provides dedicated live preview tasks:
-
-- `runGuide`
-- `runGuide17`
-- `runGuide21`
-- `runGuide25`
-
-They inherit the normal client run configuration and add:
-
-- `guideme.guidenh.guidenh.sources`
-- `guideme.showOnStartup=guidenh:guidenh!index.md`
-
-Typical usage:
-
-```text
-.\gradlew.bat runGuide
-```
-
 ## Performance Notes
 
 GuideNH does not poll guide files every frame.

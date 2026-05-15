@@ -18,8 +18,9 @@ public class TagNameProvider implements AutocompleteProvider {
         "RecipeFor", "RecipesFor", "Structure", "SubPages", "ColumnChart", "BarChart", "LineChart", "PieChart",
         "ScatterChart", "FunctionGraph", "Function", "GameScene", "Scene", "Block", "Entity", "PlaceBlock",
         "ReplaceBlock", "RemoveBlocks", "ImportStructure", "ImportStructureLib", "ImportPonder", "IsometricCamera",
-        "BlockAnnotation", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "TextAnnotation",
-        "BlockAnnotationTemplate" };
+        "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController",
+        "GregTechPlaceHatches", "BlockAnnotation", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation",
+        "TextAnnotation", "BlockAnnotationTemplate" };
 
     public static void setEnabled(boolean value) {
         enabled = value;
