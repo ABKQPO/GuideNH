@@ -139,17 +139,30 @@ bubble text itself rather than a hover tooltip.
 | `maxWidth` | no | Wrap width in pixels; `0` keeps a single line |
 | `independent` | no | `true` keeps the bubble fixed in screen space |
 | `yOffset` | no | Pixel offset from the scene center when `independent={true}` |
+| `connectorSide` | no | `bottom`, `top`, `left`, `right`, or `none`; defaults to `bottom` |
+| `connectorOffset` | no | Pixel offset along the bubble edge; positive moves right for top/bottom and down for left/right |
+| `connectorLength` | no | Pixel length of the connector line; defaults to `6` |
 | `hlMinX/Y/Z`, `hlMaxX/Y/Z` | no | Optional companion highlight box bounds |
 | `highlightColor` | no | Optional highlight box color |
 
-World-anchored bubbles draw a connector line down to their anchor. Independent bubbles are centered
-horizontally in the scene and use `yOffset` for vertical placement. The same runtime annotation is
-also used when importing Ponder `text` annotations.
+World-anchored bubbles draw a connector line to their anchor. Use `connectorSide` to choose which
+edge of the bubble points at the anchor, `connectorOffset` to move the attachment point along that
+edge, and `connectorLength` to control the gap between the bubble and anchor. Independent bubbles
+are centered horizontally in the scene and use `yOffset` for vertical placement. They do not draw a
+connector. The same runtime annotation is also used when importing Ponder `text` annotations.
 
 Example:
 
 ````md
-<TextAnnotation pos="1.5 2 1.5" color="#FF44AAFF" maxWidth={120} backgroundAlpha={180}>
+<TextAnnotation
+  pos="1.5 2 1.5"
+  color="#FF44AAFF"
+  maxWidth={120}
+  backgroundAlpha={180}
+  connectorSide="right"
+  connectorOffset={8}
+  connectorLength={12}
+>
   Insert items here with **priority**.
 </TextAnnotation>
 ````

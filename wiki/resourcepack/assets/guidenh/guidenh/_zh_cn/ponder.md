@@ -14,8 +14,8 @@ categories:
 
 ## 完整功能演示
 
-下方场景展示了所有已支持功能：七种标注类型、多行文本、独立（屏幕空间）文本、
-带高亮框的文本、关键帧间的方块变换，以及带修饰键和物品图标的输入标注。
+下方场景展示了所有已支持功能：七种标注类型、折线箭头、多行文本、独立（屏幕空间）文本、
+文本连接线位置、带高亮框的文本、关键帧间的方块变换，以及带修饰键和物品图标的输入标注。
 
 <GameScene width="420" height="280" zoom={2.5} interactive={true}>
   <ImportStructure src="/assets/ponder_demo.snbt" />
@@ -139,7 +139,7 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 `blockBox` 和 `block_box` 也可以作为别名。坐标可以写成 `pos: [x, y, z]`、
 `pos: "x y z"`，也可以写成 `x/y/z`，或兼容旧风格的 `blockX/blockY/blockZ`。
 
-### `line` — 线段
+### `line` — 线段或折线
 
 ```json
 {
@@ -147,8 +147,21 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
   "fromX": 1.5, "fromY": 2.0, "fromZ": 1.5,
   "toX": 1.5, "toY": 1.5, "toZ": 1.5,
   "color": "0xFFFFCC44",
+  "arrow": "end",
   "lineWidth": 2.5,
   "alwaysOnTop": true
+}
+```
+
+使用 `points` 可以绘制折线，格式支持 `"x y z; x y z; ..."` 或 `[[x, y, z], ...]`。
+`arrow` 支持 `"start"` 或 `"end"`。
+
+```json
+{
+  "type": "line",
+  "points": [[0.5, 1.8, 2.5], [1.5, 2.25, 1.5], [2.5, 1.8, 0.5]],
+  "color": "0xFFFFCC44",
+  "arrow": "end"
 }
 ```
 
@@ -167,7 +180,7 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 
 ### `text` — 气泡文字标注
 
-世界锚点模式（从标注框向世界坐标绘制连接线）：
+世界锚点模式（从标注框向世界坐标绘制连接线）。如果要随关键帧改变文字，在后续关键帧声明新的 `text` 标注即可：
 
 ```json
 {
@@ -175,6 +188,9 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
   "x": 1.5, "y": 3.0, "z": 1.5,
   "text": "熔炉已点燃，正在熔炼！",
   "color": "0xFFFF8833",
+  "connectorSide": "right",
+  "connectorOffset": 8,
+  "connectorLength": 12,
   "maxWidth": 120
 }
 ```
@@ -213,6 +229,9 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 | `maxWidth` | int? | 自动换行宽度（像素）；`0` 或省略表示单行 |
 | `independent` | bool? | `true` = 屏幕空间模式（无世界锚点） |
 | `yOffset` | int? | 独立模式下相对场景中心的 Y 偏移 |
+| `connectorSide` | string? | `bottom`、`top`、`left`、`right` 或 `none`；独立模式下忽略 |
+| `connectorOffset` | int? | 沿选定气泡边缘偏移连接点；top/bottom 正值向右，left/right 正值向下 |
+| `connectorLength` | int? | 连接线像素长度；默认 `6` |
 | `hlMinX/Y/Z` | float? | 高亮框最小角（世界坐标） |
 | `hlMaxX/Y/Z` | float? | 高亮框最大角（世界坐标） |
 | `highlightColor` | string? | 高亮框颜色；默认 `0x8000FFAA` |

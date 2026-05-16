@@ -338,9 +338,9 @@ assets/<modid>/guidebooks/
 
 ---
 
-### `line` — 线段
+### `line` — 线段或折线
 
-在两个世界坐标之间渲染一条线段。
+在两个世界坐标之间渲染一条线段，也可以通过 `points` 渲染多段折线。`points` 至少包含两个有效点时，会优先于 `fromX/Y/Z` 和 `toX/Y/Z`。
 
 ```json
 {
@@ -348,8 +348,20 @@ assets/<modid>/guidebooks/
   "fromX": 0.5, "fromY": 0.5, "fromZ": 0.5,
   "toX": 2.5,   "toY": 0.5,   "toZ": 0.5,
   "color": "0xFFFFFF00",
+  "arrow": "end",
   "lineWidth": 2.0,
   "alwaysOnTop": true
+}
+```
+
+折线点可以写成字符串，也可以写成数组：
+
+```json
+{
+  "type": "line",
+  "points": [[0.5, 1.2, 0.5], [1.5, 1.8, 1.5], [2.5, 1.2, 2.5]],
+  "color": "0xFFFFCC44",
+  "arrow": "end"
 }
 ```
 
@@ -357,7 +369,9 @@ assets/<modid>/guidebooks/
 |------|------|--------|------|
 | `fromX/Y/Z` | float | `0.0` | 起点坐标。 |
 | `toX/Y/Z` | float | `1.0` | 终点坐标。 |
+| `points` | 字符串或数组 | `null` | 折线点。可写 `"x y z; x y z; ..."` 或 `[[x,y,z], ...]`。 |
 | `color` | 字符串 | `"0xFFFFFFFF"` | ARGB 线条颜色。 |
+| `arrow` | 字符串 | `null` | `start` 或 `end`；省略或无法识别时不绘制箭头。 |
 | `lineWidth` | float | 默认值 | GL 线宽。 |
 | `alwaysOnTop` | 布尔值 | `false` | 穿透方块渲染。 |
 
@@ -390,7 +404,7 @@ assets/<modid>/guidebooks/
 
 ### `text` — 文字气泡
 
-在世界坐标附近渲染一个带连接线的文字气泡框，锚定到指定坐标正上方。
+在世界坐标附近渲染一个带连接线的文字气泡框，默认锚定到指定坐标正上方。文字内容由关键帧驱动：如果想随时间改变文字，在后续关键帧声明新的 `text` 注释即可。
 
 ```json
 {
@@ -399,7 +413,10 @@ assets/<modid>/guidebooks/
   "y": 2.5,
   "z": 1.5,
   "text": "在此放置物品",
-  "color": "0xFF44AAFF"
+  "color": "0xFF44AAFF",
+  "connectorSide": "right",
+  "connectorOffset": 8,
+  "connectorLength": 12
 }
 ```
 
@@ -425,6 +442,9 @@ assets/<modid>/guidebooks/
 | `maxWidth` | 整数 | `0` | 若 &gt; 0，按此像素宽度自动换行；`0` 表示单行。 |
 | `independent` | 布尔值 | `false` | 若为 `true`，位置以场景中心为基准（屏幕坐标），而非世界坐标投影。 |
 | `yOffset` | 整数 | `0` | 相对于场景垂直中心的像素偏移（正值向下）。与 `independent: true` 配合使用。 |
+| `connectorSide` | 字符串 | `"bottom"` | `bottom`、`top`、`left`、`right` 或 `none`。独立模式下忽略。 |
+| `connectorOffset` | 整数 | `0` | 沿选定气泡边缘偏移连接点；top/bottom 正值向右，left/right 正值向下。 |
+| `connectorLength` | 整数 | `6` | 连接线像素长度；`0` 会隐藏连接线但保留按边定位。 |
 | `hlMinX/Y/Z` | float | `0.0` | 可选的伴生高亮框最小角坐标。 |
 | `hlMaxX/Y/Z` | float | `1.0` | 可选的伴生高亮框最大角坐标。 |
 | `highlightColor` | 字符串 | `"0x8000FFAA"` | 高亮框颜色（存在 `hlMin/Max` 时自动创建一个 `InWorldBoxAnnotation`）。 |
@@ -668,6 +688,8 @@ assets/mymod/guidebooks/
 - 思索进度条绘制在层/StructureLib 滑条上方。播放期间结构滑条被隐藏，暂停后重新出现。
 - 即使某些关键帧仅更改部分摄像机轴，摄像机插值始终平滑（缓入/缓出）。使用 `cameraEaseTicks` 可以让摄像机立即跳转（`0`）或在指定刻数内完成缓动后保持目标位置。
 - 注释属于单个关键帧，仅在该关键帧激活期间（从其 `time` 刻到下一关键帧的 `time` 刻之前）显示。正向播放时叠加文字注释会平滑淡出后切换。
+- Ponder `line` 注释使用普通 `LineAnnotation` 的同一套运行时渲染器，支持折线和起点/终点箭头。点立方体标记目前仍是 MDX `LineAnnotation` 专用能力。
+- Ponder `text` 注释使用普通 `TextAnnotation` 的同一套运行时渲染器，支持连接线方向、偏移和长度。动态文字是基于关键帧切换的，不会在单个关键帧内逐 tick 插值。
 - 每个游戏场景（`<GameScene>`）只有一个 `<ImportPonder>` 标签生效，多个标签时后者覆盖前者。
 - `text` 字段缺失或为空的 `text` 注释将被静默跳过。
 - `inputType` 字段缺失或无法识别时默认为 `"lmb"`。

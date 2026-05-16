@@ -138,15 +138,26 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 | `maxWidth` | 否 | 像素换行宽度；`0` 表示单行 |
 | `independent` | 否 | `true` 时固定在屏幕空间 |
 | `yOffset` | 否 | `independent={true}` 时相对场景中心的垂直像素偏移 |
+| `connectorSide` | 否 | `bottom`、`top`、`left`、`right` 或 `none`；默认 `bottom` |
+| `connectorOffset` | 否 | 沿气泡边缘偏移连接点；top/bottom 正值向右，left/right 正值向下 |
+| `connectorLength` | 否 | 连接线像素长度；默认 `6` |
 | `hlMinX/Y/Z`, `hlMaxX/Y/Z` | 否 | 可选伴生高亮框范围 |
 | `highlightColor` | 否 | 可选高亮框颜色 |
 
-世界锚定的气泡会绘制一条连接线指向锚点。独立气泡会水平居中，并使用 `yOffset` 控制垂直位置。导入思索时间线的 `text` 注解时也会使用同一个运行时注解。
+世界锚定的气泡会绘制一条连接线指向锚点。可以用 `connectorSide` 控制连接线接在气泡的哪条边，用 `connectorOffset` 沿边移动连接点，用 `connectorLength` 调整气泡与锚点之间的距离。独立气泡会水平居中，并使用 `yOffset` 控制垂直位置，且不会绘制连接线。导入思索时间线的 `text` 注解时也会使用同一个运行时注解。
 
 示例：
 
 ````md
-<TextAnnotation pos="1.5 2 1.5" color="#FF44AAFF" maxWidth={120} backgroundAlpha={180}>
+<TextAnnotation
+  pos="1.5 2 1.5"
+  color="#FF44AAFF"
+  maxWidth={120}
+  backgroundAlpha={180}
+  connectorSide="right"
+  connectorOffset={8}
+  connectorLength={12}
+>
   在这里放入**优先级**物品。
 </TextAnnotation>
 ````

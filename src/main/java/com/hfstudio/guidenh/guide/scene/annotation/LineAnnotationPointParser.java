@@ -12,6 +12,18 @@ public class LineAnnotationPointParser {
 
     private LineAnnotationPointParser() {}
 
+    public static Vector3f parsePoint(String raw) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            throw new IllegalArgumentException("point expects an 'x y z' triple.");
+        }
+        float[] values = MdxAttrs.parseVector3Parts(raw.trim());
+        if (values == null) {
+            throw new IllegalArgumentException("point expects an 'x y z' triple, got: '" + raw + "'");
+        }
+        return new Vector3f(values[0], values[1], values[2]);
+    }
+
     public static List<Vector3f> parsePoints(String raw) {
         if (raw == null || raw.trim()
             .isEmpty()) {
@@ -24,12 +36,7 @@ public class LineAnnotationPointParser {
             if (point.isEmpty()) {
                 continue;
             }
-            float[] values = MdxAttrs.parseVector3Parts(point);
-            if (values == null) {
-                throw new IllegalArgumentException(
-                    "points expects semicolon-separated 'x y z' triples, got: '" + raw + "'");
-            }
-            points.add(new Vector3f(values[0], values[1], values[2]));
+            points.add(parsePoint(point));
         }
         if (points.size() < 2) {
             throw new IllegalArgumentException("points expects at least two semicolon-separated points.");

@@ -11,6 +11,8 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
@@ -22,6 +24,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.LineAnnotationPointParser;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
@@ -188,12 +191,12 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
                 return ann;
             }
             case "line": {
-                var from = new Vector3f(raw.getFromX(0f), raw.getFromY(0f), raw.getFromZ(0f));
-                var to = new Vector3f(raw.getToX(1f), raw.getToY(1f), raw.getToZ(1f));
+                List<Vector3f> points = resolveLinePoints(raw);
                 int argb = raw.parseColor(0xFFFFFFFF);
                 float lw = raw.getLineWidth(InWorldLineAnnotation.DEFAULT_THICKNESS);
-                var ann = new InWorldLineAnnotation(from, to, new ConstantColor(argb), lw);
+                var ann = new InWorldLineAnnotation(points, new ConstantColor(argb), lw);
                 ann.setAlwaysOnTop(raw.isAlwaysOnTop());
+                ann.setArrow(resolveLineArrow(raw.getArrow()));
                 return ann;
             }
             case "blockface":
@@ -230,6 +233,10 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
                     ann.setRichContent(para);
                 }
                 ann.setBackgroundAlpha(raw.getBackgroundAlpha(TextAnnotation.DEFAULT_BACKGROUND_ALPHA));
+                ann.setConnector(
+                    raw.getConnectorSide(TextAnnotation.ConnectorSide.BOTTOM),
+                    raw.getConnectorOffset(0),
+                    raw.getConnectorLength(TextAnnotation.CONNECTOR_HEIGHT));
                 return ann;
             }
             case "input": {
@@ -249,6 +256,76 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
             }
             default:
                 return null;
+        }
+    }
+
+    private static List<Vector3f> resolveLinePoints(PonderKeyframeAnnotation raw) {
+        JsonElement pointsElement = raw.getPoints();
+        if (pointsElement != null && !pointsElement.isJsonNull()) {
+            List<Vector3f> parsed = parseJsonLinePoints(pointsElement);
+            if (parsed.size() >= 2) {
+                return parsed;
+            }
+        }
+        var from = new Vector3f(raw.getFromX(0f), raw.getFromY(0f), raw.getFromZ(0f));
+        var to = new Vector3f(raw.getToX(1f), raw.getToY(1f), raw.getToZ(1f));
+        List<Vector3f> fallback = new ArrayList<>(2);
+        fallback.add(from);
+        fallback.add(to);
+        return fallback;
+    }
+
+    private static List<Vector3f> parseJsonLinePoints(JsonElement pointsElement) {
+        if (pointsElement.isJsonPrimitive() && pointsElement.getAsJsonPrimitive()
+            .isString()) {
+            try {
+                return LineAnnotationPointParser.parsePoints(pointsElement.getAsString());
+            } catch (IllegalArgumentException ignored) {
+                return Collections.emptyList();
+            }
+        }
+        if (!pointsElement.isJsonArray()) {
+            return Collections.emptyList();
+        }
+        JsonArray array = pointsElement.getAsJsonArray();
+        List<Vector3f> result = new ArrayList<>(array.size());
+        for (JsonElement pointElement : array) {
+            Vector3f point = parseJsonLinePoint(pointElement);
+            if (point != null) {
+                result.add(point);
+            }
+        }
+        return result;
+    }
+
+    @Nullable
+    private static Vector3f parseJsonLinePoint(JsonElement pointElement) {
+        try {
+            if (pointElement.isJsonArray()) {
+                JsonArray array = pointElement.getAsJsonArray();
+                if (array.size() == 3) {
+                    return new Vector3f(
+                        array.get(0)
+                            .getAsFloat(),
+                        array.get(1)
+                            .getAsFloat(),
+                        array.get(2)
+                            .getAsFloat());
+                }
+            }
+            if (pointElement.isJsonPrimitive() && pointElement.getAsJsonPrimitive()
+                .isString()) {
+                return LineAnnotationPointParser.parsePoint(pointElement.getAsString());
+            }
+        } catch (RuntimeException ignored) {}
+        return null;
+    }
+
+    private static InWorldLineAnnotation.Arrow resolveLineArrow(@Nullable String rawArrow) {
+        try {
+            return InWorldLineAnnotation.Arrow.fromSerializedName(rawArrow);
+        } catch (IllegalArgumentException ignored) {
+            return InWorldLineAnnotation.Arrow.NONE;
         }
     }
 

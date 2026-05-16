@@ -34,6 +34,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.compiler.BlockAnnotationTemplateElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
@@ -224,6 +225,14 @@ public class SceneEditorSceneNodePreviewApplier {
             if (!templateElement.isVisible()) {
                 continue;
             }
+            if (!isSupportedBlockTemplateElement(templateElement)) {
+                GuideDebugLog.warn(
+                    LOG,
+                    "Ignoring unsupported BlockAnnotationTemplate preview element type: {}",
+                    templateElement.getType()
+                        .getTagName());
+                continue;
+            }
             templateAnnotations.add(toRuntimeAnnotation(templateElement));
         }
 
@@ -240,6 +249,12 @@ public class SceneEditorSceneNodePreviewApplier {
         } catch (IllegalArgumentException e) {
             GuideDebugLog.warn(LOG, "Ignoring invalid BlockAnnotationTemplate matcher in preview: {}", blockId, e);
         }
+    }
+
+    private boolean isSupportedBlockTemplateElement(SceneEditorElementModel templateElement) {
+        return BlockAnnotationTemplateElementCompiler.TEMPLATE_ANNOTATION_COMPILERS.containsKey(
+            templateElement.getType()
+                .getTagName());
     }
 
     private void appendAnnotation(LytGuidebookScene scene, @Nullable SceneEditorElementModel element) {

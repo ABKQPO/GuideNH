@@ -399,7 +399,8 @@ Renders a wireframe around one whole block. This is the Ponder JSON equivalent o
 
 ### `line`
 
-Renders a line segment between two world positions.
+Renders a line segment or polyline between world positions. `points` takes priority over
+`fromX/Y/Z` and `toX/Y/Z` when it contains at least two valid points.
 
 ```json
 {
@@ -407,8 +408,20 @@ Renders a line segment between two world positions.
   "fromX": 0.5, "fromY": 0.5, "fromZ": 0.5,
   "toX": 2.5,   "toY": 0.5,   "toZ": 0.5,
   "color": "0xFFFFFF00",
+  "arrow": "end",
   "lineWidth": 2.0,
   "alwaysOnTop": true
+}
+```
+
+Polyline points can be written either as a string or as an array:
+
+```json
+{
+  "type": "line",
+  "points": [[0.5, 1.2, 0.5], [1.5, 1.8, 1.5], [2.5, 1.2, 2.5]],
+  "color": "0xFFFFCC44",
+  "arrow": "end"
 }
 ```
 
@@ -416,7 +429,9 @@ Renders a line segment between two world positions.
 |-------|------|---------|-------------|
 | `fromX/Y/Z` | float | `0.0` | Start point. |
 | `toX/Y/Z` | float | `1.0` | End point. |
+| `points` | string or array | `null` | Polyline points. Use `"x y z; x y z; ..."` or `[[x,y,z], ...]`. |
 | `color` | string | `"0xFFFFFFFF"` | ARGB line color. |
+| `arrow` | string | `null` | `start` or `end`; omitted or invalid values draw no arrow. |
 | `lineWidth` | float | default | GL line width. |
 | `alwaysOnTop` | boolean | `false` | Render through blocks. |
 
@@ -449,8 +464,9 @@ Highlights all faces of a single block with a translucent solid overlay.
 
 ### `text`
 
-Renders a speech-bubble label anchored to a world position. The box appears above the anchor
-point and is connected to it with a short vertical line.
+Renders a speech-bubble label anchored to a world position. The box appears above the anchor by
+default and is connected to it with a short vertical line. Text content is keyframe-driven: use
+different `text` annotation entries on different keyframes to change the displayed text over time.
 
 ```json
 {
@@ -459,7 +475,10 @@ point and is connected to it with a short vertical line.
   "y": 2.5,
   "z": 1.5,
   "text": "Place items here",
-  "color": "0xFF44AAFF"
+  "color": "0xFF44AAFF",
+  "connectorSide": "right",
+  "connectorOffset": 8,
+  "connectorLength": 12
 }
 ```
 
@@ -487,6 +506,9 @@ For a fixed screen-space position that does not project from world coordinates, 
 | `maxWidth` | integer | `0` | If &gt; 0, wraps text at this width in pixels. Omit or set to `0` for a single-line label. |
 | `independent` | boolean | `false` | If `true`, position is relative to the scene centre rather than a world point. |
 | `yOffset` | integer | `0` | Pixel offset from the scene's vertical centre (positive = downward). Used with `independent: true`. |
+| `connectorSide` | string | `"bottom"` | `bottom`, `top`, `left`, `right`, or `none`. Ignored in independent mode. |
+| `connectorOffset` | integer | `0` | Pixel offset along the selected bubble edge; positive moves right for top/bottom and down for left/right. |
+| `connectorLength` | integer | `6` | Pixel length of the connector line. `0` hides the line while keeping side-based placement. |
 | `hlMinX/Y/Z` | float | `0.0` | Minimum corner of an optional highlight box drawn alongside the text bubble. |
 | `hlMaxX/Y/Z` | float | `1.0` | Maximum corner of the optional highlight box. |
 | `highlightColor` | string | `"0x8000FFAA"` | ARGB color of the highlight box. |
@@ -748,6 +770,10 @@ The Grinder turns ores into doubled dust. Press **Play** to see the animated wal
 - Annotations belong to a single keyframe - they appear only while that keyframe is active
   (i.e., from its `time` tick until the next keyframe's `time` tick). Overlay text annotations
   fade out smoothly when the keyframe changes during playback.
+- Ponder `line` annotations use the same runtime renderer as regular `LineAnnotation`, including
+  polyline bends and start/end arrows. Point marker cubes remain an MDX-only feature.
+- Ponder `text` annotations use the same runtime renderer as regular `TextAnnotation`, including
+  connector side, offset, and length. Dynamic text is keyframe-based rather than interpolated per tick.
 - Only one `<ImportPonder>` tag is effective per `<GameScene>`. A second tag overwrites the first.
 - A `text` annotation with an empty or absent `text` field is silently skipped.
 - The `inputType` field defaults to `"lmb"` if omitted or unrecognised.

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
@@ -141,7 +142,8 @@ public class InWorldLineAnnotation extends InWorldAnnotation {
                 .isEmpty()) {
                 return NONE;
             }
-            String normalized = raw.trim();
+            String normalized = raw.trim()
+                .toLowerCase(Locale.ROOT);
             for (Arrow arrow : values()) {
                 if (arrow.serializedName.equals(normalized)) {
                     return arrow;

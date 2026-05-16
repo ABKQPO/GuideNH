@@ -93,6 +93,9 @@
           "z": 1.5,
           "text": "Furnace is now lit and smelting!",
           "color": "0xFFFF8833",
+          "connectorSide": "right",
+          "connectorOffset": 8,
+          "connectorLength": 12,
           "hlMinX": 1.05,
           "hlMinY": 1.05,
           "hlMinZ": 1.05,
@@ -136,13 +139,9 @@
         },
         {
           "type": "line",
-          "fromX": 1.5,
-          "fromY": 2.0,
-          "fromZ": 1.5,
-          "toX": 1.5,
-          "toY": 1.5,
-          "toZ": 1.5,
+          "points": [[1.5, 2.0, 1.5], [1.9, 1.75, 1.5], [1.5, 1.5, 1.5]],
           "color": "0xFFFFCC44",
+          "arrow": "end",
           "lineWidth": 2.5,
           "alwaysOnTop": true
         }
