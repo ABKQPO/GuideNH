@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+import com.hfstudio.guidenh.guide.scene.annotation.compiler.BlockAnnotationTemplateElementCompiler;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -396,10 +397,19 @@ public class SceneEditorMarkdownCodec {
             if (childElement == null) {
                 continue;
             }
+            ensureSupportedBlockAnnotationTemplateChild(childElement);
             node.addTemplateElement(parseElement(childElement, source));
         }
 
         return node;
+    }
+
+    private void ensureSupportedBlockAnnotationTemplateChild(MdxJsxElementFields childElement) {
+        if (BlockAnnotationTemplateElementCompiler.TEMPLATE_ANNOTATION_COMPILERS.containsKey(childElement.name())) {
+            return;
+        }
+        throw new InvalidSceneSyntaxException(
+            "Unsupported BlockAnnotationTemplate child <" + childElement.name() + ">");
     }
 
     private void copyOptionalAttribute(MdxJsxElementFields element, SceneEditorSceneNodeModel node, String attribute) {

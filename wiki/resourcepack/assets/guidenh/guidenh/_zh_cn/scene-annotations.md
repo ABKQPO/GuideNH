@@ -113,6 +113,9 @@ categories:
     color="#FF44AAFF"
     maxWidth={120}
     backgroundAlpha={180}
+    connectorSide="right"
+    connectorOffset={8}
+    connectorLength={12}
   />
 </GameScene>
 ```
@@ -140,6 +143,9 @@ categories:
 | `maxWidth` | integer | `0` | 换行宽度（像素）。`0` 表示单行显示。 |
 | `independent` | boolean | `false` | 为 `true` 时，气泡相对场景中心定位，而不是跟随世界点。 |
 | `yOffset` | integer | `0` | `independent={true}` 时相对场景中心的像素偏移，正值向下。 |
+| `connectorSide` | string | `"bottom"` | `bottom`、`top`、`left`、`right` 或 `none`。独立模式下忽略。 |
+| `connectorOffset` | integer | `0` | 沿气泡边缘偏移连接点；top/bottom 正值向右，left/right 正值向下。 |
+| `connectorLength` | integer | `6` | 连接线像素长度。 |
 | `hlMinX/Y/Z` | float | `0.0` | 可选高亮框最小角坐标。 |
 | `hlMaxX/Y/Z` | float | `1.0` | 可选高亮框最大角坐标。 |
 | `highlightColor` | string | `"0x8000FFAA"` | 高亮框颜色。 |
@@ -147,6 +153,7 @@ categories:
 这里没有单独的 size 参数。气泡大小由文本内容和 `maxWidth` 自动决定。
 只要存在任意 `hlMin/Max` 值，就会额外创建一个对应的 `InWorldBoxAnnotation`。
 气泡背景默认是深色海军蓝（`#CC0E0E20`），可用 `backgroundAlpha` 调整透明度；世界锚定模式下还会额外画一条连接线。
+可以用 `connectorSide`、`connectorOffset` 和 `connectorLength` 控制连接线接在哪条边、沿边偏移多少以及连接线长度。
 
 > **富文本说明：** `text` 支持 GuideNH 页面里同样的行内语法：
 > `**bold**`、`*italic*`、`~~strikethrough~~`、`<Color id="RED">colored</Color>`、

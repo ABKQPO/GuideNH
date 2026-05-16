@@ -4,6 +4,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.JsonElement;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 
 /**
  * Describes a single annotation entry inside a Ponder keyframe (JSON-driven).
@@ -13,12 +14,12 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
  * <li>{@code block}/{@code blockBox} - block position (pos array, x/y/z, or blockX/blockY/blockZ), color, lineWidth,
  * alwaysOnTop</li>
  * <li>{@code box} - min (minX,minY,minZ), max (maxX,maxY,maxZ), color, lineWidth, alwaysOnTop</li>
- * <li>{@code line} - from (fromX,fromY,fromZ), to (toX,toY,toZ), color, lineWidth, alwaysOnTop</li>
+ * <li>{@code line} - points polyline or from/to, color, lineWidth, arrow, alwaysOnTop</li>
  * <li>{@code blockface}/{@code blockFace} - block position (pos array, x/y/z, or blockX/blockY/blockZ), color,
  * alwaysOnTop</li>
- * <li>{@code text} - pos (x,y,z), text, color (border), backgroundAlpha, maxWidth (wrap width px),
- * independent, yOffset; optional highlight box via hlMinX/hlMinY/hlMinZ/hlMaxX/hlMaxY/hlMaxZ and
- * highlightColor</li>
+ * <li>{@code text} - pos (x,y,z), text, color (border), backgroundAlpha, maxWidth (wrap width px), independent,
+ * yOffset, connectorSide, connectorOffset, connectorLength; optional highlight box via
+ * hlMinX/hlMinY/hlMinZ/hlMaxX/hlMaxY/hlMaxZ and highlightColor</li>
  * <li>{@code input} - pos (x,y,z), inputType ("lmb"|"rmb"|"scroll"), modifier ("sneak"|"ctrl"),
  * item (registry ID)</li>
  * </ul>
@@ -61,6 +62,10 @@ public class PonderKeyframeAnnotation {
     private Float toY;
     @Nullable
     private Float toZ;
+    @Nullable
+    private JsonElement points;
+    @Nullable
+    private String arrow;
 
     @Nullable
     private Integer blockX;
@@ -93,6 +98,12 @@ public class PonderKeyframeAnnotation {
     private Integer maxWidth;
     @Nullable
     private Integer backgroundAlpha;
+    @Nullable
+    private String connectorSide;
+    @Nullable
+    private Integer connectorOffset;
+    @Nullable
+    private Integer connectorLength;
     @Nullable
     private Float hlMinX;
     @Nullable
@@ -170,6 +181,16 @@ public class PonderKeyframeAnnotation {
 
     public float getToZ(float def) {
         return toZ != null ? toZ : def;
+    }
+
+    @Nullable
+    public JsonElement getPoints() {
+        return points;
+    }
+
+    @Nullable
+    public String getArrow() {
+        return arrow;
     }
 
     public int getBlockX(int def) {
@@ -271,6 +292,22 @@ public class PonderKeyframeAnnotation {
     /** Background alpha for {@code text} annotation bubbles, clamped to {@code 0..255}. */
     public int getBackgroundAlpha(int def) {
         return backgroundAlpha != null ? Math.max(0, Math.min(255, backgroundAlpha)) : def;
+    }
+
+    public TextAnnotation.ConnectorSide getConnectorSide(TextAnnotation.ConnectorSide def) {
+        try {
+            return connectorSide != null ? TextAnnotation.ConnectorSide.fromSerializedName(connectorSide) : def;
+        } catch (IllegalArgumentException ignored) {
+            return def;
+        }
+    }
+
+    public int getConnectorOffset(int def) {
+        return connectorOffset != null ? connectorOffset : def;
+    }
+
+    public int getConnectorLength(int def) {
+        return connectorLength != null ? connectorLength : def;
     }
 
     /**

@@ -15,9 +15,9 @@ fade-in transitions — all declared in a JSON file.
 
 ## Full Feature Demo
 
-The scene below demonstrates every supported feature: seven annotation types, multi-line text,
-independent (screen-space) text, text with a highlight box, block changes between keyframes,
-and modifier + item input annotations.
+The scene below demonstrates every supported feature: seven annotation types, polyline arrows,
+multi-line text, independent (screen-space) text, text connector placement, text with a highlight
+box, block changes between keyframes, and modifier + item input annotations.
 
 <GameScene width="420" height="280" zoom={2.5} interactive={true}>
   <ImportStructure src="/assets/ponder_demo.snbt" />
@@ -158,8 +158,21 @@ Use `block` when you want the Ponder JSON equivalent of a regular
   "fromX": 1.5, "fromY": 2.0, "fromZ": 1.5,
   "toX": 1.5, "toY": 1.5, "toZ": 1.5,
   "color": "0xFFFFCC44",
+  "arrow": "end",
   "lineWidth": 2.5,
   "alwaysOnTop": true
+}
+```
+
+Use `points` for a bendable polyline. It accepts either `"x y z; x y z; ..."` or
+`[[x, y, z], ...]`. `arrow` accepts `"start"` or `"end"`.
+
+```json
+{
+  "type": "line",
+  "points": [[0.5, 1.8, 2.5], [1.5, 2.25, 1.5], [2.5, 1.8, 0.5]],
+  "color": "0xFFFFCC44",
+  "arrow": "end"
 }
 ```
 
@@ -178,7 +191,8 @@ Use `block` when you want the Ponder JSON equivalent of a regular
 
 ### `text` — Speech-bubble label
 
-World-anchored (connector line drawn from label to world position):
+World-anchored (connector line drawn from label to world position). Change the text between
+keyframes by declaring another `text` annotation on the later keyframe:
 
 ```json
 {
@@ -186,6 +200,9 @@ World-anchored (connector line drawn from label to world position):
   "x": 1.5, "y": 3.0, "z": 1.5,
   "text": "Furnace is now lit and smelting!",
   "color": "0xFFFF8833",
+  "connectorSide": "right",
+  "connectorOffset": 8,
+  "connectorLength": 12,
   "maxWidth": 120
 }
 ```
@@ -224,6 +241,9 @@ Text with an accompanying highlight box:
 | `maxWidth` | int? | Word-wrap width in pixels; `0` or omitted = single line |
 | `independent` | bool? | `true` = screen-space mode (no world anchor) |
 | `yOffset` | int? | Y offset from scene centre in independent mode |
+| `connectorSide` | string? | `bottom`, `top`, `left`, `right`, or `none`; ignored in independent mode |
+| `connectorOffset` | int? | Offset along the selected bubble edge; positive moves right for top/bottom and down for left/right |
+| `connectorLength` | int? | Connector length in pixels; defaults to `6` |
 | `hlMinX/Y/Z` | float? | Highlight box min corner (world space) |
 | `hlMaxX/Y/Z` | float? | Highlight box max corner (world space) |
 | `highlightColor` | string? | Highlight box colour; defaults to `0x8000FFAA` |
