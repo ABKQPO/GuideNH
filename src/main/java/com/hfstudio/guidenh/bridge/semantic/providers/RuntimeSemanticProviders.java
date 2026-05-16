@@ -21,6 +21,7 @@ import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.oredict.OreDictionary;
@@ -28,9 +29,13 @@ import net.minecraftforge.oredict.OreDictionary;
 import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
+import com.gtnewhorizon.structurelib.alignment.IAlignment;
+import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.hfstudio.guidenh.bridge.semantic.SemanticCapability;
 import com.hfstudio.guidenh.bridge.semantic.SemanticProvider;
 import com.hfstudio.guidenh.bridge.semantic.SemanticProviderRegistry;
+import com.hfstudio.guidenh.bridge.semantic.SemanticQuery;
+import com.hfstudio.guidenh.bridge.semantic.SemanticQueryResult;
 import com.hfstudio.guidenh.client.command.GuideNhClientCommand;
 import com.hfstudio.guidenh.guide.compiler.FrontmatterNavigation;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -39,7 +44,11 @@ import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.internal.GuideCommand;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 import com.hfstudio.structurelibexport.StructureExportCommand;
+import com.hfstudio.structurelibexport.StructureLibControllerDiscovery;
+import com.hfstudio.structurelibexport.StructureLibControllerSpec;
 
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.ModContainer;
@@ -58,7 +67,7 @@ public class RuntimeSemanticProviders {
         registry.register(createSoundsProvider());
         registry.register(createKeybindsProvider());
         registry.register(createQuestsProvider());
-        registry.register(new StaticSemanticProvider(SemanticCapability.STRUCTURELIB, Collections.emptyList()));
+        registry.register(createStructureLibProvider());
     }
 
     private static SemanticProvider createItemsProvider() {
@@ -256,6 +265,354 @@ public class RuntimeSemanticProviders {
                 return entries;
             }
         };
+    }
+
+    private static SemanticProvider createStructureLibProvider() {
+        return new SemanticProvider() {
+
+            @Override
+            public String getCapability() {
+                return SemanticCapability.STRUCTURELIB;
+            }
+
+            @Override
+            public SemanticQueryResult query(SemanticQuery query) {
+                List<Map<String, String>> entries = loadStructureLibEntries(query);
+                List<Map<String, String>> filteredEntries = filterStructureLibEntries(entries, query.getPrefix());
+                int cursor = parseStructureLibCursor(query.getCursor(), filteredEntries.size());
+                int limit = query.getLimit() > 0 ? query.getLimit() : filteredEntries.size();
+                int end = Math.min(filteredEntries.size(), cursor + limit);
+                String nextCursor = end < filteredEntries.size() ? Integer.toString(end) : null;
+                return new SemanticQueryResult(
+                    SemanticCapability.STRUCTURELIB,
+                    computeStructureLibVersion(entries),
+                    new ArrayList<>(filteredEntries.subList(cursor, end)),
+                    nextCursor);
+            }
+        };
+    }
+
+    private static List<Map<String, String>> loadStructureLibEntries(SemanticQuery query) {
+        Map<String, String> filters = query.getFilters();
+        String attribute = normalizeStructureLibValue(filters.get("attribute"));
+        if ("channel".equals(attribute)) {
+            return loadStructureLibChannelEntries(filters);
+        }
+        if (isStructureLibOrientationAttribute(attribute)) {
+            return loadStructureLibOrientationEntries(filters, attribute);
+        }
+        return loadStructureLibControllerEntries();
+    }
+
+    private static List<Map<String, String>> loadStructureLibControllerEntries() {
+        List<Map<String, String>> entries = new ArrayList<>();
+        for (StructureLibControllerSpec controller : new StructureLibControllerDiscovery().discoverAllControllers()) {
+            String id = normalizeStructureLibValue(controller.getControllerArgument());
+            if (id == null) {
+                continue;
+            }
+
+            String label = normalizeStructureLibValue(controller.getDisplayName());
+            String detail = controller.getBlockId() + ":" + controller.getMeta();
+            entries.add(createStructureLibEntry(id, label, detail));
+        }
+        return normalizeStructureLibEntries(entries);
+    }
+
+    private static List<Map<String, String>> loadStructureLibChannelEntries(Map<String, String> filters) {
+        String controller = normalizeStructureLibValue(filters.get("controller"));
+        if (controller == null) {
+            return Collections.emptyList();
+        }
+        try {
+            StructureLibImportRequest request = new StructureLibImportRequest(controller, null, null, null, null, null);
+            StructureLibRuntimeFacade.ResolvedController resolvedController = StructureLibRuntimeFacade
+                .resolveController(request);
+            StructureLibRuntimeFacade.ControlAnalysis analysis = StructureLibRuntimeFacade
+                .analyzeControls(request, resolvedController);
+            int maxTier = analysis.getMaxTotalTier();
+            if (maxTier <= 0) {
+                return Collections.emptyList();
+            }
+            List<Map<String, String>> entries = new ArrayList<>();
+            String detail = describeStructureLibTierRange(controller, analysis);
+            for (int value = 1; value <= maxTier; value++) {
+                entries.add(createStructureLibEntry(Integer.toString(value), "StructureLib preview tier", detail));
+            }
+            return normalizeStructureLibEntries(entries);
+        } catch (IllegalArgumentException ignored) {
+            return Collections.emptyList();
+        } catch (Throwable ignored) {
+            return Collections.emptyList();
+        }
+    }
+
+    private static List<Map<String, String>> loadStructureLibOrientationEntries(Map<String, String> filters,
+        String attribute) {
+        String controller = normalizeStructureLibValue(filters.get("controller"));
+        if (controller == null || attribute == null) {
+            return Collections.emptyList();
+        }
+        try {
+            StructureLibControllerSpec controllerSpec = StructureLibControllerSpec.parse(controller);
+            List<ExtendedFacing> allowedFacings = findStructureLibAllowedFacings(controllerSpec);
+            if (allowedFacings.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<Map<String, String>> entries = switch (attribute) {
+                case "facing" -> createStructureLibFacingEntries(controllerSpec, allowedFacings, filters);
+                case "rotation" -> createStructureLibRotationEntries(controllerSpec, allowedFacings, filters);
+                case "flip" -> createStructureLibFlipEntries(controllerSpec, allowedFacings, filters);
+                default -> Collections.emptyList();
+            };
+            return normalizeStructureLibEntries(entries);
+        } catch (IllegalArgumentException ignored) {
+            return Collections.emptyList();
+        } catch (Throwable ignored) {
+            return Collections.emptyList();
+        }
+    }
+
+    private static List<Map<String, String>> createStructureLibFacingEntries(StructureLibControllerSpec controller,
+        List<ExtendedFacing> allowedFacings, Map<String, String> filters) {
+        List<Map<String, String>> entries = new ArrayList<>();
+        for (ExtendedFacing facing : allowedFacings) {
+            if (matchesStructureLibOrientationFilters(facing, filters, "facing")) {
+                String value = facing.getDirection()
+                    .name()
+                    .toLowerCase(Locale.ROOT);
+                entries.add(
+                    createStructureLibEntry(value, "StructureLib facing", describeStructureLibOrientation(controller)));
+            }
+        }
+        return entries;
+    }
+
+    private static List<Map<String, String>> createStructureLibRotationEntries(StructureLibControllerSpec controller,
+        List<ExtendedFacing> allowedFacings, Map<String, String> filters) {
+        List<Map<String, String>> entries = new ArrayList<>();
+        for (ExtendedFacing facing : allowedFacings) {
+            if (matchesStructureLibOrientationFilters(facing, filters, "rotation")) {
+                String value = facing.getRotation()
+                    .getName();
+                entries.add(
+                    createStructureLibEntry(
+                        value,
+                        "StructureLib rotation",
+                        describeStructureLibOrientation(controller)));
+            }
+        }
+        return entries;
+    }
+
+    private static List<Map<String, String>> createStructureLibFlipEntries(StructureLibControllerSpec controller,
+        List<ExtendedFacing> allowedFacings, Map<String, String> filters) {
+        List<Map<String, String>> entries = new ArrayList<>();
+        for (ExtendedFacing facing : allowedFacings) {
+            if (matchesStructureLibOrientationFilters(facing, filters, "flip")) {
+                String value = facing.getFlip()
+                    .getName();
+                entries.add(
+                    createStructureLibEntry(value, "StructureLib flip", describeStructureLibOrientation(controller)));
+            }
+        }
+        return entries;
+    }
+
+    private static List<ExtendedFacing> findStructureLibAllowedFacings(StructureLibControllerSpec controller) {
+        List<ExtendedFacing> allowedFacings = new ArrayList<>();
+        StructureLibRuntimeFacade.BuildContext context = new StructureLibRuntimeFacade.BuildContext();
+        try {
+            StructureLibRuntimeFacade.ResolvedController resolvedController = new StructureLibRuntimeFacade.ResolvedController(
+                controller.getBlockId(),
+                controller.getBlock(),
+                controller.getMeta());
+            TileEntity tile = StructureLibRuntimeFacade
+                .placeControllerDirectly(context.getLevel(), context.getWorld(), resolvedController, new ArrayList<>());
+            if (tile == null) {
+                return Collections.emptyList();
+            }
+            IAlignment alignment = StructureLibRuntimeFacade.resolveAlignment(tile);
+            if (alignment == null) {
+                return Collections.emptyList();
+            }
+            for (ExtendedFacing facing : ExtendedFacing.VALUES) {
+                if (alignment.getAlignmentLimits() != null ? alignment.getAlignmentLimits()
+                    .isNewExtendedFacingValid(facing) : alignment.checkedSetExtendedFacing(facing)) {
+                    allowedFacings.add(facing);
+                }
+            }
+            return allowedFacings;
+        } catch (Throwable ignored) {
+            return Collections.emptyList();
+        } finally {
+            context.clear();
+        }
+    }
+
+    private static boolean matchesStructureLibOrientationFilters(ExtendedFacing facing, Map<String, String> filters,
+        String targetAttribute) {
+        return matchesStructureLibOrientationFilterValue(
+            facing.getDirection()
+                .name()
+                .toLowerCase(Locale.ROOT),
+            normalizeStructureLibValue(filters.get("facing")),
+            targetAttribute,
+            "facing")
+            && matchesStructureLibOrientationFilterValue(
+                facing.getRotation()
+                    .getName(),
+                normalizeStructureLibValue(filters.get("rotation")),
+                targetAttribute,
+                "rotation")
+            && matchesStructureLibOrientationFilterValue(
+                facing.getFlip()
+                    .getName(),
+                normalizeStructureLibValue(filters.get("flip")),
+                targetAttribute,
+                "flip");
+    }
+
+    private static boolean matchesStructureLibOrientationFilterValue(String actualValue,
+        @Nullable String requestedValue, String targetAttribute, String attributeName) {
+        if (targetAttribute.equals(attributeName) || requestedValue == null) {
+            return true;
+        }
+        return actualValue.equalsIgnoreCase(requestedValue);
+    }
+
+    private static String describeStructureLibOrientation(StructureLibControllerSpec controller) {
+        return "Allowed orientation for " + controller.getControllerArgument();
+    }
+
+    private static boolean isStructureLibOrientationAttribute(@Nullable String attribute) {
+        return "facing".equals(attribute) || "rotation".equals(attribute) || "flip".equals(attribute);
+    }
+
+    private static String describeStructureLibTierRange(String controller,
+        StructureLibRuntimeFacade.ControlAnalysis analysis) {
+        StringBuilder detail = new StringBuilder();
+        detail.append("Preview tier for ")
+            .append(controller)
+            .append(" (max ")
+            .append(analysis.getMaxTotalTier())
+            .append(')');
+        if (analysis.getChannelMaxTierMap()
+            .isEmpty()) {
+            return detail.toString();
+        }
+
+        detail.append(" | Channel caps: ");
+        boolean first = true;
+        for (Map.Entry<String, Integer> entry : analysis.getChannelMaxTierMap()
+            .entrySet()) {
+            String channelId = normalizeStructureLibValue(entry.getKey());
+            Integer maxValue = entry.getValue();
+            if (channelId == null || maxValue == null || maxValue <= 0) {
+                continue;
+            }
+            if (!first) {
+                detail.append(", ");
+            }
+            detail.append(channelId)
+                .append('=')
+                .append(maxValue);
+            first = false;
+        }
+        return detail.toString();
+    }
+
+    private static List<Map<String, String>> normalizeStructureLibEntries(List<Map<String, String>> entries) {
+        Map<String, Map<String, String>> deduplicated = new LinkedHashMap<>();
+        for (Map<String, String> entry : entries) {
+            if (entry == null) {
+                continue;
+            }
+            String id = normalizeStructureLibValue(entry.get("id"));
+            if (id == null) {
+                continue;
+            }
+            Map<String, String> normalized = new LinkedHashMap<>();
+            normalized.put("id", id);
+            String label = normalizeStructureLibValue(entry.get("label"));
+            if (label != null) {
+                normalized.put("label", label);
+            }
+            String detail = normalizeStructureLibValue(entry.get("detail"));
+            if (detail != null) {
+                normalized.put("detail", detail);
+            }
+            deduplicated.putIfAbsent(id.toLowerCase(Locale.ROOT), normalized);
+        }
+        List<Map<String, String>> normalizedEntries = new ArrayList<>(deduplicated.values());
+        normalizedEntries.sort(
+            (left, right) -> left.get("id")
+                .compareToIgnoreCase(right.get("id")));
+        return normalizedEntries;
+    }
+
+    private static List<Map<String, String>> filterStructureLibEntries(List<Map<String, String>> entries,
+        String prefix) {
+        String normalizedPrefix = prefix == null ? ""
+            : prefix.trim()
+                .toLowerCase(Locale.ROOT);
+        if (normalizedPrefix.isEmpty()) {
+            return entries;
+        }
+        List<Map<String, String>> filteredEntries = new ArrayList<>();
+        for (Map<String, String> entry : entries) {
+            if (startsWithIgnoreCase(entry.get("id"), normalizedPrefix)
+                || startsWithIgnoreCase(entry.get("label"), normalizedPrefix)
+                || startsWithIgnoreCase(entry.get("detail"), normalizedPrefix)) {
+                filteredEntries.add(entry);
+            }
+        }
+        return filteredEntries;
+    }
+
+    private static int parseStructureLibCursor(String cursor, int size) {
+        if (cursor == null || cursor.isEmpty()) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Math.min(Integer.parseInt(cursor), size));
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    private static int computeStructureLibVersion(List<Map<String, String>> entries) {
+        int hash = entries.hashCode();
+        if (hash == Integer.MIN_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return Math.abs(hash) + 1;
+    }
+
+    private static boolean startsWithIgnoreCase(@Nullable String value, String prefix) {
+        return value != null && value.toLowerCase(Locale.ROOT)
+            .startsWith(prefix);
+    }
+
+    private static @Nullable String normalizeStructureLibValue(@Nullable String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static Map<String, String> createStructureLibEntry(String id, @Nullable String label,
+        @Nullable String detail) {
+        Map<String, String> entry = new LinkedHashMap<>();
+        entry.put("id", id);
+        if (label != null) {
+            entry.put("label", label);
+        }
+        if (detail != null) {
+            entry.put("detail", detail);
+        }
+        return entry;
     }
 
     private static void addItemEntries(List<Map<String, String>> entries) {
