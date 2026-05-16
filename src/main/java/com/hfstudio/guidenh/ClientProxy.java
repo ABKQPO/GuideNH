@@ -78,6 +78,13 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
         GuideWarmupPump.init();
         MinecraftForge.EVENT_BUS.register(this);
+        GuideNH.LOG.info(
+            "GuideNH runtime bridge configuration loaded. enabled={}, hostConfigured={}, port={}, tokenConfigured={}",
+            ModConfig.runtimeBridge.enabled,
+            ModConfig.runtimeBridge.host != null && !ModConfig.runtimeBridge.host.trim()
+                .isEmpty(),
+            ModConfig.runtimeBridge.port,
+            ModConfig.runtimeBridge.token != null && !ModConfig.runtimeBridge.token.isEmpty());
         runtimeBridge.start(
             new GuideNhRuntimeBridgeSettings(
                 ModConfig.runtimeBridge.enabled,
@@ -106,6 +113,7 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+        GuideNH.LOG.info("Minecraft client disconnected. Stopping GuideNH runtime bridge session state");
         runtimeBridge.stop();
         GuideME.closeSearch();
         for (var guide : GuideRegistry.getAll()) {

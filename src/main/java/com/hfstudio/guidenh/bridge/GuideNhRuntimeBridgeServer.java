@@ -52,6 +52,7 @@ public class GuideNhRuntimeBridgeServer {
             return;
         }
         try {
+            GuideNH.LOG.info("Binding GuideNH runtime bridge server to {}:{}", settings.getHost(), settings.getPort());
             serverSocket = new ServerSocket();
             serverSocket.bind(new InetSocketAddress(settings.getHost(), settings.getPort()));
             executor.execute(this::acceptConnections);
@@ -67,6 +68,7 @@ public class GuideNhRuntimeBridgeServer {
         if (!running.getAndSet(false)) {
             return;
         }
+        GuideNH.LOG.info("GuideNH runtime bridge server stopping");
         closeServerSocket();
         List<RuntimeBridgeConnection> snapshot;
         synchronized (connections) {
@@ -87,7 +89,13 @@ public class GuideNhRuntimeBridgeServer {
         while (running.get()) {
             try {
                 Socket socket = serverSocket.accept();
+                String remoteAddress = describeRemote(socket);
+                GuideNH.LOG.info("GuideNH runtime bridge accepted socket from {}", remoteAddress);
                 if (connections.size() >= limits.getMaxConnections()) {
+                    GuideNH.LOG.warn(
+                        "GuideNH runtime bridge rejected socket from {} because maxConnections={} has been reached",
+                        remoteAddress,
+                        limits.getMaxConnections());
                     socket.close();
                     continue;
                 }
@@ -97,8 +105,12 @@ public class GuideNhRuntimeBridgeServer {
                     authenticator,
                     registry,
                     limits,
-                    connections::remove);
+                    this::handleClosedConnection);
                 connections.add(connection);
+                GuideNH.LOG.info(
+                    "GuideNH runtime bridge starting session for {}. activeConnections={}",
+                    remoteAddress,
+                    connections.size());
                 executor.execute(connection);
             } catch (IOException e) {
                 if (running.get()) {
@@ -114,6 +126,21 @@ public class GuideNhRuntimeBridgeServer {
                 serverSocket.close();
             }
         } catch (IOException ignored) {}
+    }
+
+    private String describeRemote(Socket socket) {
+        if (socket == null || socket.getRemoteSocketAddress() == null) {
+            return "unknown";
+        }
+        return String.valueOf(socket.getRemoteSocketAddress());
+    }
+
+    private void handleClosedConnection(RuntimeBridgeConnection connection) {
+        connections.remove(connection);
+        GuideNH.LOG.info(
+            "GuideNH runtime bridge session closed for {}. activeConnections={}",
+            connection.getRemoteAddress(),
+            connections.size());
     }
 
     public static class RuntimeBridgeThreadFactory implements ThreadFactory {
