@@ -7,7 +7,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 /**
  * Drives two background tasks each client tick to reduce first-open latency:
  * <ol>
- * <li><b>Page warm-up</b> – pre-compiles the start page of every registered guide so that the first
+ * <li><b>Page warm-up</b> – pre-compiles one representative page of every registered guide so that the first
  * call to {@link MutableGuide#getPage} returns immediately instead of freezing the client for 5-6 s.
  * Warm-up is deferred until an active server connection is available (required for
  * {@code GuidebookFakeWorld} scene rendering).</li>

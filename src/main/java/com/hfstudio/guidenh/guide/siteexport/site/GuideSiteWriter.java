@@ -182,7 +182,7 @@ public class GuideSiteWriter {
     public String navigationJson(MutableGuide guide, String language, NavigationTree tree) {
         List<Map<String, Object>> rootNodes = new ArrayList<>();
         for (NavigationNode node : tree.getRootNodes()) {
-            rootNodes.add(navigationNodeData(guide, language, node));
+            rootNodes.add(navigationNodeData(language, node));
         }
         return GSON.toJson(rootNodes);
     }
@@ -195,7 +195,7 @@ public class GuideSiteWriter {
     public String renderSidebar(MutableGuide guide, String language, NavigationTree tree,
         ResourceLocation currentPageId, GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
-        return renderSidebar(guide, language, tree, currentPageId, assetExporter, itemIconResolver, null);
+        return renderSidebar(guide, language, tree, currentPageId, assetExporter, itemIconResolver, null, null);
     }
 
     public String renderLanguageSwitcher(String language, @Nullable List<GuideSiteLanguageLink> languageLinks) {
@@ -208,6 +208,21 @@ public class GuideSiteWriter {
     public String renderSidebar(MutableGuide guide, String language, NavigationTree tree,
         ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver, @Nullable List<GuideSiteLanguageLink> languageLinks) {
+        return renderSidebar(
+            guide,
+            language,
+            tree,
+            currentPageId,
+            assetExporter,
+            itemIconResolver,
+            languageLinks,
+            null);
+    }
+
+    public String renderSidebar(MutableGuide guide, String language, NavigationTree tree,
+        ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver, @Nullable List<GuideSiteLanguageLink> languageLinks,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         SiteUiText uiText = SiteUiText.forLanguage(language);
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-sidebar-tools\">");
@@ -226,7 +241,14 @@ public class GuideSiteWriter {
         html.append("</div>");
         html.append("<nav class=\"guide-nav\"><ul>");
         for (NavigationNode node : tree.getRootNodes()) {
-            appendNavigationNode(html, guide, language, node, currentPageId, assetExporter, itemIconResolver);
+            appendNavigationNode(
+                html,
+                language,
+                node,
+                currentPageId,
+                assetExporter,
+                itemIconResolver,
+                assetExportersByGuideId);
         }
         html.append("</ul></nav>");
         return html.toString();
@@ -471,7 +493,7 @@ public class GuideSiteWriter {
         html.append("</div></div>");
     }
 
-    private Map<String, Object> navigationNodeData(MutableGuide guide, String language, NavigationNode node) {
+    private Map<String, Object> navigationNodeData(String language, NavigationNode node) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("title", node.title());
         data.put("position", node.position());
@@ -480,37 +502,24 @@ public class GuideSiteWriter {
                 "pageId",
                 node.pageId()
                     .toString());
-            data.put(
-                "url",
-                pageUrl(
-                    guide.getId()
-                        .getResourceDomain(),
-                    guide.getId()
-                        .getResourcePath(),
-                    language,
-                    toOutputPageFile(node.pageId())));
+            data.put("url", pageUrlForNode(language, node));
         }
 
         List<Map<String, Object>> children = new ArrayList<>();
         for (NavigationNode child : node.children()) {
-            children.add(navigationNodeData(guide, language, child));
+            children.add(navigationNodeData(language, child));
         }
         data.put("children", children);
         return data;
     }
 
-    private void appendNavigationNode(StringBuilder html, MutableGuide guide, String language, NavigationNode node,
+    private void appendNavigationNode(StringBuilder html, String language, NavigationNode node,
         ResourceLocation currentPageId, GuideSitePageAssetExporter assetExporter,
-        GuideSiteItemIconResolver itemIconResolver) {
+        GuideSiteItemIconResolver itemIconResolver,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         html.append("<li>");
         if (node.pageId() != null) {
-            String href = pageUrl(
-                guide.getId()
-                    .getResourceDomain(),
-                guide.getId()
-                    .getResourcePath(),
-                language,
-                toOutputPageFile(node.pageId()));
+            String href = pageUrlForNode(language, node);
             html.append("<a href=\"")
                 .append(escapeHtml(href))
                 .append("\"");
@@ -519,28 +528,64 @@ public class GuideSiteWriter {
                 html.append(" aria-current=\"page\"");
             }
             html.append(">")
-                .append(renderNavigationLinkContent(node.title(), node.icon(), assetExporter, itemIconResolver))
+                .append(
+                    renderNavigationLinkContent(
+                        node.title(),
+                        node.icon(),
+                        node.guideId(),
+                        assetExporter,
+                        itemIconResolver,
+                        assetExportersByGuideId))
                 .append("</a>");
         } else {
             html.append("<span>")
-                .append(renderNavigationLinkContent(node.title(), node.icon(), assetExporter, itemIconResolver))
+                .append(
+                    renderNavigationLinkContent(
+                        node.title(),
+                        node.icon(),
+                        node.guideId(),
+                        assetExporter,
+                        itemIconResolver,
+                        assetExportersByGuideId))
                 .append("</span>");
         }
         if (!node.children()
             .isEmpty()) {
             html.append("<ul>");
             for (NavigationNode child : node.children()) {
-                appendNavigationNode(html, guide, language, child, currentPageId, assetExporter, itemIconResolver);
+                appendNavigationNode(
+                    html,
+                    language,
+                    child,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    assetExportersByGuideId);
             }
             html.append("</ul>");
         }
         html.append("</li>");
     }
 
+    private String pageUrlForNode(String language, NavigationNode node) {
+        ResourceLocation guideId = node.guideId() != null ? node.guideId()
+            : node.pageId() != null ? new ResourceLocation(
+                node.pageId()
+                    .getResourceDomain(),
+                "guidenh") : null;
+        ResourceLocation pageId = node.pageId();
+        if (guideId == null || pageId == null) {
+            return "";
+        }
+        return pageUrl(guideId.getResourceDomain(), guideId.getResourcePath(), language, toOutputPageFile(pageId));
+    }
+
     private String renderNavigationLinkContent(String title, @Nullable GuidePageIcon icon,
-        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+        @Nullable ResourceLocation guideId, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         StringBuilder html = new StringBuilder();
-        appendNavigationIcon(html, icon, assetExporter, itemIconResolver);
+        appendNavigationIcon(html, icon, guideId, assetExporter, itemIconResolver, assetExportersByGuideId);
         html.append("<span class=\"guide-generated-link-text\">")
             .append(escapeHtml(title))
             .append("</span>");
@@ -548,7 +593,9 @@ public class GuideSiteWriter {
     }
 
     private void appendNavigationIcon(StringBuilder html, @Nullable GuidePageIcon icon,
-        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+        @Nullable ResourceLocation guideId, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         if (icon == null) {
             return;
         }
@@ -559,26 +606,43 @@ public class GuideSiteWriter {
                 "guide-nav-item-icon");
             return;
         }
-        if (assetExporter == null) {
+        GuideSitePageAssetExporter resolvedAssetExporter = resolveAssetExporter(
+            guideId,
+            assetExporter,
+            assetExportersByGuideId);
+        if (resolvedAssetExporter == null) {
             return;
         }
         // Resolve a texture resource id from either the explicit textureId field or the
         // GuidePageTexture wrapper. Frontmatter "icon: ns:textures/..." populates textureId,
         // while some loaders only set the texture wrapper, so we cover both paths here.
-        ResourceLocation resolvedTextureId = icon.textureId();
-        if (resolvedTextureId == null && icon.texture() != null) {
-            resolvedTextureId = icon.texture()
+        ResourceLocation resolvedTextureId = icon.resolveCurrentTextureId();
+        if (resolvedTextureId == null && icon.resolveCurrentTexture() != null) {
+            resolvedTextureId = icon.resolveCurrentTexture()
                 .getSourceId();
         }
         if (resolvedTextureId == null) {
             return;
         }
-        String src = assetExporter.exportResource(resolvedTextureId);
+        String src = resolvedAssetExporter.exportResource(resolvedTextureId);
         if (!src.isEmpty()) {
             html.append("<img class=\"item-icon guide-nav-item-icon\" src=\"")
                 .append(escapeHtml(src))
                 .append("\" alt=\"\" width=\"32\" height=\"32\" decoding=\"async\">");
         }
+    }
+
+    @Nullable
+    private GuideSitePageAssetExporter resolveAssetExporter(@Nullable ResourceLocation guideId,
+        @Nullable GuideSitePageAssetExporter assetExporter,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
+        if (guideId != null && assetExportersByGuideId != null) {
+            GuideSitePageAssetExporter mapped = assetExportersByGuideId.get(guideId);
+            if (mapped != null) {
+                return mapped;
+            }
+        }
+        return assetExporter;
     }
 
     private String toOutputPageFile(ResourceLocation pageId) {

@@ -431,6 +431,7 @@ guideme.guidebook.SceneEditorMarkdownWrapOff=自动换行：关
 guideme.guidebook.SceneEditorMarkdownWrapOn=自动换行：开
 key.categories.guidenh=GuideNH
 key.guidenh.cycle_region_wand_mode=切换 Region Wand 导出模式
+key.guidenh.open_guide_home=打开指南主页
 key.guidenh.open_guide=打开物品对应的指南
 key.guidenh.open_scene_editor=打开场景编辑器
 

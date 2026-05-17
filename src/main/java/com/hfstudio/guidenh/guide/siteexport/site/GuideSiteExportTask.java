@@ -22,10 +22,14 @@ import net.minecraft.client.resources.LanguageManager;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
+
+import com.github.bsideup.jabel.Desugar;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
+import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
@@ -80,6 +84,9 @@ public class GuideSiteExportTask {
         int pagesFailed = 0;
         String firstPageUrl = null;
         Map<String, List<Map<String, Object>>> searchEntriesByLanguage = new LinkedHashMap<>();
+        Map<ResourceLocation, MutableGuide> guidesById = new LinkedHashMap<>();
+        Map<ResourceLocation, List<GuideSitePageVariant>> variantsByGuideId = new LinkedHashMap<>();
+        Map<String, List<GuideSitePageVariant>> allVariantsByLanguage = new LinkedHashMap<>();
         IResourceManager resourceManager = null;
 
         // Capture the user's current Minecraft language so we can restore it after export.
@@ -95,9 +102,8 @@ public class GuideSiteExportTask {
         } catch (Throwable ignored) {}
 
         try {
+            List<String> discoveredLanguages = GuideSitePageCollector.discoverLanguagesOrEmpty();
             for (MutableGuide guide : GuideRegistry.getAll()) {
-                guidesExported++;
-
                 if (resourceManager == null) {
                     resourceManager = resolveResourceManager();
                     if (resourceManager == null) {
@@ -108,7 +114,7 @@ public class GuideSiteExportTask {
                 GuideSitePageCollector collector = new GuideSitePageCollector(guide, resourceManager);
                 List<GuideSitePageVariant> variants;
                 try {
-                    variants = collector.collect(guide);
+                    variants = collector.collect(guide, discoveredLanguages);
                 } catch (Throwable t) {
                     FMLLog.getLogger()
                         .warn(
@@ -120,11 +126,35 @@ public class GuideSiteExportTask {
                     continue;
                 }
 
+                guidesById.put(guide.getId(), guide);
+                variantsByGuideId.put(guide.getId(), variants);
+                for (GuideSitePageVariant variant : variants) {
+                    allVariantsByLanguage.computeIfAbsent(variant.language(), ignored -> new ArrayList<>())
+                        .add(variant);
+                }
+            }
+
+            Map<String, LanguageExportContext> contextsByLanguage = new LinkedHashMap<>();
+            for (Map.Entry<String, List<GuideSitePageVariant>> entry : allVariantsByLanguage.entrySet()) {
+                String language = entry.getKey();
+                List<GuideSitePageVariant> languageVariants = entry.getValue();
+                contextsByLanguage.put(
+                    language,
+                    buildLanguageExportContext(guidesById, languageVariants, resourceManager, language, assets));
+            }
+
+            for (Map.Entry<ResourceLocation, MutableGuide> guideEntry : guidesById.entrySet()) {
+                MutableGuide guide = guideEntry.getValue();
+                List<GuideSitePageVariant> variants = variantsByGuideId
+                    .getOrDefault(guideEntry.getKey(), Collections.emptyList());
+                guidesExported++;
+
                 Map<String, List<GuideSitePageVariant>> variantsByLanguage = new LinkedHashMap<>();
                 for (GuideSitePageVariant variant : variants) {
                     variantsByLanguage.computeIfAbsent(variant.language(), ignored -> new ArrayList<>())
                         .add(variant);
                 }
+
                 List<String> languageOrder = new ArrayList<>(variantsByLanguage.keySet());
                 Map<ResourceLocation, List<GuideSiteLanguageLink>> languageLinksByPageId = buildLanguageLinks(
                     writer,
@@ -135,35 +165,28 @@ public class GuideSiteExportTask {
                 for (Map.Entry<String, List<GuideSitePageVariant>> languageEntry : variantsByLanguage.entrySet()) {
                     String language = languageEntry.getKey();
                     List<GuideSitePageVariant> languageVariants = languageEntry.getValue();
+                    LanguageExportContext context = contextsByLanguage
+                        .getOrDefault(language, LanguageExportContext.EMPTY);
+
                     // Switch the active Minecraft locale so localized item display names and tooltips
                     // resolve to this language while we render this language's pages.
                     switchMinecraftLanguage(language);
-                    GuideSitePageAssetExporter assetExporter = createPageAssetExporter(
-                        guide,
-                        resourceManager,
-                        language,
-                        assets);
-                    List<ParsedGuidePage> parsedPages = new ArrayList<>();
-                    Map<ResourceLocation, ParsedGuidePage> parsedPagesById = new LinkedHashMap<>();
-                    for (GuideSitePageVariant variant : languageVariants) {
-                        parsedPages.add(variant.parsedPage());
-                        parsedPagesById.put(
-                            variant.parsedPage()
-                                .getId(),
-                            variant.parsedPage());
+                    GuideSitePageAssetExporter assetExporter = context.assetExportersByGuideId()
+                        .get(guide.getId());
+                    if (assetExporter == null) {
+                        assetExporter = createPageAssetExporter(guide, resourceManager, language, assets);
                     }
-
-                    NavigationTree navigationTree = NavigationTree.build(parsedPages);
                     GuideSiteHtmlCompiler compiler = createHtmlCompiler(
                         assets,
                         assetExporter,
                         new GuideSiteRecipeTagRenderer(itemIconExporter, neiPhase1Exporter),
                         new GuideSiteMdxTagRenderer(
                             guide,
-                            parsedPagesById,
-                            navigationTree,
+                            context.parsedPagesById(),
+                            context.navigationTree(),
                             assetExporter,
-                            itemIconExporter));
+                            itemIconExporter,
+                            context.assetExportersByGuideId()));
 
                     for (GuideSitePageVariant variant : languageVariants) {
                         try {
@@ -172,7 +195,8 @@ public class GuideSiteExportTask {
                                     .getResourceDomain(),
                                 guide.getId()
                                     .getResourcePath(),
-                                language)) {
+                                language,
+                                context.guideIdsByPageId())) {
                                 GuideSiteTemplateRegistry templates = new GuideSiteTemplateRegistry();
                                 GuidePage compiledPage = PageCompiler
                                     .compile(guide, guide.getExtensions(), variant.parsedPage());
@@ -192,11 +216,12 @@ public class GuideSiteExportTask {
                                 String sidebarHtml = writer.renderSidebar(
                                     guide,
                                     language,
-                                    navigationTree,
+                                    context.navigationTree(),
                                     variant.pageId(),
                                     assetExporter,
                                     itemIconExporter,
-                                    langLinks);
+                                    langLinks,
+                                    context.assetExportersByGuideId());
                                 String pageFile = toOutputPageFile(variant.parsedPage());
                                 String pageUrl = writer.pageUrl(
                                     guide.getId()
@@ -235,9 +260,11 @@ public class GuideSiteExportTask {
                                 searchEntry.put("text", searchExtractor.searchableText(guide, variant.parsedPage()));
                                 appendSearchIconData(
                                     searchEntry,
-                                    navigationTree.getNodeById(variant.pageId()),
+                                    context.navigationTree()
+                                        .getNodeById(variant.pageId()),
                                     assetExporter,
-                                    itemIconExporter);
+                                    itemIconExporter,
+                                    context.assetExportersByGuideId());
                                 searchEntriesByLanguage.computeIfAbsent(language, ignored2 -> new ArrayList<>())
                                     .add(searchEntry);
 
@@ -370,6 +397,84 @@ public class GuideSiteExportTask {
         }
     }
 
+    private Map<ResourceLocation, ParsedGuidePage> buildParsedPagesById(List<GuideSitePageVariant> variants) {
+        Map<ResourceLocation, ParsedGuidePage> parsedPagesById = new LinkedHashMap<>();
+        for (GuideSitePageVariant variant : variants) {
+            if (variant == null || variant.parsedPage() == null || variant.pageId() == null) {
+                continue;
+            }
+            parsedPagesById.putIfAbsent(variant.pageId(), variant.parsedPage());
+        }
+        return parsedPagesById;
+    }
+
+    private LanguageExportContext buildLanguageExportContext(Map<ResourceLocation, MutableGuide> guidesById,
+        List<GuideSitePageVariant> languageVariants, IResourceManager resourceManager, String language,
+        GuideSiteAssetRegistry assets) {
+        return new LanguageExportContext(
+            buildParsedPagesById(languageVariants),
+            buildMergedNavigationTree(guidesById, languageVariants),
+            indexGuideIdsByPageId(languageVariants),
+            buildAssetExportersByGuideId(guidesById, languageVariants, resourceManager, language, assets));
+    }
+
+    private Map<ResourceLocation, ResourceLocation> indexGuideIdsByPageId(List<GuideSitePageVariant> variants) {
+        Map<ResourceLocation, ResourceLocation> guideIdsByPageId = new LinkedHashMap<>();
+        for (GuideSitePageVariant variant : variants) {
+            if (variant == null || variant.pageId() == null || variant.guideId() == null) {
+                continue;
+            }
+            guideIdsByPageId.putIfAbsent(variant.pageId(), variant.guideId());
+        }
+        return guideIdsByPageId;
+    }
+
+    private NavigationTree buildMergedNavigationTree(Map<ResourceLocation, MutableGuide> availableGuides,
+        List<GuideSitePageVariant> variants) {
+        if (variants == null || variants.isEmpty()) {
+            return new NavigationTree();
+        }
+
+        Map<ResourceLocation, PageCollection> pageCollectionsByPageId = new LinkedHashMap<>();
+        List<ParsedGuidePage> mergedPages = new ArrayList<>();
+        for (GuideSitePageVariant variant : variants) {
+            if (variant == null || variant.guideId() == null || variant.parsedPage() == null) {
+                continue;
+            }
+            MutableGuide guide = availableGuides.get(variant.guideId());
+            if (guide == null) {
+                continue;
+            }
+            pageCollectionsByPageId.putIfAbsent(variant.pageId(), guide);
+            mergedPages.add(variant.parsedPage());
+        }
+
+        if (pageCollectionsByPageId.isEmpty() || mergedPages.isEmpty()) {
+            return new NavigationTree();
+        }
+
+        return NavigationTree.buildMergedPages(pageCollectionsByPageId, mergedPages);
+    }
+
+    private Map<ResourceLocation, GuideSitePageAssetExporter> buildAssetExportersByGuideId(
+        Map<ResourceLocation, MutableGuide> availableGuides, List<GuideSitePageVariant> variants,
+        IResourceManager resourceManager, String language, GuideSiteAssetRegistry assets) {
+        Map<ResourceLocation, GuideSitePageAssetExporter> exportersByGuideId = new LinkedHashMap<>();
+        for (GuideSitePageVariant variant : variants) {
+            if (variant == null || variant.guideId() == null) {
+                continue;
+            }
+            MutableGuide guide = availableGuides.get(variant.guideId());
+            if (guide == null) {
+                continue;
+            }
+            exportersByGuideId.computeIfAbsent(
+                guide.getId(),
+                ignored -> createPageAssetExporter(guide, resourceManager, language, assets));
+        }
+        return exportersByGuideId;
+    }
+
     private Map<ResourceLocation, List<GuideSiteLanguageLink>> buildLanguageLinks(GuideSiteWriter writer,
         MutableGuide guide, List<GuideSitePageVariant> variants, List<String> languageOrder) {
         if (variants.isEmpty()) {
@@ -410,7 +515,8 @@ public class GuideSiteExportTask {
     }
 
     private void appendSearchIconData(Map<String, Object> searchEntry, NavigationNode node,
-        GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+        GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         if (node == null) {
             return;
         }
@@ -430,9 +536,18 @@ public class GuideSiteExportTask {
             return;
         }
 
-        if (icon.textureId() != null) {
+        ResourceLocation textureId = icon.resolveCurrentTextureId();
+        if (textureId == null && icon.resolveCurrentTexture() != null) {
+            textureId = icon.resolveCurrentTexture()
+                .getSourceId();
+        }
+        if (textureId != null) {
+            GuideSitePageAssetExporter resolvedAssetExporter = assetExporter;
+            if (node.guideId() != null && assetExportersByGuideId != null) {
+                resolvedAssetExporter = assetExportersByGuideId.getOrDefault(node.guideId(), assetExporter);
+            }
             String iconUrl = GuideSitePageAssetExporter
-                .toRootRelativePath(assetExporter.exportResource(icon.textureId()));
+                .toRootRelativePath(resolvedAssetExporter.exportResource(textureId));
             if (!iconUrl.isEmpty()) {
                 searchEntry.put("iconUrl", iconUrl);
                 searchEntry.put("iconKind", "texture");
@@ -1205,5 +1320,17 @@ public class GuideSiteExportTask {
         public Path outDir() {
             return outDir;
         }
+    }
+
+    @Desugar
+    private record LanguageExportContext(Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
+        NavigationTree navigationTree, Map<ResourceLocation, ResourceLocation> guideIdsByPageId,
+        Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
+
+        private static final LanguageExportContext EMPTY = new LanguageExportContext(
+            Collections.emptyMap(),
+            new NavigationTree(),
+            Collections.emptyMap(),
+            Collections.emptyMap());
     }
 }

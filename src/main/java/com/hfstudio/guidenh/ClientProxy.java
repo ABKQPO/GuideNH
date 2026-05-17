@@ -9,6 +9,7 @@ import com.hfstudio.guidenh.client.RegionWandRenderer;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.command.GuideNhClientCommand;
 import com.hfstudio.guidenh.client.hotkey.CycleRegionWandModeHotkey;
+import com.hfstudio.guidenh.client.hotkey.OpenGuideHomeHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
 import com.hfstudio.guidenh.guide.internal.GuideDevWatcherPump;
@@ -17,6 +18,7 @@ import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
+import com.hfstudio.guidenh.guide.internal.GuideScreenMemory;
 import com.hfstudio.guidenh.guide.internal.GuideWarmupPump;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
@@ -69,6 +71,7 @@ public class ClientProxy extends CommonProxy {
         if (Mods.NotEnoughItems.isModLoaded()) {
             GuideScreenNeiBridge.init();
         }
+        OpenGuideHomeHotkey.init();
         OpenGuideHotkey.init();
         OpenSceneEditorHotkey.init();
         CycleRegionWandModeHotkey.init();
@@ -93,6 +96,7 @@ public class ClientProxy extends CommonProxy {
     @SubscribeEvent
     public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
         GuideME.closeSearch();
+        GuideScreenMemory.clear();
         for (var guide : GuideRegistry.getAll()) {
             guide.resetWarmup();
         }

@@ -13,6 +13,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 
 import cpw.mods.fml.common.FMLLog;
 
@@ -27,6 +28,9 @@ public class GuideRegistry {
 
     // Merged between data-driven and in-code guides
     public static volatile Map<ResourceLocation, MutableGuide> mergedGuides = Collections.emptyMap();
+    private static volatile NavigationTree mergedNavigationTree = new NavigationTree();
+    private static volatile long navigationRevision = 1L;
+    private static volatile long cachedNavigationRevision = Long.MIN_VALUE;
 
     public static Collection<MutableGuide> getAll() {
         return mergedGuides.values();
@@ -41,6 +45,25 @@ public class GuideRegistry {
 
     public static @Nullable MutableGuide getById(ResourceLocation id) {
         return mergedGuides.get(id);
+    }
+
+    public static NavigationTree getMergedNavigationTree() {
+        if (cachedNavigationRevision == navigationRevision) {
+            return mergedNavigationTree;
+        }
+
+        synchronized (GuideRegistry.class) {
+            if (cachedNavigationRevision != navigationRevision) {
+                var guides = new ArrayList<>(mergedGuides.values());
+                guides.sort(
+                    Comparator.comparing(
+                        guide -> guide.getId()
+                            .toString()));
+                mergedNavigationTree = NavigationTree.buildMerged(guides);
+                cachedNavigationRevision = navigationRevision;
+            }
+            return mergedNavigationTree;
+        }
     }
 
     /**
@@ -83,6 +106,14 @@ public class GuideRegistry {
         }
     }
 
+    public static void invalidateMergedNavigationTree() {
+        synchronized (GuideRegistry.class) {
+            navigationRevision++;
+            cachedNavigationRevision = Long.MIN_VALUE;
+            mergedNavigationTree = new NavigationTree();
+        }
+    }
+
     public static void rebuildGuides() {
         var merged = new HashMap<>(guides);
         var overridden = new ArrayList<ResourceLocation>();
@@ -101,5 +132,6 @@ public class GuideRegistry {
         }
 
         GuideRegistry.mergedGuides = Collections.unmodifiableMap(merged);
+        invalidateMergedNavigationTree();
     }
 }

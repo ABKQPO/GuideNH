@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.internal;
 
 import java.awt.Desktop;
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -11,11 +13,14 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+
+import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
@@ -27,6 +32,7 @@ import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.GuiYesNoCallback;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
@@ -40,6 +46,7 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
@@ -95,6 +102,7 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
+import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
@@ -119,12 +127,23 @@ public class GuideScreen extends GuiContainer
     public static final ResourceLocation BG_TEXTURE = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/background.png");
+    public static final ResourceLocation HOME_LOGO_SOURCE = new ResourceLocation("guidenh", "home_logo");
+    public static final String HOME_LOGO_RESOURCE_PATH = "/assets/logo.png";
 
     public static float BACKGROUND_ALPHA = 0.7f;
     public static int BACKGROUND_DIM_COLOR = 0x34101018;
 
+    @Nullable
+    private static ResourceLocation homeLogoTexture;
+    private static int homeLogoWidth = -1;
+    private static int homeLogoHeight = -1;
+
+    @Nullable
     private MutableGuide guide;
+    private GuideScreenRoute currentRoute;
     private PageAnchor currentAnchor;
+    @Nullable
+    private GuideScreenViewState pendingRestoreViewState;
     @Nullable
     private final GuiScreen parentScreen;
     @Nullable
@@ -132,8 +151,8 @@ public class GuideScreen extends GuiContainer
     @Nullable
     private LytDocument document;
 
-    private final Deque<PageAnchor> history = new ArrayDeque<>();
-    private final Deque<PageAnchor> forwardHistory = new ArrayDeque<>();
+    private final Deque<GuideScreenViewState> history = new ArrayDeque<>();
+    private final Deque<GuideScreenViewState> forwardHistory = new ArrayDeque<>();
 
     private int scrollY;
     private boolean pendingAnchorScroll;
@@ -383,12 +402,13 @@ public class GuideScreen extends GuiContainer
         }
     }
 
-    private GuideScreen(MutableGuide guide, PageAnchor anchor, @Nullable GuiScreen parentScreen) {
+    private GuideScreen(GuideScreenRoute route, @Nullable GuideScreenViewState restoreViewState,
+        @Nullable GuiScreen parentScreen) {
         super(new GuideScreenNoopContainer());
-        this.guide = guide;
-        this.currentAnchor = anchor;
+        this.currentRoute = route;
+        this.pendingRestoreViewState = restoreViewState;
         this.parentScreen = parentScreen;
-        this.pendingAnchorScroll = anchor != null && anchor.anchor() != null;
+        applyRoute(route);
         pageTitle = new LytParagraph();
         pageTitle.setStyle(DefaultStyles.HEADING1);
         try {
@@ -399,27 +419,51 @@ public class GuideScreen extends GuiContainer
     }
 
     public static void open(ResourceLocation guideId, @Nullable PageAnchor anchor) {
-        open(guideId, anchor, false);
+        open(contentState(guideId, anchor), false);
     }
 
     public static void openFromGuideHotkey(ResourceLocation guideId, @Nullable PageAnchor anchor) {
-        open(guideId, anchor, true);
+        open(contentState(guideId, anchor), true);
     }
 
-    private static void open(ResourceLocation guideId, @Nullable PageAnchor anchor, boolean openedFromGuideHotkey) {
-        var guide = GuideRegistry.getById(guideId);
-        if (guide == null) {
-            FMLLog.warning("GuideScreen.open: no guide registered with id {}", guideId);
-            return;
+    public static void openFromHomeHotkey() {
+        GuideScreenViewState remembered = GuideScreenMemory.consumeValidLastContentState();
+        open(remembered != null ? remembered : GuideScreenViewState.home(), false);
+    }
+
+    private static void open(GuideScreenViewState initialState, boolean openedFromGuideHotkey) {
+        if (initialState == null || initialState.route() == null) {
+            initialState = GuideScreenViewState.home();
         }
-        var initial = anchor != null ? anchor : PageAnchor.page(guide.getStartPage());
         Minecraft mc = Minecraft.getMinecraft();
         GuiScreen parent = captureParentScreen(mc.currentScreen);
-        var screen = new GuideScreen(guide, initial, parent);
+        var screen = new GuideScreen(initialState.route(), initialState, parent);
         screen.guideEditorSuppressTextFocusUntilGuideHotkeyRelease = openedFromGuideHotkey
             && OpenGuideHotkey.isKeyHeld();
         GuideSoundPlayback.stopAll();
         mc.displayGuiScreen(screen);
+    }
+
+    private static GuideScreenViewState contentState(ResourceLocation guideId, @Nullable PageAnchor anchor) {
+        GuideScreenRoute route = contentRoute(guideId, anchor);
+        return route != null ? GuideScreenViewState.of(route, 0) : GuideScreenViewState.home();
+    }
+
+    @Nullable
+    private static GuideScreenRoute contentRoute(ResourceLocation guideId, @Nullable PageAnchor anchor) {
+        MutableGuide guide = GuideRegistry.getById(guideId);
+        if (guide == null) {
+            FMLLog.warning("GuideScreen.open: no guide registered with id {}", guideId);
+            return null;
+        }
+        if (anchor == null) {
+            GuideScreenViewState remembered = GuideScreenMemory.consumeValidLastContentState();
+            if (remembered != null && remembered.route() != null) {
+                return remembered.route();
+            }
+            return GuideScreenRoute.home();
+        }
+        return GuideScreenRoute.content(guideId, anchor);
     }
 
     @Nullable
@@ -453,12 +497,13 @@ public class GuideScreen extends GuiContainer
         return enabled;
     }
 
+    @Nullable
     public ResourceLocation getCurrentPageId() {
-        return currentAnchor.pageId();
+        return currentAnchor != null ? currentAnchor.pageId() : null;
     }
 
     public boolean isShowingGuide(ResourceLocation guideId) {
-        return guide.getId()
+        return guide != null && guide.getId()
             .equals(guideId);
     }
 
@@ -466,7 +511,11 @@ public class GuideScreen extends GuiContainer
         if (guideEditorSuppressReloadFromEditorApply) {
             return;
         }
-        var reloadedGuide = GuideRegistry.getById(guide.getId());
+        MutableGuide activeGuide = guide;
+        if (activeGuide == null) {
+            return;
+        }
+        var reloadedGuide = GuideRegistry.getById(activeGuide.getId());
         if (reloadedGuide != null) {
             guide = reloadedGuide;
         }
@@ -497,6 +546,81 @@ public class GuideScreen extends GuiContainer
         ensureLayout();
         scrollToCurrentAnchor();
         clampScroll();
+    }
+
+    private void applyRoute(GuideScreenRoute route) {
+        currentRoute = route != null ? route : GuideScreenRoute.home();
+        if (currentRoute.isContent()) {
+            guide = GuideRegistry.getById(currentRoute.guideId());
+            currentAnchor = currentRoute.anchor();
+            pendingAnchorScroll = currentAnchor != null && currentAnchor.anchor() != null;
+            if (guide == null || currentAnchor == null) {
+                currentRoute = GuideScreenRoute.home();
+                guide = null;
+                currentAnchor = null;
+                pendingAnchorScroll = false;
+            }
+        } else {
+            guide = null;
+            currentAnchor = currentRoute.isHomeSearch() ? currentRoute.anchor() : null;
+            pendingAnchorScroll = false;
+        }
+    }
+
+    private GuideScreenViewState captureCurrentViewState() {
+        return GuideScreenViewState.of(currentRoute, scrollY);
+    }
+
+    private void restoreViewState(GuideScreenViewState state) {
+        GuideScreenViewState nextState = state != null ? state : GuideScreenViewState.home();
+        applyRoute(nextState.route());
+        pendingRestoreViewState = nextState;
+        GuideSoundPlayback.stopAll();
+        clearInteractionState();
+        currentPage = null;
+        document = null;
+        layoutDocument = null;
+        lastLayoutWidth = -1;
+        scrollY = 0;
+        loadCurrentPage();
+        ensureLayout();
+        scrollToCurrentAnchor();
+        applyPendingRestoreScroll();
+        clampScroll();
+        if (isGuideEditorActive()) {
+            refreshGuideEditorDraft(true);
+        }
+    }
+
+    private void applyPendingRestoreScroll() {
+        if (pendingRestoreViewState == null || !pendingRestoreViewState.route()
+            .equals(currentRoute)) {
+            return;
+        }
+        scrollY = pendingRestoreViewState.scrollY();
+        pendingRestoreViewState = null;
+        clampScroll();
+    }
+
+    private void rememberCurrentContentStateIfEligible() {
+        GuideScreenMemory.rememberContentState(captureCurrentViewState());
+    }
+
+    private boolean isHomeRoute() {
+        return currentRoute != null && (currentRoute.isHome() || currentRoute.isHomeSearch());
+    }
+
+    private boolean hasContentRoute() {
+        return currentRoute != null && currentRoute.isContent() && guide != null && currentAnchor != null;
+    }
+
+    @Nullable
+    private MutableGuide getCurrentGuide() {
+        return guide;
+    }
+
+    private NavigationTree resolveNavigationTree() {
+        return GuideRegistry.getMergedNavigationTree();
     }
 
     @Override
@@ -639,7 +763,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private boolean hasBottomBar() {
-        return currentPage != null && !isSearchPage() && !isItemLinksPage() && !isGuideEditorActive();
+        return !isHomeRoute() && currentPage != null && !isSearchPage() && !isItemLinksPage() && !isGuideEditorActive();
     }
 
     private boolean isGuideEditorActive() {
@@ -679,13 +803,15 @@ public class GuideScreen extends GuiContainer
     }
 
     private void createGuideEditorPage() {
-        if (!isGuideEditorActive()) {
+        MutableGuide activeGuide = resolveGuideEditorTargetGuide();
+        if (activeGuide == null || !GuideScreenEditorState.isEnabled()) {
             return;
         }
-        ParsedGuidePage currentParsedPage = guide.getParsedPage(currentAnchor.pageId());
+        ParsedGuidePage currentParsedPage = resolveGuideEditorTemplatePage(activeGuide);
         if (currentParsedPage == null) {
             return;
         }
+        boolean omitParent = isHomeRoute();
 
         prepareForTemporaryScreenChange();
         mc.displayGuiScreen(
@@ -698,7 +824,7 @@ public class GuideScreen extends GuiContainer
                     public void create(String path) {
                         cancelTemporaryScreenChange();
                         mc.displayGuiScreen(GuideScreen.this);
-                        createGuideEditorPageAtPath(path);
+                        createGuideEditorPageAtPath(activeGuide, currentParsedPage, path, omitParent);
                     }
 
                     @Override
@@ -708,21 +834,68 @@ public class GuideScreen extends GuiContainer
                 }));
     }
 
-    private void createGuideEditorPageAtPath(String requestedPath) {
-        if (!isGuideEditorActive()) {
-            return;
+    @Nullable
+    private ParsedGuidePage resolveGuideEditorTemplatePage(MutableGuide activeGuide) {
+        if (!isHomeRoute() && currentAnchor != null
+            && guide != null
+            && guide.getId()
+                .equals(activeGuide.getId())) {
+            ParsedGuidePage currentParsedPage = activeGuide.getParsedPage(currentAnchor.pageId());
+            if (currentParsedPage != null) {
+                return currentParsedPage;
+            }
         }
-        ParsedGuidePage currentParsedPage = guide.getParsedPage(currentAnchor.pageId());
-        if (currentParsedPage == null) {
+        for (ParsedGuidePage page : activeGuide.getPages()) {
+            var navigation = page.getFrontmatter()
+                .navigationEntry();
+            if (navigation != null && navigation.parent() == null) {
+                return page;
+            }
+        }
+        return activeGuide.getPages()
+            .stream()
+            .findFirst()
+            .orElse(null);
+    }
+
+    @Nullable
+    private MutableGuide resolveGuideEditorTargetGuide() {
+        if (guide != null) {
+            return guide;
+        }
+        GuideScreenViewState remembered = GuideScreenMemory.recallLastContentState();
+        if (remembered != null && remembered.route() != null) {
+            ResourceLocation rememberedGuideId = remembered.route()
+                .guideId();
+            if (rememberedGuideId != null) {
+                MutableGuide rememberedGuide = GuideRegistry.getById(rememberedGuideId);
+                if (rememberedGuide != null) {
+                    return rememberedGuide;
+                }
+            }
+        }
+        List<MutableGuide> guides = new ArrayList<>(GuideRegistry.getAll());
+        guides.sort(
+            (left, right) -> left.getId()
+                .toString()
+                .compareTo(
+                    right.getId()
+                        .toString()));
+        return guides.isEmpty() ? null : guides.get(0);
+    }
+
+    private void createGuideEditorPageAtPath(MutableGuide activeGuide, ParsedGuidePage currentParsedPage,
+        String requestedPath, boolean omitParent) {
+        if (activeGuide == null || !GuideScreenEditorState.isEnabled()) {
             return;
         }
 
         String language = currentParsedPage.getLanguage();
         String titleText = resolveGuideEditorNewPageTitle();
-        ResourceLocation parentId = resolveGuideEditorNewPageParent(currentParsedPage);
+        ResourceLocation parentId = omitParent ? null : resolveGuideEditorNewPageParent(activeGuide, currentParsedPage);
         String pageText = buildGuideEditorNewPageText(titleText, parentId);
         Path sourceRoot = guideEditorFileStore
-            .findWritablePageResourcePackRoot(guide, currentParsedPage.getId(), language);
+            .findWritablePageResourcePackRoot(activeGuide, currentParsedPage.getId(), language);
         if (sourceRoot == null) {
             FMLLog.warning("Failed to create guide editor page because current page has no writable resource pack");
             return;
@@ -731,13 +904,13 @@ public class GuideScreen extends GuiContainer
         try {
             String normalizedPath = normalizeGuideEditorNewPagePath(requestedPath);
             GuideScreenEditorState.setNewPagePath(normalizedPath);
-            ResourceLocation newPageId = resolveGuideEditorNewPageId(language, sourceRoot, normalizedPath);
-            guideEditorFileStore.savePageInRoot(sourceRoot, guide, newPageId, language, pageText);
+            ResourceLocation newPageId = resolveGuideEditorNewPageId(activeGuide, language, sourceRoot, normalizedPath);
+            guideEditorFileStore.savePageInRoot(sourceRoot, activeGuide, newPageId, language, pageText);
             ParsedGuidePage parsedNewPage = PageCompiler
                 .parse(currentParsedPage.getSourcePack(), language, newPageId, pageText);
-            applyGuideEditorPageWithoutReload(parsedNewPage);
-            guide.rebuildEditorNavigationStateWithoutValidation();
-            navigateTo(PageAnchor.page(newPageId));
+            applyGuideEditorPageWithoutReload(activeGuide, parsedNewPage);
+            activeGuide.rebuildEditorNavigationStateWithoutValidation();
+            navigateTo(activeGuide.getId(), PageAnchor.page(newPageId));
             refreshGuideEditorDraft(true);
             rebuildToolbar();
         } catch (Throwable t) {
@@ -745,13 +918,14 @@ public class GuideScreen extends GuiContainer
         }
     }
 
-    private ResourceLocation resolveGuideEditorNewPageId(String language, Path sourceRoot, String normalizedPath) {
+    private ResourceLocation resolveGuideEditorNewPageId(MutableGuide activeGuide, String language, Path sourceRoot,
+        String normalizedPath) {
         String candidate = normalizedPath;
         int index = 2;
-        ResourceLocation candidateId = new ResourceLocation(guide.getDefaultNamespace(), candidate);
-        while (guideEditorFileStore.hasPageInRoot(sourceRoot, guide, candidateId, language)) {
+        ResourceLocation candidateId = new ResourceLocation(activeGuide.getDefaultNamespace(), candidate);
+        while (guideEditorFileStore.hasPageInRoot(sourceRoot, activeGuide, candidateId, language)) {
             candidate = addWindowsStyleCopySuffix(normalizedPath, index++);
-            candidateId = new ResourceLocation(guide.getDefaultNamespace(), candidate);
+            candidateId = new ResourceLocation(activeGuide.getDefaultNamespace(), candidate);
         }
         return candidateId;
     }
@@ -799,7 +973,8 @@ public class GuideScreen extends GuiContainer
         return folder + baseName + " (" + index + ")" + extension;
     }
 
-    private ResourceLocation resolveGuideEditorNewPageParent(ParsedGuidePage currentParsedPage) {
+    private ResourceLocation resolveGuideEditorNewPageParent(MutableGuide activeGuide,
+        ParsedGuidePage currentParsedPage) {
         if (currentParsedPage.getFrontmatter() != null && currentParsedPage.getFrontmatter()
             .navigationEntry() != null
             && currentParsedPage.getFrontmatter()
@@ -809,7 +984,7 @@ public class GuideScreen extends GuiContainer
                 .navigationEntry()
                 .parent();
         }
-        return guide.getStartPage();
+        return null;
     }
 
     private String resolveGuideEditorNewPageTitle() {
@@ -830,9 +1005,11 @@ public class GuideScreen extends GuiContainer
         builder.append("  title: ")
             .append(titleText)
             .append('\n');
-        builder.append("  parent: ")
-            .append(parentId.toString())
-            .append('\n');
+        if (parentId != null) {
+            builder.append("  parent: ")
+                .append(parentId.toString())
+                .append('\n');
+        }
         builder.append("author: ")
             .append(GuideScreenEditorState.getDefaultAuthor())
             .append('\n');
@@ -1113,7 +1290,7 @@ public class GuideScreen extends GuiContainer
             guideEditorNextPreviewCompileAtMillis = 0L;
             guideEditorNextExternalCheckAtMillis = System.currentTimeMillis() + 250L;
             if (canApplyGuideEditorParsedPage(parsedDraft)) {
-                applyGuideEditorPageWithoutReload(parsedDraft);
+                applyGuideEditorPageWithoutReload(guide, parsedDraft);
                 guideEditorDraftPage = parsedDraft;
                 guideEditorPreviewDirty = true;
                 scheduleGuideEditorNavigationRefresh();
@@ -1209,7 +1386,7 @@ public class GuideScreen extends GuiContainer
                 guideEditorDraftSource);
             if (canApplyGuideEditorParsedPage(parsedDraft)) {
                 guideEditorDraftPage = parsedDraft;
-                applyGuideEditorPageWithoutReload(parsedDraft);
+                applyGuideEditorPageWithoutReload(guide, parsedDraft);
                 scheduleGuideEditorNavigationRefresh();
             }
         } catch (Throwable t) {
@@ -1318,10 +1495,13 @@ public class GuideScreen extends GuiContainer
         }
     }
 
-    private void applyGuideEditorPageWithoutReload(ParsedGuidePage parsedPage) {
+    private void applyGuideEditorPageWithoutReload(MutableGuide targetGuide, ParsedGuidePage parsedPage) {
+        if (targetGuide == null || parsedPage == null) {
+            return;
+        }
         guideEditorSuppressReloadFromEditorApply = true;
         try {
-            guide.applyEditorPage(parsedPage);
+            targetGuide.applyEditorPage(parsedPage);
         } finally {
             guideEditorSuppressReloadFromEditorApply = false;
         }
@@ -1621,10 +1801,25 @@ public class GuideScreen extends GuiContainer
     }
 
     private void rebuildGuideEditorModeButtons(int rightX, int btnY) {
-        if (!isGuideEditorActive()) {
+        if (!GuideScreenEditorState.isEnabled()) {
             clearGuideEditorActionButtons();
             btnGuideEditorToggle = null;
             btnGuideEditorNewPage = null;
+            btnGuideEditorLayoutSplit = null;
+            btnGuideEditorLayoutEditorOnly = null;
+            btnGuideEditorLayoutPreviewOnly = null;
+            btnGuideEditorAdvancedToggle = null;
+            btnGuideEditorAutosave = null;
+            btnGuideEditorSave = null;
+            return;
+        }
+
+        if (isHomeRoute()) {
+            clearGuideEditorActionButtons();
+            int x = rightX - GuideIconButton.WIDTH;
+            btnGuideEditorNewPage = addEditorModeButton(101, x, btnY, GuideIconButton.Role.GUIDE_EDITOR_NEW_PAGE);
+            x -= GuideIconButton.WIDTH + TOOLBAR_GAP;
+            btnGuideEditorToggle = addEditorModeButton(100, x, btnY, GuideIconButton.Role.GUIDE_EDITOR_TOGGLE);
             btnGuideEditorLayoutSplit = null;
             btnGuideEditorLayoutEditorOnly = null;
             btnGuideEditorLayoutPreviewOnly = null;
@@ -1816,18 +2011,20 @@ public class GuideScreen extends GuiContainer
         } else if (btn == btnBack) {
             if (!history.isEmpty()) {
                 confirmGuideEditorDirtyBefore(() -> {
-                    forwardHistory.push(currentAnchor);
+                    rememberCurrentContentStateIfEligible();
+                    forwardHistory.push(captureCurrentViewState());
                     var prev = history.pop();
-                    navigateWithoutHistory(prev);
+                    restoreViewState(prev);
                     rebuildToolbar();
                 });
             }
         } else if (btn == btnForward) {
             if (!forwardHistory.isEmpty()) {
                 confirmGuideEditorDirtyBefore(() -> {
-                    history.push(currentAnchor);
+                    rememberCurrentContentStateIfEligible();
+                    history.push(captureCurrentViewState());
                     var next = forwardHistory.pop();
-                    navigateWithoutHistory(next);
+                    restoreViewState(next);
                     rebuildToolbar();
                 });
             }
@@ -1848,6 +2045,11 @@ public class GuideScreen extends GuiContainer
         } else if (btn == btnSearch) {
             if (isSearchPage()) {
                 return;
+            } else if (currentRoute != null && currentRoute.isHome()) {
+                history.push(captureCurrentViewState());
+                forwardHistory.clear();
+                restoreViewState(GuideScreenViewState.of(GuideScreenRoute.homeSearch(""), 0));
+                focusSearchField();
             } else {
                 navigateTo(GuideSearchPage.anchorForQuery(""));
                 focusSearchField();
@@ -1880,7 +2082,12 @@ public class GuideScreen extends GuiContainer
         lastLayoutWidth = -1;
         cachedBottomBarText = null;
         cachedBottomBarPage = null;
-        if (isSearchPage()) {
+        if (currentRoute != null && currentRoute.isHome()) {
+            currentPage = null;
+            document = null;
+            searchDocument = null;
+            searchField = null;
+        } else if (isSearchPage()) {
             currentPage = null;
             document = null;
             rebuildSearchDocumentIfNeeded(true);
@@ -1905,7 +2112,6 @@ public class GuideScreen extends GuiContainer
             }
         }
         refreshCurrentPageTitle();
-        scrollY = 0;
         if (isGuideEditorActive()) {
             refreshGuideEditorDraft(true);
         }
@@ -1963,6 +2169,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private void scrollToCurrentAnchor() {
+        if (isHomeRoute()) return;
         if (!pendingAnchorScroll) return;
         if (currentAnchor == null || currentAnchor.anchor() == null) return;
         if (document == null) return;
@@ -1993,6 +2200,11 @@ public class GuideScreen extends GuiContainer
             return;
         }
 
+        if (isHomeRoute()) {
+            currentPageTitle = "";
+            return;
+        }
+
         if (isSearchPage()) {
             currentPageTitle = GuidebookText.Search.text();
             return;
@@ -2016,8 +2228,7 @@ public class GuideScreen extends GuiContainer
         } else {
             String resolvedTitle = null;
             try {
-                var node = guide.getNavigationTree()
-                    .getNodeById(currentAnchor.pageId());
+                var node = resolveNavigationTree().getNodeById(currentAnchor.pageId());
                 if (node != null) {
                     resolvedTitle = node.title();
                 }
@@ -2079,7 +2290,7 @@ public class GuideScreen extends GuiContainer
         int bottomBarH = hasBottomBar() ? TOOLBAR_H : 0;
         int navH = Math.max(20, panelH - TOOLBAR_H - 1 - bottomBarH);
         navBar.setBounds(navX, navY, navH);
-        navBar.update(mouseX, mouseY, guide.getNavigationTree());
+        navBar.update(mouseX, mouseY, resolveNavigationTree());
         int contentMouseX = mouseX;
         int contentMouseY = mouseY;
         if (navBar.isOpen() && navBar.contains(mouseX, mouseY)) {
@@ -2092,7 +2303,7 @@ public class GuideScreen extends GuiContainer
 
         drawRect(panelX, panelY + TOOLBAR_H, panelX + panelW, panelY + TOOLBAR_H + 1, 0xFF2A2A2A);
 
-        if (!isGuideEditorActive()) {
+        if (!isHomeRoute() && !isGuideEditorActive()) {
             updateSceneHover(contentMouseX, contentMouseY);
         }
         pollActiveSceneDrag();
@@ -2101,7 +2312,9 @@ public class GuideScreen extends GuiContainer
             drawGuideEditorScreen(contentMouseX, contentMouseY);
         } else {
             var activeDocument = getActiveDocument();
-            if (activeDocument != null) {
+            if (currentRoute != null && currentRoute.isHome()) {
+                drawHomeContent();
+            } else if (activeDocument != null) {
                 if (isCenteredSearchStateDocument(activeDocument)) {
                     drawCenteredSearchStateMessage(activeDocument);
                 } else {
@@ -2126,7 +2339,13 @@ public class GuideScreen extends GuiContainer
         }
 
         drawGuideButtons(contentMouseX, contentMouseY);
-        navBar.render(mc, currentAnchor != null ? currentAnchor.pageId() : null, mouseX, mouseY, guide);
+        navBar.render(
+            mc,
+            guide != null ? guide.getId() : null,
+            currentAnchor != null ? currentAnchor.pageId() : null,
+            mouseX,
+            mouseY,
+            guide);
         if (isGuideEditorActive()) {
             drawGuideEditorContextMenu(mouseX, mouseY);
             GuideScreenNeiBridge.drawNativeNei(this, mouseX, mouseY);
@@ -2169,6 +2388,62 @@ public class GuideScreen extends GuiContainer
         int textX = textRightX - textW;
         int textY = barY + (TOOLBAR_H - fr.FONT_HEIGHT) / 2 + 1;
         fr.drawString(text, textX, textY, 0xFFAAAAAA, false);
+    }
+
+    private void drawHomeContent() {
+        ResourceLocation logoTexture = getHomeLogoTexture();
+        if (logoTexture == null || homeLogoWidth <= 0 || homeLogoHeight <= 0) {
+            return;
+        }
+
+        int maxWidth = Math.max(1, contentW / 2);
+        int maxHeight = Math.max(1, contentH / 2);
+        float scale = Math.min(maxWidth / (float) homeLogoWidth, maxHeight / (float) homeLogoHeight);
+        int drawWidth = Math.max(1, Math.round(homeLogoWidth * scale));
+        int drawHeight = Math.max(1, Math.round(homeLogoHeight * scale));
+        int drawX = contentX + Math.max(0, (contentW - drawWidth) / 2);
+        int drawY = contentY + Math.max(0, (contentH - drawHeight) / 2);
+
+        mc.getTextureManager()
+            .bindTexture(logoTexture);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+        var tess = Tessellator.instance;
+        tess.startDrawingQuads();
+        tess.addVertexWithUV(drawX, drawY + drawHeight, 0, 0f, 1f);
+        tess.addVertexWithUV(drawX + drawWidth, drawY + drawHeight, 0, 1f, 1f);
+        tess.addVertexWithUV(drawX + drawWidth, drawY, 0, 1f, 0f);
+        tess.addVertexWithUV(drawX, drawY, 0, 0f, 0f);
+        tess.draw();
+    }
+
+    @Nullable
+    private static ResourceLocation getHomeLogoTexture() {
+        if (homeLogoTexture != null) {
+            return homeLogoTexture;
+        }
+
+        try (InputStream inputStream = GuideScreen.class.getResourceAsStream(HOME_LOGO_RESOURCE_PATH)) {
+            if (inputStream == null) {
+                FMLLog.warning("GuideScreen home logo resource not found at {}", HOME_LOGO_RESOURCE_PATH);
+                return null;
+            }
+            BufferedImage image = ImageIO.read(inputStream);
+            if (image == null) {
+                FMLLog.warning("GuideScreen home logo failed to decode at {}", HOME_LOGO_RESOURCE_PATH);
+                return null;
+            }
+            homeLogoWidth = image.getWidth();
+            homeLogoHeight = image.getHeight();
+            homeLogoTexture = Minecraft.getMinecraft()
+                .getTextureManager()
+                .getDynamicTextureLocation(HOME_LOGO_SOURCE.getResourcePath(), new DynamicTexture(image));
+            return homeLogoTexture;
+        } catch (Exception e) {
+            FMLLog.warning("GuideScreen failed to load home logo from {}", HOME_LOGO_RESOURCE_PATH, e);
+            return null;
+        }
     }
 
     private void pollActiveSceneDrag() {
@@ -3151,7 +3426,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private void drawPageTitle() {
-        if (currentAnchor == null || isSearchPage()) return;
+        if (isHomeRoute() || currentAnchor == null || isSearchPage()) return;
         if (pageTitle.isEmpty()) return;
 
         int reservedRight = (16 + TOOLBAR_GAP) * 5 + PANEL_PADDING + 4;
@@ -3621,6 +3896,9 @@ public class GuideScreen extends GuiContainer
     }
 
     private void drawPageMissingMessage() {
+        if (isHomeRoute()) {
+            return;
+        }
         FontRenderer fr = mc.fontRenderer;
         String msg = GuidebookText.PageNotFound.text(currentAnchor.pageId());
         int tw = fr.getStringWidth(msg);
@@ -3636,6 +3914,7 @@ public class GuideScreen extends GuiContainer
         }
         if (btnSearch != null) {
             btnSearch.enabled = canSearchCurrentView();
+            btnSearch.visible = true;
         }
         if (btnGuideEditorAutosave != null) {
             btnGuideEditorAutosave.setActive(GuideScreenEditorState.isAutosaveEnabled());
@@ -3646,9 +3925,9 @@ public class GuideScreen extends GuiContainer
     }
 
     private boolean canSearchCurrentView() {
-        return isSearchPage() || isItemLinksPage()
+        return isHomeRoute() || guide != null && (isSearchPage() || isItemLinksPage()
             || currentAnchor == null
-            || !guide.isPageFailed(currentAnchor.pageId());
+            || !guide.isPageFailed(currentAnchor.pageId()));
     }
 
     private void drawTiledBackground() {
@@ -3742,7 +4021,7 @@ public class GuideScreen extends GuiContainer
             if (GuideScreenNeiBridge.mouseScrolled(this, mouseX, mouseY, dwheel)) {
                 return;
             }
-            LytGuidebookScene scene = sceneAt(mouseX, mouseY);
+            LytGuidebookScene scene = isHomeRoute() ? null : sceneAt(mouseX, mouseY);
             boolean sceneWheelBlocked = isSceneWheelInteractionBlocked(now);
             if (scene != null && scene.isInteractive()
                 && !sceneWheelBlocked
@@ -3844,9 +4123,17 @@ public class GuideScreen extends GuiContainer
             return;
         }
         if (button == 0 && navBar.contains(mouseX, mouseY)) {
-            var target = navBar.mouseClicked(mouseX, mouseY, currentAnchor != null ? currentAnchor.pageId() : null);
-            if (target != null) {
-                navigateTo(PageAnchor.page(target));
+            var target = navBar.mouseClicked(
+                mouseX,
+                mouseY,
+                guide != null ? guide.getId() : null,
+                currentAnchor != null ? currentAnchor.pageId() : null);
+            if (target != null && target.pageId() != null) {
+                if (target.guideId() != null) {
+                    navigateTo(target.guideId(), PageAnchor.page(target.pageId()));
+                } else {
+                    navigateTo(PageAnchor.page(target.pageId()));
+                }
                 mc.getSoundHandler()
                     .playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("gui.button.press"), 1.0F));
             }
@@ -4338,9 +4625,10 @@ public class GuideScreen extends GuiContainer
         if (keyCode == Keyboard.KEY_BACK) {
             if (!history.isEmpty()) {
                 confirmGuideEditorDirtyBefore(() -> {
-                    forwardHistory.push(currentAnchor);
+                    rememberCurrentContentStateIfEligible();
+                    forwardHistory.push(captureCurrentViewState());
                     var prev = history.pop();
-                    navigateWithoutHistory(prev);
+                    restoreViewState(prev);
                     rebuildToolbar();
                 });
             }
@@ -4378,42 +4666,34 @@ public class GuideScreen extends GuiContainer
     // GuideUiHost
     @Override
     public void navigateTo(PageAnchor anchor) {
-        if (anchor == null || anchor.equals(currentAnchor)) return;
+        if (anchor == null || anchor.equals(currentAnchor) && hasContentRoute()) return;
         confirmGuideEditorDirtyBefore(() -> {
             suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
-            history.push(currentAnchor);
+            rememberCurrentContentStateIfEligible();
+            history.push(captureCurrentViewState());
             forwardHistory.clear();
-            navigateWithoutHistory(anchor);
+            restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guide.getId(), anchor), 0));
             rebuildToolbar();
         });
     }
 
     @Override
     public void navigateTo(ResourceLocation guideId, PageAnchor anchor) {
-        if (guideId == null || guideId.equals(guide.getId())) {
+        if (guideId == null || guide != null && guideId.equals(guide.getId())) {
             navigateTo(anchor);
             return;
         }
-        confirmGuideEditorDirtyBefore(() -> open(guideId, anchor, false));
-    }
-
-    private void navigateWithoutHistory(PageAnchor anchor) {
-        GuideSoundPlayback.stopAll();
-        clearInteractionState();
-        currentAnchor = anchor;
-        pendingAnchorScroll = anchor != null && anchor.anchor() != null;
-        currentPage = null;
-        document = null;
-        layoutDocument = null;
-        lastLayoutWidth = -1;
-        scrollY = 0;
-        loadCurrentPage();
-        ensureLayout();
-        scrollToCurrentAnchor();
-        clampScroll();
-        if (isGuideEditorActive()) {
-            refreshGuideEditorDraft(true);
+        if (anchor == null) {
+            return;
         }
+        confirmGuideEditorDirtyBefore(() -> {
+            suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
+            rememberCurrentContentStateIfEligible();
+            history.push(captureCurrentViewState());
+            forwardHistory.clear();
+            restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guideId, anchor), 0));
+            rebuildToolbar();
+        });
     }
 
     @Override
@@ -4426,6 +4706,7 @@ public class GuideScreen extends GuiContainer
             return;
         }
         guideEditorCloseConfirmed = true;
+        rememberCurrentContentStateIfEligible();
         GuideSoundPlayback.stopAll();
         mc.displayGuiScreen(parentScreen);
         if (mc.currentScreen == null) {
@@ -4591,6 +4872,12 @@ public class GuideScreen extends GuiContainer
     }
 
     private int getGuideEditorModeButtonsWidth() {
+        if (!GuideScreenEditorState.isEnabled()) {
+            return 0;
+        }
+        if (isHomeRoute()) {
+            return GuideIconButton.WIDTH * 2 + TOOLBAR_GAP;
+        }
         return GuideIconButton.WIDTH * 6 + TOOLBAR_GAP * 5;
     }
 
@@ -4628,14 +4915,17 @@ public class GuideScreen extends GuiContainer
     }
 
     private void openItemLinksPage(ItemStack stack) {
-        suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
-        var pages = guide.getIndex(ItemMultiIndex.class)
-            .findAllByStack(stack);
-        if (pages.isEmpty()) {
+        if (!hasContentRoute()) {
             return;
         }
-        if (pages.size() == 1) {
-            navigateTo(pages.get(0));
+        suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
+        var targets = findItemLinkTargets(stack);
+        if (targets.isEmpty()) {
+            return;
+        }
+        if (targets.size() == 1) {
+            var target = targets.get(0);
+            navigateTo(target.guideId(), target.page());
         } else {
             navigateTo(GuideItemLinksPage.anchorForStack(stack));
         }
@@ -4652,6 +4942,10 @@ public class GuideScreen extends GuiContainer
     }
 
     private LytDocument buildItemLinksDocument(@Nullable ItemStack stack) {
+        if (!hasContentRoute()) {
+            var doc = new LytDocument();
+            return doc;
+        }
         if (stack == null) {
             return GuideSearchResultDocumentBuilder.buildDocument(
                 null,
@@ -4659,16 +4953,16 @@ public class GuideScreen extends GuiContainer
                 GuidebookText.ItemLinksEmpty.text(),
                 GuidebookText.ItemLinksEmpty.text());
         }
-        var anchors = guide.getIndex(ItemMultiIndex.class)
-            .findAllByStack(stack);
-        if (anchors.isEmpty()) {
+        var targets = findItemLinkTargets(stack);
+        if (targets.isEmpty()) {
             var doc = new LytDocument();
             doc.append(GuideSearchResultDocumentBuilder.buildCenteredMessage(GuidebookText.ItemLinksEmpty.text()));
             return doc;
         }
-        var navTree = guide.getNavigationTree();
-        var results = new ArrayList<GuideSearchResultDocumentBuilder.SearchPageResult>(anchors.size());
-        for (var anchor : anchors) {
+        var navTree = resolveNavigationTree();
+        var results = new ArrayList<GuideSearchResultDocumentBuilder.SearchPageResult>(targets.size());
+        for (var target : targets) {
+            var anchor = target.page();
             NavigationNode node = navTree.getNodeById(anchor.pageId());
             String title = node != null && !node.title()
                 .isEmpty() ? node.title()
@@ -4679,6 +4973,7 @@ public class GuideScreen extends GuiContainer
             int pathWidth = getSearchPathWidth(textColumnWidth);
             results.add(
                 new GuideSearchResultDocumentBuilder.SearchPageResult(
+                    target.guideId(),
                     anchor,
                     icon,
                     clipRightForWidth(title, getSearchTitleWidth(textColumnWidth, pathWidth)),
@@ -4705,12 +5000,47 @@ public class GuideScreen extends GuiContainer
         return doc;
     }
 
+    private List<GuideAnchor> findItemLinkTargets(@Nullable ItemStack stack) {
+        if (stack == null || stack.getItem() == null) {
+            return Collections.emptyList();
+        }
+
+        var uniqueTargets = new LinkedHashMap<String, GuideAnchor>();
+        for (var candidateGuide : GuideRegistry.getAll()) {
+            List<PageAnchor> anchors;
+            try {
+                anchors = candidateGuide.getIndex(ItemMultiIndex.class)
+                    .findAllByStack(stack);
+            } catch (IllegalArgumentException ignored) {
+                continue;
+            }
+
+            if (anchors == null || anchors.isEmpty()) {
+                continue;
+            }
+
+            var seenInGuide = new LinkedHashSet<ResourceLocation>();
+            for (var anchor : anchors) {
+                if (anchor == null || anchor.pageId() == null || !seenInGuide.add(anchor.pageId())) {
+                    continue;
+                }
+                String targetKey = candidateGuide.getId()
+                    .toString() + "|"
+                    + anchor.pageId();
+                uniqueTargets.putIfAbsent(targetKey, new GuideAnchor(candidateGuide.getId(), anchor));
+            }
+        }
+
+        return new ArrayList<>(uniqueTargets.values());
+    }
+
     private LytDocument buildSearchDocument(String query) {
         var results = new ArrayList<GuideSearchResultDocumentBuilder.SearchPageResult>();
         String normalizedQuery = GuideSearchPage.normalizeQuery(query);
         try {
+            MutableGuide searchGuide = hasContentRoute() ? guide : null;
             for (var result : GuideME.getSearch()
-                .searchGuide(normalizedQuery, guide)) {
+                .searchGuide(normalizedQuery, searchGuide)) {
                 GuidePageIcon icon = resolveSearchResultIcon(result.pageId());
                 int textColumnWidth = getSearchTextColumnWidth(icon != null);
                 int pathWidth = getSearchPathWidth(textColumnWidth);
@@ -4722,6 +5052,7 @@ public class GuideScreen extends GuiContainer
                 String title = clipRightForWidth(rawTitle, getSearchTitleWidth(textColumnWidth, pathWidth));
                 results.add(
                     new GuideSearchResultDocumentBuilder.SearchPageResult(
+                        result.guideId(),
                         PageAnchor.page(result.pageId()),
                         icon,
                         title,
@@ -4738,13 +5069,33 @@ public class GuideScreen extends GuiContainer
 
     @Nullable
     private GuidePageIcon resolveSearchResultIcon(ResourceLocation pageId) {
-        var node = guide.getNavigationTree()
-            .getNodeById(pageId);
+        var node = resolveNavigationTree().getNodeById(pageId);
         return node != null ? node.icon() : null;
     }
 
     private String resolveSearchResultPath(ResourceLocation pageId) {
-        return pageId.toString();
+        var path = resolveNavigationTree().getPathTo(pageId);
+        if (path.size() > 1) {
+            var breadcrumb = new StringBuilder();
+            for (int i = 0; i < path.size() - 1; i++) {
+                var node = path.get(i);
+                if (node.title() == null || node.title()
+                    .isEmpty()) {
+                    continue;
+                }
+                if (breadcrumb.length() > 0) {
+                    breadcrumb.append(" / ");
+                }
+                breadcrumb.append(node.title());
+            }
+            if (breadcrumb.length() > 0) {
+                return breadcrumb.toString();
+            }
+        }
+
+        String resourcePath = pageId.getResourcePath();
+        int slashIndex = resourcePath.lastIndexOf('/');
+        return slashIndex > 0 ? resourcePath.substring(0, slashIndex) : "";
     }
 
     private int getSearchTextColumnWidth(boolean hasIcon) {
@@ -4868,10 +5219,13 @@ public class GuideScreen extends GuiContainer
             return;
         }
 
-        history.push(currentAnchor);
+        rememberCurrentContentStateIfEligible();
+        history.push(captureCurrentViewState());
         forwardHistory.clear();
         clearInteractionState();
-        currentAnchor = nextAnchor;
+        applyRoute(
+            hasContentRoute() ? GuideScreenRoute.content(guide.getId(), nextAnchor)
+                : GuideScreenRoute.homeSearch(query));
         currentPage = null;
         document = null;
         refreshCurrentPageTitle();

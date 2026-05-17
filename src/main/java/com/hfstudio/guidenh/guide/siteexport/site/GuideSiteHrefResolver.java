@@ -3,7 +3,10 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -18,9 +21,10 @@ public class GuideSiteHrefResolver {
 
     private GuideSiteHrefResolver() {}
 
-    public static ContextScope exportContext(String namespace, String guidePath, String language) {
+    public static ContextScope exportContext(String namespace, String guidePath, String language,
+        @Nullable Map<ResourceLocation, ResourceLocation> guideIdsByPageId) {
         ExportContext previous = EXPORT_CONTEXT.get();
-        EXPORT_CONTEXT.set(new ExportContext(namespace, guidePath, language));
+        EXPORT_CONTEXT.set(new ExportContext(namespace, guidePath, language, guideIdsByPageId));
         return new ContextScope(previous);
     }
 
@@ -58,6 +62,11 @@ public class GuideSiteHrefResolver {
     }
 
     public static String resolvePageAnchor(@Nullable ResourceLocation currentPageId, PageAnchor anchor) {
+        return resolvePageAnchor(currentPageId, null, anchor);
+    }
+
+    public static String resolvePageAnchor(@Nullable ResourceLocation currentPageId, @Nullable ResourceLocation guideId,
+        PageAnchor anchor) {
         if (anchor == null) {
             return "";
         }
@@ -74,7 +83,7 @@ public class GuideSiteHrefResolver {
             return "#" + anchor.anchor();
         }
 
-        String relative = resolvePagePath(currentPageId, targetPageId);
+        String relative = resolvePagePath(currentPageId, guideId, targetPageId);
         if (anchor.anchor() != null && !anchor.anchor()
             .isEmpty()) {
             return relative + "#" + anchor.anchor();
@@ -117,12 +126,29 @@ public class GuideSiteHrefResolver {
         return path + ".html";
     }
 
-    private static String resolvePagePath(@Nullable ResourceLocation currentPageId, ResourceLocation targetPageId) {
+    private static String resolvePagePath(@Nullable ResourceLocation currentPageId, @Nullable ResourceLocation guideId,
+        ResourceLocation targetPageId) {
         ExportContext exportContext = EXPORT_CONTEXT.get();
         if (exportContext != null) {
-            return exportContext.pageUrl(targetPageId);
+            return exportContext.pageUrl(resolveTargetGuideId(guideId, targetPageId), targetPageId);
         }
         return relativizePagePath(currentPageId, targetPageId);
+    }
+
+    private static ResourceLocation resolveTargetGuideId(@Nullable ResourceLocation guideId, ResourceLocation pageId) {
+        if (guideId != null) {
+            return guideId;
+        }
+
+        ExportContext exportContext = EXPORT_CONTEXT.get();
+        if (exportContext != null) {
+            ResourceLocation mappedGuideId = exportContext.guideIdsByPageId.get(pageId);
+            if (mappedGuideId != null) {
+                return mappedGuideId;
+            }
+        }
+
+        return new ResourceLocation(pageId.getResourceDomain(), "guidenh");
     }
 
     private static String relativizePagePath(@Nullable ResourceLocation currentPageId, ResourceLocation targetPageId) {
@@ -163,17 +189,26 @@ public class GuideSiteHrefResolver {
         private final String namespace;
         private final String guidePath;
         private final String language;
+        private final Map<ResourceLocation, ResourceLocation> guideIdsByPageId;
 
-        private ExportContext(String namespace, String guidePath, String language) {
+        private ExportContext(String namespace, String guidePath, String language,
+            @Nullable Map<ResourceLocation, ResourceLocation> guideIdsByPageId) {
             this.namespace = namespace;
             this.guidePath = guidePath;
             this.language = language;
+            if (guideIdsByPageId == null || guideIdsByPageId.isEmpty()) {
+                this.guideIdsByPageId = Collections.emptyMap();
+            } else {
+                this.guideIdsByPageId = Collections.unmodifiableMap(new LinkedHashMap<>(guideIdsByPageId));
+            }
         }
 
-        private String pageUrl(ResourceLocation pageId) {
-            return "guides/" + namespace
+        private String pageUrl(ResourceLocation guideId, ResourceLocation pageId) {
+            String targetNamespace = guideId != null ? guideId.getResourceDomain() : namespace;
+            String targetGuidePath = guideId != null ? guideId.getResourcePath() : guidePath;
+            return "guides/" + targetNamespace
                 + "/"
-                + guidePath
+                + targetGuidePath
                 + "/"
                 + language
                 + "/"

@@ -40,7 +40,6 @@ public class GuideBuilder {
     private String defaultNamespace;
     private String defaultLanguage = "en_us";
     private String folder;
-    private ResourceLocation startPage;
     private Path developmentSourceFolder;
     private String developmentSourceNamespace;
     private boolean watchDevelopmentSources = true;
@@ -55,7 +54,6 @@ public class GuideBuilder {
         this.id = Objects.requireNonNull(id, "id");
         this.defaultNamespace = id.getResourceDomain();
         this.folder = "guidenh";
-        this.startPage = new ResourceLocation(defaultNamespace, "index.md");
 
         // Development sources folder
         var devSourcesFolderProperty = getSystemPropertyName(id, "sources");
@@ -164,15 +162,6 @@ public class GuideBuilder {
     }
 
     /**
-     * Set the page to show when this guide is being opened without any previous page or target page. Defaults to
-     * {@code index.md} in the {@link #defaultNamespace(String) default namespace}.
-     */
-    public GuideBuilder startPage(ResourceLocation pageId) {
-        this.startPage = pageId;
-        return this;
-    }
-
-    /**
      * See {@linkplain #developmentSources(Path, String)}. Uses the default namespace of the guide as the namespace for
      * the pages and resources in the folder.
      */
@@ -251,7 +240,6 @@ public class GuideBuilder {
             defaultNamespace,
             folder,
             defaultLanguage,
-            startPage,
             developmentSourceFolder,
             developmentSourceNamespace,
             indices,

@@ -431,6 +431,7 @@ guideme.guidebook.SceneEditorMarkdownWrapOff=Word Wrap: Off
 guideme.guidebook.SceneEditorMarkdownWrapOn=Word Wrap: On
 key.categories.guidenh=GuideNH
 key.guidenh.cycle_region_wand_mode=Cycle Region Wand Export Mode
+key.guidenh.open_guide_home=Open Guide Home
 key.guidenh.open_guide=Open Guide for Items
 key.guidenh.open_scene_editor=Open Scene Editor
 

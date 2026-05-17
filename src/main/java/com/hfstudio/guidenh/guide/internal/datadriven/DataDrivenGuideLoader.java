@@ -31,9 +31,6 @@ public class DataDrivenGuideLoader {
 
     public static final String AUTO_GUIDE_FOLDER = "guidenh";
     public static final String LANGUAGE_FOLDER_PREFIX = "_";
-    /** @deprecated Data-driven guides are now isolated per namespace. */
-    @Deprecated
-    public static final ResourceLocation MERGED_GUIDE_ID = new ResourceLocation("guidenh", AUTO_GUIDE_FOLDER);
 
     private DataDrivenGuideLoader() {}
 
@@ -163,8 +160,6 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    /** @deprecated Use {@link #discoverPagePaths(String)} instead. */
-    @Deprecated
     public static Set<String> discoverPagePaths(ResourceLocation guideId, String folder) {
         var result = new LinkedHashSet<String>();
         for (var resourcePack : getActiveResourcePacks()) {

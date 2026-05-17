@@ -77,6 +77,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private final NavigationTree navigationTree;
     @Nullable
     private final GuideSitePageAssetExporter assetExporter;
+    @Nullable
+    private final Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId;
     private final GuideSiteItemIconResolver itemIconResolver;
 
     public GuideSiteMdxTagRenderer(MutableGuide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
@@ -92,10 +94,18 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     public GuideSiteMdxTagRenderer(MutableGuide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         NavigationTree navigationTree, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
+        this(guide, parsedPagesById, navigationTree, assetExporter, itemIconResolver, null);
+    }
+
+    public GuideSiteMdxTagRenderer(MutableGuide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
+        NavigationTree navigationTree, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         this.guide = guide;
         this.parsedPagesById = parsedPagesById;
         this.navigationTree = navigationTree;
         this.assetExporter = assetExporter;
+        this.assetExportersByGuideId = assetExportersByGuideId;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
     }
 
@@ -790,9 +800,12 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return buildTaggedSpanHtml("guide-item-link guide-tooltip", templateId, innerHtml);
         }
 
+        NavigationNode targetNode = navigationTree.getNodeById(linksTo.pageId());
+        ResourceLocation targetGuideId = targetNode != null ? targetNode.guideId() : null;
+
         return buildTaggedAnchorHtml(
             "guide-item-link guide-tooltip",
-            GuideSiteHrefResolver.resolvePageAnchor(currentPageId, linksTo),
+            GuideSiteHrefResolver.resolvePageAnchor(currentPageId, targetGuideId, linksTo),
             templateId,
             innerHtml);
     }
@@ -1478,9 +1491,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             html.append("<li><a href=\"")
                 .append(
                     escapeAttribute(
-                        GuideSiteHrefResolver.resolvePageAnchor(currentPageId, PageAnchor.page(node.pageId()))))
+                        GuideSiteHrefResolver
+                            .resolvePageAnchor(currentPageId, node.guideId(), PageAnchor.page(node.pageId()))))
                 .append("\">")
-                .append(buildGuideLinkContent(node.title(), node.icon()))
+                .append(buildGuideLinkContent(node.title(), node.icon(), node.guideId()))
                 .append("</a></li>");
         }
         html.append("</ul>");
@@ -1501,30 +1515,36 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             String title = navigation != null ? navigation.title()
                 : anchor.pageId()
                     .toString();
-            String href = GuideSiteHrefResolver.resolvePageAnchor(currentPageId, anchor);
+            NavigationNode node = navigationTree.getNodeById(anchor.pageId());
+            ResourceLocation targetGuideId = node != null ? node.guideId() : null;
+            String href = GuideSiteHrefResolver.resolvePageAnchor(currentPageId, targetGuideId, anchor);
             if (!seen.add(href)) {
                 continue;
             }
-            NavigationNode node = navigationTree.getNodeById(anchor.pageId());
             html.append("<li><a href=\"")
                 .append(escapeAttribute(href))
                 .append("\">")
-                .append(buildGuideLinkContent(title, node != null ? node.icon() : null))
+                .append(buildGuideLinkContent(title, node != null ? node.icon() : null, targetGuideId))
                 .append("</a></li>");
         }
         html.append("</ul>");
         return html.toString();
     }
 
-    private String buildGuideLinkContent(String title, @Nullable GuidePageIcon icon) {
+    private String buildGuideLinkContent(String title, @Nullable GuidePageIcon icon,
+        @Nullable ResourceLocation guideId) {
         StringBuilder html = new StringBuilder();
         if (icon != null && icon.isItemIcon() && icon.itemStack() != null) {
             GuideSiteItemHtml.appendIcon(
                 html,
                 GuideSiteItemSupport.export(icon.itemStack(), itemIconResolver),
                 "guide-nav-item-icon");
-        } else if (icon != null && icon.textureId() != null && assetExporter != null) {
-            String src = assetExporter.exportResource(icon.textureId());
+        } else if (icon != null) {
+            GuideSitePageAssetExporter resolvedAssetExporter = resolveAssetExporter(guideId);
+            ResourceLocation textureId = resolveTextureIconId(icon);
+            String src = resolvedAssetExporter != null && textureId != null
+                ? resolvedAssetExporter.exportResource(textureId)
+                : "";
             if (!src.isEmpty()) {
                 html.append("<img class=\"item-icon guide-nav-item-icon\" src=\"")
                     .append(escapeAttribute(src))
@@ -1535,6 +1555,27 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             .append(escapeHtml(title))
             .append("</span>");
         return html.toString();
+    }
+
+    @Nullable
+    private GuideSitePageAssetExporter resolveAssetExporter(@Nullable ResourceLocation guideId) {
+        if (guideId != null && assetExportersByGuideId != null) {
+            GuideSitePageAssetExporter mapped = assetExportersByGuideId.get(guideId);
+            if (mapped != null) {
+                return mapped;
+            }
+        }
+        return assetExporter;
+    }
+
+    @Nullable
+    private ResourceLocation resolveTextureIconId(GuidePageIcon icon) {
+        ResourceLocation textureId = icon.resolveCurrentTextureId();
+        if (textureId == null && icon.resolveCurrentTexture() != null) {
+            textureId = icon.resolveCurrentTexture()
+                .getSourceId();
+        }
+        return textureId;
     }
 
     private String buildTaggedSpan(String cssClass, @Nullable String templateId, String text) {

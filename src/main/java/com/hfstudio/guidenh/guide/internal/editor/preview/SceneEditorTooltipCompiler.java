@@ -131,7 +131,7 @@ final class SceneEditorTooltipCompiler {
 
         @Override
         public NavigationTree getNavigationTree() {
-            return new NavigationTree();
+            return GuideRegistry.getMergedNavigationTree();
         }
 
         @Override

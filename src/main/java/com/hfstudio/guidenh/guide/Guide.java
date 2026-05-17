@@ -12,8 +12,6 @@ public interface Guide extends PageCollection {
 
     ResourceLocation getId();
 
-    ResourceLocation getStartPage();
-
     String getDefaultNamespace();
 
     String getContentRootFolder();

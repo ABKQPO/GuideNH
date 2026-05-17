@@ -31,6 +31,7 @@ import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 
 import cpw.mods.fml.common.FMLLog;
@@ -47,7 +48,6 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     private final String defaultNamespace;
     private final String folder;
     private final String defaultLanguage;
-    private final ResourceLocation startPage;
     private final Map<ResourceLocation, ParsedGuidePage> developmentPages = new HashMap<>();
     private final Map<ResourceLocation, GuidePageFailure> pageFailures = new HashMap<>();
     private final Map<Class<?>, PageIndex> indices;
@@ -71,14 +71,13 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     private GuideSourceWatcher watcher;
 
     public MutableGuide(ResourceLocation id, String defaultNamespace, String folder, String defaultLanguage,
-        ResourceLocation startPage, @Nullable Path developmentSourceFolder, @Nullable String developmentSourceNamespace,
+        @Nullable Path developmentSourceFolder, @Nullable String developmentSourceNamespace,
         Map<Class<?>, PageIndex> indices, ExtensionCollection extensions, boolean availableToOpenHotkey,
         GuideItemSettings itemSettings) {
         this.id = id;
         this.defaultNamespace = defaultNamespace;
         this.folder = folder;
         this.defaultLanguage = defaultLanguage;
-        this.startPage = startPage;
         this.developmentSourceFolder = developmentSourceFolder;
         this.developmentSourceNamespace = developmentSourceNamespace;
         this.developmentSourceLayout = detectDevelopmentSourceLayout(developmentSourceFolder);
@@ -91,11 +90,6 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     @Override
     public ResourceLocation getId() {
         return id;
-    }
-
-    @Override
-    public ResourceLocation getStartPage() {
-        return startPage;
     }
 
     @Override
@@ -299,18 +293,18 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     }
 
     /**
-     * Whether the start page has already been pre-warmed (compiled and cached) or a warm attempt has been made.
+     * Whether a warm-up page has already been pre-warmed (compiled and cached) or a warm attempt has been made.
      * Resets to false when {@link #setPages} is called with fresh page data.
      */
-    private boolean startPageWarmed = false;
+    private boolean warmupPageWarmed = false;
 
     /**
-     * Called each client tick to pre-compile the guide's start page in the background, eliminating the 5-6 second
+     * Called each client tick to pre-compile one representative page in the background, eliminating the 5-6 second
      * freeze on first guide open. Compilation is deferred until an active server connection is available (required for
      * guidebook preview world creation).
      */
     public void tickWarmup() {
-        if (startPageWarmed || pages == null) {
+        if (warmupPageWarmed || pages == null) {
             return;
         }
         // GuidebookFakeWorld (needed for <GameScene> blocks) requires an active NetHandler.
@@ -319,20 +313,24 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
             .getNetHandler() == null) {
             return;
         }
-        startPageWarmed = true;
+        ResourceLocation pageId = resolveWarmupPageId();
+        if (pageId == null) {
+            return;
+        }
+        warmupPageWarmed = true;
         try {
-            warmPage(startPage);
+            warmPage(pageId);
         } catch (Throwable t) {
             if (!isDeferrableWarmPageFailure(t)) {
                 FMLLog.getLogger()
-                    .error("[GuideNH] [MutableGuide] Failed to pre-warm guide start page {}", startPage, t);
+                    .error("[GuideNH] [MutableGuide] Failed to pre-warm guide page {}", pageId, t);
             }
             // Deferrable failures are expected when world is partially loaded; the page will compile on first open.
         }
     }
 
     public void resetWarmup() {
-        startPageWarmed = false;
+        warmupPageWarmed = false;
     }
 
     public void tick() {
@@ -424,16 +422,19 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
 
         // Rebuild navigation
         this.navigationTree = buildNavigation();
+        GuideRegistry.invalidateMergedNavigationTree();
         refreshPageFailures();
 
         // Reload the current page if it has been changed
         var guideScreen = GuideScreen.current();
         if (guideScreen != null) {
             var currentId = guideScreen.getCurrentPageId();
-            for (var change : changes) {
-                if (currentId.equals(change.pageId())) {
-                    guideScreen.reloadPage();
-                    break;
+            if (currentId != null) {
+                for (var change : changes) {
+                    if (currentId.equals(change.pageId())) {
+                        guideScreen.reloadPage();
+                        break;
+                    }
                 }
             }
         }
@@ -472,7 +473,7 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     public void setPages(Map<ResourceLocation, ParsedGuidePage> pages) {
         this.pages = Collections.unmodifiableMap(new HashMap<>(pages));
         compiledPages.clear();
-        startPageWarmed = false;
+        warmupPageWarmed = false;
 
         if (watcher != null) {
             watcher.clearChanges(); // Since we'll load them all now, ignore all changes up to now
@@ -484,11 +485,11 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
 
         rebuildIndices();
         navigationTree = buildNavigation();
+        GuideRegistry.invalidateMergedNavigationTree();
         refreshPageFailures();
-        // Do not eagerly compile the start page here. Some packs register or rewrite recipes
+        // Do not eagerly compile pages here. Some packs register or rewrite recipes
         // during FMLLoadComplete, after the initial resource reload has already parsed the guide.
-        // Deferring compilation until first display avoids caching stale "missing recipe" error
-        // blocks for pages like index.md.
+        // Deferring compilation until first display avoids caching stale "missing recipe" error blocks.
 
         var guideScreen = GuideScreen.current();
         if (guideScreen != null && guideScreen.isShowingGuide(getId())) {
@@ -521,12 +522,14 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
     public void rebuildEditorNavigationState() {
         rebuildIndices();
         navigationTree = buildNavigation();
+        GuideRegistry.invalidateMergedNavigationTree();
         refreshPageFailures();
     }
 
     public void rebuildEditorNavigationStateWithoutValidation() {
         rebuildIndices();
         navigationTree = buildNavigation();
+        GuideRegistry.invalidateMergedNavigationTree();
     }
 
     public GuideItemSettings getItemSettings() {
@@ -535,6 +538,33 @@ public class MutableGuide implements Guide, GuideDevWatcherPump.TickableGuide {
 
     public String getDefaultLanguage() {
         return defaultLanguage;
+    }
+
+    @Nullable
+    private ResourceLocation resolveWarmupPageId() {
+        if (navigationTree != null) {
+            ResourceLocation pageId = findFirstNavigationPageId(navigationTree.getRootNodes());
+            if (pageId != null) {
+                return pageId;
+            }
+        }
+        return pages != null && !pages.isEmpty() ? pages.keySet()
+            .iterator()
+            .next() : null;
+    }
+
+    @Nullable
+    private ResourceLocation findFirstNavigationPageId(List<NavigationNode> nodes) {
+        for (var node : nodes) {
+            if (node.hasPage() && node.pageId() != null) {
+                return node.pageId();
+            }
+            ResourceLocation childPageId = findFirstNavigationPageId(node.children());
+            if (childPageId != null) {
+                return childPageId;
+            }
+        }
+        return null;
     }
 
     private boolean canLoadDevelopmentSource(ResourceLocation id) {

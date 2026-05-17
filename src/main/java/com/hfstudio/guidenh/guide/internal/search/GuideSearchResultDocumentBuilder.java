@@ -2,6 +2,8 @@ package com.hfstudio.guidenh.guide.internal.search;
 
 import java.util.List;
 
+import net.minecraft.util.ResourceLocation;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
@@ -93,7 +95,13 @@ public class GuideSearchResultDocumentBuilder {
         var titleParagraph = new LytParagraph();
         titleParagraph.setPaddingTop(4);
         var link = new LytFlowLink();
-        link.setPageLink(result.anchor());
+        if (result.guideId() != null) {
+            ResourceLocation guideId = result.guideId();
+            PageAnchor anchor = result.anchor();
+            link.setClickCallback(screen -> screen.navigateTo(guideId, anchor));
+        } else {
+            link.setPageLink(result.anchor());
+        }
         link.modifyStyle(
             style -> style.color(SEARCH_TITLE_COLOR)
                 .underlined(false));
@@ -178,8 +186,8 @@ public class GuideSearchResultDocumentBuilder {
     }
 
     @Desugar
-    public record SearchPageResult(PageAnchor anchor, @Nullable GuidePageIcon icon, String title, String pagePath,
-        LytFlowContent snippet) {}
+    public record SearchPageResult(@Nullable ResourceLocation guideId, PageAnchor anchor, @Nullable GuidePageIcon icon,
+        String title, String pagePath, LytFlowContent snippet) {}
 
     public static class CenteredStateBlock extends LytVBox {
 

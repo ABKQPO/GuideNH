@@ -1,8 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.screen;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -27,6 +26,29 @@ import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
 public class GuideNavBar {
 
+    public static class NavigationTarget {
+
+        @Nullable
+        private final ResourceLocation guideId;
+        @Nullable
+        private final ResourceLocation pageId;
+
+        public NavigationTarget(@Nullable ResourceLocation guideId, @Nullable ResourceLocation pageId) {
+            this.guideId = guideId;
+            this.pageId = pageId;
+        }
+
+        @Nullable
+        public ResourceLocation guideId() {
+            return guideId;
+        }
+
+        @Nullable
+        public ResourceLocation pageId() {
+            return pageId;
+        }
+    }
+
     public static final int WIDTH_CLOSED = 10;
     public static final int WIDTH_OPEN = 150;
     public static final int CONTENT_PADDING = 2;
@@ -36,7 +58,7 @@ public class GuideNavBar {
     public static final int ICON_SIZE = 9;
 
     private final List<Row> rows = new ArrayList<>();
-    private final Set<NavigationNode> expanded = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ResourceLocation> expandedPageIds = new HashSet<>();
     @Nullable
     private NavigationTree lastTree;
 
@@ -84,15 +106,15 @@ public class GuideNavBar {
 
     private void addRowRecursive(NavigationNode node, int depth) {
         rows.add(new Row(node, depth));
-        if (expanded.contains(node)) {
+        if (isExpanded(node)) {
             for (var child : node.children()) {
                 addRowRecursive(child, depth + 1);
             }
         }
     }
 
-    public void render(Minecraft mc, @Nullable ResourceLocation currentPageId, int mouseX, int mouseY,
-        @Nullable PageCollection pageCollection) {
+    public void render(Minecraft mc, @Nullable ResourceLocation currentGuideId,
+        @Nullable ResourceLocation currentPageId, int mouseX, int mouseY, @Nullable PageCollection pageCollection) {
         if (lastTree == null || rows.isEmpty()) return;
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
         try {
@@ -122,7 +144,7 @@ public class GuideNavBar {
                 int rowX = x + 2 + indent;
 
                 boolean hovered = mouseX >= x && mouseX < x + w - 1 && mouseY >= rowY && mouseY < rowY + ROW_H;
-                boolean current = currentPageId != null && currentPageId.equals(row.node.pageId());
+                boolean current = isCurrentRow(row.node, currentGuideId, currentPageId);
                 if (current) {
                     Gui.drawRect(x, rowY, x + w - 1, rowY + ROW_H, 0x40FFFFFF);
                 } else if (hovered) {
@@ -132,7 +154,7 @@ public class GuideNavBar {
                 boolean hasChildren = !row.node.children()
                     .isEmpty();
                 if (hasChildren) {
-                    boolean exp = expanded.contains(row.node);
+                    boolean exp = isExpanded(row.node);
                     drawArrow(rowX, rowY + 2, !exp, 0xFFCCCCCC);
                 }
                 int textX = rowX + EXPAND_INDENT;
@@ -162,7 +184,8 @@ public class GuideNavBar {
     }
 
     @Nullable
-    public ResourceLocation mouseClicked(int mouseX, int mouseY, @Nullable ResourceLocation currentPageId) {
+    public NavigationTarget mouseClicked(int mouseX, int mouseY, @Nullable ResourceLocation currentGuideId,
+        @Nullable ResourceLocation currentPageId) {
         if (!isOpen()) return null;
         int w = currentWidth();
         if (mouseX < x || mouseX >= x + w || mouseY < y || mouseY >= y + height) return null;
@@ -179,22 +202,21 @@ public class GuideNavBar {
             return null;
         }
         if (hasChildren) {
-            boolean alreadyExpanded = expanded.contains(row.node);
+            boolean alreadyExpanded = isExpanded(row.node);
             if (!alreadyExpanded) {
                 // Expand collapsed groups and navigate if the node has a page.
                 toggleExpand(row.node);
             } else {
                 // Already expanded: only collapse when already on this exact page;
                 // otherwise just navigate there without touching the expand state.
-                boolean onThisPage = row.node.pageId() != null && row.node.pageId()
-                    .equals(currentPageId);
+                boolean onThisPage = isCurrentRow(row.node, currentGuideId, currentPageId);
                 if (onThisPage) {
                     toggleExpand(row.node);
                 }
             }
         }
         if (row.node.pageId() != null && row.node.hasPage()) {
-            return row.node.pageId();
+            return new NavigationTarget(row.node.guideId(), row.node.pageId());
         }
         return null;
     }
@@ -202,6 +224,14 @@ public class GuideNavBar {
     private boolean isInsideExpandArrow(int mouseX, Row row) {
         int arrowX = x + 2 + row.depth * CHILD_INDENT;
         return mouseX >= arrowX && mouseX < arrowX + EXPAND_INDENT;
+    }
+
+    private boolean isCurrentRow(NavigationNode node, @Nullable ResourceLocation currentGuideId,
+        @Nullable ResourceLocation currentPageId) {
+        if (currentPageId == null || !currentPageId.equals(node.pageId())) {
+            return false;
+        }
+        return node.guideId() == null || currentGuideId == null || currentGuideId.equals(node.guideId());
     }
 
     public boolean contains(int mouseX, int mouseY) {
@@ -236,10 +266,19 @@ public class GuideNavBar {
         return y + CONTENT_PADDING - scrollY + rowIndex * ROW_H;
     }
 
+    private boolean isExpanded(@Nullable NavigationNode node) {
+        return node != null && node.pageId() != null && expandedPageIds.contains(node.pageId());
+    }
+
     private void toggleExpand(@Nullable NavigationNode node) {
-        if (node == null) return;
-        if (expanded.contains(node)) expanded.remove(node);
-        else expanded.add(node);
+        if (node == null || node.pageId() == null) {
+            return;
+        }
+        if (expandedPageIds.contains(node.pageId())) {
+            expandedPageIds.remove(node.pageId());
+        } else {
+            expandedPageIds.add(node.pageId());
+        }
         rebuildRows(lastTree);
     }
 

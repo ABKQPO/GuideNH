@@ -10,6 +10,8 @@ import java.util.Optional;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
@@ -37,16 +39,24 @@ public class GuideSitePageCollector {
     }
 
     public List<GuideSitePageVariant> collect(MutableGuide guide) {
+        return collect(guide, null);
+    }
+
+    public List<GuideSitePageVariant> collect(MutableGuide guide, @Nullable List<String> discoveredLanguages) {
         List<String> languages;
-        try {
-            languages = discoverLanguages();
-        } catch (Throwable t) {
-            FMLLog.getLogger()
-                .debug(
-                    "[GuideNH] [GuideSitePageCollector] Falling back to the guide default language for {}",
-                    guide.getId(),
-                    t);
-            languages = new ArrayList<>();
+        if (discoveredLanguages != null) {
+            languages = new ArrayList<>(discoveredLanguages);
+        } else {
+            try {
+                languages = discoverLanguages();
+            } catch (Throwable t) {
+                FMLLog.getLogger()
+                    .debug(
+                        "[GuideNH] [GuideSitePageCollector] Falling back to the guide default language for {}",
+                        guide.getId(),
+                        t);
+                languages = new ArrayList<>();
+            }
         }
         if (languages.isEmpty()) {
             languages.add(guide.getDefaultLanguage());
@@ -78,20 +88,35 @@ public class GuideSitePageCollector {
         return collect(guide.getId(), guide.getDefaultLanguage(), languages, pageIds);
     }
 
+    public static List<String> discoverLanguagesOrEmpty() {
+        try {
+            return discoverLanguages();
+        } catch (Throwable t) {
+            FMLLog.getLogger()
+                .debug("[GuideNH] [GuideSitePageCollector] Falling back to no discovered site export languages", t);
+            return new ArrayList<>();
+        }
+    }
+
     public List<GuideSitePageVariant> collect(ResourceLocation guideId, String defaultLanguage, List<String> languages,
         List<ResourceLocation> pageIds) {
         List<GuideSitePageVariant> variants = new ArrayList<>();
+        Map<String, Map<ResourceLocation, Optional<ParsedGuidePage>>> pageCacheByLanguage = new LinkedHashMap<>();
 
         for (String language : languages) {
             for (ResourceLocation pageId : pageIds) {
-                Optional<ParsedGuidePage> localized = pageLoader.load(language, pageId);
+                Optional<ParsedGuidePage> localized = loadPageCached(pageCacheByLanguage, language, pageId);
                 if (localized.isPresent()) {
                     ParsedGuidePage page = localized.get();
                     variants.add(new GuideSitePageVariant(guideId, page.getId(), language, language, false, page));
                     continue;
                 }
 
-                Optional<ParsedGuidePage> fallback = pageLoader.load(defaultLanguage, pageId);
+                if (defaultLanguage.equals(language)) {
+                    continue;
+                }
+
+                Optional<ParsedGuidePage> fallback = loadPageCached(pageCacheByLanguage, defaultLanguage, pageId);
                 fallback.ifPresent(
                     page -> variants
                         .add(new GuideSitePageVariant(guideId, page.getId(), language, defaultLanguage, true, page)));
@@ -111,6 +136,13 @@ public class GuideSitePageCollector {
             merged.addAll(langs);
         }
         return new ArrayList<>(merged);
+    }
+
+    private Optional<ParsedGuidePage> loadPageCached(
+        Map<String, Map<ResourceLocation, Optional<ParsedGuidePage>>> pageCacheByLanguage, String language,
+        ResourceLocation pageId) {
+        return pageCacheByLanguage.computeIfAbsent(language, ignored -> new LinkedHashMap<>())
+            .computeIfAbsent(pageId, ignored -> pageLoader.load(language, pageId));
     }
 
     private static Optional<ParsedGuidePage> tryLoadPage(MutableGuide guide, IResourceManager resourceManager,

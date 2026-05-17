@@ -16,6 +16,7 @@ import org.joml.Vector3f;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
@@ -834,7 +835,9 @@ public final class GuideSiteSceneAnnotationSerializer {
             String href = null;
             PageAnchor pageAnchor = link.getPageAnchor();
             if (pageAnchor != null) {
-                href = GuideSiteHrefResolver.resolvePageAnchor(currentPageId, pageAnchor);
+                GuideAnchor guideAnchor = link.getGuideAnchor();
+                ResourceLocation targetGuideId = guideAnchor != null ? guideAnchor.guideId() : null;
+                href = GuideSiteHrefResolver.resolvePageAnchor(currentPageId, targetGuideId, pageAnchor);
             } else if (link.getExternalUrl() != null) {
                 href = link.getExternalUrl()
                     .toString();
