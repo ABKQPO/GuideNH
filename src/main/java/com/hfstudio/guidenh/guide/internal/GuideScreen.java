@@ -81,8 +81,6 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.Autocomp
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.ImagePathProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.PageReferenceProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.CompositeResolver;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FencedBlockLanguageResolver;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxSyntaxResolver;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.SelectionStrategies;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.WordBoundaryResolver;
@@ -503,8 +501,6 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
         ensureGuideEditorTextArea();
         if (autocompleteResolver == null) {
             autocompleteResolver = new CompositeResolver(
-                new FrontmatterResolver(),
-                new FencedBlockLanguageResolver(),
                 new MdxSyntaxResolver(),
                 new WordBoundaryResolver());
             autocompleteSelectionStrategies = SelectionStrategies.defaults();
