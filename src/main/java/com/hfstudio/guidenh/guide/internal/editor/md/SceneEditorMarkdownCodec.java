@@ -105,13 +105,8 @@ public class SceneEditorMarkdownCodec {
     public SceneEditorMarkdownParseResult parse(String markdown) {
         String normalized = normalizeLineEndings(markdown != null ? markdown : "");
 
-        MdAstRoot root;
-        try {
-            String parseSource = MdxCommentMasker.mask(normalized);
-            root = MdAst.fromMarkdown(parseSource, PARSE_OPTIONS);
-        } catch (RuntimeException e) {
-            return new SceneEditorMarkdownParseResult.SyntaxError(formatParseException(e));
-        }
+        String parseSource = MdxCommentMasker.mask(normalized);
+        MdAstRoot root = MdAst.fromMarkdown(parseSource, PARSE_OPTIONS);
 
         try {
             MdxJsxElementFields sceneElement = requireSingleRootScene(root, normalized);
