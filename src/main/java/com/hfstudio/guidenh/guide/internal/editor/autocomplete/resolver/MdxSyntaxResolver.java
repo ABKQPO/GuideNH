@@ -50,7 +50,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         MdAstYamlFrontmatter yaml = findEnclosingNode(root, cursorIndex, MdAstYamlFrontmatter.class);
         if (yaml != null) {
             TextSyntaxContext result = resolveFrontmatter(yaml, text, cursorIndex);
-            if (result != null && result.getElementType() != SyntaxElementType.WORD) {
+            if (result != null && result.shouldAutocomplete()) {
                 return result;
             }
         }
