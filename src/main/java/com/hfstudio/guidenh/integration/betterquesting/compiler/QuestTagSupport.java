@@ -52,7 +52,6 @@ public class QuestTagSupport {
         boolean showTooltip) {
         var link = new LytFlowLink();
         attachQuestNavigation(compiler, questId, link);
-        link.modifyStyle(style -> style.underlined(true));
         if (display.getState() == QuestState.COMPLETED) {
             link.modifyStyle(style -> style.color(SymbolicColor.GREEN));
         }
