@@ -258,6 +258,8 @@ public enum GuidebookText implements LocalizationEnum {
     HomeRecommended,
     HomeHistory,
     HomeEmpty,
+    NavigationTitle,
+    NavigationPin,
     Bookmarks,
     Bookmark,
     Bookmarked,

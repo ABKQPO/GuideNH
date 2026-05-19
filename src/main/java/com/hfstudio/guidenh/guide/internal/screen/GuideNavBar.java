@@ -22,6 +22,7 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.internal.GuideBookmarkState;
+import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
@@ -57,23 +58,35 @@ public class GuideNavBar {
         private final NavigationTarget navigationTarget;
         @Nullable
         private final ResourceLocation bookmarkTogglePageId;
+        private final boolean pinToggle;
+        private final boolean newPage;
 
         private ClickResult(@Nullable NavigationTarget navigationTarget,
-            @Nullable ResourceLocation bookmarkTogglePageId) {
+            @Nullable ResourceLocation bookmarkTogglePageId, boolean pinToggle, boolean newPage) {
             this.navigationTarget = navigationTarget;
             this.bookmarkTogglePageId = bookmarkTogglePageId;
+            this.pinToggle = pinToggle;
+            this.newPage = newPage;
         }
 
         public static ClickResult navigate(@Nullable ResourceLocation guideId, @Nullable ResourceLocation pageId) {
-            return pageId == null ? none() : new ClickResult(new NavigationTarget(guideId, pageId), null);
+            return pageId == null ? none() : new ClickResult(new NavigationTarget(guideId, pageId), null, false, false);
         }
 
         public static ClickResult toggleBookmark(ResourceLocation pageId) {
-            return new ClickResult(null, pageId);
+            return new ClickResult(null, pageId, false, false);
+        }
+
+        public static ClickResult togglePin() {
+            return new ClickResult(null, null, true, false);
+        }
+
+        public static ClickResult createNewPage() {
+            return new ClickResult(null, null, false, true);
         }
 
         public static ClickResult none() {
-            return new ClickResult(null, null);
+            return new ClickResult(null, null, false, false);
         }
 
         @Nullable
@@ -85,11 +98,20 @@ public class GuideNavBar {
         public ResourceLocation bookmarkTogglePageId() {
             return bookmarkTogglePageId;
         }
+
+        public boolean pinToggle() {
+            return pinToggle;
+        }
+
+        public boolean shouldCreateNewPage() {
+            return newPage;
+        }
     }
 
     public static final int WIDTH_CLOSED = 10;
     public static final int WIDTH_OPEN = 150;
     public static final int CONTENT_PADDING = 2;
+    public static final int TITLE_H = 16;
     public static final int ROW_H = 12;
     public static final int CHILD_INDENT = 12;
     public static final int EXPAND_INDENT = 8;
@@ -97,6 +119,12 @@ public class GuideNavBar {
     public static final int ACTION_SLOT_W = 12;
     public static final int ACTION_ICON_SIZE = 9;
     public static final int ACTION_PADDING_RIGHT = 2;
+    public static final int MIN_DYNAMIC_OPEN_WIDTH = 110;
+    public static final int OPEN_WIDTH_SCREEN_PERCENT = 18;
+    private static final int TITLE_TEXT_LEFT_PADDING = 6;
+    private static final int TITLE_BUTTON_GAP = 1;
+    private static final int TITLE_SCROLL_INTERVAL_MILLIS = 80;
+    private static final String TITLE_SCROLL_GAP = "     ";
 
     private final List<Row> rows = new ArrayList<Row>();
     private final Set<ResourceLocation> expandedPageIds = new HashSet<ResourceLocation>();
@@ -112,7 +140,11 @@ public class GuideNavBar {
     private int height;
     private boolean open;
     private boolean pinned;
+    private int openWidth = WIDTH_OPEN;
     private int scrollY;
+    @Nullable
+    private Row hoveredScrollingRow;
+    private long hoveredScrollingStartedAtMillis;
 
     public void setBounds(int x, int y, int height) {
         this.x = x;
@@ -120,12 +152,31 @@ public class GuideNavBar {
         this.height = height;
     }
 
+    public void setOpenWidth(int openWidth) {
+        this.openWidth = Math.max(WIDTH_CLOSED, openWidth);
+    }
+
+    public int getOpenWidth() {
+        return openWidth;
+    }
+
     public int currentWidth() {
-        return (open || pinned) ? WIDTH_OPEN : WIDTH_CLOSED;
+        return (open || pinned) ? openWidth : WIDTH_CLOSED;
     }
 
     public boolean isOpen() {
         return open || pinned;
+    }
+
+    public boolean isPinned() {
+        return pinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
+        if (pinned) {
+            this.open = true;
+        }
     }
 
     public void update(int mouseX, int mouseY, @Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
@@ -164,6 +215,7 @@ public class GuideNavBar {
 
     private void rebuildRows(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
         rows.clear();
+        resetTitleScroll();
         lastTree = tree;
         if (tree == null) {
             lastBookmarkStateVersion = bookmarkState.version();
@@ -180,10 +232,7 @@ public class GuideNavBar {
 
     public void render(Minecraft mc, @Nullable ResourceLocation currentGuideId,
         @Nullable ResourceLocation currentPageId, int mouseX, int mouseY, @Nullable PageCollection pageCollection,
-        GuideBookmarkState bookmarkState) {
-        if (lastTree == null || rows.isEmpty()) {
-            return;
-        }
+        GuideBookmarkState bookmarkState, boolean showNewPageButton) {
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
         try {
             int w = currentWidth();
@@ -197,16 +246,27 @@ public class GuideNavBar {
             Gui.drawRect(rowRight, y, x + w, y + height, 0xFF2A2A2A);
 
             if (!isOpen()) {
+                resetTitleScroll();
                 drawArrow(x + w / 2 - 2, y + height / 2 - 3, true, 0xFF888888);
+                return;
+            }
+
+            renderTitle(mc, w, mouseX, mouseY, showNewPageButton);
+
+            int bodyY = y + TITLE_H;
+            int bodyHeight = Math.max(0, height - TITLE_H);
+            if (bodyHeight <= 0) {
+                resetTitleScroll();
                 return;
             }
 
             int sf = DisplayScale.scaleFactor();
             GL11.glEnable(GL11.GL_SCISSOR_TEST);
-            GL11.glScissor(x * sf, mc.displayHeight - (y + height) * sf, w * sf, height * sf);
+            setScissor(mc, x, bodyY, w, bodyHeight, sf);
 
             FontRenderer fr = mc.fontRenderer;
             int firstVisibleRow = getFirstVisibleRowIndex();
+            boolean titleScrollActive = false;
             for (int rowIndex = firstVisibleRow; rowIndex < rows.size(); rowIndex++) {
                 Row row = rows.get(rowIndex);
                 int rowY = getRowY(rowIndex);
@@ -243,14 +303,16 @@ public class GuideNavBar {
                 }
                 int maxTw = textRight - textX;
                 if (maxTw > 0) {
-                    String title = row.getTitle(fr, maxTw);
                     boolean failed = row.displayRow.pageId() != null && pageCollection != null
                         && pageCollection.isPageFailed(row.displayRow.pageId());
                     int color = getRowTextColor(current, hovered, failed);
-                    fr.drawString(title, textX, rowY + 2, color, false);
+                    titleScrollActive |= renderRowTitle(mc, fr, row, textX, rowY, maxTw, color, hovered, sf);
                 }
 
                 renderBookmarkIcon(mc, row.displayRow, rowY, hovered, bookmarkState, bookmarkIconX);
+            }
+            if (!titleScrollActive) {
+                resetTitleScroll();
             }
         } finally {
             GL11.glPopAttrib();
@@ -260,15 +322,99 @@ public class GuideNavBar {
         }
     }
 
+    private void resetTitleScroll() {
+        hoveredScrollingRow = null;
+        hoveredScrollingStartedAtMillis = 0L;
+    }
+
+    private void renderTitle(Minecraft mc, int width, int mouseX, int mouseY, boolean showNewPageButton) {
+        FontRenderer fr = mc.fontRenderer;
+        Gui.drawRect(x, y, x + width - 1, y + TITLE_H, 0xD0202020);
+        Gui.drawRect(x, y + TITLE_H - 1, x + width - 1, y + TITLE_H, 0xFF2A2A2A);
+        int pinX = getPinButtonX();
+        int buttonY = getTitleButtonY();
+        if (showNewPageButton) {
+            int newPageX = getNewPageButtonX();
+            boolean hovered = isInsideTitleButton(mouseX, mouseY, newPageX);
+            int color = GuideIconButton.resolveIconColor(true, hovered, false);
+            GuideIconButton.drawIcon(
+                mc,
+                GuideIconButton.Role.GUIDE_EDITOR_NEW_PAGE,
+                newPageX,
+                buttonY,
+                GuideIconButton.WIDTH,
+                GuideIconButton.HEIGHT,
+                color);
+        }
+
+        boolean pinHovered = isInsideTitleButton(mouseX, mouseY, pinX);
+        int pinColor = GuideIconButton.resolveIconColor(true, pinHovered, pinned);
+        GuideIconButton.drawIcon(
+            mc,
+            GuideIconButton.Role.NAVIGATION_PIN,
+            pinX,
+            buttonY,
+            GuideIconButton.WIDTH,
+            GuideIconButton.HEIGHT,
+            pinColor);
+
+        int titleX = x + TITLE_TEXT_LEFT_PADDING;
+        int titleRight = (showNewPageButton ? getNewPageButtonX() : pinX) - TITLE_BUTTON_GAP;
+        int titleW = Math.max(0, titleRight - titleX);
+        if (titleW > 0) {
+            String title = GuidebookText.NavigationTitle.text();
+            String renderedTitle = fr.getStringWidth(title) > titleW
+                ? fr.trimStringToWidth(title, Math.max(0, titleW - 4)) + "\u2026"
+                : title;
+            fr.drawString(renderedTitle, titleX, y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1, 0xFFE8E8E8, false);
+        }
+    }
+
+    private boolean renderRowTitle(Minecraft mc, FontRenderer fr, Row row, int textX, int rowY, int maxTw, int color,
+        boolean hovered, int scaleFactor) {
+        if (!hovered || row.getTitleWidth(fr) <= maxTw) {
+            fr.drawString(row.getTitle(fr, maxTw), textX, rowY + 2, color, false);
+            return false;
+        }
+
+        int cycleWidth = row.getScrollCycleWidth(fr);
+        if (cycleWidth <= 0) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        if (hoveredScrollingRow != row) {
+            hoveredScrollingRow = row;
+            hoveredScrollingStartedAtMillis = now;
+        }
+        long elapsed = Math.max(0L, now - hoveredScrollingStartedAtMillis);
+        int offset = (int) ((elapsed / TITLE_SCROLL_INTERVAL_MILLIS) % cycleWidth);
+        setScissor(mc, textX, rowY, maxTw, ROW_H, scaleFactor);
+        try {
+            fr.drawString(row.getScrollingTitle(), textX - offset, rowY + 2, color, false);
+        } finally {
+            setScissor(mc, x, y + TITLE_H, currentWidth(), Math.max(0, height - TITLE_H), scaleFactor);
+        }
+        return true;
+    }
+
     @Nullable
     public ClickResult mouseClicked(int mouseX, int mouseY, @Nullable ResourceLocation currentGuideId,
-        @Nullable ResourceLocation currentPageId, GuideBookmarkState bookmarkState) {
+        @Nullable ResourceLocation currentPageId, GuideBookmarkState bookmarkState, boolean showNewPageButton) {
         if (!isOpen()) {
             return null;
         }
         int w = currentWidth();
         if (mouseX < x || mouseX >= x + w || mouseY < y || mouseY >= y + height) {
             return null;
+        }
+        if (mouseY < y + TITLE_H) {
+            if (isInsideTitleButton(mouseX, mouseY, getPinButtonX())) {
+                return ClickResult.togglePin();
+            }
+            if (showNewPageButton && isInsideTitleButton(mouseX, mouseY, getNewPageButtonX())) {
+                return ClickResult.createNewPage();
+            }
+            return ClickResult.none();
         }
         int rowIndex = getRowIndexAt(mouseY);
         if (rowIndex < 0) {
@@ -306,6 +452,20 @@ public class GuideNavBar {
             return ClickResult.navigate(row.displayRow.guideId(), row.displayRow.pageId());
         }
         return ClickResult.none();
+    }
+
+    @Nullable
+    public String getTooltip(int mouseX, int mouseY, boolean showNewPageButton) {
+        if (!isOpen() || !contains(mouseX, mouseY) || mouseY >= y + TITLE_H) {
+            return null;
+        }
+        if (showNewPageButton && isInsideTitleButton(mouseX, mouseY, getNewPageButtonX())) {
+            return GuideIconButton.Role.GUIDE_EDITOR_NEW_PAGE.tooltip();
+        }
+        if (isInsideTitleButton(mouseX, mouseY, getPinButtonX())) {
+            return GuideIconButton.Role.NAVIGATION_PIN.tooltip();
+        }
+        return null;
     }
 
     private void renderBookmarkIcon(Minecraft mc, GuideNavProjection.DisplayRow row, int rowY, boolean hovered,
@@ -380,7 +540,7 @@ public class GuideNavBar {
 
     public void scroll(int dwheel) {
         int contentH = rows.size() * ROW_H + CONTENT_PADDING * 2;
-        int max = Math.max(0, contentH - height);
+        int max = Math.max(0, contentH - Math.max(0, height - TITLE_H));
         scrollY -= Integer.signum(dwheel) * ROW_H * 2;
         if (scrollY < 0) {
             scrollY = 0;
@@ -396,7 +556,7 @@ public class GuideNavBar {
     }
 
     private int getRowIndexAt(int mouseY) {
-        int relativeY = mouseY - y + scrollY - CONTENT_PADDING;
+        int relativeY = mouseY - y - TITLE_H + scrollY - CONTENT_PADDING;
         if (relativeY < 0) {
             return -1;
         }
@@ -405,7 +565,30 @@ public class GuideNavBar {
     }
 
     private int getRowY(int rowIndex) {
-        return y + CONTENT_PADDING - scrollY + rowIndex * ROW_H;
+        return y + TITLE_H + CONTENT_PADDING - scrollY + rowIndex * ROW_H;
+    }
+
+    private int getTitleButtonY() {
+        return y + Math.max(0, (TITLE_H - GuideIconButton.HEIGHT) / 2);
+    }
+
+    private int getPinButtonX() {
+        return x + currentWidth() - GuideIconButton.WIDTH - 1;
+    }
+
+    private int getNewPageButtonX() {
+        return getPinButtonX() - GuideIconButton.WIDTH - TITLE_BUTTON_GAP;
+    }
+
+    private boolean isInsideTitleButton(int mouseX, int mouseY, int buttonX) {
+        int buttonY = getTitleButtonY();
+        return mouseX >= buttonX && mouseX < buttonX + GuideIconButton.WIDTH
+            && mouseY >= buttonY
+            && mouseY < buttonY + GuideIconButton.HEIGHT;
+    }
+
+    private static void setScissor(Minecraft mc, int x, int y, int w, int h, int scaleFactor) {
+        GL11.glScissor(x * scaleFactor, mc.displayHeight - (y + h) * scaleFactor, w * scaleFactor, h * scaleFactor);
     }
 
     public static int getRowTextColor(boolean current, boolean hovered, boolean failed) {
@@ -528,7 +711,11 @@ public class GuideNavBar {
         private final GuideNavProjection.DisplayRow displayRow;
         @Nullable
         private String cachedTitle;
+        @Nullable
+        private String cachedScrollingTitle;
         private int cachedMaxTw = -1;
+        private int cachedTitleWidth = -1;
+        private int cachedScrollCycleWidth = -1;
 
         public Row(GuideNavProjection.DisplayRow displayRow) {
             this.displayRow = displayRow;
@@ -539,9 +726,32 @@ public class GuideNavBar {
                 return cachedTitle;
             }
             String title = displayRow.title();
-            cachedTitle = fr.getStringWidth(title) > maxTw ? fr.trimStringToWidth(title, maxTw - 4) + "\u2026" : title;
+            cachedTitle = getTitleWidth(fr) > maxTw ? fr.trimStringToWidth(title, Math.max(0, maxTw - 4)) + "\u2026"
+                : title;
             cachedMaxTw = maxTw;
             return cachedTitle;
+        }
+
+        public int getTitleWidth(FontRenderer fr) {
+            if (cachedTitleWidth < 0) {
+                cachedTitleWidth = fr.getStringWidth(displayRow.title());
+            }
+            return cachedTitleWidth;
+        }
+
+        public int getScrollCycleWidth(FontRenderer fr) {
+            if (cachedScrollCycleWidth < 0) {
+                cachedScrollCycleWidth = fr.getStringWidth(displayRow.title() + TITLE_SCROLL_GAP);
+            }
+            return cachedScrollCycleWidth;
+        }
+
+        public String getScrollingTitle() {
+            if (cachedScrollingTitle == null) {
+                String title = displayRow.title();
+                cachedScrollingTitle = title + TITLE_SCROLL_GAP + title;
+            }
+            return cachedScrollingTitle;
         }
     }
 }

@@ -46,6 +46,10 @@ public class ModConfig {
         @RangeFloat(min = 0.0f, max = 0.45f)
         public float fullWidthNarrowReadingMarginRatio = 0.0f;
 
+        @Comment("Whether the guide navigation sidebar is pinned open by default.")
+        @DefaultBoolean(false)
+        public boolean guideNavigationPinned = false;
+
         @Comment("Global content zoom factor for the guide screen. "
             + "Individual pages can override this with the 'zoom' frontmatter field. "
             + "Default: 1.0. Range: 0.5 to 3.0.")

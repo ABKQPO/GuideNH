@@ -47,21 +47,31 @@ public class StructureLibTooltipContentBuilder {
                 root.append(LytParagraph.of(normalizedStructureLibDescription));
             }
 
-        appendDescriptionLines(root, hatchDescriptionLines);
+        appendDescriptionLines(root, hatchDescriptionLines, false);
 
         if (shiftDown) {
             appendCandidateGrid(root, normalizedBlockCandidates);
             appendCandidateGrid(root, normalizedHatchCandidates);
         }
 
+        appendDescriptionLines(root, hatchDescriptionLines, true);
+
         return new ContentTooltip(root);
     }
 
     public static void appendDescriptionLines(LytVBox root, @Nullable List<StructureLibHatchDescriptionLine> lines) {
+        appendDescriptionLines(root, lines, null);
+    }
+
+    private static void appendDescriptionLines(LytVBox root, @Nullable List<StructureLibHatchDescriptionLine> lines,
+        @Nullable Boolean hintBlockLinesOnly) {
         if (lines == null || lines.isEmpty()) {
             return;
         }
         for (StructureLibHatchDescriptionLine line : lines) {
+            if (hintBlockLinesOnly != null && isHintBlockLine(line) != hintBlockLinesOnly.booleanValue()) {
+                continue;
+            }
             LytParagraph paragraph = createDescriptionParagraph(line);
             if (paragraph != null && !paragraph.isEmpty()) {
                 root.append(paragraph);
@@ -74,13 +84,17 @@ public class StructureLibTooltipContentBuilder {
         if (line == null) {
             return null;
         }
-        if (line.getKind() == StructureLibHatchDescriptionLine.HINT_BLOCK) {
+        if (isHintBlockLine(line)) {
             return createHintBlockParagraph(line.getHintDot());
         }
         if (line.getKind() == StructureLibHatchDescriptionLine.VALID_HATCHES) {
             return createValidHatchesParagraph(line.getText());
         }
         return null;
+    }
+
+    public static boolean isHintBlockLine(@Nullable StructureLibHatchDescriptionLine line) {
+        return line != null && line.getKind() == StructureLibHatchDescriptionLine.HINT_BLOCK;
     }
 
     @Nullable
