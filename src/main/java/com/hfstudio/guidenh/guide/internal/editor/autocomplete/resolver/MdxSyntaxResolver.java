@@ -280,26 +280,58 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
     @Nullable
     private TextSyntaxContext resolveTagStart(String text, int cursorIndex, @Nullable String parentTagName) {
-        if (cursorIndex < 1 || text.charAt(cursorIndex - 1) != '<') {
-            return null;
+        if (cursorIndex < 1) return null;
+
+        char atCursor = text.charAt(cursorIndex - 1);
+
+        // Case 1: cursor immediately after '<' — start of a new tag
+        if (atCursor == '<') {
+            if (cursorIndex < text.length()) {
+                char next = text.charAt(cursorIndex);
+                if (next == '/' || next == '!' || next == '?') {
+                    return null;
+                }
+            }
+            if (cursorIndex >= 2) {
+                char prev = text.charAt(cursorIndex - 2);
+                if (prev != ' ' && prev != '\n' && prev != '\r' && prev != '>' && prev != '\t') {
+                    return null;
+                }
+            }
+            return new TextSyntaxContext(
+                SyntaxElementType.TAG_START,
+                cursorIndex,
+                cursorIndex,
+                new TagStartContext(cursorIndex, cursorIndex, "", parentTagName));
         }
-        if (cursorIndex < text.length()) {
-            char next = text.charAt(cursorIndex);
-            if (next == '/' || next == '!' || next == '?') {
+
+        // Case 2: cursor inside a partial tag name after '<' (e.g. <I|, <Item|)
+        if (isTagNameChar(atCursor)) {
+            int nameStart = cursorIndex - 1;
+            while (nameStart > 0 && isTagNameChar(text.charAt(nameStart - 1))) {
+                nameStart--;
+            }
+            if (nameStart == 0 || text.charAt(nameStart - 1) != '<') {
                 return null;
             }
-        }
-        if (cursorIndex >= 2) {
-            char prev = text.charAt(cursorIndex - 2);
-            if (prev != ' ' && prev != '\n' && prev != '\r' && prev != '>' && prev != '\t') {
+            int tagStart = nameStart - 1;
+            // Closing tag: </Name — don't autocomplete
+            if (nameStart > tagStart + 1 && text.charAt(tagStart + 1) == '/') {
                 return null;
             }
+            String partial = text.substring(nameStart, cursorIndex);
+            return new TextSyntaxContext(
+                SyntaxElementType.TAG_START,
+                tagStart,
+                cursorIndex,
+                new TagStartContext(tagStart, cursorIndex, partial, parentTagName));
         }
-        return new TextSyntaxContext(
-            SyntaxElementType.TAG_START,
-            cursorIndex,
-            cursorIndex,
-            new TagStartContext(cursorIndex, cursorIndex, "", parentTagName));
+
+        return null;
+    }
+
+    private static boolean isTagNameChar(char c) {
+        return Character.isLetterOrDigit(c) || c == '-';
     }
 
     // ---- MDX element ----

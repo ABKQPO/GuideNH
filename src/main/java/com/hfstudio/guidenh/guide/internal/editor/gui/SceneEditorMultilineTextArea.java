@@ -644,8 +644,15 @@ public class SceneEditorMultilineTextArea {
             selectionModel.insertText("\n" + indent + manualMarker);
             return;
         }
+        if (trimmed.isEmpty()) {
+            // Blank line: move cursor to next line instead of inserting another blank line.
+            int nextLineStart = findLineEnd(text, cursor) + 1;
+            if (nextLineStart <= text.length()) {
+                selectionModel.setSelection(nextLineStart, nextLineStart);
+            }
+            return;
+        }
         selectionModel.insertText("\n" + indent);
-    }
 
     @Nullable
     private static String resolveManualListMarker(String trimmed) {
