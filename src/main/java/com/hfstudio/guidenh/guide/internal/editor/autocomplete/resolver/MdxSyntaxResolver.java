@@ -104,18 +104,21 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             return resolveFrontmatterEmptyLine(text, cursorIndex);
         }
 
+        // List items inherit context from their parent key, regardless of
+        // whether the value contains a colon (e.g. "guidenh:guide_icon").
+        String trimmed = line.trim();
+        if (isYamlListMarker(trimmed)) {
+            return resolveFrontmatterEmptyLine(text, cursorIndex);
+        }
+
         int colonIdx = line.indexOf(':');
         if (colonIdx < 0) {
-            String trimmed = line.trim();
-            if (isYamlListMarker(trimmed)) {
-                return resolveFrontmatterEmptyLine(text, cursorIndex);
-            }
             return resolvePlainTextWord(text, cursorIndex);
         }
 
         String key = line.substring(0, colonIdx)
             .trim();
-        if (key.isEmpty() || key.startsWith("#") || key.startsWith("- ")) {
+        if (key.isEmpty() || key.startsWith("#")) {
             return resolvePlainTextWord(text, cursorIndex);
         }
 
@@ -167,7 +170,14 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         String prevKey = prevLine.substring(0, prevColon)
             .trim();
         int prevIndent = prevLine.indexOf(prevKey);
-        if (prevIndent == 0) return resolvePlainTextWord(text, cursorIndex); // top-level key, no parent
+        if (prevIndent == 0) {
+            // Top-level key is the direct parent for a list item or empty line.
+            return new TextSyntaxContext(
+                SyntaxElementType.WORD,
+                cursorIndex,
+                cursorIndex,
+                new FrontmatterContext(prevKey, true, cursorIndex, cursorIndex, ""));
+        }
 
         // Find parent key at a lower indentation
         int searchPos = prevLineStart - 1;
@@ -306,15 +316,16 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             }
         }
 
-        if (node instanceof MdxJsxElementFields) {
-            return (MdxJsxElementFields) node;
-        }
-
+        // Search children first so nested elements are found innermost-first.
         if (node instanceof MdAstParent) {
             for (UnistNode child : ((MdAstParent<?>) node).children()) {
                 MdxJsxElementFields found = findEnclosingMdxElement(child, cursorIndex);
                 if (found != null) return found;
             }
+        }
+
+        if (node instanceof MdxJsxElementFields) {
+            return (MdxJsxElementFields) node;
         }
 
         return null;
