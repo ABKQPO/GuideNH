@@ -102,6 +102,12 @@ public class MermaidCompiler extends BlockTagCompiler {
             .isEmpty()) {
             return loadSource(compiler, src.trim());
         }
+        // Prefer raw source text so Mermaid DSL syntax (brackets, links, etc.)
+        // is not consumed by markdown parsing.
+        String rawSource = compiler.getBlockTagChildrenSource(el);
+        if (rawSource != null) {
+            return MermaidMindmapParser.normalize(stripNodeContentBlocks(rawSource));
+        }
         return MermaidMindmapParser.normalize(extractInlineSource(el));
     }
 
@@ -217,5 +223,38 @@ public class MermaidCompiler extends BlockTagCompiler {
         } else if (content instanceof MdAstParent<?>parent) {
             appendSource(builder, parent.children(), false);
         }
+    }
+
+    private static String stripNodeContentBlocks(String source) {
+        StringBuilder result = new StringBuilder(source.length());
+        int depth = 0;
+        for (int i = 0; i < source.length(); i++) {
+            char c = source.charAt(i);
+            if (depth == 0 && source.startsWith("<", i)) {
+                int tagEnd = source.indexOf('>', i);
+                if (tagEnd > i) {
+                    String tag = source.substring(i, tagEnd + 1);
+                    if (tag.startsWith("<NodeContent")) {
+                        depth = 1;
+                        i = tagEnd;
+                        continue;
+                    }
+                }
+            }
+            if (depth > 0) {
+                if (source.startsWith("</NodeContent>", i)) {
+                    depth--;
+                    if (depth == 0) {
+                        i += "</NodeContent>".length() - 1;
+                        continue;
+                    }
+                } else if (source.startsWith("<NodeContent", i)) {
+                    depth++;
+                }
+                continue;
+            }
+            result.append(c);
+        }
+        return result.toString();
     }
 }
