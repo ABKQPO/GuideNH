@@ -576,5 +576,113 @@ public class TagAttributeRegistry {
             new AttributeSpec("meta", AttrType.INT),
             new AttributeSpec("facing", AttrType.STRING),
             new AttributeSpec("nbt", AttrType.SNBT));
+
+        // Annotation tags
+        register(
+            "BlockAnnotation",
+            new AttributeSpec("pos", AttrType.VECTOR3),
+            new AttributeSpec("color", AttrType.COLOR),
+            new AttributeSpec("thickness", AttrType.FLOAT),
+            new AttributeSpec("alwaysOnTop", AttrType.BOOLEAN));
+
+        register(
+            "BoxAnnotation",
+            new AttributeSpec("min", AttrType.VECTOR3),
+            new AttributeSpec("max", AttrType.VECTOR3),
+            new AttributeSpec("color", AttrType.COLOR),
+            new AttributeSpec("thickness", AttrType.FLOAT),
+            new AttributeSpec("alwaysOnTop", AttrType.BOOLEAN));
+
+        register(
+            "LineAnnotation",
+            new AttributeSpec("points", AttrType.STRING),
+            new AttributeSpec("from", AttrType.VECTOR3),
+            new AttributeSpec("to", AttrType.VECTOR3),
+            new AttributeSpec("color", AttrType.COLOR),
+            new AttributeSpec("thickness", AttrType.FLOAT),
+            new AttributeSpec("alwaysOnTop", AttrType.BOOLEAN),
+            new AttributeSpec("showPoints", AttrType.BOOLEAN),
+            new AttributeSpec("pointColor", AttrType.COLOR),
+            new AttributeSpec("pointSize", AttrType.FLOAT),
+            new AttributeSpec("arrow", AttrType.STRING));
+
+        register(
+            "DiamondAnnotation",
+            new AttributeSpec("pos", AttrType.VECTOR3),
+            new AttributeSpec("color", AttrType.COLOR),
+            new AttributeSpec("alwaysOnTop", AttrType.BOOLEAN));
+
+        register(
+            "TextAnnotation",
+            new AttributeSpec("text", AttrType.STRING),
+            new AttributeSpec("color", AttrType.COLOR),
+            new AttributeSpec("maxWidth", AttrType.INT),
+            new AttributeSpec("backgroundAlpha", AttrType.INT),
+            new AttributeSpec("independent", AttrType.BOOLEAN),
+            new AttributeSpec("yOffset", AttrType.INT),
+            new AttributeSpec("pos", AttrType.VECTOR3));
+
+        register(
+            "BlockAnnotationTemplate",
+            new AttributeSpec("id", AttrType.STRING));
+
+        // Sound tags (share GuideSoundParsers.parseAttributes)
+        register(
+            "PlaySound",
+            new AttributeSpec("sound", AttrType.STRING),
+            new AttributeSpec("src", AttrType.FILE_PATH),
+            new AttributeSpec("volume", AttrType.FLOAT),
+            new AttributeSpec("pitch", AttrType.FLOAT),
+            new AttributeSpec("cooldown", AttrType.INT),
+            new AttributeSpec("radius", AttrType.FLOAT),
+            new AttributeSpec("minVolume", AttrType.FLOAT),
+            new AttributeSpec("x", AttrType.FLOAT),
+            new AttributeSpec("y", AttrType.FLOAT),
+            new AttributeSpec("z", AttrType.FLOAT),
+            new AttributeSpec("trigger", AttrType.STRING));
+
+        register(
+            "SoundLink",
+            new AttributeSpec("sound", AttrType.STRING),
+            new AttributeSpec("src", AttrType.FILE_PATH),
+            new AttributeSpec("volume", AttrType.FLOAT),
+            new AttributeSpec("pitch", AttrType.FLOAT),
+            new AttributeSpec("cooldown", AttrType.INT),
+            new AttributeSpec("radius", AttrType.FLOAT),
+            new AttributeSpec("minVolume", AttrType.FLOAT),
+            new AttributeSpec("x", AttrType.FLOAT),
+            new AttributeSpec("y", AttrType.FLOAT),
+            new AttributeSpec("z", AttrType.FLOAT));
+
+        // Quest integration tags
+        register(
+            "QuestLink",
+            new AttributeSpec("id", AttrType.STRING),
+            new AttributeSpec("text", AttrType.STRING));
+
+        register(
+            "QuestCard",
+            new AttributeSpec("id", AttrType.STRING),
+            new AttributeSpec("show_desc", AttrType.STRING));
+
+        // Scene block stats
+        register(
+            "BlockStats",
+            new AttributeSpec("visible", AttrType.BOOLEAN),
+            new AttributeSpec("buttonEnabled", AttrType.BOOLEAN),
+            new AttributeSpec("mode", AttrType.STRING),
+            new AttributeSpec("corner", AttrType.STRING),
+            new AttributeSpec("dock", AttrType.STRING),
+            new AttributeSpec("showNames", AttrType.BOOLEAN),
+            new AttributeSpec("filterMode", AttrType.STRING),
+            new AttributeSpec("filter", AttrType.STRING),
+            new AttributeSpec("maxWidth", AttrType.INT),
+            new AttributeSpec("maxHeight", AttrType.INT));
+
+        register(
+            "BlockStat",
+            new AttributeSpec("id", AttrType.BLOCK_ID),
+            new AttributeSpec("item", AttrType.ITEM_ID),
+            new AttributeSpec("count", AttrType.FLOAT));
     }
 }
