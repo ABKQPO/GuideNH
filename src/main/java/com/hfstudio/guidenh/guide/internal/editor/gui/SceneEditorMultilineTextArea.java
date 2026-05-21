@@ -653,6 +653,7 @@ public class SceneEditorMultilineTextArea {
             return;
         }
         selectionModel.insertText("\n" + indent);
+    }
 
     @Nullable
     private static String resolveManualListMarker(String trimmed) {
