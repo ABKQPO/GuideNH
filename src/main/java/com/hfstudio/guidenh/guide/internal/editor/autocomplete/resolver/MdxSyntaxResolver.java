@@ -12,6 +12,8 @@ import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstImage;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLink;
@@ -356,11 +358,17 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             }
         }
 
-        if (node instanceof MdxJsxElementFields) {
-            return (MdxJsxElementFields) node;
+        if (node instanceof MdxJsxElementFields el && !isRecovered(el)) {
+            return el;
         }
 
         return null;
+    }
+
+    private static boolean isRecovered(MdxJsxElementFields el) {
+        if (el instanceof MdxJsxFlowElement f) return f.recovered;
+        if (el instanceof MdxJsxTextElement t) return t.recovered;
+        return false;
     }
 
     @Nullable

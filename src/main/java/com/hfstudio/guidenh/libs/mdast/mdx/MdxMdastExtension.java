@@ -29,6 +29,7 @@ public class MdxMdastExtension {
     public static final MdastExtension INSTANCE = MdastExtension.builder()
         .canContainEol("mdxJsxTextElement")
         .enter("mdxJsxFlowTag", MdxMdastExtension::enterMdxJsxTag)
+        .enter("mdxJsxRecovery", MdxMdastExtension::enterMdxJsxRecovery)
         .enter("mdxJsxFlowTagClosingMarker", MdxMdastExtension::enterMdxJsxTagClosingMarker)
         .enter("mdxJsxFlowTagAttribute", MdxMdastExtension::enterMdxJsxTagAttribute)
         .enter("mdxJsxFlowTagExpressionAttribute", MdxMdastExtension::enterMdxJsxTagExpressionAttribute)
@@ -92,6 +93,13 @@ public class MdxMdastExtension {
         }
         context.set(TAG, tag);
         context.buffer();
+    }
+
+    public static void enterMdxJsxRecovery(MdastContext context, Token token) {
+        var tag = context.get(TAG);
+        if (tag != null) {
+            tag.recovered = true;
+        }
     }
 
     public static void enterMdxJsxTagClosingMarker(MdastContext context, Token token) {
@@ -234,9 +242,13 @@ public class MdxMdastExtension {
         } else {
             MdAstNode node;
             if (Objects.equals(token.type, "mdxJsxTextTag")) {
-                node = new MdxJsxTextElement(tag.name, tag.attributes);
+                var el = new MdxJsxTextElement(tag.name, tag.attributes);
+                el.recovered = tag.recovered;
+                node = el;
             } else {
-                node = new MdxJsxFlowElement(tag.name, tag.attributes);
+                var el = new MdxJsxFlowElement(tag.name, tag.attributes);
+                el.recovered = tag.recovered;
+                node = el;
             }
 
             context.enter(node, token, MdxMdastExtension::onErrorRightIsTag);
@@ -286,6 +298,7 @@ public class MdxMdastExtension {
         List<MdxJsxAttributeNode> attributes = new ArrayList<>();
         boolean close;
         boolean selfClosing;
+        boolean recovered;
         Point start;
         Point end;
 

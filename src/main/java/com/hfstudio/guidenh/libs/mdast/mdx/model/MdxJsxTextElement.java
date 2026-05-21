@@ -20,6 +20,7 @@ public class MdxJsxTextElement extends MdAstParent<MdAstPhrasingContent>
     public static final String TYPE = "mdxJsxTextElement";
     private String name;
     private final List<MdxJsxAttributeNode> attributes;
+    public transient boolean recovered;
 
     public MdxJsxTextElement() {
         this("", new ArrayList<>());

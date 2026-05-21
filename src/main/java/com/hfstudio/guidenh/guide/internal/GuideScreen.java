@@ -2645,6 +2645,19 @@ public class GuideScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallb
 
         TextSyntaxContext ctx = autocompleteResolver.resolve(text, cursor);
 
+        // ---- DIAGNOSTIC: remove after debugging partial tag name autocomplete ----
+        {
+            int pre = Math.max(0, cursor - 4);
+            int post = Math.min(text.length(), cursor + 2);
+            String around = text.substring(pre, cursor) + "|" + text.substring(cursor, post);
+            String ctxInfo = ctx != null ? ctx.getElementType() + "/" + (ctx.getAutocomplete() != null
+                ? ctx.getAutocomplete().getClass().getSimpleName() : "null") : "null";
+            FMLLog.info("[ACDBG] cursor=%d around='%s' ctx=%s shouldAC=%s", cursor,
+                around.replace("\n", "\\n"), ctxInfo,
+                ctx != null ? ctx.shouldAutocomplete() : false);
+        }
+        // ---- END DIAGNOSTIC ----
+
         if (ctx != null && ctx.shouldAutocomplete()) {
             List<AutocompleteCandidate> candidates = AutocompleteProviders.query(ctx.getAutocomplete(), 20);
             if (!candidates.isEmpty()) {

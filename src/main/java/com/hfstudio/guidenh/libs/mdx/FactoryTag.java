@@ -570,14 +570,16 @@ public class FactoryTag {
                 for (String openToken : openTokens) {
                     effects.exit(openToken);
                 }
-                effects.exit(tagType);
                 if (code == Codes.eof) {
-                    // consume(eof) requires last event to be EXIT, which it is after exiting tagType.
+                    effects.exit(tagType);
                     effects.consume(code);
                 } else {
+                    // Emit recovery marker BEFORE exiting the tag so the mdast
+                    // handler can set tag.recovered before the AST node is created.
                     effects.enter("mdxJsxRecovery");
                     effects.consume(code);
                     effects.exit("mdxJsxRecovery");
+                    effects.exit(tagType);
                 }
                 return ok;
             }
