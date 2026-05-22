@@ -2,7 +2,7 @@
 navigation:
   title: 方块场景
   parent: index.md
-  position: 30
+  position: 170
 categories:
   - scenes
 ---
@@ -261,6 +261,24 @@ categories:
   <Block id="minecraft:fence" x="6" z="1" />
   <Block id="minecraft:trapdoor" x="8" />
 </GameScene>
+
+## 静态天气
+
+`<Weather>` 是专门用于动画雨雪的场景组件。它独立于普通面片粒子，在普通 `GameScene`
+渲染期间持续循环，并遵循与 Ponder 天气运行时相同的降水列规则。
+
+<GameScene width="256" height="160" zoom={4} interactive={false}>
+  <Block id="minecraft:stone" x="0" y="0" z="0" />
+  <Block id="minecraft:stone" x="1" y="0" z="0" />
+  <Block id="minecraft:stone" x="2" y="0" z="0" />
+  <Block id="minecraft:glass" x="1" y="1" z="0" />
+  <Weather weather="rain" x="0 1" z="0 0" density="10" />
+  <Weather weather="snow" x="2" z="0" density="7" />
+</GameScene>
+
+- `x` 和 `z` 都支持单值，也支持端点数组。
+- 天气忽略 `y`；垂直范围由场景边界和降水遮挡方块自动推导。
+- 同一个 `x/z` 列在同一时间不会叠加多个天气效果。
 
 ## 静态粒子
 

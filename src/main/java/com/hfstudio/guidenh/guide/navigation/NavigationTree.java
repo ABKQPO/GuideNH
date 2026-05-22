@@ -338,6 +338,7 @@ public class NavigationTree {
     }
 
     public static final Comparator<NavigationNode> NODE_COMPARATOR = Comparator.comparingInt(NavigationNode::position)
+        .reversed()
         .thenComparing(NavigationNode::title);
 
     @Nullable

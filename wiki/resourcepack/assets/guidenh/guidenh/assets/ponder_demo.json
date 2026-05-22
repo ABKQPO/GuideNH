@@ -403,6 +403,30 @@
       ]
     },
     {
+      "time": 435,
+      "label": "Weather preset",
+      "particles": [
+        {
+          "preset": "rain",
+          "weather": "snow",
+          "x": [0, 1, 2, 2],
+          "z": [0, 2, 0, 2],
+          "time": 80,
+          "count": 7
+        }
+      ],
+      "annotations": [
+        {
+          "type": "text",
+          "text": "Weather preset supports rain and snow regions, automatic transitions, and non-overlapping precipitation columns.",
+          "independent": true,
+          "yOffset": 56,
+          "maxWidth": 228,
+          "color": "0xFFD8F3FF"
+        }
+      ]
+    },
+    {
       "time": 470,
       "camera": {
         "rotY": 210.0

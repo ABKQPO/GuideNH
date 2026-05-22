@@ -607,6 +607,41 @@ Preview player name and cape example:
 </GameScene>
 ````
 
+## Weather
+
+`<Weather>` adds animated rain or snow directly to a `GameScene`. Unlike Ponder weather presets,
+scene weather is not timeline-owned: it keeps looping during normal scene rendering, it does not
+fade in or fade out, and it cannot be paused or scrubbed independently. The renderer still uses the
+same precipitation geometry path as Ponder weather, so local preview and site export stay aligned.
+
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `weather` / `type` | `rain` | Weather kind. Supported values: `rain`, `snow`. |
+| `x`, `z` | scene bounds | Covered precipitation columns. A scalar targets one column. Arrays use endpoint pairs to define one or more rectangles. |
+| `density` | type-specific | Coverage density. Higher values keep more precipitation columns active; lower values sparsify the effect. |
+
+Notes:
+
+- `<Weather>` ignores `y`; the vertical span is derived from the current scene bounds and from the
+  highest precipitation-blocking block in each covered column.
+- If one axis has unmatched extra array values, the unmatched tail is ignored.
+- Within one weather declaration, rain and snow never stack on the same `x/z` column. If multiple
+  weather tags overlap, earlier tags keep the shared columns.
+- Different non-overlapping columns in the same `GameScene` can render rain and snow at the same
+  time.
+
+Example:
+
+````md
+<GameScene width="256" height="160" zoom={4} interactive={false}>
+  <Block id="minecraft:grass" />
+  <Block id="minecraft:stone" x="1" />
+  <Block id="minecraft:stone" x="2" />
+  <Weather weather="rain" x="0 1" z="0 0" density="10" />
+  <Weather weather="snow" x="2 2" z="0 0" density="7" />
+</GameScene>
+````
+
 ## Camera Center Behavior
 
 If no explicit `centerX/Y/Z` is given, GuideNH auto-centers the scene from the placed block bounds. If any explicit center coordinate is set, auto-centering is disabled and missing coordinates default to `0`.

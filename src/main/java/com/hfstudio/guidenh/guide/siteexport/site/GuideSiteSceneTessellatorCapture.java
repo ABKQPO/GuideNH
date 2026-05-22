@@ -15,8 +15,6 @@ import javax.imageio.ImageIO;
 
 import net.minecraft.client.renderer.OpenGlHelper;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
@@ -25,6 +23,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 
+import cpw.mods.fml.common.FMLLog;
 import guideme.flatbuffers.scene.ExpDepthTest;
 import guideme.flatbuffers.scene.ExpIndexElementType;
 import guideme.flatbuffers.scene.ExpPrimitiveType;
@@ -32,7 +31,6 @@ import guideme.flatbuffers.scene.ExpTransparency;
 
 public class GuideSiteSceneTessellatorCapture {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/SiteExportTessCapture");
     private static final ThreadLocal<GuideSiteSceneTessellatorCapture> ACTIVE = new ThreadLocal<>();
 
     private final GuideSiteAssetRegistry assets;
@@ -63,6 +61,8 @@ public class GuideSiteSceneTessellatorCapture {
     private double xOffset;
     private double yOffset;
     private double zOffset;
+    @Nullable
+    private String currentSourceTextureId;
 
     public GuideSiteSceneTessellatorCapture(GuideSiteAssetRegistry assets, Matrix4f inverseViewMatrix) {
         this.assets = assets;
@@ -90,15 +90,30 @@ public class GuideSiteSceneTessellatorCapture {
     }
 
     public RecordingResult finish() {
-        return new RecordingResult(new ArrayList<>(meshes));
+        ArrayList<ExportedTexture> exportedTextures = new ArrayList<>(textures.size());
+        for (TextureExport texture : textures.values()) {
+            exportedTextures.add(
+                new ExportedTexture(
+                    texture.textureId,
+                    texture.texturePath,
+                    texture.sourceTextureId,
+                    texture.linearFiltering,
+                    texture.useMipmaps));
+        }
+        return new RecordingResult(new ArrayList<>(meshes), exportedTextures);
+    }
+
+    public void setCurrentSourceTextureId(@Nullable String currentSourceTextureId) {
+        this.currentSourceTextureId = currentSourceTextureId;
     }
 
     public void startDrawing(int drawMode) {
         if (drawing) {
-            // A previous batch was not properly closed — force-close it to prevent cascading failures.
-            LOG.warn(
-                "Scene capture startDrawing called while already drawing (mode={}); discarding previous unclosed batch",
-                drawMode);
+            // A previous batch was not properly closed, so drop it before recording a new one.
+            FMLLog.getLogger()
+                .warn(
+                    "Scene capture startDrawing called while already drawing (mode={}); discarding previous unclosed batch",
+                    drawMode);
             drawing = false;
             currentVertices.clear();
         }
@@ -125,7 +140,7 @@ public class GuideSiteSceneTessellatorCapture {
 
     public int draw() {
         if (!drawing) {
-            // draw() called without a paired startDrawing() — skip capture silently.
+            // draw() called without a paired startDrawing(), so skip capture silently.
             return 0;
         }
         drawing = false;
@@ -135,7 +150,8 @@ public class GuideSiteSceneTessellatorCapture {
                 captureCurrentMesh();
             }
         } catch (Throwable e) {
-            LOG.warn("Scene capture mesh export failed ({} vertices)", vertexCount, e);
+            FMLLog.getLogger()
+                .warn("Scene capture mesh export failed ({} vertices)", vertexCount, e);
         } finally {
             currentVertices.clear();
         }
@@ -319,11 +335,12 @@ public class GuideSiteSceneTessellatorCapture {
             int level0Width = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
             int level0Height = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
             if (level0Width <= 0 || level0Height <= 0) {
-                LOG.warn(
-                    "exportCurrentTexture: bound texture id={} has invalid level-0 dimensions {}x{}; skipping",
-                    textureId,
-                    level0Width,
-                    level0Height);
+                FMLLog.getLogger()
+                    .warn(
+                        "exportCurrentTexture: bound texture id={} has invalid level-0 dimensions {}x{}; skipping",
+                        textureId,
+                        level0Width,
+                        level0Height);
                 return null;
             }
 
@@ -344,20 +361,22 @@ public class GuideSiteSceneTessellatorCapture {
                     exportHeight = lh;
                     if (lw <= MAX_EXPORT_TEXTURE_SIZE && lh <= MAX_EXPORT_TEXTURE_SIZE) break;
                 }
-                LOG.debug(
-                    "exportCurrentTexture: texture id={} is {}x{} \u2014 using mip level {} ({}x{}) for site export",
-                    textureId,
-                    level0Width,
-                    level0Height,
-                    exportMipLevel,
-                    exportWidth,
-                    exportHeight);
+                FMLLog.getLogger()
+                    .debug(
+                        "exportCurrentTexture: texture id={} is {}x{} - using mip level {} ({}x{}) for site export",
+                        textureId,
+                        level0Width,
+                        level0Height,
+                        exportMipLevel,
+                        exportWidth,
+                        exportHeight);
             } else {
-                LOG.debug(
-                    "exportCurrentTexture: exporting texture id={} ({}x{})",
-                    textureId,
-                    exportWidth,
-                    exportHeight);
+                FMLLog.getLogger()
+                    .debug(
+                        "exportCurrentTexture: exporting texture id={} ({}x{})",
+                        textureId,
+                        exportWidth,
+                        exportHeight);
             }
 
             ByteBuffer pixels = BufferUtils.createByteBuffer(exportWidth * exportHeight * 4);
@@ -388,7 +407,12 @@ public class GuideSiteSceneTessellatorCapture {
                 || minFilter == GL11.GL_NEAREST_MIPMAP_LINEAR
                 || minFilter == GL11.GL_LINEAR_MIPMAP_LINEAR;
 
-            TextureExport export = new TextureExport("gltex-" + textureId, texturePath, linearFiltering, useMipmaps);
+            TextureExport export = new TextureExport(
+                "gltex-" + textureId,
+                texturePath,
+                currentSourceTextureId,
+                linearFiltering,
+                useMipmaps);
             textures.put(textureId, export);
             return export;
         } finally {
@@ -422,6 +446,7 @@ public class GuideSiteSceneTessellatorCapture {
             shaderName,
             texture != null ? texture.textureId : null,
             texture != null ? texture.texturePath : null,
+            texture != null ? texture.sourceTextureId : null,
             texture != null && texture.linearFiltering,
             texture != null && texture.useMipmaps,
             !cullEnabled,
@@ -582,9 +607,30 @@ public class GuideSiteSceneTessellatorCapture {
     public static class RecordingResult {
 
         public final List<CapturedMesh> meshes;
+        public final List<ExportedTexture> textures;
 
-        RecordingResult(List<CapturedMesh> meshes) {
+        RecordingResult(List<CapturedMesh> meshes, List<ExportedTexture> textures) {
             this.meshes = meshes;
+            this.textures = textures;
+        }
+    }
+
+    public static class ExportedTexture {
+
+        public final String textureId;
+        public final String texturePath;
+        @Nullable
+        public final String sourceTextureId;
+        public final boolean linearFiltering;
+        public final boolean useMipmaps;
+
+        ExportedTexture(String textureId, String texturePath, @Nullable String sourceTextureId, boolean linearFiltering,
+            boolean useMipmaps) {
+            this.textureId = textureId;
+            this.texturePath = texturePath;
+            this.sourceTextureId = sourceTextureId;
+            this.linearFiltering = linearFiltering;
+            this.useMipmaps = useMipmaps;
         }
     }
 
@@ -610,7 +656,7 @@ public class GuideSiteSceneTessellatorCapture {
         }
     }
 
-    public static final class VertexFormatKey {
+    public static class VertexFormatKey {
 
         public final boolean hasUv;
         public final boolean hasNormal;
@@ -638,7 +684,7 @@ public class GuideSiteSceneTessellatorCapture {
         }
     }
 
-    public static final class MaterialKey {
+    public static class MaterialKey {
 
         public final String name;
         public final String shaderName;
@@ -646,6 +692,8 @@ public class GuideSiteSceneTessellatorCapture {
         public final String textureId;
         @Nullable
         public final String texturePath;
+        @Nullable
+        public final String sourceTextureId;
         public final boolean linearFiltering;
         public final boolean useMipmaps;
         public final boolean disableCulling;
@@ -653,11 +701,13 @@ public class GuideSiteSceneTessellatorCapture {
         public final int depthTest;
 
         public MaterialKey(String name, String shaderName, @Nullable String textureId, @Nullable String texturePath,
-            boolean linearFiltering, boolean useMipmaps, boolean disableCulling, int transparency, int depthTest) {
+            @Nullable String sourceTextureId, boolean linearFiltering, boolean useMipmaps, boolean disableCulling,
+            int transparency, int depthTest) {
             this.name = name;
             this.shaderName = shaderName;
             this.textureId = textureId;
             this.texturePath = texturePath;
+            this.sourceTextureId = sourceTextureId;
             this.linearFiltering = linearFiltering;
             this.useMipmaps = useMipmaps;
             this.disableCulling = disableCulling;
@@ -685,7 +735,10 @@ public class GuideSiteSceneTessellatorCapture {
             if (!Objects.equals(textureId, other.textureId)) {
                 return false;
             }
-            return Objects.equals(texturePath, other.texturePath);
+            if (!Objects.equals(texturePath, other.texturePath)) {
+                return false;
+            }
+            return Objects.equals(sourceTextureId, other.sourceTextureId);
         }
 
         @Override
@@ -694,6 +747,7 @@ public class GuideSiteSceneTessellatorCapture {
             result = 31 * result + shaderName.hashCode();
             result = 31 * result + (textureId != null ? textureId.hashCode() : 0);
             result = 31 * result + (texturePath != null ? texturePath.hashCode() : 0);
+            result = 31 * result + (sourceTextureId != null ? sourceTextureId.hashCode() : 0);
             result = 31 * result + (linearFiltering ? 1 : 0);
             result = 31 * result + (useMipmaps ? 1 : 0);
             result = 31 * result + (disableCulling ? 1 : 0);
@@ -703,22 +757,26 @@ public class GuideSiteSceneTessellatorCapture {
         }
     }
 
-    private static final class TextureExport {
+    private static class TextureExport {
 
         final String textureId;
         final String texturePath;
+        @Nullable
+        final String sourceTextureId;
         final boolean linearFiltering;
         final boolean useMipmaps;
 
-        TextureExport(String textureId, String texturePath, boolean linearFiltering, boolean useMipmaps) {
+        TextureExport(String textureId, String texturePath, @Nullable String sourceTextureId, boolean linearFiltering,
+            boolean useMipmaps) {
             this.textureId = textureId;
             this.texturePath = texturePath;
+            this.sourceTextureId = sourceTextureId;
             this.linearFiltering = linearFiltering;
             this.useMipmaps = useMipmaps;
         }
     }
 
-    private static final class RecordedVertex {
+    private static class RecordedVertex {
 
         private final float x;
         private final float y;
@@ -750,7 +808,7 @@ public class GuideSiteSceneTessellatorCapture {
         }
     }
 
-    private static final class IndexData {
+    private static class IndexData {
 
         private final ByteBuffer buffer;
         private final long indexCount;

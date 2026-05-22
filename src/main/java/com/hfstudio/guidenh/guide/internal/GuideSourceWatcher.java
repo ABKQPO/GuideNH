@@ -25,7 +25,6 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
-import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -243,11 +242,12 @@ public class GuideSourceWatcher implements AutoCloseable {
     }
 
     private List<ParsedGuidePage> loadAll(@Nullable String namespaceFilter) {
-        var stopwatch = Stopwatch.createStarted();
+        long startedAt = System.nanoTime();
         var currentLanguage = LangUtil.getCurrentLanguage();
         var pageSources = new HashMap<PageLangKey, Path>();
         var pageIds = new LinkedHashSet<ResourceLocation>();
 
+        long stageStartedAt = System.nanoTime();
         try {
             Files.walkFileTree(sourceFolder, new FileVisitor<>() {
 
@@ -288,15 +288,20 @@ public class GuideSourceWatcher implements AutoCloseable {
             FMLLog.getLogger()
                 .error("[GuideNH] [GuideSourceWatcher] Failed to list all pages in {}", sourceFolder, e);
         }
+        long walkNs = System.nanoTime() - stageStartedAt;
 
         FMLLog.getLogger()
             .info(
                 "[GuideNH] [GuideSourceWatcher] Loading {} guidebook pages from {} localized variants",
                 pageIds.size(),
                 pageSources.size());
+        stageStartedAt = System.nanoTime();
         Map<String, Map<String, String>> localizedSourcesByNamespace = loadLocalizedSourceOverrides(
             currentLanguage,
             namespaceFilter);
+        long localizedOverrideNs = System.nanoTime() - stageStartedAt;
+
+        stageStartedAt = System.nanoTime();
         var loadedPages = new ArrayList<ParsedGuidePage>(pageIds.size());
         for (var pageId : pageIds) {
             var pageSource = resolvePageSource(pageSources, localizedSourcesByNamespace, pageId, currentLanguage);
@@ -318,13 +323,23 @@ public class GuideSourceWatcher implements AutoCloseable {
                     .error("[GuideNH] [GuideSourceWatcher] Failed to reload guidebook page {}", pageSource.path(), e);
             }
         }
+        long parseNs = System.nanoTime() - stageStartedAt;
+        int sourceLanguageCount = countSourceLanguages(pageSources.keySet());
+        long totalNs = System.nanoTime() - startedAt;
 
         FMLLog.getLogger()
             .info(
-                "[GuideNH] [GuideSourceWatcher] Loaded {} pages from {} in {}",
+                "[GuideNH] [GuideSourceWatcher] Loaded {} pages from {} with namespaceFilter={} sourceVariants={} sourceLanguages={} localizedNamespaces={} walkNs={} localizedOverrideNs={} parseNs={} totalNs={}",
                 loadedPages.size(),
                 sourceFolder,
-                stopwatch);
+                namespaceFilter != null ? namespaceFilter : "<all>",
+                pageSources.size(),
+                sourceLanguageCount,
+                localizedSourcesByNamespace.size(),
+                walkNs,
+                localizedOverrideNs,
+                parseNs,
+                totalNs);
         return loadedPages;
     }
 
@@ -795,6 +810,16 @@ public class GuideSourceWatcher implements AutoCloseable {
         }
 
         return Collections.singleton(namespace);
+    }
+
+    private int countSourceLanguages(Set<PageLangKey> pageKeys) {
+        Set<String> languages = new HashSet<>();
+        for (PageLangKey pageKey : pageKeys) {
+            if (pageKey.sourceLang() != null) {
+                languages.add(pageKey.sourceLang());
+            }
+        }
+        return languages.size();
     }
 
     private Map<String, String> loadLocalizedSourceOverridesForNamespace(String sourceNamespace, String language) {

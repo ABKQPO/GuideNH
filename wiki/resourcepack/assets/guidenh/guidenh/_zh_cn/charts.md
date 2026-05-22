@@ -2,7 +2,7 @@
 navigation:
   title: 图表
   parent: index.md
-  position: 15
+  position: 185
 categories:
   - markdown
   - charts

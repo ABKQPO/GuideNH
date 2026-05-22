@@ -2,7 +2,7 @@
 navigation:
   title: 导航与索引
   parent: index.md
-  position: 5
+  position: 195
   recommend: 5
 categories:
   - markdown
@@ -61,7 +61,7 @@ Markdown 页面链接也使用同一套规则。`guide.md`、`./guide.md` 和 `/
 
 ### `navigation.position`
 
-同级页面中的整数排序值。数字越小越靠前。相同 position 时按 `title` 字母序排列。
+同级页面中的整数排序值。数字越大越靠前。相同 position 时按 `title` 字母序排列。
 
 ```yaml
 navigation:

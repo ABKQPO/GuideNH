@@ -14,8 +14,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
@@ -55,8 +53,6 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportServ
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 
 public class SceneEditorSceneNodePreviewApplier {
-
-    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
 
     private final Path workingRoot;
     private final StructureLibSceneImportService structureLibImportService;
@@ -296,7 +292,7 @@ public class SceneEditorSceneNodePreviewApplier {
             RemoveBlocksExecutor.execute(level, GuideBlockMatcher.parse(blockId));
             return true;
         } catch (IllegalArgumentException e) {
-            GuideDebugLog.warn(LOG, "Ignoring invalid RemoveBlocks matcher in preview: {}", blockId, e);
+            GuideDebugLog.warn("Ignoring invalid RemoveBlocks matcher in preview: {}", blockId, e);
             return false;
         }
     }
@@ -314,7 +310,6 @@ public class SceneEditorSceneNodePreviewApplier {
             }
             if (!isSupportedBlockTemplateElement(templateElement)) {
                 GuideDebugLog.warn(
-                    LOG,
                     "Ignoring unsupported BlockAnnotationTemplate preview element type: {}",
                     templateElement.getType()
                         .getTagName());
@@ -334,7 +329,7 @@ public class SceneEditorSceneNodePreviewApplier {
                 scene.addAnnotation(annotation);
             }
         } catch (IllegalArgumentException e) {
-            GuideDebugLog.warn(LOG, "Ignoring invalid BlockAnnotationTemplate matcher in preview: {}", blockId, e);
+            GuideDebugLog.warn("Ignoring invalid BlockAnnotationTemplate matcher in preview: {}", blockId, e);
         }
     }
 
@@ -378,7 +373,7 @@ public class SceneEditorSceneNodePreviewApplier {
         try {
             return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            GuideDebugLog.warn(LOG, "Failed to read scene editor preview structure {}", normalizedSource, e);
+            GuideDebugLog.warn("Failed to read scene editor preview structure {}", normalizedSource, e);
             return null;
         }
     }
@@ -388,7 +383,7 @@ public class SceneEditorSceneNodePreviewApplier {
             NBTTagCompound root = GuideTextNbtCodec.readStructureNbt(structureText.getBytes(StandardCharsets.UTF_8));
             return loadStructureIntoLevel(level, root);
         } catch (Exception e) {
-            GuideDebugLog.warn(LOG, "Failed to parse scene editor preview structure text", e);
+            GuideDebugLog.warn("Failed to parse scene editor preview structure text", e);
             return false;
         }
     }

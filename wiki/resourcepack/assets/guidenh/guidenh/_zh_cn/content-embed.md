@@ -2,7 +2,7 @@
 navigation:
   title: 内容嵌入
   parent: index.md
-  position: 65
+  position: 135
   icon: minecraft:wool:3
 categories:
   - widgets

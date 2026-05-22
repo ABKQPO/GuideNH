@@ -410,4 +410,10 @@ public class GuidebookSceneParticleFactory {
             default -> normalized;
         };
     }
+
+    private static String normalize(String value) {
+        return value == null ? null
+            : value.trim()
+                .toLowerCase(Locale.ROOT);
+    }
 }

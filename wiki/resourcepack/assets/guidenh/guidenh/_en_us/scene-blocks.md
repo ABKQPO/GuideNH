@@ -2,7 +2,7 @@
 navigation:
   title: Block Scenes
   parent: index.md
-  position: 30
+  position: 170
 categories:
   - scenes
 ---
@@ -303,4 +303,23 @@ actual collision or render bounds for hover and statistics highlight selection.
   <Block id="minecraft:fence" x="6" z="1" />
   <Block id="minecraft:trapdoor" x="8" />
 </GameScene>
+
+## Static Weather
+
+`<Weather>` is a dedicated scene component for animated rain and snow. It is separate from
+billboard particles, loops during normal `GameScene` rendering, and follows the same precipitation
+column rules as the Ponder weather runtime.
+
+<GameScene width="256" height="160" zoom={4} interactive={false}>
+  <Block id="minecraft:stone" x="0" y="0" z="0" />
+  <Block id="minecraft:stone" x="1" y="0" z="0" />
+  <Block id="minecraft:stone" x="2" y="0" z="0" />
+  <Block id="minecraft:glass" x="1" y="1" z="0" />
+  <Weather weather="rain" x="0 1" z="0 0" density="10" />
+  <Weather weather="snow" x="2" z="0" density="7" />
+</GameScene>
+
+- `x` and `z` accept either one value or endpoint arrays.
+- Weather ignores `y`; the runtime derives vertical range from scene bounds and precipitation blockers.
+- The same `x/z` column never stacks multiple weather effects at the same time.
 

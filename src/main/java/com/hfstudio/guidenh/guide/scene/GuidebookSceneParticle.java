@@ -156,6 +156,17 @@ public class GuidebookSceneParticle {
 
     public void advanceBy(int ticks) {
         int remainingTicks = Math.max(0, ticks);
+        if (remainingTicks == 0 || isDead()) {
+            return;
+        }
+        if (delayTicks > 0) {
+            int skippedDelay = Math.min(delayTicks, remainingTicks);
+            delayTicks -= skippedDelay;
+            remainingTicks -= skippedDelay;
+            if (remainingTicks == 0 || isDead()) {
+                return;
+            }
+        }
         for (int i = 0; i < remainingTicks && !isDead(); i++) {
             tick();
         }

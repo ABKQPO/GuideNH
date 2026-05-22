@@ -6,15 +6,14 @@ import java.awt.datatransfer.StringSelection;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ChatComponentTranslation;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+
+import cpw.mods.fml.common.FMLLog;
 
 public class SceneEditorClipboardExporter {
-
-    public static final Logger LOG = LogManager.getLogger("guidenh");
 
     @FunctionalInterface
     public interface ClipboardSink {
@@ -43,7 +42,7 @@ public class SceneEditorClipboardExporter {
             text -> Toolkit.getDefaultToolkit()
                 .getSystemClipboard()
                 .setContents(new StringSelection(text), null),
-            text -> LOG.info("Scene editor export:\n{}", text),
+            text -> GuideDebugLog.info("Scene editor export:\n{}", text),
             (player, key, args) -> {
                 if (player != null) {
                     player.addChatMessage(new ChatComponentTranslation(key.getTranslationKey(), args));
@@ -64,7 +63,8 @@ public class SceneEditorClipboardExporter {
     }
 
     public void notifyFailure(@Nullable EntityPlayer player, Throwable throwable) {
-        LOG.error("Failed to save scene snippet", throwable);
+        FMLLog.getLogger()
+            .error("Failed to save scene snippet", throwable);
         chatSink.send(player, GuidebookText.SceneEditorSaveFailure, getErrorMessage(throwable));
     }
 

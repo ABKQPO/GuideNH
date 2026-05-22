@@ -569,6 +569,37 @@ GuideNH 当前注册了以下场景子标签：
 </GameScene>
 ````
 
+## Weather
+
+`<Weather>` 可直接为 `GameScene` 添加动画雨雪。与 Ponder 的天气预设不同，场景天气不归时间轴管理：
+它会在普通场景渲染时持续循环，不带淡入淡出，也不能单独暂停或拖动。底层渲染仍复用与 Ponder
+天气相同的降水几何路径，因此本地预览与 site export 的效果保持一致。
+
+| 属性 | 默认值 | 说明 |
+| --- | --- | --- |
+| `weather` / `type` | `rain` | 天气类型。支持 `rain`、`snow`。 |
+| `x`、`z` | 场景边界 | 覆盖的降水列。单值表示一列；数组按端点对定义一个或多个矩形区域。 |
+| `density` | 按类型决定 | 覆盖密度。值越高，保留的降水列越多；值越低，效果越稀疏。 |
+
+说明：
+
+- `<Weather>` 不使用 `y`；垂直范围由当前场景边界以及每一列中最高的降水遮挡方块共同推导。
+- 如果某一轴数组末尾有无法配对的多余值，这部分会被忽略。
+- 在同一个天气声明内，同一个 `x/z` 列不会叠加雨和雪。多个天气标签发生重叠时，前面声明的标签优先占用共享列。
+- 同一个 `GameScene` 中，不同且不重叠的列可以同时渲染雨和雪。
+
+示例：
+
+````md
+<GameScene width="256" height="160" zoom={4} interactive={false}>
+  <Block id="minecraft:grass" />
+  <Block id="minecraft:stone" x="1" />
+  <Block id="minecraft:stone" x="2" />
+  <Weather weather="rain" x="0 1" z="0 0" density="10" />
+  <Weather weather="snow" x="2 2" z="0 0" density="7" />
+</GameScene>
+````
+
 ## 相机中心行为
 
 若未显式提供 `centerX/Y/Z`，GuideNH 会根据已放置方块的包围盒自动居中场景。若设置了任意一个显式中心坐标，则自动居中会被禁用，未提供的其余坐标默认 `0`。

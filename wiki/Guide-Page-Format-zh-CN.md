@@ -286,7 +286,7 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | --- | --- | --- | --- |
 | `title` | 是 | string | 导航显示名称，也可作为搜索标题后备值 |
 | `parent` | 否 | page id | 父页面 id；省略时为顶级节点 |
-| `position` | 否 | integer | 同级排序顺序，默认 `0` |
+| `position` | 否 | integer | 同级排序顺序，默认 `0`，数值越大越靠前 |
 | `priority` | 否 | integer | 同路径页面覆盖时的加载优先级；默认 `0`，数值更高者胜出，相同优先级时后处理的资源包条目覆盖先处理的 |
 | `icon` | 否 | item id | 导航和搜索中显示的物品图标。支持 `modid:name`、`modid:name:meta`（冒号分隔的损伤值/子类型）、`<modid:name:meta>`（严格形式；meta `32767` 匹配所有子类型）以及 `modid:name meta`（空格分隔，过滤表达式风格）。 |
 | `icons` | 否 | item id 列表 | 循环轮播的物品图标列表（每秒切换一次）。每项语法同 `icon`。存在时优先于 `icon` 使用。 |

@@ -205,22 +205,48 @@ public class PageCompiler {
     }
 
     public static ParsedGuidePage parse(String sourcePack, String language, ResourceLocation id, String pageContent) {
-        // Normalize line ending
+        long parseStartedAt = System.nanoTime();
+        long stageStartedAt = parseStartedAt;
         pageContent = normalizeLineEndings(pageContent);
+        long normalizeNs = System.nanoTime() - stageStartedAt;
+
+        stageStartedAt = System.nanoTime();
         pageContent = FootnotePreprocessor.preprocess(pageContent);
+        long footnoteNs = System.nanoTime() - stageStartedAt;
+
+        stageStartedAt = System.nanoTime();
         var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
+        long sourceFrontmatterNs = System.nanoTime() - stageStartedAt;
+
+        stageStartedAt = System.nanoTime();
         MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(pageContent);
+        long latexMaskNs = System.nanoTime() - stageStartedAt;
+
+        stageStartedAt = System.nanoTime();
         String parseContent = MdxCommentMasker.mask(latexMask.source());
+        long commentMaskNs = System.nanoTime() - stageStartedAt;
 
         MdAstRoot astRoot;
         String parseFailureMessage = null;
         UnistPoint parseFailureFrom = null;
         UnistPoint parseFailureTo = null;
+        long markdownParseNs;
+        long latexRestoreNs = 0L;
+        long htmlNormalizeNs = 0L;
         try {
+            stageStartedAt = System.nanoTime();
             astRoot = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
+            markdownParseNs = System.nanoTime() - stageStartedAt;
+
+            stageStartedAt = System.nanoTime();
             MarkdownLatexShorthand.restore(astRoot, latexMask);
+            latexRestoreNs = System.nanoTime() - stageStartedAt;
+
+            stageStartedAt = System.nanoTime();
             MarkdownHtmlRuntimeNormalizer.normalize(astRoot);
+            htmlNormalizeNs = System.nanoTime() - stageStartedAt;
         } catch (ParseException e) {
+            markdownParseNs = System.nanoTime() - stageStartedAt;
             parseFailureFrom = e.getFrom();
             parseFailureTo = e.getTo();
             var position = "";
@@ -245,10 +271,30 @@ public class PageCompiler {
         }
 
         // Find front-matter
+        stageStartedAt = System.nanoTime();
         var frontmatter = parseFrontmatter(id, astRoot);
+        long astFrontmatterNs = System.nanoTime() - stageStartedAt;
         if (parseFailureMessage != null && sourceFrontmatter.navigationEntry() != null) {
             frontmatter = sourceFrontmatter;
         }
+
+        long totalNs = System.nanoTime() - parseStartedAt;
+        FMLLog.getLogger()
+            .info(
+                "[GuideNH] [PageCompiler] Parsed page {} lang={} totalNs={} normalizeNs={} footnoteNs={} sourceFrontmatterNs={} latexMaskNs={} commentMaskNs={} markdownParseNs={} latexRestoreNs={} htmlNormalizeNs={} astFrontmatterNs={} parseFailed={}",
+                id,
+                language,
+                totalNs,
+                normalizeNs,
+                footnoteNs,
+                sourceFrontmatterNs,
+                latexMaskNs,
+                commentMaskNs,
+                markdownParseNs,
+                latexRestoreNs,
+                htmlNormalizeNs,
+                astFrontmatterNs,
+                parseFailureMessage != null);
 
         return new ParsedGuidePage(
             sourcePack,

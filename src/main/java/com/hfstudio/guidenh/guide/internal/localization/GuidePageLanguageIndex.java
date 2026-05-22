@@ -64,10 +64,20 @@ public class GuidePageLanguageIndex {
     }
 
     private static Map<String, String> loadLanguage(String normalizedLanguage) {
+        long startedAt = System.nanoTime();
         Map<String, String> merged = new LinkedHashMap<>();
-        for (IResourcePack resourcePack : DataDrivenGuideLoader.getActiveResourcePacks()) {
+        var activeResourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
+        for (IResourcePack resourcePack : activeResourcePacks) {
             loadResourcePackLanguage(resourcePack, normalizedLanguage, merged);
         }
+        long totalNs = System.nanoTime() - startedAt;
+        FMLLog.getLogger()
+            .info(
+                "[GuideNH] [GuidePageLanguageIndex] Loaded {} page language keys for language {} from {} resource packs in {} ns",
+                merged.size(),
+                normalizedLanguage,
+                activeResourcePacks.size(),
+                totalNs);
         return merged.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(merged);
     }
 

@@ -2,7 +2,7 @@
 navigation:
   title: Navigation & Index
   parent: index.md
-  position: 5
+  position: 195
   recommend: 5
 categories:
   - markdown
@@ -63,7 +63,7 @@ the page is loaded from the `gregtech:guidenh` data-driven guide when this guide
 
 ### `navigation.position`
 
-Integer sort order within siblings. Lower numbers appear first. Ties are broken by `title` alphabetically.
+Integer sort order within siblings. Larger numbers appear first. Ties are broken by `title` alphabetically.
 
 ```yaml
 navigation:

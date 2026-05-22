@@ -101,6 +101,7 @@ The `src` attribute accepts both relative and absolute IDs:
 | `layer` | integer or null | No | Visible layer override. `null` (or omitted) shows all layers. 1-based index. |
 | `annotations` | array | No | List of annotation objects shown while this keyframe is active. |
 | `sounds` | array | No | List of sounds played once when this keyframe becomes active during forward playback. |
+| `particles` | array | No | List of runtime particle bursts or presets fired when this keyframe becomes active during forward playback. |
 | `blockChanges` | array | No | List of block replacements applied when this keyframe first becomes active. |
 | `mergeTileNBT` | array | No | Merge SNBT compounds into tile entities at block positions. |
 | `modifyTileNBT` | array | No | Set one tile-entity NBT path to an SNBT value. |
@@ -199,6 +200,108 @@ Sound fields:
 | `x`, `y`, `z` | float | none | Optional scene-space source position for screen-space attenuation. |
 | `radius` | float | scene short side * 0.75 | Attenuation radius in screen pixels. |
 | `minVolume` | float | `0.15` | Minimum attenuation factor. |
+
+---
+
+## Keyframe Particles
+
+Add a `particles` array to a keyframe when you want one-shot particle bursts or timeline-local
+weather overlays during forward playback. These particles are not re-fired during reverse
+scrubbing, and seek/restart clears them before replaying the active state.
+
+Generic particles:
+
+```json
+{
+  "time": 110,
+  "particles": [
+    {
+      "name": "smoke",
+      "x": 1.5,
+      "y": 1.85,
+      "z": 1.5,
+      "vx": 0.0,
+      "vy": 0.01,
+      "vz": 0.0,
+      "size": 0.18,
+      "time": 16,
+      "count": 3
+    }
+  ]
+}
+```
+
+Explosion preset:
+
+```json
+{
+  "time": 160,
+  "particles": [
+    {
+      "preset": "explosion",
+      "x": 1.5,
+      "y": 1.45,
+      "z": 1.5,
+      "time": 8,
+      "power": 2.4
+    }
+  ]
+}
+```
+
+Weather preset:
+
+```json
+{
+  "time": 220,
+  "particles": [
+    {
+      "preset": "rain",
+      "weather": "snow",
+      "x": [0, 2],
+      "z": [0, 2],
+      "time": 100,
+      "count": 8
+    }
+  ]
+}
+```
+
+Particle fields:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `preset` | string | none | Special preset. `explosion` spawns a vanilla-style flash/smoke burst. `rain` enables the weather preset. |
+| `weather` | string | `rain` | Weather type used by `preset: "rain"`. Supported values: `rain`, `snow`. |
+| `name` | string | none | Generic particle appearance. Supported values: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
+| `particle` / `kind` | string | none | Compatibility aliases for `name`. |
+| `x`, `z` | float or array | scene bounds | Particle origin or weather coverage. Generic particles use scalar coordinates. For `preset: "rain"`, scalar values target one precipitation column and arrays define rectangular coverage by endpoint pairs. |
+| `vx`, `vy`, `vz` | float | `0.0` | Initial motion vector. `motionX/Y/Z` are accepted aliases. |
+| `time` / `lifetime` | integer | preset-specific | Particle lifetime in ticks. For `preset: "rain"` this is the total weather duration, including fade-in and fade-out. |
+| `size` | float | preset-specific | Generic particle half-size in block units. |
+| `count` | integer | preset-specific | Generic particle count. For `explosion`, omitted count scales from `power`. For `preset: "rain"`, this is the average per-tick weather density. |
+| `power` | float | `2.0` | Explosion strength for the `explosion` preset. |
+
+Weather preset notes:
+
+- `preset: "rain"` is the shared weather preset entry point. Use `weather: "rain"` for rainfall or
+  `weather: "snow"` for snowfall.
+- This preset is timeline-owned weather. It supports replay, pause, seek, and fast-forward together
+  with the rest of the Ponder timeline.
+- For always-on scene weather outside the Ponder timeline, use the `<Weather>` tag inside
+  `<GameScene>` instead.
+- Weather presets ignore `y`; the vertical spawn range is derived from the current scene bounds.
+- `x: 5, z: 8` targets one precipitation column. Arrays use endpoint pairs:
+  `x: [1, 5, 10, 12], z: [2, 6, 20, 24]` creates two covered rectangles.
+- If one axis has extra unmatched array values, the unmatched tail is ignored.
+- The runtime automatically shapes the effect with a short start transition, a steady middle
+  section, and an end transition.
+- Rain spawns fast falling drops plus occasional ground splashes. Snow spawns slower drifting
+  flakes without splash particles.
+- The weather area is derived from the current GameScene bounds so the effect scales with the
+  imported structure instead of a hard-coded box.
+- The same `x/z` column never stacks multiple weather types at the same time. Earlier overlapping
+  weather declarations keep the shared columns; later ones only render on the remaining area.
 
 ---
 

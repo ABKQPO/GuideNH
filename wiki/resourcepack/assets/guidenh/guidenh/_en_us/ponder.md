@@ -2,7 +2,7 @@
 navigation:
   title: Ponder Animations
   parent: index.md
-  position: 40
+  position: 160
 categories:
   - scenes
 ---
@@ -126,17 +126,46 @@ Explosion preset:
 ]
 ```
 
+Weather preset:
+
+```json
+"particles": [
+  {
+    "preset": "rain",
+    "weather": "rain",
+    "x": [0, 2, 4, 4],
+    "z": [0, 2, 0, 2],
+    "time": 90,
+    "count": 9
+  }
+]
+```
+
 | Field | Type | Description |
 |---|---|---|
-| `preset` | string? | Currently supports `explosion` for a vanilla-style flash + smoke + burst preset |
+| `preset` | string? | Supports `explosion` for a vanilla-style flash + smoke + burst preset, and `rain` for the shared weather preset |
+| `weather` | string? | Used by `preset: "rain"`. Supports `rain` and `snow` |
 | `name` | string? | Generic particle appearance. Supported values: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion` |
 | `particle` / `kind` | string? | Compatibility aliases for `name` |
-| `x`, `y`, `z` | float | Particle origin in world space |
+| `x`, `z` | float or array | Generic particle origin in world space, or weather coverage for `preset: "rain"` |
 | `vx`, `vy`, `vz` | float? | Initial motion vector. `motionX/Y/Z` are accepted aliases |
-| `time` / `lifetime` | int? | Particle lifetime in ticks |
+| `time` / `lifetime` | int? | Particle lifetime in ticks. For `preset: "rain"` this is the total weather duration including start/end transitions |
 | `size` | float? | Particle half-size in block units |
-| `count` | int? | Number of generic particles to spawn; for `explosion`, omitted count scales with `power` |
+| `count` | int? | Number of generic particles to spawn; for `explosion`, omitted count scales with `power`; for `preset: "rain"` it controls average density per tick |
 | `power` | float? | Explosion strength for the `explosion` preset |
+
+Weather preset notes:
+
+- `preset: "rain"` is the weather preset entry point for both rainfall and snowfall.
+- Use `weather: "rain"` for a vanilla-style rain curtain with occasional splashes.
+- Use `weather: "snow"` for slower drifting flakes.
+- Ponder weather is timeline-owned and follows replay, pause, seek, and fast-forward.
+- For always-on scene weather outside the timeline, use `<Weather>` inside `<GameScene>`.
+- Weather presets ignore `y`; the runtime derives the vertical span from the scene bounds.
+- Scalar `x/z` values target one precipitation column. Arrays use endpoint pairs to define one or more rectangles.
+- If one axis has extra unmatched endpoint values, the unmatched tail is ignored.
+- The runtime automatically adds a short start transition and end transition around the steady phase.
+- Overlapping weather never stacks on the same `x/z` column at the same time; earlier weather keeps the shared columns.
 
 ---
 

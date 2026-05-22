@@ -2,7 +2,7 @@
 navigation:
   title: Scene Particles
   parent: index.md
-  position: 41
+  position: 159
 categories:
   - scenes
 ---
@@ -12,7 +12,8 @@ categories:
 GuideNH now supports two particle authoring paths:
 
 1. Static scene particles through `<Particle>` inside `<GameScene>`
-2. Runtime Ponder particles through the `particles` array in `ImportPonder` JSON
+2. Static scene weather through `<Weather>` inside `<GameScene>`
+3. Runtime Ponder particles through the `particles` array in `ImportPonder` JSON
 
 ## Static `<Particle>`
 
@@ -32,6 +33,34 @@ it uses the default billboard particle.
   <Particle name="smoke" x="1.5" y="1.35" z="0.5" size="0.18" />
 </GameScene>
 ```
+
+## Static `<Weather>`
+
+`<Weather>` renders animated rain or snow directly in the scene. It is a separate scene component,
+not a particle billboard. Scene weather loops continuously during normal rendering, uses the same
+precipitation geometry path as timeline weather, and does not support timeline pause or scrubbing.
+
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `weather` / `type` | `rain` | Weather kind. Supported values: `rain`, `snow`. |
+| `x`, `z` | scene bounds | Covered precipitation columns. Scalars target one column. Arrays use endpoint pairs for rectangles. |
+| `density` | type-specific | Coverage density. Larger values keep more columns active. |
+
+```mdx
+<GameScene width="224" height="128" zoom={5} interactive={false}>
+  <Block id="minecraft:grass" />
+  <Block id="minecraft:stone" x="1" />
+  <Block id="minecraft:stone" x="2" />
+  <Weather weather="rain" x="0 1" z="0 0" density="10" />
+  <Weather weather="snow" x="2 2" z="0 0" density="7" />
+</GameScene>
+```
+
+Weather tag notes:
+
+- `<Weather>` ignores `y`; vertical span is derived from the scene bounds and from precipitation-blocking blocks.
+- If one axis has extra unmatched endpoint values, the unmatched tail is ignored.
+- Overlapping weather tags do not stack on the same `x/z` column. Earlier tags keep shared columns.
 
 ## Ponder `particles`
 
@@ -72,14 +101,42 @@ Explosion preset:
 ]
 ```
 
+Weather preset:
+
+```json
+"particles": [
+  {
+    "preset": "rain",
+    "weather": "snow",
+    "x": [0, 2],
+    "z": [0, 2],
+    "time": 100,
+    "count": 8
+  }
+]
+```
+
 | Field | Description |
 | --- | --- |
-| `preset` | Special preset. `explosion` reproduces a vanilla-style flash, smoke, and outward burst. |
+| `preset` | Special preset. `explosion` reproduces a vanilla-style flash, smoke, and outward burst. `rain` enables the shared weather preset. |
+| `weather` | Used by `preset: "rain"`. Supports `rain` and `snow`. |
 | `name` | Generic particle appearance. Supported values: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
 | `particle` / `kind` | Compatibility aliases for `name`. |
-| `x`, `y`, `z` | Particle origin in world space. |
+| `x`, `z` | Generic particle origin in world space, or weather coverage for `preset: "rain"`. Scalars target one column; arrays use endpoint pairs for rectangles. |
 | `vx`, `vy`, `vz` | Initial velocity. `motionX/Y/Z` are accepted aliases. |
-| `time` / `lifetime` | Particle lifetime in ticks. |
+| `time` / `lifetime` | Particle lifetime in ticks. For `preset: "rain"` this is the full weather duration including the start/end transition. |
 | `size` | Particle half-size in block units. |
-| `count` | Generic particle count. When omitted for `explosion`, it scales from `power`. |
+| `count` | Generic particle count. When omitted for `explosion`, it scales from `power`. For `preset: "rain"` it controls average density per tick. |
 | `power` | Explosion strength for the `explosion` preset. |
+
+Weather preset notes:
+
+- `preset: "rain"` is the shared weather preset entry point.
+- Set `weather: "rain"` for rainfall or `weather: "snow"` for snowfall.
+- Ponder weather is timeline-owned. It replays, pauses, seeks, and fast-forwards with the rest of the timeline.
+- For always-on scene weather outside the timeline, use `<Weather>` inside `<GameScene>`.
+- Weather presets ignore `y`; vertical range is derived from the scene bounds.
+- Extra unmatched endpoint values on one axis are ignored.
+- The runtime automatically adds a short fade-in, steady middle section, and fade-out.
+- Rain adds quick drops and small ground splashes. Snow uses slower drifting flakes.
+- The same `x/z` column will not stack multiple weather types at the same time.

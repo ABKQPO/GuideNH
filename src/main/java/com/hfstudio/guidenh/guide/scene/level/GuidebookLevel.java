@@ -461,6 +461,29 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             (float) ((minCenterZ + maxCenterZ) * 0.5D) };
     }
 
+    public int getPrecipitationBlockingY(int x, int z, int minY, int maxY) {
+        int lowerBound = Math.max(0, minY);
+        int upperBound = Math.min(255, maxY);
+        for (int y = upperBound; y >= lowerBound; y--) {
+            Block block = getBlock(x, y, z);
+            if (block == null || block == Blocks.air) {
+                continue;
+            }
+            Material material = block.getMaterial();
+            if (material == null || material == Material.air) {
+                continue;
+            }
+            if (material.blocksMovement() || material.isLiquid()) {
+                return y;
+            }
+        }
+        return lowerBound - 1;
+    }
+
+    public int getPrecipitationHeight(int x, int z, int minY, int maxY) {
+        return getPrecipitationBlockingY(x, z, minY, maxY) + 1;
+    }
+
     public GuidebookLevel withSampleChest() {
         var te = new TileEntityChest();
         var nbt = new NBTTagCompound();

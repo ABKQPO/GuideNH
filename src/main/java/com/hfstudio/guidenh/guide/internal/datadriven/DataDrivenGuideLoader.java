@@ -35,12 +35,19 @@ public class DataDrivenGuideLoader {
     private DataDrivenGuideLoader() {}
 
     public static Map<ResourceLocation, MutableGuide> load() {
-        var discoveredLanguages = new LinkedHashMap<ResourceLocation, LinkedHashSet<String>>();
+        long startedAt = System.nanoTime();
+        long stageStartedAt = startedAt;
+        var activeResourcePacks = getActiveResourcePacks();
+        long resourcePackResolveNs = System.nanoTime() - stageStartedAt;
 
-        for (var resourcePack : getActiveResourcePacks()) {
+        var discoveredLanguages = new LinkedHashMap<ResourceLocation, LinkedHashSet<String>>();
+        stageStartedAt = System.nanoTime();
+        for (var resourcePack : activeResourcePacks) {
             scanResourcePack(resourcePack, discoveredLanguages);
         }
+        long scanNs = System.nanoTime() - stageStartedAt;
 
+        stageStartedAt = System.nanoTime();
         var guides = new LinkedHashMap<ResourceLocation, MutableGuide>();
         for (var entry : discoveredLanguages.entrySet()) {
             ResourceLocation guideId = entry.getKey();
@@ -50,17 +57,57 @@ public class DataDrivenGuideLoader {
                 .defaultLanguage(autoDiscoveredDefaultLanguage());
             guides.put(guideId, (MutableGuide) builder.build());
         }
+        long buildNs = System.nanoTime() - stageStartedAt;
+        int discoveredLanguageCount = countDiscoveredLanguages(discoveredLanguages);
+        long totalNs = System.nanoTime() - startedAt;
+        FMLLog.getLogger()
+            .info(
+                "[GuideNH] [DataDrivenGuideLoader] Loaded {} guides across {} languages from {} resource packs in {} ns (resourcePackResolveNs={}, scanNs={}, buildNs={})",
+                guides.size(),
+                discoveredLanguageCount,
+                activeResourcePacks.size(),
+                totalNs,
+                resourcePackResolveNs,
+                scanNs,
+                buildNs);
         return guides;
     }
 
     public static LinkedHashMap<String, LinkedHashSet<String>> discoverPagePaths(String folder) {
+        long startedAt = System.nanoTime();
+        var activeResourcePacks = getActiveResourcePacks();
         var pagePaths = new LinkedHashMap<String, LinkedHashSet<String>>();
 
-        for (var resourcePack : getActiveResourcePacks()) {
+        for (var resourcePack : activeResourcePacks) {
             scanPagePathsAllNamespaces(resourcePack, folder, pagePaths);
         }
 
+        long totalNs = System.nanoTime() - startedAt;
+        FMLLog.getLogger()
+            .info(
+                "[GuideNH] [DataDrivenGuideLoader] Discovered {} page paths across {} namespaces for folder {} from {} resource packs in {} ns",
+                countDiscoveredPagePaths(pagePaths),
+                pagePaths.size(),
+                folder,
+                activeResourcePacks.size(),
+                totalNs);
         return pagePaths;
+    }
+
+    private static int countDiscoveredLanguages(Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
+        int total = 0;
+        for (var languages : discoveredLanguages.values()) {
+            total += languages.size();
+        }
+        return total;
+    }
+
+    private static int countDiscoveredPagePaths(LinkedHashMap<String, LinkedHashSet<String>> pagePaths) {
+        int total = 0;
+        for (var namespacePaths : pagePaths.values()) {
+            total += namespacePaths.size();
+        }
+        return total;
     }
 
     private static void scanPagePathsAllNamespaces(IResourcePack resourcePack, String folder,

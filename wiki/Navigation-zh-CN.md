@@ -33,6 +33,14 @@ navigation:
 | `required_mod` | 可选，单个模组 id；该模组未加载时页面不可见 |
 | `required_mods` | 可选，模组 id 列表；列出的全部模组都加载时页面才可见 |
 
+### `navigation.position`
+
+`navigation.position` 是用于控制同级页面顺序的可选整数。
+
+- 未填写时默认按 `0` 处理。
+- 数值越大越靠前。
+- 数值相同时，按标题字母序排序。
+
 ## 首页推荐
 
 ### `navigation.recommend`

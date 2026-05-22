@@ -297,7 +297,7 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | --- | --- | --- | --- |
 | `title` | yes | string | Display name in navigation and search title fallback |
 | `parent` | no | page id | Parent page id; omitted means top-level node |
-| `position` | no | integer | Sibling sort order; default `0` |
+| `position` | no | integer | Sibling sort order; default `0`, larger values appear earlier |
 | `priority` | no | integer | Load priority for same-path page overrides; default `0`, higher wins, equal priority lets the later resource pack entry win |
 | `icon` | no | item id | Item icon shown in navigation/search. Accepts `modid:name`, `modid:name:meta` (colon-separated damage/subtype), `<modid:name:meta>` (strict form; meta `32767` matches all subtypes), or `modid:name meta` (space-separated, filter-expression style). |
 | `icons` | no | list of item ids | List of item icons for animated cycling (one per second). Each entry uses the same syntax as `icon`. When present takes priority over `icon`. |

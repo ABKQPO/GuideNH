@@ -2,7 +2,7 @@
 navigation:
   title: 页面 Lang Key
   parent: markdown.md
-  position: 140
+  position: 60
 categories:
   - markdown
   - localization

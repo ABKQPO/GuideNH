@@ -2,7 +2,7 @@
 navigation:
   title: Debug
   parent: index.md
-  position: 200
+  position: 0
 categories:
   - other
 ---

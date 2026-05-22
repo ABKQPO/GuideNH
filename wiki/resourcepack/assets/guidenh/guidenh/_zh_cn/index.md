@@ -3,7 +3,7 @@ item_ids:
   - guidenh:guide
 navigation:
   title: GuideNH 示例
-  position: 0
+  position: 200
   recommend: 3
 author: GuideNH
 date: 2024-01-01

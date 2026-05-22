@@ -2,7 +2,7 @@
 navigation:
   title: Recipes
   parent: index.md
-  position: 50
+  position: 150
 categories:
   - widgets
 ---

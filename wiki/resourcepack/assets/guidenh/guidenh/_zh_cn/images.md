@@ -2,7 +2,7 @@
 navigation:
   title: 图片
   parent: index.md
-  position: 55
+  position: 145
   icon: minecraft:wool:1
 categories:
   - widgets

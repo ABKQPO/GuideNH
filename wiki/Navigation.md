@@ -34,6 +34,14 @@ navigation:
 | `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
 | `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
 
+### `navigation.position`
+
+`navigation.position` is an optional integer used to order sibling pages in the navigation tree.
+
+- Missing `position` defaults to `0`.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
+
 ## Home Page Recommendations
 
 ### `navigation.recommend`

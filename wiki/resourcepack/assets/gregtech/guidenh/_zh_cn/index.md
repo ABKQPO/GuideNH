@@ -1,7 +1,7 @@
 ---
 navigation:
   title: GregTech 命名空间示例
-  position: 0
+  position: 10
   priority: 0
 ---
 

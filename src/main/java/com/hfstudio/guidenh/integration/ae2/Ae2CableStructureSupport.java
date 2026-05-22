@@ -14,11 +14,10 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.network.GuideNhAe2CableBatchAwait;
 import com.hfstudio.guidenh.integration.ae2.network.GuideNhAe2CableBatchReplyMessage;
@@ -35,9 +34,7 @@ import io.netty.buffer.Unpooled;
  * Captures AE2 cable-bus preview authority into structure NBT under {@link ServerPreviewSupplementNbt#TAG_ROOT}
  * ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID}), and optional multiplayer batch fetch.
  */
-public final class Ae2CableStructureSupport {
-
-    private static final Logger LOG = LogManager.getLogger("GuideNH/Ae2Preview");
+public class Ae2CableStructureSupport {
 
     private static volatile boolean mpFetchEmptyLogged;
 
@@ -50,7 +47,7 @@ public final class Ae2CableStructureSupport {
     }
 
     /** Per-export batch: dim:x:y:z 鈫?unified {@link Ae2CablePreviewWireCodec} bytes. */
-    public static final class Ae2CableMpSnapshot {
+    public static class Ae2CableMpSnapshot {
 
         private final Map<String, byte[]> wireByKey;
 
@@ -150,7 +147,7 @@ public final class Ae2CableStructureSupport {
     private static void logEmptyFetchOnce() {
         if (!mpFetchEmptyLogged) {
             mpFetchEmptyLogged = true;
-            LOG.info(
+            GuideDebugLog.info(
                 "AE2 preview MP batch unavailable or malformed; exporting cable supplements from local/client only.");
         }
     }

@@ -2,7 +2,7 @@
 navigation:
   title: 配方
   parent: index.md
-  position: 50
+  position: 150
 categories:
   - widgets
 ---

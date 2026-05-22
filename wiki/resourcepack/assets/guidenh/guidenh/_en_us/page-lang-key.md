@@ -2,7 +2,7 @@
 navigation:
   title: Page Lang Keys
   parent: markdown.md
-  position: 140
+  position: 60
 categories:
   - markdown
   - localization

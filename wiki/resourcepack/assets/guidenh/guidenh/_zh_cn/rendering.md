@@ -3,7 +3,7 @@ title: 渲染示例
 navigation:
   title: 渲染示例
   parent: index.md
-  position: 80
+  position: 120
 categories:
   - other
 ---

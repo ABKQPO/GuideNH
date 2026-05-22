@@ -109,6 +109,21 @@ import lombok.Setter;
 
 public class LytGuidebookScene extends LytBlock {
 
+    public static class PonderWeatherColumnReservation {
+
+        private final int startTick;
+        private final int endTickExclusive;
+
+        public PonderWeatherColumnReservation(int startTick, int endTickExclusive) {
+            this.startTick = startTick;
+            this.endTickExclusive = endTickExclusive;
+        }
+
+        public boolean overlaps(int otherStartTick, int otherEndTickExclusive) {
+            return startTick < otherEndTickExclusive && otherStartTick < endTickExclusive;
+        }
+    }
+
     public static final float DRAG_ROTATE_SENSITIVITY = 0.5f;
     public static final float WHEEL_ZOOM_STEP = 1.1f;
     public static final float MIN_ZOOM = 0.1f;
@@ -183,8 +198,13 @@ public class LytGuidebookScene extends LytBlock {
     private final ArrayList<GuidebookSceneParticle> staticSceneParticles = new ArrayList<>();
     private final ArrayList<GuidebookSceneParticle> ponderSceneParticles = new ArrayList<>();
     private final ArrayList<GuidebookSceneParticle> renderSceneParticlesScratch = new ArrayList<>();
+    private final ArrayList<GuidebookSceneWeatherEffect> staticWeatherEffects = new ArrayList<>();
+    private final ArrayList<GuidebookSceneWeatherEffect> ponderWeatherEffects = new ArrayList<>();
+    private final ArrayList<GuidebookSceneWeatherEffect> renderWeatherEffectsScratch = new ArrayList<>();
+    private final ArrayList<GuidebookSceneWeatherEffect> resolvedWeatherEffectsScratch = new ArrayList<>();
     private final ArrayDeque<GuidebookSceneParticle> ponderParticlePool = new ArrayDeque<>();
     private final Random ponderParticleRng = new Random();
+    private int sceneAnimationTick = 0;
     private int ponderLastKeyframeIdx = -2;
     private int ponderAnnotationFadeTick = 5;
     private final Set<Integer> triggeredPonderSoundKeyframes = new HashSet<>();
@@ -192,6 +212,7 @@ public class LytGuidebookScene extends LytBlock {
     private final Map<String, PonderEntityRuntime> ponderEntityRefs = new LinkedHashMap<>();
     private final List<PonderEntityAnimationRuntimeSupport.TimedAnimation> ponderTimedEntityAnimations = new ArrayList<>();
     private final Map<String, PonderEntityAnimationRuntimeSupport.Baseline> ponderEntityAnimationBaselines = new LinkedHashMap<>();
+    private final Map<Long, PonderWeatherColumnReservation> ponderWeatherColumnReservations = new LinkedHashMap<>();
     private boolean ponderTimelineBaselineReady;
     @Nullable
     private LytRect cachedPonderBarTrackRect;
@@ -1465,6 +1486,12 @@ public class LytGuidebookScene extends LytBlock {
         }
     }
 
+    public void addStaticWeatherEffect(GuidebookSceneWeatherEffect effect) {
+        if (effect != null) {
+            staticWeatherEffects.add(effect);
+        }
+    }
+
     private List<GuidebookSceneParticle> resolveRenderableSceneParticles() {
         if (staticSceneParticles.isEmpty()) {
             return ponderSceneParticles;
@@ -1481,6 +1508,64 @@ public class LytGuidebookScene extends LytBlock {
 
     public List<GuidebookSceneParticle> getRenderableParticlesForExport() {
         return resolveRenderableSceneParticles();
+    }
+
+    private List<GuidebookSceneWeatherEffect> resolveRenderableWeatherEffects() {
+        if (staticWeatherEffects.isEmpty()) {
+            return ponderWeatherEffects;
+        }
+        if (ponderWeatherEffects.isEmpty()) {
+            return staticWeatherEffects;
+        }
+        renderWeatherEffectsScratch.clear();
+        renderWeatherEffectsScratch.ensureCapacity(staticWeatherEffects.size() + ponderWeatherEffects.size());
+        renderWeatherEffectsScratch.addAll(staticWeatherEffects);
+        renderWeatherEffectsScratch.addAll(ponderWeatherEffects);
+        return renderWeatherEffectsScratch;
+    }
+
+    public List<GuidebookSceneWeatherEffect> getRenderableWeatherEffectsForExport() {
+        return resolveRenderableWeatherEffectsForLayerSelection(
+            GuidebookSceneLayerSelection.fromVisibleLayer(null),
+            (int) Math.floor(resolveWeatherAnimationTick()));
+    }
+
+    public int getSceneAnimationTickForRender() {
+        return (int) Math.floor(resolveWeatherAnimationTick());
+    }
+
+    private List<GuidebookSceneWeatherEffect> resolveRenderableWeatherEffectsForCurrentView(
+        GuidebookSceneLayerSelection layerSelection) {
+        return resolveRenderableWeatherEffectsForLayerSelection(
+            layerSelection,
+            (int) Math.floor(resolveWeatherAnimationTick()));
+    }
+
+    private float resolveWeatherAnimationTick() {
+        return ponderSceneData != null ? ponderCurrentTick : sceneAnimationTick;
+    }
+
+    private List<GuidebookSceneWeatherEffect> resolveRenderableWeatherEffectsForLayerSelection(
+        @Nullable GuidebookSceneLayerSelection layerSelection, @Nullable Integer activeTick) {
+        List<GuidebookSceneWeatherEffect> effects = resolveRenderableWeatherEffects();
+        if (effects.isEmpty()) {
+            return effects;
+        }
+        int[] bounds = copyLevelBounds();
+        List<GuidebookSceneWeatherEffect> resolved = GuidebookSceneWeatherSupport
+            .resolveRenderableEffects(effects, bounds, activeTick, layerSelection, level);
+        if (resolved.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (resolved == effects || resolved == staticWeatherEffects
+            || resolved == ponderWeatherEffects
+            || resolved == renderWeatherEffectsScratch) {
+            return resolved;
+        }
+        resolvedWeatherEffectsScratch.clear();
+        resolvedWeatherEffectsScratch.ensureCapacity(resolved.size());
+        resolvedWeatherEffectsScratch.addAll(resolved);
+        return resolvedWeatherEffectsScratch;
     }
 
     public List<InWorldAnnotation> collectInWorldAnnotationsForExport(boolean includeSceneAnnotations,
@@ -2000,6 +2085,10 @@ public class LytGuidebookScene extends LytBlock {
             inWorld.add(hoverBoxAnnotation);
         }
         Integer visibleLayerY = resolveVisibleLayerY();
+        GuidebookSceneLayerSelection weatherLayerSelection = GuidebookSceneLayerSelection
+            .fromVisibleLayer(visibleLayerY);
+        List<GuidebookSceneWeatherEffect> weatherEffects = resolveRenderableWeatherEffectsForCurrentView(
+            weatherLayerSelection);
 
         boolean ponderCameraApplied = false;
         float savedZoom = 0, savedRotX = 0, savedRotY = 0, savedRotZ = 0, savedOffX = 0, savedOffY = 0;
@@ -2034,8 +2123,10 @@ public class LytGuidebookScene extends LytBlock {
                 0f,
                 inWorld,
                 context.lightDarkMode(),
-                visibleLayerY,
-                resolveRenderableSceneParticles());
+                weatherLayerSelection,
+                resolveRenderableSceneParticles(),
+                weatherEffects,
+                resolveWeatherAnimationTick());
 
         context.restoreExternalRenderState();
         drawBlockStatsOverlay(context, sceneRect, outerRect);
@@ -4075,6 +4166,7 @@ public class LytGuidebookScene extends LytBlock {
         this.ponderOutgoingAnnotations.clear();
         this.ponderOutgoingFadeTick = 0;
         clearPonderRuntimeParticles();
+        clearPonderRuntimeWeather();
         this.triggeredPonderSoundKeyframes.clear();
         updatePonderState();
     }
@@ -4097,6 +4189,7 @@ public class LytGuidebookScene extends LytBlock {
         this.ponderOutgoingAnnotations.clear();
         this.ponderOutgoingFadeTick = 0;
         clearPonderRuntimeParticles();
+        clearPonderRuntimeWeather();
         this.triggeredPonderSoundKeyframes.clear();
     }
 
@@ -4113,6 +4206,7 @@ public class LytGuidebookScene extends LytBlock {
         ponderOutgoingAnnotations.clear();
         ponderOutgoingFadeTick = 0;
         clearPonderRuntimeParticles();
+        clearPonderRuntimeWeather();
         ponderLastKeyframeIdx = -2;
         triggeredPonderSoundKeyframes.clear();
         rebuildPonderRuntimeParticlesAtCurrentTick();
@@ -4176,6 +4270,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void ponderTick() {
+        sceneAnimationTick++;
         if (ponderSceneData == null || ponderPaused || ponderFinished) return;
         ponderCurrentTick++;
         if (ponderCurrentTick >= ponderSceneData.getTotalTime()) {
@@ -4230,6 +4325,7 @@ public class LytGuidebookScene extends LytBlock {
         ponderOutgoingAnnotations.clear();
         ponderOutgoingFadeTick = 0;
         clearPonderRuntimeParticles();
+        clearPonderRuntimeWeather();
         triggeredPonderSoundKeyframes.clear();
         updatePonderState();
     }
@@ -4688,6 +4784,7 @@ public class LytGuidebookScene extends LytBlock {
 
     private void spawnPonderKeyframeParticles(PonderKeyframe keyframe, int elapsedTicks) {
         ponderSceneParticles.ensureCapacity(ponderSceneParticles.size() + estimatePonderParticleBurstSize(keyframe));
+        int[] weatherBounds = null;
         for (PonderKeyframeParticle particle : keyframe.getParticles()) {
             if (particle == null) {
                 continue;
@@ -4710,6 +4807,29 @@ public class LytGuidebookScene extends LytBlock {
                     count,
                     this::acquirePonderParticle);
                 advancePonderParticles(startIndex, elapsedTicks);
+                continue;
+            }
+            if (particle.isWeatherPreset()) {
+                if (weatherBounds == null) {
+                    weatherBounds = copyLevelBounds();
+                }
+                List<GuidebookSceneWeatherArea> weatherAreas = resolveAvailableWeatherAreas(
+                    particle,
+                    weatherBounds,
+                    keyframe.getTime());
+                if (weatherAreas.isEmpty()) {
+                    continue;
+                }
+                ponderWeatherEffects.add(
+                    new GuidebookSceneWeatherEffect(
+                        GuidebookSceneWeatherType.fromSerializedName(particle.getWeatherType()),
+                        weatherAreas,
+                        keyframe.getTime(),
+                        particle.getWeatherDurationTicks(80),
+                        particle.getWeatherDensityPerTick(
+                            GuidebookSceneWeatherSupport.defaultDensity(
+                                GuidebookSceneWeatherType.fromSerializedName(particle.getWeatherType()))),
+                        true));
                 continue;
             }
             int count = particle.getCount(1);
@@ -5125,8 +5245,14 @@ public class LytGuidebookScene extends LytBlock {
         ponderSceneParticles.clear();
     }
 
+    private void clearPonderRuntimeWeather() {
+        ponderWeatherEffects.clear();
+        ponderWeatherColumnReservations.clear();
+    }
+
     private void rebuildPonderRuntimeParticlesAtCurrentTick() {
         clearPonderRuntimeParticles();
+        clearPonderRuntimeWeather();
         if (ponderSceneData == null) {
             return;
         }
@@ -5318,6 +5444,13 @@ public class LytGuidebookScene extends LytBlock {
                 total += 1 + count * 2;
                 continue;
             }
+            if (particle.isWeatherPreset()) {
+                int density = particle.getWeatherDensityPerTick(
+                    GuidebookSceneWeatherSupport
+                        .defaultDensity(GuidebookSceneWeatherType.fromSerializedName(particle.getWeatherType())));
+                total += Math.max(1, Math.min(128, density * 4));
+                continue;
+            }
             total += particle.getCount(1);
         }
         return total;
@@ -5327,7 +5460,80 @@ public class LytGuidebookScene extends LytBlock {
         if (particle.isExplosionPreset()) {
             return particle.getLifetimeTicks(8) + 20;
         }
+        if (particle.isWeatherPreset()) {
+            return particle.getWeatherDurationTicks(80);
+        }
         return particle.getLifetimeTicks(12);
+    }
+
+    private int[] copyLevelBounds() {
+        int[] bounds = level.getBounds();
+        return new int[] { bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5] };
+    }
+
+    private List<GuidebookSceneWeatherArea> resolveAvailableWeatherAreas(PonderKeyframeParticle particle,
+        int[] weatherBounds, int startTick) {
+        List<GuidebookSceneWeatherArea> areas = GuidebookSceneWeatherSupport
+            .resolveWeatherAreas(weatherBounds, particle.getWeatherXValues(), particle.getWeatherZValues());
+        if (areas.isEmpty()) {
+            return Collections.emptyList();
+        }
+        int endTickExclusive = startTick + estimatePonderReplayLifetime(particle);
+        List<GuidebookSceneWeatherArea> acceptedAreas = new ArrayList<>(areas.size());
+        for (GuidebookSceneWeatherArea area : areas) {
+            if (area == null) {
+                continue;
+            }
+            List<GuidebookSceneWeatherArea> trimmedAreas = reserveWeatherAreaColumns(area, startTick, endTickExclusive);
+            acceptedAreas.addAll(trimmedAreas);
+        }
+        return acceptedAreas;
+    }
+
+    private List<GuidebookSceneWeatherArea> reserveWeatherAreaColumns(GuidebookSceneWeatherArea area, int startTick,
+        int endTickExclusive) {
+        if (area.getMinX() > area.getMaxX() || area.getMinZ() > area.getMaxZ()) {
+            return Collections.emptyList();
+        }
+        List<GuidebookSceneWeatherArea> acceptedAreas = new ArrayList<>();
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int rowZ = Integer.MIN_VALUE;
+        for (int z = area.getMinZ(); z <= area.getMaxZ(); z++) {
+            for (int x = area.getMinX(); x <= area.getMaxX(); x++) {
+                if (!tryReserveWeatherColumn(x, z, startTick, endTickExclusive)) {
+                    if (rowZ != Integer.MIN_VALUE && minX <= maxX) {
+                        acceptedAreas.add(new GuidebookSceneWeatherArea(minX, rowZ, maxX, rowZ));
+                    }
+                    minX = Integer.MAX_VALUE;
+                    maxX = Integer.MIN_VALUE;
+                    rowZ = Integer.MIN_VALUE;
+                    continue;
+                }
+                if (rowZ == Integer.MIN_VALUE) {
+                    rowZ = z;
+                    minX = x;
+                }
+                maxX = x;
+            }
+            if (rowZ != Integer.MIN_VALUE && minX <= maxX) {
+                acceptedAreas.add(new GuidebookSceneWeatherArea(minX, rowZ, maxX, rowZ));
+            }
+            minX = Integer.MAX_VALUE;
+            maxX = Integer.MIN_VALUE;
+            rowZ = Integer.MIN_VALUE;
+        }
+        return acceptedAreas;
+    }
+
+    private boolean tryReserveWeatherColumn(int x, int z, int startTick, int endTickExclusive) {
+        long key = GuidebookLevel.packPos(x, 0, z);
+        PonderWeatherColumnReservation existing = ponderWeatherColumnReservations.get(key);
+        if (existing != null && existing.overlaps(startTick, endTickExclusive)) {
+            return false;
+        }
+        ponderWeatherColumnReservations.put(key, new PonderWeatherColumnReservation(startTick, endTickExclusive));
+        return true;
     }
 
     private static int vanillaDiggingParticleMaxAge(Random rng) {
