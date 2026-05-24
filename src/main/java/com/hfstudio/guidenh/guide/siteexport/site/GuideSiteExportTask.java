@@ -197,7 +197,8 @@ public class GuideSiteExportTask {
                             itemIconExporter,
                             context.assetExportersByGuideId(),
                             context.mediaWikiContextsByGuideId()
-                                .get(guide.getId())));
+                                .get(guide.getId())),
+                        itemIconExporter);
 
                     for (GuideSitePageVariant variant : languageVariants) {
                         try {
@@ -687,13 +688,14 @@ public class GuideSiteExportTask {
 
     private GuideSiteHtmlCompiler createHtmlCompiler(GuideSiteAssetRegistry assets,
         GuideSitePageAssetExporter assetExporter, GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
-        GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer) {
+        GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer, GuideSiteItemIconResolver itemIconResolver) {
         return new GuideSiteHtmlCompiler(
             recipeTagRenderer,
             assetExporter::resolveImageSrc,
             mdxTagRenderer,
             new GuideSiteLatexExporter(assets),
-            assetExporter);
+            assetExporter,
+            itemIconResolver);
     }
 
     private byte[] loadGuideAsset(MutableGuide guide, IResourceManager resourceManager, String language,

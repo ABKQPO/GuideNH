@@ -127,9 +127,21 @@ public class GuideSiteHtmlCompiler {
 
     public GuideSiteHtmlCompiler(RecipeTagRenderer recipeTagRenderer, ImageResolver imageResolver,
         MdxTagRenderer mdxTagRenderer, @Nullable GuideSiteLatexExporter latexExporter) {
+        this(recipeTagRenderer, imageResolver, mdxTagRenderer, latexExporter, null, GuideSiteItemIconResolver.NONE);
+    }
+
+    public GuideSiteHtmlCompiler(RecipeTagRenderer recipeTagRenderer, ImageResolver imageResolver,
+        MdxTagRenderer mdxTagRenderer, @Nullable GuideSiteLatexExporter latexExporter,
+        GuideSiteItemIconResolver itemIconResolver) {
         this(
             recipeTagRenderer,
-            new GuideSiteSceneTagRenderer(recipeTagRenderer, imageResolver, mdxTagRenderer, latexExporter),
+            new GuideSiteSceneTagRenderer(
+                recipeTagRenderer,
+                imageResolver,
+                mdxTagRenderer,
+                latexExporter,
+                null,
+                itemIconResolver),
             imageResolver,
             mdxTagRenderer,
             latexExporter,
@@ -141,12 +153,25 @@ public class GuideSiteHtmlCompiler {
         @Nullable GuideSitePageAssetExporter assetExporter) {
         this(
             recipeTagRenderer,
+            imageResolver,
+            mdxTagRenderer,
+            latexExporter,
+            assetExporter,
+            GuideSiteItemIconResolver.NONE);
+    }
+
+    public GuideSiteHtmlCompiler(RecipeTagRenderer recipeTagRenderer, ImageResolver imageResolver,
+        MdxTagRenderer mdxTagRenderer, @Nullable GuideSiteLatexExporter latexExporter,
+        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+        this(
+            recipeTagRenderer,
             new GuideSiteSceneTagRenderer(
                 recipeTagRenderer,
                 imageResolver,
                 mdxTagRenderer,
                 latexExporter,
-                assetExporter),
+                assetExporter,
+                itemIconResolver),
             imageResolver,
             mdxTagRenderer,
             latexExporter,

@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -17,6 +19,7 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
@@ -40,6 +43,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
     private final GuideSiteHtmlCompiler fragmentCompiler;
     @Nullable
     private final GuideSitePageAssetExporter assetExporter;
+    private final GuideSiteItemIconResolver itemIconResolver;
 
     public GuideSiteSceneTagRenderer() {
         this(
@@ -60,12 +64,25 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
     public GuideSiteSceneTagRenderer(GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
         GuideSiteHtmlCompiler.ImageResolver imageResolver, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer,
         GuideSiteLatexExporter latexExporter) {
-        this(recipeTagRenderer, imageResolver, mdxTagRenderer, latexExporter, null);
+        this(recipeTagRenderer, imageResolver, mdxTagRenderer, latexExporter, null, GuideSiteItemIconResolver.NONE);
     }
 
     public GuideSiteSceneTagRenderer(GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
         GuideSiteHtmlCompiler.ImageResolver imageResolver, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer,
         GuideSiteLatexExporter latexExporter, @Nullable GuideSitePageAssetExporter assetExporter) {
+        this(
+            recipeTagRenderer,
+            imageResolver,
+            mdxTagRenderer,
+            latexExporter,
+            assetExporter,
+            GuideSiteItemIconResolver.NONE);
+    }
+
+    public GuideSiteSceneTagRenderer(GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
+        GuideSiteHtmlCompiler.ImageResolver imageResolver, GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer,
+        GuideSiteLatexExporter latexExporter, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver) {
         this.fragmentCompiler = new GuideSiteHtmlCompiler(
             recipeTagRenderer,
             (element, defaultNamespace, currentPageId, templates, exportedScene) -> "",
@@ -74,6 +91,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             latexExporter,
             assetExporter);
         this.assetExporter = assetExporter;
+        this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
     }
 
     @Override
@@ -503,32 +521,62 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             }
 
             if ("TextAnnotation".equals(name)) {
-                Map<String, Object> data = new LinkedHashMap<>();
-                data.put("type", "text");
-                data.put("position", parseTextAnnotationPosition(flowElement));
-                data.put("color", normalizeColor(readOptional(flowElement, "color"), "#ffffffff"));
-                data.put("text", compileTextAnnotationHtml(flowElement, defaultNamespace, currentPageId, templates));
-                data.put("plainText", resolveTextAnnotationPlainText(flowElement));
-                data.put("maxWidth", Math.max(0, readDimension(flowElement, "maxWidth", 0)));
-                data.put(
-                    "backgroundAlpha",
-                    clampInt(
-                        readDimension(flowElement, "backgroundAlpha", TextAnnotation.DEFAULT_BACKGROUND_ALPHA),
-                        0,
-                        255));
-                data.put("independent", readBooleanValue(flowElement, "independent", false));
-                data.put("screenYOffset", readFloat(flowElement, "yOffset", 0f));
-                data.put("connectorSide", normalizeConnectorSide(readOptional(flowElement, "connectorSide")));
-                data.put("connectorOffset", readDimension(flowElement, "connectorOffset", 0));
-                data.put(
-                    "connectorLength",
-                    Math.max(0, readDimension(flowElement, "connectorLength", TextAnnotation.CONNECTOR_HEIGHT)));
-                appendStructureLibCondition(data, parseStructureLibCondition(flowElement));
+                Map<String, Object> data = buildTextAnnotationData(
+                    flowElement,
+                    defaultNamespace,
+                    currentPageId,
+                    templates);
+                overlay.add(data);
+                continue;
+            }
+
+            if ("InputAnnotation".equals(name)) {
+                Map<String, Object> data = buildInputAnnotationData(flowElement);
                 overlay.add(data);
             }
         }
 
         return new AnnotationPayload(GSON.toJson(inWorld), GSON.toJson(overlay));
+    }
+
+    private Map<String, Object> buildTextAnnotationData(MdxJsxElementFields flowElement, String defaultNamespace,
+        ResourceLocation currentPageId, GuideSiteTemplateRegistry templates) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("type", "text");
+        data.put("position", parseTextAnnotationPosition(flowElement));
+        data.put("color", normalizeColor(readOptional(flowElement, "color"), "#ffffffff"));
+        data.put("text", compileTextAnnotationHtml(flowElement, defaultNamespace, currentPageId, templates));
+        data.put("plainText", resolveTextAnnotationPlainText(flowElement));
+        data.put("maxWidth", Math.max(0, readDimension(flowElement, "maxWidth", 0)));
+        data.put(
+            "backgroundAlpha",
+            clampInt(readDimension(flowElement, "backgroundAlpha", TextAnnotation.DEFAULT_BACKGROUND_ALPHA), 0, 255));
+        data.put("independent", readBooleanValue(flowElement, "independent", false));
+        data.put("screenYOffset", readFloat(flowElement, "yOffset", 0f));
+        data.put("connectorSide", normalizeConnectorSide(readOptional(flowElement, "connectorSide")));
+        data.put("connectorOffset", readDimension(flowElement, "connectorOffset", 0));
+        data.put(
+            "connectorLength",
+            Math.max(0, readDimension(flowElement, "connectorLength", TextAnnotation.CONNECTOR_HEIGHT)));
+        appendStructureLibCondition(data, parseStructureLibCondition(flowElement));
+        return data;
+    }
+
+    private Map<String, Object> buildInputAnnotationData(MdxJsxElementFields flowElement) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("type", "input");
+        data.put("position", parseTextAnnotationPosition(flowElement));
+        data.put("inputType", resolveInputType(readOptional(flowElement, "inputType")));
+        String modifier = normalizeOptionalText(readOptional(flowElement, "modifier"));
+        if (modifier != null) {
+            data.put("modifier", modifier);
+        }
+        GuideSiteExportedItem item = resolveExportedInputItem(readOptional(flowElement, "item"));
+        if (item != null && !item.isEmpty()) {
+            data.put("item", serializeExportedItem(item));
+        }
+        appendStructureLibCondition(data, parseStructureLibCondition(flowElement));
+        return data;
     }
 
     private float[] parseTextAnnotationPosition(MdxJsxElementFields flowElement) {
@@ -597,6 +645,78 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         } catch (IllegalArgumentException ignored) {
             return TextAnnotation.ConnectorSide.BOTTOM.serializedName();
         }
+    }
+
+    private String resolveInputType(@Nullable String rawInputType) {
+        if (rawInputType == null) {
+            return PonderInputAnnotation.InputType.LMB.name()
+                .toLowerCase();
+        }
+        return switch (rawInputType.trim()
+            .toLowerCase()) {
+            case "rmb", "rightclick", "right_click", "right-click" -> PonderInputAnnotation.InputType.RMB.name()
+                .toLowerCase();
+            case "scroll", "scrollwheel", "scroll_wheel", "scroll-wheel" -> PonderInputAnnotation.InputType.SCROLL
+                .name()
+                .toLowerCase();
+            default -> PonderInputAnnotation.InputType.LMB.name()
+                .toLowerCase();
+        };
+    }
+
+    @Nullable
+    private GuideSiteExportedItem resolveExportedInputItem(@Nullable String rawItemId) {
+        String itemId = normalizeOptionalText(rawItemId);
+        if (itemId == null) {
+            return null;
+        }
+        ItemStack stack = resolveItemStack(itemId);
+        if (stack == null || stack.getItem() == null) {
+            return GuideSiteItemSupport.unresolved(itemId);
+        }
+        return GuideSiteItemSupport.export(null, stack, itemIconResolver, itemId);
+    }
+
+    @Nullable
+    private ItemStack resolveItemStack(@Nullable String itemId) {
+        String normalized = normalizeOptionalText(itemId);
+        if (normalized == null) {
+            return null;
+        }
+        String registryId = normalized;
+        int meta = 0;
+        int firstColon = normalized.indexOf(':');
+        int lastColon = normalized.lastIndexOf(':');
+        if (firstColon >= 0 && firstColon != lastColon) {
+            try {
+                meta = Integer.parseInt(normalized.substring(lastColon + 1));
+                registryId = normalized.substring(0, lastColon);
+            } catch (NumberFormatException ignored) {
+                registryId = normalized;
+            }
+        }
+        Item item = (Item) Item.itemRegistry.getObject(registryId);
+        if (item == null) {
+            return null;
+        }
+        return new ItemStack(item, 1, meta);
+    }
+
+    @Nullable
+    private String normalizeOptionalText(@Nullable String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private Map<String, Object> serializeExportedItem(GuideSiteExportedItem item) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("itemId", item.itemId());
+        data.put("displayName", item.displayName());
+        data.put("iconSrc", item.iconSrc());
+        return data;
     }
 
     private Map<String, Object> buildInWorldAnnotation(String type, float[] min, float[] max, float[] from, float[] to,
