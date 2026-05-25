@@ -241,7 +241,7 @@ public class PageCompiler {
         String parseFailureMessage = null;
         UnistPoint parseFailureFrom = null;
         UnistPoint parseFailureTo = null;
-        long markdownParseNs;
+        long markdownParseNs = 0L;
         long latexRestoreNs = 0L;
         long htmlNormalizeNs = 0L;
         try {
@@ -263,7 +263,8 @@ public class PageCompiler {
                 parseFailureTo = e.getTo();
             }
             String errorMessage = formatParseFailureMessage(id, language, sourcePack, parseFailureFrom);
-            logError("[GuideNH] [PageCompiler] {}", t, errorMessage);
+            FMLLog.getLogger()
+                .error("[GuideNH] [PageCompiler] {}", errorMessage, t);
             parseFailureMessage = errorMessage + ": \n" + t;
             astRoot = buildErrorPage(parseFailureMessage);
         }

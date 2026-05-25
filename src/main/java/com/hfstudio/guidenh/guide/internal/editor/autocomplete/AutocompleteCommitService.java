@@ -143,8 +143,7 @@ public class AutocompleteCommitService {
         }
     }
 
-    private static Replacement createFrontmatterReplacement(String source, FrontmatterContext context,
-        String rawText) {
+    private static Replacement createFrontmatterReplacement(String source, FrontmatterContext context, String rawText) {
         String replacement = rawText != null ? rawText : "";
         if (!context.isValue()) {
             replacement += ": ";

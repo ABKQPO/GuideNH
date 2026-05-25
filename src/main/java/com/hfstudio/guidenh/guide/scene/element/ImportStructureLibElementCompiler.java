@@ -76,7 +76,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
         StructureLibPreviewSelection selectionOverride = binding.getPendingSelection() != null
             ? binding.getPendingSelection()
-            : scene.getPendingStructureLibPreviewSelection();
+            : scene.getPendingStructureLibPreviewSelection(structureName);
         StructureLibPreviewSelection defaultSelection = sceneOptions
             .createSelection(requestedChannel == Integer.MIN_VALUE ? null : Integer.valueOf(requestedChannel));
         StructureLibPreviewSelection selection = selectionOverride != null
@@ -85,13 +85,16 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         StructureLibImportRequest request = new StructureLibImportRequest(
             controller,
             MdxAttrs.getString(compiler, errorSink, el, "piece", null),
-            StructureLibSceneOptions.resolveFacing(MdxAttrs.getString(compiler, errorSink, el, "facing", null), sceneOptions),
-            StructureLibSceneOptions.resolveRotation(MdxAttrs.getString(compiler, errorSink, el, "rotation", null), sceneOptions),
-            StructureLibSceneOptions.resolveFlip(MdxAttrs.getString(compiler, errorSink, el, "flip", null), sceneOptions),
+            StructureLibSceneOptions
+                .resolveFacing(MdxAttrs.getString(compiler, errorSink, el, "facing", null), sceneOptions),
+            StructureLibSceneOptions
+                .resolveRotation(MdxAttrs.getString(compiler, errorSink, el, "rotation", null), sceneOptions),
+            StructureLibSceneOptions
+                .resolveFlip(MdxAttrs.getString(compiler, errorSink, el, "flip", null), sceneOptions),
             Integer.valueOf(selection.getMasterTier()),
             applyControllerDefaults(controller, selection, sceneOptions),
             sceneOptions);
-        scene.setStructureLibInitialSelection(request.getPreviewSelection());
+        scene.setPendingStructureLibPreviewSelection(structureName, request.getPreviewSelection());
 
         StructureLibImportResult result = importService.importScene(request);
         attachMetadata(scene, structureName, request, result);

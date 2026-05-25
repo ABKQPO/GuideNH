@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
@@ -42,6 +43,7 @@ import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheEntry;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheKey;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureFingerprintResolver;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
+import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
@@ -53,6 +55,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
 public class SceneEditorSceneNodePreviewApplier {
 
@@ -223,10 +226,14 @@ public class SceneEditorSceneNodePreviewApplier {
         StructureLibPreviewSelection selection = structureLibSelectionOverride != null
             ? ImportStructureLibElementCompiler
                 .mergePersistentOptions(structureLibSelectionOverride, defaultSelection, options)
-            : binding.getPendingSelection() != null ? ImportStructureLibElementCompiler
-                .mergePersistentOptions(binding.getPendingSelection(), defaultSelection, options)
-                : scene.getPendingStructureLibPreviewSelection(structureName) != null ? ImportStructureLibElementCompiler
-                    .mergePersistentOptions(scene.getPendingStructureLibPreviewSelection(structureName), defaultSelection, options)
+            : binding.getPendingSelection() != null
+                ? ImportStructureLibElementCompiler
+                    .mergePersistentOptions(binding.getPendingSelection(), defaultSelection, options)
+                : scene.getPendingStructureLibPreviewSelection(structureName) != null
+                    ? ImportStructureLibElementCompiler.mergePersistentOptions(
+                        scene.getPendingStructureLibPreviewSelection(structureName),
+                        defaultSelection,
+                        options)
                     : defaultSelection;
 
         StructureLibImportRequest request = new StructureLibImportRequest(
@@ -238,7 +245,7 @@ public class SceneEditorSceneNodePreviewApplier {
             Integer.valueOf(selection.getMasterTier()),
             ImportStructureLibElementCompiler.applyControllerDefaults(controller, selection, options),
             options);
-        scene.setStructureLibInitialSelection(request.getPreviewSelection());
+        scene.setPendingStructureLibPreviewSelection(structureName, request.getPreviewSelection());
         StructureLibImportResult result = structureLibImportService.importScene(request);
         attachStructureLibMetadata(scene, structureName, request, result);
         if (!result.isSuccess()) {
@@ -678,11 +685,6 @@ public class SceneEditorSceneNodePreviewApplier {
             }
         }
         return element.getTextMarkdown();
-    }
-
-    private boolean parseBooleanAttribute(@Nullable String value) {
-        String normalized = normalizeAttribute(value);
-        return normalized != null && Boolean.parseBoolean(normalized);
     }
 
     private TextAnnotation.ConnectorSide parseConnectorSideAttribute(SceneEditorElementModel element) {

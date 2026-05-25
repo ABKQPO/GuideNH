@@ -18,8 +18,8 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstImage;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLink;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstResource;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
@@ -84,8 +84,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         }
 
         // 4. Tag start
-        TextSyntaxContext tagStart = resolveTagStart(text, cursorIndex,
-            element != null ? element.name() : null);
+        TextSyntaxContext tagStart = resolveTagStart(text, cursorIndex, element != null ? element.name() : null);
         if (tagStart != null) {
             return tagStart;
         }
@@ -392,7 +391,12 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             if (cursorIndex < attrStart || cursorIndex > attrEnd) continue;
 
             TextSyntaxContext valueContext = resolveAttributeValue(
-                text, tagName, attr.name, attrStart, attrEnd, cursorIndex);
+                text,
+                tagName,
+                attr.name,
+                attrStart,
+                attrEnd,
+                cursorIndex);
             if (valueContext != null) return valueContext;
             break;
         }
@@ -462,8 +466,10 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             bounds.valueStart,
             bounds.valueEnd,
             new MdxValueContext(
-                tagName, attrName,
-                bounds.valueStart, bounds.valueEnd,
+                tagName,
+                attrName,
+                bounds.valueStart,
+                bounds.valueEnd,
                 partialText,
                 bounds.missingTerminator));
     }
@@ -499,12 +505,27 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         int braceDepth = 0;
         for (int i = tagStart; i < text.length(); i++) {
             char ch = text.charAt(i);
-            if ((inSingle || inDouble) && ch == '\\' && i + 1 < text.length()) { i++; continue; }
-            if (ch == '\'' && !inDouble) { inSingle = !inSingle; continue; }
-            if (ch == '"' && !inSingle) { inDouble = !inDouble; continue; }
+            if ((inSingle || inDouble) && ch == '\\' && i + 1 < text.length()) {
+                i++;
+                continue;
+            }
+            if (ch == '\'' && !inDouble) {
+                inSingle = !inSingle;
+                continue;
+            }
+            if (ch == '"' && !inSingle) {
+                inDouble = !inDouble;
+                continue;
+            }
             if (inSingle || inDouble) continue;
-            if (ch == '{') { braceDepth++; continue; }
-            if (ch == '}') { braceDepth = Math.max(0, braceDepth - 1); continue; }
+            if (ch == '{') {
+                braceDepth++;
+                continue;
+            }
+            if (ch == '}') {
+                braceDepth = Math.max(0, braceDepth - 1);
+                continue;
+            }
             if (ch == '>' && braceDepth == 0) return i + 1;
         }
         return text.length();

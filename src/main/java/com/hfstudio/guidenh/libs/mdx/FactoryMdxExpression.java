@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.libs.mdx;
 
 import com.hfstudio.guidenh.libs.micromark.Assert;
 import com.hfstudio.guidenh.libs.micromark.CharUtil;
-
 import com.hfstudio.guidenh.libs.micromark.Point;
 import com.hfstudio.guidenh.libs.micromark.State;
 import com.hfstudio.guidenh.libs.micromark.TokenizeContext;

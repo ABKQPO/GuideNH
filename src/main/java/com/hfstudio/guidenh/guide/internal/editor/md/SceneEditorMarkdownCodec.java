@@ -28,7 +28,6 @@ import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstHTML;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdx.MdxCommentMasker;

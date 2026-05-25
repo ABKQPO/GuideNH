@@ -17,7 +17,6 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstPosition;
 import com.hfstudio.guidenh.libs.micromark.ListUtils;
-
 import com.hfstudio.guidenh.libs.micromark.Point;
 import com.hfstudio.guidenh.libs.micromark.Token;
 

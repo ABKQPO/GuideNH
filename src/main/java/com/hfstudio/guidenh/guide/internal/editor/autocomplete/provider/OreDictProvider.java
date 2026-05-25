@@ -15,9 +15,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteConte
 public class OreDictProvider implements AutocompleteProvider {
 
     private static final Set<AutocompleteKey> KEYS = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList(
-            AutocompleteKey.forValue("*", "ore"),
-            AutocompleteKey.forValue("*", "ore_ids"))));
+        new HashSet<>(Arrays.asList(AutocompleteKey.forValue("*", "ore"), AutocompleteKey.forValue("*", "ore_ids"))));
 
     @Override
     public Set<AutocompleteKey> getSupportedKeys() {

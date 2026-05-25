@@ -714,10 +714,9 @@ public class SceneEditorMultilineTextArea {
         String manualMarker = resolveManualListMarker(trimmed);
         if (manualMarker != null) {
             int markerLen = manualMarker.length();
-            if (trimmed.length() <= markerLen || (trimmed.length() > markerLen
-                && trimmed.substring(markerLen)
-                    .trim()
-                    .isEmpty())) {
+            if (trimmed.length() <= markerLen || (trimmed.length() > markerLen && trimmed.substring(markerLen)
+                .trim()
+                .isEmpty())) {
                 // Empty list item: remove marker
                 selectionModel.setSelection(lineStart, cursor);
                 selectionModel.insertText(indent);
@@ -758,11 +757,13 @@ public class SceneEditorMultilineTextArea {
     }
 
     @Nullable
-    private static MdAstListItem findEnclosingListItem(
-        UnistNode node, int cursorIndex) {
+    private static MdAstListItem findEnclosingListItem(UnistNode node, int cursorIndex) {
         UnistPosition pos = node.position();
         if (pos != null && pos.start() != null && pos.end() != null) {
-            if (cursorIndex < pos.start().offset() || cursorIndex > pos.end().offset()) {
+            if (cursorIndex < pos.start()
+                .offset() || cursorIndex
+                    > pos.end()
+                        .offset()) {
                 return null;
             }
         }
@@ -770,8 +771,7 @@ public class SceneEditorMultilineTextArea {
             return (MdAstListItem) node;
         }
         if (node instanceof MdAstParent) {
-            for (UnistNode child : ((MdAstParent<?>) node)
-                .children()) {
+            for (UnistNode child : ((MdAstParent<?>) node).children()) {
                 MdAstListItem found = findEnclosingListItem(child, cursorIndex);
                 if (found != null) return found;
             }
@@ -779,12 +779,13 @@ public class SceneEditorMultilineTextArea {
         return null;
     }
 
-    private static boolean isListItemContentEmpty(MdAstListItem item,
-        String text) {
+    private static boolean isListItemContentEmpty(MdAstListItem item, String text) {
         UnistPosition pos = item.position();
         if (pos == null || pos.start() == null || pos.end() == null) return false;
-        int start = pos.start().offset();
-        int end = pos.end().offset();
+        int start = pos.start()
+            .offset();
+        int end = pos.end()
+            .offset();
         if (start >= end || end > text.length()) return false;
         // Find first newline to get the first line (contains the marker)
         int firstLineEnd = text.indexOf('\n', start);
@@ -795,19 +796,23 @@ public class SceneEditorMultilineTextArea {
         if (trimmed.isEmpty()) return true;
         // Check if after the marker the content is empty
         int contentStart = findListContentStart(trimmed);
-        return contentStart >= trimmed.length() || trimmed.substring(contentStart).trim().isEmpty();
+        return contentStart >= trimmed.length() || trimmed.substring(contentStart)
+            .trim()
+            .isEmpty();
     }
 
     private static int findListContentStart(String trimmed) {
         int i = 0;
         // Unordered: -, *, +
-        if (i < trimmed.length() && (trimmed.charAt(i) == '-' || trimmed.charAt(i) == '*' || trimmed.charAt(i) == '+')) {
+        if (i < trimmed.length()
+            && (trimmed.charAt(i) == '-' || trimmed.charAt(i) == '*' || trimmed.charAt(i) == '+')) {
             i++;
             if (i < trimmed.length() && trimmed.charAt(i) == ' ') return i + 1;
         }
         // Ordered: number. or number)
         while (i < trimmed.length() && Character.isDigit(trimmed.charAt(i))) i++;
-        if (i > 0 && i + 1 < trimmed.length() && (trimmed.charAt(i) == '.' || trimmed.charAt(i) == ')')
+        if (i > 0 && i + 1 < trimmed.length()
+            && (trimmed.charAt(i) == '.' || trimmed.charAt(i) == ')')
             && trimmed.charAt(i + 1) == ' ') {
             return i + 2;
         }
@@ -815,17 +820,18 @@ public class SceneEditorMultilineTextArea {
     }
 
     @Nullable
-    private static String resolveNextListMarker(String text, MdAstListItem item,
-        MdAstRoot root) {
+    private static String resolveNextListMarker(String text, MdAstListItem item, MdAstRoot root) {
         MdAstList list = findParentList(root, item);
         if (list == null) return null;
         // Find the marker from the current item's source text
         UnistPosition pos = item.position();
         if (pos == null || pos.start() == null) return null;
-        int itemStart = pos.start().offset();
+        int itemStart = pos.start()
+            .offset();
         int firstLineEnd = text.indexOf('\n', itemStart);
         if (firstLineEnd < 0) firstLineEnd = Math.min(itemStart + 80, text.length());
-        String firstLine = text.substring(itemStart, Math.min(firstLineEnd, text.length())).trim();
+        String firstLine = text.substring(itemStart, Math.min(firstLineEnd, text.length()))
+            .trim();
         String marker = extractListMarker(firstLine);
         if (marker == null) return null;
 
@@ -866,12 +872,9 @@ public class SceneEditorMultilineTextArea {
     }
 
     @Nullable
-    private static MdAstList findParentList(
-        UnistNode root,
-        MdAstListItem target) {
+    private static MdAstList findParentList(UnistNode root, MdAstListItem target) {
         if (!(root instanceof MdAstParent)) return null;
-        for (UnistNode child : ((MdAstParent<?>) root)
-            .children()) {
+        for (UnistNode child : ((MdAstParent<?>) root).children()) {
             if (child instanceof MdAstList) {
                 for (MdAstListContent item : ((MdAstList) child).children()) {
                     if (item == target) return (MdAstList) child;

@@ -107,7 +107,6 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 import lombok.Getter;
-import lombok.Setter;
 
 public class LytGuidebookScene extends LytBlock {
 
@@ -225,25 +224,12 @@ public class LytGuidebookScene extends LytBlock {
     private int cachedPonderBtnAbsX;
     private int cachedPonderBtnAbsY;
 
-    @Getter
     private boolean interactive = true;
-    @Setter
-    @Getter
     private boolean sceneButtonsVisible = true;
-    @Getter
-    @Setter
     private boolean bottomControlsVisible = true;
-    @Getter
-    @Setter
     private boolean reserveBottomControlArea = true;
-    @Getter
-    @Setter
     private boolean visibleLayerSliderEnabled;
-    @Getter
-    @Setter
     private boolean forceOriginAxesVisible;
-    @Setter
-    @Getter
     private boolean forceHideOriginAxes;
 
     public static int SCENE_BG_COLOR = 0xFF0A0A10;
@@ -270,24 +256,15 @@ public class LytGuidebookScene extends LytBlock {
     public static final int DEFAULT_WIDTH = 256;
     public static final int DEFAULT_HEIGHT = 192;
 
-    @Getter
     private GuidebookLevel level = new GuidebookLevel();
-    @Getter
     private CameraSettings camera = new CameraSettings();
     private int width = DEFAULT_WIDTH;
     private int height = DEFAULT_HEIGHT;
-    @Setter
-    @Getter
     private int sceneBackgroundColor = SCENE_BG_COLOR;
-    @Setter
-    @Getter
     private int sceneBorderColor = SCENE_BORDER_COLOR;
-    @Setter
-    @Getter
     private boolean showBackground = true;
     @Nullable
     private LytSize cameraViewportOverride;
-    @Getter
     private final List<SceneAnnotation> annotations = new ArrayList<>();
 
     // Reuse annotation partitions instead of allocating new lists every frame.
@@ -351,7 +328,6 @@ public class LytGuidebookScene extends LytBlock {
     private boolean cachedBlockStatsButtonEnabled = true;
     private GuideIconButton.Role[] cachedSceneButtonRoles = SCENE_BUTTONS_SHOWN;
 
-    @Getter
     private boolean annotationsVisible = true;
     @Nullable
     private Integer visibleLayerOverride;
@@ -383,8 +359,6 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private GuideSceneStructureCacheEntry initialStructureState;
     private boolean gridButtonEnabled = true;
-    @Setter
-    @Getter
     private boolean gridVisible = false;
     private boolean initialGridVisible = false;
     private boolean blockStatsEnabled = false;
@@ -449,7 +423,6 @@ public class LytGuidebookScene extends LytBlock {
     private AxisAlignedBB hoveredEntityBounds;
     @Nullable
     private MovingObjectPosition hoveredEntityHitResult;
-    @Setter
     private int @Nullable [] hoveredStructureLibHatch;
     private int currentMouseAbsX = -1;
     private int currentMouseAbsY = -1;
@@ -1416,6 +1389,115 @@ public class LytGuidebookScene extends LytBlock {
 
     public void clearSoundCues() {
         soundCues.clear();
+    }
+
+    public boolean isInteractive() {
+        return interactive;
+    }
+
+    public boolean isSceneButtonsVisible() {
+        return sceneButtonsVisible;
+    }
+
+    public void setSceneButtonsVisible(boolean sceneButtonsVisible) {
+        this.sceneButtonsVisible = sceneButtonsVisible;
+    }
+
+    public boolean isBottomControlsVisible() {
+        return bottomControlsVisible;
+    }
+
+    public void setBottomControlsVisible(boolean bottomControlsVisible) {
+        this.bottomControlsVisible = bottomControlsVisible;
+        clearCachedVisibleLayerSliderRects();
+        clearCachedTierSliderRects();
+        clearCachedChannelSliderRects();
+    }
+
+    public boolean isReserveBottomControlArea() {
+        return reserveBottomControlArea;
+    }
+
+    public void setReserveBottomControlArea(boolean reserveBottomControlArea) {
+        this.reserveBottomControlArea = reserveBottomControlArea;
+    }
+
+    public boolean isVisibleLayerSliderEnabled() {
+        return visibleLayerSliderEnabled;
+    }
+
+    public void setVisibleLayerSliderEnabled(boolean visibleLayerSliderEnabled) {
+        this.visibleLayerSliderEnabled = visibleLayerSliderEnabled;
+        clearCachedVisibleLayerSliderRects();
+    }
+
+    public boolean isForceOriginAxesVisible() {
+        return forceOriginAxesVisible;
+    }
+
+    public void setForceOriginAxesVisible(boolean forceOriginAxesVisible) {
+        this.forceOriginAxesVisible = forceOriginAxesVisible;
+    }
+
+    public boolean isForceHideOriginAxes() {
+        return forceHideOriginAxes;
+    }
+
+    public void setForceHideOriginAxes(boolean forceHideOriginAxes) {
+        this.forceHideOriginAxes = forceHideOriginAxes;
+    }
+
+    public GuidebookLevel getLevel() {
+        return level;
+    }
+
+    public CameraSettings getCamera() {
+        return camera;
+    }
+
+    public int getSceneBackgroundColor() {
+        return sceneBackgroundColor;
+    }
+
+    public void setSceneBackgroundColor(int sceneBackgroundColor) {
+        this.sceneBackgroundColor = sceneBackgroundColor;
+    }
+
+    public int getSceneBorderColor() {
+        return sceneBorderColor;
+    }
+
+    public void setSceneBorderColor(int sceneBorderColor) {
+        this.sceneBorderColor = sceneBorderColor;
+    }
+
+    public boolean isShowBackground() {
+        return showBackground;
+    }
+
+    public void setShowBackground(boolean showBackground) {
+        this.showBackground = showBackground;
+    }
+
+    public List<SceneAnnotation> getAnnotations() {
+        return annotations;
+    }
+
+    public boolean isAnnotationsVisible() {
+        return annotationsVisible;
+    }
+
+    public boolean isGridVisible() {
+        return gridVisible;
+    }
+
+    public void setGridVisible(boolean gridVisible) {
+        this.gridVisible = gridVisible;
+        cachedSceneButtonRolesDirty = true;
+    }
+
+    public void setHoveredStructureLibHatch(int @Nullable [] hoveredStructureLibHatch) {
+        this.hoveredStructureLibHatch = hoveredStructureLibHatch;
     }
 
     private void notifyStructureLibSelectionChanged() {

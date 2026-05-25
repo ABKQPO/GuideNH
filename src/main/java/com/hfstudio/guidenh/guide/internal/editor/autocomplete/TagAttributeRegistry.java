@@ -622,9 +622,7 @@ public class TagAttributeRegistry {
             new AttributeSpec("yOffset", AttrType.INT),
             new AttributeSpec("pos", AttrType.VECTOR3));
 
-        register(
-            "BlockAnnotationTemplate",
-            new AttributeSpec("id", AttrType.STRING));
+        register("BlockAnnotationTemplate", new AttributeSpec("id", AttrType.STRING));
 
         // Sound tags (share GuideSoundParsers.parseAttributes)
         register(
@@ -655,10 +653,7 @@ public class TagAttributeRegistry {
             new AttributeSpec("z", AttrType.FLOAT));
 
         // Quest integration tags
-        register(
-            "QuestLink",
-            new AttributeSpec("id", AttrType.STRING),
-            new AttributeSpec("text", AttrType.STRING));
+        register("QuestLink", new AttributeSpec("id", AttrType.STRING), new AttributeSpec("text", AttrType.STRING));
 
         register(
             "QuestCard",

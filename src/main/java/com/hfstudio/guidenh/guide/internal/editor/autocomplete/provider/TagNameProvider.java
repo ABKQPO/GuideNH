@@ -26,9 +26,9 @@ public class TagNameProvider implements AutocompleteProvider {
 
     private static final String[] GAME_SCENE_TAG_NAMES = { "ImportStructure", "ImportStructureLib", "RemoveBlocks",
         "BlockAnnotationTemplate", "BlockAnnotation", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation",
-        "TextAnnotation", "Block", "Entity", "PlaceBlock", "ReplaceBlock", "IsometricCamera", "ImportPonder",
-        "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController",
-        "GtActiveController", "GregTechPlaceHatches", "GtPlaceHatches" };
+        "TextAnnotation", "Block", "Entity", "PlaceBlock", "ReplaceBlock", "IsometricCamera", "ImportPonder", "Tier",
+        "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GtActiveController",
+        "GregTechPlaceHatches", "GtPlaceHatches" };
 
     private static Set<AutocompleteKey> buildKeys() {
         Set<AutocompleteKey> keys = new HashSet<>();
