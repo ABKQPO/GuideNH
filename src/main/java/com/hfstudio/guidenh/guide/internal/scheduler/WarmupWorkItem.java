@@ -35,6 +35,10 @@ public class WarmupWorkItem implements WorkItem {
         return WorkResult.DONE;
     }
 
+    public void clearScheduler() {
+        scheduler.clear();
+    }
+
     @Override
     public boolean equals(Object o) {
         return o instanceof WarmupWorkItem;

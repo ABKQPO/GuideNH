@@ -12,14 +12,12 @@ import com.hfstudio.guidenh.client.hotkey.CycleRegionWandModeHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHomeHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
-import com.hfstudio.guidenh.guide.internal.GuideDevWatcherPump;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePackWatcher;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 import com.hfstudio.guidenh.guide.internal.GuideScreenMemory;
-import com.hfstudio.guidenh.guide.internal.GuideWarmupPump;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TagAttributeRegistry;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AnchorProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AttributeNameProvider;
@@ -76,9 +74,14 @@ import cpw.mods.fml.relauncher.Side;
 public class ClientProxy extends CommonProxy {
 
     private static final LytHost lytHost = new LytHost();
+    private static final WarmupWorkItem warmupWorkItem = new WarmupWorkItem();
 
     public static LytHost getLytHost() {
         return lytHost;
+    }
+
+    public static WarmupWorkItem getWarmupWorkItem() {
+        return warmupWorkItem;
     }
 
     @Override
@@ -139,10 +142,9 @@ public class ClientProxy extends CommonProxy {
         AutocompleteProviders.register(new ImagePathProvider());
         CycleRegionWandModeHotkey.init();
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
-        GuideWarmupPump.init();
         MasterScheduler.init();
         MasterScheduler.getInstance().submit(new LytHostWorkItem(lytHost));
-        MasterScheduler.getInstance().submit(new WarmupWorkItem());
+        MasterScheduler.getInstance().submit(warmupWorkItem);
         MasterScheduler.getInstance().submit(new SearchIndexWorkItem());
         MinecraftForge.EVENT_BUS.register(this);
     }
@@ -156,7 +158,6 @@ public class ClientProxy extends CommonProxy {
     public void completeInit(FMLLoadCompleteEvent event) {
         super.completeInit(event);
         GuideDevelopmentResourcePackWatcher.init();
-        GuideDevWatcherPump.init();
         MasterScheduler.getInstance().submit(new DevWatchWorkItem());
         GuideOnStartup.init();
     }
