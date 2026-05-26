@@ -27,6 +27,14 @@ public abstract class LytNode implements Styleable {
 
     public void removeChild(LytNode node) {}
 
+    public void replaceChild(LytNode oldChild, LytNode newChild) {
+        // Default: no-op. LytDocument overrides.
+    }
+
+    public boolean isAttached() {
+        return getDocument() != null;
+    }
+
     public List<? extends LytNode> getChildren() {
         return Collections.emptyList();
     }

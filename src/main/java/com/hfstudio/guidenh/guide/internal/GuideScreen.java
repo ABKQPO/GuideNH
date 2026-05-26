@@ -103,6 +103,7 @@ import com.hfstudio.guidenh.guide.internal.home.HomePageDataBuilder;
 import com.hfstudio.guidenh.guide.internal.home.HomePageLayout;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
+import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar.ContextTarget;
@@ -505,7 +506,7 @@ public class GuideScreen extends GuiContainer
     }
 
     public static void openFromHomeHotkey() {
-        GuideScreenViewState remembered = GuideScreenMemory.consumeValidLastContentState();
+        GuideScreenViewState remembered = ClientProxy.getLytHost().getNavigation().recallLastContentState();
         open(remembered != null ? remembered : GuideScreenViewState.home(), false);
     }
 
@@ -538,7 +539,7 @@ public class GuideScreen extends GuiContainer
             return null;
         }
         if (anchor == null) {
-            GuideScreenViewState remembered = GuideScreenMemory.consumeValidLastContentState();
+            GuideScreenViewState remembered = ClientProxy.getLytHost().getNavigation().recallLastContentState();
             if (remembered != null && remembered.route() != null) {
                 return remembered.route();
             }
@@ -695,11 +696,11 @@ public class GuideScreen extends GuiContainer
     }
 
     private void rememberCurrentContentStateIfEligible() {
-        GuideScreenMemory.rememberContentState(captureCurrentViewState());
+        ClientProxy.getLytHost().getNavigation().rememberContentState(captureCurrentViewState());
     }
 
     private void rememberNavigationState() {
-        GuideScreenMemory.rememberNavigationState(navBar.captureState());
+        ClientProxy.getLytHost().getNavigation().rememberNavBarState(guide.getId(), navBar.captureState());
     }
 
     private boolean isNavigationNewPageButtonVisible() {
@@ -1038,7 +1039,7 @@ public class GuideScreen extends GuiContainer
         if (guide != null) {
             return guide;
         }
-        GuideScreenViewState remembered = GuideScreenMemory.recallLastContentState();
+        GuideScreenViewState remembered = ClientProxy.getLytHost().getNavigation().recallLastContentState();
         if (remembered != null && remembered.route() != null) {
             ResourceLocation rememberedGuideId = remembered.route()
                 .guideId();
@@ -2692,6 +2693,7 @@ public class GuideScreen extends GuiContainer
         int max = getMaxScroll();
         if (scrollY < 0) scrollY = 0;
         if (scrollY > max) scrollY = max;
+        ClientProxy.getLytHost().getViewport().updateContent(contentW, contentH);
     }
 
     @Override
@@ -4736,7 +4738,7 @@ public class GuideScreen extends GuiContainer
                 return;
             }
             if (result != null && result.bookmarkTogglePageId() != null) {
-                bookmarkState.toggle(result.bookmarkTogglePageId());
+                ClientProxy.getLytHost().getNavigation().toggleBookmark(result.bookmarkTogglePageId());
                 mc.getSoundHandler()
                     .playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("gui.button.press"), 1.0F));
                 return;
@@ -6681,7 +6683,7 @@ public class GuideScreen extends GuiContainer
             || !guide.pageExists(currentAnchor.pageId())) {
             return;
         }
-        homeHistory.record(guide.getId(), currentAnchor.pageId());
+        ClientProxy.getLytHost().getNavigation().recordHomeHistory(guide.getId(), currentAnchor.pageId());
     }
 
     private boolean isInsideSearchField(int mouseX, int mouseY) {

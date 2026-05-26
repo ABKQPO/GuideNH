@@ -64,9 +64,22 @@ import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent;
+import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
+import com.hfstudio.guidenh.guide.internal.scheduler.WarmupWorkItem;
+import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
+import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
+import com.hfstudio.guidenh.guide.internal.host.LytHost;
+import com.hfstudio.guidenh.guide.internal.host.LytHostWorkItem;
+
 import cpw.mods.fml.relauncher.Side;
 
 public class ClientProxy extends CommonProxy {
+
+    private static final LytHost lytHost = new LytHost();
+
+    public static LytHost getLytHost() {
+        return lytHost;
+    }
 
     @Override
     public void preInit(FMLPreInitializationEvent event) {
@@ -127,6 +140,10 @@ public class ClientProxy extends CommonProxy {
         CycleRegionWandModeHotkey.init();
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
         GuideWarmupPump.init();
+        MasterScheduler.init();
+        MasterScheduler.getInstance().submit(new LytHostWorkItem(lytHost));
+        MasterScheduler.getInstance().submit(new WarmupWorkItem());
+        MasterScheduler.getInstance().submit(new SearchIndexWorkItem());
         MinecraftForge.EVENT_BUS.register(this);
     }
 
@@ -140,15 +157,14 @@ public class ClientProxy extends CommonProxy {
         super.completeInit(event);
         GuideDevelopmentResourcePackWatcher.init();
         GuideDevWatcherPump.init();
+        MasterScheduler.getInstance().submit(new DevWatchWorkItem());
         GuideOnStartup.init();
     }
 
     @SubscribeEvent
     public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
         GuideME.closeSearch();
-        GuideScreenMemory.clear();
-        GuideScreenHomeHistory.shared()
-            .clear();
+        lytHost.getNavigation().clear();
         for (var guide : GuideRegistry.getAll()) {
             guide.resetWarmup();
         }

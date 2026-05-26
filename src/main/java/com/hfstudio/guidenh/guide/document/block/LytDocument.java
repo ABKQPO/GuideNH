@@ -80,6 +80,23 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         invalidateLayout();
     }
 
+    @Override
+    public void replaceChild(LytNode oldChild, LytNode newNode) {
+        if (oldChild instanceof LytBlock oldBlock) {
+            int idx = blocks.indexOf(oldBlock);
+            if (idx < 0) return;
+            oldBlock.parent = null;
+            if (newNode instanceof LytBlock newBlock) {
+                if (newBlock.parent != null) {
+                    newBlock.parent.removeChild(newBlock);
+                }
+                newBlock.parent = this;
+                blocks.set(idx, newBlock);
+            }
+            invalidateLayout();
+        }
+    }
+
     public void clearContent() {
         for (var block : blocks) {
             block.parent = null;
