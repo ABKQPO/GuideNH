@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.integration.gregtech.GregTechPreviewStateFlags;
 
 public class ReplaceBlockExecutor {
 
@@ -33,7 +34,7 @@ public class ReplaceBlockExecutor {
      */
     public static void execute(GuidebookLevel level, GuideBlockMatcher fromMatcher, @Nullable NBTTagCompound fromNbt,
         Block toBlock, int toMeta, @Nullable NBTTagCompound toNbt, String toExplicitId, boolean hasBounds, int x, int y,
-        int z, int dx, int dy, int dz) {
+        int z, int dx, int dy, int dz, boolean formed) {
         List<int[]> targets;
 
         if (!hasBounds) {
@@ -64,6 +65,7 @@ public class ReplaceBlockExecutor {
         for (int[] pos : targets) {
             NBTTagCompound tagCopy = toNbt != null ? (NBTTagCompound) toNbt.copy() : null;
             GuidebookPreviewBlockPlacer.place(level, pos[0], pos[1], pos[2], toBlock, toMeta, tagCopy, toExplicitId);
+            GregTechPreviewStateFlags.updateAfterPlacement(level, pos[0], pos[1], pos[2], formed);
         }
     }
 

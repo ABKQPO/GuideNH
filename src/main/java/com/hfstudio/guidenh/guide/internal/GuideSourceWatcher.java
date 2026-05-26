@@ -26,6 +26,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
@@ -205,8 +206,10 @@ public class GuideSourceWatcher implements AutoCloseable {
         if (!Files.isDirectory(sourceFolder)) {
             throw new RuntimeException("Cannot find the specified folder with guidebook sources: " + sourceFolder);
         }
-        FMLLog.getLogger()
-            .info("[GuideNH] [GuideSourceWatcher] Watching guidebook sources in {}", sourceFolder);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info("[GuideNH] [GuideSourceWatcher] Watching guidebook sources in {}", sourceFolder);
+        }
 
         watchExecutor = Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setDaemon(true)
@@ -291,11 +294,13 @@ public class GuideSourceWatcher implements AutoCloseable {
         }
         long walkNs = System.nanoTime() - stageStartedAt;
 
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideSourceWatcher] Loading {} guidebook pages from {} localized variants",
-                pageIds.size(),
-                pageSources.size());
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideSourceWatcher] Loading {} guidebook pages from {} localized variants",
+                    pageIds.size(),
+                    pageSources.size());
+        }
         stageStartedAt = System.nanoTime();
         Map<String, Map<String, String>> localizedSourcesByNamespace = loadLocalizedSourceOverrides(
             currentLanguage,
@@ -328,19 +333,21 @@ public class GuideSourceWatcher implements AutoCloseable {
         int sourceLanguageCount = countSourceLanguages(pageSources.keySet());
         long totalNs = System.nanoTime() - startedAt;
 
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideSourceWatcher] Loaded {} pages from {} with namespaceFilter={} sourceVariants={} sourceLanguages={} localizedNamespaces={} walkNs={} localizedOverrideNs={} parseNs={} totalNs={}",
-                loadedPages.size(),
-                sourceFolder,
-                namespaceFilter != null ? namespaceFilter : "<all>",
-                pageSources.size(),
-                sourceLanguageCount,
-                localizedSourcesByNamespace.size(),
-                walkNs,
-                localizedOverrideNs,
-                parseNs,
-                totalNs);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideSourceWatcher] Loaded {} pages from {} with namespaceFilter={} sourceVariants={} sourceLanguages={} localizedNamespaces={} walkNs={} localizedOverrideNs={} parseNs={} totalNs={}",
+                    loadedPages.size(),
+                    sourceFolder,
+                    namespaceFilter != null ? namespaceFilter : "<all>",
+                    pageSources.size(),
+                    sourceLanguageCount,
+                    localizedSourcesByNamespace.size(),
+                    walkNs,
+                    localizedOverrideNs,
+                    parseNs,
+                    totalNs);
+        }
         return loadedPages;
     }
 

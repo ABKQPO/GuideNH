@@ -39,6 +39,7 @@ import org.apache.lucene.store.ByteBuffersDirectory;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.Guides;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
@@ -194,11 +195,13 @@ public class GuideSearch implements AutoCloseable {
             throw new UncheckedIOException(e);
         }
 
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideSearch] Indexing of {} pages finished in {}",
-                pagesIndexed,
-                Duration.between(indexingStarted, Instant.now()));
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideSearch] Indexing of {} pages finished in {}",
+                    pagesIndexed,
+                    Duration.between(indexingStarted, Instant.now()));
+        }
     }
 
     public void processAllWork() {

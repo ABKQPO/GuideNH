@@ -23,6 +23,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.PageCollection;
@@ -289,22 +290,24 @@ public class PageCompiler {
         }
 
         long totalNs = System.nanoTime() - parseStartedAt;
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [PageCompiler] Parsed page {} lang={} totalNs={} normalizeNs={} footnoteNs={} sourceFrontmatterNs={} latexMaskNs={} commentMaskNs={} markdownParseNs={} latexRestoreNs={} htmlNormalizeNs={} astFrontmatterNs={} parseFailed={}",
-                id,
-                language,
-                totalNs,
-                normalizeNs,
-                footnoteNs,
-                sourceFrontmatterNs,
-                latexMaskNs,
-                commentMaskNs,
-                markdownParseNs,
-                latexRestoreNs,
-                htmlNormalizeNs,
-                astFrontmatterNs,
-                parseFailureMessage != null);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [PageCompiler] Parsed page {} lang={} totalNs={} normalizeNs={} footnoteNs={} sourceFrontmatterNs={} latexMaskNs={} commentMaskNs={} markdownParseNs={} latexRestoreNs={} htmlNormalizeNs={} astFrontmatterNs={} parseFailed={}",
+                    id,
+                    language,
+                    totalNs,
+                    normalizeNs,
+                    footnoteNs,
+                    sourceFrontmatterNs,
+                    latexMaskNs,
+                    commentMaskNs,
+                    markdownParseNs,
+                    latexRestoreNs,
+                    htmlNormalizeNs,
+                    astFrontmatterNs,
+                    parseFailureMessage != null);
+        }
 
         return new ParsedGuidePage(
             sourcePack,
@@ -1596,19 +1599,23 @@ public class PageCompiler {
         try {
             String normalized = MermaidMindmapParser.normalize(source);
             LytMermaidMindmap block = new LytMermaidMindmap(MermaidMindmapParser.parse(normalized), normalized);
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [PageCompiler] Compiled fenced Mermaid runtime block for page {} ({} chars)",
-                    pageId,
-                    normalized.length());
+            if (ModConfig.debug.enableDebugMode) {
+                FMLLog.getLogger()
+                    .info(
+                        "[GuideNH] [PageCompiler] Compiled fenced Mermaid runtime block for page {} ({} chars)",
+                        pageId,
+                        normalized.length());
+            }
             return block;
         } catch (IllegalArgumentException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [PageCompiler] Failed to compile fenced Mermaid runtime block for page {} from source: {}",
-                    pageId,
-                    source,
-                    e);
+            if (ModConfig.debug.enableDebugMode) {
+                FMLLog.getLogger()
+                    .warn(
+                        "[GuideNH] [PageCompiler] Failed to compile fenced Mermaid runtime block for page {} from source: {}",
+                        pageId,
+                        source,
+                        e);
+            }
             return null;
         }
     }
@@ -1711,11 +1718,15 @@ public class PageCompiler {
             span.appendText(tildes + "^");
             span.appendBreak();
 
-            FMLLog.getLogger()
-                .warn("[GuideNH] [PageCompiler] {}\n{}\n{}\n", text, line, tildes + "^");
+            if (ModConfig.debug.enableDebugMode) {
+                FMLLog.getLogger()
+                    .warn("[GuideNH] [PageCompiler] {}\n{}\n{}\n", text, line, tildes + "^");
+            }
         } else {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [PageCompiler] {}\n", text);
+            if (ModConfig.debug.enableDebugMode) {
+                FMLLog.getLogger()
+                    .warn("[GuideNH] [PageCompiler] {}\n", text);
+            }
         }
 
         return span;

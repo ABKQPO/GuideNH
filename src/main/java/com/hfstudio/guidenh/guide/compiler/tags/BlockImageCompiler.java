@@ -80,12 +80,8 @@ public class BlockImageCompiler extends BlockTagCompiler {
     }
 
     private int resolveBlockMeta(ResolvedBlockReference blockReference) {
-        if (blockReference.hasExplicitMeta() && blockReference.stack() != null) {
-            int meta = blockReference.stack()
-                .getItemDamage();
-            if (meta != OreDictionary.WILDCARD_VALUE) {
-                return meta;
-            }
+        if (blockReference.hasExplicitMeta() && blockReference.explicitMeta() != OreDictionary.WILDCARD_VALUE) {
+            return blockReference.explicitMeta();
         }
         return BlockElementCompiler.defaultMetaFor(blockReference.block(), null);
     }

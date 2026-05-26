@@ -17,6 +17,7 @@ import net.minecraft.util.StringTranslate;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 
@@ -49,13 +50,15 @@ public class GuideResourceLanguageIndex {
             loadResourcePackLanguage(resourcePack, normalizedLanguage, merged);
         }
         long totalNs = System.nanoTime() - startedAt;
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideResourceLanguageIndex] Loaded {} lang entries for language {} from {} resource packs in {} ns",
-                merged.size(),
-                normalizedLanguage,
-                activeResourcePacks.size(),
-                totalNs);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideResourceLanguageIndex] Loaded {} lang entries for language {} from {} resource packs in {} ns",
+                    merged.size(),
+                    normalizedLanguage,
+                    activeResourcePacks.size(),
+                    totalNs);
+        }
         return merged.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(merged);
     }
 

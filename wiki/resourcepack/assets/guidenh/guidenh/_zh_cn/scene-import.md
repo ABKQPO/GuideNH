@@ -21,6 +21,43 @@ categories:
 
 将光标移到 StructureLib 结构方块上可以看到额外的结构说明；按住 `Shift` 会展开候选替换方块。如果该结构提供仓室或信道元数据，还会自动出现仓室高亮按钮和底部滑条。
 
+`facing`、`rotation` 和 `flip` 使用与 StructureLib 导出一致的朝向词汇。如果控制器不允许请求的组合，GuideNH 会自动回退到第一个有效对齐。GregTech 控制器预览的默认朝向也已经相对旧预览方向绕 Y 轴旋转 180 度。
+
+如果某个 GT 控制器即使周围结构完整也需要保持未成型，可添加 `gtFormed={false}`。
+
+GT 控制器默认未成型的预览示例：
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" />
+</GameScene>
+```
+
+显式展示成型状态的示例：
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" gtFormed={true} />
+</GameScene>
+```
+
+带朝向和偏移的 StructureLib 导入：
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib
+    name="main"
+    controller="gregtech:gt.blockmachines:2741"
+    facing="north"
+    rotation="clockwise_180"
+    flip="none"
+    offsetX="2"
+    offsetY="1"
+    offsetZ="-3"
+  />
+</GameScene>
+```
+
 具名的 StructureLib 导入也可以驱动按状态显示的注解和音效：
 
 <GameScene width="384" height="256" zoom={4} interactive={true}>
@@ -65,7 +102,8 @@ categories:
 </GameScene>
 
 使用 `from_nbt` 可进一步将匹配范围缩小到 TileEntity NBT 中包含特定键的方块；使用 `to_nbt`
-可为替换后的方块指定 TileEntity 数据。
+可为替换后的方块指定 TileEntity 数据。如果替换结果里包含 GT 控制器，`gtFormed={false}`
+可以让这些控制器继续保持未成型。
 
 ## PlaceBlock
 
@@ -76,6 +114,14 @@ categories:
   <PlaceBlock id="minecraft:stone" dx="5" dy="1" dz="5" />
   <PlaceBlock id="minecraft:glass" y="1" dx="5" dz="5" />
 </GameScene>
+
+如果填充区域里包含 GT 控制器，可设置 `gtFormed={false}`，让所有受影响的控制器在预览中保持未成型。
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <PlaceBlock id="gregtech:gt.blockmachines:15411" dx="3" dz="3" gtFormed={false} />
+</GameScene>
+```
 
 ## SNBT 文件格式
 

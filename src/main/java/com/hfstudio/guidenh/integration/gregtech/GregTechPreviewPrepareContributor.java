@@ -25,11 +25,14 @@ public class GregTechPreviewPrepareContributor implements PreviewPrepareContribu
         }
         try {
             GregTechHelpers.preparePipeConnections(level);
+            GregTechPreviewMultiblockSupport.synchronizePreviewState(level);
         } catch (Throwable t) {
             if (!invokeFailureLogged) {
                 invokeFailureLogged = true;
-                GuideDebugLog
-                    .warn(LOG, "GT5 pipe/cable connection preparation failed; pipe connections may be wrong", t);
+                GuideDebugLog.warn(
+                    LOG,
+                    "GT5 preview preparation failed; pipe connections or multiblock formed state may be wrong",
+                    t);
             }
         }
     }

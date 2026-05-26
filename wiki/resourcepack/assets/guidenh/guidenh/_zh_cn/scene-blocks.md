@@ -48,6 +48,7 @@ categories:
 | `meta` | 否 | 方块 metadata。省略时，部分方块会根据 `facing` 推导默认值。 |
 | `facing` | 否 | `down`、`up`、`north`、`south`、`west` 或 `east`。 |
 | `nbt` | 否 | SNBT TileEntity 复合标签。 |
+| `gtFormed` | 否 | GT 控制器预览是否自动成型。默认 `false`。 |
 
 ```mdx
 <GameScene zoom={4} interactive={true}>
@@ -70,6 +71,45 @@ categories:
     <Block id="minecraft:glass" z="2" />
     <Block id="minecraft:glass" x="1" z="2" />
 </GameScene>
+
+## GT 控制器预览成型控制
+
+如果某个 GT 控制器在预览里需要保持未成型，可在放置它的标签上添加 `gtFormed={false}`。
+这同样适用于多方块放置标签，例如 `<PlaceBlock>`、`<ReplaceBlock>`、`<ImportStructure>` 和
+`<ImportStructureLib>`。
+
+`gtFormed` 现在默认就是 `false`，因此 GT 控制器会默认保持未成型，只有场景显式要求时才会自动成型。
+
+```mdx
+<Block id="gregtech:gt.blockmachines:15411" gtFormed={false} />
+<PlaceBlock id="gregtech:gt.blockmachines:15411" dx="3" dz="3" gtFormed={false} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:15411" gtFormed={false} />
+```
+
+显式展示成型状态的例子：
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" gtFormed={true} />
+</GameScene>
+```
+
+带朝向和偏移的 StructureLib 导入：
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib
+    name="main"
+    controller="gregtech:gt.blockmachines:2741"
+    facing="north"
+    rotation="clockwise_180"
+    flip="none"
+    offsetX="2"
+    offsetY="1"
+    offsetZ="-3"
+  />
+</GameScene>
+```
 
 ## 默认统计按钮的红石线路
 

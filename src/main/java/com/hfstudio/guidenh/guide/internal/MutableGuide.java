@@ -26,6 +26,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuideItemSettings;
 import com.hfstudio.guidenh.guide.GuidePage;
@@ -405,15 +406,17 @@ public class MutableGuide
         validationPageQueue.clear();
         queuedValidationPages.clear();
         scheduledValidationPages.clear();
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [MutableGuide] Closed guide {} and cleared caches developmentPages={}, syntheticPages={}, failures={}, compiledWeak={}, compiledStrong={}",
-                id,
-                developmentPageCount,
-                syntheticPageCount,
-                failureCount,
-                weakCompiledCount,
-                strongCompiledCount);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [MutableGuide] Closed guide {} and cleared caches developmentPages={}, syntheticPages={}, failures={}, compiledWeak={}, compiledStrong={}",
+                    id,
+                    developmentPageCount,
+                    syntheticPageCount,
+                    failureCount,
+                    weakCompiledCount,
+                    strongCompiledCount);
+        }
     }
 
     private final Deque<ResourceLocation> warmupPageQueue = new ArrayDeque<>();
@@ -525,8 +528,10 @@ public class MutableGuide
     public void validateAll() {
         // Iterate and compile all pages to warn about errors on startup
         for (var entry : developmentPages.entrySet()) {
-            FMLLog.getLogger()
-                .info("[GuideNH] [MutableGuide] Compiling {}", entry.getKey());
+            if (ModConfig.debug.enableDebugMode) {
+                FMLLog.getLogger()
+                    .info("[GuideNH] [MutableGuide] Compiling {}", entry.getKey());
+            }
             getPage(entry.getKey());
         }
     }
@@ -1070,12 +1075,14 @@ public class MutableGuide
         for (ResourceLocation syntheticPageId : previousSyntheticIds) {
             removeCompiledPage(syntheticPageId);
         }
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [MutableGuide] Rebuilt {} synthetic pages in {} ms for guide {}",
-                syntheticPages.size(),
-                nanosToMillis(System.nanoTime() - startNanos),
-                id);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [MutableGuide] Rebuilt {} synthetic pages in {} ms for guide {}",
+                    syntheticPages.size(),
+                    nanosToMillis(System.nanoTime() - startNanos),
+                    id);
+        }
     }
 
     private void invalidateMediaWikiDerivedCaches() {
@@ -1123,12 +1130,14 @@ public class MutableGuide
             }
         }
         NavigationTree navigationSnapshot = aggregatedGuide.getNavigationTree();
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [MutableGuide] Scheduling MediaWiki cache warmup for guide {} revision {} with {} pages",
-                id,
-                revision,
-                pagesSnapshot.size());
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [MutableGuide] Scheduling MediaWiki cache warmup for guide {} revision {} with {} pages",
+                    id,
+                    revision,
+                    pagesSnapshot.size());
+        }
         mediaWikiRefreshController.requestRefresh(revision, () -> {
             try {
                 long startNanos = System.nanoTime();
@@ -1151,13 +1160,15 @@ public class MutableGuide
                     fallbackMediaWikiListContext = listContext;
                     fallbackMediaWikiListContextRevision = revision;
                 }
-                FMLLog.getLogger()
-                    .info(
-                        "[GuideNH] [MutableGuide] Warmed MediaWiki caches asynchronously in {} ms for guide {} revision {} with {} pages",
-                        nanosToMillis(System.nanoTime() - startNanos),
-                        id,
-                        revision,
-                        pagesSnapshot.size());
+                if (ModConfig.debug.enableDebugMode) {
+                    FMLLog.getLogger()
+                        .info(
+                            "[GuideNH] [MutableGuide] Warmed MediaWiki caches asynchronously in {} ms for guide {} revision {} with {} pages",
+                            nanosToMillis(System.nanoTime() - startNanos),
+                            id,
+                            revision,
+                            pagesSnapshot.size());
+                }
             } catch (Throwable t) {
                 synchronized (this) {
                     if (requestedMediaWikiWarmupRevision == revision) {

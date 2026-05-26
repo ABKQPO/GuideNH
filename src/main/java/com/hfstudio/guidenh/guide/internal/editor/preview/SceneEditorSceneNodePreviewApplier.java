@@ -21,6 +21,7 @@ import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
+import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
@@ -48,6 +49,7 @@ import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.RemoveBlocksExecutor;
+import com.hfstudio.guidenh.integration.gregtech.GregTechPreviewStateFlags;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
@@ -199,7 +201,17 @@ public class SceneEditorSceneNodePreviewApplier {
             return false;
         }
 
-        return loadStructureIntoLevel(level, structureText);
+        int offsetX = parseIntegerAttributeOrDefault(
+            node.getAttribute("offsetX") != null ? node.getAttribute("offsetX") : node.getAttribute("x"),
+            0);
+        int offsetY = parseIntegerAttributeOrDefault(
+            node.getAttribute("offsetY") != null ? node.getAttribute("offsetY") : node.getAttribute("y"),
+            0);
+        int offsetZ = parseIntegerAttributeOrDefault(
+            node.getAttribute("offsetZ") != null ? node.getAttribute("offsetZ") : node.getAttribute("z"),
+            0);
+        boolean formed = parseBooleanAttribute(node.getAttribute("gtFormed"));
+        return loadStructureIntoLevel(level, structureText, offsetX, offsetY, offsetZ, formed);
     }
 
     private boolean applyImportStructureLib(LytGuidebookScene scene, SceneEditorSceneNodeModel node,
@@ -215,6 +227,7 @@ public class SceneEditorSceneNodePreviewApplier {
         int offsetX = parseIntegerAttributeOrDefault(node.getAttribute("offsetX"), 0);
         int offsetY = parseIntegerAttributeOrDefault(node.getAttribute("offsetY"), 0);
         int offsetZ = parseIntegerAttributeOrDefault(node.getAttribute("offsetZ"), 0);
+        boolean formed = parseBooleanAttribute(node.getAttribute("gtFormed"));
         Integer requestedChannel = parseIntegerAttribute(node.getAttribute("channel"));
         String structureName = normalizeAttribute(node.getAttribute("name"));
         StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
@@ -256,6 +269,12 @@ public class SceneEditorSceneNodePreviewApplier {
                 placedBlock.getMeta(),
                 placedBlock.getTileTag(),
                 placedBlock.getBlockId());
+            GregTechPreviewStateFlags.updateAfterPlacement(
+                level,
+                placedBlock.getX() + offsetX,
+                clampedY,
+                placedBlock.getZ() + offsetZ,
+                formed);
         }
         return true;
     }
@@ -370,9 +389,9 @@ public class SceneEditorSceneNodePreviewApplier {
             return null;
         }
 
-        Path path = workingRoot.resolve(normalizedSource)
-            .normalize();
-        if (!Files.exists(path)) {
+        Path path = SceneEditorStructureCache.resolveSceneStructurePath(workingRoot, normalizedSource)
+            .orElse(null);
+        if (path == null || !Files.exists(path)) {
             return null;
         }
 
@@ -384,17 +403,23 @@ public class SceneEditorSceneNodePreviewApplier {
         }
     }
 
-    private boolean loadStructureIntoLevel(GuidebookLevel level, String structureText) {
+    private boolean loadStructureIntoLevel(GuidebookLevel level, String structureText, int offsetX, int offsetY,
+        int offsetZ, boolean formed) {
         try {
             NBTTagCompound root = GuideTextNbtCodec.readStructureNbt(structureText.getBytes(StandardCharsets.UTF_8));
-            return loadStructureIntoLevel(level, root);
+            return loadStructureIntoLevel(level, root, offsetX, offsetY, offsetZ, formed);
         } catch (Exception e) {
             GuideDebugLog.warn("Failed to parse scene editor preview structure text", e);
             return false;
         }
     }
 
-    private boolean loadStructureIntoLevel(GuidebookLevel level, NBTTagCompound root) {
+    private boolean loadStructureIntoLevel(GuidebookLevel level, String structureText) {
+        return loadStructureIntoLevel(level, structureText, 0, 0, 0, false);
+    }
+
+    private boolean loadStructureIntoLevel(GuidebookLevel level, NBTTagCompound root, int offsetX, int offsetY,
+        int offsetZ, boolean formed) {
         if (!root.hasKey("palette") || !root.hasKey("blocks")) {
             return false;
         }
@@ -420,11 +445,14 @@ public class SceneEditorSceneNodePreviewApplier {
             if (pos.length < 3) {
                 continue;
             }
+            int px = pos[0] + offsetX;
+            int py = Math.max(0, Math.min(pos[1] + offsetY, level.getHeight() - 1));
+            int pz = pos[2] + offsetZ;
             int meta = blockTag.hasKey("meta") ? blockTag.getInteger("meta") : 0;
             NBTTagCompound tileTag = blockTag.hasKey("nbt", 10) ? blockTag.getCompoundTag("nbt") : null;
-            GuidebookPreviewBlockPlacer
-                .place(level, pos[0], pos[1], pos[2], block, meta, tileTag, palette[state], blockTag);
-            level.setExplicitBlockId(pos[0], pos[1], pos[2], palette[state]);
+            GuidebookPreviewBlockPlacer.place(level, px, py, pz, block, meta, tileTag, palette[state], blockTag);
+            level.setExplicitBlockId(px, py, pz, palette[state]);
+            GregTechPreviewStateFlags.updateAfterPlacement(level, px, py, pz, formed);
         }
 
         // Spawn entities stored in the "entities" list (produced by snbt+entities export mode).
@@ -437,14 +465,7 @@ public class SceneEditorSceneNodePreviewApplier {
             for (int i = 0; i < entitiesTag.tagCount(); i++) {
                 NBTTagCompound et = entitiesTag.getCompoundTagAt(i);
                 GuidebookSceneEntityImportSupport.ImportedSceneEntity importedEntity = GuidebookSceneEntityImportSupport
-                    .loadImportedEntityRecord(
-                        fakeWorld,
-                        et,
-                        0f,
-                        0f,
-                        0f,
-                        Float.NEGATIVE_INFINITY,
-                        Float.POSITIVE_INFINITY);
+                    .loadImportedEntityRecord(fakeWorld, et, offsetX, offsetY, offsetZ, 0f, level.getHeight() - 1f);
                 if (importedEntity != null) {
                     level.addEntity(importedEntity.entity(), importedEntity.sceneEntityId());
                     if (Boolean.TRUE.equals(importedEntity.unmount())) {

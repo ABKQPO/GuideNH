@@ -12,6 +12,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 
@@ -102,11 +103,13 @@ public class GuideRegistry {
         }
         dataDrivenGuides.clear();
         dataDrivenGuides.putAll(guides);
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideRegistry] Replaced {} data-driven guides with {} freshly loaded guides",
-                previousCount,
-                dataDrivenGuides.size());
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideRegistry] Replaced {} data-driven guides with {} freshly loaded guides",
+                    previousCount,
+                    dataDrivenGuides.size());
+        }
 
         rebuildGuides();
     }
@@ -145,10 +148,12 @@ public class GuideRegistry {
 
         if (!overridden.isEmpty()) {
             Collections.sort(overridden, Comparator.comparing(ResourceLocation::toString));
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideRegistry] The following guides are overridden in resource packs: {}",
-                    overridden);
+            if (ModConfig.debug.enableDebugMode) {
+                FMLLog.getLogger()
+                    .info(
+                        "[GuideNH] [GuideRegistry] The following guides are overridden in resource packs: {}",
+                        overridden);
+            }
         }
 
         GuideRegistry.mergedGuides = Collections.unmodifiableMap(merged);

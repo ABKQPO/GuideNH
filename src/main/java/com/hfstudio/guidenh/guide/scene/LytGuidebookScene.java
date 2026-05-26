@@ -1398,6 +1398,36 @@ public class LytGuidebookScene extends LytBlock {
         }
     }
 
+    public boolean applyStructureLibPreviewSelection(@Nullable String structureName,
+        @Nullable StructureLibPreviewSelection previewSelection, boolean notifyListener) {
+        if (previewSelection == null) {
+            return false;
+        }
+        StructureLibSceneBinding binding = structureName != null ? registerStructureLibBinding(structureName)
+            : getPrimaryStructureLibBinding();
+        if (binding == null) {
+            return false;
+        }
+
+        StructureLibPreviewSelection previousSelection = binding.getPreviewSelection();
+        binding.applyPreviewSelection(previewSelection);
+        if (binding == getPrimaryStructureLibBinding()) {
+            if (binding.getMetadata() != null) {
+                bindPrimaryStructureLibState(binding);
+            } else {
+                structureLibCurrentTier = previewSelection.getMasterTier();
+                structureLibChannelOverrides.clear();
+                structureLibChannelOverrides.putAll(previewSelection.getChannelOverrides());
+            }
+        }
+
+        boolean changed = !previousSelection.equals(binding.getPreviewSelection());
+        if (changed && notifyListener) {
+            notifyStructureLibSelectionChanged(structureName);
+        }
+        return changed;
+    }
+
     public void seedStructureLibPreviewSelections(@Nullable Map<String, StructureLibPreviewSelection> selections) {
         seededStructureLibPreviewSelections.clear();
         if (selections == null || selections.isEmpty()) {

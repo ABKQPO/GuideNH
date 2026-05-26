@@ -168,6 +168,66 @@
 </GameScene>
 ````
 
+## 导入示例
+
+下面这些例子专门覆盖导入结构时最容易踩坑的场景侧行为。
+
+带显式朝向、旋转、镜像和偏移的 StructureLib 导入：
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib
+    name="main"
+    controller="gregtech:gt.blockmachines:2741"
+    facing="north"
+    rotation="clockwise_180"
+    flip="none"
+    offsetX="2"
+    offsetY="1"
+    offsetZ="-3"
+  />
+</GameScene>
+````
+
+GregTech 控制器现在默认保持未成型，即使导入的多方块结构本身已经完整：
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" />
+</GameScene>
+````
+
+只有在你明确希望预览展示成型状态时，才设置 `gtFormed={true}`：
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" gtFormed={true} />
+</GameScene>
+````
+
+这个默认值同样适用于直接通过 `<Block>` 放置的 GT 控制器，包括依赖周围多方块外壳的控制器：
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="gregtech:gt.blockmachines:2741" />
+  <Block id="gregtech:gt.blockmachines:1000" x="3" gtFormed={true} />
+</GameScene>
+````
+
+纯 `<Block>` 搭出来的简单布局仍然完全兼容，后续如果替换成 GT 多方块控制器，也能沿用同一套场景检测逻辑：
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:water" />
+  <Block id="minecraft:water" x="-1" />
+  <Block id="minecraft:water" x="1" />
+  <Block id="minecraft:grass" z="1" />
+  <Block id="minecraft:grass" x="1" z="1" />
+  <Block id="minecraft:glass" z="2" />
+  <Block id="minecraft:glass" x="1" z="2" />
+</GameScene>
+````
+
 ## 场景子元素
 
 GuideNH 当前注册了以下场景子标签：
@@ -258,6 +318,7 @@ GuideNH 当前注册了以下场景子标签：
 | `meta` | 否 | 方块 metadata，整数 |
 | `facing` | 否 | `down`、`up`、`north`、`south`、`west`、`east` |
 | `nbt` | 否 | SNBT TileEntity compound |
+| `gtFormed` | 否 | 是否让 GT 多方块预览同步自动令该控制器成型；默认 `false` |
 
 说明：
 
@@ -265,6 +326,7 @@ GuideNH 当前注册了以下场景子标签：
 - 若省略 `meta`，且 `ore` 解析出的物品携带具体且非通配符的 damage，则会先使用该值，再回退到 `facing`
 - 若省略 `meta`，部分方块会根据 `facing` 推导合理默认值
 - 若 `nbt` 能成功创建 TileEntity，预览中会使用该实体
+- 当 GregTech 控制器即使结构完整也需要保持未成型时，可设置 `gtFormed={false}`
 
 示例：
 
@@ -287,6 +349,7 @@ GuideNH 当前注册了以下场景子标签：
 | `offsetX` | 否 | 平移 X，整数（优先于 `x`） |
 | `offsetY` | 否 | 平移 Y，整数，会被限制在 `[0, 世界高度-1]`（优先于 `y`） |
 | `offsetZ` | 否 | 平移 Z，整数（优先于 `z`） |
+| `gtFormed` | 否 | 是否让 GT 多方块预览同步自动令导入的控制器成型；默认 `false` |
 
 支持的格式：
 
@@ -304,6 +367,7 @@ GuideNH 当前注册了以下场景子标签：
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
 <ImportStructure src="/assets/example_structure.snbt" x="4" />
+<ImportStructure src="/assets/example_structure.snbt" gtFormed={false} />
 ````
 
 ## `<ImportStructureLib>`
@@ -322,6 +386,7 @@ GuideNH 当前注册了以下场景子标签：
 | `offsetX` | 否 | 所有放置方块的 X 偏移，整数，默认 `0` |
 | `offsetY` | 否 | 所有放置方块的 Y 偏移，整数，会被限制在 `[0, 世界高度-1]`，默认 `0` |
 | `offsetZ` | 否 | 所有放置方块的 Z 偏移，整数，默认 `0` |
+| `gtFormed` | 否 | 是否让 GT 多方块预览同步自动令导入的控制器成型；默认 `false` |
 
 说明：
 
@@ -329,6 +394,9 @@ GuideNH 当前注册了以下场景子标签：
 - 若有足够元数据，该标签会启用 StructureLib 专用 tooltip、舱口高亮和频道滑块 UI
 - 控制器匹配支持 GTNH 风格 `modid:block:meta`
 - 当场景里有多个 StructureLib 导入，而且其他标签需要只针对其中一个结构状态时，请显式提供 `name`
+- `facing`、`rotation` 与 `flip` 使用和 StructureLib 导出一致的朝向词汇；若请求的组合不被控制器允许，GuideNH 会自动回退到第一个有效对齐
+- GregTech 控制器预览默认朝向现在会相对旧预览方向绕 Y 轴旋转 180 度，也就是默认显示为旧朝向的背面
+- 若希望导入后的 GregTech 控制器保持未成型，请设置 `gtFormed={false}`；这比故意提供残缺 NBT 更稳定
 
 示例：
 
@@ -336,6 +404,7 @@ GuideNH 当前注册了以下场景子标签：
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:15411" gtFormed={false} />
 ````
 
 按结构状态控制注解和音效的示例：
@@ -422,12 +491,14 @@ GuideNH 当前注册了以下场景子标签：
 | `dx` | 否 | 包围盒宽度（默认 `1`）|
 | `dy` | 否 | 包围盒高度（默认 `1`）|
 | `dz` | 否 | 包围盒深度（默认 `1`）|
+| `gtFormed` | 否 | 是否让 GT 多方块预览同步自动令替换后的控制器成型；默认 `false` |
 
 说明：
 
 - 若 `x/y/z/dx/dy/dz` 均未提供，则全局扫描所有已填充方块
 - `from_nbt` 为**部分**匹配：仅检查模式中列出的键，TileEntity 中额外的键将被忽略
 - 替换使用与 `<Block>` 相同的方块放置流程，支持 GregTech MetaTile 及 BartWorks 方块
+- 若替换结果放入了 GT 控制器，`gtFormed={false}` 可让该控制器在预览中保持未成型
 
 示例：
 
@@ -452,18 +523,21 @@ GuideNH 当前注册了以下场景子标签：
 | `dx` | 否 | 区域宽度，默认 `1` |
 | `dy` | 否 | 区域高度，默认 `1` |
 | `dz` | 否 | 区域深度，默认 `1` |
+| `gtFormed` | 否 | 是否让 GT 多方块预览同步自动令放置出的控制器成型；默认 `false` |
 
 说明：
 
 - 包围盒内所有方块均会被无条件放置（不检查原有方块）
 - NBT 复合标签在每次放置时独立复制
 - 使用与 `<Block>` 相同的方块放置流程，完整支持 GregTech MetaTile 及 BartWorks 方块
+- 若区域内放置了一个或多个 GT 控制器，`gtFormed={false}` 会让这些控制器都保持未成型
 
 示例：
 
 ````md
 <PlaceBlock id="minecraft:stone" x="0" y="0" z="0" dx="5" dy="1" dz="5" />
 <PlaceBlock id="minecraft:glass" y="1" dx="3" dz="3" />
+<PlaceBlock id="gregtech:gt.blockmachines:15411" dx="3" dz="3" gtFormed={false} />
 ````
 
 ## `<BlockAnnotationTemplate>`

@@ -14,6 +14,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
@@ -42,8 +43,10 @@ public class GuideLightweightReloadService {
     }
 
     public static void reloadGuides(IResourceManager resourceManager) {
-        FMLLog.getLogger()
-            .info("[GuideNH] [GuideLightweightReloadService] Reloading guide data...");
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info("[GuideNH] [GuideLightweightReloadService] Reloading guide data...");
+        }
         long startedAt = System.nanoTime();
         var activeResourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
         RecipeCache.clear();
@@ -104,18 +107,20 @@ public class GuideLightweightReloadService {
         int loadedLanguageCount = countLoadedLanguages(guidePages);
         long totalNs = System.nanoTime() - startedAt;
 
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideLightweightReloadService] Guide reload complete, loaded {} guides, {} pages, {} languages in {} ns (dataDrivenLoadNs={}, pageLoadNs={}, registryUpdateNs={}, warmupResetNs={}, searchIndexNs={})",
-                guidePages.size(),
-                loadedPageCount,
-                loadedLanguageCount,
-                totalNs,
-                dataDrivenLoadNs,
-                pageLoadNs,
-                registryUpdateNs,
-                warmupResetNs,
-                searchIndexNs);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideLightweightReloadService] Guide reload complete, loaded {} guides, {} pages, {} languages in {} ns (dataDrivenLoadNs={}, pageLoadNs={}, registryUpdateNs={}, warmupResetNs={}, searchIndexNs={})",
+                    guidePages.size(),
+                    loadedPageCount,
+                    loadedLanguageCount,
+                    totalNs,
+                    dataDrivenLoadNs,
+                    pageLoadNs,
+                    registryUpdateNs,
+                    warmupResetNs,
+                    searchIndexNs);
+        }
     }
 
     /**
@@ -184,20 +189,22 @@ public class GuideLightweightReloadService {
         }
 
         long totalNs = System.nanoTime() - startedAt;
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideLightweightReloadService] Loaded {} pages for guide {} folder {} requestedLanguage={} defaultLanguage={} discoveredPaths={} localizedHits={} defaultLanguageHits={} rawSourceHits={} failedLoads={} durationNs={}",
-                pages.size(),
-                guideId,
-                folder,
-                lang,
-                defaultLanguage,
-                pagePaths.size(),
-                localizedHits,
-                defaultLanguageHits,
-                rawSourceHits,
-                failedLoads,
-                totalNs);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideLightweightReloadService] Loaded {} pages for guide {} folder {} requestedLanguage={} defaultLanguage={} discoveredPaths={} localizedHits={} defaultLanguageHits={} rawSourceHits={} failedLoads={} durationNs={}",
+                    pages.size(),
+                    guideId,
+                    folder,
+                    lang,
+                    defaultLanguage,
+                    pagePaths.size(),
+                    localizedHits,
+                    defaultLanguageHits,
+                    rawSourceHits,
+                    failedLoads,
+                    totalNs);
+        }
         return pages;
     }
 

@@ -60,10 +60,22 @@ public class SceneEditorMarkdownCodec {
                 "interactive",
                 "showBackground",
                 "allowLayerSlider")));
-    public static final Set<String> IMPORT_STRUCTURE_ATTRIBUTES = Collections
-        .unmodifiableSet(new HashSet<>(Collections.singletonList("src")));
+    public static final Set<String> IMPORT_STRUCTURE_ATTRIBUTES = Collections.unmodifiableSet(
+        new HashSet<>(Arrays.asList("src", "x", "y", "z", "offsetX", "offsetY", "offsetZ", "gtFormed")));
     public static final Set<String> IMPORT_STRUCTURE_LIB_ATTRIBUTES = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList("controller", "name", "piece", "facing", "rotation", "flip", "channel")));
+        new HashSet<>(
+            Arrays.asList(
+                "controller",
+                "name",
+                "piece",
+                "facing",
+                "rotation",
+                "flip",
+                "channel",
+                "offsetX",
+                "offsetY",
+                "offsetZ",
+                "gtFormed")));
     public static final Set<String> REMOVE_BLOCKS_ATTRIBUTES = Collections
         .unmodifiableSet(new HashSet<>(Collections.singletonList("id")));
     public static final Set<String> BLOCK_ANNOTATION_TEMPLATE_ATTRIBUTES = Collections
@@ -478,6 +490,13 @@ public class SceneEditorMarkdownCodec {
 
         SceneEditorSceneNodeModel node = new SceneEditorSceneNodeModel(SceneEditorSceneNodeType.IMPORT_STRUCTURE);
         node.setAttribute("src", src);
+        copyOptionalIntegerAttribute(element, node, "x");
+        copyOptionalIntegerAttribute(element, node, "y");
+        copyOptionalIntegerAttribute(element, node, "z");
+        copyOptionalIntegerAttribute(element, node, "offsetX");
+        copyOptionalIntegerAttribute(element, node, "offsetY");
+        copyOptionalIntegerAttribute(element, node, "offsetZ");
+        copyOptionalAttribute(element, node, "gtFormed");
         return node;
     }
 
@@ -496,6 +515,10 @@ public class SceneEditorMarkdownCodec {
         copyOptionalAttribute(element, node, "rotation");
         copyOptionalAttribute(element, node, "flip");
         copyOptionalIntegerAttribute(element, node, "channel");
+        copyOptionalIntegerAttribute(element, node, "offsetX");
+        copyOptionalIntegerAttribute(element, node, "offsetY");
+        copyOptionalIntegerAttribute(element, node, "offsetZ");
+        copyOptionalAttribute(element, node, "gtFormed");
         return node;
     }
 
@@ -690,7 +713,15 @@ public class SceneEditorMarkdownCodec {
         }
         builder.append("    <ImportStructure src=\"")
             .append(escapeAttribute(src))
-            .append("\" />\n");
+            .append('"');
+        appendSceneNodeAttribute(builder, sceneNode, "x");
+        appendSceneNodeAttribute(builder, sceneNode, "y");
+        appendSceneNodeAttribute(builder, sceneNode, "z");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetX");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetY");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetZ");
+        appendSceneNodeBooleanAttribute(builder, sceneNode, "gtFormed");
+        builder.append(" />\n");
     }
 
     private void appendImportStructureLibNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {
@@ -707,6 +738,10 @@ public class SceneEditorMarkdownCodec {
         appendSceneNodeAttribute(builder, sceneNode, "rotation");
         appendSceneNodeAttribute(builder, sceneNode, "flip");
         appendSceneNodeAttribute(builder, sceneNode, "channel");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetX");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetY");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetZ");
+        appendSceneNodeBooleanAttribute(builder, sceneNode, "gtFormed");
         builder.append(" />\n");
     }
 
@@ -762,6 +797,19 @@ public class SceneEditorMarkdownCodec {
             .append("=\"")
             .append(escapeAttribute(value))
             .append('"');
+    }
+
+    private void appendSceneNodeBooleanAttribute(StringBuilder builder, SceneEditorSceneNodeModel sceneNode,
+        String attribute) {
+        String value = sceneNode.getAttribute(attribute);
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+        builder.append(' ')
+            .append(attribute)
+            .append("={")
+            .append(value)
+            .append('}');
     }
 
     private void appendElement(StringBuilder builder, SceneEditorElementModel element) {

@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
+import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
@@ -326,9 +327,9 @@ public class GuideSceneStructureFingerprintResolver {
             return null;
         }
         try {
-            Path path = workingRoot.resolve(normalizedSource)
-                .normalize();
-            if (!Files.exists(path)) {
+            Path path = SceneEditorStructureCache.resolveSceneStructurePath(workingRoot, normalizedSource)
+                .orElse(null);
+            if (path == null || !Files.exists(path)) {
                 return null;
             }
             return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);

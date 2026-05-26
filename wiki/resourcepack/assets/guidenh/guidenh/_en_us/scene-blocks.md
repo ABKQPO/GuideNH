@@ -71,6 +71,7 @@ without adding a full annotation shape.
 | `meta` | no | Block metadata. If omitted, some blocks derive a default from `facing`. |
 | `facing` | no | `down`, `up`, `north`, `south`, `west`, or `east`. |
 | `nbt` | no | SNBT TileEntity compound. |
+| `gtFormed` | no | Whether a GT controller preview should auto-form. Defaults to `false`. |
 
 ```mdx
 <GameScene zoom={4} interactive={true}>
@@ -93,6 +94,46 @@ Transparent blocks are rendered in scene order and still participate in hover pi
     <Block id="minecraft:glass" z="2" />
     <Block id="minecraft:glass" x="1" z="2" />
 </GameScene>
+
+## GT Controller Preview Control
+
+When a GT controller should stay visibly unformed in preview, add `gtFormed={false}` to the tag
+that placed it. This works for single-block placement as well as multi-block placement tags such as
+`<PlaceBlock>`, `<ReplaceBlock>`, `<ImportStructure>`, and `<ImportStructureLib>`.
+
+`gtFormed` now defaults to `false`, so GT controllers stay unformed unless a scene explicitly asks
+to auto-form them.
+
+```mdx
+<Block id="gregtech:gt.blockmachines:15411" gtFormed={false} />
+<PlaceBlock id="gregtech:gt.blockmachines:15411" dx="3" dz="3" gtFormed={false} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:15411" gtFormed={false} />
+```
+
+Explicit formed preview:
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" gtFormed={true} />
+</GameScene>
+```
+
+StructureLib import with orientation and offsets:
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib
+    name="main"
+    controller="gregtech:gt.blockmachines:2741"
+    facing="north"
+    rotation="clockwise_180"
+    flip="none"
+    offsetX="2"
+    offsetY="1"
+    offsetZ="-3"
+  />
+</GameScene>
+```
 
 ## Redstone Circuit With Default Statistics
 

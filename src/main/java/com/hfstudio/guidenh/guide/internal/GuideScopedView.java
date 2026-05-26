@@ -11,6 +11,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -143,11 +144,13 @@ public class GuideScopedView implements Guide, MediaWikiListContextProvider {
             }
             long startNanos = System.nanoTime();
             mediaWikiListContext = createFallbackMediaWikiListContext();
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideScopedView] Built preview MediaWikiListContext in {} ms for guide {}",
-                    nanosToMillis(System.nanoTime() - startNanos),
-                    delegate.getId());
+            if (ModConfig.debug.enableDebugMode) {
+                FMLLog.getLogger()
+                    .info(
+                        "[GuideNH] [GuideScopedView] Built preview MediaWikiListContext in {} ms for guide {}",
+                        nanosToMillis(System.nanoTime() - startNanos),
+                        delegate.getId());
+            }
             return mediaWikiListContext;
         }
     }

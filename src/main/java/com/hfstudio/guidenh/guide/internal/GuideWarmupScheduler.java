@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.internal;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+import com.hfstudio.guidenh.config.ModConfig;
+
 import cpw.mods.fml.common.FMLLog;
 
 public class GuideWarmupScheduler {
@@ -29,7 +31,7 @@ public class GuideWarmupScheduler {
         highPriorityQueue.clear();
         normalQueue.clear();
         validationQueue.clear();
-        if (highPriorityCount > 0 || normalCount > 0 || validationCount > 0) {
+        if (ModConfig.debug.enableDebugMode && (highPriorityCount > 0 || normalCount > 0 || validationCount > 0)) {
             FMLLog.getLogger()
                 .info(
                     "[GuideNH] [GuideWarmupScheduler] Cleared queued warmup work highPriority={}, normal={}, validation={}",

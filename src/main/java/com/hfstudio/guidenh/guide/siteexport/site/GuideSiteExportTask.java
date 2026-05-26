@@ -1188,16 +1188,24 @@ public class GuideSiteExportTask {
         if (scene == null || state == null) {
             return;
         }
+        boolean structureSelectionChanged = false;
+        String structureToNotify = null;
         for (StructureStatePlan structurePlan : structurePlans) {
             StructureVariantState structureState = state.structures.get(structurePlan.bindingKey);
             if (structureState == null) {
                 continue;
             }
-            scene.setStructureLibCurrentTierSilently(structurePlan.structureName, structureState.tier);
-            for (String channelId : structurePlan.channelIds) {
-                int value = structureState.channels.containsKey(channelId) ? structureState.channels.get(channelId) : 0;
-                scene.setStructureLibChannelValueSilently(structurePlan.structureName, channelId, value);
+            boolean changed = scene.applyStructureLibPreviewSelection(
+                structurePlan.structureName,
+                new StructureLibPreviewSelection(structureState.tier, structureState.channels),
+                false);
+            if (changed) {
+                structureSelectionChanged = true;
+                structureToNotify = structurePlan.structureName;
             }
+        }
+        if (structureSelectionChanged) {
+            scene.notifyStructureLibSelectionChanged(structureToNotify);
         }
         if (scene.hasPonderData()) {
             if (state.exportState) {

@@ -19,6 +19,8 @@ import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompile
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.integration.gregtech.GregTechPreviewStateFlags;
+import com.hfstudio.guidenh.integration.gregtech.GregTechSceneOptions;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
@@ -66,6 +68,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         int offsetX = MdxAttrs.getInt(compiler, errorSink, el, "offsetX", 0);
         int offsetY = MdxAttrs.getInt(compiler, errorSink, el, "offsetY", 0);
         int offsetZ = MdxAttrs.getInt(compiler, errorSink, el, "offsetZ", 0);
+        boolean formed = GregTechSceneOptions.isFormed(compiler, errorSink, el);
         String structureName = MdxAttrs.getString(compiler, errorSink, el, "name", null);
         StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
         StructureLibPreviewSelection selectionOverride = binding.getPendingSelection() != null
@@ -106,6 +109,12 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
                 placedBlock.getMeta(),
                 placedBlock.getTileTag(),
                 placedBlock.getBlockId());
+            GregTechPreviewStateFlags.updateAfterPlacement(
+                level,
+                placedBlock.getX() + offsetX,
+                clampedY,
+                placedBlock.getZ() + offsetZ,
+                formed);
         }
     }
 

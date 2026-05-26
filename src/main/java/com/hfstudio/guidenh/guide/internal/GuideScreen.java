@@ -1506,15 +1506,17 @@ public class GuideScreen extends GuiContainer
                 scheduleGuideEditorNavigationRefresh();
             }
             updateToolbarButtonState();
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideScreen] Saved guide editor draft for {} in {} ms (write: {} ms, parse: {} ms, stage: {} ms, reusedParsed={})",
-                    currentAnchor.pageId(),
-                    (System.nanoTime() - startedAt) / 1_000_000L,
-                    saveFileNs / 1_000_000L,
-                    parseNs / 1_000_000L,
-                    stagePageApplyNs / 1_000_000L,
-                    reusedGuideEditorParsedDraft(sourcePack, language));
+            if (ModConfig.debug.enableDebugMode) {
+                FMLLog.getLogger()
+                    .info(
+                        "[GuideNH] [GuideScreen] Saved guide editor draft for {} in {} ms (write: {} ms, parse: {} ms, stage: {} ms, reusedParsed={})",
+                        currentAnchor.pageId(),
+                        (System.nanoTime() - startedAt) / 1_000_000L,
+                        saveFileNs / 1_000_000L,
+                        parseNs / 1_000_000L,
+                        stagePageApplyNs / 1_000_000L,
+                        reusedGuideEditorParsedDraft(sourcePack, language));
+            }
             return true;
         } catch (Throwable t) {
             FMLLog.warning("Failed to autosave guide editor page {}", currentAnchor.pageId(), t);

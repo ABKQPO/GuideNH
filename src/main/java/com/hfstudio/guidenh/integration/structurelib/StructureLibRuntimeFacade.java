@@ -6,7 +6,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -32,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.gtnewhorizon.structurelib.alignment.IAlignment;
-import com.gtnewhorizon.structurelib.alignment.IAlignmentProvider;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructableProvider;
@@ -462,9 +460,9 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 "Failed to create a controller tile for " + request.getController() + " in the preview world.");
         }
 
-        applyDefaultAlignment(controllerTile);
-        applyRequestedAlignment(controllerTile, request, warnings);
-        fakePlayer.configureForControllerFacing(resolveControllerFacing(controllerTile));
+        StructureLibOrientationHelper.applyDefaultAlignment(controllerTile);
+        StructureLibOrientationHelper.applyRequestedAlignment(controllerTile, request, warnings);
+        fakePlayer.configureForControllerFacing(StructureLibOrientationHelper.resolveControllerFacing(controllerTile));
         IConstructable constructable = resolveConstructable(controllerTile);
         if (constructable == null) {
             context.resetPreviewState();
@@ -576,66 +574,24 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return null;
     }
 
+    @Deprecated
     public static void applyRequestedAlignment(TileEntity controllerTile, StructureLibImportRequest request,
         List<String> warnings) {
-        if (request.getFacing() == null && request.getRotation() == null && request.getFlip() == null) {
-            return;
-        }
-        IAlignment alignment = resolveAlignment(controllerTile);
-        if (alignment == null) {
-            warnings
-                .add("Controller does not expose StructureLib alignment controls; preview used the default facing.");
-            return;
-        }
-
-        ForgeDirection direction = parseDirection(request.getFacing(), warnings);
-        Rotation rotation = parseRotation(request.getRotation(), warnings);
-        Flip flip = parseFlip(request.getFlip(), warnings);
-        ExtendedFacing requestedFacing = ExtendedFacing.of(direction, rotation, flip);
-        if (!alignment.checkedSetExtendedFacing(requestedFacing)) {
-            warnings.add(
-                "Requested StructureLib facing/rotation/flip is not valid for this controller; preview used the default alignment.");
-        }
+        StructureLibOrientationHelper.applyRequestedAlignment(controllerTile, request, warnings);
     }
 
+    @Deprecated
     public static void applyDefaultAlignment(TileEntity controllerTile) {
-        IAlignment alignment = resolveAlignment(controllerTile);
-        if (alignment == null) {
-            return;
-        }
-        ExtendedFacing currentFacing = alignment.getExtendedFacing();
-        if (currentFacing != null && alignment.getAlignmentLimits()
-            .isNewExtendedFacingValid(currentFacing)) {
-            return;
-        }
-        for (ExtendedFacing facing : ExtendedFacing.VALUES) {
-            if (alignment.checkedSetExtendedFacing(facing)) {
-                return;
-            }
-        }
+        StructureLibOrientationHelper.applyDefaultAlignment(controllerTile);
     }
 
     public static ForgeDirection resolveControllerFacing(TileEntity controllerTile) {
-        IAlignment alignment = resolveAlignment(controllerTile);
-        if (alignment != null) {
-            ExtendedFacing extendedFacing = alignment.getExtendedFacing();
-            if (extendedFacing != null && extendedFacing.getDirection() != null
-                && extendedFacing.getDirection() != ForgeDirection.UNKNOWN) {
-                return extendedFacing.getDirection();
-            }
-        }
-        return ForgeDirection.SOUTH;
+        return StructureLibOrientationHelper.resolveControllerFacing(controllerTile);
     }
 
     @Nullable
     public static IAlignment resolveAlignment(TileEntity controllerTile) {
-        if (controllerTile instanceof IAlignment alignment) {
-            return alignment;
-        }
-        if (controllerTile instanceof IAlignmentProvider provider) {
-            return provider.getAlignment();
-        }
-        return null;
+        return StructureLibOrientationHelper.resolveAlignment(controllerTile);
     }
 
     @Nullable
@@ -956,75 +912,23 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     public static ForgeDirection parseDirection(@Nullable String rawFacing, List<String> warnings) {
-        if (rawFacing == null || rawFacing.trim()
-            .isEmpty()) {
-            return ForgeDirection.NORTH;
-        }
-        String normalized = rawFacing.trim()
-            .toLowerCase(Locale.ROOT);
-        return switch (normalized) {
-            case "down" -> ForgeDirection.DOWN;
-            case "up" -> ForgeDirection.UP;
-            case "north" -> ForgeDirection.NORTH;
-            case "south" -> ForgeDirection.SOUTH;
-            case "west" -> ForgeDirection.WEST;
-            case "east" -> ForgeDirection.EAST;
-            default -> {
-                warnings.add("Unsupported StructureLib facing '" + rawFacing + "'; preview used north.");
-                yield ForgeDirection.NORTH;
-            }
-        };
+        return StructureLibOrientationHelper.parseDirection(rawFacing, warnings);
     }
 
     public static Rotation parseRotation(@Nullable String rawRotation, List<String> warnings) {
-        if (rawRotation == null || rawRotation.trim()
-            .isEmpty()) {
-            return Rotation.NORMAL;
-        }
-        Rotation rotation = Rotation.byName(normalizeRotation(rawRotation));
-        if (rotation != null) {
-            return rotation;
-        }
-        warnings.add("Unsupported StructureLib rotation '" + rawRotation + "'; preview used normal rotation.");
-        return Rotation.NORMAL;
+        return StructureLibOrientationHelper.parseRotation(rawRotation, warnings);
     }
 
     public static Flip parseFlip(@Nullable String rawFlip, List<String> warnings) {
-        if (rawFlip == null || rawFlip.trim()
-            .isEmpty()) {
-            return Flip.NONE;
-        }
-        Flip flip = Flip.byName(normalizeFlip(rawFlip));
-        if (flip != null) {
-            return flip;
-        }
-        warnings.add("Unsupported StructureLib flip '" + rawFlip + "'; preview used no flip.");
-        return Flip.NONE;
+        return StructureLibOrientationHelper.parseFlip(rawFlip, warnings);
     }
 
     public static String normalizeRotation(String rawRotation) {
-        String normalized = rawRotation.trim()
-            .toLowerCase(Locale.ROOT)
-            .replace('_', ' ')
-            .replace('-', ' ');
-        return switch (normalized) {
-            case "90", "clockwise 90" -> "clockwise";
-            case "180", "upside down 180" -> "upside down";
-            case "270", "counter clockwise 90", "counterclockwise 90" -> "counter clockwise";
-            default -> normalized;
-        };
+        return StructureLibOrientationHelper.normalizeRotation(rawRotation);
     }
 
     public static String normalizeFlip(String rawFlip) {
-        String normalized = rawFlip.trim()
-            .toLowerCase(Locale.ROOT)
-            .replace('_', ' ')
-            .replace('-', ' ');
-        return switch (normalized) {
-            case "mirror left right", "left right", "x" -> "horizontal";
-            case "mirror front back", "front back", "z", "y" -> "vertical";
-            default -> normalized;
-        };
+        return StructureLibOrientationHelper.normalizeFlip(rawFlip);
     }
 
     @Nullable
