@@ -325,7 +325,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
                 SyntaxElementType.TAG_START,
                 tagStart,
                 cursorIndex,
-                new TagStartContext(tagStart, cursorIndex, partial, parentTagName));
+                new TagStartContext(nameStart, cursorIndex, partial, parentTagName));
         }
 
         return null;

@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstPosition;
+import com.hfstudio.guidenh.libs.mdx.FactoryTag;
 import com.hfstudio.guidenh.libs.micromark.ListUtils;
 import com.hfstudio.guidenh.libs.micromark.Point;
 import com.hfstudio.guidenh.libs.micromark.Token;
@@ -226,6 +227,11 @@ public class MdxMdastExtension {
 
     public static void exitMdxJsxTag(MdastContext context, Token token) {
         var tag = getTag(context);
+        // A tag recovered at EOF cannot emit mdxJsxRecovery (consume(EOF) must
+        // be last), so the tokenizer sets this property directly on the token.
+        if (Boolean.TRUE.equals(token.get(FactoryTag.RECOVERED_AT_EOF))) {
+            tag.recovered = true;
+        }
         var stack = getStack(context);
         var tail = stack.isEmpty() ? null : stack.get(stack.size() - 1);
 

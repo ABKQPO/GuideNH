@@ -8,6 +8,8 @@ import com.hfstudio.guidenh.libs.micromark.CharUtil;
 import com.hfstudio.guidenh.libs.micromark.Construct;
 import com.hfstudio.guidenh.libs.micromark.Point;
 import com.hfstudio.guidenh.libs.micromark.State;
+import com.hfstudio.guidenh.libs.micromark.Token;
+import com.hfstudio.guidenh.libs.micromark.TokenProperty;
 import com.hfstudio.guidenh.libs.micromark.TokenizeContext;
 import com.hfstudio.guidenh.libs.micromark.Tokenizer;
 import com.hfstudio.guidenh.libs.micromark.Types;
@@ -18,6 +20,11 @@ import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 public class FactoryTag {
 
     private FactoryTag() {}
+
+    /** Marker set on a tag token when recovery happens at EOF (where a separate
+     * mdxJsxRecovery token cannot be emitted because consume(EOF) must be the
+     * last event). Read by {@code MdxMdastExtension.exitMdxJsxTag}. */
+    public static final TokenProperty<Boolean> RECOVERED_AT_EOF = new TokenProperty<>();
 
     public static final Construct lazyLineEnd;
 
@@ -44,11 +51,12 @@ public class FactoryTag {
             State returnState;
             Integer marker;
             Point startPoint;
+            Token tagToken;
 
             State start(int code) {
                 Assert.check(code == Codes.lessThan, "expected `<`");
                 startPoint = context.now();
-                effects.enter(tagType);
+                tagToken = effects.enter(tagType);
                 effects.enter(tagMarkerType);
                 effects.consume(code);
                 effects.exit(tagMarkerType);
@@ -570,6 +578,15 @@ public class FactoryTag {
                     effects.exit(openToken);
                 }
                 if (code == Codes.eof) {
+                    // Cannot emit mdxJsxRecovery here — consume(EOF) must be the
+                    // final event (see Tokenizer.Effects.consume). Mark the tag
+                    // token directly when the tag NAME is still in progress
+                    // (openTokens > 1 means we're inside a name-content token).
+                    // When openTokens <= 1 the name is complete and the cursor
+                    // is in the attribute area — don't flag as recovered.
+                    if (openTokens.length > 1) {
+                        tagToken.set(RECOVERED_AT_EOF, true);
+                    }
                     effects.exit(tagType);
                     effects.consume(code);
                 } else {
