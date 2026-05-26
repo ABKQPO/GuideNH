@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.client.gui.FontRenderer;
@@ -15,6 +16,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
+import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
@@ -690,6 +692,7 @@ public class SceneEditorMultilineTextArea {
 
         // 1. Try AST-based list continuation
         MdAstRoot root = MdAst.fromMarkdown(text, GuideMarkdownOptions.runtime());
+        MdAstToMdxConverter.convert(root, Collections.<String, com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition>emptyMap());
         MdAstListItem item = findEnclosingListItem(root, cursor);
         if (item != null) {
             int lineStart = findLineStart(text, cursor - 1);

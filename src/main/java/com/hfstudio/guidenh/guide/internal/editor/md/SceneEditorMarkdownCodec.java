@@ -16,6 +16,7 @@ import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
+import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
@@ -168,6 +169,7 @@ public class SceneEditorMarkdownCodec {
         MdAstRoot root;
         try {
             root = MdAst.fromMarkdown(parseSource, PARSE_OPTIONS);
+            MdAstToMdxConverter.convert(root, Collections.emptyMap());
         } catch (ParseException e) {
             return new SceneEditorMarkdownParseResult.SyntaxError(formatParseException(e));
         }

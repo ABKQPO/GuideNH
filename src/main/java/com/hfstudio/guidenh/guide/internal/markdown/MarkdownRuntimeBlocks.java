@@ -9,17 +9,16 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstBlockquote;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstInlineCode;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public final class MarkdownRuntimeBlocks {
 
     private MarkdownRuntimeBlocks() {}
 
-    public static @Nullable GithubAlertBlock extractGithubAlert(MdAstBlockquote blockquote) {
+    public static @Nullable GithubAlertBlock extractGithubAlert(MdxJsxElementFields blockquote) {
         BlockquoteDirective directive = parseBlockquoteDirective(blockquote);
         if (directive == null || directive.alertType() == null) {
             return null;
@@ -27,15 +26,14 @@ public final class MarkdownRuntimeBlocks {
         return new GithubAlertBlock(directive.alertType(), directive.children(), directive.remainingText());
     }
 
-    public static @Nullable BlockquoteDirective parseBlockquoteDirective(MdAstBlockquote blockquote) {
+    public static @Nullable BlockquoteDirective parseBlockquoteDirective(MdxJsxElementFields blockquote) {
         FirstParagraphText firstParagraph = findFirstParagraphText(blockquote);
         if (firstParagraph == null) {
             return null;
         }
 
         String firstText = firstParagraph.text();
-        if (firstText == null || firstText.trim()
-            .isEmpty()) {
+        if (firstText == null || firstText.trim().isEmpty()) {
             return null;
         }
 
@@ -58,8 +56,7 @@ public final class MarkdownRuntimeBlocks {
             return null;
         }
 
-        String expression = trimmed.substring(2, directiveEnd)
-            .trim();
+        String expression = trimmed.substring(2, directiveEnd).trim();
         String title = null;
         ColorValue color = null;
         QuoteIconSpec icon = null;
@@ -68,11 +65,8 @@ public final class MarkdownRuntimeBlocks {
             if (equalsIndex <= 0 || equalsIndex >= token.length() - 1) {
                 continue;
             }
-            String key = token.substring(0, equalsIndex)
-                .trim();
-            String value = stripOptionalQuotes(
-                token.substring(equalsIndex + 1)
-                    .trim());
+            String key = token.substring(0, equalsIndex).trim();
+            String value = stripOptionalQuotes(token.substring(equalsIndex + 1).trim());
             if (value.isEmpty()) {
                 continue;
             }
@@ -103,31 +97,42 @@ public final class MarkdownRuntimeBlocks {
             blockquote.children());
     }
 
-    private static @Nullable FirstParagraphText findFirstParagraphText(MdAstBlockquote blockquote) {
-        for (MdAstAnyContent child : blockquote.children()) {
-            if (child instanceof MdAstParagraph paragraph) {
-                String text = getLeadingParagraphText(paragraph);
-                if (text != null && !text.trim()
-                    .isEmpty()) {
-                    return new FirstParagraphText(paragraph, text);
+    @Nullable
+    private static FirstParagraphText findFirstParagraphText(MdxJsxElementFields blockquote) {
+        for (Object child : blockquote.children()) {
+            if (child instanceof MdxJsxFlowElement && "p".equals(((MdxJsxFlowElement) child).name())) {
+                MdxJsxFlowElement p = (MdxJsxFlowElement) child;
+                String text = getLeadingParagraphText(p);
+                if (text != null && !text.trim().isEmpty()) {
+                    return new FirstParagraphText(p, text);
                 }
-            } else if (child instanceof MdAstText text && !text.value.trim()
-                .isEmpty()) {
+            } else if (child instanceof MdAstText) {
+                MdAstText text = (MdAstText) child;
+                if (!text.value.trim().isEmpty()) {
                     return new FirstParagraphText(null, text.value);
                 }
+            }
         }
         return null;
     }
 
-    private static @Nullable String getLeadingParagraphText(MdAstParagraph paragraph) {
-        for (MdAstAnyContent child : paragraph.children()) {
-            if (child instanceof MdAstText text && !text.value.trim()
-                .isEmpty()) {
-                return text.value;
+    @Nullable
+    private static String getLeadingParagraphText(MdxJsxFlowElement paragraph) {
+        for (Object child : paragraph.children()) {
+            if (child instanceof MdAstText) {
+                MdAstText text = (MdAstText) child;
+                if (!text.value.trim().isEmpty()) {
+                    return text.value;
+                }
             }
-            if (child instanceof MdAstInlineCode code && !code.value.trim()
-                .isEmpty()) {
-                return code.value;
+            if (child instanceof MdxJsxFlowElement && "code".equals(((MdxJsxFlowElement) child).name())) {
+                // Extract text from <code> element
+                MdxJsxFlowElement code = (MdxJsxFlowElement) child;
+                for (Object codeChild : code.children()) {
+                    if (codeChild instanceof MdAstText) {
+                        return ((MdAstText) codeChild).value;
+                    }
+                }
             }
         }
         return null;
@@ -187,7 +192,8 @@ public final class MarkdownRuntimeBlocks {
         return value;
     }
 
-    private static @Nullable ColorValue parseColor(String value) {
+    @Nullable
+    private static ColorValue parseColor(String value) {
         String normalized = value != null ? value.trim() : "";
         if (normalized.isEmpty() || !normalized.startsWith("#")) {
             return null;
@@ -208,7 +214,7 @@ public final class MarkdownRuntimeBlocks {
     @Desugar
     public record BlockquoteDirective(@Nullable GithubAlertType alertType, ColorValue accentColor,
         @Nullable String title, @Nullable QuoteIconSpec icon, String remainingText,
-        @Nullable MdAstParagraph firstParagraph, List<? extends MdAstAnyContent> children) {}
+        @Nullable MdxJsxFlowElement firstParagraph, List<? extends MdAstAnyContent> children) {}
 
     @Desugar
     public record QuoteIconSpec(QuoteIconKind kind, String value) {}
@@ -220,7 +226,7 @@ public final class MarkdownRuntimeBlocks {
     }
 
     @Desugar
-    private record FirstParagraphText(@Nullable MdAstParagraph paragraph, String text) {}
+    private record FirstParagraphText(@Nullable MdxJsxFlowElement paragraph, String text) {}
 
     @Desugar
     public record GithubAlertBlock(GithubAlertType type, List<? extends MdAstAnyContent> children,

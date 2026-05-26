@@ -41,6 +41,26 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
         children.add(block);
     }
 
+    @Override
+    public void replaceChild(LytNode oldChild, LytNode newChild) {
+        if (!(oldChild instanceof LytBlock)) return;
+        if (!(newChild instanceof LytBlock)) return;
+        LytBlock oldBlock = (LytBlock) oldChild;
+        LytBlock newBlock = (LytBlock) newChild;
+        int idx = children.indexOf(oldBlock);
+        if (idx < 0) return;
+        oldBlock.parent = null;
+        if (newBlock.parent != null) {
+            newBlock.parent.removeChild(newBlock);
+        }
+        newBlock.parent = this;
+        children.set(idx, newBlock);
+        LytDocument doc = getDocument();
+        if (doc != null) {
+            doc.invalidateLayout();
+        }
+    }
+
     public void clearContent() {
         for (var child : children) {
             child.parent = null;

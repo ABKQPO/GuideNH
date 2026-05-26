@@ -7,8 +7,8 @@ import java.util.regex.Pattern;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public final class MarkdownListSemantics {
@@ -18,24 +18,25 @@ public final class MarkdownListSemantics {
     private MarkdownListSemantics() {}
 
     public static @Nullable TaskMarker extractTaskMarker(List<? extends MdAstAnyContent> children) {
-        if (children.size() != 1 || !(children.get(0) instanceof MdAstParagraph paragraph)) {
+        if (children.size() != 1) {
             return null;
         }
-        if (paragraph.children()
-            .isEmpty()) {
-            return null;
+        MdAstAnyContent firstChild = children.get(0);
+        // Post-conversion: <p> element wrapping the task text
+        if (firstChild instanceof MdxJsxFlowElement && "p".equals(((MdxJsxFlowElement) firstChild).name())) {
+            MdxJsxFlowElement p = (MdxJsxFlowElement) firstChild;
+            if (p.children().isEmpty()) {
+                return null;
+            }
+            if (p.children().get(0) instanceof MdAstText) {
+                MdAstText text = (MdAstText) p.children().get(0);
+                Matcher matcher = TASK_PATTERN.matcher(text.value);
+                if (matcher.matches()) {
+                    return new TaskMarker(!" ".equals(matcher.group(1)), matcher.group(2));
+                }
+            }
         }
-        if (!(paragraph.children()
-            .get(0) instanceof MdAstText text)) {
-            return null;
-        }
-
-        Matcher matcher = TASK_PATTERN.matcher(text.value);
-        if (!matcher.matches()) {
-            return null;
-        }
-
-        return new TaskMarker(!" ".equals(matcher.group(1)), matcher.group(2));
+        return null;
     }
 
     @Desugar

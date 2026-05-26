@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
@@ -21,8 +22,22 @@ public class GuideMarkdownDefinitions {
     public static Map<String, MdAstDefinition> collect(List<? extends MdAstAnyContent> children) {
         Map<String, MdAstDefinition> definitions = new HashMap<>();
         for (MdAstAnyContent child : children) {
-            if (child instanceof MdAstDefinition definition && definition.identifier != null) {
+            // Pre-conversion: raw MdAstDefinition
+            if (child instanceof MdAstDefinition && ((MdAstDefinition) child).identifier != null) {
+                MdAstDefinition definition = (MdAstDefinition) child;
                 definitions.putIfAbsent(definition.identifier, definition);
+            }
+            // Post-conversion: <definition> element
+            if (child instanceof MdxJsxFlowElement && "definition".equals(((MdxJsxFlowElement) child).name())) {
+                MdxJsxFlowElement el = (MdxJsxFlowElement) child;
+                String identifier = el.getAttributeString("identifier", null);
+                if (identifier != null) {
+                    MdAstDefinition def = new MdAstDefinition();
+                    def.identifier = identifier;
+                    def.url = el.getAttributeString("url", "");
+                    def.title = el.getAttributeString("title", "");
+                    definitions.putIfAbsent(identifier, def);
+                }
             }
         }
         return definitions;

@@ -75,6 +75,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeCompiler;
 import com.hfstudio.guidenh.guide.internal.markdown.FootnotePreprocessor;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownHtmlRuntimeNormalizer;
+import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLiteralAutolink;
@@ -244,6 +245,7 @@ public class PageCompiler {
         long markdownParseNs = 0L;
         long latexRestoreNs = 0L;
         long htmlNormalizeNs = 0L;
+        long mdAstConvertNs = 0L;
         try {
             stageStartedAt = System.nanoTime();
             astRoot = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
@@ -256,6 +258,11 @@ public class PageCompiler {
             stageStartedAt = System.nanoTime();
             MarkdownHtmlRuntimeNormalizer.normalize(astRoot);
             htmlNormalizeNs = System.nanoTime() - stageStartedAt;
+
+            stageStartedAt = System.nanoTime();
+            Map<String, MdAstDefinition> definitions = GuideMarkdownDefinitions.collect(astRoot);
+            MdAstToMdxConverter.convert(astRoot, definitions);
+            mdAstConvertNs = System.nanoTime() - stageStartedAt;
         } catch (RuntimeException t) {
             if (t instanceof ParseException e) {
                 markdownParseNs = System.nanoTime() - stageStartedAt;
@@ -280,7 +287,7 @@ public class PageCompiler {
         long totalNs = System.nanoTime() - parseStartedAt;
         FMLLog.getLogger()
             .info(
-                "[GuideNH] [PageCompiler] Parsed page {} lang={} totalNs={} normalizeNs={} footnoteNs={} sourceFrontmatterNs={} latexMaskNs={} commentMaskNs={} markdownParseNs={} latexRestoreNs={} htmlNormalizeNs={} astFrontmatterNs={} parseFailed={}",
+                "[GuideNH] [PageCompiler] Parsed page {} lang={} totalNs={} normalizeNs={} footnoteNs={} sourceFrontmatterNs={} latexMaskNs={} commentMaskNs={} markdownParseNs={} latexRestoreNs={} htmlNormalizeNs={} mdAstConvertNs={} astFrontmatterNs={} parseFailed={}",
                 id,
                 language,
                 totalNs,
@@ -292,6 +299,7 @@ public class PageCompiler {
                 markdownParseNs,
                 latexRestoreNs,
                 htmlNormalizeNs,
+                mdAstConvertNs,
                 astFrontmatterNs,
                 parseFailureMessage != null);
 
@@ -544,9 +552,13 @@ public class PageCompiler {
 
     public void compileInlineFragment(Collection<? extends MdAstAnyContent> children, LytFlowParent layoutParent) {
         for (MdAstAnyContent child : children) {
-            if (child instanceof MdAstParagraph paragraph) {
-                compileFlowContext(paragraph, layoutParent);
-            } else if (child instanceof MdAstParent<?>nestedParent && !(child instanceof MdAstPhrasingContent)) {
+            if (child instanceof MdxJsxFlowElement el && "p".equals(el.name())) {
+                compileFlowContext(el, layoutParent);
+            } else if (child instanceof MdxJsxFlowElement el) {
+                for (var nestedChild : el.children()) {
+                    compileFlowContent(layoutParent, nestedChild);
+                }
+            } else if (child instanceof MdAstParent<?> nestedParent) {
                 for (var nestedChild : nestedParent.children()) {
                     compileFlowContent(layoutParent, nestedChild);
                 }
@@ -579,64 +591,38 @@ public class PageCompiler {
     }
 
     public void compileBlockContext(List<? extends MdAstAnyContent> children, LytBlockContainer layoutParent) {
-        LytBlock previousLayoutChild = null;
         for (int i = 0; i < children.size(); i++) {
             var child = children.get(i);
-            LytBlock layoutChild;
-            if (child instanceof MdAstThematicBreak) {
-                layoutChild = new LytThematicBreak();
-            } else if (child instanceof MdAstList astList) {
-                layoutChild = compileList(astList);
-            } else if (child instanceof MdAstCode astCode) {
-                layoutChild = compileCodeBlock(astCode);
-            } else if (child instanceof MdAstHeading astHeading) {
-                var heading = new LytHeading();
-                heading.setDepth(astHeading.depth);
-                compileFlowContext(astHeading, heading);
-                layoutChild = heading;
-            } else if (child instanceof MdAstBlockquote astBlockquote) {
-                layoutChild = compileBlockquote(astBlockquote);
-            } else if (child instanceof MdAstParagraph astParagraph) {
-                var paragraph = new LytParagraph();
-                compileFlowContext(astParagraph, paragraph);
-                paragraph.setMarginTop(DEFAULT_ELEMENT_SPACING);
-                paragraph.setMarginBottom(DEFAULT_ELEMENT_SPACING);
-                layoutChild = paragraph;
-            } else if (child instanceof MdAstYamlFrontmatter) {
-                // This is handled by compile directly
-                layoutChild = null;
-            } else if (child instanceof MdAstDefinition) {
-                layoutChild = null;
-            } else if (child instanceof GfmTable astTable) {
-                MarkdownTableMeta meta = extractMarkdownTableMeta(children, i + 1);
-                layoutChild = compileTable(astTable, meta.widthHints());
-                if (meta.consumeChildCount() > 0) {
-                    i += meta.consumeChildCount();
-                }
-            } else if (child instanceof MdAstHTML astHtml) {
-                var paragraph = new LytParagraph();
-                compileHtmlLiteral(paragraph, astHtml.value);
-                layoutChild = paragraph;
-            } else if (child instanceof MdxJsxFlowElement el) {
+            LytBlock layoutChild = null;
+
+            if (child instanceof MdxJsxFlowElement el) {
                 var compiler = tagCompilers.get(el.name());
                 if (compiler == null) {
-                    layoutChild = createErrorBlock("Unhandled MDX element in block context", child);
+                    layoutChild = createErrorBlock(
+                        "Unhandled MDX element in block context: " + el.name(), child);
                 } else {
                     layoutChild = null;
                     compiler.compileBlockContext(this, layoutParent, el);
                 }
-            } else if (child instanceof MdAstPhrasingContent phrasingContent) {
-                // Wrap in a paragraph with no margins, but try appending to an existing paragraph before this
-                if (previousLayoutChild instanceof LytParagraph paragraph) {
-                    compileFlowContent(paragraph, phrasingContent);
-                    continue;
-                } else {
-                    var paragraph = new LytParagraph();
-                    compileFlowContent(paragraph, phrasingContent);
-                    layoutChild = paragraph;
+            } else if (child instanceof MdxJsxTextElement el) {
+                // Inline element at block level — wrap in a paragraph
+                var paragraph = new LytParagraph();
+                var flowCompiler = tagCompilers.get(el.name());
+                if (flowCompiler != null) {
+                    flowCompiler.compileFlowContext(this, paragraph, el);
                 }
+                layoutChild = paragraph;
+            } else if (child instanceof MdAstText text) {
+                var paragraph = new LytParagraph();
+                var flowText = new LytFlowText();
+                flowText.setText(text.value);
+                paragraph.append(flowText);
+                layoutChild = paragraph;
+            } else if (child instanceof MdAstDefinition) {
+                layoutChild = null; // handled via <definition> element
             } else {
-                layoutChild = createErrorBlock("Unhandled Markdown node in block context", child);
+                layoutChild = createErrorBlock(
+                    "Unhandled node in block context: " + child.getClass().getSimpleName(), child);
             }
 
             if (layoutChild != null) {
@@ -646,7 +632,6 @@ public class PageCompiler {
                 }
                 layoutParent.append(layoutChild);
             }
-            previousLayoutChild = layoutChild;
         }
     }
 
@@ -678,32 +663,9 @@ public class PageCompiler {
         return list;
     }
 
+    @Deprecated
     private LytBlock compileBlockquote(MdAstBlockquote astBlockquote) {
-        BlockquoteDirective directive = MarkdownRuntimeBlocks.parseBlockquoteDirective(astBlockquote);
-        if (directive != null) {
-            if (directive.alertType() != null) {
-                var alertBox = new LytAlertBox();
-                alertBox.setTitle(
-                    directive.alertType()
-                        .displayText(),
-                    directive.alertType());
-                alertBox.setMarginTop(DEFAULT_ELEMENT_SPACING);
-                alertBox.setMarginBottom(DEFAULT_ELEMENT_SPACING);
-                compileDirectiveBody(directive, alertBox);
-                normalizeBlockMargins(alertBox);
-                return wrapFloatAwareIfNeeded(alertBox);
-            }
-
-            var quoteBox = new LytQuoteBox();
-            quoteBox.setQuoteStyle(directive.accentColor(), directive.title(), buildQuoteIcon(directive.icon()));
-            quoteBox.setMarginTop(DEFAULT_ELEMENT_SPACING);
-            quoteBox.setMarginBottom(DEFAULT_ELEMENT_SPACING);
-            compileDirectiveBody(directive, quoteBox);
-            normalizeBlockMargins(quoteBox);
-            shiftFirstParagraphDown(quoteBox, 1);
-            return wrapFloatAwareIfNeeded(quoteBox);
-        }
-
+        // Dead code path — BlockquoteCompiler handles <blockquote> now
         var blockquote = new LytVBox();
         blockquote.setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);
         blockquote.setPadding(5);
@@ -712,8 +674,6 @@ public class PageCompiler {
         blockquote.setMarginTop(DEFAULT_ELEMENT_SPACING);
         blockquote.setMarginBottom(DEFAULT_ELEMENT_SPACING);
         compileBlockContext(astBlockquote, blockquote);
-        normalizeBlockMargins(blockquote);
-        shiftFirstParagraphDown(blockquote, 1);
         return wrapFloatAwareIfNeeded(blockquote);
     }
 
@@ -754,25 +714,6 @@ public class PageCompiler {
                 .get(i);
             compileBlockContext(Collections.singletonList(child), listItem);
         }
-    }
-
-    private void compileDirectiveBody(BlockquoteDirective directive, LytBlockContainer parent) {
-        List<? extends MdAstAnyContent> children = directive.children();
-        if (!children.isEmpty() && directive.firstParagraph() != null
-            && children.get(0) == directive.firstParagraph()) {
-            MdAstParagraph firstParagraph = cloneParagraphWithLeadingTextOverride(
-                directive.firstParagraph(),
-                directive.remainingText());
-            if (!firstParagraph.children()
-                .isEmpty()) {
-                compileParagraphBlock(firstParagraph, parent);
-            }
-            for (int i = 1; i < children.size(); i++) {
-                compileBlockContext(Collections.singletonList(children.get(i)), parent);
-            }
-            return;
-        }
-        compileBlockContext(children, parent);
     }
 
     private MdAstParagraph cloneParagraphWithLeadingTextOverride(MdAstParagraph original, String leadingText) {
@@ -960,7 +901,8 @@ public class PageCompiler {
     }
 
     private void compileFlowContent(LytFlowParent layoutParent, MdAstAnyContent content) {
-        LytFlowContent layoutChild;
+        LytFlowContent layoutChild = null;
+
         if (content instanceof MdAstText astText) {
             if (compileActionLinks(layoutParent, astText.value)) {
                 layoutChild = null;
@@ -973,74 +915,18 @@ public class PageCompiler {
                 text.setText(astText.value);
                 layoutChild = text;
             }
-        } else if (content instanceof MdAstInlineCode astCode) {
-            var text = new LytFlowText();
-            text.setText(astCode.value);
-            text.modifyStyle(
-                style -> style.italic(true)
-                    .whiteSpace(WhiteSpaceMode.PRE));
-            layoutChild = text;
-        } else if (content instanceof MdAstStrong astStrong) {
-            var span = new LytFlowSpan();
-            span.modifyStyle(style -> style.bold(true));
-            compileFlowContext(astStrong, span);
-            layoutChild = span;
-        } else if (content instanceof MdAstEmphasis astEmphasis) {
-            var span = new LytFlowSpan();
-            span.modifyStyle(style -> style.italic(true));
-            compileFlowContext(astEmphasis, span);
-            layoutChild = span;
-        } else if (content instanceof MdAstDelete astEmphasis) {
-            var span = new LytFlowSpan();
-            span.modifyStyle(style -> style.strikethrough(true));
-            compileFlowContext(astEmphasis, span);
-            layoutChild = span;
-        } else if (content instanceof MdAstUnderline astUnderline) {
-            var span = new LytFlowSpan();
-            span.modifyStyle(style -> style.underlined(true));
-            compileFlowContext(astUnderline, span);
-            layoutChild = span;
-        } else if (content instanceof MdAstWavyUnderline astWavy) {
-            var span = new LytFlowSpan();
-            span.modifyStyle(style -> style.wavyUnderline(true));
-            compileFlowContext(astWavy, span);
-            layoutChild = span;
-        } else if (content instanceof MdAstDottedUnderline astDotted) {
-            var span = new LytFlowSpan();
-            span.modifyStyle(style -> style.dottedUnderline(true));
-            compileFlowContext(astDotted, span);
-            layoutChild = span;
-        } else if (content instanceof MdAstMark astMark) {
-            var span = new LytFlowSpan();
-            span.modifyStyle(style -> style.backgroundColor(new ConstantColor(DEFAULT_MARK_BACKGROUND_COLOR)));
-            compileFlowContext(astMark, span);
-            layoutChild = span;
-        } else if (content instanceof MdAstBreak) {
-            layoutChild = new LytFlowBreak();
-        } else if (content instanceof MdAstLink astLink) {
-            layoutChild = compileLink(astLink, layoutParent);
-        } else if (content instanceof MdAstLinkReference astLinkReference) {
-            layoutChild = compileLinkReference(astLinkReference, layoutParent);
-        } else if (content instanceof MdAstImage astImage) {
-            var inlineBlock = new LytFlowInlineBlock();
-            inlineBlock.setBlock(compileImage(astImage));
-            layoutChild = inlineBlock;
-        } else if (content instanceof MdAstImageReference astImageReference) {
-            var inlineBlock = new LytFlowInlineBlock();
-            inlineBlock.setBlock(compileImageReference(astImageReference));
-            layoutChild = inlineBlock;
-        } else if (content instanceof MdAstHTML astHtml) {
-            layoutChild = compileHtmlInline(astHtml.value);
         } else if (content instanceof MdxJsxTextElement el) {
             var compiler = tagCompilers.get(el.name());
             if (compiler == null) {
-                layoutChild = createErrorFlowContent("Unhandled MDX element in flow context", content);
+                layoutChild = createErrorFlowContent(
+                    "Unhandled MDX element in flow context: " + el.name(), content);
             } else {
                 layoutChild = null;
                 compiler.compileFlowContext(this, layoutParent, el);
             }
         } else {
-            layoutChild = createErrorFlowContent("Unhandled Markdown node in flow context", content);
+            layoutChild = createErrorFlowContent(
+                "Unhandled node in flow context: " + content.getClass().getSimpleName(), content);
         }
 
         if (layoutChild != null) {
