@@ -15,6 +15,10 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.hfstudio.guidenh.GuideNH;
+import com.hfstudio.guidenh.bridge.preview.ItemPreviewCache;
+import com.hfstudio.guidenh.bridge.preview.ItemPreviewSearchService;
+import com.hfstudio.guidenh.bridge.preview.ItemPreviewService;
+import com.hfstudio.guidenh.bridge.preview.RuntimePreviewFacade;
 import com.hfstudio.guidenh.bridge.protocol.BridgeMessageCodec;
 import com.hfstudio.guidenh.bridge.protocol.BridgeProtocolLimits;
 import com.hfstudio.guidenh.bridge.security.BridgeTokenAuthenticator;
@@ -29,6 +33,7 @@ public class GuideNhRuntimeBridgeServer {
     private final BridgeMessageCodec messageCodec;
     private final BridgeTokenAuthenticator authenticator;
     private final SemanticProviderRegistry registry = new SemanticProviderRegistry();
+    private final RuntimePreviewFacade previewFacade;
     private final Set<RuntimeBridgeConnection> connections = Collections.synchronizedSet(new HashSet<>());
     private final ExecutorService executor = Executors.newCachedThreadPool(new RuntimeBridgeThreadFactory());
     private final AtomicBoolean running = new AtomicBoolean();
@@ -45,6 +50,10 @@ public class GuideNhRuntimeBridgeServer {
         this.messageCodec = new BridgeMessageCodec(limits);
         this.authenticator = new BridgeTokenAuthenticator(settings.getToken());
         RuntimeSemanticProviders.registerBaseline(registry);
+        ItemPreviewCache previewCache = new ItemPreviewCache(256);
+        ItemPreviewSearchService previewSearchService = new ItemPreviewSearchService();
+        ItemPreviewService previewService = new ItemPreviewService(previewCache, limits);
+        this.previewFacade = new RuntimePreviewFacade(previewSearchService, previewService);
     }
 
     public void start() {
@@ -104,6 +113,7 @@ public class GuideNhRuntimeBridgeServer {
                     messageCodec,
                     authenticator,
                     registry,
+                    previewFacade,
                     limits,
                     this::handleClosedConnection);
                 connections.add(connection);

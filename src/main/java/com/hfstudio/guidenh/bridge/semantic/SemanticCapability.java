@@ -13,6 +13,7 @@ public class SemanticCapability {
     public static final String QUESTS = "quests";
     public static final String STRUCTURELIB = "structurelib";
     public static final String PAGES = "pages";
+    public static final String ENTITIES = "entities";
 
     public SemanticCapability() {}
 }

@@ -8,6 +8,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import com.hfstudio.guidenh.GuideNH;
+import com.hfstudio.guidenh.bridge.preview.PreviewQueryFactory;
+import com.hfstudio.guidenh.bridge.preview.PreviewResolveQuery;
+import com.hfstudio.guidenh.bridge.preview.PreviewResolveResult;
+import com.hfstudio.guidenh.bridge.preview.PreviewSearchQuery;
+import com.hfstudio.guidenh.bridge.preview.PreviewSearchResult;
+import com.hfstudio.guidenh.bridge.preview.RuntimePreviewFacade;
 import com.hfstudio.guidenh.bridge.protocol.BridgeEnvelope;
 import com.hfstudio.guidenh.bridge.protocol.BridgeMessageCodec;
 import com.hfstudio.guidenh.bridge.protocol.BridgeProtocolLimits;
@@ -26,24 +32,28 @@ public class RuntimeBridgeConnection implements Runnable {
     private final WebSocketFrameCodec frameCodec;
     private final BridgeTokenAuthenticator authenticator;
     private final SemanticProviderRegistry registry;
+    private final RuntimePreviewFacade previewFacade;
     private final BridgeProtocolLimits limits;
     private final Consumer<RuntimeBridgeConnection> closeCallback;
     private final AtomicBoolean closed = new AtomicBoolean();
     private final BridgeResponseFactory responseFactory = new BridgeResponseFactory();
     private final SemanticQueryFactory queryFactory;
+    private final PreviewQueryFactory previewQueryFactory;
     private boolean authenticated;
 
     public RuntimeBridgeConnection(Socket socket, BridgeMessageCodec messageCodec,
-        BridgeTokenAuthenticator authenticator, SemanticProviderRegistry registry, BridgeProtocolLimits limits,
-        Consumer<RuntimeBridgeConnection> closeCallback) {
+        BridgeTokenAuthenticator authenticator, SemanticProviderRegistry registry, RuntimePreviewFacade previewFacade,
+        BridgeProtocolLimits limits, Consumer<RuntimeBridgeConnection> closeCallback) {
         this.socket = socket;
         this.messageCodec = messageCodec;
         this.frameCodec = new WebSocketFrameCodec(limits.getMaxMessageBytes());
         this.authenticator = authenticator;
         this.registry = registry;
+        this.previewFacade = previewFacade;
         this.limits = limits;
         this.closeCallback = closeCallback;
         this.queryFactory = new SemanticQueryFactory(limits);
+        this.previewQueryFactory = new PreviewQueryFactory(limits);
     }
 
     @Override
@@ -124,6 +134,15 @@ public class RuntimeBridgeConnection implements Runnable {
         if ("semantic.query".equals(envelope.getMethod())) {
             return handleSemanticQuery(envelope);
         }
+        if ("document.validate".equals(envelope.getMethod())) {
+            return handleDocumentValidate(envelope);
+        }
+        if ("preview.search".equals(envelope.getMethod())) {
+            return handlePreviewSearch(envelope);
+        }
+        if ("preview.resolve".equals(envelope.getMethod())) {
+            return handlePreviewResolve(envelope);
+        }
         if ("capabilities".equals(envelope.getMethod())) {
             return responseFactory.capabilities(envelope.getId(), registry.getCapabilities());
         }
@@ -159,6 +178,46 @@ public class RuntimeBridgeConnection implements Runnable {
         } catch (IllegalArgumentException e) {
             return responseFactory
                 .error(envelope.getId(), envelope.getMethod(), "invalid_capability", e.getMessage(), false);
+        }
+    }
+
+    private BridgeEnvelope handleDocumentValidate(BridgeEnvelope envelope) {
+        return responseFactory.documentValidate(envelope.getId(), envelope.getMethod());
+    }
+
+    private BridgeEnvelope handlePreviewSearch(BridgeEnvelope envelope) {
+        String capability = previewQueryFactory.readCapability(envelope.getPayload());
+        if (capability.isEmpty()) {
+            return responseFactory
+                .error(envelope.getId(), envelope.getMethod(), "invalid_capability", "Capability is required", false);
+        }
+        try {
+            PreviewSearchQuery query = previewQueryFactory.createSearchQuery(envelope.getPayload());
+            PreviewSearchResult result = previewFacade.search(query);
+            return responseFactory.previewSearch(envelope.getId(), result);
+        } catch (IllegalArgumentException error) {
+            return responseFactory
+                .error(envelope.getId(), envelope.getMethod(), "invalid_preview_query", error.getMessage(), false);
+        }
+    }
+
+    private BridgeEnvelope handlePreviewResolve(BridgeEnvelope envelope) {
+        String capability = previewQueryFactory.readCapability(envelope.getPayload());
+        if (capability.isEmpty()) {
+            return responseFactory
+                .error(envelope.getId(), envelope.getMethod(), "invalid_capability", "Capability is required", false);
+        }
+        try {
+            PreviewResolveQuery query = previewQueryFactory.createResolveQuery(envelope.getPayload());
+            PreviewResolveResult result = previewFacade.resolve(query);
+            responseFactory.validatePreviewResultSize(result, limits);
+            return responseFactory.previewResolve(envelope.getId(), result);
+        } catch (IllegalArgumentException error) {
+            return responseFactory
+                .error(envelope.getId(), envelope.getMethod(), "invalid_preview_query", error.getMessage(), false);
+        } catch (IllegalStateException error) {
+            return responseFactory
+                .error(envelope.getId(), envelope.getMethod(), "preview_render_failed", error.getMessage(), true);
         }
     }
 
