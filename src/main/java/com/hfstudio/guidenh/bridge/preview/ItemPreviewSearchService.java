@@ -18,6 +18,7 @@ public class ItemPreviewSearchService {
         List<Map<String, String>> semanticEntries = new ArrayList<>();
         RuntimeSemanticSupport.addItemEntries(semanticEntries);
         RuntimeSemanticSupport.addBlockOnlyEntries(semanticEntries);
+        Map<String, Integer> familySizes = buildFamilySizes(semanticEntries);
 
         String normalizedPrefix = normalize(query.getPrefix());
         List<RankedPreviewSearchEntry> rankedEntries = new ArrayList<>();
@@ -32,14 +33,26 @@ public class ItemPreviewSearchService {
             if (score == Integer.MAX_VALUE) {
                 continue;
             }
+            String path = extractRawPath(id);
+            String compactPrefix = compact(normalizedPrefix);
             rankedEntries.add(
                 new RankedPreviewSearchEntry(
                     score,
+                    computeStructuredMatchSpecificity(path, compactPrefix, score),
+                    resolveFamilySize(familySizes, id),
                     new PreviewSearchEntry(id, label, detail, buildPreviewKey(id), describeMatchKind(score))));
         }
 
         rankedEntries.sort(
             Comparator.comparingInt(RankedPreviewSearchEntry::getScore)
+                .thenComparingInt(
+                    entry -> prefersLargerFamilyForScore(entry.getScore()) ? -entry.getFamilySize() : Integer.MAX_VALUE)
+                .thenComparingInt(
+                    entry -> prefersHigherStructuredSpecificityForScore(entry.getScore())
+                        ? -entry.getStructuredSpecificity()
+                        : Integer.MAX_VALUE)
+                .thenComparingInt(
+                    entry -> prefersShorterPathForScore(entry.getScore()) ? entry.getPathLength() : Integer.MAX_VALUE)
                 .thenComparing(
                     entry -> entry.getEntry()
                         .getId(),
@@ -67,12 +80,13 @@ public class ItemPreviewSearchService {
         String namespace = normalizedId.contains(":") ? normalizedId.substring(0, normalizedId.indexOf(':'))
             : normalizedId;
         String path = normalizedId.contains(":") ? normalizedId.substring(normalizedId.indexOf(':') + 1) : normalizedId;
+        String rawPath = extractRawPath(id);
         String compactId = compact(normalizedId);
         String compactLabel = compact(normalizedLabel);
         String compactDetail = compact(normalizedDetail);
         String compactPath = compact(path);
         String compactPrefix = compact(prefix);
-        String tokenInitials = createTokenInitials(path);
+        String tokenInitials = createTokenInitials(rawPath);
         String labelInitials = createTokenInitials(normalizedLabel);
         boolean shortPrefix = isShortPrefix(prefix);
 
@@ -103,7 +117,7 @@ public class ItemPreviewSearchService {
         if (normalizedDetail.startsWith(prefix)) {
             return 8;
         }
-        if (!compactPrefix.isEmpty() && compactPrefix.length() >= 2 && labelInitials.startsWith(compactPrefix)) {
+        if (matchesStructuredPathAbbreviation(rawPath, compactPrefix)) {
             return 9;
         }
         if (!compactPrefix.isEmpty() && compactPrefix.length() >= 2 && tokenInitials.startsWith(compactPrefix)) {
@@ -112,23 +126,26 @@ public class ItemPreviewSearchService {
         if (!compactPrefix.isEmpty() && compactId.startsWith(compactPrefix)) {
             return 11;
         }
-        if (!compactPrefix.isEmpty() && compactLabel.startsWith(compactPrefix)) {
+        if (!compactPrefix.isEmpty() && compactPath.startsWith(compactPrefix)) {
             return 12;
         }
-        if (!compactPrefix.isEmpty() && compactPath.startsWith(compactPrefix)) {
+        if (!compactPrefix.isEmpty() && compactPrefix.length() >= 2 && labelInitials.startsWith(compactPrefix)) {
             return 13;
         }
-        if (!compactPrefix.isEmpty() && compactDetail.startsWith(compactPrefix)) {
+        if (!compactPrefix.isEmpty() && compactLabel.startsWith(compactPrefix)) {
             return 14;
         }
-        if (normalizedId.contains(prefix)) {
+        if (!compactPrefix.isEmpty() && compactDetail.startsWith(compactPrefix)) {
             return 15;
         }
-        if (normalizedLabel.contains(prefix)) {
+        if (normalizedId.contains(prefix)) {
             return 16;
         }
-        if (normalizedDetail.contains(prefix)) {
+        if (normalizedLabel.contains(prefix)) {
             return 17;
+        }
+        if (normalizedDetail.contains(prefix)) {
+            return 18;
         }
         return Integer.MAX_VALUE;
     }
@@ -158,22 +175,24 @@ public class ItemPreviewSearchService {
             case 8:
                 return "detail-prefix";
             case 9:
-                return "label-acronym";
+                return "path-structured";
             case 10:
                 return "path-acronym";
             case 11:
                 return "id-compact";
             case 12:
-                return "label-compact";
-            case 13:
                 return "path-compact";
+            case 13:
+                return "label-acronym";
             case 14:
-                return "detail-compact";
+                return "label-compact";
             case 15:
-                return "id-contains";
+                return "detail-compact";
             case 16:
-                return "label-contains";
+                return "id-contains";
             case 17:
+                return "label-contains";
+            case 18:
                 return "detail-contains";
             default:
                 return "runtime";
@@ -230,26 +249,98 @@ public class ItemPreviewSearchService {
     }
 
     private String createTokenInitials(String value) {
-        if (value == null || value.isEmpty()) {
+        List<String> tokens = splitSearchTokens(value);
+        if (tokens.isEmpty()) {
             return "";
         }
-        StringBuilder builder = new StringBuilder(value.length());
-        int length = value.length();
-        int tokenStart = -1;
-        for (int index = 0; index <= length; index++) {
-            char current = index < length ? value.charAt(index) : 0;
-            boolean tokenCharacter = index < length
-                && ((current >= 'a' && current <= 'z') || (current >= '0' && current <= '9'));
-            if (tokenCharacter && tokenStart < 0) {
-                tokenStart = index;
-                builder.append(current);
-                continue;
-            }
-            if (!tokenCharacter) {
-                tokenStart = -1;
-            }
+        StringBuilder builder = new StringBuilder(tokens.size());
+        for (String token : tokens) {
+            builder.append(token.charAt(0));
         }
         return builder.toString();
+    }
+
+    private boolean matchesStructuredPathAbbreviation(String path, String compactPrefix) {
+        if (compactPrefix == null || compactPrefix.length() < 2 || path == null || path.isEmpty()) {
+            return false;
+        }
+        List<String> nonEmptyTokens = splitSearchTokens(path);
+        if (nonEmptyTokens.size() < 2) {
+            return false;
+        }
+        String firstToken = nonEmptyTokens.get(0);
+        if (!compactPrefix.startsWith(firstToken) || compactPrefix.length() <= firstToken.length()) {
+            return false;
+        }
+        int queryIndex = firstToken.length();
+        for (int tokenIndex = 1; tokenIndex < nonEmptyTokens.size()
+            && queryIndex < compactPrefix.length(); tokenIndex++) {
+            String token = nonEmptyTokens.get(tokenIndex);
+            if (!token.startsWith(String.valueOf(compactPrefix.charAt(queryIndex)))) {
+                return false;
+            }
+            queryIndex++;
+        }
+        return queryIndex == compactPrefix.length();
+    }
+
+    private String extractRawPath(String id) {
+        if (id == null) {
+            return "";
+        }
+        int separator = id.indexOf(':');
+        return separator >= 0 ? id.substring(separator + 1) : id;
+    }
+
+    private List<String> splitSearchTokens(String value) {
+        List<String> tokens = new ArrayList<>();
+        if (value == null || value.isEmpty()) {
+            return tokens;
+        }
+        StringBuilder builder = new StringBuilder(value.length());
+        char previous = 0;
+        for (int index = 0; index < value.length(); index++) {
+            char current = value.charAt(index);
+            if (!Character.isLetterOrDigit(current)) {
+                flushToken(tokens, builder);
+                previous = 0;
+                continue;
+            }
+            if (shouldSplitToken(
+                previous,
+                current,
+                index + 1 < value.length() ? value.charAt(index + 1) : 0,
+                builder.length())) {
+                flushToken(tokens, builder);
+            }
+            builder.append(Character.toLowerCase(current));
+            previous = current;
+        }
+        flushToken(tokens, builder);
+        return tokens;
+    }
+
+    private boolean shouldSplitToken(char previous, char current, char next, int currentLength) {
+        if (currentLength <= 0 || previous == 0) {
+            return false;
+        }
+        if (Character.isDigit(previous) != Character.isDigit(current)) {
+            return true;
+        }
+        if (Character.isLowerCase(previous) && Character.isUpperCase(current)) {
+            return true;
+        }
+        return Character.isUpperCase(previous) && Character.isUpperCase(current)
+            && next != 0
+            && Character.isLowerCase(next);
+    }
+
+    private void flushToken(List<String> tokens, StringBuilder builder) {
+        if (builder.length() <= 0) {
+            return;
+        }
+        tokens.add(builder.toString());
+        builder.setLength(0);
     }
 
     private String trimToNull(String value) {
@@ -260,14 +351,107 @@ public class ItemPreviewSearchService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private boolean prefersShorterPathForScore(int score) {
+        return score == 9 || score == 10 || score == 11 || score == 12;
+    }
+
+    private boolean prefersHigherStructuredSpecificityForScore(int score) {
+        return score == 9;
+    }
+
+    private boolean prefersLargerFamilyForScore(int score) {
+        return score == 9;
+    }
+
+    private int computeStructuredMatchSpecificity(String path, String compactPrefix, int score) {
+        if (score != 9 || compactPrefix == null || compactPrefix.length() < 2 || path == null || path.isEmpty()) {
+            return 0;
+        }
+        List<String> nonEmptyTokens = splitSearchTokens(path);
+        if (nonEmptyTokens.size() < 2) {
+            return 0;
+        }
+        String firstToken = nonEmptyTokens.get(0);
+        if (!compactPrefix.startsWith(firstToken) || compactPrefix.length() <= firstToken.length()) {
+            return 0;
+        }
+        int queryIndex = firstToken.length();
+        int specificity = firstToken.length();
+        for (int tokenIndex = 1; tokenIndex < nonEmptyTokens.size()
+            && queryIndex < compactPrefix.length(); tokenIndex++) {
+            String token = nonEmptyTokens.get(tokenIndex);
+            if (!token.startsWith(String.valueOf(compactPrefix.charAt(queryIndex)))) {
+                return 0;
+            }
+            specificity += token.length();
+            queryIndex++;
+        }
+        return queryIndex == compactPrefix.length() ? specificity : 0;
+    }
+
+    private Map<String, Integer> buildFamilySizes(List<Map<String, String>> semanticEntries) {
+        Map<String, Integer> familySizes = new java.util.HashMap<>();
+        for (Map<String, String> semanticEntry : semanticEntries) {
+            String id = trimToNull(semanticEntry.get("id"));
+            if (id == null) {
+                continue;
+            }
+            String familyKey = toFamilyKey(id);
+            familySizes.put(familyKey, familySizes.getOrDefault(familyKey, Integer.valueOf(0)) + 1);
+        }
+        return familySizes;
+    }
+
+    private int resolveFamilySize(Map<String, Integer> familySizes, String id) {
+        Integer value = familySizes.get(toFamilyKey(id));
+        return value == null ? 0 : value.intValue();
+    }
+
+    private String toFamilyKey(String id) {
+        String rawPath = extractRawPath(id);
+        int metaSeparator = rawPath.lastIndexOf(':');
+        if (metaSeparator >= 0) {
+            String trailing = rawPath.substring(metaSeparator + 1);
+            if (!trailing.isEmpty() && isDigitsOnly(trailing)) {
+                rawPath = rawPath.substring(0, metaSeparator);
+            }
+        }
+        String namespace = "";
+        int namespaceSeparator = id.indexOf(':');
+        if (namespaceSeparator >= 0) {
+            namespace = id.substring(0, namespaceSeparator + 1)
+                .toLowerCase(Locale.ROOT);
+        }
+        return namespace + rawPath.toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isDigitsOnly(String value) {
+        for (int index = 0; index < value.length(); index++) {
+            if (!Character.isDigit(value.charAt(index))) {
+                return false;
+            }
+        }
+        return !value.isEmpty();
+    }
+
     public static class RankedPreviewSearchEntry {
 
         private final int score;
+        private final int structuredSpecificity;
+        private final int familySize;
         private final PreviewSearchEntry entry;
+        private final int pathLength;
 
-        public RankedPreviewSearchEntry(int score, PreviewSearchEntry entry) {
+        public RankedPreviewSearchEntry(int score, int structuredSpecificity, int familySize,
+            PreviewSearchEntry entry) {
             this.score = score;
+            this.structuredSpecificity = structuredSpecificity;
+            this.familySize = familySize;
             this.entry = entry;
+            String id = entry.getId();
+            int separator = id == null ? -1 : id.indexOf(':');
+            String path = separator >= 0 ? id.substring(separator + 1) : id;
+            this.pathLength = path == null ? Integer.MAX_VALUE : path.length();
         }
 
         public int getScore() {
@@ -276,6 +460,18 @@ public class ItemPreviewSearchService {
 
         public PreviewSearchEntry getEntry() {
             return entry;
+        }
+
+        public int getStructuredSpecificity() {
+            return structuredSpecificity;
+        }
+
+        public int getFamilySize() {
+            return familySize;
+        }
+
+        public int getPathLength() {
+            return pathLength;
         }
     }
 }
