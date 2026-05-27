@@ -47,7 +47,7 @@ public class QuestCardScript implements LytScript {
 
         String name = resolveTitleText(display, ph.questId);
         if (QuestTagSupport.isNavigable(state)) {
-            title.append(QuestTagSupport.createQuestLink(null, ph.questId, display, name, ph.showTooltip));
+            title.append(QuestTagSupport.createQuestGuiLink(ph.questId, display, name, ph.showTooltip));
         } else {
             var span = new LytFlowSpan();
             span.modifyStyle(style -> style.color(pickPlaceholderColor(state)).italic(true));

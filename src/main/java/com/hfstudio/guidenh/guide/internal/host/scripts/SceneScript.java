@@ -1,16 +1,23 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import net.minecraft.util.ResourceLocation;
 
+import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
+import com.hfstudio.guidenh.guide.indices.PageIndex;
+import com.hfstudio.guidenh.guide.internal.extensions.DefaultExtensions;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
+import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
@@ -37,7 +44,7 @@ public class SceneScript implements LytScript {
 
     public SceneScript() {
         Map<String, SceneElementTagCompiler> map = new HashMap<>();
-        for (var ext : com.hfstudio.guidenh.guide.internal.extensions.DefaultExtensions.sceneElementCompilers()) {
+        for (var ext : DefaultExtensions.sceneElementCompilers()) {
             for (String name : ext.getTagNames()) {
                 map.put(name, ext);
             }
@@ -91,7 +98,7 @@ public class SceneScript implements LytScript {
             ExtensionCollection.EMPTY, "", new ResourceLocation(ph.pageDomain, "scene"), "");
         try {
             MdAstRoot ast = MdAst.fromMarkdown(ph.childrenSource, GuideMarkdownOptions.runtime());
-            MdAstToMdxConverter.convert(ast, java.util.Collections.emptyMap());
+            MdAstToMdxConverter.convert(ast, Collections.emptyMap());
             for (UnistNode child : ast.children()) {
                 MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
                 if (el == null) continue;
@@ -138,15 +145,15 @@ public class SceneScript implements LytScript {
     }
 
     private static class StubPageCollection implements PageCollection {
-        @Override public <T extends com.hfstudio.guidenh.guide.indices.PageIndex> T getIndex(Class<T> c) { return null; }
-        @Override public java.util.Collection<com.hfstudio.guidenh.guide.compiler.ParsedGuidePage> getPages() {
-            return java.util.Collections.emptyList();
+        @Override public <T extends PageIndex> T getIndex(Class<T> c) { return null; }
+        @Override public Collection<ParsedGuidePage> getPages() {
+            return Collections.emptyList();
         }
-        @Override public com.hfstudio.guidenh.guide.compiler.ParsedGuidePage getParsedPage(ResourceLocation id) { return null; }
-        @Override public com.hfstudio.guidenh.guide.GuidePage getPage(ResourceLocation id) { return null; }
+        @Override public ParsedGuidePage getParsedPage(ResourceLocation id) { return null; }
+        @Override public GuidePage getPage(ResourceLocation id) { return null; }
         @Override public byte[] loadAsset(ResourceLocation id) { return null; }
-        @Override public com.hfstudio.guidenh.guide.navigation.NavigationTree getNavigationTree() {
-            return new com.hfstudio.guidenh.guide.navigation.NavigationTree();
+        @Override public NavigationTree getNavigationTree() {
+            return new NavigationTree();
         }
         @Override public boolean pageExists(ResourceLocation pageId) { return false; }
     }

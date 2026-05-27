@@ -39,12 +39,10 @@ public class MasterScheduler {
         long deadlineNs = System.nanoTime() + HIGH_BUDGET_NS;
 
         processPriority(high, deadlineNs);
-        if (System.nanoTime() < deadlineNs) {
-            processPriority(medium, deadlineNs + MEDIUM_BUDGET_NS);
-        }
-        if (System.nanoTime() < deadlineNs) {
-            processPriority(low, deadlineNs + LOW_BUDGET_NS);
-        }
+        deadlineNs = Math.max(deadlineNs, System.nanoTime()) + MEDIUM_BUDGET_NS;
+        processPriority(medium, deadlineNs);
+        deadlineNs = Math.max(deadlineNs, System.nanoTime()) + LOW_BUDGET_NS;
+        processPriority(low, deadlineNs);
     }
 
     public void submit(WorkItem item) {

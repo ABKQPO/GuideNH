@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.host.scripts;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.oredict.OreDictionary;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -14,6 +15,8 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.indices.ItemIndex;
+import com.hfstudio.guidenh.guide.indices.OreIndex;
 
 public class ItemLinkScript implements LytScript {
 
@@ -28,10 +31,17 @@ public class ItemLinkScript implements LytScript {
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() == EventType.MOUNT && node instanceof LytFlowLink link) {
             String itemId = (String) link.getData("itemId");
+            String ore = (String) link.getData("ore");
             Boolean showTooltip = (Boolean) link.getData("showTooltip");
             String linksTo = (String) link.getData("linksTo");
 
             ItemStack stack = resolveItemStack(itemId);
+            if (stack == null && ore != null && !ore.isEmpty()) {
+                java.util.List<ItemStack> ores = OreDictionary.getOres(ore);
+                if (!ores.isEmpty()) {
+                    stack = ores.get(0);
+                }
+            }
             if (stack == null) return;
 
             PageAnchor anchor = findLinkTarget(stack, linksTo, ctx);
@@ -74,14 +84,12 @@ public class ItemLinkScript implements LytScript {
                 return PageAnchor.page(pageId);
             } catch (Exception ignored) {}
         }
-        com.hfstudio.guidenh.guide.indices.ItemIndex itemIdx = ctx.getIndex(
-            com.hfstudio.guidenh.guide.indices.ItemIndex.class);
+        ItemIndex itemIdx = ctx.getIndex(ItemIndex.class);
         if (itemIdx != null) {
             PageAnchor anchor = itemIdx.findByStack(stack);
             if (anchor != null) return anchor;
         }
-        com.hfstudio.guidenh.guide.indices.OreIndex oreIdx = ctx.getIndex(
-            com.hfstudio.guidenh.guide.indices.OreIndex.class);
+        OreIndex oreIdx = ctx.getIndex(OreIndex.class);
         if (oreIdx != null) {
             return oreIdx.findByStack(stack);
         }

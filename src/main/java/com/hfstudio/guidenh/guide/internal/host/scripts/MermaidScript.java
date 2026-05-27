@@ -6,6 +6,7 @@ import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler.MermaidPlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidMindmap;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
@@ -37,6 +38,7 @@ public class MermaidScript implements LytScript {
             try {
                 srcId = new ResourceLocation(ph.src);
             } catch (Exception e) {
+                replaceWithError(ctx, "Invalid Mermaid source path: " + ph.src);
                 return;
             }
             byte[] data = ctx.loadAsset(srcId);
@@ -45,7 +47,10 @@ public class MermaidScript implements LytScript {
             }
         }
 
-        if (sourceText == null || sourceText.trim().isEmpty()) return;
+        if (sourceText == null || sourceText.trim().isEmpty()) {
+            replaceWithError(ctx, "Mermaid source not found or empty");
+            return;
+        }
 
         try {
             var document = MermaidMindmapParser.parse(sourceText);
@@ -58,6 +63,11 @@ public class MermaidScript implements LytScript {
         } catch (IllegalArgumentException e) {
             FMLLog.getLogger().warn(
                 "[GuideNH] [MermaidScript] Failed to parse Mermaid source: {}", sourceText, e);
+            replaceWithError(ctx, "Failed to parse Mermaid source: " + e.getMessage());
         }
+    }
+
+    private void replaceWithError(ScriptContext ctx, String message) {
+        ctx.replace(LytParagraph.of(message));
     }
 }

@@ -17,6 +17,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.HandlerMetadataRe
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.HandlerRecipeAccess;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.RecipePlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytHBox;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
@@ -62,7 +64,7 @@ public class RecipeScript implements LytScript {
 
         boolean hasHandlerFilter = ph.handlerName != null || ph.handlerId != null || ph.handlerOrder >= 0;
         boolean hasRecipeFilter = !ph.inputExpr.isEmpty() || !ph.outputExpr.isEmpty();
-        int limit = ph.multi ? Integer.MAX_VALUE : 1;
+        int limit = ph.limit;
         boolean usageQuery = ph.usageQuery;
 
         // NEI handler path
@@ -119,7 +121,7 @@ public class RecipeScript implements LytScript {
                 }
             }
             if (!boxes.isEmpty()) {
-                ctx.replace(buildResult(boxes, ph.multi));
+                ctx.replace(buildResult(boxes));
                 return;
             }
             if (ph.recipeIndex >= 0) {
@@ -158,7 +160,7 @@ public class RecipeScript implements LytScript {
                     boxes.add(LytStandardRecipeBox.shapeless(flat, resultStack));
             }
             if (!boxes.isEmpty()) {
-                ctx.replace(buildResult(boxes, ph.multi));
+                ctx.replace(buildResult(boxes));
                 return;
             }
         }
@@ -184,31 +186,30 @@ public class RecipeScript implements LytScript {
             boxes.add(box);
         }
         if (!boxes.isEmpty()) {
-            ctx.replace(buildResult(boxes, ph.multi));
+            ctx.replace(buildResult(boxes));
             return;
         }
         showFallback(ctx, ph);
     }
 
     @SuppressWarnings("unchecked")
-    private static LytBlock buildResult(List<?> boxes, boolean multi) {
-        return buildResultTyped((List<LytBlock>) boxes, multi);
+    private static LytBlock buildResult(List<?> boxes) {
+        return buildResultTyped((List<LytBlock>) boxes);
     }
 
-    private static LytBlock buildResultTyped(List<LytBlock> boxes, boolean multi) {
+    private static LytBlock buildResultTyped(List<LytBlock> boxes) {
         if (boxes.size() == 1) return boxes.get(0);
-        if (!multi) return boxes.get(0);
-        var row = new com.hfstudio.guidenh.guide.document.block.LytHBox();
+        var row = new LytHBox();
         row.setGap(RecipeCompiler.MULTI_GAP);
         for (var b : boxes) row.append(b);
         return row;
     }
 
     private void showFallback(ScriptContext ctx, RecipePlaceholder ph) {
-        if (ph.fallbackText != null && !ph.fallbackText.isEmpty()) {
-            var p = new com.hfstudio.guidenh.guide.document.block.LytParagraph();
-            p.appendText(ph.fallbackText);
-            ctx.replace(p);
-        }
+        String text = (ph.fallbackText != null && !ph.fallbackText.isEmpty())
+            ? ph.fallbackText : "No recipe found.";
+        var p = new LytParagraph();
+        p.appendText(text);
+        ctx.replace(p);
     }
 }

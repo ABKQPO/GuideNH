@@ -72,7 +72,7 @@ public class BlockImageScript implements LytScript {
             perspective = PerspectivePreset.fromSerializedName(ph.perspective.trim());
         }
 
-        int defaultMeta = meta == 0 ? BlockElementCompiler.defaultMetaFor(block, null) : meta;
+        int defaultMeta = meta == Integer.MIN_VALUE ? BlockElementCompiler.defaultMetaFor(block, null) : meta;
         GuidebookLevel level = new GuidebookLevel();
         GuidebookPreviewBlockPlacer.place(level, 0, 0, 0, block, defaultMeta, tileTag);
 

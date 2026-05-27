@@ -11,6 +11,7 @@ import net.minecraft.util.ResourceLocation;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
@@ -55,7 +56,7 @@ class ScriptContextImpl implements ScriptContext {
                 return;
             }
             // Handle LytParagraph and other LytFlowContainer parents
-            if (parent instanceof com.hfstudio.guidenh.guide.document.block.LytParagraph para) {
+            if (parent instanceof LytParagraph para) {
                 Iterable<LytFlowContent> iterable = para.getContent();
                 if (iterable instanceof List) {
                     List<LytFlowContent> list = (List<LytFlowContent>) iterable;

@@ -29,7 +29,7 @@ public class FloatingImageCompiler extends FlowTagCompiler {
 
     public static final String TAG_NAME = "FloatingImage";
 
-    private static final Random RANDOM = new Random();
+    private static final Random RANDOM = new Random(0);
 
     @Override
     public Set<String> getTagNames() {

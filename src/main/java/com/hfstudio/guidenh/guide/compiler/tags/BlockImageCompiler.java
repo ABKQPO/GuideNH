@@ -27,7 +27,7 @@ public class BlockImageCompiler extends BlockTagCompiler {
             return;
         }
 
-        int meta = MdxAttrs.getInt(compiler, parent, el, "meta", 0);
+        int meta = MdxAttrs.getInt(compiler, parent, el, "meta", Integer.MIN_VALUE);
         String nbt = MdxAttrs.getString(compiler, parent, el, "nbt", null);
         float scale = MdxAttrs.getFloat(compiler, parent, el, "scale", 1f);
         String perspective = MdxAttrs.getString(compiler, parent, el, "perspective", null);
