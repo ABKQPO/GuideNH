@@ -6,11 +6,9 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -18,7 +16,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.WeakHashMap;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
@@ -30,13 +27,11 @@ import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuideItemSettings;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageChange;
-import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
-import com.hfstudio.guidenh.guide.internal.home.GuideScreenHomeHistory;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiGuideAggregator;
@@ -48,9 +43,7 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialDataIndexer;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageRefreshController;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSyntheticPageFactory;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSyntheticPageFactory.SyntheticSourceSnapshot;
-import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
-import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 
 import cpw.mods.fml.common.FMLLog;
 
@@ -59,12 +52,7 @@ import cpw.mods.fml.common.FMLLog;
  * guide-specific subdirectory of resource packs.
  */
 public class MutableGuide
-    implements Guide, GuideDevWatcherPump.TickableGuide, MediaWikiListContextProvider, AutoCloseable {
-
-    public static final String ACTIVE_CLIENT_WORLD_REQUIRED_MESSAGE = "active client world";
-    private static final int MAX_STRONG_RUNTIME_PAGES = 48;
-    private static final long DEVELOPMENT_VALIDATION_INTERVAL_TICKS = 10L;
-    private static final long NORMAL_HEAVY_PAGE_WARMUP_DELAY_TICKS = 8L;
+    implements Guide, MediaWikiListContextProvider, AutoCloseable {
 
     private final ResourceLocation id;
     private final String defaultNamespace;
@@ -91,17 +79,6 @@ public class MutableGuide
     private volatile long fallbackMediaWikiListContextRevision = Long.MIN_VALUE;
     private volatile long requestedMediaWikiWarmupRevision = Long.MIN_VALUE;
     private final MediaWikiSpecialPageRefreshController mediaWikiRefreshController = new MediaWikiSpecialPageRefreshController();
-    private final Map<ParsedGuidePage, GuidePage> compiledPagesWeak = Collections.synchronizedMap(new WeakHashMap<>());
-    private final LinkedHashMap<ResourceLocation, GuidePage> compiledPagesStrong = new LinkedHashMap<ResourceLocation, GuidePage>(
-        64,
-        0.75f,
-        true) {
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<ResourceLocation, GuidePage> eldest) {
-            return size() > MAX_STRONG_RUNTIME_PAGES;
-        }
-    };
     private final ExtensionCollection extensions;
     private final boolean availableToOpenHotkey;
     private final GuideItemSettings itemSettings;
@@ -114,8 +91,6 @@ public class MutableGuide
 
     @Nullable
     private GuideSourceWatcher watcher;
-    private long nextValidationTick;
-    private long lastSchedulerTick;
 
     public MutableGuide(ResourceLocation id, String defaultNamespace, String folder, String defaultLanguage,
         @Nullable Path developmentSourceFolder, @Nullable String developmentSourceNamespace,
@@ -209,17 +184,7 @@ public class MutableGuide
 
         GuidePage compiledPage;
         try {
-            synchronized (compiledPagesWeak) {
-                compiledPage = compiledPagesStrong.get(id);
-                if (compiledPage == null) {
-                    compiledPage = compiledPagesWeak.get(parsedPage);
-                }
-                if (compiledPage == null) {
-                    compiledPage = PageCompiler.compile(this, extensions, parsedPage);
-                }
-                compiledPagesWeak.put(parsedPage, compiledPage);
-                compiledPagesStrong.put(id, compiledPage);
-            }
+            compiledPage = PageCompiler.compile(this, extensions, parsedPage);
             clearCompileFailure(id);
         } catch (Throwable t) {
             recordCompileFailure(id, buildCompileFailureText(id, t));
@@ -365,21 +330,10 @@ public class MutableGuide
     }
 
     @Override
-    public boolean hasDevelopmentSources() {
-        return watcher != null;
-    }
-
-    @Override
     public synchronized void close() {
         int developmentPageCount = developmentPages.size();
         int syntheticPageCount = syntheticPages.size();
         int failureCount = pageFailures.size();
-        int weakCompiledCount;
-        int strongCompiledCount;
-        synchronized (compiledPagesWeak) {
-            weakCompiledCount = compiledPagesWeak.size();
-            strongCompiledCount = compiledPagesStrong.size();
-        }
         if (watcher != null) {
             watcher.close();
             watcher = null;
@@ -394,54 +348,13 @@ public class MutableGuide
         mediaWikiSpecialDataIndex = null;
         fallbackMediaWikiListContextRevision = Long.MIN_VALUE;
         requestedMediaWikiWarmupRevision = Long.MIN_VALUE;
-        synchronized (compiledPagesWeak) {
-            compiledPagesWeak.clear();
-            compiledPagesStrong.clear();
-        }
-        warmupPageQueue.clear();
-        queuedWarmupPages.clear();
-        prioritizedWarmupPages.clear();
-        scheduledWarmupPages.clear();
-        validationPageQueue.clear();
-        queuedValidationPages.clear();
-        scheduledValidationPages.clear();
         FMLLog.getLogger()
             .info(
-                "[GuideNH] [MutableGuide] Closed guide {} and cleared caches developmentPages={}, syntheticPages={}, failures={}, compiledWeak={}, compiledStrong={}",
+                "[GuideNH] [MutableGuide] Closed guide {} and cleared caches developmentPages={}, syntheticPages={}, failures={}",
                 id,
                 developmentPageCount,
                 syntheticPageCount,
-                failureCount,
-                weakCompiledCount,
-                strongCompiledCount);
-    }
-
-    private final Deque<ResourceLocation> warmupPageQueue = new ArrayDeque<>();
-    private final HashSet<ResourceLocation> queuedWarmupPages = new HashSet<>();
-    private final HashSet<ResourceLocation> prioritizedWarmupPages = new HashSet<>();
-    private final HashSet<ResourceLocation> scheduledWarmupPages = new HashSet<>();
-    private final Deque<ResourceLocation> validationPageQueue = new ArrayDeque<>();
-    private final HashSet<ResourceLocation> queuedValidationPages = new HashSet<>();
-    private final HashSet<ResourceLocation> scheduledValidationPages = new HashSet<>();
-
-    public void resetWarmup() {
-        rebuildWarmupQueue();
-    }
-
-    public void tick() {
-        if (pages == null || watcher == null) {
-            return; // Do nothing while pages haven't been loaded yet
-        }
-
-        var changes = watcher.takeChanges();
-        if (!changes.isEmpty()) {
-            applyChanges(changes);
-        }
-    }
-
-    @Override
-    public void tickDevelopmentSources() {
-        tick();
+                failureCount);
     }
 
     private void applyChanges(List<GuidePageChange> changes) {
@@ -468,9 +381,6 @@ public class MutableGuide
             } else {
                 developmentPages.remove(pageId);
             }
-            removeCompiledPage(pageId);
-            prioritizeWarmupPage(pageId);
-            queueValidationPage(pageId);
 
             deduplicatedChanges
                 .set(i, new GuidePageChange(change.language(), pageId, initialPages.get(pageId), newPage));
@@ -495,7 +405,6 @@ public class MutableGuide
         this.navigationTree = buildNavigation();
         GuideRegistry.invalidateMergedNavigationTree();
         refreshPageFailures();
-        requestValidationRefresh(0L);
 
         // Reload the current page if it has been changed
         var guideScreen = GuideScreen.current();
@@ -550,15 +459,6 @@ public class MutableGuide
         this.pages = Collections.unmodifiableMap(new HashMap<>(pages));
         this.syntheticPages = Collections.emptyMap();
         invalidateMediaWikiDerivedCaches();
-        synchronized (compiledPagesWeak) {
-            compiledPagesWeak.clear();
-            compiledPagesStrong.clear();
-        }
-        scheduledWarmupPages.clear();
-        scheduledValidationPages.clear();
-        validationPageQueue.clear();
-        queuedValidationPages.clear();
-        nextValidationTick = 0L;
 
         if (watcher != null) {
             watcher.clearChanges(); // Since we'll load them all now, ignore all changes up to now
@@ -575,7 +475,6 @@ public class MutableGuide
             GuideRegistry.invalidateMergedNavigationTree();
         }
         refreshPageFailures();
-        rebuildWarmupQueue();
         // Do not eagerly compile pages here. Some packs register or rewrite recipes
         // during FMLLoadComplete, after the initial resource reload has already parsed the guide.
         // Deferring compilation until first display avoids caching stale "missing recipe" error blocks.
@@ -598,10 +497,6 @@ public class MutableGuide
         ResourceLocation pageId = parsedPage.getId();
         developmentPages.put(pageId, parsedPage);
         invalidateMediaWikiDerivedCaches();
-        removeCompiledPage(pageId);
-        prioritizeWarmupPage(pageId);
-        queueValidationPage(pageId);
-        requestValidationRefresh(0L);
         if (parsedPage.hasParseFailure()) {
             recordParseFailure(parsedPage);
         } else {
@@ -610,182 +505,7 @@ public class MutableGuide
         }
     }
 
-    private void removeCompiledPage(ResourceLocation pageId) {
-        synchronized (compiledPagesWeak) {
-            compiledPagesStrong.remove(pageId);
-            compiledPagesWeak.keySet()
-                .removeIf(page -> page != null && pageId.equals(page.getId()));
-        }
-        scheduledWarmupPages.remove(pageId);
-        prioritizedWarmupPages.remove(pageId);
-        queuedWarmupPages.remove(pageId);
-        warmupPageQueue.remove(pageId);
-        scheduledValidationPages.remove(pageId);
-        queuedValidationPages.remove(pageId);
-        validationPageQueue.remove(pageId);
-    }
-
-    private void rebuildWarmupQueue() {
-        warmupPageQueue.clear();
-        queuedWarmupPages.clear();
-        prioritizedWarmupPages.clear();
-        queueWarmupPage(resolveRememberedWarmupPageId(), true);
-        queueWarmupBookmarkedPages();
-        queueWarmupHistoryPages();
-        ResourceLocation firstNavigationPage = resolveWarmupPageId();
-        if (firstNavigationPage != null) {
-            queueWarmupPage(firstNavigationPage, true);
-        }
-        if (pages != null) {
-            for (ParsedGuidePage parsedPage : pages.values()) {
-                queueWarmupPage(parsedPage.getId());
-            }
-        }
-        for (ParsedGuidePage parsedPage : developmentPages.values()) {
-            queueWarmupPage(parsedPage.getId());
-        }
-    }
-
-    private void prioritizeWarmupPage(ResourceLocation pageId) {
-        queueWarmupPage(pageId, true);
-    }
-
-    @Nullable
-    private ResourceLocation pollWarmupCandidate() {
-        while (!warmupPageQueue.isEmpty()) {
-            ResourceLocation pageId = warmupPageQueue.poll();
-            if (pageId == null) {
-                return null;
-            }
-            queuedWarmupPages.remove(pageId);
-            if (!compiledPageExists(pageId) && getParsedPage(pageId) != null) {
-                return pageId;
-            }
-        }
-        return null;
-    }
-
-    private void queueWarmupPage(@Nullable ResourceLocation pageId) {
-        queueWarmupPage(pageId, false);
-    }
-
-    private void queueWarmupPage(@Nullable ResourceLocation pageId, boolean highPriority) {
-        if (pageId == null || compiledPageExists(pageId)) {
-            return;
-        }
-        if (highPriority) {
-            prioritizedWarmupPages.add(pageId);
-        }
-        if (!queuedWarmupPages.add(pageId)) {
-            if (highPriority) {
-                warmupPageQueue.remove(pageId);
-                warmupPageQueue.offerFirst(pageId);
-            }
-            return;
-        }
-        if (highPriority) {
-            warmupPageQueue.offerFirst(pageId);
-        } else {
-            warmupPageQueue.offerLast(pageId);
-        }
-    }
-
-    @Nullable
-    private ResourceLocation resolveRememberedWarmupPageId() {
-        GuideScreenViewState state = GuideScreenMemory.recallLastContentState();
-        if (state == null || state.route() == null
-            || state.route()
-                .guideId() == null
-            || !id.equals(
-                state.route()
-                    .guideId())) {
-            return null;
-        }
-        PageAnchor anchor = state.route()
-            .anchor();
-        return anchor != null ? anchor.pageId() : null;
-    }
-
-    private void queueWarmupBookmarkedPages() {
-        for (ResourceLocation pageId : GuideBookmarkState.getSharedInstance()
-            .getBookmarksView()) {
-            if (pageExists(pageId)) {
-                queueWarmupPage(pageId, true);
-            }
-        }
-    }
-
-    private void queueWarmupHistoryPages() {
-        for (GuideScreenHomeHistory.Entry entry : GuideScreenHomeHistory.shared()
-            .snapshot()) {
-            if (id.equals(entry.guideId()) && pageExists(entry.pageId())) {
-                queueWarmupPage(entry.pageId(), true);
-            }
-        }
-    }
-
-    private boolean compiledPageExists(ResourceLocation pageId) {
-        ParsedGuidePage parsedPage = getParsedPage(pageId);
-        if (parsedPage == null) {
-            return false;
-        }
-        synchronized (compiledPagesWeak) {
-            return compiledPagesStrong.containsKey(pageId) || compiledPagesWeak.containsKey(parsedPage);
-        }
-    }
-
-    public void populateWarmupScheduler(GuideWarmupScheduler scheduler, long nowTick) {
-        if (pages == null) {
-            return;
-        }
-        lastSchedulerTick = nowTick;
-        GuideScreen guideScreen = GuideScreen.current();
-        if (guideScreen != null && guideScreen.isShowingGuide(id)) {
-            prioritizeWarmupPage(guideScreen.getCurrentPageId());
-        }
-        if (Minecraft.getMinecraft()
-            .getNetHandler() != null) {
-            flushWarmupItems(scheduler);
-        }
-        if (shouldUseDevelopmentValidation()) {
-            flushValidationItems(scheduler);
-        }
-    }
-
-    public boolean processWarmupWorkItem(GuideWarmupWorkItem item, long nowTick) {
-        return switch (item.kind()) {
-            case HIGH_PRIORITY_PAGE, NORMAL_PAGE -> processPageWarmup(item, nowTick);
-            case DEV_VALIDATION -> processDevelopmentValidation(item, nowTick);
-        };
-    }
-
-    private void flushWarmupItems(GuideWarmupScheduler scheduler) {
-        ResourceLocation pageId;
-        while ((pageId = pollWarmupCandidate()) != null) {
-            if (!scheduledWarmupPages.add(pageId)) {
-                continue;
-            }
-            GuideWarmupWorkItem.Kind kind = prioritizedWarmupPages.remove(pageId)
-                ? GuideWarmupWorkItem.Kind.HIGH_PRIORITY_PAGE
-                : GuideWarmupWorkItem.Kind.NORMAL_PAGE;
-            scheduler.enqueue(new GuideWarmupWorkItem(id, pageId, kind));
-        }
-    }
-
-    private void flushValidationItems(GuideWarmupScheduler scheduler) {
-        while (!validationPageQueue.isEmpty()) {
-            ResourceLocation pageId = validationPageQueue.pollFirst();
-            if (pageId == null) {
-                return;
-            }
-            queuedValidationPages.remove(pageId);
-            if (scheduledValidationPages.add(pageId)) {
-                GuideWarmupWorkItem item = new GuideWarmupWorkItem(id, pageId, GuideWarmupWorkItem.Kind.DEV_VALIDATION);
-                item.setNextEligibleTick(nextValidationTick);
-                scheduler.enqueue(item);
-            }
-        }
-    }
+    // All warmup-related methods removed in Wave 3 cleanup
 
     public void rebuildEditorNavigationState() {
         rebuildIndices();
@@ -810,33 +530,6 @@ public class MutableGuide
 
     public String getDefaultLanguage() {
         return defaultLanguage;
-    }
-
-    @Nullable
-    private ResourceLocation resolveWarmupPageId() {
-        if (navigationTree != null) {
-            ResourceLocation pageId = findFirstNavigationPageId(navigationTree.getRootNodes());
-            if (pageId != null) {
-                return pageId;
-            }
-        }
-        return pages != null && !pages.isEmpty() ? pages.keySet()
-            .iterator()
-            .next() : null;
-    }
-
-    @Nullable
-    private ResourceLocation findFirstNavigationPageId(List<NavigationNode> nodes) {
-        for (var node : nodes) {
-            if (node.hasPage() && node.pageId() != null) {
-                return node.pageId();
-            }
-            ResourceLocation childPageId = findFirstNavigationPageId(node.children());
-            if (childPageId != null) {
-                return childPageId;
-            }
-        }
-        return null;
     }
 
     private boolean canLoadDevelopmentSource(ResourceLocation id) {
@@ -867,148 +560,6 @@ public class MutableGuide
         return GuideDevelopmentSourceLayout.detect(sourceFolder, folder);
     }
 
-    private boolean processPageWarmup(GuideWarmupWorkItem item, long nowTick) {
-        ResourceLocation pageId = item.pageId();
-        ParsedGuidePage parsedPage = getParsedPage(pageId);
-        if (parsedPage == null) {
-            scheduledWarmupPages.remove(pageId);
-            return true;
-        }
-
-        try {
-            if (item.stepIndex() == 0 && SceneTagCompiler.likelyHasHeavySceneWork(parsedPage)) {
-                item.advanceStep();
-                item.setNextEligibleTick(
-                    nowTick + (item.kind() == GuideWarmupWorkItem.Kind.HIGH_PRIORITY_PAGE ? 1L
-                        : NORMAL_HEAVY_PAGE_WARMUP_DELAY_TICKS));
-                return false;
-            }
-            if (!warmPage(pageId, parsedPage)) {
-                item.setNextEligibleTick(nowTick + 1L);
-                return false;
-            }
-        } catch (Throwable t) {
-            scheduledWarmupPages.remove(pageId);
-            if (!isDeferrableWarmPageFailure(t)) {
-                FMLLog.getLogger()
-                    .error("[GuideNH] [MutableGuide] Failed to pre-warm guide page {}", pageId, t);
-            }
-            return true;
-        }
-
-        scheduledWarmupPages.remove(pageId);
-        return true;
-    }
-
-    private boolean warmPage(ResourceLocation pageId, ParsedGuidePage parsedPage) {
-        synchronized (compiledPagesWeak) {
-            GuidePage compiledPage = compiledPagesStrong.get(pageId);
-            if (compiledPage == null) {
-                compiledPage = compiledPagesWeak.get(parsedPage);
-            }
-            if (compiledPage != null) {
-                compiledPagesStrong.put(pageId, compiledPage);
-                return true;
-            }
-            try {
-                compiledPage = PageCompiler.compile(this, extensions, parsedPage);
-            } catch (RuntimeException e) {
-                if (isDeferrableWarmPageFailure(e)) {
-                    FMLLog.getLogger()
-                        .debug(
-                            "[GuideNH] [MutableGuide] Deferring warm compilation for page {} until an active client world is available",
-                            pageId);
-                    return false;
-                }
-                throw e;
-            }
-            compiledPagesWeak.put(parsedPage, compiledPage);
-            compiledPagesStrong.put(pageId, compiledPage);
-            clearCompileFailure(pageId);
-            return true;
-        }
-    }
-
-    private boolean processDevelopmentValidation(GuideWarmupWorkItem item, long nowTick) {
-        ResourceLocation pageId = item.pageId();
-        if (!shouldUseDevelopmentValidation()) {
-            scheduledValidationPages.remove(pageId);
-            return true;
-        }
-        if (nowTick < nextValidationTick) {
-            item.setNextEligibleTick(nextValidationTick);
-            return false;
-        }
-
-        try {
-            ParsedGuidePage parsedPage = getParsedPage(pageId);
-            if (parsedPage == null) {
-                return true;
-            }
-            if (parsedPage.hasParseFailure()) {
-                recordParseFailure(parsedPage);
-                return true;
-            }
-            PageCompiler.compile(this, extensions, parsedPage);
-            clearCompileFailure(pageId);
-        } catch (Throwable t) {
-            if (!isDeferrableWarmPageFailure(t)) {
-                recordCompileFailure(pageId, buildCompileFailureText(pageId, t));
-                FMLLog.getLogger()
-                    .error("[GuideNH] [MutableGuide] Failed to validate guide page {}", pageId, t);
-            }
-        } finally {
-            scheduledValidationPages.remove(pageId);
-        }
-        return true;
-    }
-
-    private void queueValidationPage(@Nullable ResourceLocation pageId) {
-        if (pageId == null || !queuedValidationPages.add(pageId) || scheduledValidationPages.contains(pageId)) {
-            return;
-        }
-        validationPageQueue.offerLast(pageId);
-    }
-
-    private void queueValidationForAllPages() {
-        for (ParsedGuidePage parsedPage : getAllParsedPages().values()) {
-            if (!parsedPage.hasParseFailure()) {
-                queueValidationPage(parsedPage.getId());
-            }
-        }
-    }
-
-    private void requestValidationRefresh(long nowTick) {
-        long referenceTick = nowTick > 0L ? nowTick : lastSchedulerTick;
-        long requestedTick = referenceTick + DEVELOPMENT_VALIDATION_INTERVAL_TICKS;
-        if (nextValidationTick == 0L) {
-            nextValidationTick = requestedTick;
-        } else {
-            nextValidationTick = Math.min(nextValidationTick, requestedTick);
-        }
-    }
-
-    private boolean shouldUseDevelopmentValidation() {
-        return watcher != null || isGuideEditorRuntimeActive();
-    }
-
-    private boolean isGuideEditorRuntimeActive() {
-        GuideScreen guideScreen = GuideScreen.current();
-        return guideScreen != null && guideScreen.isShowingGuide(id) && guideScreen.isEditorActive();
-    }
-
-    static boolean isDeferrableWarmPageFailure(Throwable throwable) {
-        for (Throwable current = throwable; current != null; current = current.getCause()) {
-            if ((current instanceof IllegalStateException || current instanceof IllegalArgumentException)
-                && current.getMessage() != null
-                && current.getMessage()
-                    .contains(ACTIVE_CLIENT_WORLD_REQUIRED_MESSAGE)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void refreshPageFailures() {
         Map<ResourceLocation, ParsedGuidePage> allParsedPages = getAllParsedPages();
         pageFailures.keySet()
@@ -1020,10 +571,6 @@ public class MutableGuide
                 clearCompileFailure(parsedPage.getId());
                 clearParseFailure(parsedPage.getId());
             }
-        }
-        if (shouldUseDevelopmentValidation()) {
-            requestValidationRefresh(0L);
-            queueValidationForAllPages();
         }
     }
 
@@ -1066,10 +613,6 @@ public class MutableGuide
             syntheticSourceCache,
             this::parseSyntheticPage);
         syntheticPages = Collections.unmodifiableMap(rebuiltPages);
-        previousSyntheticIds.addAll(syntheticPages.keySet());
-        for (ResourceLocation syntheticPageId : previousSyntheticIds) {
-            removeCompiledPage(syntheticPageId);
-        }
         FMLLog.getLogger()
             .info(
                 "[GuideNH] [MutableGuide] Rebuilt {} synthetic pages in {} ms for guide {}",

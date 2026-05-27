@@ -2,9 +2,14 @@ package com.hfstudio.guidenh.guide.internal.host;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
@@ -12,6 +17,17 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 public class LytHost {
 
     @Nullable private LytDocument document;
+    private final Map<String, LytScript> scripts = new HashMap<>();
+    private final Map<String, PageCacheEntry> cachedDocuments = new LinkedHashMap<>();
+    private final Map<String, AtomicInteger> pageNodeCounters = new HashMap<>();
+    String currentPageId;
+
+    static class PageCacheEntry {
+        final LytDocument document;
+        final Map<String, LytBlock> nodeResults = new HashMap<>();
+        PageCacheEntry(LytDocument document) { this.document = document; }
+    }
+
     private final ViewportState viewport = new ViewportState();
     private final NavigationState nav = new NavigationState();
     private final Deque<LytEvent> eventQueue = new ArrayDeque<>();
@@ -19,16 +35,89 @@ public class LytHost {
 
     // ===== Document =====
 
-    public void setDocument(@Nullable LytDocument doc) {
-        this.document = doc;
-        if (doc != null) {
-            viewport.updateContent(doc.getAvailableWidth(), doc.getContentHeight());
+    public void setDocument(@Nullable LytDocument newDoc) {
+        if (this.document != null && this.document != newDoc) {
+            this.document.setLive(false);    // onDetach cascade on old doc
+        }
+        this.document = newDoc;
+        if (newDoc != null) {
+            allocateNodeUids(newDoc);
+            newDoc.setLive(true);            // onAttach cascade — this triggers everything
+            dispatchMountEvents(newDoc);     // MOUNT events for styleClass nodes
+            viewport.updateContent(newDoc.getAvailableWidth(), newDoc.getContentHeight());
         }
     }
 
     @Nullable public LytDocument getDocument() { return document; }
     public ViewportState getViewport() { return viewport; }
     public NavigationState getNavigation() { return nav; }
+
+    public void registerScript(String styleClass, LytScript script) {
+        scripts.put(styleClass, script);
+    }
+
+    @Nullable
+    public PageCacheEntry getCachedPage(String pageId) {
+        return cachedDocuments.get(pageId);
+    }
+
+    public void cachePage(String pageId, LytDocument compiledDoc) {
+        cachedDocuments.put(pageId, new PageCacheEntry(compiledDoc));
+    }
+
+    public void invalidatePage(String pageId) {
+        cachedDocuments.remove(pageId);
+        pageNodeCounters.remove(pageId);
+    }
+
+    public void setCurrentPageId(String pageId) {
+        this.currentPageId = pageId;
+    }
+
+    public boolean hasPreheatWork() {
+        return false; // placeholder, real impl later
+    }
+
+    public void preheatStep(long deadlineNs) {
+        // placeholder, real impl later
+    }
+
+    String allocateNodeUid(String pageId, String prefix) {
+        int seq = pageNodeCounters
+            .computeIfAbsent(pageId, k -> new AtomicInteger()).incrementAndGet();
+        return pageId + "::" + prefix + ":" + seq;
+    }
+
+    private void allocateNodeUids(LytNode node) {
+        if (node.getStyleClass() != null && node.getNodeUid() == null) {
+            String prefix = node.getStyleClass().toLowerCase();
+            int seq = pageNodeCounters
+                .computeIfAbsent(currentPageId, k -> new AtomicInteger()).incrementAndGet();
+            node.setNodeUid(currentPageId + "::" + prefix + ":" + seq);
+        }
+        for (var child : node.getChildren()) {
+            allocateNodeUids(child);
+        }
+    }
+
+    private void dispatchMountEvents(LytNode node) {
+        String cls = node.getStyleClass();
+        if (cls != null) {
+            LytScript script = scripts.get(cls);
+            if (script != null) {
+                try {
+                    ScriptContextImpl ctx = new ScriptContextImpl(node, this, document);
+                    script.onEvent(node, new LytEvent(EventType.MOUNT, node), ctx);
+                } catch (Exception e) {
+                    // Error boundary: log and continue
+                    e.printStackTrace();
+                }
+            }
+        }
+        for (var child : node.getChildren()) {
+            dispatchMountEvents(child);
+        }
+    }
 
     // ===== Sync events =====
 
@@ -94,6 +183,10 @@ public class LytHost {
 
     public void clear() {
         document = null;
+        scripts.clear();
+        cachedDocuments.clear();
+        pageNodeCounters.clear();
+        currentPageId = null;
         eventQueue.clear();
         taskQueue.clear();
         nav.clear();

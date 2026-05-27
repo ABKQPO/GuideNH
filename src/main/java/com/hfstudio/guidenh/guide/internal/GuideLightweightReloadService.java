@@ -14,7 +14,6 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
-import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
@@ -85,13 +84,6 @@ public class GuideLightweightReloadService {
         long registryUpdateNs = System.nanoTime() - stageStartedAt;
 
         stageStartedAt = System.nanoTime();
-        ClientProxy.getWarmupWorkItem().clearScheduler();
-        for (MutableGuide guide : GuideRegistry.getAll()) {
-            guide.resetWarmup();
-        }
-        long warmupResetNs = System.nanoTime() - stageStartedAt;
-
-        stageStartedAt = System.nanoTime();
         try {
             GuideME.getSearch()
                 .indexAll();
@@ -107,7 +99,7 @@ public class GuideLightweightReloadService {
 
         FMLLog.getLogger()
             .info(
-                "[GuideNH] [GuideLightweightReloadService] Guide reload complete, loaded {} guides, {} pages, {} languages in {} ns (dataDrivenLoadNs={}, pageLoadNs={}, registryUpdateNs={}, warmupResetNs={}, searchIndexNs={})",
+                "[GuideNH] [GuideLightweightReloadService] Guide reload complete, loaded {} guides, {} pages, {} languages in {} ns (dataDrivenLoadNs={}, pageLoadNs={}, registryUpdateNs={}, searchIndexNs={})",
                 guidePages.size(),
                 loadedPageCount,
                 loadedLanguageCount,
@@ -115,7 +107,6 @@ public class GuideLightweightReloadService {
                 dataDrivenLoadNs,
                 pageLoadNs,
                 registryUpdateNs,
-                warmupResetNs,
                 searchIndexNs);
     }
 

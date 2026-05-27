@@ -13,7 +13,7 @@ import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.ImageRegionAnnotation;
-import com.hfstudio.guidenh.guide.document.block.LytImage;
+import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
 import com.hfstudio.guidenh.guide.document.flow.InlineBlockAlignment;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
@@ -49,33 +49,36 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         int widthPx = parseIntAttr(el, "width", -1);
         int heightPx = parseIntAttr(el, "height", -1);
 
-        var image = new LytImage();
+        LytImageBlock block = new LytImageBlock();
+        block.setStyleClass("FloatingImage");
+        block.setAlign(align);
         if (title != null) {
-            image.setTitle(title);
+            block.setTitle(title);
         }
-        image.setExplicitWidth(widthPx);
-        image.setExplicitHeight(heightPx);
+        block.setExplicitWidth(widthPx);
+        block.setExplicitHeight(heightPx);
+
+        // Resolve the image src to a string identifier for later script use without
+        // loading the actual asset at compile time.
+        String resolvedSrc = null;
         try {
             var imageId = IdUtils.resolveLink(src, compiler.getPageId());
-            var imageContent = compiler.loadAsset(imageId);
-            if (imageContent == null) {
-                FMLLog.getLogger()
-                    .error("[GuideNH] [FloatingImageCompiler] Couldn't find image {}", src);
-                image.setTitle("Missing image: " + src);
-            }
-            image.setImage(imageId, imageContent);
+            resolvedSrc = imageId.toString();
         } catch (IllegalArgumentException e) {
             FMLLog.getLogger()
                 .error("[GuideNH] [FloatingImageCompiler] Invalid image id: {}", src);
-            image.setTitle("Invalid image URL: " + src);
+            if (block.getTitle() == null) {
+                block.setTitle("Invalid image URL: " + src);
+            }
         }
+        block.setSrc(resolvedSrc);
 
         var wholeImageSound = GuideSoundParsers.parseAttributes(compiler, parent, el, "soundSrc");
         if (wholeImageSound != null) {
             var soundAnnotation = new ImageRegionAnnotation(false, ConstantColor.WHITE, 1);
             soundAnnotation.setSound(wholeImageSound);
             soundAnnotation.setSoundTrigger(parseTrigger(compiler, parent, el));
-            image.addAnnotation(soundAnnotation);
+            block.addAnnotation(soundAnnotation);
         }
 
         // Parse <ImageAnnotation> child elements.
@@ -84,11 +87,11 @@ public class FloatingImageCompiler extends FlowTagCompiler {
             for (var child : children) {
                 if (child instanceof MdxJsxElementFields annEl && "ImageAnnotation".equals(annEl.name())) {
                     var ann = parseImageAnnotation(compiler, parent, annEl);
-                    image.addAnnotation(ann);
+                    block.addAnnotation(ann);
                 } else if (child instanceof MdxJsxElementFields soundEl && "SoundArea".equals(soundEl.name())) {
                     var ann = parseSoundArea(compiler, parent, soundEl);
                     if (ann != null) {
-                        image.addAnnotation(ann);
+                        block.addAnnotation(ann);
                     }
                 }
             }
@@ -96,17 +99,17 @@ public class FloatingImageCompiler extends FlowTagCompiler {
 
         // Wrap it in a flow content inline block
         var inlineBlock = new LytFlowInlineBlock();
-        inlineBlock.setBlock(image);
+        inlineBlock.setBlock(block);
         switch (align) {
             case "left" -> {
                 inlineBlock.setAlignment(InlineBlockAlignment.FLOAT_LEFT);
-                image.setMarginRight(5);
-                image.setMarginBottom(5);
+                block.setMarginRight(5);
+                block.setMarginBottom(5);
             }
             case "right" -> {
                 inlineBlock.setAlignment(InlineBlockAlignment.FLOAT_RIGHT);
-                image.setMarginLeft(5);
-                image.setMarginBottom(5);
+                block.setMarginLeft(5);
+                block.setMarginBottom(5);
             }
             default -> {
                 parent.append(compiler.createErrorFlowContent("Invalid align. Must be left or right.", el));

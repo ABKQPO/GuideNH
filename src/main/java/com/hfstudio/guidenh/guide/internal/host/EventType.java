@@ -13,5 +13,6 @@ public enum EventType {
     STUB_EXPANDED,
     LAYOUT_INVALIDATED,
     ATTACHED,
-    DETACHED
+    DETACHED,
+    MOUNT
 }

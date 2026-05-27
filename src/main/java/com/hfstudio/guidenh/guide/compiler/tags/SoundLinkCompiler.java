@@ -26,8 +26,8 @@ public class SoundLinkCompiler extends FlowTagCompiler {
             return;
         }
         var link = new LytFlowLink();
-        link.setClickSoundSpec(sound);
-        link.setClickCallback(uiHost -> {});
+        link.setStyleClass("SoundLink");
+        link.setData("soundSpec", sound);
         compiler.compileInlineFragment(el.children(), link);
         parent.append(link);
     }

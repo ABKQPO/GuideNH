@@ -12,6 +12,8 @@ import java.util.Map;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.block.Block;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
@@ -34,8 +36,6 @@ import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
-import com.hfstudio.guidenh.guide.compiler.tags.StructureViewCompiler;
-import com.hfstudio.guidenh.guide.compiler.tags.SubPagesCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytStructureView;
@@ -936,7 +936,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
 
         List<NavigationNode> sorted = new ArrayList<>(nodes);
         if (alphabetical) {
-            sorted.sort(SubPagesCompiler.ALPHABETICAL_COMPARATOR);
+            sorted.sort(Comparator.comparing(NavigationNode::title));
         }
         return renderNavigationNodeList(sorted, currentPageId);
     }
@@ -2552,7 +2552,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             } catch (NumberFormatException ignored) {}
         }
 
-        ItemStack stack = StructureViewCompiler.resolveStack(resourceId, meta);
+        ItemStack stack = resolveStructureStack(resourceId, meta);
         GuideSiteExportedItem exportedItem;
         String displayName;
         @Nullable
@@ -2578,6 +2578,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             displayName,
             abbreviateStructureLabel(displayName, exportedItem.itemId()),
             templateId);
+    }
+
+    @Nullable
+    private static ItemStack resolveStructureStack(String resourceId, int meta) {
+        var item = (Item) Item.itemRegistry.getObject(resourceId);
+        if (item != null) {
+            return new ItemStack(item, 1, meta);
+        }
+        var block = (Block) Block.blockRegistry.getObject(resourceId);
+        if (block != null) {
+            return new ItemStack(block, 1, meta);
+        }
+        return null;
     }
 
     private List<String> splitWhitespaceTokens(String text, int limit) {

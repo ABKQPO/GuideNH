@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,7 +15,6 @@ import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableCell;
-import com.hfstudio.guidenh.guide.internal.csv.CsvTableParser;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
@@ -44,21 +42,12 @@ public class CsvTableCompiler extends BlockTagCompiler {
             return;
         }
 
-        byte[] data = compiler.loadAsset(csvId);
-        if (data == null) {
-            parent.appendError(compiler, "Missing CSV asset: " + csvId, el);
-            return;
-        }
-
-        List<List<String>> rows = CsvTableParser.parse(new String(data, StandardCharsets.UTF_8));
-        if (rows.isEmpty()) {
-            parent.appendError(compiler, "CsvTable source is empty: " + csvId, el);
-            return;
-        }
-
         boolean header = MdxAttrs.getBoolean(compiler, parent, el, "header", true);
-        parent.append(
-            buildTable(rows, header, parseWidthHints(MdxAttrs.getString(compiler, parent, el, "widths", null))));
+        List<Integer> widths = parseWidthHints(MdxAttrs.getString(compiler, parent, el, "widths", null));
+
+        CsvTablePlaceholder placeholder = new CsvTablePlaceholder(csvId.toString(), header, widths);
+        placeholder.appendText("Loading CSV...");
+        parent.append(placeholder);
     }
 
     @Override
@@ -69,30 +58,9 @@ public class CsvTableCompiler extends BlockTagCompiler {
         } catch (MdxAttrs.AttributeException e) {
             return;
         }
-        if (src == null || src.trim()
+        if (src != null && !src.trim()
             .isEmpty()) {
-            return;
-        }
-
-        ResourceLocation csvId;
-        try {
-            csvId = IdUtils.resolveLink(src.trim(), indexer.getPageId());
-        } catch (IllegalArgumentException e) {
-            return;
-        }
-
-        byte[] data = indexer.loadAsset(csvId);
-        if (data == null) {
-            return;
-        }
-
-        List<List<String>> rows = CsvTableParser.parse(new String(data, StandardCharsets.UTF_8));
-        for (List<String> row : rows) {
-            for (String cell : row) {
-                if (!cell.isEmpty()) {
-                    sink.appendText(el, cell);
-                }
-            }
+            sink.appendText(el, src);
             sink.appendBreak();
         }
     }
@@ -177,5 +145,18 @@ public class CsvTableCompiler extends BlockTagCompiler {
         }
 
         cell.append(paragraph);
+    }
+
+    public static class CsvTablePlaceholder extends LytParagraph {
+        public final String src;
+        public final boolean header;
+        public final List<Integer> widths;
+
+        public CsvTablePlaceholder(String src, boolean header, List<Integer> widths) {
+            this.src = src;
+            this.header = header;
+            this.widths = widths;
+            setStyleClass("CsvTable");
+        }
     }
 }

@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.compiler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,78 +16,48 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePage;
-import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.PageCollection;
-import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
-import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
-import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
-import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LatexRenderOptions;
 import com.hfstudio.guidenh.guide.document.block.LatexVerticalAlign;
-import com.hfstudio.guidenh.guide.document.block.LytAlertBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
-import com.hfstudio.guidenh.guide.document.block.LytCodeBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytFloatAwareBlock;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
-import com.hfstudio.guidenh.guide.document.block.LytImage;
-import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
 import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
-import com.hfstudio.guidenh.guide.document.block.LytList;
-import com.hfstudio.guidenh.guide.document.block.LytListItem;
-import com.hfstudio.guidenh.guide.document.block.LytMermaidMindmap;
-import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
-import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;
-import com.hfstudio.guidenh.guide.document.block.LytTaskListItem;
 import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
-import com.hfstudio.guidenh.guide.document.block.LytVBox;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
-import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
-import com.hfstudio.guidenh.guide.internal.csv.CsvTableParser;
-import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguage;
-import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguageDetector;
-import com.hfstudio.guidenh.guide.internal.markdown.FileTreeCompiler;
 import com.hfstudio.guidenh.guide.internal.markdown.FootnotePreprocessor;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownHtmlRuntimeNormalizer;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
-import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLiteralAutolink;
-import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
-import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
-import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconKind;
-import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
-import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
-import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
@@ -96,29 +65,14 @@ import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
-import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
-import com.hfstudio.guidenh.libs.mdast.guidemark.MdAstMark;
-import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstDottedUnderline;
-import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstUnderline;
-import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstWavyUnderline;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstBlockquote;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstEmphasis;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstHTML;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstHeading;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstImage;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstImageReference;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstInlineCode;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstLink;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstLinkReference;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstListItem;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
@@ -143,11 +97,8 @@ public class PageCompiler {
      */
     public static final int DEFAULT_ELEMENT_SPACING = 5;
     public static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
-    private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
     public static final int DEFAULT_MARK_BACKGROUND_COLOR = 0xFF8A6A00;
     private static final Pattern TABLE_ATTRIBUTE_LINE = Pattern.compile("^\\{:\\s*(.+?)\\s*}$");
-    private static final Pattern CODEBLOCK_META_HEIGHT = Pattern
-        .compile("(^|\\s)height=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
     private static PageLinkResolver pageLinkResolver = PageCompiler::defaultPageExistsForLink;
     private static final State<List<SourceSlice>> SOURCE_SLICE_STACK = new State<>(
         "source_slice_stack",
@@ -662,159 +613,6 @@ public class PageCompiler {
         }
     }
 
-    private LytList compileList(MdAstList astList) {
-        var list = new LytList(astList.ordered, astList.start);
-        for (var listContent : astList.children()) {
-            if (listContent instanceof MdAstListItem astListItem) {
-                var taskMarker = MarkdownListSemantics.extractTaskMarker(astListItem.children());
-                LytListItem listItem = taskMarker != null ? new LytTaskListItem() : new LytListItem();
-                if (listItem instanceof LytTaskListItem taskListItem) {
-                    taskListItem.setChecked(taskMarker.checked());
-                }
-                compileListItem(astListItem, listItem, taskMarker);
-
-                // Fix up top/bottom margin for list item children
-                var children = listItem.getChildren();
-                if (!children.isEmpty()) {
-                    var firstChild = children.get(0);
-                    if (firstChild instanceof LytBlock firstBlock) {
-                        firstBlock.setMarginTop(0);
-                        firstBlock.setMarginBottom(0);
-                    }
-                }
-                list.append(listItem);
-            } else {
-                list.append(createErrorBlock("Cannot handle list content", listContent));
-            }
-        }
-        return list;
-    }
-
-    @Deprecated
-    private LytBlock compileBlockquote(MdAstBlockquote astBlockquote) {
-        // Dead code path — BlockquoteCompiler handles <blockquote> now
-        var blockquote = new LytVBox();
-        blockquote.setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);
-        blockquote.setPadding(5);
-        blockquote.setPaddingLeft(10);
-        blockquote.setBorderLeft(new BorderStyle(SymbolicColor.TABLE_BORDER, 2));
-        blockquote.setMarginTop(DEFAULT_ELEMENT_SPACING);
-        blockquote.setMarginBottom(DEFAULT_ELEMENT_SPACING);
-        compileBlockContext(astBlockquote, blockquote);
-        return wrapFloatAwareIfNeeded(blockquote);
-    }
-
-    private void normalizeBlockMargins(LytNode box) {
-        var boxChildren = box.getChildren();
-        if (!boxChildren.isEmpty()) {
-            if (boxChildren.get(0) instanceof LytParagraph firstParagraph) {
-                firstParagraph.setMarginTop(0);
-            }
-            if (boxChildren.get(boxChildren.size() - 1) instanceof LytParagraph lastParagraph) {
-                lastParagraph.setMarginBottom(0);
-            }
-        }
-    }
-
-    private void shiftFirstParagraphDown(LytNode box, int pixels) {
-        var boxChildren = box.getChildren();
-        if (!boxChildren.isEmpty() && boxChildren.get(0) instanceof LytParagraph firstParagraph) {
-            firstParagraph.setPaddingTop(firstParagraph.getPaddingTop() + pixels);
-        }
-    }
-
-    private void compileListItem(MdAstListItem astListItem, LytListItem listItem,
-        @Nullable MarkdownListSemantics.TaskMarker taskMarker) {
-        if (taskMarker == null || astListItem.children()
-            .isEmpty()
-            || !(astListItem.children()
-                .get(0) instanceof MdAstParagraph paragraph)) {
-            compileBlockContext(astListItem, listItem);
-            return;
-        }
-
-        var paragraphCopy = cloneParagraphWithLeadingTextOverride(paragraph, taskMarker.remainingText());
-        compileParagraphBlock(paragraphCopy, listItem);
-        for (int i = 1; i < astListItem.children()
-            .size(); i++) {
-            var child = astListItem.children()
-                .get(i);
-            compileBlockContext(Collections.singletonList(child), listItem);
-        }
-    }
-
-    private MdAstParagraph cloneParagraphWithLeadingTextOverride(MdAstParagraph original, String leadingText) {
-        MdAstParagraph copy = new MdAstParagraph();
-        boolean replaced = false;
-        for (var child : original.children()) {
-            if (!replaced && child instanceof MdAstText) {
-                if (leadingText != null && !leadingText.isEmpty()) {
-                    MdAstText text = new MdAstText();
-                    text.setValue(leadingText);
-                    copy.addChild(text);
-                }
-                replaced = true;
-                continue;
-            }
-            if (child instanceof MdAstNode astNode) {
-                copy.addChild(astNode);
-            }
-        }
-        return copy;
-    }
-
-    private @Nullable LytFlowContent buildQuoteIcon(@Nullable QuoteIconSpec icon) {
-        if (icon == null || icon.value() == null
-            || icon.value()
-                .trim()
-                .isEmpty()) {
-            return null;
-        }
-
-        if (icon.kind() == QuoteIconKind.ITEM) {
-            ItemStack stack = IdUtils.resolveItemStack(
-                icon.value()
-                    .trim(),
-                pageId.getResourceDomain());
-            if (stack == null) {
-                return null;
-            }
-            var itemImage = new LytItemImage(stack);
-            itemImage.setInline(true);
-            itemImage.setTooltipSuppressed(true);
-            itemImage.setInlineYOffsetOverride(-1);
-            var inlineBlock = LytFlowInlineBlock.of(itemImage);
-            return inlineBlock;
-        }
-
-        if (icon.kind() == QuoteIconKind.PNG) {
-            try {
-                ResourceLocation imageId = IdUtils.resolveLink(
-                    icon.value()
-                        .trim(),
-                    pageId);
-                byte[] imageData = loadAsset(imageId);
-                if (imageData == null) {
-                    return null;
-                }
-                var image = new LytImage();
-                image.setTexture(imageId, GuidePageTexture.load(imageId, imageData));
-                image.setExplicitWidth(16);
-                image.setExplicitHeight(16);
-                return LytFlowInlineBlock.of(image);
-            } catch (IllegalArgumentException ignored) {
-                return null;
-            }
-        }
-
-        LytFlowSpan span = new LytFlowSpan();
-        span.append(
-            LytFlowText.of(
-                icon.value()
-                    .trim()));
-        return span;
-    }
-
     private void compileParagraphBlock(MdAstParagraph astParagraph, LytBlockContainer parent) {
         var children = astParagraph.children();
         if (children.size() == 1 && children.get(0) instanceof MdAstText soleText) {
@@ -1052,257 +850,6 @@ public class PageCompiler {
         return foundFormula;
     }
 
-    private LytFlowContent compileLink(MdAstLink astLink, LytErrorSink errorSink) {
-        var link = new LytFlowLink();
-        var sound = GuideSoundParsers.parseActionUri(this, astLink.url);
-        if (sound != null) {
-            link.setClickSoundSpec(sound);
-            link.setClickCallback(uiHost -> {});
-            compileFlowContext(astLink, link);
-            return link;
-        }
-        if (astLink.title != null && !astLink.title.isEmpty()) {
-            link.setTooltip(new TextTooltip(astLink.title));
-        }
-        if (astLink.url != null && !astLink.url.isEmpty()) {
-            LinkParser.parseLink(this, astLink.url, new LinkParser.Visitor() {
-
-                @Override
-                public void handlePage(ResourceLocation guideId, PageAnchor page) {
-                    link.setGuideLink(guideId, page);
-                }
-
-                @Override
-                public void handleExternal(URI uri) {
-                    link.setExternalUrl(uri);
-                }
-
-                @Override
-                public void handleError(String error) {
-                    errorSink.appendError(PageCompiler.this, error, astLink);
-                }
-            });
-        }
-
-        compileFlowContext(astLink, link);
-        return link;
-    }
-
-    private LytFlowContent compileLinkReference(MdAstLinkReference astLinkReference, LytErrorSink errorSink) {
-        MdAstDefinition definition = GuideMarkdownDefinitions.find(definitions, astLinkReference.identifier);
-        if (definition == null) {
-            return createErrorFlowContent("Missing link reference definition", astLinkReference);
-        }
-
-        MdAstLink link = new MdAstLink();
-        link.url = definition.url;
-        link.title = definition.title;
-        for (var child : astLinkReference.children()) {
-            if (child instanceof MdAstNode astChild) {
-                link.addChild(astChild);
-            }
-        }
-        return compileLink(link, errorSink);
-    }
-
-    private LytImage compileImageReference(MdAstImageReference astImageReference) {
-        MdAstDefinition definition = GuideMarkdownDefinitions.find(definitions, astImageReference.identifier);
-        if (definition == null) {
-            LytImage image = new LytImage();
-            image.setAlt(astImageReference.alt);
-            image.setTitle("Missing image reference: " + astImageReference.identifier);
-            return image;
-        }
-
-        MdAstImage image = new MdAstImage();
-        image.setAlt(astImageReference.alt);
-        image.setTitle(definition.title);
-        image.setUrl(definition.url);
-        return compileImage(image);
-    }
-
-    private LytBlock compileCodeBlock(MdAstCode astCode) {
-        CodeBlockLanguage language = CodeBlockLanguageDetector.detect(astCode.lang, astCode.value);
-        if (shouldRenderCsvTable(astCode, language)) {
-            return compileCsvCodeBlock(astCode);
-        }
-        if (isFileTreeFence(astCode.lang)) {
-            return FileTreeCompiler.compile(this, astCode.value);
-        }
-        if (isFunctionGraphFence(astCode.lang)) {
-            return FunctionGraphFenceParser.parse(astCode.value);
-        }
-        if ("mermaid".equals(language.id())) {
-            LytMermaidMindmap mermaidBlock = tryCompileMermaidMindmap(astCode.value);
-            if (mermaidBlock != null) {
-                return mermaidBlock;
-            }
-        }
-
-        LytCodeBlock codeBlock = new LytCodeBlock();
-        codeBlock.setLanguageFenceName(astCode.lang != null ? astCode.lang : language.id());
-        codeBlock.applyLanguage(language);
-        codeBlock.setCodeText(astCode.value);
-        Integer preferredWidth = parseCodeBlockWidth(astCode.meta);
-        if (preferredWidth != null) {
-            codeBlock.setPreferredBodyWidth(preferredWidth);
-        }
-        Integer forcedHeight = parseCodeBlockHeight(astCode.meta);
-        if (forcedHeight != null) {
-            codeBlock.setForcedBodyHeight(forcedHeight);
-        }
-        return codeBlock;
-    }
-
-    private boolean shouldRenderCsvTable(MdAstCode astCode, CodeBlockLanguage language) {
-        return astCode.lang != null && "csv".equals(language.id());
-    }
-
-    private static boolean isFileTreeFence(@Nullable String fenceLanguage) {
-        if (fenceLanguage == null) {
-            return false;
-        }
-        String trimmed = fenceLanguage.trim();
-        return "tree".equalsIgnoreCase(trimmed) || "filetree".equalsIgnoreCase(trimmed);
-    }
-
-    private static boolean isFunctionGraphFence(@Nullable String fenceLanguage) {
-        if (fenceLanguage == null) {
-            return false;
-        }
-        String trimmed = fenceLanguage.trim();
-        return "funcgraph".equalsIgnoreCase(trimmed) || "function".equalsIgnoreCase(trimmed)
-            || "functiongraph".equalsIgnoreCase(trimmed);
-    }
-
-    private LytBlock compileCsvCodeBlock(MdAstCode astCode) {
-        String source = astCode.value;
-        List<List<String>> rows = CsvTableParser.parse(source);
-        if (rows.isEmpty()) {
-            LytCodeBlock codeBlock = new LytCodeBlock();
-            codeBlock.setLanguageFenceName("csv");
-            codeBlock.applyLanguage(new CodeBlockLanguage("csv", "CSV"));
-            codeBlock.setCodeText(source);
-            return codeBlock;
-        }
-
-        CsvFenceMeta meta = parseCsvFenceMeta(astCode.meta);
-        return CsvTableCompiler.buildTable(rows, meta.header(), meta.widthHints());
-    }
-
-    private CsvFenceMeta parseCsvFenceMeta(@Nullable String meta) {
-        if (meta == null || meta.trim()
-            .isEmpty()) {
-            return new CsvFenceMeta(true, Collections.emptyList());
-        }
-
-        boolean header = true;
-        List<Integer> widthHints = Collections.emptyList();
-        for (String token : splitMetaTokens(meta)) {
-            int equalsIndex = token.indexOf('=');
-            if (equalsIndex <= 0 || equalsIndex == token.length() - 1) {
-                continue;
-            }
-
-            String key = token.substring(0, equalsIndex);
-            String value = stripOptionalQuotes(token.substring(equalsIndex + 1));
-            if ("widths".equals(key)) {
-                widthHints = CsvTableCompiler.parseWidthHints(value);
-            } else if ("header".equals(key)) {
-                header = !"false".equalsIgnoreCase(value);
-            }
-        }
-
-        return new CsvFenceMeta(header, widthHints);
-    }
-
-    private MarkdownTableMeta extractMarkdownTableMeta(List<? extends MdAstAnyContent> children, int startIndex) {
-        if (startIndex >= children.size()) {
-            return extractMarkdownTableMetaFromSource(children, startIndex);
-        }
-
-        StringBuilder metaExpression = new StringBuilder();
-        int consumed = 0;
-        for (int index = startIndex; index < children.size(); index++) {
-            MdAstAnyContent child = children.get(index);
-            if (!(child instanceof MdAstParagraph paragraph)) {
-                break;
-            }
-
-            String attributeText = getParagraphTextValue(paragraph);
-            if (attributeText == null) {
-                break;
-            }
-
-            Matcher matcher = TABLE_ATTRIBUTE_LINE.matcher(attributeText.trim());
-            if (!matcher.matches()) {
-                break;
-            }
-
-            if (metaExpression.length() > 0) {
-                metaExpression.append(' ');
-            }
-            metaExpression.append(matcher.group(1));
-            consumed++;
-        }
-
-        if (consumed == 0) {
-            return extractMarkdownTableMetaFromSource(children, startIndex);
-        }
-
-        List<Integer> widthHints = parseWidthHintsFromMetaExpression(metaExpression.toString());
-        if (widthHints.isEmpty()) {
-            return new MarkdownTableMeta(Collections.emptyList(), consumed);
-        }
-
-        return new MarkdownTableMeta(widthHints, consumed);
-    }
-
-    private MarkdownTableMeta extractMarkdownTableMetaFromSource(List<? extends MdAstAnyContent> children,
-        int startIndex) {
-        if (startIndex <= 0 || startIndex > children.size()) {
-            return new MarkdownTableMeta(Collections.emptyList(), 0);
-        }
-
-        MdAstAnyContent tableChild = children.get(startIndex - 1);
-        if (!(tableChild instanceof MdAstNode tableNode) || tableNode.position() == null
-            || tableNode.position()
-                .end() == null) {
-            return new MarkdownTableMeta(Collections.emptyList(), 0);
-        }
-
-        int endLine = tableNode.position()
-            .end()
-            .line();
-        String sourceText = getCurrentSourceText();
-        if (endLine <= 0) {
-            return new MarkdownTableMeta(Collections.emptyList(), 0);
-        }
-
-        MarkdownTableMeta[] found = new MarkdownTableMeta[1];
-        GuideStringLines.visitLines(sourceText, (line, lineIndex) -> {
-            if (lineIndex + 1 < endLine) {
-                return true;
-            }
-            String attributeLine = line.trim();
-            if (attributeLine.isEmpty()) {
-                return true;
-            }
-            Matcher matcher = TABLE_ATTRIBUTE_LINE.matcher(attributeLine);
-            if (matcher.matches()) {
-                List<Integer> widthHints = parseWidthHintsFromMetaExpression(matcher.group(1));
-                found[0] = new MarkdownTableMeta(widthHints, 0);
-            }
-            return false;
-        });
-        return found[0] != null ? found[0] : new MarkdownTableMeta(Collections.emptyList(), 0);
-    }
-
-    private @Nullable String getParagraphTextValue(MdAstParagraph paragraph) {
-        String text = paragraph.toText();
-        return text.isEmpty() ? null : text;
-    }
-
     private List<Integer> parseWidthHintsFromMetaExpression(String metaExpression) {
         for (String token : splitMetaTokens(metaExpression)) {
             int equalsIndex = token.indexOf('=');
@@ -1361,50 +908,6 @@ public class PageCompiler {
             }
         }
         return value;
-    }
-
-    private @Nullable Integer parseCodeBlockHeight(@Nullable String meta) {
-        if (meta == null || meta.trim()
-            .isEmpty()) {
-            return null;
-        }
-        Matcher matcher = CODEBLOCK_META_HEIGHT.matcher(meta);
-        if (!matcher.find()) {
-            return null;
-        }
-        String value = matcher.group(3) != null ? matcher.group(3)
-            : matcher.group(4) != null ? matcher.group(4) : matcher.group(5);
-        if (value == null || value.trim()
-            .isEmpty()) {
-            return null;
-        }
-        try {
-            return Math.max(0, Integer.parseInt(value.trim()));
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
-    private @Nullable Integer parseCodeBlockWidth(@Nullable String meta) {
-        if (meta == null || meta.trim()
-            .isEmpty()) {
-            return null;
-        }
-        Matcher matcher = CODEBLOCK_META_WIDTH.matcher(meta);
-        if (!matcher.find()) {
-            return null;
-        }
-        String value = matcher.group(3) != null ? matcher.group(3)
-            : matcher.group(4) != null ? matcher.group(4) : matcher.group(5);
-        if (value == null || value.trim()
-            .isEmpty()) {
-            return null;
-        }
-        try {
-            return Math.max(0, Integer.parseInt(value.trim()));
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
     }
 
     private @Nullable BlockTagChildSource extractBlockTagChildrenSource(MdxJsxElementFields element) {
@@ -1513,89 +1016,6 @@ public class PageCompiler {
             }
         }
         return line.substring(index);
-    }
-
-    private @Nullable LytMermaidMindmap tryCompileMermaidMindmap(String source) {
-        try {
-            String normalized = MermaidMindmapParser.normalize(source);
-            LytMermaidMindmap block = new LytMermaidMindmap(MermaidMindmapParser.parse(normalized), normalized);
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [PageCompiler] Compiled fenced Mermaid runtime block for page {} ({} chars)",
-                    pageId,
-                    normalized.length());
-            return block;
-        } catch (IllegalArgumentException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [PageCompiler] Failed to compile fenced Mermaid runtime block for page {} from source: {}",
-                    pageId,
-                    source,
-                    e);
-            return null;
-        }
-    }
-
-    private void compileHtmlLiteral(LytParagraph paragraph, String html) {
-        String stripped = stripHtmlTags(html);
-        if (stripped.isEmpty()) {
-            paragraph.appendText(html);
-        } else {
-            paragraph.appendText(stripped);
-        }
-        paragraph.setMarginTop(DEFAULT_ELEMENT_SPACING);
-        paragraph.setMarginBottom(DEFAULT_ELEMENT_SPACING);
-    }
-
-    private LytFlowContent compileHtmlInline(String html) {
-        LytFlowText text = new LytFlowText();
-        text.setText(stripHtmlTags(html));
-        return text;
-    }
-
-    private String stripHtmlTags(String html) {
-        if (html == null || html.isEmpty()) {
-            return "";
-        }
-
-        StringBuilder stripped = new StringBuilder(html.length());
-        boolean inTag = false;
-        for (int i = 0; i < html.length(); i++) {
-            char current = html.charAt(i);
-            if (current == '<') {
-                inTag = true;
-                continue;
-            }
-            if (current == '>') {
-                inTag = false;
-                continue;
-            }
-            if (!inTag) {
-                stripped.append(current);
-            }
-        }
-        return stripped.toString();
-    }
-
-    private LytImage compileImage(MdAstImage astImage) {
-        var image = new LytImage();
-        image.setTitle(astImage.title);
-        image.setAlt(astImage.alt);
-        try {
-            var imageId = IdUtils.resolveLink(astImage.url, pageId);
-            var imageContent = pages.loadAsset(imageId);
-            if (imageContent == null) {
-                FMLLog.getLogger()
-                    .error("[GuideNH] [PageCompiler] Couldn't find image {}", astImage.url);
-                image.setTitle("Missing image: " + astImage.url);
-            }
-            image.setImage(imageId, imageContent);
-        } catch (IllegalArgumentException e) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [PageCompiler] Invalid image id: {}", astImage.url);
-            image.setTitle("Invalid image URL: " + astImage.url);
-        }
-        return image;
     }
 
     public LytBlock createErrorBlock(String text, UnistNode child) {
@@ -1787,12 +1207,6 @@ public class PageCompiler {
     private static <T> Class<T> castClass(Class<?> rawClass) {
         return (Class<T>) rawClass;
     }
-
-    @Desugar
-    private record CsvFenceMeta(boolean header, List<Integer> widthHints) {}
-
-    @Desugar
-    private record MarkdownTableMeta(List<Integer> widthHints, int consumeChildCount) {}
 
     @Desugar
     private record BlockTagChildSource(String source) {}

@@ -3,8 +3,6 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Collections;
 import java.util.Set;
 
-import net.minecraft.client.Minecraft;
-
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
@@ -14,8 +12,6 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class CommandLinkCompiler extends FlowTagCompiler {
 
@@ -34,21 +30,16 @@ public class CommandLinkCompiler extends FlowTagCompiler {
             parent.appendError(compiler, "command must start with /", el);
             return;
         }
-        var sendCommand = command;
         var closeGuide = MdxAttrs.getBoolean(compiler, parent, el, "close", false);
         var title = el.getAttributeString("title", "");
         var link = new LytFlowLink();
         link.setTooltip(buildTooltip(title, command));
 
-        var pageId = compiler.getPageId();
-        link.setClickCallback(uiHost -> {
-            var mc = Minecraft.getMinecraft();
-            if (mc.thePlayer != null) {
-                FMLLog.getLogger()
-                    .info("[GuideNH] [CommandLinkCompiler] Sending command from page {}: {}", pageId, sendCommand);
-                mc.thePlayer.sendChatMessage(sendCommand);
-            }
-        });
+        // Pure placeholder: mark for the script to materialize at mount time
+        link.setStyleClass("CommandLink");
+        link.setData("command", command);
+        link.setData("close", closeGuide);
+        link.setData("title", title);
 
         compiler.compileFlowContext(el.children(), link);
         parent.append(link);

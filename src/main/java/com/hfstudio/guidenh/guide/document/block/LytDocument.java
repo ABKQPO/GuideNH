@@ -29,6 +29,8 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     @Nullable
     private HitTestResult hoveredElement;
 
+    private boolean live;
+
     // Cached list of blocks intersecting the last rendered viewport. Invalidated whenever the
     // block list mutates or the layout is rebuilt; kept across frames otherwise so scrolling at
     // a steady viewport position only pays the iteration cost once.
@@ -107,6 +109,29 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
     public boolean hasLayout() {
         return layout != null;
+    }
+
+    public boolean isLive() {
+        return live;
+    }
+
+    public void setLive(boolean live) {
+        if (this.live == live) return;
+        this.live = live;
+        cascadeLive(this);
+    }
+
+    private static void cascadeLive(LytNode node) {
+        if (node instanceof LytDocument doc) {
+            if (doc.live) {
+                doc.onAttach();
+            } else {
+                doc.onDetach();
+            }
+        }
+        for (var child : node.getChildren()) {
+            cascadeLive(child);
+        }
     }
 
     public void invalidateLayout() {

@@ -7,7 +7,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
-import com.hfstudio.guidenh.guide.document.block.LytItemImage;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -21,20 +21,24 @@ public class ItemImageCompiler extends FlowTagCompiler {
 
     @Override
     protected void compile(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
-        var stack = MdxAttrs.getRequiredItemStack(compiler, parent, el);
-        if (stack == null) return;
+        String itemId = MdxAttrs.getString(compiler, parent, el, "id", null);
+        if (itemId == null) return;
+        itemId = itemId.trim();
 
         float scale = MdxAttrs.getFloat(compiler, parent, el, "scale", 1f);
-        var img = new LytItemImage(stack);
-        img.setScale(scale);
-        img.setInline(true);
+        boolean showTooltip;
+        Boolean showIcon;
+        String labelPosition;
+        String labelFormat;
+        Integer yOffset = null;
+        Integer labelYOffset = null;
 
         // Allow MDX authors to nudge the icon after its default inline vertical centering.
         // e.g. <ItemImage id="minecraft:diamond" yOffset="2" /> to move it down by 2px.
         String yOffRaw = el.getAttributeString("yOffset", null);
         if (yOffRaw != null && !yOffRaw.isEmpty()) {
             try {
-                img.setInlineYOffsetOverride(Integer.parseInt(yOffRaw.trim()));
+                yOffset = Integer.parseInt(yOffRaw.trim());
             } catch (NumberFormatException ignored) {
                 parent.appendError(compiler, "yOffset must be an integer (pixels at scale=1)", el);
             }
@@ -45,7 +49,7 @@ public class ItemImageCompiler extends FlowTagCompiler {
         String labelYOffRaw = el.getAttributeString("labelYOffset", null);
         if (labelYOffRaw != null && !labelYOffRaw.isEmpty()) {
             try {
-                img.setLabelYOffsetOverride(Integer.parseInt(labelYOffRaw.trim()));
+                labelYOffset = Integer.parseInt(labelYOffRaw.trim());
             } catch (NumberFormatException ignored) {
                 parent.appendError(compiler, "labelYOffset must be an integer (pixels at scale=1)", el);
             }
@@ -55,27 +59,24 @@ public class ItemImageCompiler extends FlowTagCompiler {
         Boolean noTooltipAttr = MdxAttrs.getOptionalBoolean(el, "noTooltip");
         boolean noTooltip = MdxAttrs.getBoolean(noTooltipAttr, false);
         Boolean showTooltipAttr = MdxAttrs.getOptionalBoolean(el, "showTooltip");
-        boolean showTooltip = showTooltipAttr != null ? showTooltipAttr : !noTooltip;
-        img.setShowTooltip(showTooltip);
+        showTooltip = showTooltipAttr != null ? showTooltipAttr : !noTooltip;
 
         // showIcon — whether to render the icon graphic (default true).
-        Boolean showIcon = MdxAttrs.getOptionalBoolean(el, "showIcon");
-        if (showIcon != null) {
-            img.setShowIcon(showIcon);
-        }
+        showIcon = MdxAttrs.getOptionalBoolean(el, "showIcon");
 
         // label — "left" or "right" to display the item name next to the icon.
         String labelRaw = el.getAttributeString("label", null);
-        img.setLabelPosition(resolveLabelPosition(labelRaw));
+        labelPosition = resolveLabelPosition(labelRaw);
 
         // format — Markdown-style format pattern for the label text.
         String formatRaw = el.getAttributeString("format", null);
-        if (formatRaw != null && !formatRaw.isEmpty()) {
-            img.setLabelFormat(formatRaw);
-        }
+        labelFormat = (formatRaw != null && !formatRaw.isEmpty()) ? formatRaw : null;
+
+        ItemImagePlaceholder placeholder = new ItemImagePlaceholder(
+            itemId, scale, yOffset, labelYOffset, showTooltip, showIcon, labelPosition, labelFormat);
 
         var inline = new LytFlowInlineBlock();
-        inline.setBlock(img);
+        inline.setBlock(placeholder);
         parent.append(inline);
     }
 
@@ -92,6 +93,36 @@ public class ItemImageCompiler extends FlowTagCompiler {
         if (v.equals("false") || v.equals("0") || v.equals("no") || v.equals("none")) return null;
         if (v.equals("left")) return "left";
         return "right";
+    }
+
+    public static class ItemImagePlaceholder extends LytParagraph {
+        public final String itemId;
+        public final float scale;
+        @Nullable
+        public final Integer yOffset;
+        @Nullable
+        public final Integer labelYOffset;
+        public final boolean showTooltip;
+        @Nullable
+        public final Boolean showIcon;
+        @Nullable
+        public final String labelPosition;
+        @Nullable
+        public final String labelFormat;
+
+        public ItemImagePlaceholder(String itemId, float scale, @Nullable Integer yOffset,
+            @Nullable Integer labelYOffset, boolean showTooltip, @Nullable Boolean showIcon,
+            @Nullable String labelPosition, @Nullable String labelFormat) {
+            this.itemId = itemId;
+            this.scale = scale;
+            this.yOffset = yOffset;
+            this.labelYOffset = labelYOffset;
+            this.showTooltip = showTooltip;
+            this.showIcon = showIcon;
+            this.labelPosition = labelPosition;
+            this.labelFormat = labelFormat;
+            setStyleClass("ItemImage");
+        }
     }
 
 }

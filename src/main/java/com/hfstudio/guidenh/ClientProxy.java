@@ -63,25 +63,33 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent;
 import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
-import com.hfstudio.guidenh.guide.internal.scheduler.WarmupWorkItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.LytHostWorkItem;
+import com.hfstudio.guidenh.guide.internal.host.scripts.CategoryScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.CommandLinkScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.FloatingImageScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.ImageScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.ItemGridScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.ItemImageScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.ItemLinkScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.KeyBindScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.PlayerNameScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.RecipeScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.SoundLinkScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.SpecialScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.StructureScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.SubPagesScript;
 
 import cpw.mods.fml.relauncher.Side;
 
 public class ClientProxy extends CommonProxy {
 
     private static final LytHost lytHost = new LytHost();
-    private static final WarmupWorkItem warmupWorkItem = new WarmupWorkItem();
 
     public static LytHost getLytHost() {
         return lytHost;
-    }
-
-    public static WarmupWorkItem getWarmupWorkItem() {
-        return warmupWorkItem;
     }
 
     @Override
@@ -144,8 +152,29 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
         MasterScheduler.init();
         MasterScheduler.getInstance().submit(new LytHostWorkItem(lytHost));
-        MasterScheduler.getInstance().submit(warmupWorkItem);
         MasterScheduler.getInstance().submit(new SearchIndexWorkItem());
+
+        // Phase 3: LytScript registrations
+        lytHost.registerScript("CommandLink", new CommandLinkScript());
+        lytHost.registerScript("Img", new ImageScript());
+        lytHost.registerScript("FloatingImage", new FloatingImageScript());
+        lytHost.registerScript("PlayerName", new PlayerNameScript());
+        lytHost.registerScript("KeyBind", new KeyBindScript());
+        lytHost.registerScript("SoundLink", new SoundLinkScript());
+        lytHost.registerScript("Structure", new StructureScript());
+        lytHost.registerScript("SubPages", new SubPagesScript());
+        lytHost.registerScript("ItemGrid", new ItemGridScript());
+        lytHost.registerScript("ItemImage", new ItemImageScript());
+        lytHost.registerScript("ItemLink", new ItemLinkScript());
+        lytHost.registerScript("Category", new CategoryScript());
+        lytHost.registerScript("Special", new SpecialScript());
+        // Phase 3: RecipeScript handles Recipe, RecipeFor, RecipeUsage, RecipesFor
+        RecipeScript recipeScript = new RecipeScript();
+        lytHost.registerScript("Recipe", recipeScript);
+        lytHost.registerScript("RecipeFor", recipeScript);
+        lytHost.registerScript("RecipeUsage", recipeScript);
+        lytHost.registerScript("RecipesFor", recipeScript);
+
         MinecraftForge.EVENT_BUS.register(this);
     }
 
@@ -166,8 +195,5 @@ public class ClientProxy extends CommonProxy {
     public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
         GuideME.closeSearch();
         lytHost.getNavigation().clear();
-        for (var guide : GuideRegistry.getAll()) {
-            guide.resetWarmup();
-        }
     }
 }
