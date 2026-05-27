@@ -2,7 +2,7 @@
 navigation:
   title: Recipes
   parent: index.md
-  position: 50
+  position: 150
 categories:
   - widgets
 ---
@@ -137,7 +137,7 @@ The small icon in the top-left shows which "recipe pool" the entry belongs to (s
 
 - First match item: <ItemImage ore="ingotIron" /> iron ingot via ore name
 - First match text link: <ItemLink ore="stickWood" />
-- Block item form: <BlockImage ore="logWood" scale="3" />
+- Block preview: <BlockImage ore="logWood" scale="3" />
 - `ore` takes precedence over `id`: <ItemImage id="minecraft:apple" ore="gemDiamond" />
 
 <GameScene width="192" height="128" zoom={5} interactive={true}>

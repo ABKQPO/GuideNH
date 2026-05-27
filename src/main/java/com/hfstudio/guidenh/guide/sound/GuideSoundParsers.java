@@ -21,8 +21,14 @@ public class GuideSoundParsers {
     @Nullable
     public static GuideSoundSpec parseAttributes(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el) {
+        return parseAttributes(compiler, errorSink, el, "src");
+    }
+
+    @Nullable
+    public static GuideSoundSpec parseAttributes(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
+        String sourceAttributeName) {
         String rawSound = MdxAttrs.getString(compiler, errorSink, el, "sound", null);
-        String rawSource = MdxAttrs.getString(compiler, errorSink, el, "src", null);
+        String rawSource = MdxAttrs.getString(compiler, errorSink, el, sourceAttributeName, null);
         if ((rawSound == null || rawSound.trim()
             .isEmpty()) && (rawSource == null
                 || rawSource.trim()
@@ -30,7 +36,10 @@ public class GuideSoundParsers {
             return null;
         }
         if (hasText(rawSound) && hasText(rawSource)) {
-            errorSink.appendError(compiler, "Use either sound or src for guide sound playback, not both.", el);
+            errorSink.appendError(
+                compiler,
+                "Use either sound or " + sourceAttributeName + " for guide sound playback, not both.",
+                el);
             return null;
         }
 

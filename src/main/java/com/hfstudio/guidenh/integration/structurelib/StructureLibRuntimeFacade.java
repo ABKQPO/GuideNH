@@ -6,12 +6,10 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
@@ -33,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.gtnewhorizon.structurelib.alignment.IAlignment;
-import com.gtnewhorizon.structurelib.alignment.IAlignmentProvider;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructableProvider;
@@ -42,6 +39,7 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
+import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
@@ -60,9 +58,18 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     public static final int MAX_TIER = 50;
     public static final int SURVIVAL_BUILD_BUDGET = 512;
     public static final int SURVIVAL_BUILD_MAX_ROUNDS = 256;
+    public static final int MAX_CONTROL_ANALYSIS_CACHE_ENTRIES = 128;
+    public static final int MAX_ANALYSIS_SNAPSHOT_CACHE_ENTRIES = 512;
+    public static final int MAX_IMPORT_RESULT_CACHE_ENTRIES = 64;
+    public static final int MAX_STABLE_ANALYSIS_FINGERPRINT_RUN = 2;
     public static final StructureLibPreviewMetadataFactory PREVIEW_METADATA_FACTORY = new StructureLibPreviewMetadataFactory(
         new StructureLibElementTooltipResolver());
-    public static final Map<AnalysisKey, ControlAnalysis> CONTROL_ANALYSIS_CACHE = new ConcurrentHashMap<>();
+    public static final StructureLibBoundedCache<AnalysisKey, ControlAnalysis> CONTROL_ANALYSIS_CACHE = new StructureLibBoundedCache<>(
+        MAX_CONTROL_ANALYSIS_CACHE_ENTRIES);
+    public static final StructureLibBoundedCache<AnalysisSnapshotKey, AnalysisSnapshot> ANALYSIS_SNAPSHOT_CACHE = new StructureLibBoundedCache<>(
+        MAX_ANALYSIS_SNAPSHOT_CACHE_ENTRIES);
+    public static final StructureLibBoundedCache<StructureLibImportCacheKey, StructureLibImportResult> IMPORT_RESULT_CACHE = new StructureLibBoundedCache<>(
+        MAX_IMPORT_RESULT_CACHE_ENTRIES);
 
     public StructureLibRuntimeFacade() {}
 
@@ -113,6 +120,19 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                         + " for preview generation.");
             }
 
+            StructureLibImportCacheKey importCacheKey = new StructureLibImportCacheKey(
+                request.getController(),
+                request.getPiece(),
+                request.getFacing(),
+                request.getRotation(),
+                request.getFlip(),
+                requestedChannel,
+                effectiveSelection);
+            StructureLibImportResult cached = IMPORT_RESULT_CACHE.get(importCacheKey);
+            if (cached != null) {
+                return cached.withWarnings(mergeWarnings(warnings, cached.getWarnings()));
+            }
+
             BuildSnapshot snapshot = buildSnapshot(request, controller, effectiveSelection, warnings, context);
             if (!snapshot.success) {
                 return StructureLibImportResult.failure(snapshot.errorMessage, warnings, null);
@@ -121,16 +141,19 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             StructureLibSceneMetadata metadata = PREVIEW_METADATA_FACTORY.createMetadata(
                 request,
                 effectiveSelection,
-                controlAnalysis.maxTotalTier,
-                controlAnalysis.channelMaxTierMap,
+                Math.max(controlAnalysis.maxTotalTier, effectiveSelection.getMasterTier()),
+                mergeChannelMaxTierMap(controlAnalysis.channelMaxTierMap, effectiveSelection),
                 snapshot.absoluteBlocks,
-                snapshot.visitedElements,
+                snapshot.visitedElementsByPos,
                 snapshot.triggerStack,
                 snapshot.world,
+                snapshot.fingerprint,
                 snapshot.constructable,
                 snapshot.actor);
 
-            return StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
+            StructureLibImportResult result = StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
+            IMPORT_RESULT_CACHE.put(importCacheKey, result);
+            return result;
         } catch (Throwable t) {
             GuideDebugLog.warn(LOG, "StructureLib import failed for controller {}", request.getController(), t);
             return StructureLibImportResult
@@ -196,32 +219,36 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     public static int estimateMaxTotalTier(StructureLibImportRequest request, ResolvedController controller,
         Set<String> discoveredChannels, BuildContext context) {
-        BuildSnapshot previous = buildSnapshot(
+        BuildSnapshot previous = getOrCreateAnalysisSnapshot(
             request,
             controller,
             StructureLibPreviewSelection.ofMasterTier(MIN_TIER),
-            new ArrayList<>(),
             context);
         if (!previous.success) {
             return MIN_TIER;
         }
-        collectChannelIds(previous.visitedElements, discoveredChannels);
+        collectChannelIds(previous, discoveredChannels);
         String previousFingerprint = previous.fingerprint;
+        int stableFingerprintRun = 0;
         for (int tier = MIN_TIER + 1; tier <= MAX_TIER; tier++) {
-            BuildSnapshot current = buildSnapshot(
+            BuildSnapshot current = getOrCreateAnalysisSnapshot(
                 request,
                 controller,
                 StructureLibPreviewSelection.ofMasterTier(tier),
-                new ArrayList<>(),
                 context);
             if (!current.success) {
                 return Math.max(MIN_TIER, tier - 1);
             }
-            collectChannelIds(current.visitedElements, discoveredChannels);
+            collectChannelIds(current, discoveredChannels);
             if (previousFingerprint.equals(current.fingerprint)) {
-                return Math.max(MIN_TIER, tier - 1);
+                stableFingerprintRun++;
+                if (stableFingerprintRun >= MAX_STABLE_ANALYSIS_FINGERPRINT_RUN) {
+                    return Math.max(MIN_TIER, tier - stableFingerprintRun);
+                }
+                continue;
             }
             previousFingerprint = current.fingerprint;
+            stableFingerprintRun = 0;
         }
         return MAX_TIER;
     }
@@ -253,33 +280,39 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
             StructureLibPreviewSelection baseSelection = StructureLibPreviewSelection.ofMasterTier(MIN_TIER)
                 .withChannelOverride(channelId, MIN_TIER);
-            BuildSnapshot previous = buildSnapshot(request, controller, baseSelection, new ArrayList<>(), context);
+            BuildSnapshot previous = getOrCreateAnalysisSnapshot(request, controller, baseSelection, context);
             if (!previous.success) {
                 continue;
             }
 
-            collectChannelIds(previous.visitedElements, discoveredChannels);
+            collectChannelIds(previous, discoveredChannels);
             if (discoveredChannels.size() > channelsToProcess.size()) {
                 channelsToProcess = new ArrayList<>(discoveredChannels);
             }
 
             int maxTier = MIN_TIER;
             String previousFingerprint = previous.fingerprint;
+            int stableFingerprintRun = 0;
             for (int tier = MIN_TIER + 1; tier <= MAX_TIER; tier++) {
                 StructureLibPreviewSelection selection = StructureLibPreviewSelection.ofMasterTier(MIN_TIER)
                     .withChannelOverride(channelId, tier);
-                BuildSnapshot current = buildSnapshot(request, controller, selection, new ArrayList<>(), context);
+                BuildSnapshot current = getOrCreateAnalysisSnapshot(request, controller, selection, context);
                 if (!current.success) {
                     break;
                 }
-                collectChannelIds(current.visitedElements, discoveredChannels);
+                collectChannelIds(current, discoveredChannels);
                 if (discoveredChannels.size() > channelsToProcess.size()) {
                     channelsToProcess = new ArrayList<>(discoveredChannels);
                 }
                 if (previousFingerprint.equals(current.fingerprint)) {
-                    break;
+                    stableFingerprintRun++;
+                    if (stableFingerprintRun >= MAX_STABLE_ANALYSIS_FINGERPRINT_RUN) {
+                        break;
+                    }
+                    continue;
                 }
                 previousFingerprint = current.fingerprint;
+                stableFingerprintRun = 0;
                 maxTier = tier;
             }
 
@@ -290,14 +323,49 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return resolved;
     }
 
-    public static void collectChannelIds(
-        List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements,
-        Set<String> discoveredChannels) {
-        if (visitedElements == null || visitedElements.isEmpty()) {
+    public static Map<String, Integer> mergeChannelMaxTierMap(Map<String, Integer> base,
+        StructureLibPreviewSelection selection) {
+        if ((base == null || base.isEmpty()) && (selection == null || selection.getChannelOverrides()
+            .isEmpty())) {
+            return Collections.emptyMap();
+        }
+        LinkedHashMap<String, Integer> merged = new LinkedHashMap<>();
+        if (base != null && !base.isEmpty()) {
+            merged.putAll(base);
+        }
+        if (selection != null) {
+            for (Map.Entry<String, Integer> entry : selection.getChannelOverrides()
+                .entrySet()) {
+                String channelId = StructureLibPreviewSelection.normalizeChannelId(entry.getKey());
+                Integer selectedValue = entry.getValue();
+                if (channelId == null || selectedValue == null || selectedValue <= 0) {
+                    continue;
+                }
+                Integer knownMax = merged.get(channelId);
+                merged.put(channelId, knownMax != null ? Math.max(knownMax, selectedValue) : selectedValue);
+            }
+        }
+        return merged.isEmpty() ? Collections.emptyMap() : merged;
+    }
+
+    public static void collectChannelIds(BuildSnapshot snapshot, Set<String> discoveredChannels) {
+        if (snapshot == null || discoveredChannels == null) {
             return;
         }
-        for (StructureLibPreviewMetadataFactory.VisitedStructureElement visitedElement : visitedElements) {
-            String channelId = StructureLibPreviewMetadataFactory.resolveChannelId(visitedElement.getElement());
+        if (!snapshot.channelIds.isEmpty()) {
+            discoveredChannels.addAll(snapshot.channelIds);
+            return;
+        }
+        collectChannelIds(snapshot.visitedElementsByPos, discoveredChannels);
+    }
+
+    public static void collectChannelIds(Map<Long, IStructureElement<?>> visitedElementsByPos,
+        Set<String> discoveredChannels) {
+        if (visitedElementsByPos == null || visitedElementsByPos.isEmpty()) {
+            return;
+        }
+        for (IStructureElement<?> visitedElement : visitedElementsByPos.values()) {
+            String channelId = StructureLibPreviewMetadataFactory.resolveChannelId(visitedElement);
             if (channelId != null) {
                 discoveredChannels.add(channelId);
             }
@@ -321,29 +389,89 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     public static BuildSnapshot buildSnapshot(StructureLibImportRequest request, ResolvedController controller,
         StructureLibPreviewSelection selection, List<String> warnings, BuildContext context) {
-        context.clear();
+        PreparedPreviewWorld prepared = preparePreviewWorld(request, controller, selection, warnings, context);
+        if (!prepared.success) {
+            return BuildSnapshot.failure(prepared.errorMessage);
+        }
+        SnapshotBlocksResult snapshotBlocks = snapshotBlocks(prepared.level);
+        if (snapshotBlocks.blocks.isEmpty()) {
+            context.resetPreviewState();
+            return BuildSnapshot.failure("StructureLib preview did not place any blocks.");
+        }
+        BuildSnapshot snapshot = BuildSnapshot.success(
+            snapshotBlocks.blocks,
+            snapshotBlocks.absoluteBlocks,
+            prepared.visitedElementsByPos,
+            buildFingerprint(snapshotBlocks.blocks),
+            prepared.world,
+            prepared.triggerStack,
+            prepared.constructable,
+            prepared.actor);
+        return snapshot;
+    }
+
+    public static BuildSnapshot getOrCreateAnalysisSnapshot(StructureLibImportRequest request,
+        ResolvedController controller, StructureLibPreviewSelection selection, BuildContext context) {
+        AnalysisSnapshotKey key = new AnalysisSnapshotKey(
+            request.getController(),
+            request.getPiece(),
+            request.getFacing(),
+            request.getRotation(),
+            request.getFlip(),
+            selection);
+        AnalysisSnapshot cached = ANALYSIS_SNAPSHOT_CACHE.get(key);
+        if (cached != null) {
+            return cached.toBuildSnapshot();
+        }
+
+        BuildSnapshot built = buildAnalysisSnapshot(request, controller, selection, context);
+        AnalysisSnapshot snapshot = AnalysisSnapshot.fromBuildSnapshot(built);
+        ANALYSIS_SNAPSHOT_CACHE.put(key, snapshot);
+        return snapshot.toBuildSnapshot();
+    }
+
+    public static BuildSnapshot buildAnalysisSnapshot(StructureLibImportRequest request, ResolvedController controller,
+        StructureLibPreviewSelection selection, BuildContext context) {
+        PreparedPreviewWorld prepared = preparePreviewWorld(request, controller, selection, new ArrayList<>(), context);
+        if (!prepared.success) {
+            return BuildSnapshot.failure(prepared.errorMessage);
+        }
+        String fingerprint = buildLevelFingerprint(prepared.level);
+        if (fingerprint.isEmpty()) {
+            context.resetPreviewState();
+            return BuildSnapshot.failure("StructureLib preview did not place any blocks.");
+        }
+        LinkedHashSet<String> channelIds = new LinkedHashSet<>();
+        collectChannelIds(prepared.visitedElementsByPos, channelIds);
+        return BuildSnapshot.analysis(fingerprint, channelIds);
+    }
+
+    public static PreparedPreviewWorld preparePreviewWorld(StructureLibImportRequest request,
+        ResolvedController controller, StructureLibPreviewSelection selection, List<String> warnings,
+        BuildContext context) {
+        context.resetPreviewState();
         GuidebookLevel level = context.getLevel();
         World world = context.getWorld();
         PreviewFakePlayer fakePlayer = context.getFakePlayer();
         TileEntity controllerTile = placeController(level, world, fakePlayer, controller, warnings);
         if (controllerTile == null) {
-            context.clear();
-            return BuildSnapshot.failure(
+            context.resetPreviewState();
+            return PreparedPreviewWorld.failure(
                 "Failed to create a controller tile for " + request.getController() + " in the preview world.");
         }
 
-        applyDefaultAlignment(controllerTile);
-        applyRequestedAlignment(controllerTile, request, warnings);
-        fakePlayer.configureForControllerFacing(resolveControllerFacing(controllerTile));
+        StructureLibOrientationHelper.applyDefaultAlignment(controllerTile);
+        StructureLibOrientationHelper.applyRequestedAlignment(controllerTile, request, warnings);
+        fakePlayer.configureForControllerFacing(StructureLibOrientationHelper.resolveControllerFacing(controllerTile));
         IConstructable constructable = resolveConstructable(controllerTile);
         if (constructable == null) {
-            context.clear();
-            return BuildSnapshot.failure(
+            context.resetPreviewState();
+            return PreparedPreviewWorld.failure(
                 "Failed to resolve a StructureLib constructable for controller " + request.getController() + ".");
         }
 
         ItemStack triggerStack = createTriggerStack(selection);
-        List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements = Collections.emptyList();
+        Map<Long, IStructureElement<?>> visitedElementsByPos = Collections.emptyMap();
         Object instrumentId = new Object();
         StructureLibStructureVisitCollector visitCollector = new StructureLibStructureVisitCollector(
             instrumentId,
@@ -373,17 +501,17 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 selection,
                 warnings);
             if (!buildResult.success) {
-                context.clear();
-                return BuildSnapshot.failure(buildResult.errorMessage);
+                context.resetPreviewState();
+                return PreparedPreviewWorld.failure(buildResult.errorMessage);
             }
             synchronizePreviewState(controllerTile, triggerStack, selection, warnings);
         } catch (Throwable t) {
             GuideDebugLog.warn(LOG, "StructureLib construct() failed for controller {}", request.getController(), t);
-            context.clear();
-            return BuildSnapshot.failure("StructureLib construct() failed: " + sanitizeMessage(t.getMessage()));
+            context.resetPreviewState();
+            return PreparedPreviewWorld.failure("StructureLib construct() failed: " + sanitizeMessage(t.getMessage()));
         } finally {
             if (instrumentEnabled) {
-                visitedElements = visitCollector.snapshot();
+                visitedElementsByPos = visitCollector.snapshot();
                 MinecraftForge.EVENT_BUS.unregister(visitCollector);
                 try {
                     StructureLibAPI.disableInstrument();
@@ -391,21 +519,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             }
         }
 
-        SnapshotBlocksResult snapshotBlocks = snapshotBlocks(level);
-        if (snapshotBlocks.blocks.isEmpty()) {
-            context.clear();
-            return BuildSnapshot.failure("StructureLib preview did not place any blocks.");
-        }
-        BuildSnapshot snapshot = BuildSnapshot.success(
-            snapshotBlocks.blocks,
-            snapshotBlocks.absoluteBlocks,
-            visitedElements,
-            buildFingerprint(snapshotBlocks.blocks),
-            world,
-            triggerStack,
-            constructable,
-            fakePlayer);
-        return snapshot;
+        return PreparedPreviewWorld
+            .success(level, world, triggerStack, constructable, fakePlayer, visitedElementsByPos);
     }
 
     public static TileEntity placeController(GuidebookLevel level, World world, PreviewFakePlayer fakePlayer,
@@ -459,66 +574,24 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return null;
     }
 
+    @Deprecated
     public static void applyRequestedAlignment(TileEntity controllerTile, StructureLibImportRequest request,
         List<String> warnings) {
-        if (request.getFacing() == null && request.getRotation() == null && request.getFlip() == null) {
-            return;
-        }
-        IAlignment alignment = resolveAlignment(controllerTile);
-        if (alignment == null) {
-            warnings
-                .add("Controller does not expose StructureLib alignment controls; preview used the default facing.");
-            return;
-        }
-
-        ForgeDirection direction = parseDirection(request.getFacing(), warnings);
-        Rotation rotation = parseRotation(request.getRotation(), warnings);
-        Flip flip = parseFlip(request.getFlip(), warnings);
-        ExtendedFacing requestedFacing = ExtendedFacing.of(direction, rotation, flip);
-        if (!alignment.checkedSetExtendedFacing(requestedFacing)) {
-            warnings.add(
-                "Requested StructureLib facing/rotation/flip is not valid for this controller; preview used the default alignment.");
-        }
+        StructureLibOrientationHelper.applyRequestedAlignment(controllerTile, request, warnings);
     }
 
+    @Deprecated
     public static void applyDefaultAlignment(TileEntity controllerTile) {
-        IAlignment alignment = resolveAlignment(controllerTile);
-        if (alignment == null) {
-            return;
-        }
-        ExtendedFacing currentFacing = alignment.getExtendedFacing();
-        if (currentFacing != null && alignment.getAlignmentLimits()
-            .isNewExtendedFacingValid(currentFacing)) {
-            return;
-        }
-        for (ExtendedFacing facing : ExtendedFacing.VALUES) {
-            if (alignment.checkedSetExtendedFacing(facing)) {
-                return;
-            }
-        }
+        StructureLibOrientationHelper.applyDefaultAlignment(controllerTile);
     }
 
     public static ForgeDirection resolveControllerFacing(TileEntity controllerTile) {
-        IAlignment alignment = resolveAlignment(controllerTile);
-        if (alignment != null) {
-            ExtendedFacing extendedFacing = alignment.getExtendedFacing();
-            if (extendedFacing != null && extendedFacing.getDirection() != null
-                && extendedFacing.getDirection() != ForgeDirection.UNKNOWN) {
-                return extendedFacing.getDirection();
-            }
-        }
-        return ForgeDirection.SOUTH;
+        return StructureLibOrientationHelper.resolveControllerFacing(controllerTile);
     }
 
     @Nullable
     public static IAlignment resolveAlignment(TileEntity controllerTile) {
-        if (controllerTile instanceof IAlignment alignment) {
-            return alignment;
-        }
-        if (controllerTile instanceof IAlignmentProvider provider) {
-            return provider.getAlignment();
-        }
-        return null;
+        return StructureLibOrientationHelper.resolveAlignment(controllerTile);
     }
 
     @Nullable
@@ -650,11 +723,12 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     public static SnapshotBlocksResult snapshotBlocks(GuidebookLevel level) {
-        List<AbsolutePlacedBlock> absoluteBlocks = new ArrayList<>();
+        List<int[]> filledBlocks = new ArrayList<>(level.getFilledBlocks());
+        List<AbsolutePlacedBlock> absoluteBlocks = new ArrayList<>(filledBlocks.size());
         int minX = Integer.MAX_VALUE;
         int minY = Integer.MAX_VALUE;
         int minZ = Integer.MAX_VALUE;
-        for (int[] filledBlock : level.getFilledBlocks()) {
+        for (int[] filledBlock : filledBlocks) {
             int x = filledBlock[0];
             int y = filledBlock[1];
             int z = filledBlock[2];
@@ -664,8 +738,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             }
             int meta = level.getBlockMetadata(x, y, z);
             TileEntity tile = level.getTileEntity(x, y, z);
-            absoluteBlocks
-                .add(new AbsolutePlacedBlock(x, y, z, block, meta, serializeTile(tile), resolveBlockId(block)));
+            String blockId = resolvePlacedBlockId(level, x, y, z, block);
+            absoluteBlocks.add(new AbsolutePlacedBlock(x, y, z, block, meta, serializeTile(tile), blockId));
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
             minZ = Math.min(minZ, z);
@@ -712,6 +786,68 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 .append(';');
         }
         return builder.toString();
+    }
+
+    public static String buildLevelFingerprint(GuidebookLevel level) {
+        List<int[]> sortedBlocks = new ArrayList<>(level.getFilledBlocks());
+        if (sortedBlocks.isEmpty()) {
+            return "";
+        }
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        for (int[] filledBlock : sortedBlocks) {
+            minX = Math.min(minX, filledBlock[0]);
+            minY = Math.min(minY, filledBlock[1]);
+            minZ = Math.min(minZ, filledBlock[2]);
+        }
+
+        StringBuilder builder = new StringBuilder(sortedBlocks.size() * 24);
+        sortedBlocks.sort(
+            Comparator.comparingInt((int[] value) -> value[0])
+                .thenComparingInt(value -> value[1])
+                .thenComparingInt(value -> value[2]));
+        for (int[] filledBlock : sortedBlocks) {
+            int x = filledBlock[0];
+            int y = filledBlock[1];
+            int z = filledBlock[2];
+            Block block = level.getBlock(x, y, z);
+            if (block == null || block == Blocks.air) {
+                continue;
+            }
+            builder.append(x - minX)
+                .append(',')
+                .append(y - minY)
+                .append(',')
+                .append(z - minZ)
+                .append(':')
+                .append(resolvePlacedBlockId(level, x, y, z, block))
+                .append('@')
+                .append(level.getBlockMetadata(x, y, z))
+                .append(';');
+        }
+        return builder.toString();
+    }
+
+    @Nullable
+    private static String resolvePlacedBlockId(GuidebookLevel level, int x, int y, int z, Block block) {
+        String explicitBlockId = level.getExplicitBlockId(x, y, z);
+        return explicitBlockId != null ? explicitBlockId : resolveBlockId(block);
+    }
+
+    public static List<String> mergeWarnings(List<String> leadingWarnings, List<String> cachedWarnings) {
+        if ((leadingWarnings == null || leadingWarnings.isEmpty())
+            && (cachedWarnings == null || cachedWarnings.isEmpty())) {
+            return Collections.emptyList();
+        }
+        ArrayList<String> merged = new ArrayList<>();
+        if (leadingWarnings != null) {
+            merged.addAll(leadingWarnings);
+        }
+        if (cachedWarnings != null) {
+            merged.addAll(cachedWarnings);
+        }
+        return merged;
     }
 
     @Nullable
@@ -776,75 +912,23 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     public static ForgeDirection parseDirection(@Nullable String rawFacing, List<String> warnings) {
-        if (rawFacing == null || rawFacing.trim()
-            .isEmpty()) {
-            return ForgeDirection.NORTH;
-        }
-        String normalized = rawFacing.trim()
-            .toLowerCase(Locale.ROOT);
-        return switch (normalized) {
-            case "down" -> ForgeDirection.DOWN;
-            case "up" -> ForgeDirection.UP;
-            case "north" -> ForgeDirection.NORTH;
-            case "south" -> ForgeDirection.SOUTH;
-            case "west" -> ForgeDirection.WEST;
-            case "east" -> ForgeDirection.EAST;
-            default -> {
-                warnings.add("Unsupported StructureLib facing '" + rawFacing + "'; preview used north.");
-                yield ForgeDirection.NORTH;
-            }
-        };
+        return StructureLibOrientationHelper.parseDirection(rawFacing, warnings);
     }
 
     public static Rotation parseRotation(@Nullable String rawRotation, List<String> warnings) {
-        if (rawRotation == null || rawRotation.trim()
-            .isEmpty()) {
-            return Rotation.NORMAL;
-        }
-        Rotation rotation = Rotation.byName(normalizeRotation(rawRotation));
-        if (rotation != null) {
-            return rotation;
-        }
-        warnings.add("Unsupported StructureLib rotation '" + rawRotation + "'; preview used normal rotation.");
-        return Rotation.NORMAL;
+        return StructureLibOrientationHelper.parseRotation(rawRotation, warnings);
     }
 
     public static Flip parseFlip(@Nullable String rawFlip, List<String> warnings) {
-        if (rawFlip == null || rawFlip.trim()
-            .isEmpty()) {
-            return Flip.NONE;
-        }
-        Flip flip = Flip.byName(normalizeFlip(rawFlip));
-        if (flip != null) {
-            return flip;
-        }
-        warnings.add("Unsupported StructureLib flip '" + rawFlip + "'; preview used no flip.");
-        return Flip.NONE;
+        return StructureLibOrientationHelper.parseFlip(rawFlip, warnings);
     }
 
     public static String normalizeRotation(String rawRotation) {
-        String normalized = rawRotation.trim()
-            .toLowerCase(Locale.ROOT)
-            .replace('_', ' ')
-            .replace('-', ' ');
-        return switch (normalized) {
-            case "90", "clockwise 90" -> "clockwise";
-            case "180", "upside down 180" -> "upside down";
-            case "270", "counter clockwise 90", "counterclockwise 90" -> "counter clockwise";
-            default -> normalized;
-        };
+        return StructureLibOrientationHelper.normalizeRotation(rawRotation);
     }
 
     public static String normalizeFlip(String rawFlip) {
-        String normalized = rawFlip.trim()
-            .toLowerCase(Locale.ROOT)
-            .replace('_', ' ')
-            .replace('-', ' ');
-        return switch (normalized) {
-            case "mirror left right", "left right", "x" -> "horizontal";
-            case "mirror front back", "front back", "z", "y" -> "vertical";
-            default -> normalized;
-        };
+        return StructureLibOrientationHelper.normalizeFlip(rawFlip);
     }
 
     @Nullable
@@ -968,6 +1052,83 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
     }
 
+    public static class AnalysisSnapshotKey {
+
+        private final String controller;
+        @Nullable
+        private final String piece;
+        @Nullable
+        private final String facing;
+        @Nullable
+        private final String rotation;
+        @Nullable
+        private final String flip;
+        private final StructureLibPreviewSelection selection;
+
+        public AnalysisSnapshotKey(String controller, @Nullable String piece, @Nullable String facing,
+            @Nullable String rotation, @Nullable String flip, StructureLibPreviewSelection selection) {
+            this.controller = controller;
+            this.piece = piece;
+            this.facing = facing;
+            this.rotation = rotation;
+            this.flip = flip;
+            this.selection = selection != null ? selection : StructureLibPreviewSelection.defaultSelection();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof AnalysisSnapshotKey other)) {
+                return false;
+            }
+            return controller.equals(other.controller) && Objects.equals(piece, other.piece)
+                && Objects.equals(facing, other.facing)
+                && Objects.equals(rotation, other.rotation)
+                && Objects.equals(flip, other.flip)
+                && selection.equals(other.selection);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(controller, piece, facing, rotation, flip, selection);
+        }
+    }
+
+    public static class AnalysisSnapshot {
+
+        private final boolean success;
+        private final Set<String> channelIds;
+        private final String fingerprint;
+        @Nullable
+        private final String errorMessage;
+
+        public AnalysisSnapshot(boolean success, Set<String> channelIds, String fingerprint,
+            @Nullable String errorMessage) {
+            this.success = success;
+            this.channelIds = channelIds != null ? Collections.unmodifiableSet(new LinkedHashSet<>(channelIds))
+                : Collections.emptySet();
+            this.fingerprint = fingerprint != null ? fingerprint : "";
+            this.errorMessage = errorMessage;
+        }
+
+        public static AnalysisSnapshot fromBuildSnapshot(BuildSnapshot snapshot) {
+            return new AnalysisSnapshot(
+                snapshot.success,
+                snapshot.channelIds,
+                snapshot.fingerprint,
+                snapshot.errorMessage);
+        }
+
+        public BuildSnapshot toBuildSnapshot() {
+            if (!success) {
+                return BuildSnapshot.failure(errorMessage);
+            }
+            return BuildSnapshot.analysis(fingerprint, channelIds);
+        }
+    }
+
     public static class ResolvedController {
 
         private final String blockId;
@@ -1017,9 +1178,13 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             return fakePlayer;
         }
 
-        public void clear() {
+        public void resetPreviewState() {
             level.clear();
             fakePlayer.inventory.clearInventory(null, -1);
+        }
+
+        public void clear() {
+            resetPreviewState();
         }
     }
 
@@ -1047,12 +1212,67 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
     }
 
+    public static class PreparedPreviewWorld {
+
+        private final boolean success;
+        private final GuidebookLevel level;
+        @Nullable
+        private final World world;
+        private final ItemStack triggerStack;
+        @Nullable
+        private final Object constructable;
+        @Nullable
+        private final EntityPlayer actor;
+        private final Map<Long, IStructureElement<?>> visitedElementsByPos;
+        @Nullable
+        private final String errorMessage;
+
+        public PreparedPreviewWorld(boolean success, GuidebookLevel level, @Nullable World world,
+            ItemStack triggerStack, @Nullable Object constructable, @Nullable EntityPlayer actor,
+            Map<Long, IStructureElement<?>> visitedElementsByPos, @Nullable String errorMessage) {
+            this.success = success;
+            this.level = level;
+            this.world = world;
+            this.triggerStack = triggerStack;
+            this.constructable = constructable;
+            this.actor = actor;
+            this.visitedElementsByPos = visitedElementsByPos;
+            this.errorMessage = errorMessage;
+        }
+
+        public static PreparedPreviewWorld success(GuidebookLevel level, World world, ItemStack triggerStack,
+            Object constructable, EntityPlayer actor, Map<Long, IStructureElement<?>> visitedElementsByPos) {
+            return new PreparedPreviewWorld(
+                true,
+                level,
+                world,
+                triggerStack,
+                constructable,
+                actor,
+                visitedElementsByPos,
+                null);
+        }
+
+        public static PreparedPreviewWorld failure(String errorMessage) {
+            return new PreparedPreviewWorld(
+                false,
+                new GuidebookLevel(),
+                null,
+                new ItemStack(StructureLibAPI.getDefaultHologramItem(), MIN_TIER),
+                null,
+                null,
+                Collections.emptyMap(),
+                sanitizeMessage(errorMessage));
+        }
+    }
+
     public static class BuildSnapshot {
 
         private final boolean success;
         private final List<StructureLibImportResult.PlacedBlock> blocks;
         private final List<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock> absoluteBlocks;
-        private final List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements;
+        private final Map<Long, IStructureElement<?>> visitedElementsByPos;
+        private final Set<String> channelIds;
         private final String fingerprint;
         @Nullable
         private final World world;
@@ -1066,13 +1286,15 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
         public BuildSnapshot(boolean success, List<StructureLibImportResult.PlacedBlock> blocks,
             List<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock> absoluteBlocks,
-            List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements, String fingerprint,
+            Map<Long, IStructureElement<?>> visitedElementsByPos, Set<String> channelIds, String fingerprint,
             @Nullable World world, ItemStack triggerStack, @Nullable Object constructable, @Nullable EntityPlayer actor,
             @Nullable String errorMessage) {
             this.success = success;
             this.blocks = blocks;
             this.absoluteBlocks = absoluteBlocks;
-            this.visitedElements = visitedElements;
+            this.visitedElementsByPos = visitedElementsByPos;
+            this.channelIds = channelIds != null ? Collections.unmodifiableSet(new LinkedHashSet<>(channelIds))
+                : Collections.emptySet();
             this.fingerprint = fingerprint;
             this.world = world;
             this.triggerStack = triggerStack;
@@ -1083,13 +1305,30 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
         public static BuildSnapshot success(List<StructureLibImportResult.PlacedBlock> blocks,
             List<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock> absoluteBlocks,
-            List<StructureLibPreviewMetadataFactory.VisitedStructureElement> visitedElements, String fingerprint,
+            Map<Long, IStructureElement<?>> visitedElementsByPos, String fingerprint, World world,
+            ItemStack triggerStack, Object constructable, EntityPlayer actor) {
+            return success(
+                blocks,
+                absoluteBlocks,
+                visitedElementsByPos,
+                Collections.emptySet(),
+                fingerprint,
+                world,
+                triggerStack,
+                constructable,
+                actor);
+        }
+
+        public static BuildSnapshot success(List<StructureLibImportResult.PlacedBlock> blocks,
+            List<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock> absoluteBlocks,
+            Map<Long, IStructureElement<?>> visitedElementsByPos, Set<String> channelIds, String fingerprint,
             World world, ItemStack triggerStack, Object constructable, EntityPlayer actor) {
             return new BuildSnapshot(
                 true,
                 blocks,
                 absoluteBlocks,
-                visitedElements,
+                visitedElementsByPos,
+                channelIds,
                 fingerprint,
                 world,
                 triggerStack,
@@ -1098,12 +1337,28 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 null);
         }
 
+        public static BuildSnapshot analysis(String fingerprint, Set<String> channelIds) {
+            return new BuildSnapshot(
+                true,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyMap(),
+                channelIds,
+                fingerprint,
+                null,
+                new ItemStack(StructureLibAPI.getDefaultHologramItem(), MIN_TIER),
+                null,
+                null,
+                null);
+        }
+
         public static BuildSnapshot failure(String errorMessage) {
             return new BuildSnapshot(
                 false,
                 Collections.emptyList(),
                 Collections.emptyList(),
-                Collections.emptyList(),
+                Collections.emptyMap(),
+                Collections.emptySet(),
                 "",
                 null,
                 new ItemStack(StructureLibAPI.getDefaultHologramItem(), MIN_TIER),

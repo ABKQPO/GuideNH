@@ -2,7 +2,7 @@
 navigation:
   title: 函数图
   parent: index.md
-  position: 20
+  position: 180
 categories:
   - markdown
   - charts

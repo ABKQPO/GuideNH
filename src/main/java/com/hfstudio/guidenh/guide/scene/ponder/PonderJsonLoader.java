@@ -62,6 +62,7 @@ public class PonderJsonLoader {
                 errorOut[0] = "Ponder totalTime must be >= 1: " + absId;
                 return null;
             }
+            PonderLocalizationResolver.localize(result, compiler.getLanguage());
             return result;
         } catch (Exception e) {
             errorOut[0] = "Failed to parse ponder JSON (" + absId + "): " + e.getMessage();

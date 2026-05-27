@@ -77,6 +77,22 @@ public class StructureLibSceneMetadata {
             updated);
     }
 
+    public StructureLibSceneMetadata withBlockTooltips(@Nullable Map<Long, BlockTooltipData> tooltipDataByPos) {
+        Map<Long, BlockTooltipData> filtered = filterTooltipData(tooltipDataByPos);
+        if (filtered.isEmpty() && blockTooltipDataByPos.isEmpty()) {
+            return this;
+        }
+        return new StructureLibSceneMetadata(
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            tierData,
+            channelDataList,
+            filtered);
+    }
+
     public StructureLibSceneMetadata withTierData(int minValue, int maxValue, int defaultValue, int currentValue) {
         return new StructureLibSceneMetadata(
             controller,
@@ -215,6 +231,20 @@ public class StructureLibSceneMetadata {
             return Collections.emptyMap();
         }
         return Collections.unmodifiableMap(new LinkedHashMap<>(source));
+    }
+
+    public static Map<Long, BlockTooltipData> filterTooltipData(@Nullable Map<Long, BlockTooltipData> source) {
+        if (source == null || source.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        LinkedHashMap<Long, BlockTooltipData> filtered = new LinkedHashMap<>(source.size());
+        for (Map.Entry<Long, BlockTooltipData> entry : source.entrySet()) {
+            BlockTooltipData value = entry.getValue();
+            if (entry.getKey() != null && value != null && value.hasAdditionalTooltipContent()) {
+                filtered.put(entry.getKey(), value);
+            }
+        }
+        return filtered.isEmpty() ? Collections.emptyMap() : filtered;
     }
 
     public static List<BlockTooltipEntry> computeHatchTooltipEntries(

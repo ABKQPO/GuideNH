@@ -75,7 +75,7 @@ public class SceneBlockStatsEntry {
     }
 
     private static int displayCount(int count) {
-        return Math.max(1, Math.min(999, count));
+        return Math.max(1, count);
     }
 
     public List<BlockStatsPlacement> getPlacements() {

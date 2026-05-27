@@ -4,6 +4,8 @@
 
 GuideNH 会根据页面 frontmatter 构建导航树。
 
+在游戏内侧边栏中，已经展开且其子树仍然可见的祖先页面会固定在顶部。多层祖先可以逐层堆叠固定，只有当对应可见子树整体滚出后，该 sticky 行才会一起被顶走，行为类似 VSCode 的文件树。
+
 ## 导航 Frontmatter
 
 `navigation` map 控制一个页面是否会出现在指南树中。
@@ -23,12 +25,40 @@ navigation:
 | `title` | 必填，显示标题 |
 | `parent` | 可选，父页面 id；解析规则与指南页面链接相同 |
 | `position` | 可选，同级排序提示 |
+| `recommend` | 可选，首页推荐优先级；缺省时不会出现在推荐面板中 |
 | `priority` | 可选，同路径页面覆盖时的加载优先级；默认 `0` |
 | `icon` | 可选，物品图标 |
 | `icon_texture` | 可选，从指南资源中解析的纹理图标 |
 | `icon_components` | 会被解析，但当前内置渲染尚未使用 |
 | `required_mod` | 可选，单个模组 id；该模组未加载时页面不可见 |
 | `required_mods` | 可选，模组 id 列表；列出的全部模组都加载时页面才可见 |
+
+### `navigation.position`
+
+`navigation.position` 是用于控制同级页面顺序的可选整数。
+
+- 未填写时默认按 `0` 处理。
+- 数值越大越靠前。
+- 数值相同时，按标题字母序排序。
+
+## 首页推荐
+
+### `navigation.recommend`
+
+`navigation.recommend` 是用于首页推荐面板的可选整数。
+
+- 只有写了这个字段的页面才会出现在推荐面板中。
+- `0` 是有效值。
+- 数值越大越靠前。
+- 数值相同时，按标题字母序排序。
+- 推荐面板按 `GuidePage` 工作，因此每一项都会直接跳转到对应页面。
+
+```yaml
+navigation:
+  title: Steam Stage Checklist
+  parent: index.md
+  recommend: 0
+```
 
 ## 模组需求
 
@@ -107,10 +137,13 @@ GuideNH 会按以下顺序选择导航/搜索图标：
 ```yaml
 categories:
   - basics
-  - machines
+  - machines|Arc Furnace
 ```
 
-这些分类可通过内置 `<CategoryIndex>` 标签查询。
+每一项既可以只是分类名，也可以写成 `分类名|排序名`。
+
+这些分类可通过内置 `<Category name="machines" rows="3" />` 标签查询，同时还会自动创建诸如 `Category:machines` 这样的隐藏可搜索页面。
+GuideNH 还会自动创建隐藏可搜索的特殊页面 `Special:AllPages` 与 `Special:Categories`。
 
 ## 物品索引页面
 
@@ -197,15 +230,42 @@ GuideNH 在 Markdown 链接和 `<a>` 标签中支持标题锚点跳转。
 
 特殊情况：`id=""` 会列出所有根导航节点。
 
-## `<CategoryIndex>`
+## `<Category>`
 
-`<CategoryIndex>` 会渲染某个命名分类下的全部页面链接。
+`<Category>` 会渲染某个命名分类下的全部页面链接。
+
+### 属性
+
+| 属性 | 类型 | 默认值 | 含义 |
+| --- | --- | --- | --- |
+| `name` | string | 无 | 要渲染的分类名 |
+| `rows` | 正整数 | `3` | MediaWiki 风格布局中的显示列数 |
 
 ````md
-<CategoryIndex category="machines" />
+<Category name="machines" rows="3" />
 ````
 
 如果分类不存在，GuideNH 会显示内联错误。
+
+同一个分类还会自动拥有一个隐藏可搜索页面 `Category:machines`。
+
+## `<Special>`
+
+`<Special>` 用于渲染内置的 MediaWiki 风格特殊页面列表。
+
+### 属性
+
+| 属性 | 类型 | 默认值 | 含义 |
+| --- | --- | --- | --- |
+| `name` | string | 无 | 支持的值：`AllPages`、`Categories` |
+| `rows` | 正整数 | `3` | MediaWiki 风格布局中的显示列数 |
+
+````md
+<Special name="AllPages" rows="4" />
+<Special name="Categories" rows="3" />
+````
+
+相同内容也可以通过隐藏可搜索页面 `Special:AllPages` 与 `Special:Categories` 访问。
 
 ## 搜索结果标题
 

@@ -6,6 +6,7 @@ import java.util.Map;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.init.Blocks;
@@ -17,6 +18,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge.EditorAccess;
@@ -27,6 +29,7 @@ import codechicken.nei.NEIClientConfig;
 import codechicken.nei.PositionedStack;
 import codechicken.nei.api.IGuiContainerOverlay;
 import codechicken.nei.guihook.GuiContainerManager;
+import codechicken.nei.guihook.IContainerObjectHandler;
 import codechicken.nei.recipe.GuiOverlayButton;
 import codechicken.nei.recipe.GuiRecipe;
 import codechicken.nei.recipe.GuiRecipeButton;
@@ -39,6 +42,7 @@ public class GuideScreenNeiNativeBridge {
 
     private static final int MIN_COMPRESSED_SIDE_WIDTH = 84;
     private static final int BOTTOM_PANEL_HEIGHT = 24;
+    private static boolean guideObjectHandlerRegistered;
     private static int lastInputLayoutVersion = Integer.MIN_VALUE;
     private static int lastInputLayoutScreenHash;
 
@@ -227,10 +231,30 @@ public class GuideScreenNeiNativeBridge {
         if (manager == null) {
             return false;
         }
+        return dispatchKeyTyped(editorAccess, typedChar, keyCode, manager, true);
+    }
+
+    public static boolean keyTypedForHoveredGuideItem(EditorAccess editorAccess, char typedChar, int keyCode) {
+        if (isEditorTextFocused(editorAccess) || isNativeEditorNeiEnabled(editorAccess)) {
+            return false;
+        }
+        if (!(editorAccess.container() instanceof GuideScreen guideScreen)
+            || guideScreen.getHoveredNeiQueryStack() == null) {
+            return false;
+        }
+        GuiContainerManager manager = compatibleManager(editorAccess);
+        if (manager == null) {
+            return false;
+        }
+        return dispatchKeyTyped(editorAccess, typedChar, keyCode, manager, false);
+    }
+
+    private static boolean dispatchKeyTyped(EditorAccess editorAccess, char typedChar, int keyCode,
+        GuiContainerManager manager, boolean applyNeiLayout) {
         editorAccess.prepareForTemporaryScreenChange();
         boolean handled = false;
         try {
-            handled = withNeiLayout(editorAccess, new NeiLayoutAction<Boolean>() {
+            handled = runKeyTyped(editorAccess, applyNeiLayout, new NeiLayoutAction<Boolean>() {
 
                 @Override
                 public Boolean run() {
@@ -252,6 +276,10 @@ public class GuideScreenNeiNativeBridge {
                 editorAccess.cancelTemporaryScreenChange();
             }
         }
+    }
+
+    private static <T> T runKeyTyped(EditorAccess editorAccess, boolean applyNeiLayout, NeiLayoutAction<T> action) {
+        return applyNeiLayout ? withNeiLayout(editorAccess, action) : action.run();
     }
 
     private static boolean isEditorTextFocused(EditorAccess editorAccess) {
@@ -322,8 +350,17 @@ public class GuideScreenNeiNativeBridge {
 
     public static void init() {
         if (Mods.NotEnoughItems.isModLoaded()) {
+            registerGuideObjectHandler();
             MinecraftForge.EVENT_BUS.register(new GuideScreenNeiBridgeEvents());
         }
+    }
+
+    private static void registerGuideObjectHandler() {
+        if (guideObjectHandlerRegistered) {
+            return;
+        }
+        GuiContainerManager.addObjectHandler(new GuideScreenObjectHandler());
+        guideObjectHandlerRegistered = true;
     }
 
     private static boolean isConfiguredForEditor(EditorAccess editorAccess) {
@@ -348,6 +385,13 @@ public class GuideScreenNeiNativeBridge {
 
     private static @Nullable GuiContainerManager configuredManager(EditorAccess editorAccess) {
         if (!isNativeEditorNeiEnabled(editorAccess)) {
+            return null;
+        }
+        return GuiContainerManager.getManager(editorAccess.container());
+    }
+
+    private static @Nullable GuiContainerManager compatibleManager(EditorAccess editorAccess) {
+        if (!isEnabledByMods()) {
             return null;
         }
         return GuiContainerManager.getManager(editorAccess.container());
@@ -395,6 +439,36 @@ public class GuideScreenNeiNativeBridge {
     private interface NeiLayoutAction<T> {
 
         T run();
+    }
+
+    public static class GuideScreenObjectHandler implements IContainerObjectHandler {
+
+        @Override
+        public void guiTick(GuiContainer gui) {}
+
+        @Override
+        public void refresh(GuiContainer gui) {}
+
+        @Override
+        public void load(GuiContainer gui) {}
+
+        @Override
+        public @Nullable ItemStack getStackUnderMouse(GuiContainer gui, int mousex, int mousey) {
+            if (gui instanceof GuideScreen guideScreen) {
+                return guideScreen.getHoveredNeiQueryStack(mousex, mousey);
+            }
+            return null;
+        }
+
+        @Override
+        public boolean objectUnderMouse(GuiContainer gui, int mousex, int mousey) {
+            return getStackUnderMouse(gui, mousex, mousey) != null;
+        }
+
+        @Override
+        public boolean shouldShowTooltip(GuiContainer gui) {
+            return true;
+        }
     }
 
     public static class GuideScreenNeiBridgeEvents {

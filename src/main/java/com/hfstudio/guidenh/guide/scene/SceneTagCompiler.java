@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.scene;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -11,18 +12,27 @@ import java.util.function.Supplier;
 
 import net.minecraft.item.ItemStack;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCache;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheEntry;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheKey;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureFingerprintResolver;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
@@ -33,8 +43,34 @@ import com.hfstudio.guidenh.libs.unist.UnistParent;
 public class SceneTagCompiler extends BlockTagCompiler {
 
     public static final LytErrorSink NOOP_ERROR_SINK = (compiler, text, node) -> {};
+    private static final String[] SCENE_ROOT_TAG_NAMES = { "GameScene", "Scene" };
+    private static final String[] SCENE_HEAVY_TAG_NAMES = { "ImportStructure", "ImportStructureLib", "PlaceBlock",
+        "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "Block", "Entity" };
+    private static final int SCENE_HEAVY_ELEMENT_THRESHOLD = 8;
 
     private Map<String, SceneElementTagCompiler> elementCompilers = Collections.emptyMap();
+    private final GuideSceneStructureFingerprintResolver structureFingerprintResolver = new GuideSceneStructureFingerprintResolver();
+
+    public static boolean likelyHasHeavySceneWork(@Nullable ParsedGuidePage parsedPage) {
+        return parsedPage != null && likelyHasHeavySceneWork(parsedPage.getSource());
+    }
+
+    public static boolean likelyHasHeavySceneWork(@Nullable String sourceText) {
+        if (sourceText == null || sourceText.isEmpty()) {
+            return false;
+        }
+
+        int sceneRootCount = countTags(sourceText, SCENE_ROOT_TAG_NAMES);
+        if (sceneRootCount <= 0) {
+            return false;
+        }
+        if (sceneRootCount > 1) {
+            return true;
+        }
+
+        // Keep this source-only heuristic narrow so warmup can prioritize obvious scene-heavy pages cheaply.
+        return countTags(sourceText, SCENE_HEAVY_TAG_NAMES) >= SCENE_HEAVY_ELEMENT_THRESHOLD;
+    }
 
     @Override
     public Set<String> getTagNames() {
@@ -117,6 +153,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
 
         boolean interactive = MdxAttrs.getBoolean(compiler, parent, el, "interactive", true);
         scene.setInteractive(interactive);
+        scene.setShowBackground(resolveShowBackground(compiler, parent, el));
         boolean allowLayerSlider = MdxAttrs
             .getBoolean(compiler, parent, el, "allowLayerSlider", ModConfig.ui.sceneLayerSliderEnabled);
         scene.setVisibleLayerSliderEnabled(allowLayerSlider);
@@ -130,8 +167,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         if (el instanceof MdxJsxFlowElement flow) {
             blockStatsDeclared = compileSceneChildren(scene, compiler, parent, flow);
             scene.initializePonderTimelineBaseline();
-            scene.setStructureLibSelectionChangeListener(
-                selection -> rebuildSceneForStructureLibSelection(scene, compiler, flow, explicitCenter, selection));
+            configureStructureLibSelectionListeners(scene, compiler, flow, explicitCenter);
         }
 
         if (!scene.getLevel()
@@ -161,32 +197,12 @@ public class SceneTagCompiler extends BlockTagCompiler {
                 cam.setOffsetX(0f);
                 cam.setOffsetY(0f);
 
-                int[] bounds = scene.getLevel()
-                    .getBounds();
-                float lx = bounds[0];
-                float ly = bounds[1];
-                float lz = bounds[2];
-                float hx = bounds[3] + 1f;
-                float hy = bounds[4] + 1f;
-                float hz = bounds[5] + 1f;
-
-                float minSX = Float.MAX_VALUE;
-                float maxSX = -Float.MAX_VALUE;
-                float minSY = Float.MAX_VALUE;
-                float maxSY = -Float.MAX_VALUE;
-                for (int ci = 0; ci < 8; ci++) {
-                    float wx = (ci & 1) == 0 ? lx : hx;
-                    float wy = (ci & 2) == 0 ? ly : hy;
-                    float wz = (ci & 4) == 0 ? lz : hz;
-                    var sp = cam.worldToScreen(wx, wy, wz);
-                    if (sp.x < minSX) minSX = sp.x;
-                    if (sp.x > maxSX) maxSX = sp.x;
-                    if (sp.y < minSY) minSY = sp.y;
-                    if (sp.y > maxSY) maxSY = sp.y;
-                }
-
-                float spanX = maxSX - minSX;
-                float spanY = maxSY - minSY;
+                SceneViewportMetrics metrics = measureSceneViewport(
+                    cam,
+                    scene.getLevel()
+                        .getBounds());
+                float spanX = metrics.spanX();
+                float spanY = metrics.spanY();
                 float autoZoom = 1f;
                 if (spanX > 0.5f || spanY > 0.5f) {
                     float zX = spanX > 0.5f ? (float) w / spanX : Float.MAX_VALUE;
@@ -210,35 +226,22 @@ public class SceneTagCompiler extends BlockTagCompiler {
                 cam.setOffsetX(0f);
                 cam.setOffsetY(0f);
 
-                int[] szBounds = scene.getLevel()
-                    .getBounds();
-                float szLX = szBounds[0], szLY = szBounds[1], szLZ = szBounds[2];
-                float szHX = szBounds[3] + 1f, szHY = szBounds[4] + 1f, szHZ = szBounds[5] + 1f;
-
-                float szMinSX = Float.MAX_VALUE, szMaxSX = -Float.MAX_VALUE;
-                float szMinSY = Float.MAX_VALUE, szMaxSY = -Float.MAX_VALUE;
-                for (int ci = 0; ci < 8; ci++) {
-                    float wx = (ci & 1) == 0 ? szLX : szHX;
-                    float wy = (ci & 2) == 0 ? szLY : szHY;
-                    float wz = (ci & 4) == 0 ? szLZ : szHZ;
-                    var sp = cam.worldToScreen(wx, wy, wz);
-                    if (sp.x < szMinSX) szMinSX = sp.x;
-                    if (sp.x > szMaxSX) szMaxSX = sp.x;
-                    if (sp.y < szMinSY) szMinSY = sp.y;
-                    if (sp.y > szMaxSY) szMaxSY = sp.y;
-                }
+                SceneViewportMetrics metrics = measureSceneViewport(
+                    cam,
+                    scene.getLevel()
+                        .getBounds());
 
                 // Add a small border so the scene content never touches the viewport edge.
-                final int AUTO_PADDING = 16;
-                final int AUTO_MIN_DIM = 64;
-                final int AUTO_MAX_DIM = 512;
-                float szSpanX = szMaxSX - szMinSX;
-                float szSpanY = szMaxSY - szMinSY;
+                int autoPadding = 16;
+                int autoMinDim = 64;
+                int autoMaxDim = 512;
+                float szSpanX = metrics.spanX();
+                float szSpanY = metrics.spanY();
                 if (!explicitWidth && szSpanX > 0.5f) {
-                    w = Math.min(AUTO_MAX_DIM, Math.max(AUTO_MIN_DIM, (int) Math.ceil(szSpanX) + AUTO_PADDING));
+                    w = Math.min(autoMaxDim, Math.max(autoMinDim, (int) Math.ceil(szSpanX) + autoPadding));
                 }
                 if (!explicitHeight && szSpanY > 0.5f) {
-                    h = Math.min(AUTO_MAX_DIM, Math.max(AUTO_MIN_DIM, (int) Math.ceil(szSpanY) + AUTO_PADDING));
+                    h = Math.min(autoMaxDim, Math.max(autoMinDim, (int) Math.ceil(szSpanY) + autoPadding));
                 }
                 scene.setSceneSize(w, h);
                 cam.setViewportSize(w, h);
@@ -268,6 +271,34 @@ public class SceneTagCompiler extends BlockTagCompiler {
         parent.append(scene);
     }
 
+    private boolean resolveShowBackground(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
+        return MdxAttrs.getBoolean(compiler, parent, el, "showBackground", true);
+    }
+
+    private SceneViewportMetrics measureSceneViewport(CameraSettings camera, int[] bounds) {
+        float lx = bounds[0];
+        float ly = bounds[1];
+        float lz = bounds[2];
+        float hx = bounds[3] + 1f;
+        float hy = bounds[4] + 1f;
+        float hz = bounds[5] + 1f;
+        float minSX = Float.MAX_VALUE;
+        float maxSX = -Float.MAX_VALUE;
+        float minSY = Float.MAX_VALUE;
+        float maxSY = -Float.MAX_VALUE;
+        for (int cornerIndex = 0; cornerIndex < 8; cornerIndex++) {
+            float wx = (cornerIndex & 1) == 0 ? lx : hx;
+            float wy = (cornerIndex & 2) == 0 ? ly : hy;
+            float wz = (cornerIndex & 4) == 0 ? lz : hz;
+            var screenPoint = camera.worldToScreen(wx, wy, wz);
+            if (screenPoint.x < minSX) minSX = screenPoint.x;
+            if (screenPoint.x > maxSX) maxSX = screenPoint.x;
+            if (screenPoint.y < minSY) minSY = screenPoint.y;
+            if (screenPoint.y > maxSY) maxSY = screenPoint.y;
+        }
+        return new SceneViewportMetrics(minSX, maxSX, minSY, maxSY);
+    }
+
     private boolean compileSceneChildren(LytGuidebookScene scene, PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxFlowElement flow) {
         return withCurrentAnnotationScene(scene, () -> {
@@ -275,7 +306,12 @@ public class SceneTagCompiler extends BlockTagCompiler {
             boolean[] result = new boolean[1];
             compiler.withBlockTagChildrenSourceContext(
                 flow,
-                () -> result[0] = compileSceneChildren(scene, compiler, errorSink, children));
+                () -> result[0] = compileSceneChildrenWithCache(
+                    scene,
+                    compiler,
+                    errorSink,
+                    children,
+                    Collections.emptyMap()));
             return result[0];
         });
     }
@@ -294,32 +330,120 @@ public class SceneTagCompiler extends BlockTagCompiler {
         }
     }
 
+    private boolean compileSceneChildrenWithCache(LytGuidebookScene scene, PageCompiler compiler,
+        LytErrorSink errorSink, List<? extends MdAstAnyContent> children,
+        Map<String, StructureLibPreviewSelection> structureLibSelections) {
+        GuideSceneStructureCacheKey cacheKey = structureFingerprintResolver
+            .buildForGameScene(compiler, children, structureLibSelections);
+        if (cacheKey == null) {
+            return compileSceneChildrenDetailed(scene, compiler, errorSink, children, true).isBlockStatsDeclared();
+        }
+
+        GuideSceneStructureCacheEntry cacheEntry = GuideSceneStructureCache.global()
+            .restore(cacheKey);
+        if (cacheEntry != null) {
+            cacheEntry.restoreInto(scene);
+            return compileSceneChildren(scene, compiler, errorSink, children, false);
+        }
+
+        SceneChildrenCompileResult result = compileSceneChildrenDetailed(scene, compiler, errorSink, children, true);
+        if (result.isStructureCacheable()) {
+            GuideSceneStructureCacheEntry normalizedStructureState = GuideSceneStructureCacheEntry.capture(scene);
+            GuideSceneStructureCache.global()
+                .put(cacheKey, normalizedStructureState);
+            normalizedStructureState.restoreInto(scene);
+        }
+        return result.isBlockStatsDeclared();
+    }
+
     private boolean compileSceneChildren(LytGuidebookScene scene, PageCompiler compiler, LytErrorSink errorSink,
         List<? extends MdAstAnyContent> children) {
-        boolean blockStatsDeclared = false;
-        for (var child : children) {
-            UnistNode childNode = child;
-            MdxJsxElementFields childEl = unwrapSceneElement(childNode);
-            if (childEl == null) {
-                continue;
+        return compileSceneChildren(scene, compiler, errorSink, children, true);
+    }
+
+    private boolean compileSceneChildren(LytGuidebookScene scene, PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children, boolean structureMutationEnabled) {
+        return compileSceneChildrenDetailed(scene, compiler, errorSink, children, structureMutationEnabled)
+            .isBlockStatsDeclared();
+    }
+
+    private SceneChildrenCompileResult compileSceneChildrenDetailed(LytGuidebookScene scene, PageCompiler compiler,
+        LytErrorSink errorSink, List<? extends MdAstAnyContent> children, boolean structureMutationEnabled) {
+        CountingErrorSink trackingErrorSink = new CountingErrorSink(errorSink);
+        return GuideSceneStructureCompileScope.supply(structureMutationEnabled, () -> {
+            boolean blockStatsDeclared = false;
+            boolean structureCacheable = true;
+            for (var child : children) {
+                UnistNode childNode = child;
+                MdxJsxElementFields childEl = unwrapSceneElement(childNode);
+                if (childEl == null) {
+                    continue;
+                }
+                String name = childEl.name();
+                if (name == null) {
+                    continue;
+                }
+                var elCompiler = elementCompilers.get(name);
+                if ("BlockStats".equals(name)) {
+                    compileBlockStatsElement(scene, compiler, trackingErrorSink, childEl);
+                    blockStatsDeclared = true;
+                    continue;
+                }
+                if (elCompiler == null) {
+                    trackingErrorSink.appendError(compiler, "Unknown scene element <" + name + ">", childNode);
+                    if (structureMutationEnabled && structureFingerprintResolver.isStructuralSceneElement(name)) {
+                        structureCacheable = false;
+                    }
+                    continue;
+                }
+                int errorCountBefore = trackingErrorSink.getErrorCount();
+                elCompiler.compile(scene.getLevel(), scene.getCamera(), compiler, trackingErrorSink, childEl);
+                if (structureMutationEnabled && structureFingerprintResolver.isStructuralSceneElement(name)
+                    && trackingErrorSink.getErrorCount() > errorCountBefore) {
+                    structureCacheable = false;
+                }
             }
-            String name = childEl.name();
-            if (name == null) {
-                continue;
-            }
-            var elCompiler = elementCompilers.get(name);
-            if ("BlockStats".equals(name)) {
-                compileBlockStatsElement(scene, compiler, errorSink, childEl);
-                blockStatsDeclared = true;
-                continue;
-            }
-            if (elCompiler == null) {
-                errorSink.appendError(compiler, "Unknown scene element <" + name + ">", childNode);
-                continue;
-            }
-            elCompiler.compile(scene.getLevel(), scene.getCamera(), compiler, errorSink, childEl);
+            return new SceneChildrenCompileResult(blockStatsDeclared, structureCacheable);
+        });
+    }
+
+    private static class SceneChildrenCompileResult {
+
+        private final boolean blockStatsDeclared;
+        private final boolean structureCacheable;
+
+        private SceneChildrenCompileResult(boolean blockStatsDeclared, boolean structureCacheable) {
+            this.blockStatsDeclared = blockStatsDeclared;
+            this.structureCacheable = structureCacheable;
         }
-        return blockStatsDeclared;
+
+        public boolean isBlockStatsDeclared() {
+            return blockStatsDeclared;
+        }
+
+        public boolean isStructureCacheable() {
+            return structureCacheable;
+        }
+    }
+
+    private static class CountingErrorSink implements LytErrorSink {
+
+        private final LytErrorSink delegate;
+        private int errorCount;
+
+        private CountingErrorSink(LytErrorSink delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void appendError(PageCompiler compiler, String text, UnistNode node) {
+            errorCount++;
+            delegate.appendError(compiler, text, node);
+        }
+
+        public int getErrorCount() {
+            return errorCount;
+        }
     }
 
     private static void applyImplicitBlockStats(LytGuidebookScene scene, boolean blockStatsDeclared) {
@@ -449,34 +573,63 @@ public class SceneTagCompiler extends BlockTagCompiler {
     }
 
     private void rebuildSceneForStructureLibSelection(LytGuidebookScene scene, PageCompiler compiler,
-        MdxJsxFlowElement flow, boolean explicitCenter, StructureLibPreviewSelection selection) {
+        MdxJsxFlowElement flow, boolean explicitCenter, @Nullable String structureName,
+        StructureLibPreviewSelection selection) {
         if (scene == null) {
             return;
+        }
+        Map<String, StructureLibPreviewSelection> bindingSelections = new LinkedHashMap<>(
+            scene.getStructureLibPreviewSelectionsByBinding());
+        if (structureName != null && !structureName.trim()
+            .isEmpty()) {
+            bindingSelections.put(structureName.trim(), selection);
+        } else if (!bindingSelections.isEmpty()) {
+            String primaryBindingKey = bindingSelections.keySet()
+                .iterator()
+                .next();
+            bindingSelections.put(primaryBindingKey, selection);
         }
         SavedCameraSettings savedCamera = scene.getCamera()
             .save();
         boolean annotationsVisible = scene.isAnnotationsVisible();
         boolean hatchHighlightEnabled = scene.isStructureLibHatchHighlightEnabled();
         boolean gridVisible = scene.isGridVisible();
+        boolean blockStatsVisible = scene.isBlockStatsVisible();
+        scene.captureInitialStructureStateIfAbsent();
         scene.getAnnotations()
             .clear();
+        scene.clearSoundCues();
         scene.setHoveredBlock(null);
         scene.setHoveredEntity(null);
         scene.setHoveredStructureLibHatch(null);
         scene.clearAnnotationHover();
         scene.setStructureLibSceneMetadata(null);
-        scene.setPendingStructureLibPreviewSelection(selection);
+        scene.seedStructureLibPreviewSelections(bindingSelections);
         scene.setLevel(new GuidebookLevel());
         scene.resetBlockStatsConfiguration();
         boolean blockStatsDeclared;
         try {
-            blockStatsDeclared = compileSceneChildren(scene, compiler, NOOP_ERROR_SINK, flow);
+            blockStatsDeclared = withCurrentAnnotationScene(scene, () -> {
+                List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(flow);
+                boolean[] result = new boolean[1];
+                compiler.withBlockTagChildrenSourceContext(
+                    flow,
+                    () -> result[0] = compileSceneChildrenWithCache(
+                        scene,
+                        compiler,
+                        NOOP_ERROR_SINK,
+                        children,
+                        bindingSelections));
+                return result[0];
+            });
             scene.initializePonderTimelineBaseline();
+            configureStructureLibSelectionListeners(scene, compiler, flow, explicitCenter);
         } finally {
-            scene.setPendingStructureLibPreviewSelection(null);
+            scene.clearSeededStructureLibPreviewSelections();
         }
         applyImplicitBlockStats(scene, blockStatsDeclared);
         scene.applyDefaultBlockStatsMaxSizeFromScene();
+        scene.setBlockStatsVisible(blockStatsVisible);
         if (!scene.getLevel()
             .isEmpty() && !explicitCenter) {
             var center = scene.getLevel()
@@ -489,6 +642,27 @@ public class SceneTagCompiler extends BlockTagCompiler {
         scene.setGridVisible(gridVisible);
         scene.getCamera()
             .restore(savedCamera);
+    }
+
+    private void configureStructureLibSelectionListeners(LytGuidebookScene scene, PageCompiler compiler,
+        MdxJsxFlowElement flow, boolean explicitCenter) {
+        scene.setStructureLibSelectionChangeListener(
+            selection -> rebuildSceneForStructureLibSelection(scene, compiler, flow, explicitCenter, null, selection));
+        for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
+            StructureLibSceneMetadata metadata = binding.getMetadata();
+            if (binding.getName() == null || metadata == null) {
+                continue;
+            }
+            String structureName = binding.getName();
+            binding.setSelectionChangeListener(
+                selection -> rebuildSceneForStructureLibSelection(
+                    scene,
+                    compiler,
+                    flow,
+                    explicitCenter,
+                    structureName,
+                    selection));
+        }
     }
 
     public static MdxJsxElementFields unwrapSceneElement(UnistNode node) {
@@ -526,5 +700,34 @@ public class SceneTagCompiler extends BlockTagCompiler {
                 .isEmpty();
         }
         return false;
+    }
+
+    private static int countTags(String sourceText, String[] tagNames) {
+        int count = 0;
+        for (String tagName : tagNames) {
+            count += countTag(sourceText, tagName);
+        }
+        return count;
+    }
+
+    private static int countTag(String sourceText, String tagName) {
+        int count = 0;
+        String opening = "<" + tagName;
+        for (int searchIndex = 0; searchIndex >= 0 && searchIndex < sourceText.length();) {
+            int matchIndex = sourceText.indexOf(opening, searchIndex);
+            if (matchIndex < 0) {
+                return count;
+            }
+            int boundaryIndex = matchIndex + opening.length();
+            if (boundaryIndex >= sourceText.length() || isTagNameBoundary(sourceText.charAt(boundaryIndex))) {
+                count++;
+            }
+            searchIndex = matchIndex + opening.length();
+        }
+        return count;
+    }
+
+    private static boolean isTagNameBoundary(char value) {
+        return Character.isWhitespace(value) || value == '/' || value == '>';
     }
 }

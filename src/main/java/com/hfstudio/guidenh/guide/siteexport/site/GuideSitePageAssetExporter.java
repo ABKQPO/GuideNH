@@ -1,12 +1,16 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
+
+import cpw.mods.fml.common.FMLLog;
 
 public class GuideSitePageAssetExporter {
 
@@ -19,6 +23,8 @@ public class GuideSitePageAssetExporter {
 
     private final GuideSiteAssetRegistry assets;
     private final AssetLoader assetLoader;
+    private final Map<ResourceLocation, String> exportedResourcePaths = new HashMap<>();
+    private final Map<ResourceLocation, String> exportedSoundPaths = new HashMap<>();
 
     public GuideSitePageAssetExporter(GuideSiteAssetRegistry assets, AssetLoader assetLoader) {
         this.assets = assets;
@@ -33,7 +39,13 @@ public class GuideSitePageAssetExporter {
         URI uri;
         try {
             uri = URI.create(rawUrl);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            FMLLog.getLogger()
+                .debug(
+                    "[GuideNH] [GuideSitePageAssetExporter] Failed to parse image source {} from page {}",
+                    rawUrl,
+                    currentPageId,
+                    e);
             uri = null;
         }
         if (uri != null && uri.isAbsolute()) {
@@ -47,20 +59,40 @@ public class GuideSitePageAssetExporter {
             ResourceLocation imageId = IdUtils.resolveLink(rawUrl, currentPageId);
             String exportedPath = exportResource(imageId);
             return exportedPath.isEmpty() ? rawUrl : exportedPath;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            FMLLog.getLogger()
+                .debug(
+                    "[GuideNH] [GuideSitePageAssetExporter] Failed to resolve image source {} from page {}",
+                    rawUrl,
+                    currentPageId,
+                    e);
             return rawUrl;
         }
     }
 
     public String exportResource(ResourceLocation assetId) {
-        return exportResource(assetId, "images");
+        return exportCached(assetId, "images", exportedResourcePaths);
     }
 
     public String exportSound(ResourceLocation assetId) {
-        return exportResource(assetId, "sounds");
+        return exportCached(assetId, "sounds", exportedSoundPaths);
     }
 
-    private String exportResource(ResourceLocation assetId, String bucket) {
+    private String exportCached(ResourceLocation assetId, String bucket, Map<ResourceLocation, String> cache) {
+        if (assetId == null) {
+            return "";
+        }
+        String cached = cache.get(assetId);
+        if (cached != null) {
+            return cached;
+        }
+
+        String exportedPath = exportUncached(assetId, bucket);
+        cache.put(assetId, exportedPath);
+        return exportedPath;
+    }
+
+    private String exportUncached(ResourceLocation assetId, String bucket) {
         if (assetId == null) {
             return "";
         }
@@ -71,7 +103,9 @@ public class GuideSitePageAssetExporter {
             }
             String exportedPath = assets.writeShared(bucket, extensionOf(assetId), content);
             return ROOT_PREFIX + exportedPath;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            FMLLog.getLogger()
+                .debug("[GuideNH] [GuideSitePageAssetExporter] Failed to export {} resource {}", bucket, assetId, e);
             return "";
         }
     }

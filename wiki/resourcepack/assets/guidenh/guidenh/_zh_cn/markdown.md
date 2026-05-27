@@ -2,7 +2,8 @@
 navigation:
   title: Markdown 基础
   parent: index.md
-  position: 10
+  position: 190
+  recommend: 0
 categories:
   - markdown
 ---
@@ -256,11 +257,24 @@ Markdown：
 
 ## 折叠详情
 
-<details open>
-<summary>更多内容</summary>
+`<details>` 支持 `width`、`height`、`wrap`、`align`。`<summary>` 支持行内标签，正文则可以混排普通文本与任意运行时块。
 
-这里是运行时 details 内部的文本。
+<details open width="220" height="150" wrap="square" align="right">
+<summary>混合运行时内容 <ItemImage id="minecraft:diamond" /></summary>
+
+这个 details 正文可以同时放[普通页面链接](./index.md)、行内格式，以及各种块级内容，并保持在同一个可滚动面板中。
+
+![Machine Diagram](test1.png)
+
+<BlockImage id="minecraft:diamond_block" align="center" scale={2} />
+
+<GameScene width="120" height="90" zoom={5} interactive={false}>
+  <Block id="minecraft:diamond_block" />
+  <Block id="minecraft:glass" x="1" />
+</GameScene>
 </details>
+
+当使用 `wrap="square"` 时，块外文本仍应继续围绕它排版。
 
 ## 代码块
 
@@ -376,7 +390,7 @@ diamond,9
 
 ## 文件树
 
-`tree` / `filetree` 围栏代码块会渲染目录式大纲，并绘制真实的连接线。前缀字符同时支持 Unicode 框线（`│ ├ └ ─`）和 ASCII 形式（`| +-- \-- ` / 4 个空格），可任意混用。每行的文本部分支持常规行内 Markdown（链接、**加粗**、`代码` 等）。
+`tree` / `filetree` 围栏代码块会渲染目录式大纲，并绘制真实的连接线。前缀字符同时支持 Unicode 框线（`│ ├ └ ─`）和 ASCII 形式（`| +-- \-- ` / 4 个空格），可任意混用。每行的文本部分支持常规行内 Markdown（链接、**加粗**、`代码` 等），这些链接在游戏内和站点导出中都应可点击。
 
 ```tree
 project
@@ -403,10 +417,10 @@ world
 ```html
 <FileTree indent="16" gap="2">
 docs
-├── intro.md
+├── [intro.md](./index.md#标题)
 └── advanced
-    ├── tags.md
-    └── recipes.md
+    ├── [tags.md](./index.md#折叠详情)
+    └── [recipes.md](./charts.md)
 </FileTree>
 ```
 
@@ -443,6 +457,25 @@ mindmap
 <Mermaid src="./markdown-mindmap.mmd" />
 
 <Mermaid src="./markdown-mindmap.mmd" width="320" height="220" />
+
+带有富文本标签和显式节点内容的思维导图：
+
+<Mermaid width="340" height="240">
+mindmap
+  root["**GuideNH** [首页](./index.md)"]
+    runtime["运行时块"]
+    preview["场景预览"]
+
+<NodeContent id="runtime">
+运行时节点里可以混排普通文本与指南块内容。
+
+<ItemImage id="minecraft:diamond" />
+</NodeContent>
+
+<NodeContent id="preview">
+<BlockImage id="minecraft:diamond_block" scale={2} />
+</NodeContent>
+</Mermaid>
 
 ## 脚注
 

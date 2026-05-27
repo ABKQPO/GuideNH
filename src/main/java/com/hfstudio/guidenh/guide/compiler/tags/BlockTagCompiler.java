@@ -65,10 +65,6 @@ public abstract class BlockTagCompiler implements TagCompiler {
     public final void compileBlockContext(PageCompiler compiler, LytBlockContainer parent, MdxJsxFlowElement el) {
         String wrapAttr = el.getAttributeString("wrap", null);
         String alignAttr = el.getAttributeString("align", null);
-        if (wrapAttr == null && alignAttr == null) {
-            compile(compiler, parent, el);
-            return;
-        }
         var wrapMode = ContentWrapMode.fromString(wrapAttr);
         var align = ContentAlign.fromString(alignAttr);
         compile(compiler, node -> parent.append(applyBlockEmbed(node, wrapMode, align)), el);
@@ -107,8 +103,8 @@ public abstract class BlockTagCompiler implements TagCompiler {
             return new LytDocumentFloat(node, align == ContentAlign.RIGHT);
         }
         if (align != ContentAlign.LEFT) {
-            return new LytAlignedBlock(node, align);
+            node = new LytAlignedBlock(node, align);
         }
-        return node;
+        return PageCompiler.wrapFloatAwareIfNeeded(node);
     }
 }

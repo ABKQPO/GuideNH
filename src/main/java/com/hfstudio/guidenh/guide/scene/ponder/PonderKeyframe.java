@@ -21,6 +21,8 @@ public class PonderKeyframe {
     @Nullable
     private String label;
     @Nullable
+    private String labelKey;
+    @Nullable
     private PonderKeyframeCameraState camera;
     @Nullable
     private Integer layer;
@@ -28,6 +30,8 @@ public class PonderKeyframe {
     private List<PonderKeyframeAnnotation> annotations;
     @Nullable
     private List<PonderKeyframeSound> sounds;
+    @Nullable
+    private List<PonderKeyframeParticle> particles;
     @Nullable
     private List<PonderKeyframeBlockChange> blockChanges;
     @Nullable
@@ -46,6 +50,10 @@ public class PonderKeyframe {
     private List<PonderKeyframeEntityAction> modifyEntityNBT;
     @Nullable
     private List<PonderKeyframeEntityAction> removeEntityNBT;
+    @Nullable
+    private List<PonderKeyframeEntityAction> removeEntities;
+    @Nullable
+    private List<PonderKeyframeEntityAnimation> animateEntities;
     /**
      * Maximum number of ticks over which the camera eases from the previous keyframe's position
      * to this keyframe's position.
@@ -69,6 +77,18 @@ public class PonderKeyframe {
     }
 
     @Nullable
+    public String getLabelKey() {
+        return labelKey;
+    }
+
+    public void applyLocalizedLabel(@Nullable String localizedLabel) {
+        if (localizedLabel == null || localizedLabel.isEmpty()) {
+            return;
+        }
+        this.label = localizedLabel;
+    }
+
+    @Nullable
     public PonderKeyframeCameraState getCamera() {
         return camera;
     }
@@ -88,6 +108,10 @@ public class PonderKeyframe {
 
     public List<PonderKeyframeSound> getSounds() {
         return sounds != null ? sounds : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeParticle> getParticles() {
+        return particles != null ? particles : Collections.emptyList();
     }
 
     /**
@@ -129,6 +153,14 @@ public class PonderKeyframe {
 
     public List<PonderKeyframeEntityAction> getRemoveEntityNBT() {
         return removeEntityNBT != null ? removeEntityNBT : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeEntityAction> getRemoveEntities() {
+        return removeEntities != null ? removeEntities : Collections.emptyList();
+    }
+
+    public List<PonderKeyframeEntityAnimation> getAnimateEntities() {
+        return animateEntities != null ? animateEntities : Collections.emptyList();
     }
 
     /**

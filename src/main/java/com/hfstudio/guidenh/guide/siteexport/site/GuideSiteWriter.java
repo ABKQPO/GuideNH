@@ -101,6 +101,7 @@ public class GuideSiteWriter {
         writeResource(
             outDir.resolve("_site/textures/listitem.svg"),
             "/assets/guidenh/siteexport/textures/listitem.svg");
+        writeExternalLinkPage(outDir);
         GuideSiteLocalServerJarWriter.writeTo(outDir.resolve("_site/guidenh-site-server.jar"));
         writeStartScripts(outDir);
     }
@@ -157,12 +158,15 @@ public class GuideSiteWriter {
     }
 
     public void writeLandingPage(Path outDir, @Nullable String firstPageUrl, String title) throws Exception {
+        SiteUiText uiText = SiteUiText.forLanguage("en_us");
         String html;
         if (firstPageUrl == null || firstPageUrl.isEmpty()) {
             html = "<!doctype html><html><head><meta charset=\"utf-8\"><title>" + escapeHtml(title)
                 + "</title></head><body><main><h1>"
                 + escapeHtml(title)
-                + "</h1><p>No guide pages were exported.</p></main></body></html>";
+                + "</h1><p>"
+                + escapeHtml(uiText.siteExportNoPages())
+                + "</p></main></body></html>";
         } else {
             String escapedUrl = escapeHtml(firstPageUrl);
             html = "<!doctype html><html><head><meta charset=\"utf-8\"><title>" + escapeHtml(title)
@@ -170,9 +174,79 @@ public class GuideSiteWriter {
                 + escapedUrl
                 + "\"></head><body><p><a href=\""
                 + escapedUrl
-                + "\">Open exported guide</a></p></body></html>";
+                + "\">"
+                + escapeHtml(uiText.siteExportOpenGuide())
+                + "</a></p></body></html>";
         }
         Files.write(outDir.resolve("index.html"), html.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public void writeExternalLinkPage(Path outDir) throws Exception {
+        Path pagePath = outDir.resolve(Paths.get("_site", "external-link.html"));
+        Files.createDirectories(pagePath.getParent());
+        SiteUiText english = SiteUiText.forLanguage("en_us");
+        SiteUiText chinese = SiteUiText.forLanguage("zh_cn");
+        String html = """
+            <!doctype html>
+            <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>{{title}}</title>
+              <link rel="stylesheet" href="./app.css">
+            </head>
+            <body class="guide-site-external-body">
+              <main class="guide-site-external-card">
+                <h1 id="guide-external-title">{{title}}</h1>
+                <p id="guide-external-message">{{message}}</p>
+                <p class="guide-site-external-target" id="guide-external-target"></p>
+                <div class="guide-site-external-actions">
+                  <a class="guide-mediawiki-special-link" id="guide-external-open" href="#">{{open}}</a>
+                  <a class="guide-site-external-cancel" href="javascript:history.back()">{{back}}</a>
+                </div>
+              </main>
+              <script>
+              (function () {
+                var params = new URLSearchParams(window.location.search);
+                var target = params.get("target") || "";
+                var label = params.get("label") || target;
+                var lang = (params.get("lang") || "en_us").toLowerCase();
+                var zh = lang.indexOf("zh") === 0;
+                var title = zh ? '{{zh_title}}' : '{{en_title}}';
+                var message = zh ? '{{zh_message}}' : '{{en_message}}';
+                var openText = zh ? '{{zh_open}}' : '{{en_open}}';
+                var backText = zh ? '{{zh_back}}' : '{{en_back}}';
+                document.title = title;
+                document.getElementById("guide-external-title").textContent = title;
+                document.getElementById("guide-external-message").textContent = message;
+                document.getElementById("guide-external-target").textContent = label || target;
+                var open = document.getElementById("guide-external-open");
+                open.textContent = openText;
+                if (target) {
+                  open.href = target;
+                  open.rel = "noopener noreferrer";
+                  open.target = "_blank";
+                } else {
+                  open.removeAttribute("href");
+                }
+                document.querySelector(".guide-site-external-cancel").textContent = backText;
+              }());
+              </script>
+            </body>
+            </html>
+            """.replace("{{title}}", escapeHtml(english.externalLinkTitle()))
+            .replace("{{message}}", escapeHtml(english.externalLinkMessage()))
+            .replace("{{open}}", escapeHtml(english.externalLinkOpen()))
+            .replace("{{back}}", escapeHtml(english.externalLinkBack()))
+            .replace("{{en_title}}", escapeJsString(english.externalLinkTitle()))
+            .replace("{{en_message}}", escapeJsString(english.externalLinkMessage()))
+            .replace("{{en_open}}", escapeJsString(english.externalLinkOpen()))
+            .replace("{{en_back}}", escapeJsString(english.externalLinkBack()))
+            .replace("{{zh_title}}", escapeJsString(chinese.externalLinkTitle()))
+            .replace("{{zh_message}}", escapeJsString(chinese.externalLinkMessage()))
+            .replace("{{zh_open}}", escapeJsString(chinese.externalLinkOpen()))
+            .replace("{{zh_back}}", escapeJsString(chinese.externalLinkBack()));
+        Files.write(pagePath, html.getBytes(StandardCharsets.UTF_8));
     }
 
     public String pageUrl(String namespace, String guidePath, String language, String pageRelativeFile) {
@@ -182,7 +256,7 @@ public class GuideSiteWriter {
     public String navigationJson(MutableGuide guide, String language, NavigationTree tree) {
         List<Map<String, Object>> rootNodes = new ArrayList<>();
         for (NavigationNode node : tree.getRootNodes()) {
-            rootNodes.add(navigationNodeData(guide, language, node));
+            rootNodes.add(navigationNodeData(language, node));
         }
         return GSON.toJson(rootNodes);
     }
@@ -195,7 +269,7 @@ public class GuideSiteWriter {
     public String renderSidebar(MutableGuide guide, String language, NavigationTree tree,
         ResourceLocation currentPageId, GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
-        return renderSidebar(guide, language, tree, currentPageId, assetExporter, itemIconResolver, null);
+        return renderSidebar(guide, language, tree, currentPageId, assetExporter, itemIconResolver, null, null);
     }
 
     public String renderLanguageSwitcher(String language, @Nullable List<GuideSiteLanguageLink> languageLinks) {
@@ -208,6 +282,21 @@ public class GuideSiteWriter {
     public String renderSidebar(MutableGuide guide, String language, NavigationTree tree,
         ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver, @Nullable List<GuideSiteLanguageLink> languageLinks) {
+        return renderSidebar(
+            guide,
+            language,
+            tree,
+            currentPageId,
+            assetExporter,
+            itemIconResolver,
+            languageLinks,
+            null);
+    }
+
+    public String renderSidebar(MutableGuide guide, String language, NavigationTree tree,
+        ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver, @Nullable List<GuideSiteLanguageLink> languageLinks,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         SiteUiText uiText = SiteUiText.forLanguage(language);
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-sidebar-tools\">");
@@ -226,7 +315,14 @@ public class GuideSiteWriter {
         html.append("</div>");
         html.append("<nav class=\"guide-nav\"><ul>");
         for (NavigationNode node : tree.getRootNodes()) {
-            appendNavigationNode(html, guide, language, node, currentPageId, assetExporter, itemIconResolver);
+            appendNavigationNode(
+                html,
+                language,
+                node,
+                currentPageId,
+                assetExporter,
+                itemIconResolver,
+                assetExportersByGuideId);
         }
         html.append("</ul></nav>");
         return html.toString();
@@ -455,7 +551,11 @@ public class GuideSiteWriter {
             }
             if (link.fallbackUsed()) {
                 html.append(" title=\"")
-                    .append(escapeHtml(uiText.fallbackTitle(displayLanguage(link.sourceLanguage(), currentLanguage))))
+                    .append(
+                        escapeHtml(
+                            uiText.fallbackTitle(
+                                link.sourceLanguage() != null ? displayLanguage(link.sourceLanguage(), currentLanguage)
+                                    : uiText.sharedPageLabel())))
                     .append("\"");
             }
             html.append("><span class=\"guide-language-link-label\">")
@@ -471,7 +571,7 @@ public class GuideSiteWriter {
         html.append("</div></div>");
     }
 
-    private Map<String, Object> navigationNodeData(MutableGuide guide, String language, NavigationNode node) {
+    private Map<String, Object> navigationNodeData(String language, NavigationNode node) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("title", node.title());
         data.put("position", node.position());
@@ -480,37 +580,24 @@ public class GuideSiteWriter {
                 "pageId",
                 node.pageId()
                     .toString());
-            data.put(
-                "url",
-                pageUrl(
-                    guide.getId()
-                        .getResourceDomain(),
-                    guide.getId()
-                        .getResourcePath(),
-                    language,
-                    toOutputPageFile(node.pageId())));
+            data.put("url", pageUrlForNode(language, node));
         }
 
         List<Map<String, Object>> children = new ArrayList<>();
         for (NavigationNode child : node.children()) {
-            children.add(navigationNodeData(guide, language, child));
+            children.add(navigationNodeData(language, child));
         }
         data.put("children", children);
         return data;
     }
 
-    private void appendNavigationNode(StringBuilder html, MutableGuide guide, String language, NavigationNode node,
+    private void appendNavigationNode(StringBuilder html, String language, NavigationNode node,
         ResourceLocation currentPageId, GuideSitePageAssetExporter assetExporter,
-        GuideSiteItemIconResolver itemIconResolver) {
+        GuideSiteItemIconResolver itemIconResolver,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         html.append("<li>");
         if (node.pageId() != null) {
-            String href = pageUrl(
-                guide.getId()
-                    .getResourceDomain(),
-                guide.getId()
-                    .getResourcePath(),
-                language,
-                toOutputPageFile(node.pageId()));
+            String href = pageUrlForNode(language, node);
             html.append("<a href=\"")
                 .append(escapeHtml(href))
                 .append("\"");
@@ -519,28 +606,64 @@ public class GuideSiteWriter {
                 html.append(" aria-current=\"page\"");
             }
             html.append(">")
-                .append(renderNavigationLinkContent(node.title(), node.icon(), assetExporter, itemIconResolver))
+                .append(
+                    renderNavigationLinkContent(
+                        node.title(),
+                        node.icon(),
+                        node.guideId(),
+                        assetExporter,
+                        itemIconResolver,
+                        assetExportersByGuideId))
                 .append("</a>");
         } else {
             html.append("<span>")
-                .append(renderNavigationLinkContent(node.title(), node.icon(), assetExporter, itemIconResolver))
+                .append(
+                    renderNavigationLinkContent(
+                        node.title(),
+                        node.icon(),
+                        node.guideId(),
+                        assetExporter,
+                        itemIconResolver,
+                        assetExportersByGuideId))
                 .append("</span>");
         }
         if (!node.children()
             .isEmpty()) {
             html.append("<ul>");
             for (NavigationNode child : node.children()) {
-                appendNavigationNode(html, guide, language, child, currentPageId, assetExporter, itemIconResolver);
+                appendNavigationNode(
+                    html,
+                    language,
+                    child,
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    assetExportersByGuideId);
             }
             html.append("</ul>");
         }
         html.append("</li>");
     }
 
+    private String pageUrlForNode(String language, NavigationNode node) {
+        ResourceLocation guideId = node.guideId() != null ? node.guideId()
+            : node.pageId() != null ? new ResourceLocation(
+                node.pageId()
+                    .getResourceDomain(),
+                "guidenh") : null;
+        ResourceLocation pageId = node.pageId();
+        if (guideId == null || pageId == null) {
+            return "";
+        }
+        return pageUrl(guideId.getResourceDomain(), guideId.getResourcePath(), language, toOutputPageFile(pageId));
+    }
+
     private String renderNavigationLinkContent(String title, @Nullable GuidePageIcon icon,
-        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+        @Nullable ResourceLocation guideId, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         StringBuilder html = new StringBuilder();
-        appendNavigationIcon(html, icon, assetExporter, itemIconResolver);
+        appendNavigationIcon(html, icon, guideId, assetExporter, itemIconResolver, assetExportersByGuideId);
         html.append("<span class=\"guide-generated-link-text\">")
             .append(escapeHtml(title))
             .append("</span>");
@@ -548,7 +671,9 @@ public class GuideSiteWriter {
     }
 
     private void appendNavigationIcon(StringBuilder html, @Nullable GuidePageIcon icon,
-        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+        @Nullable ResourceLocation guideId, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         if (icon == null) {
             return;
         }
@@ -559,26 +684,43 @@ public class GuideSiteWriter {
                 "guide-nav-item-icon");
             return;
         }
-        if (assetExporter == null) {
+        GuideSitePageAssetExporter resolvedAssetExporter = resolveAssetExporter(
+            guideId,
+            assetExporter,
+            assetExportersByGuideId);
+        if (resolvedAssetExporter == null) {
             return;
         }
         // Resolve a texture resource id from either the explicit textureId field or the
         // GuidePageTexture wrapper. Frontmatter "icon: ns:textures/..." populates textureId,
         // while some loaders only set the texture wrapper, so we cover both paths here.
-        ResourceLocation resolvedTextureId = icon.textureId();
-        if (resolvedTextureId == null && icon.texture() != null) {
-            resolvedTextureId = icon.texture()
+        ResourceLocation resolvedTextureId = icon.resolveCurrentTextureId();
+        if (resolvedTextureId == null && icon.resolveCurrentTexture() != null) {
+            resolvedTextureId = icon.resolveCurrentTexture()
                 .getSourceId();
         }
         if (resolvedTextureId == null) {
             return;
         }
-        String src = assetExporter.exportResource(resolvedTextureId);
+        String src = resolvedAssetExporter.exportResource(resolvedTextureId);
         if (!src.isEmpty()) {
             html.append("<img class=\"item-icon guide-nav-item-icon\" src=\"")
                 .append(escapeHtml(src))
                 .append("\" alt=\"\" width=\"32\" height=\"32\" decoding=\"async\">");
         }
+    }
+
+    @Nullable
+    private GuideSitePageAssetExporter resolveAssetExporter(@Nullable ResourceLocation guideId,
+        @Nullable GuideSitePageAssetExporter assetExporter,
+        @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
+        if (guideId != null && assetExportersByGuideId != null) {
+            GuideSitePageAssetExporter mapped = assetExportersByGuideId.get(guideId);
+            if (mapped != null) {
+                return mapped;
+            }
+        }
+        return assetExporter;
     }
 
     private String toOutputPageFile(ResourceLocation pageId) {
@@ -642,6 +784,13 @@ public class GuideSiteWriter {
             .replace("\"", "&quot;");
     }
 
+    private String escapeJsString(String text) {
+        return text.replace("\\", "\\\\")
+            .replace("'", "\\'")
+            .replace("\r", "")
+            .replace("\n", "\\n");
+    }
+
     private static final class SiteUiText {
 
         private final String searchLabel;
@@ -650,21 +799,47 @@ public class GuideSiteWriter {
         private final String languagesLabel;
         private final String fallbackBadge;
         private final String fallbackPrefix;
+        private final String siteExportNoPages;
+        private final String siteExportOpenGuide;
+        private final String externalLinkTitle;
+        private final String externalLinkMessage;
+        private final String externalLinkOpen;
+        private final String externalLinkBack;
 
         private SiteUiText(String searchLabel, String searchPlaceholder, String searchEmptyTemplate,
-            String languagesLabel, String fallbackBadge, String fallbackPrefix) {
+            String languagesLabel, String fallbackBadge, String fallbackPrefix, String siteExportNoPages,
+            String siteExportOpenGuide, String externalLinkTitle, String externalLinkMessage, String externalLinkOpen,
+            String externalLinkBack) {
             this.searchLabel = searchLabel;
             this.searchPlaceholder = searchPlaceholder;
             this.searchEmptyTemplate = searchEmptyTemplate;
             this.languagesLabel = languagesLabel;
             this.fallbackBadge = fallbackBadge;
             this.fallbackPrefix = fallbackPrefix;
+            this.siteExportNoPages = siteExportNoPages;
+            this.siteExportOpenGuide = siteExportOpenGuide;
+            this.externalLinkTitle = externalLinkTitle;
+            this.externalLinkMessage = externalLinkMessage;
+            this.externalLinkOpen = externalLinkOpen;
+            this.externalLinkBack = externalLinkBack;
         }
 
         private static SiteUiText forLanguage(String language) {
             String normalized = language != null ? language.toLowerCase(Locale.ROOT) : "";
             if (normalized.startsWith("zh")) {
-                return new SiteUiText("搜索", "搜索页面", "没有找到“{{query}}”的匹配项", "语言", "回退", "回退自");
+                return new SiteUiText(
+                    "搜索",
+                    "搜索页面",
+                    "没有找到“{{query}}”的匹配项",
+                    "语言",
+                    "回退",
+                    "回退自",
+                    "没有导出任何指南页面。",
+                    "打开导出的指南",
+                    "外部链接",
+                    "你即将打开一个外部链接。",
+                    "继续打开",
+                    "返回");
             }
             return new SiteUiText(
                 "Search",
@@ -672,7 +847,13 @@ public class GuideSiteWriter {
                 "No matches for \"{{query}}\"",
                 "Languages",
                 "Fallback",
-                "Fallback from");
+                "Fallback from",
+                "No guide pages were exported.",
+                "Open exported guide",
+                "External Link",
+                "You are about to open an external link.",
+                "Open Link",
+                "Back");
         }
 
         private String searchLabel() {
@@ -697,6 +878,34 @@ public class GuideSiteWriter {
 
         private String fallbackTitle(String sourceLanguage) {
             return fallbackPrefix + " " + sourceLanguage;
+        }
+
+        private String sharedPageLabel() {
+            return "Fallback from".equals(fallbackPrefix) ? "Shared page" : "共享页面";
+        }
+
+        private String siteExportNoPages() {
+            return siteExportNoPages;
+        }
+
+        private String siteExportOpenGuide() {
+            return siteExportOpenGuide;
+        }
+
+        private String externalLinkTitle() {
+            return externalLinkTitle;
+        }
+
+        private String externalLinkMessage() {
+            return externalLinkMessage;
+        }
+
+        private String externalLinkOpen() {
+            return externalLinkOpen;
+        }
+
+        private String externalLinkBack() {
+            return externalLinkBack;
         }
     }
 

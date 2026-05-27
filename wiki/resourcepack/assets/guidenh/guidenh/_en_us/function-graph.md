@@ -2,7 +2,7 @@
 navigation:
   title: Function Graphs
   parent: index.md
-  position: 20
+  position: 180
 categories:
   - markdown
   - charts

@@ -10,7 +10,7 @@ GuideNH renders an interactive progress bar with play/pause controls below the 3
 2. Add `<ImportPonder src="..."/>` inside a `<GameScene>` block alongside `<ImportStructure>`.
 
 ```mdx
-<GameScene zoom="4" background="#0a0a10">
+<GameScene zoom="4">
   <ImportStructure src="scenes/my_machine.snbt" />
   <ImportPonder src="scenes/my_machine_ponder.json" />
 </GameScene>
@@ -95,12 +95,14 @@ The `src` attribute accepts both relative and absolute IDs:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `time` | integer | Yes | Tick at which this keyframe occurs (0 <= time <= totalTime). |
-| `label` | string | No | Optional label shown when hovering the keyframe node on the progress bar. |
+| `label` | string | No | Optional fallback label shown when hovering the keyframe node on the progress bar. |
+| `labelKey` | string | No | Translation key for the keyframe label. When resolved, it overrides `label`. |
 | `camera` | object | No | Camera state at this keyframe. Null fields inherit from the previous keyframe. |
 | `cameraEaseTicks` | integer or null | No | How many ticks the camera takes to ease from the **previous** keyframe to this one. `null` (default) = ease over the full segment. `0` = instant snap. `N > 0` = ease over N ticks, then hold at the target position. |
 | `layer` | integer or null | No | Visible layer override. `null` (or omitted) shows all layers. 1-based index. |
 | `annotations` | array | No | List of annotation objects shown while this keyframe is active. |
 | `sounds` | array | No | List of sounds played once when this keyframe becomes active during forward playback. |
+| `particles` | array | No | List of runtime particle bursts or presets fired when this keyframe becomes active during forward playback. |
 | `blockChanges` | array | No | List of block replacements applied when this keyframe first becomes active. |
 | `mergeTileNBT` | array | No | Merge SNBT compounds into tile entities at block positions. |
 | `modifyTileNBT` | array | No | Set one tile-entity NBT path to an SNBT value. |
@@ -110,6 +112,7 @@ The `src` attribute accepts both relative and absolute IDs:
 | `mergeEntityNBT` | array | No | Merge an SNBT compound into a referenced entity. |
 | `modifyEntityNBT` | array | No | Set one referenced entity NBT path to an SNBT value. |
 | `removeEntityNBT` | array | No | Remove one referenced entity NBT path. |
+| `removeEntities` | array | No | Remove one or more Ponder-owned entities by `ref` using the stable scene-entity registry. |
 
 ### Camera fields
 
@@ -202,6 +205,108 @@ Sound fields:
 
 ---
 
+## Keyframe Particles
+
+Add a `particles` array to a keyframe when you want one-shot particle bursts or timeline-local
+weather overlays during forward playback. These particles are not re-fired during reverse
+scrubbing, and seek/restart clears them before replaying the active state.
+
+Generic particles:
+
+```json
+{
+  "time": 110,
+  "particles": [
+    {
+      "name": "smoke",
+      "x": 1.5,
+      "y": 1.85,
+      "z": 1.5,
+      "vx": 0.0,
+      "vy": 0.01,
+      "vz": 0.0,
+      "size": 0.18,
+      "time": 16,
+      "count": 3
+    }
+  ]
+}
+```
+
+Explosion preset:
+
+```json
+{
+  "time": 160,
+  "particles": [
+    {
+      "preset": "explosion",
+      "x": 1.5,
+      "y": 1.45,
+      "z": 1.5,
+      "time": 8,
+      "power": 2.4
+    }
+  ]
+}
+```
+
+Weather preset:
+
+```json
+{
+  "time": 220,
+  "particles": [
+    {
+      "preset": "rain",
+      "weather": "snow",
+      "x": [0, 2],
+      "z": [0, 2],
+      "time": 100,
+      "count": 8
+    }
+  ]
+}
+```
+
+Particle fields:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `preset` | string | none | Special preset. `explosion` spawns a vanilla-style flash/smoke burst. `rain` enables the weather preset. |
+| `weather` | string | `rain` | Weather type used by `preset: "rain"`. Supported values: `rain`, `snow`. |
+| `name` | string | none | Generic particle appearance. Supported values: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
+| `particle` / `kind` | string | none | Compatibility aliases for `name`. |
+| `x`, `z` | float or array | scene bounds | Particle origin or weather coverage. Generic particles use scalar coordinates. For `preset: "rain"`, scalar values target one precipitation column and arrays define rectangular coverage by endpoint pairs. |
+| `vx`, `vy`, `vz` | float | `0.0` | Initial motion vector. `motionX/Y/Z` are accepted aliases. |
+| `time` / `lifetime` | integer | preset-specific | Particle lifetime in ticks. For `preset: "rain"` this is the total weather duration, including fade-in and fade-out. |
+| `size` | float | preset-specific | Generic particle half-size in block units. |
+| `count` | integer | preset-specific | Generic particle count. For `explosion`, omitted count scales from `power`. For `preset: "rain"`, this is the average per-tick weather density. |
+| `power` | float | `2.0` | Explosion strength for the `explosion` preset. |
+
+Weather preset notes:
+
+- `preset: "rain"` is the shared weather preset entry point. Use `weather: "rain"` for rainfall or
+  `weather: "snow"` for snowfall.
+- This preset is timeline-owned weather. It supports replay, pause, seek, and fast-forward together
+  with the rest of the Ponder timeline.
+- For always-on scene weather outside the Ponder timeline, use the `<Weather>` tag inside
+  `<GameScene>` instead.
+- Weather presets ignore `y`; the vertical spawn range is derived from the current scene bounds.
+- `x: 5, z: 8` targets one precipitation column. Arrays use endpoint pairs:
+  `x: [1, 5, 10, 12], z: [2, 6, 20, 24]` creates two covered rectangles.
+- If one axis has extra unmatched array values, the unmatched tail is ignored.
+- The runtime automatically shapes the effect with a short start transition, a steady middle
+  section, and an end transition.
+- Rain spawns fast falling drops plus occasional ground splashes. Snow spawns slower drifting
+  flakes without splash particles.
+- The weather area is derived from the current GameScene bounds so the effect scales with the
+  imported structure instead of a hard-coded box.
+- The same `x/z` column never stacks multiple weather types at the same time. Earlier overlapping
+  weather declarations keep the shared columns; later ones only render on the remaining area.
+
+---
+
 ## Tile Entity NBT Operations
 
 Use `mergeTileNBT`, `modifyTileNBT`, and `removeTileNBT` when the block stays in place but its
@@ -254,6 +359,7 @@ their own entities with `createEntities`, then target those entities by `ref` in
   "createEntities": [
     {
       "ref": "marker",
+      "sceneEntityId": "marker",
       "id": "minecraft:pig",
       "x": 1.5, "y": 1.0, "z": 2.5,
       "yaw": 180,
@@ -266,11 +372,15 @@ their own entities with `createEntities`, then target those entities by `ref` in
 | Field | Description |
 |-------|-------------|
 | `ref` | Required local reference name for later operations. |
+| `sceneEntityId` | Optional stable scene-local id used for mount relations, replay-safe replacement, import/export restore, and any later removal of this logical entity. Defaults to an internal id derived from `ref`. |
 | `id` | Entity ID, e.g. `minecraft:pig`, `Pig`, or a mod entity ID supported by the scene entity loader. |
 | `x`, `y`, `z` | Optional spawn position. Defaults to `0, 0, 0` unless `nbt` supplies `Pos`. |
 | `yaw`, `pitch` | Optional spawn rotation. Defaults to `0, 0` unless `nbt` supplies `Rotation`. |
+| `bodyYaw`, `headYaw` | Optional living-entity body/head yaw overrides. If omitted while `yaw` is present, they follow `yaw`. |
 | `nbt` | Optional SNBT compound applied when the entity is created. |
 | `name`, `uuid` | Optional preview-player profile fields when creating a preview player entity. |
+| `mount` | Optional stable `sceneEntityId` of the vehicle that this entity should ride after creation or later replay. |
+| `unmount` | Optional boolean that clears the entity's current stable mount relation before any later `mount` is applied. |
 
 After creation, use the entity NBT operations:
 
@@ -300,9 +410,48 @@ After creation, use the entity NBT operations:
 }
 ```
 
+Entity actions can also update transform, preview-player pose, and stable mount state without
+changing NBT:
+
+```json
+{
+  "time": 80,
+  "createEntities": [
+    { "ref": "cart", "sceneEntityId": "cart", "id": "minecraft:minecart", "x": 1.5, "y": 1.0, "z": 1.5 },
+    { "ref": "rider", "sceneEntityId": "rider", "id": "player", "name": "GuideNH", "x": 1.5, "y": 1.0, "z": 1.5, "mount": "cart" }
+  ],
+  "modifyEntityNBT": [
+    { "ref": "rider", "headYaw": 270.0, "leftArmRotation": "-40 0 0" }
+  ]
+}
+```
+
+To detach or remove a timeline entity, use `unmount` or `removeEntities`:
+
+```json
+{
+  "time": 120,
+  "modifyEntityNBT": [
+    { "ref": "rider", "unmount": true, "x": 2.5, "y": 1.0, "z": 1.5 }
+  ],
+  "removeEntities": [
+    { "ref": "cart" }
+  ]
+}
+```
+
 Like tile operations, entity operations are replayed from the beginning whenever the active
 keyframe changes, so seeking backwards removes Ponder-created entities and recreates the correct
 state for the target tick.
+
+Notes:
+
+- `ref` identifies which Ponder-owned entity the current action should edit or remove.
+- `sceneEntityId` and `mount` identify stable cross-entity relations. `mount` always points to a
+  stable scene id, not to another `ref`.
+- Relying on raw passenger NBT alone is not recommended for cross-entity scene relationships. The
+  stable registry is what keeps mount and removal behavior deterministic across replay, rebuild,
+  import/export, and editor preview refresh.
 
 ---
 
@@ -339,7 +488,8 @@ Renders a 3D diamond marker at a world position.
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | float | `0.0` | World-space position of the diamond tip. |
 | `color` | string | `"0xFF00E000"` | ARGB color as `"0xAARRGGBB"`. |
-| `tooltip` | string | `""` | Text shown on hover. |
+| `tooltip` | string | `""` | Fallback text shown on hover. |
+| `tooltipKey` | string | `""` | Translation key for the hover text. When resolved, it overrides `tooltip`. |
 | `alwaysOnTop` | boolean | `false` | If true, rendered through solid blocks. |
 
 ---
@@ -752,7 +902,7 @@ Litematica). See [Getting Started](Getting-Started.md) for the full SNBT format 
 ```mdx
 # Grinder
 
-<GameScene zoom="4" background="#0a0a10">
+<GameScene zoom="4">
   <ImportStructure src="grinder.snbt" />
   <ImportPonder src="grinder.json" />
 </GameScene>

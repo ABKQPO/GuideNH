@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.compiler.tags.chart;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -10,6 +11,7 @@ import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartAxisOptions;
 import com.hfstudio.guidenh.guide.document.block.chart.LytColumnChart;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 
 public class ColumnChartCompiler extends BlockTagCompiler {
 
@@ -36,9 +38,10 @@ public class ColumnChartCompiler extends BlockTagCompiler {
         float ratio = MdxAttrs.getFloat(compiler, parent, el, "barWidthRatio", 0.7f);
         chart.setBarWidthRatio(ratio);
 
-        chart.setSeries(ChartChildParser.parseValueSeries(compiler, parent, el));
-        chart.setLineOverlays(ChartChildParser.parseLineOverlays(compiler, parent, el));
-        chart.setPieInset(ChartChildParser.parsePieInset(compiler, parent, el));
+        List<? extends MdAstAnyContent> children = ChartChildParser.childElements(compiler, el);
+        chart.setSeries(ChartChildParser.parseValueSeries(compiler, parent, children));
+        chart.setLineOverlays(ChartChildParser.parseLineOverlays(compiler, parent, children));
+        chart.setPieInset(ChartChildParser.parsePieInset(compiler, parent, children));
         parent.append(chart);
     }
 }

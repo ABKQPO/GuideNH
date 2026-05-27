@@ -155,6 +155,21 @@ table {
     border-collapse: collapse;
 }
 
+.guide-table-wrap,
+.guide-csv-table-wrap {
+    display: flow-root;
+    max-width: 100%;
+    overflow-x: auto;
+    margin-bottom: 0.8em;
+}
+
+.guide-table-wrap > table,
+.guide-csv-table-wrap > table {
+    width: max-content;
+    min-width: 100%;
+    margin-bottom: 0;
+}
+
 table td, table th {
     padding: 6px;
 }
@@ -182,6 +197,7 @@ code {
 }
 
 pre {
+    display: flow-root;
     background: rgba(0, 0, 0, 0.45);
     border: 1px solid rgba(124, 124, 124, 0.4);
     padding: 12px;
@@ -195,6 +211,7 @@ pre code {
 }
 
 blockquote {
+    display: flow-root;
     border-left: calc(2px * var(--gui-scale)) solid rgba(210, 210, 210, 0.35);
     margin-left: 0;
     padding-left: 1em;
@@ -203,6 +220,7 @@ blockquote {
 
 .guide-quote {
     --guide-quote-accent: rgba(124, 135, 149, 1);
+    display: flow-root;
     border-left: calc(2px * var(--gui-scale)) solid var(--guide-quote-accent);
     background: rgba(64, 64, 64, 0.25);
     padding: 6px 10px;
@@ -220,7 +238,11 @@ blockquote {
 }
 
 .guide-quote-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: 0.95em;
+    line-height: 1;
 }
 
 .guide-quote-icon-image img {
@@ -231,11 +253,15 @@ blockquote {
 }
 
 .guide-quote-icon-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     line-height: 1;
 }
 
 .guide-quote-icon-item .guide-inline-item {
-    vertical-align: middle;
+    align-items: center;
+    transform: translateY(calc(-0.5px * var(--gui-scale)));
 }
 
 .guide-quote-body > :first-child {
@@ -277,6 +303,7 @@ p {
     width: calc(16px * var(--gui-scale));
     height: calc(16px * var(--gui-scale));
     image-rendering: pixelated;
+    vertical-align: middle;
 }
 
 .guide-site {
@@ -395,6 +422,15 @@ p {
 .guide-search-result-title {
     font-family: var(--minecraft-font);
     display: block;
+    color: var(--color-link);
+}
+
+.guide-search-result-title.guide-search-result-title-special {
+    color: rgb(255, 210, 84);
+}
+
+.guide-search-result:hover .guide-search-result-title.guide-search-result-title-special {
+    color: rgb(255, 210, 84);
 }
 
 .guide-search-result-path {
@@ -758,6 +794,264 @@ p {
     color: var(--color-link);
     background: var(--color-navbar-row-hover);
     text-decoration: none;
+}
+
+.guide-mediawiki-index {
+    margin-bottom: 0.8em;
+    padding: calc(3px * var(--gui-scale)) 0;
+    border-top: calc(1px * var(--gui-scale)) solid rgba(210, 210, 210, 0.6);
+    border-bottom: calc(1px * var(--gui-scale)) solid rgba(210, 210, 210, 0.6);
+}
+
+.guide-mediawiki-columns {
+    display: grid;
+    grid-template-columns: repeat(var(--guide-mediawiki-columns, 3), minmax(0, 1fr));
+    gap: calc(4px * var(--gui-scale));
+}
+
+.guide-mediawiki-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+}
+
+.guide-mediawiki-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    margin-top: calc(2.5px * var(--gui-scale));
+}
+
+.guide-mediawiki-section-key {
+    font-family: var(--minecraft-font);
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    line-height: 1.1;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0 calc(2px * var(--gui-scale));
+    margin: 0 0 calc(1.5px * var(--gui-scale));
+    min-height: calc(9px * var(--gui-scale));
+}
+
+.guide-mediawiki-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+    padding: calc(1px * var(--gui-scale)) calc(2px * var(--gui-scale));
+    color: var(--color-body-text);
+    text-decoration: none;
+    border: 1px solid rgba(124, 124, 124, 0.25);
+}
+
+.guide-mediawiki-row:hover {
+    color: var(--color-link);
+    background: var(--color-navbar-row-hover);
+    text-decoration: none;
+}
+
+.guide-mediawiki-row + .guide-mediawiki-row {
+    margin-top: calc(1px * var(--gui-scale));
+}
+
+.guide-mediawiki-row::before {
+    content: "";
+    flex: 0 0 auto;
+    width: calc(1px * var(--gui-scale));
+    height: calc(1px * var(--gui-scale));
+    margin-right: calc(2px * var(--gui-scale));
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.guide-mediawiki-row .guide-generated-link-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.guide-mediawiki-row:hover .guide-generated-link-text {
+    text-decoration: underline;
+}
+
+.guide-mediawiki-empty {
+    color: var(--color-body-text);
+}
+
+.guide-mediawiki-special-search {
+    display: flex;
+    justify-content: center;
+    padding: calc(6px * var(--gui-scale)) calc(8px * var(--gui-scale));
+    background: rgba(0, 0, 0, 0.28);
+    border: calc(1px * var(--gui-scale)) solid rgba(180, 180, 180, 0.28);
+    margin-bottom: calc(4px * var(--gui-scale));
+}
+
+.guide-mediawiki-special-input {
+    width: 40%;
+    min-width: 240px;
+}
+
+.guide-mediawiki-special-divider {
+    border-top: calc(1px * var(--gui-scale)) solid rgba(210, 210, 210, 0.6);
+    margin-bottom: calc(6px * var(--gui-scale));
+}
+
+.guide-mediawiki-special-groups {
+    display: flex;
+    flex-direction: column;
+    gap: calc(6px * var(--gui-scale));
+}
+
+.guide-mediawiki-special-groups-index {
+    gap: calc(12px * var(--gui-scale));
+}
+
+.guide-mediawiki-special-group {
+    border-top: calc(1px * var(--gui-scale)) solid rgba(210, 210, 210, 0.45);
+    border-bottom: calc(1px * var(--gui-scale)) solid rgba(210, 210, 210, 0.45);
+    padding: calc(3px * var(--gui-scale)) 0;
+}
+
+.guide-mediawiki-special-groups-index > .guide-mediawiki-special-group {
+    display: block;
+    padding: calc(6px * var(--gui-scale)) 0 calc(8px * var(--gui-scale));
+}
+
+.guide-mediawiki-special-group-title {
+    color: #ffd254;
+    font-size: 1.3rem;
+    line-height: 1.15;
+    margin: 0 0 calc(4px * var(--gui-scale));
+}
+
+.guide-mediawiki-special-groups-index .guide-mediawiki-special-group-title {
+    margin-bottom: calc(8px * var(--gui-scale));
+}
+
+.guide-mediawiki-special-group-summary {
+    color: rgba(210, 210, 210, 0.7);
+    margin-bottom: calc(4px * var(--gui-scale));
+}
+
+.guide-mediawiki-special-list {
+    display: grid;
+    gap: calc(4px * var(--gui-scale));
+}
+
+.guide-mediawiki-special-grid {
+    grid-template-columns: repeat(var(--guide-mediawiki-columns, 3), minmax(0, 1fr));
+}
+
+.guide-mediawiki-special-flat {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.guide-mediawiki-special-multi-column-flat {
+    grid-template-columns: repeat(var(--guide-mediawiki-columns, 2), minmax(0, 1fr));
+    align-items: start;
+}
+
+.guide-mediawiki-special-entry {
+    min-width: 0;
+}
+
+.guide-mediawiki-special-link,
+.guide-mediawiki-special-text {
+    color: var(--color-link);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.guide-mediawiki-special-link:hover {
+    text-decoration: underline;
+}
+
+.guide-site-external-body {
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+        linear-gradient(rgba(8, 10, 14, 0.88), rgba(8, 10, 14, 0.94)),
+        url("./textures/background.png") center / cover no-repeat fixed;
+    color: rgb(220, 225, 232);
+    font-family: var(--minecraft-font), monospace;
+}
+
+.guide-site-external-card {
+    width: min(640px, 100%);
+    padding: 20px 24px;
+    border: 1px solid rgb(67, 76, 87);
+    background: rgba(18, 24, 32, 0.96);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.guide-site-external-card > h1 {
+    margin: 0 0 12px;
+    color: rgb(255, 213, 79);
+    font-size: 22px;
+}
+
+.guide-site-external-card > p {
+    margin: 0 0 12px;
+}
+
+.guide-site-external-target {
+    word-break: break-word;
+    color: rgb(123, 175, 255);
+}
+
+.guide-site-external-actions {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.guide-site-external-cancel {
+    color: rgb(220, 225, 232);
+    text-decoration: none;
+}
+
+.guide-site-external-cancel:hover {
+    text-decoration: underline;
+}
+
+.guide-mediawiki-special-subtitle {
+    color: rgba(210, 210, 210, 0.7);
+    font-size: 0.9rem;
+}
+
+.guide-mediawiki-special-show-more {
+    display: inline-block;
+    margin-top: calc(6px * var(--gui-scale));
+    padding: calc(2px * var(--gui-scale)) calc(6px * var(--gui-scale));
+    border: calc(1px * var(--gui-scale)) solid rgba(180, 180, 180, 0.5);
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--color-link);
+    font: inherit;
+    cursor: pointer;
+}
+
+.guide-mediawiki-special-show-more:hover {
+    text-decoration: underline;
+}
+
+.guide-search-result-title-special {
+    color: #ffd254;
 }
 
 .guide-layout {
@@ -1249,6 +1543,7 @@ p {
 }
 
 .guide-file-tree {
+    display: flow-root;
     background: rgb(27, 31, 35);
     border: 1px solid rgb(58, 64, 71);
     padding: 8px;
@@ -1276,6 +1571,37 @@ p {
     color: rgb(210, 210, 210);
 }
 
+.guide-details {
+    display: block;
+    margin: 0.8em 0;
+    padding: 0.45em 0.65em;
+    background: rgb(24, 29, 36);
+    border: 1px solid rgb(58, 64, 71);
+}
+
+.guide-details > summary {
+    cursor: pointer;
+    color: rgb(232, 238, 245);
+    font-weight: 700;
+}
+
+.guide-details > summary > p {
+    display: inline;
+    margin: 0;
+}
+
+.guide-details-body {
+    margin-top: 0.6em;
+}
+
+.guide-details-body > :first-child {
+    margin-top: 0;
+}
+
+.guide-details-body > :last-child {
+    margin-bottom: 0;
+}
+
 .guide-tooltip-scene-placeholder {
     display: inline-block;
     background: #0c1117;
@@ -1299,6 +1625,17 @@ p {
     image-rendering: pixelated;
 }
 
+.guide-svg-wrap {
+    display: flow-root;
+    max-width: 100%;
+    overflow-x: auto;
+    margin-bottom: 0.8em;
+}
+
+.guide-svg-wrap > svg {
+    margin-bottom: 0;
+}
+
 .guide-chart-shape {
     transition: opacity 0.1s ease, filter 0.1s ease;
     cursor: pointer;
@@ -1315,9 +1652,11 @@ p {
 
 .guide-csv-table {
     border-collapse: collapse;
-    width: 100%;
     font-size: 11px;
-    margin-bottom: 0.8em;
+}
+
+.guide-table {
+    margin-bottom: 0;
 }
 
 .guide-csv-table th,
@@ -1374,6 +1713,7 @@ p {
 }
 
 .guide-mermaid-pan {
+    display: flow-root;
     position: relative;
     overflow: hidden;
     max-width: 100%;
@@ -1389,10 +1729,96 @@ p {
     cursor: grabbing;
 }
 
+.guide-mermaid-pan > .guide-mermaid-stage,
 .guide-mermaid-pan > .guide-mermaid-canvas {
     transform-origin: 0 0;
     will-change: transform;
     margin: 0;
     max-width: none;
+}
+
+.guide-mermaid-stage {
+    position: relative;
+    min-width: 100px;
+    min-height: 40px;
+}
+
+.guide-mermaid-canvas {
+    display: block;
+    max-width: none;
+}
+
+.guide-mermaid-node-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.guide-mermaid-node {
+    --guide-mermaid-accent: #7AA2F7;
+    position: absolute;
+    left: 0;
+    top: 0;
+    min-width: 64px;
+    max-width: min(320px, 60vw);
+    padding: 6px 10px 6px 14px;
+    border: 1px solid var(--guide-mermaid-accent);
+    background: rgba(17, 25, 34, 0.96);
+    color: #d7dee7;
+    box-sizing: border-box;
+    pointer-events: auto;
+}
+
+.guide-mermaid-node-root {
+    background: rgba(31, 42, 56, 0.98);
+    color: #f1f6fb;
+    font-weight: 700;
+}
+
+.guide-mermaid-node-accent {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--guide-mermaid-accent);
+}
+
+.guide-mermaid-node-badge {
+    display: inline-block;
+    margin-bottom: 4px;
+    padding: 2px 4px;
+    border: 1px solid rgba(67, 76, 87, 0.7);
+    background: rgba(38, 42, 51, 0.9);
+    color: #b8c2cf;
+    font-size: 0.78em;
+}
+
+.guide-mermaid-node-body > :first-child {
+    margin-top: 0;
+}
+
+.guide-mermaid-node-body > :last-child {
+    margin-bottom: 0;
+}
+
+.guide-mermaid-node-line + .guide-mermaid-node-line {
+    margin-top: 2px;
+}
+
+.guide-mermaid-shape-rounded {
+    border-radius: 12px;
+}
+
+.guide-mermaid-shape-circle {
+    border-radius: 999px;
+}
+
+.guide-mermaid-shape-cloud {
+    border-radius: 18px;
+}
+
+.guide-mermaid-shape-bang {
+    border-width: 2px;
 }
 

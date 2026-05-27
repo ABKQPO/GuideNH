@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowAnchor;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class ATagCompiler extends FlowTagCompiler {
@@ -39,7 +40,11 @@ public class ATagCompiler extends FlowTagCompiler {
             if (!title.isEmpty()) {
                 link.setTooltip(new TextTooltip(title));
             }
-            if (!href.isEmpty()) {
+            var sound = GuideSoundParsers.parseActionUri(compiler, href);
+            if (sound != null) {
+                link.setClickSoundSpec(sound);
+                link.setClickCallback(uiHost -> {});
+            } else if (!href.isEmpty()) {
                 LinkParser.parseLink(compiler, href, new LinkParser.Visitor() {
 
                     @Override
@@ -58,10 +63,10 @@ public class ATagCompiler extends FlowTagCompiler {
                     }
                 });
             }
-            compiler.compileFlowContext(el.children(), link);
+            compiler.compileInlineFragment(el.children(), link);
             parent.append(link);
         } else {
-            compiler.compileFlowContext(el.children(), parent);
+            compiler.compileInlineFragment(el.children(), parent);
         }
     }
 

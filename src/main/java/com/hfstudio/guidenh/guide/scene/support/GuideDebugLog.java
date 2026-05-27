@@ -7,6 +7,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
 
+import cpw.mods.fml.common.FMLLog;
+
 public class GuideDebugLog {
 
     protected GuideDebugLog() {}
@@ -31,24 +33,39 @@ public class GuideDebugLog {
         }
     }
 
-    public static void warn(@Nullable Logger logger, @Nullable String message, Object... args) {
-        if (!isEnabled() || logger == null || message == null || message.isEmpty()) {
+    public static void warn(@Nullable CharSequence message, Object... args) {
+        if (!isEnabled() || message == null || message.length() <= 0) {
             return;
         }
-        logger.warn(message, args);
+        FMLLog.getLogger()
+            .warn(message.toString(), args);
     }
 
-    public static void info(@Nullable Logger logger, @Nullable String message, Object... args) {
-        if (!isEnabled() || logger == null || message == null || message.isEmpty()) {
-            return;
-        }
-        logger.info(message, args);
+    public static void warn(@Nullable Logger ignoredLogger, @Nullable String message, Object... args) {
+        warn(message, args);
     }
 
-    public static void debug(@Nullable Logger logger, @Nullable String message, Object... args) {
-        if (!isEnabled() || logger == null || message == null || message.isEmpty()) {
+    public static void info(@Nullable CharSequence message, Object... args) {
+        if (!isEnabled() || message == null || message.length() <= 0) {
             return;
         }
-        logger.debug(message, args);
+        FMLLog.getLogger()
+            .info(message.toString(), args);
+    }
+
+    public static void info(@Nullable Logger ignoredLogger, @Nullable String message, Object... args) {
+        info(message, args);
+    }
+
+    public static void debug(@Nullable CharSequence message, Object... args) {
+        if (!isEnabled() || message == null || message.length() <= 0) {
+            return;
+        }
+        FMLLog.getLogger()
+            .debug(message.toString(), args);
+    }
+
+    public static void debug(@Nullable Logger ignoredLogger, @Nullable String message, Object... args) {
+        debug(message, args);
     }
 }

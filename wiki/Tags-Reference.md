@@ -31,7 +31,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<ItemLink>` | item tooltip + optional navigation link | `id` or `ore`, `linksTo`, `showTooltip`, `noTooltip`, `showIcon` |
 | `<CommandLink>` | clickable chat command link | `command`, `title`, `close` |
 | `<Latex>` | LaTeX math formula; inline in flow context, centered display block in block context | `formula`, `color`, `scale`, `sourceScale`, `tooltip`, `showTooltip` |
-| `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text` |
+| `<QuestLink>` | BetterQuesting quest link with state-aware styling (compat tag, only registered when BetterQuesting is loaded) | `id`, `text`, `show_tooltip` |
 
 Inline markdown also supports action links for sound playback:
 
@@ -45,16 +45,17 @@ Inline markdown also supports action links for sound playback:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
-| `<details>` | collapsible runtime block | `open` |
+| `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
 | `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of item icons | children must be `<ItemIcon id="..."/>` or `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | block item-form icon | `id` or `ore`, `scale` |
+| `<BlockImage>` | non-interactive 3D single-block preview | `id` or `ore`, `scale`, `float`, `perspective`, `nbt` |
 | `<FloatingImage>` | floated image block | `src`, `align`, `title`, `width`, `height` |
 | `<SubPages>` | navigation child listing | `id`, `alphabetical` |
-| `<CategoryIndex>` | list pages from a category | `category` |
+| `<Category>` | list pages from a category | `name`, `rows` |
+| `<Special>` | list built-in MediaWiki special pages | `name`, `rows` |
 | `<Structure>` | 2.5D isometric block layout view | `width`, `height` |
 | `<Mermaid>` | runtime Mermaid graph import/inline | `src`, `width`, `height` |
 | `<CsvTable>` | runtime CSV file import table | `src`, `header`, `widths` |
@@ -67,7 +68,7 @@ Inline markdown also supports action links for sound playback:
 | `<Function>` | single-curve shorthand for `<FunctionGraph>` | `expr`, plus all `<FunctionGraph>` panel attributes |
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
-| `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc` |
+| `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc`, `show_tooltip` |
 
 ## Tag Details
 
@@ -111,19 +112,31 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 
 ### `<details>`
 
-Creates a collapsible runtime block with a summary row:
+Creates a collapsible runtime block with a summary row. The `<summary>` line supports normal
+inline markdown/tag content, and the body can hold ordinary text plus arbitrary block tags such as
+`<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tables, charts, and layout containers.
 
 ````md
-<details open>
-<summary>More</summary>
+<details open width="220" height="140" wrap="square" align="right">
+<summary>More <ItemImage id="minecraft:diamond" /></summary>
 
-Hidden-by-default body text
+Hidden-by-default body text with a [normal page link](./index.md).
+
+<BlockImage id="minecraft:diamond_block" align="center" scale={2} />
 </details>
 ````
 
+Attributes:
+
+- `open` — starts expanded when present
+- `width` — preferred outer width in pixels
+- `height` — preferred body viewport height in pixels; overflow becomes scrollable in-game and in site export
+- `wrap` — supports the usual block embedding modes such as `square`, `tight`, and `through`
+- `align` — `left`, `center`, or `right`; when combined with a floating wrap mode, the whole details block floats
+
 ### `<FileTree>`
 
-Renders a directory-style outline with real connector lines drawn from the prefix glyphs on each row. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) forms are accepted and may be mixed. Payload text supports the usual inline markdown (links, **bold**, `code`, …). The same content can also be written as a fenced ` ```tree ` or ` ```filetree ` block.
+Renders a directory-style outline with real connector lines drawn from the prefix glyphs on each row. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) forms are accepted and may be mixed. Payload text supports the usual inline markdown (links, **bold**, `code`, …), and those links are clickable both in-game and in the built-in site export. The same content can also be written as a fenced ` ```tree ` or ` ```filetree ` block.
 
 ````md
 <FileTree indent="14" gap="0">
@@ -371,17 +384,6 @@ Example:
 </Row>
 ````
 
-### `<Mermaid>`
-
-Runtime Mermaid currently supports mindmaps both inline and from `src`.
-
-````md
-<Mermaid src="./markdown-mindmap.mmd" width="320" height="220" />
-````
-
-- `width` and `height` constrain the runtime viewport box
-- inside the viewport, drag pans and the mouse wheel zooms
-
 To constrain the width of normal markdown lists, wrap them in a container:
 
 ````md
@@ -417,18 +419,43 @@ Renders a compact item grid. Children must be raw `<ItemIcon>` elements, which a
 
 ### `<BlockImage>`
 
-Renders the item form of a block. `ore` must resolve to a block item stack.
+Renders a non-interactive 3D single-block scene. The preview has no scene background, no scene
+buttons, no layer controls, and no annotation features, but hovering the block still shows the
+selection outline and tooltip. `ore` must resolve to a block item stack.
+
+| Attribute | Meaning |
+| --- | --- |
+| `id` | block id; supports the normal `modid:block[:meta][:{snbt}]` spelling |
+| `ore` | ore dictionary lookup; the first matching block item wins |
+| `scale` | camera zoom multiplier, default `1` |
+| `float` | legacy flow float support: `left` or `right` |
+| `perspective` | `isometric-north-east` (default), `isometric-north-west`, or `up` |
+| `nbt` | optional SNBT tile-entity data merged onto any inline SNBT from `id` |
+
+Notes:
+
+- inline SNBT inside `id` is still accepted for compatibility, but `nbt="..."` is the preferred
+  authoring form
+- when both inline SNBT and `nbt` are present, the `nbt` attribute is merged last and therefore
+  overrides conflicting keys
+- GuideNH 1.7.10 does not support modern block-state property syntax here, so GuideME-style
+  `p:<state>` attributes are intentionally not supported
 
 ````md
 <BlockImage id="minecraft:crafting_table" scale="3" />
-<BlockImage ore="logWood" scale="3" />
+<BlockImage ore="logWood" scale="3" perspective="isometric-north-west" />
+<BlockImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+/>
 ````
 
 ### `<FloatingImage>`
 
 See [Images And Assets](Images-And-Assets) for the full behavior.
 
-### `<SubPages>` And `<CategoryIndex>`
+### `<SubPages>`, `<Category>`, And `<Special>`
 
 See [Navigation](Navigation) for full navigation behavior.
 
@@ -442,7 +469,24 @@ Used for runtime Mermaid content. Current runtime support is focused on `mindmap
 
 ````md
 <Mermaid src="./markdown-mindmap.mmd" />
+
+<Mermaid width="340" height="240">
+mindmap
+  root["**GuideNH** [Index](./index.md)"]
+    runtime["Runtime blocks"]
+
+<NodeContent id="runtime">
+Runtime nodes can embed normal blocks.
+
+<ItemImage id="minecraft:diamond" />
+</NodeContent>
+</Mermaid>
 ```
+
+- `width` and `height` constrain the runtime viewport box
+- inside the viewport, drag pans and the mouse wheel zooms
+- quoted Mermaid labels may use rich inline markdown such as `**bold**` and page links
+- `<NodeContent id="...">...</NodeContent>` can be added as children of `<Mermaid>` to replace a node body with arbitrary runtime blocks
 
 ### `<CsvTable>`
 
@@ -562,8 +606,8 @@ These tags only work inside `<GameScene>` / `<Scene>`:
 
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
-| `<ImportStructure>` | import an external SNBT/NBT structure asset | `src`, `x`, `y`, `z` |
-| `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `piece`, `facing`, `rotation`, `flip`, `channel` |
+| `<ImportStructure>` | import an external SNBT/NBT structure asset | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | remove already-placed blocks that match a block matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
 
@@ -686,25 +730,28 @@ Interaction: hover a curve to highlight it; press and hold to scrub a point alon
 
 ### `<QuestLink>`
 
-Inline link to a BetterQuesting quest. Clicking opens the quest inside the BetterQuesting GUI, unless the quest UUID is also present in the current guide's `quest_ids` frontmatter — in that case the link navigates to that page instead.
+Inline link to a BetterQuesting quest. Clicking opens the quest inside the BetterQuesting GUI, unless the quest id is also present in the current guide's `quest_ids` frontmatter — in that case the link navigates to that page instead.
 
 | Attribute | Meaning |
 | --- | --- |
-| `id` | required quest UUID |
+| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
 | `text` | optional override for the displayed text |
+| `show_tooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip. `showTooltip` is accepted as an alias |
 
 Visibility behavior is decided per player at compile time:
 
 - visible / completed quests render as a clickable link (completed quests are tinted green and append a `✓` mark)
-- locked quests render as a non-clickable italic gray placeholder using the `guidenh.compat.bq.locked` translation
+- locked but non-hidden quests still render as clickable quest links so they can open the BetterQuesting quest screen or the indexed guide page
 - hidden / secret quests render as a darker italic placeholder using `guidenh.compat.bq.hidden`
-- unknown UUIDs render as a red placeholder using `guidenh.compat.bq.missing`
+- unknown quest ids render as a red placeholder using `guidenh.compat.bq.missing`
 
 Example:
 
 ````md
 See <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" /> for the next step.
 <QuestLink id="01234567-89ab-cdef-0123-456789abcdef" text="Stage 2 quest" />
+<QuestLink id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
+See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> after that.
 ````
 
 ### `<QuestCard>`
@@ -713,14 +760,17 @@ Block-level summary card for a BetterQuesting quest. Renders the quest title wit
 
 | Attribute | Meaning |
 | --- | --- |
-| `id` | required quest UUID |
+| `id` | required BetterQuesting quest id; accepts canonical UUID strings and compact Base64 ids |
 | `show_desc` | optional boolean (default `true`); set to `false` to suppress the description body |
+| `show_tooltip` | optional boolean (default `true`); set to `false` to suppress the quest-description tooltip on the clickable title. `showTooltip` is accepted as an alias |
 
-The accent color of the card border follows the quest state: green for completed, gray for locked / hidden, red for missing, and the standard link color for visible quests.
+The accent color of the card border follows the quest state: green for completed, gray for locked / hidden, red for missing, and the standard link color for visible quests. The title remains clickable for visible, completed, and locked-but-non-hidden quests.
 
 Example:
 
 ````md
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
+<QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
+<QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````

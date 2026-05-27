@@ -11,9 +11,11 @@ import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.ReplaceBlockExecutor;
+import com.hfstudio.guidenh.guide.scene.support.SceneStructureOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
@@ -26,6 +28,9 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
     @Override
     public void compile(GuidebookLevel level, CameraSettings camera, PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el) {
+        if (!GuideSceneStructureCompileScope.isStructureMutationEnabled()) {
+            return;
+        }
         String fromRaw = MdxAttrs.getString(compiler, errorSink, el, "from", null);
         if (fromRaw == null || fromRaw.trim()
             .isEmpty()) {
@@ -99,6 +104,7 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
         int bdx = Math.max(1, MdxAttrs.getInt(compiler, errorSink, el, "dx", 1));
         int bdy = Math.max(1, MdxAttrs.getInt(compiler, errorSink, el, "dy", 1));
         int bdz = Math.max(1, MdxAttrs.getInt(compiler, errorSink, el, "dz", 1));
+        boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
 
         ReplaceBlockExecutor.execute(
             level,
@@ -114,6 +120,7 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
             bz,
             bdx,
             bdy,
-            bdz);
+            bdz,
+            formed);
     }
 }

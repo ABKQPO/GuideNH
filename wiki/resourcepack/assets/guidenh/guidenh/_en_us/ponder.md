@@ -2,7 +2,7 @@
 navigation:
   title: Ponder Animations
   parent: index.md
-  position: 40
+  position: 160
 categories:
   - scenes
 ---
@@ -10,7 +10,7 @@ categories:
 # Ponder Animations
 
 The `<ImportPonder>` tag adds a fully keyframe-driven animation timeline to any `<GameScene>`.
-It controls camera interpolation, per-keyframe 3D annotations, block changes, and annotation
+It controls camera interpolation, per-keyframe 3D annotations, particles, block changes, and annotation
 fade-in transitions — all declared in a JSON file.
 
 ## Full Feature Demo
@@ -55,15 +55,19 @@ Press ▶ to play, or drag the timeline. The keyframe nodes snap the timeline to
 | `totalTime` | int | Total animation length in game ticks (20 ticks = 1 second) |
 | `keyframes` | array | Ordered list of keyframe objects |
 | `time` | int | Tick at which this keyframe becomes active |
-| `label` | string? | Optional label shown when hovering the keyframe node |
+| `label` | string? | Optional fallback label shown when hovering the keyframe node |
+| `labelKey` | string? | Translation key for the keyframe label. When resolved, it overrides `label` |
 | `camera` | object? | Partial camera override (only specified fields are applied) |
 | `layer` | int? | Visible layer override (`null` = show all) |
 | `annotations` | array? | Annotation objects to show while this keyframe is active |
 | `sounds` | array? | Sounds played once when this keyframe activates during forward playback |
+| `particles` | array? | Keyframe-triggered particle bursts and presets |
 | `blockChanges` | array? | Block replacements applied when this keyframe activates |
 | `mergeTileNBT` / `modifyTileNBT` / `removeTileNBT` | array? | Seek-safe tile-entity NBT operations |
-| `createEntities` | array? | Create Ponder-owned entities referenced by `ref` |
-| `setEntityNBT` / `mergeEntityNBT` / `modifyEntityNBT` / `removeEntityNBT` | array? | Seek-safe NBT operations for referenced entities |
+| `createEntities` | array? | Create Ponder-owned entities referenced by `ref`, with optional stable `sceneEntityId`, mount state, transform, and preview-player pose fields |
+| `setEntityNBT` / `mergeEntityNBT` / `modifyEntityNBT` / `removeEntityNBT` | array? | Seek-safe entity updates; besides NBT, these actions can also adjust transform, stable mount state, and preview-player visual state |
+| `removeEntities` | array? | Remove Ponder-owned entities by `ref` through the stable scene-entity registry |
+| `animateEntities` | array? | Replay-safe timed animation presets applied to referenced Ponder entities |
 
 ---
 
@@ -82,6 +86,88 @@ Use `sound` for a sound event id, or `src` for an `.ogg` file path. A file path 
 `sounds/` is converted to the matching sound event id: `guidenh:sounds/guide/sample_hover.ogg`
 becomes `guidenh:guide.sample_hover`. Optional `x`, `y`, `z`, `radius`, and `minVolume` use
 screen-space attenuation from the projected scene position.
+
+---
+
+## Keyframe Particles
+
+Ponder keyframes can spawn lightweight scene particles during forward playback. They are not
+replayed while scrubbing backwards, so seeking remains deterministic.
+
+Generic particles:
+
+```json
+"particles": [
+  {
+    "name": "smoke",
+    "x": 1.5,
+    "y": 1.85,
+    "z": 1.5,
+    "vx": 0.0,
+    "vy": 0.01,
+    "vz": 0.0,
+    "size": 0.18,
+    "time": 16,
+    "count": 3
+  }
+]
+```
+
+Explosion preset:
+
+```json
+"particles": [
+  {
+    "preset": "explosion",
+    "x": 1.5,
+    "y": 1.45,
+    "z": 1.5,
+    "time": 8,
+    "power": 2.4
+  }
+]
+```
+
+Weather preset:
+
+```json
+"particles": [
+  {
+    "preset": "rain",
+    "weather": "rain",
+    "x": [0, 2, 4, 4],
+    "z": [0, 2, 0, 2],
+    "time": 90,
+    "count": 9
+  }
+]
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `preset` | string? | Supports `explosion` for a vanilla-style flash + smoke + burst preset, and `rain` for the shared weather preset |
+| `weather` | string? | Used by `preset: "rain"`. Supports `rain` and `snow` |
+| `name` | string? | Generic particle appearance. Supported values: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion` |
+| `particle` / `kind` | string? | Compatibility aliases for `name` |
+| `x`, `z` | float or array | Generic particle origin in world space, or weather coverage for `preset: "rain"` |
+| `vx`, `vy`, `vz` | float? | Initial motion vector. `motionX/Y/Z` are accepted aliases |
+| `time` / `lifetime` | int? | Particle lifetime in ticks. For `preset: "rain"` this is the total weather duration including start/end transitions |
+| `size` | float? | Particle half-size in block units |
+| `count` | int? | Number of generic particles to spawn; for `explosion`, omitted count scales with `power`; for `preset: "rain"` it controls average density per tick |
+| `power` | float? | Explosion strength for the `explosion` preset |
+
+Weather preset notes:
+
+- `preset: "rain"` is the weather preset entry point for both rainfall and snowfall.
+- Use `weather: "rain"` for a vanilla-style rain curtain with occasional splashes.
+- Use `weather: "snow"` for slower drifting flakes.
+- Ponder weather is timeline-owned and follows replay, pause, seek, and fast-forward.
+- For always-on scene weather outside the timeline, use `<Weather>` inside `<GameScene>`.
+- Weather presets ignore `y`; the runtime derives the vertical span from the scene bounds.
+- Scalar `x/z` values target one precipitation column. Arrays use endpoint pairs to define one or more rectangles.
+- If one axis has extra unmatched endpoint values, the unmatched tail is ignored.
+- The runtime automatically adds a short start transition and end transition around the steady phase.
+- Overlapping weather never stacks on the same `x/z` column at the same time; earlier weather keeps the shared columns.
 
 ---
 
@@ -237,6 +323,7 @@ Text with an accompanying highlight box:
 | `text` field | Type | Description |
 |---|---|---|
 | `text` | string | Label text |
+| `textKey` | string? | Translation key resolved from resource-pack `lang` files before falling back to `text` |
 | `color` | string | Border colour in `0xAARRGGBB` format |
 | `maxWidth` | int? | Word-wrap width in pixels; `0` or omitted = single line |
 | `independent` | bool? | `true` = screen-space mode (no world anchor) |
@@ -318,31 +405,91 @@ Use dots for compound keys and `[index]` for list entries, for example
 ## Ponder Entities
 
 `GameScene` supports regular `<Entity>` elements. Ponder can also create timeline-owned entities
-and modify their NBT later by `ref`.
+and update them later by `ref`.
 
 ```json
 "createEntities": [
   {
     "ref": "marker",
+    "sceneEntityId": "marker",
     "id": "minecraft:pig",
     "x": 1.5, "y": 1.0, "z": 2.5,
+    "yaw": 180.0,
+    "bodyYaw": 180.0,
+    "headYaw": 210.0,
     "nbt": "{CustomName:\"Before\",CustomNameVisible:1b}"
+  },
+  {
+    "ref": "operator",
+    "id": "player",
+    "name": "GuideNH",
+    "x": 2.5, "y": 1.0, "z": 1.5,
+    "yaw": 225.0,
+    "bodyYaw": 225.0,
+    "headYaw": 255.0,
+    "showName": true,
+    "showCape": true,
+    "headRotation": "-10 18 0",
+    "leftArmRotation": "-70 18 -12",
+    "rightArmRotation": "32 -8 18",
+    "leftLegRotation": "8 0 0",
+    "rightLegRotation": "-6 0 0"
   }
 ],
 "mergeEntityNBT": [
   { "ref": "marker", "nbt": "{Saddle:1b}" }
 ],
 "modifyEntityNBT": [
-  { "ref": "marker", "path": "CustomName", "value": "\"After\"" }
+  { "ref": "marker", "path": "CustomName", "value": "\"After\"" },
+  { "ref": "operator", "headYaw": 290.0, "headRotation": "-22 38 0", "leftArmRotation": "-38 0 -8" }
 ],
 "removeEntityNBT": [
   { "ref": "marker", "path": "CustomNameVisible" }
 ]
 ```
 
-`setEntityNBT` replaces the referenced entity's NBT with a new SNBT compound. All entity actions
-are replayed from keyframe 0 when seeking, so created entities do not linger when you scrub
-backwards.
+Supported entity state fields:
+
+- `sceneEntityId` gives the entity a stable scene-local id. `mount` always targets one of those stable ids, not another `ref`.
+- `x`, `y`, `z` reposition the referenced entity.
+- `yaw`, `pitch`, `bodyYaw`, and `headYaw` control the facing direction. If `yaw` is provided without `bodyYaw` / `headYaw`, they follow `yaw` by default.
+- `mount` attaches the current entity to another stable `sceneEntityId`. `unmount: true` clears the current stable mount relation.
+- `showName`, `showCape`, and `baby` mirror the same options from `<Entity>`.
+- Preview-player entities (`id: "player"` and the other preview-player aliases) also accept `headRotation`, `leftArmRotation`, `rightArmRotation`, `leftLegRotation`, `rightLegRotation`, and `capeRotation`, each written as `"x y z"` degrees.
+
+`setEntityNBT` replaces the referenced entity's NBT with a new SNBT compound. The other entity action arrays may omit their NBT payload entirely if you only want to adjust transform, mount state, or preview-player pose. `removeEntities` removes an entity by `ref` without needing raw runtime ids. All entity actions are replayed from keyframe 0 when seeking, so created entities do not linger when you scrub backwards.
+
+Raw passenger NBT alone is not the recommended way to build cross-entity scene relationships. Stable scene ids are what keep mount, unmount, replacement, and removal behavior deterministic across replay, preview rebuild, import/export, and site-facing captures.
+
+Timed entity presets use `animateEntities`:
+
+```json
+"animateEntities": [
+  { "ref": "operator", "preset": "rightClick", "ticks": 8 },
+  { "ref": "operator", "preset": "leftClick", "ticks": 6 },
+  { "ref": "operator", "preset": "jump", "ticks": 10, "height": 0.6 },
+  { "ref": "marker", "preset": "hurt", "ticks": 10 },
+  { "ref": "operator", "preset": "sneak" },
+  { "ref": "operator", "preset": "unsneak" },
+  { "ref": "marker", "preset": "walkTo", "x": 2.2, "z": 1.6, "ticks": 20 },
+  { "ref": "dropped", "preset": "moveTo", "x": 2.0, "y": 1.3, "z": 1.0, "ticks": 12 }
+]
+```
+
+- `leftClick` and `rightClick` animate preview-player arm gestures over the supplied `ticks` or the preset default.
+- `jump` plays a replay-safe vertical arc. `height` is optional and defaults to `1`.
+- `hurt` drives the vanilla hurt overlay timer, which is what produces the red flash on living entities.
+- `sneak` and `unsneak` toggle crouching and persist until another entity action changes the state.
+- `walkTo` interpolates to the target position, turns the entity along the path, and drives living-entity limb swing for a walking look.
+- `moveTo` interpolates directly to the target position without path-facing adjustments, which is usually better for dropped items and generic display entities.
+- Presets are recomputed from the current timeline tick, so scrubbing, restart, and export all see the same pose.
+
+Default preset durations are aligned to the closest matching vanilla behaviors:
+
+- `leftClick`: `6` ticks, matching `EntityLivingBase#getArmSwingAnimationEnd()`.
+- `rightClick`: `6` ticks, matching the generic swing triggered by successful vanilla right-click interactions such as block placement.
+- `jump`: `12` ticks, matching the full vanilla no-potion jump airtime for a standard entity jump arc.
+- `hurt`: `10` ticks, matching vanilla `hurtTime` / `maxHurtTime`.
 
 ---
 

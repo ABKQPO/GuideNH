@@ -40,7 +40,6 @@ public class GuideBuilder {
     private String defaultNamespace;
     private String defaultLanguage = "en_us";
     private String folder;
-    private ResourceLocation startPage;
     private Path developmentSourceFolder;
     private String developmentSourceNamespace;
     private boolean watchDevelopmentSources = true;
@@ -55,7 +54,6 @@ public class GuideBuilder {
         this.id = Objects.requireNonNull(id, "id");
         this.defaultNamespace = id.getResourceDomain();
         this.folder = "guidenh";
-        this.startPage = new ResourceLocation(defaultNamespace, "index.md");
 
         // Development sources folder
         var devSourcesFolderProperty = getSystemPropertyName(id, "sources");
@@ -123,8 +121,10 @@ public class GuideBuilder {
     }
 
     /**
-     * Changes the default language for the guide. This has no effect on what content is actually shown, but affects how
-     * the full-text search analyzes the text in your untranslated guide pages.
+     * Changes the default language for the guide. This language is used as the page fallback language when the current
+     * UI language does not provide a matching page, and it also affects how full-text search analyzes untranslated
+     * guide
+     * pages.
      * <p/>
      * The default is {@code en_us}, which is the default language code for Minecraft.
      * <p/>
@@ -160,15 +160,6 @@ public class GuideBuilder {
      */
     public GuideBuilder disableDefaultExtensions(ExtensionPoint<?> extensionPoint) {
         this.disableDefaultsForExtensionPoints.add(extensionPoint);
-        return this;
-    }
-
-    /**
-     * Set the page to show when this guide is being opened without any previous page or target page. Defaults to
-     * {@code index.md} in the {@link #defaultNamespace(String) default namespace}.
-     */
-    public GuideBuilder startPage(ResourceLocation pageId) {
-        this.startPage = pageId;
         return this;
     }
 
@@ -251,7 +242,6 @@ public class GuideBuilder {
             defaultNamespace,
             folder,
             defaultLanguage,
-            startPage,
             developmentSourceFolder,
             developmentSourceNamespace,
             indices,

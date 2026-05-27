@@ -8,6 +8,7 @@ GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They 
 - child content becomes the tooltip body
 - annotations can be hidden with the scene UI toggle
 - `alwaysOnTop` draws above scene geometry when supported by the annotation type
+- all scene annotations also accept optional `showWhenStructure`, `showWhenTier`, and `showWhenChannels` gates when the scene uses `<ImportStructureLib>`
 
 ## Supported Annotation Tags
 
@@ -18,6 +19,42 @@ GuideNH scene annotations are child tags inside `<GameScene>` / `<Scene>`. They 
 - `<TextAnnotation>`
 
 GuideNH also supports `<BlockAnnotationTemplate>`, which applies its child annotations to every already-placed matching block in the current scene.
+
+## StructureLib Conditions
+
+When a scene contains `<ImportStructureLib>`, every annotation tag may restrict its visibility to a specific
+StructureLib state:
+
+| Attribute | Meaning |
+| --- | --- |
+| `showWhenStructure` | bind the annotation to a named `<ImportStructureLib name="...">`; omit it when the scene only imports one StructureLib structure |
+| `showWhenTier` | tier filter such as `2`, `1..3`, `!2`, or `1..5,!3` |
+| `showWhenChannels` | per-channel filter such as `input:1..3, casing:!2, fluid:4` |
+
+Rules:
+
+- `showWhenTier` and `showWhenChannels` are combined with logical AND
+- `showWhenChannels` may mention multiple channels in one attribute
+- negated-only clauses like `!2` mean "any value except 2"
+- the same attributes are also supported by `<PlaySound>` and `<BlockAnnotationTemplate>` child annotations
+
+Example:
+
+````md
+<GameScene interactive={true}>
+  <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
+
+  <BlockAnnotation
+    pos="5 1 2"
+    color="#FFD24C"
+    showWhenStructure="main"
+    showWhenTier="2..4,!3"
+    showWhenChannels="input:1..3, casing:!2"
+  >
+    Only visible for the selected StructureLib state.
+  </BlockAnnotation>
+</GameScene>
+````
 
 ## `<BlockAnnotation>`
 
@@ -134,6 +171,7 @@ bubble text itself rather than a hover tooltip.
 | `pos` | no | `x y z` world-space anchor vector |
 | `x`, `y`, `z` | no | Alternative world-space anchor components when `pos` is omitted |
 | `text` | no | Bubble text; child markdown is used when omitted |
+| `textKey` | no | Translation key resolved from resource-pack `lang` files before falling back to `text` or child markdown |
 | `color` | no | Bubble border color; defaults to light grey |
 | `backgroundAlpha` | no | Background opacity from `0` to `255`; defaults to `204` |
 | `maxWidth` | no | Wrap width in pixels; `0` keeps a single line |
@@ -156,6 +194,7 @@ Example:
 ````md
 <TextAnnotation
   pos="1.5 2 1.5"
+  textKey="guidenh.sample.scene.insert_items"
   color="#FF44AAFF"
   maxWidth={120}
   backgroundAlpha={180}

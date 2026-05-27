@@ -4,11 +4,14 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
 
 public abstract class SceneAnnotation {
 
     @Nullable
     private GuideTooltip tooltip;
+    @Nullable
+    private StructureLibSceneCondition structureLibCondition;
 
     private boolean hovered;
 
@@ -27,6 +30,15 @@ public abstract class SceneAnnotation {
 
     public boolean hasTooltip() {
         return tooltip != null;
+    }
+
+    @Nullable
+    public StructureLibSceneCondition getStructureLibCondition() {
+        return structureLibCondition;
+    }
+
+    public void setStructureLibCondition(@Nullable StructureLibSceneCondition structureLibCondition) {
+        this.structureLibCondition = structureLibCondition;
     }
 
     public boolean isHovered() {

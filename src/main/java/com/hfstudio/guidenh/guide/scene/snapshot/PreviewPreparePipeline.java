@@ -4,14 +4,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class PreviewPreparePipeline {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     private static final Comparator<PreviewPrepareContributor> PRIORITY_COMPARATOR = Comparator
         .comparingInt(PreviewPrepareContributor::priority);
 
@@ -29,7 +26,7 @@ public class PreviewPreparePipeline {
             try {
                 c.prepare(level);
             } catch (Throwable t) {
-                LOG.warn(
+                GuideDebugLog.warn(
                     "Preview prepare failed: {}",
                     c.getClass()
                         .getName(),

@@ -83,6 +83,7 @@ public class BlockAnnotationTemplateExpander {
 
     public static void copyInWorldState(SceneAnnotation source, InWorldAnnotation target) {
         target.setTooltip(source.getTooltip());
+        target.setStructureLibCondition(source.getStructureLibCondition());
         if (source instanceof InWorldAnnotation inWorldAnnotation) {
             target.setAlwaysOnTop(inWorldAnnotation.isAlwaysOnTop());
         }

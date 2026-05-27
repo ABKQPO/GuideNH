@@ -2,7 +2,7 @@
 navigation:
   title: 实体场景
   parent: index.md
-  position: 32
+  position: 168
 categories:
   - scenes
 ---
@@ -71,4 +71,17 @@ categories:
     name="Circulation_"
     data='{Inventory:[{Slot:102b,id:"etfuturum:elytra",Count:1b}]}'
   />
+</GameScene>
+
+## 稳定场景实体 ID、骑乘、取消骑乘与删除
+
+`sceneEntityId` 会给场景实体分配稳定的逻辑 id。`mount` 和 `unmount` 都基于这个稳定 id，
+`<RemoveEntity>` 则会移除当前登记到该稳定 id 的全部运行时实体。
+
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="minecraft:horse" x="1.5" y="1" sceneEntityId="horse" />
+  <Entity id="player" x="1.5" y="2" sceneEntityId="rider" mount="horse" name="GuideNH" />
+  <Entity id="player" x="3" y="1" sceneEntityId="rider" unmount={true} name="GuideNH" />
+  <RemoveEntity sceneEntityId="horse" />
 </GameScene>

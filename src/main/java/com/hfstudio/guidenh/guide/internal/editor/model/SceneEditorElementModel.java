@@ -1,6 +1,13 @@
 package com.hfstudio.guidenh.guide.internal.editor.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+
+import org.joml.Vector3f;
 
 public class SceneEditorElementModel {
 
@@ -17,9 +24,15 @@ public class SceneEditorElementModel {
     private boolean visible;
     private boolean alwaysOnTop;
     private String tooltipMarkdown;
+    private String textKey;
     private String textMarkdown;
+    private String showWhenStructure;
+    private String showWhenTier;
+    private String showWhenChannels;
     private int maxWidth;
     private int backgroundAlpha;
+    private final List<Vector3f> linePoints;
+    private final Map<String, String> extraAttributes;
 
     public SceneEditorElementModel(SceneEditorElementType type) {
         this.id = UUID.randomUUID();
@@ -35,9 +48,15 @@ public class SceneEditorElementModel {
         this.visible = true;
         this.alwaysOnTop = false;
         this.tooltipMarkdown = "";
+        this.textKey = "";
         this.textMarkdown = type.getDefaultText();
+        this.showWhenStructure = "";
+        this.showWhenTier = "";
+        this.showWhenChannels = "";
         this.maxWidth = type.getDefaultMaxWidth();
         this.backgroundAlpha = type.getDefaultBackgroundAlpha();
+        this.linePoints = new ArrayList<>();
+        this.extraAttributes = new LinkedHashMap<>();
     }
 
     public UUID getId() {
@@ -96,6 +115,22 @@ public class SceneEditorElementModel {
         this.secondaryZ = secondaryZ;
     }
 
+    public List<Vector3f> getLinePoints() {
+        return Collections.unmodifiableList(linePoints);
+    }
+
+    public void setLinePoints(List<Vector3f> points) {
+        linePoints.clear();
+        if (points == null) {
+            return;
+        }
+        for (Vector3f point : points) {
+            if (point != null) {
+                linePoints.add(new Vector3f(point));
+            }
+        }
+    }
+
     public String getColorLiteral() {
         return colorLiteral;
     }
@@ -136,12 +171,44 @@ public class SceneEditorElementModel {
         this.tooltipMarkdown = tooltipMarkdown;
     }
 
+    public String getTextKey() {
+        return textKey;
+    }
+
+    public void setTextKey(String textKey) {
+        this.textKey = textKey != null ? textKey : "";
+    }
+
     public String getTextMarkdown() {
         return textMarkdown;
     }
 
     public void setTextMarkdown(String textMarkdown) {
         this.textMarkdown = textMarkdown;
+    }
+
+    public String getShowWhenStructure() {
+        return showWhenStructure;
+    }
+
+    public void setShowWhenStructure(String showWhenStructure) {
+        this.showWhenStructure = showWhenStructure != null ? showWhenStructure : "";
+    }
+
+    public String getShowWhenTier() {
+        return showWhenTier;
+    }
+
+    public void setShowWhenTier(String showWhenTier) {
+        this.showWhenTier = showWhenTier != null ? showWhenTier : "";
+    }
+
+    public String getShowWhenChannels() {
+        return showWhenChannels;
+    }
+
+    public void setShowWhenChannels(String showWhenChannels) {
+        this.showWhenChannels = showWhenChannels != null ? showWhenChannels : "";
     }
 
     public int getMaxWidth() {
@@ -160,6 +227,37 @@ public class SceneEditorElementModel {
         this.backgroundAlpha = Math.max(0, Math.min(255, backgroundAlpha));
     }
 
+    public Map<String, String> getExtraAttributes() {
+        return Collections.unmodifiableMap(extraAttributes);
+    }
+
+    public String getExtraAttribute(String name) {
+        return extraAttributes.get(name);
+    }
+
+    public void setExtraAttribute(String name, String value) {
+        if (name == null || name.trim()
+            .isEmpty()) {
+            return;
+        }
+        if (value == null || value.trim()
+            .isEmpty()) {
+            extraAttributes.remove(name);
+            return;
+        }
+        extraAttributes.put(name, value);
+    }
+
+    public void setExtraAttributes(Map<String, String> attributes) {
+        extraAttributes.clear();
+        if (attributes == null || attributes.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : attributes.entrySet()) {
+            setExtraAttribute(entry.getKey(), entry.getValue());
+        }
+    }
+
     public SceneEditorElementModel duplicate() {
         SceneEditorElementModel duplicate = new SceneEditorElementModel(this.type);
         duplicate.setPrimaryX(this.primaryX);
@@ -173,9 +271,15 @@ public class SceneEditorElementModel {
         duplicate.setVisible(this.visible);
         duplicate.setAlwaysOnTop(this.alwaysOnTop);
         duplicate.setTooltipMarkdown(this.tooltipMarkdown);
+        duplicate.setTextKey(this.textKey);
         duplicate.setTextMarkdown(this.textMarkdown);
+        duplicate.setShowWhenStructure(this.showWhenStructure);
+        duplicate.setShowWhenTier(this.showWhenTier);
+        duplicate.setShowWhenChannels(this.showWhenChannels);
         duplicate.setMaxWidth(this.maxWidth);
         duplicate.setBackgroundAlpha(this.backgroundAlpha);
+        duplicate.setLinePoints(this.linePoints);
+        duplicate.setExtraAttributes(this.extraAttributes);
         return duplicate;
     }
 }

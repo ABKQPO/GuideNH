@@ -2,7 +2,7 @@
 navigation:
   title: Images
   parent: index.md
-  position: 55
+  position: 145
   icon: minecraft:wool:1
 categories:
   - widgets
@@ -167,12 +167,22 @@ Icon shown, no tooltip:
 
 ## BlockImage Scale
 
+`BlockImage` now renders a transparent 3D placed-block preview rather than an item-form icon.
+
 <Row>
   <BlockImage id="minecraft:stone" scale="1" />
   <BlockImage id="minecraft:stone" scale="2" />
   <BlockImage id="minecraft:stone" scale="3" />
   <BlockImage id="minecraft:stone" scale="4" />
   <BlockImage id="minecraft:stone" scale="6" />
+</Row>
+
+## BlockImage Perspective And Tile NBT
+
+<Row>
+  <BlockImage id="minecraft:furnace" scale="2.5" perspective="isometric-north-east" />
+  <BlockImage id="minecraft:furnace" scale="2.5" perspective="isometric-north-west" />
+  <BlockImage id="minecraft:chest" scale="2.5" nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}' />
 </Row>
 
 ## BlockImage Row Samples

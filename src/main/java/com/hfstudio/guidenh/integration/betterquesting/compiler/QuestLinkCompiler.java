@@ -9,29 +9,27 @@ import net.minecraft.util.StatCollector;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FlowTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytTooltipSpan;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.integration.betterquesting.BqHelpers;
 import com.hfstudio.guidenh.integration.betterquesting.QuestDisplay;
-import com.hfstudio.guidenh.integration.betterquesting.QuestIndex;
+import com.hfstudio.guidenh.integration.betterquesting.QuestIdParser;
 import com.hfstudio.guidenh.integration.betterquesting.QuestState;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * Compiles {@code <QuestLink id="<uuid>" [text="<override>"]/>} into an inline link to the
- * BetterQuesting quest GUI. The displayed text and click behavior depend on the player's
+ * Compiles {@code <QuestLink id="<uuid>" [text="<override>"] [show_tooltip="false"]/>} into an
+ * inline BetterQuesting quest link. The displayed text and click behavior depend on the player's
  * progress at compile time.
  * <p/>
- * Hidden or locked quests render as a non-clickable placeholder span; missing UUIDs render as
- * an error span.
+ * Hidden quests render as a non-clickable placeholder span; missing UUIDs render as an error
+ * span.
  */
 public class QuestLinkCompiler extends FlowTagCompiler {
 
@@ -44,27 +42,24 @@ public class QuestLinkCompiler extends FlowTagCompiler {
     protected void compile(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
         String idAttr = MdxAttrs.getString(compiler, parent, el, "id", null);
         if (idAttr == null) {
-            parent.appendError(compiler, "QuestLink requires an 'id' attribute (quest UUID).", el);
+            parent.appendError(compiler, "QuestLink requires an 'id' attribute (BetterQuesting quest id).", el);
             return;
         }
-        UUID questId;
-        try {
-            questId = UUID.fromString(idAttr.trim());
-        } catch (IllegalArgumentException e) {
-            parent.appendError(compiler, "QuestLink id is not a valid UUID: " + idAttr, el);
+        UUID questId = QuestIdParser.parse(idAttr);
+        if (questId == null) {
+            parent.appendError(compiler, "QuestLink id is not a valid BetterQuesting quest id: " + idAttr, el);
             return;
         }
 
         String overrideText = MdxAttrs.getString(compiler, parent, el, "text", null);
+        boolean showTooltip = QuestTagSupport.resolveShowTooltip(compiler, parent, el);
 
-        QuestDisplay display = BqHelpers.resolveDisplay(questId, Minecraft.getMinecraft().thePlayer);
+        QuestDisplay display = BqHelpers.resolveDisplay(questId, Minecraft.getMinecraft().thePlayer, showTooltip);
         QuestState state = display.getState();
         String text = pickText(overrideText, display, questId);
 
-        if (state == QuestState.VISIBLE || state == QuestState.COMPLETED) {
-            appendVisibleLink(compiler, parent, questId, text, display);
-        } else if (state == QuestState.LOCKED) {
-            appendPlaceholder(parent, text, SymbolicColor.GRAY, display.getDescription());
+        if (QuestTagSupport.isNavigable(state)) {
+            appendNavigableLink(compiler, parent, questId, text, display, showTooltip);
         } else if (state == QuestState.HIDDEN) {
             appendPlaceholder(parent, text, SymbolicColor.DARK_GRAY, null);
         } else if (state == QuestState.MISSING) {
@@ -74,31 +69,9 @@ public class QuestLinkCompiler extends FlowTagCompiler {
         }
     }
 
-    private static void appendVisibleLink(PageCompiler compiler, LytFlowParent parent, UUID questId, String text,
-        QuestDisplay display) {
-        // Prefer linking inside the guide if a page indexes this quest, otherwise open the BQ GUI.
-        PageAnchor pageAnchor = compiler.getIndex(QuestIndex.class)
-            .findByUuid(questId);
-
-        var link = new LytFlowLink();
-        if (pageAnchor != null) {
-            link.setPageLink(pageAnchor);
-        } else {
-            link.setClickCallback(screen -> BqHelpers.openQuestGui(questId));
-        }
-
-        if (display.getState() == QuestState.COMPLETED) {
-            link.modifyStyle(style -> style.color(SymbolicColor.GREEN));
-        }
-
-        link.appendText(text);
-
-        String description = display.getDescription();
-        if (description != null && !description.isEmpty()) {
-            link.setTooltip(new TextTooltip(description));
-        }
-
-        parent.append(link);
+    private static void appendNavigableLink(PageCompiler compiler, LytFlowParent parent, UUID questId, String text,
+        QuestDisplay display, boolean showTooltip) {
+        parent.append(QuestTagSupport.createQuestGuiLink(questId, display, text, showTooltip));
     }
 
     private static void appendPlaceholder(LytFlowParent parent, String text, SymbolicColor color,
@@ -123,14 +96,11 @@ public class QuestLinkCompiler extends FlowTagCompiler {
             return overrideText;
         }
         QuestState state = display.getState();
-        if (state == QuestState.VISIBLE) {
-            return nameOrFallback(display, questId);
-        }
         if (state == QuestState.COMPLETED) {
             return nameOrFallback(display, questId) + " \u2713";
         }
-        if (state == QuestState.LOCKED) {
-            return "[" + StatCollector.translateToLocal("guidenh.compat.bq.locked") + "]";
+        if (QuestTagSupport.isNavigable(state)) {
+            return nameOrFallback(display, questId);
         }
         if (state == QuestState.HIDDEN) {
             return "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
@@ -142,7 +112,6 @@ public class QuestLinkCompiler extends FlowTagCompiler {
     }
 
     private static String nameOrFallback(QuestDisplay display, UUID questId) {
-        String name = display.getName();
-        return name != null && !name.isEmpty() ? name : "Quest " + questId;
+        return QuestTagSupport.nameOrFallback(display, questId);
     }
 }

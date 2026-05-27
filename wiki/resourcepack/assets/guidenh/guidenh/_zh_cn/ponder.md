@@ -2,7 +2,7 @@
 navigation:
   title: 思索动画
   parent: index.md
-  position: 40
+  position: 160
 categories:
   - scenes
 ---
@@ -66,13 +66,98 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 | `keyframes` | array | 按时间排序的关键帧列表 |
 | `time` | int | 该关键帧激活的游戏刻 |
 | `label` | string? | 鼠标悬停关键帧节点时显示的标签 |
+| `labelKey` | string? | 关键帧标签的翻译键。解析成功时会覆盖 `label` |
 | `camera` | object? | 摄像机部分覆盖（仅指定的字段生效） |
 | `layer` | int? | 可见层覆盖（`null` = 显示全部） |
 | `annotations` | array? | 该关键帧激活期间显示的标注列表 |
 | `blockChanges` | array? | 该关键帧激活时应用的方块替换列表 |
 | `mergeTileNBT` / `modifyTileNBT` / `removeTileNBT` | array? | 支持定位重放的方块实体 NBT 操作 |
-| `createEntities` | array? | 创建由思索时间轴管理、可用 `ref` 引用的实体 |
-| `setEntityNBT` / `mergeEntityNBT` / `modifyEntityNBT` / `removeEntityNBT` | array? | 对引用实体执行支持定位重放的 NBT 操作 |
+| `createEntities` | array? | 创建由思索时间轴管理、可用 `ref` 引用的实体，并支持稳定 `sceneEntityId`、骑乘关系、初始朝向与预览玩家姿态 |
+| `setEntityNBT` / `mergeEntityNBT` / `modifyEntityNBT` / `removeEntityNBT` | array? | 对引用实体执行支持定位重放的更新；除了 NBT，也可顺便修改位置、稳定骑乘关系与预览玩家外观状态 |
+| `removeEntities` | array? | 通过稳定场景实体注册表，按 `ref` 删除思索时间轴实体 |
+| `animateEntities` | array? | 对引用的思索实体应用支持重放和拖动时间轴的运行时预设动画 |
+
+---
+
+## 关键帧粒子
+
+Ponder 关键帧可以在时间轴向前播放时生成轻量场景粒子。向后拖动时间轴时不会重复补播，
+因此拖动预览和跳转仍然保持确定性。
+
+普通粒子：
+
+```json
+"particles": [
+  {
+    "name": "smoke",
+    "x": 1.5,
+    "y": 1.85,
+    "z": 1.5,
+    "vx": 0.0,
+    "vy": 0.01,
+    "vz": 0.0,
+    "size": 0.18,
+    "time": 16,
+    "count": 3
+  }
+]
+```
+
+爆炸预设：
+
+```json
+"particles": [
+  {
+    "preset": "explosion",
+    "x": 1.5,
+    "y": 1.45,
+    "z": 1.5,
+    "time": 8,
+    "power": 2.4
+  }
+]
+```
+
+天气预设：
+
+```json
+"particles": [
+  {
+    "preset": "rain",
+    "weather": "rain",
+    "x": [0, 2, 4, 4],
+    "z": [0, 2, 0, 2],
+    "time": 90,
+    "count": 9
+  }
+]
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `preset` | string? | 当前支持 `explosion`，会生成接近原版爆炸的闪光、烟雾和外扩爆裂粒子；`rain` 用于共用天气预设 |
+| `weather` | string? | 用于 `preset: "rain"`。支持 `rain` 和 `snow` |
+| `name` | string? | 普通粒子外观。支持 `billboard`、`smoke`、`largesmoke`、`explode`、`flash`、`largeexplode`、`hugeexplosion` |
+| `particle` / `kind` | string? | `name` 的兼容别名 |
+| `x`、`z` | float 或数组 | 普通粒子的世界坐标，或 `preset: "rain"` 的天气覆盖范围 |
+| `vx`、`vy`、`vz` | float? | 初速度向量，`motionX/Y/Z` 也可作为别名 |
+| `time` / `lifetime` | int? | 粒子生命周期，单位为 tick。对 `preset: "rain"` 而言，这里表示包含开始和结束过渡在内的总天气时长 |
+| `size` | float? | 粒子半尺寸，单位为方块 |
+| `count` | int? | 普通粒子的生成数量；爆炸预设省略时会根据 `power` 自动缩放；对 `preset: "rain"` 而言，表示平均每 tick 的天气密度 |
+| `power` | float? | `explosion` 预设的爆炸强度 |
+
+天气预设说明：
+
+- `preset: "rain"` 是雨雪共用的天气预设入口。
+- 使用 `weather: "rain"` 生成接近原版正常世界的下雨效果，并带有少量落地水花。
+- 使用 `weather: "snow"` 生成更慢、更轻的飘雪效果。
+- Ponder 天气归时间轴管理，会和时间轴的回放、暂停、跳转、快进保持一致。
+- 如果需要独立于时间轴、始终循环的场景天气，请改用 `<GameScene>` 内的 `<Weather>` 标签。
+- 天气预设不使用 `y`；垂直范围由运行时根据场景边界自动推导。
+- `x/z` 单值表示一个降水列；数组按端点对定义一个或多个矩形区域。
+- 如果某一轴数组尾部有无法完整配对的值，这部分会被忽略。
+- 运行时会自动补上短暂的开始过渡、稳定段和结束过渡。
+- 同一时段内，同一个 `x/z` 列不会叠加多种天气；前面声明的天气优先占用重叠列。
 
 ---
 
@@ -186,7 +271,7 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 {
   "type": "text",
   "x": 1.5, "y": 3.0, "z": 1.5,
-  "text": "熔炉已点燃，正在熔炼！",
+  "textKey": "guidenh.sample.ponder.text.collect_ingots",
   "color": "0xFFFF8833",
   "connectorSide": "right",
   "connectorOffset": 8,
@@ -200,7 +285,7 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 ```json
 {
   "type": "text",
-  "text": "简单的熔炼流程：漏斗向熔炉投料，箱子收集产出。",
+  "textKey": "guidenh.sample.ponder.text.overview",
   "independent": true,
   "yOffset": -60,
   "maxWidth": 180,
@@ -224,7 +309,8 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 
 | `text` 字段 | 类型 | 说明 |
 |---|---|---|
-| `text` | string | 显示文本 |
+| `text` | string | 回退显示文本 |
+| `textKey` | string? | 优先从资源包 `lang` 文件解析的翻译键；解析失败时回退到 `text` |
 | `color` | string | 边框颜色，格式为 `0xAARRGGBB` |
 | `maxWidth` | int? | 自动换行宽度（像素）；`0` 或省略表示单行 |
 | `independent` | bool? | `true` = 屏幕空间模式（无世界锚点） |
@@ -305,30 +391,91 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 ## 思索实体
 
 游戏场景（`<GameScene>`）支持普通 `<Entity>` 元素。思索时间轴也可以创建由时间轴管理的实体，并在后续关键帧中通过
-`ref` 修改它们的 NBT。
+`ref` 继续修改它们。
 
 ```json
 "createEntities": [
   {
     "ref": "marker",
+    "sceneEntityId": "marker",
     "id": "minecraft:pig",
     "x": 1.5, "y": 1.0, "z": 2.5,
+    "yaw": 180.0,
+    "bodyYaw": 180.0,
+    "headYaw": 210.0,
     "nbt": "{CustomName:\"Before\",CustomNameVisible:1b}"
+  },
+  {
+    "ref": "operator",
+    "id": "player",
+    "name": "GuideNH",
+    "x": 2.5, "y": 1.0, "z": 1.5,
+    "yaw": 225.0,
+    "bodyYaw": 225.0,
+    "headYaw": 255.0,
+    "showName": true,
+    "showCape": true,
+    "headRotation": "-10 18 0",
+    "leftArmRotation": "-70 18 -12",
+    "rightArmRotation": "32 -8 18",
+    "leftLegRotation": "8 0 0",
+    "rightLegRotation": "-6 0 0"
   }
 ],
 "mergeEntityNBT": [
   { "ref": "marker", "nbt": "{Saddle:1b}" }
 ],
 "modifyEntityNBT": [
-  { "ref": "marker", "path": "CustomName", "value": "\"After\"" }
+  { "ref": "marker", "path": "CustomName", "value": "\"After\"" },
+  { "ref": "operator", "headYaw": 290.0, "headRotation": "-22 38 0", "leftArmRotation": "-38 0 -8" }
 ],
 "removeEntityNBT": [
   { "ref": "marker", "path": "CustomNameVisible" }
 ]
 ```
 
-`setEntityNBT` 会用新的 SNBT 复合标签替换引用实体的 NBT。所有实体操作在定位时都会从关键帧
-0 重新播放，因此向后拖动时间轴时，思索时间轴创建的实体不会残留在旧状态。
+支持的实体状态字段：
+
+- `sceneEntityId` 可为实体指定稳定的场景内 id。`mount` 指向的始终是这种稳定 id，而不是另一个 `ref`。
+- `x`、`y`、`z` 可重定位引用实体。
+- `yaw`、`pitch`、`bodyYaw`、`headYaw` 可控制朝向；如果只写了 `yaw`，未写 `bodyYaw` / `headYaw` 时会默认跟随 `yaw`。
+- `mount` 可让当前实体骑乘另一个稳定 `sceneEntityId`；`unmount: true` 会清除当前稳定骑乘关系。
+- `showName`、`showCape`、`baby` 与普通 `<Entity>` 标签中的同名属性语义一致。
+- 预览玩家实体（`id: "player"` 及其他预览玩家别名）还支持 `headRotation`、`leftArmRotation`、`rightArmRotation`、`leftLegRotation`、`rightLegRotation`、`capeRotation`，写法都是 `"x y z"` 角度。
+
+`setEntityNBT` 会用新的 SNBT 复合标签替换引用实体的 NBT。其余实体动作数组中的 NBT 部分都可以省略，只保留位置、稳定骑乘关系或预览玩家姿态控制。`removeEntities` 则可以按 `ref` 删除实体，而无需暴露运行时实体 id。所有实体操作在定位时都会从关键帧 0 重新播放，因此向后拖动时间轴时，思索时间轴创建的实体不会残留在旧状态。
+
+不建议只依赖原始乘客 NBT 来表达跨实体场景关系。真正保证回放、预览重建、导入导出和站点导出捕获后仍然一致的是稳定场景实体 id。
+
+运行时实体预设动画使用 `animateEntities`：
+
+```json
+"animateEntities": [
+  { "ref": "operator", "preset": "rightClick", "ticks": 8 },
+  { "ref": "operator", "preset": "leftClick", "ticks": 6 },
+  { "ref": "operator", "preset": "jump", "ticks": 10, "height": 0.6 },
+  { "ref": "marker", "preset": "hurt", "ticks": 10 },
+  { "ref": "operator", "preset": "sneak" },
+  { "ref": "operator", "preset": "unsneak" },
+  { "ref": "marker", "preset": "walkTo", "x": 2.2, "z": 1.6, "ticks": 20 },
+  { "ref": "dropped", "preset": "moveTo", "x": 2.0, "y": 1.3, "z": 1.0, "ticks": 12 }
+]
+```
+
+- `leftClick` 和 `rightClick` 会按给定 `ticks` 或预设默认时长播放预览玩家的挥臂动作。
+- `jump` 会播放支持重放的竖直抛物线跳跃；`height` 可选，默认 `1`。
+- `hurt` 会驱动原版生物的受伤计时器，也就是渲染里那层红色受伤闪烁。
+- `sneak` 和 `unsneak` 会切换潜行状态，并持续生效，直到后续实体动作再次修改。
+- `walkTo` 会插值移动到目标位置，沿路径转向，并为生物实体驱动四肢摆动，呈现行走效果。
+- `moveTo` 只做直接平移，不额外修正朝向，更适合掉落物或通用展示实体。
+- 所有预设都会根据当前时间轴刻重新计算，因此拖动、重播和导出看到的姿态始终一致。
+
+默认预设时长已尽量对齐最接近的原版行为：
+
+- `leftClick`：`6` tick，对应 `EntityLivingBase#getArmSwingAnimationEnd()` 的默认挥手时长。
+- `rightClick`：`6` tick，对应原版成功右键交互（例如放置方块）时触发的通用挥手时长。
+- `jump`：`12` tick，对应标准实体在无跳跃药水时完整一次原版跳跃的滞空时长。
+- `hurt`：`10` tick，对应原版 `hurtTime` / `maxHurtTime`。
 
 ---
 

@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandExportMode;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
 
@@ -35,14 +36,14 @@ public class SceneEditorOpenService {
         }
 
         ItemStack held = player.getHeldItem();
-        String mode = RegionWandItem.getExportMode(held);
+        RegionWandExportMode mode = RegionWandItem.getExportMode();
         // blocks/blocks_e modes generate <GameScene><Block> MDX, not SNBT ImportStructure.
         // Open blank so the editor doesn't pre-fill with the wrong format.
-        if (RegionWandItem.MODE_BLOCKS.equals(mode) || RegionWandItem.MODE_BLOCKS_ENTITIES.equals(mode)) {
+        if (mode == RegionWandExportMode.BLOCKS || mode == RegionWandExportMode.BLOCKS_ENTITIES) {
             return new OpenResult(SceneEditorSession.createBlank(), false, null);
         }
 
-        boolean includeEntities = RegionWandItem.includeEntities(mode);
+        boolean includeEntities = mode.includeEntities();
         String structureSnbt = RegionWandItem.exportSelectionAsStructureSnbt(player.worldObj, held, includeEntities);
         return createInitialSession(true, structureSnbt);
     }
@@ -53,8 +54,8 @@ public class SceneEditorOpenService {
             return null;
         }
         ItemStack held = player.getHeldItem();
-        String mode = RegionWandItem.getExportMode(held);
-        if (RegionWandItem.MODE_BLOCKS.equals(mode) || RegionWandItem.MODE_BLOCKS_ENTITIES.equals(mode)) {
+        RegionWandExportMode mode = RegionWandItem.getExportMode();
+        if (mode == RegionWandExportMode.BLOCKS || mode == RegionWandExportMode.BLOCKS_ENTITIES) {
             return null;
         }
         RegionWandSelection.Bounds bounds = RegionWandSelection.getBounds();
@@ -68,7 +69,7 @@ public class SceneEditorOpenService {
             bounds.sizeX(),
             bounds.sizeY(),
             bounds.sizeZ(),
-            RegionWandItem.includeEntities(mode));
+            mode.includeEntities());
     }
 
     OpenResult createInitialSession(@Nullable ItemStack held, @Nullable String structureSnbt) {

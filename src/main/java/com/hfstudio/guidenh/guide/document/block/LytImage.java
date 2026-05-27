@@ -102,6 +102,12 @@ public class LytImage extends LytBlock implements InteractiveElement {
             height = natH / 4;
         }
 
+        float visualScale = context.getVisualScale();
+        if (visualScale < 0.999f) {
+            width = Math.max(1, Math.round(width * visualScale));
+            height = Math.max(1, Math.round(height * visualScale));
+        }
+
         if (width > availableWidth) {
             var f = availableWidth / (float) width;
             width = Math.max(1, Math.round(width * f));

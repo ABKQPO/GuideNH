@@ -2,7 +2,7 @@
 navigation:
   title: Tooltips
   parent: index.md
-  position: 60
+  position: 140
 categories:
   - widgets
 ---
@@ -16,7 +16,7 @@ Tooltip hover, content types, and the `<Tooltip>` rich-content container.
 Hover any of the following:
 
 * Item image: <ItemImage id="minecraft:golden_apple" scale="2" />
-* Block image: <BlockImage id="minecraft:emerald_block" scale="2" />
+* Block image preview: <BlockImage id="minecraft:emerald_block" scale="2" />
 * Recipe:
 
 <RecipeFor id="minecraft:crafting_table" />
@@ -59,7 +59,7 @@ Verify different tooltip content types (hover to inspect):
 * <ItemLink id="minecraft:enchanted_book" /> Enchanted item
 * <ItemLink id="minecraft:potion" /> Potion
 
-**Item image tooltip** (`<ItemImage>` / `<BlockImage>` also show vanilla item tooltip):
+**Item image tooltip** (`<ItemImage>` shows vanilla item tooltip; `<BlockImage>` keeps scene hover tooltip + outline):
 
 <ItemImage id="minecraft:iron_ingot" scale="2" />
 <ItemImage id="minecraft:diamond" scale="2" />

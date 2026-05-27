@@ -26,16 +26,14 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.mixins.late.compat.forgemultipart.AccessorBlockMicroMaterial;
 
 public class ForgeMultipartHelpers {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/ForgeMultipart");
     private static final ConcurrentMap<String, Boolean> ONCE_KEYS = new ConcurrentHashMap<>();
 
     /** Sentinel placed in {@link #CLASS_CACHE} when a class name is not loadable on this side. */
@@ -574,13 +572,13 @@ public class ForgeMultipartHelpers {
 
     public static void warnOnce(String key, String message, Object... args) {
         if (ONCE_KEYS.putIfAbsent(key, Boolean.TRUE) == null) {
-            LOG.warn(message, args);
+            GuideDebugLog.warn(message, args);
         }
     }
 
     public static void infoOnce(String key, String message, Object... args) {
         if (ONCE_KEYS.putIfAbsent(key, Boolean.TRUE) == null) {
-            LOG.info(message, args);
+            GuideDebugLog.info(message, args);
         }
     }
 

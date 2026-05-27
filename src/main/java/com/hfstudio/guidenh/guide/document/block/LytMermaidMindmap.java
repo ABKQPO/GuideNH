@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
@@ -17,9 +19,15 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
     private final LytMermaidMindmapCanvas canvas;
 
     public LytMermaidMindmap(MermaidMindmapDocument mindmap, String sourceText) {
+        this(mindmap, sourceText, Collections.<String, LytBlock>emptyMap());
+    }
+
+    public LytMermaidMindmap(MermaidMindmapDocument mindmap, String sourceText, Map<String, LytBlock> nodeContent) {
         this.mindmap = mindmap;
         this.sourceText = sourceText != null ? sourceText : "";
-        this.canvas = new LytMermaidMindmapCanvas(mindmap);
+        this.canvas = new LytMermaidMindmapCanvas(
+            mindmap,
+            nodeContent != null ? nodeContent : Collections.<String, LytBlock>emptyMap());
 
         setPadding(6);
         setGap(4);
@@ -56,11 +64,13 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
 
     @Override
     public boolean mouseClicked(GuideUiHost screen, int x, int y, int button, boolean doubleClick) {
-        return toolbar.mouseClicked(screen, x, y, button, doubleClick);
+        return toolbar.mouseClicked(screen, x, y, button, doubleClick)
+            || canvas.mouseClicked(screen, x, y, button, doubleClick);
     }
 
     @Override
     public Optional<GuideTooltip> getTooltip(float x, float y) {
-        return toolbar.getTooltip(x, y);
+        Optional<GuideTooltip> toolbarTooltip = toolbar.getTooltip(x, y);
+        return toolbarTooltip.isPresent() ? toolbarTooltip : canvas.getTooltip(x, y);
     }
 }

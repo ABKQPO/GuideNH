@@ -4,10 +4,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 import net.minecraft.block.Block;
@@ -28,8 +31,14 @@ import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 public class StructureLibElementTooltipResolver {
 
     public static final int MAX_TIER_SCAN = 50;
+    public static final int MAX_CANDIDATE_CACHE_ENTRIES = 512;
     public static final String LAZY_ELEMENT_CLASS_NAME = "com.gtnewhorizon.structurelib.structure.LazyStructureElement";
     public static final IItemSource EMPTY_ITEM_SOURCE = (predicate, simulate, count) -> Collections.emptyMap();
+    public static final Map<Class<?>, List<Field>> CAPTURED_ELEMENT_FIELDS_CACHE = new ConcurrentHashMap<>();
+    public static final StructureLibBoundedCache<CandidateCacheKey, List<ItemStack>> BLOCK_CANDIDATE_CACHE = new StructureLibBoundedCache<>(
+        MAX_CANDIDATE_CACHE_ENTRIES);
+    public static final StructureLibBoundedCache<CandidateCacheKey, List<ItemStack>> HATCH_CANDIDATE_CACHE = new StructureLibBoundedCache<>(
+        MAX_CANDIDATE_CACHE_ENTRIES);
 
     private final HatchSupport hatchSupport;
 
@@ -43,11 +52,16 @@ public class StructureLibElementTooltipResolver {
 
     public TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x,
         int y, int z, ItemStack trigger) {
-        return resolve(constructable, element, world, x, y, z, trigger, null);
+        return resolve(constructable, element, world, x, y, z, trigger, null, null);
     }
 
     public TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x,
         int y, int z, ItemStack trigger, @Nullable EntityPlayer actor) {
+        return resolve(constructable, element, world, x, y, z, trigger, actor, null);
+    }
+
+    public TooltipDetails resolve(Object constructable, IStructureElement<?> element, @Nullable World world, int x,
+        int y, int z, ItemStack trigger, @Nullable EntityPlayer actor, @Nullable String contextFingerprint) {
         if (element == null || trigger == null) {
             return TooltipDetails.empty();
         }
@@ -70,9 +84,19 @@ public class StructureLibElementTooltipResolver {
             y,
             z,
             trigger,
-            actor);
+            actor,
+            contextFingerprint);
         List<ItemStack> hatchCandidates = hatchLeafMatch != null
-            ? collectHatchCandidatesAcrossTiers(constructable, hatchLeafMatch.element, world, x, y, z, trigger, actor)
+            ? collectHatchCandidatesAcrossTiers(
+                constructable,
+                hatchLeafMatch.element,
+                world,
+                x,
+                y,
+                z,
+                trigger,
+                actor,
+                contextFingerprint)
             : Collections.emptyList();
         if (hatchLeafMatch != null && !blockCandidates.isEmpty()) {
             blockCandidates = filterOutHatchCandidates(blockCandidates);
@@ -84,7 +108,13 @@ public class StructureLibElementTooltipResolver {
     }
 
     private List<ItemStack> collectStackCandidatesAcrossTiers(Object constructable, IStructureElement<Object> element,
-        @Nullable World world, int x, int y, int z, ItemStack trigger, @Nullable EntityPlayer actor) {
+        @Nullable World world, int x, int y, int z, ItemStack trigger, @Nullable EntityPlayer actor,
+        @Nullable String contextFingerprint) {
+        CandidateCacheKey cacheKey = CandidateCacheKey.create(element, trigger, false, x, y, z, contextFingerprint);
+        List<ItemStack> cached = BLOCK_CANDIDATE_CACHE.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
         Map<String, ItemStack> candidatesByKey = new LinkedHashMap<>();
         String previousFingerprint = null;
         for (int tier = 1; tier <= MAX_TIER_SCAN; tier++) {
@@ -112,11 +142,19 @@ public class StructureLibElementTooltipResolver {
             previousFingerprint = fingerprint;
             appendStacks(candidatesByKey, currentStacks);
         }
-        return immutableStacks(candidatesByKey);
+        List<ItemStack> resolved = immutableStacks(candidatesByKey);
+        BLOCK_CANDIDATE_CACHE.put(cacheKey, resolved);
+        return resolved;
     }
 
     private List<ItemStack> collectHatchCandidatesAcrossTiers(Object constructable, IStructureElement<Object> element,
-        @Nullable World world, int x, int y, int z, ItemStack trigger, @Nullable EntityPlayer actor) {
+        @Nullable World world, int x, int y, int z, ItemStack trigger, @Nullable EntityPlayer actor,
+        @Nullable String contextFingerprint) {
+        CandidateCacheKey cacheKey = CandidateCacheKey.create(element, trigger, true, x, y, z, contextFingerprint);
+        List<ItemStack> cached = HATCH_CANDIDATE_CACHE.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
         Map<String, ItemStack> candidatesByKey = new LinkedHashMap<>();
         String previousFingerprint = null;
         for (int tier = 1; tier <= MAX_TIER_SCAN; tier++) {
@@ -141,7 +179,9 @@ public class StructureLibElementTooltipResolver {
             previousFingerprint = fingerprint;
             appendStacks(candidatesByKey, currentStacks);
         }
-        return immutableStacks(candidatesByKey);
+        List<ItemStack> resolved = immutableStacks(candidatesByKey);
+        HATCH_CANDIDATE_CACHE.put(cacheKey, resolved);
+        return resolved;
     }
 
     private HatchLeafMatch findFirstHatchLeaf(Object constructable, IStructureElement<?> element, @Nullable World world,
@@ -232,13 +272,11 @@ public class StructureLibElementTooltipResolver {
 
     public static List<IStructureElement<?>> unwrapCapturedElements(IStructureElement<?> element) {
         List<IStructureElement<?>> wrappedElements = new ArrayList<>();
-        for (Field field : element.getClass()
-            .getDeclaredFields()) {
+        for (Field field : capturedElementFields(element.getClass())) {
             if (!IStructureElement.class.isAssignableFrom(field.getType())) {
                 continue;
             }
             try {
-                field.setAccessible(true);
                 Object value = field.get(element);
                 if (value instanceof IStructureElement<?>structureElement && structureElement != element) {
                     wrappedElements.add(structureElement);
@@ -348,6 +386,24 @@ public class StructureLibElementTooltipResolver {
             + stack.getItemDamage();
     }
 
+    public static List<Field> capturedElementFields(Class<?> elementClass) {
+        return CAPTURED_ELEMENT_FIELDS_CACHE
+            .computeIfAbsent(elementClass, StructureLibElementTooltipResolver::findCapturedElementFields);
+    }
+
+    public static List<Field> findCapturedElementFields(Class<?> elementClass) {
+        List<Field> fields = new ArrayList<>();
+        for (Field field : elementClass.getDeclaredFields()) {
+            if (!IStructureElement.class.isAssignableFrom(field.getType())) {
+                continue;
+            }
+            field.setAccessible(true);
+            fields.add(field);
+        }
+        fields.sort(Comparator.comparing(Field::getName));
+        return fields.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(fields);
+    }
+
     public static List<ItemStack> immutableStacks(Map<String, ItemStack> candidatesByKey) {
         if (candidatesByKey.isEmpty()) {
             return Collections.emptyList();
@@ -436,6 +492,81 @@ public class StructureLibElementTooltipResolver {
         public HatchLeafMatch(IStructureElement<Object> element, HatchDetails details) {
             this.element = element;
             this.details = details;
+        }
+    }
+
+    public static class CandidateCacheKey {
+
+        private final Class<?> elementClass;
+        private final String channelFingerprint;
+        private final String contextFingerprint;
+        private final int x;
+        private final int y;
+        private final int z;
+        private final boolean hatch;
+
+        public CandidateCacheKey(Class<?> elementClass, String channelFingerprint, @Nullable String contextFingerprint,
+            int x, int y, int z, boolean hatch) {
+            this.elementClass = elementClass;
+            this.channelFingerprint = channelFingerprint;
+            this.contextFingerprint = normalizeContextFingerprint(contextFingerprint);
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.hatch = hatch;
+        }
+
+        public static CandidateCacheKey create(IStructureElement<?> element, ItemStack trigger, boolean hatch, int x,
+            int y, int z, @Nullable String contextFingerprint) {
+            return new CandidateCacheKey(
+                element.getClass(),
+                channelFingerprint(trigger),
+                contextFingerprint,
+                x,
+                y,
+                z,
+                hatch);
+        }
+
+        public static String channelFingerprint(@Nullable ItemStack trigger) {
+            if (trigger == null) {
+                return "";
+            }
+            if (!trigger.hasTagCompound()) {
+                return "";
+            }
+            StringBuilder builder = new StringBuilder(32);
+            builder.append(trigger.stackTagCompound.toString());
+            return builder.toString();
+        }
+
+        public static String normalizeContextFingerprint(@Nullable String contextFingerprint) {
+            if (contextFingerprint == null) {
+                return "";
+            }
+            String trimmed = contextFingerprint.trim();
+            return trimmed.isEmpty() ? "" : trimmed;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof CandidateCacheKey other)) {
+                return false;
+            }
+            return hatch == other.hatch && elementClass.equals(other.elementClass)
+                && x == other.x
+                && y == other.y
+                && z == other.z
+                && channelFingerprint.equals(other.channelFingerprint)
+                && contextFingerprint.equals(other.contextFingerprint);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(elementClass, channelFingerprint, contextFingerprint, x, y, z, hatch);
         }
     }
 

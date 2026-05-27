@@ -32,6 +32,7 @@ public class GuideBlockDisplayResolver {
         if (block == null || block == Blocks.air) {
             return null;
         }
+        World fakeWorld = null;
 
         ItemStack integrationStack = GuideNhIntegrationRegistry.global()
             .resolveBlockDisplayStack(level, block, x, y, z, target);
@@ -39,7 +40,10 @@ public class GuideBlockDisplayResolver {
             return integrationStack;
         }
 
-        ItemStack pickedStack = safeResolvePickedStack(level, block, x, y, z, target);
+        if (target != null) {
+            fakeWorld = level.getOrCreateFakeWorld();
+        }
+        ItemStack pickedStack = safeResolvePickedStack(level, block, x, y, z, target, fakeWorld);
         if (pickedStack != null) {
             return pickedStack;
         }
@@ -49,7 +53,7 @@ public class GuideBlockDisplayResolver {
             return null;
         }
 
-        return new ItemStack(item, 1, resolveDisplayMeta(level, block, x, y, z));
+        return new ItemStack(item, 1, resolveDisplayMeta(level, block, x, y, z, fakeWorld));
     }
 
     @Nullable
@@ -95,9 +99,10 @@ public class GuideBlockDisplayResolver {
     @Nullable
     public static String resolveIntrinsicBlockDisplayName(GuidebookLevel level, Block block, int x, int y, int z) {
         try {
+            World fakeWorld = level.getOrCreateFakeWorld();
             Item item = Item.getItemFromBlock(block);
             if (item != null) {
-                ItemStack stack = new ItemStack(item, 1, resolveDisplayMeta(level, block, x, y, z));
+                ItemStack stack = new ItemStack(item, 1, resolveDisplayMeta(level, block, x, y, z, fakeWorld));
                 String displayName = stack.getDisplayName();
                 if (hasText(displayName)) {
                     return displayName;
@@ -120,8 +125,13 @@ public class GuideBlockDisplayResolver {
     }
 
     public static int resolveDisplayMeta(GuidebookLevel level, Block block, int x, int y, int z) {
+        return resolveDisplayMeta(level, block, x, y, z, null);
+    }
+
+    public static int resolveDisplayMeta(GuidebookLevel level, Block block, int x, int y, int z,
+        @Nullable World fakeWorld) {
         int worldMeta = Math.max(0, level.getBlockMetadata(x, y, z));
-        int damageMeta = safeResolveDamageValue(level, block, x, y, z);
+        int damageMeta = safeResolveDamageValue(level, block, x, y, z, fakeWorld);
 
         if (isBlockInstanceOf(block, BARTWORKS_META_GENERATED_BLOCKS_CLASS) && damageMeta <= 0 && worldMeta > 0) {
             return worldMeta;
@@ -144,8 +154,14 @@ public class GuideBlockDisplayResolver {
     }
 
     public static int safeResolveDamageValue(GuidebookLevel level, Block block, int x, int y, int z) {
+        return safeResolveDamageValue(level, block, x, y, z, null);
+    }
+
+    public static int safeResolveDamageValue(GuidebookLevel level, Block block, int x, int y, int z,
+        @Nullable World fakeWorld) {
         try {
-            return Math.max(0, block.getDamageValue(level.getOrCreateFakeWorld(), x, y, z));
+            return Math
+                .max(0, block.getDamageValue(fakeWorld != null ? fakeWorld : level.getOrCreateFakeWorld(), x, y, z));
         } catch (Throwable ignored) {
             return -1;
         }
@@ -154,16 +170,28 @@ public class GuideBlockDisplayResolver {
     @Nullable
     public static ItemStack safeResolvePickedStack(GuidebookLevel level, Block block, int x, int y, int z,
         @Nullable MovingObjectPosition target) {
+        return safeResolvePickedStack(level, block, x, y, z, target, null);
+    }
+
+    @Nullable
+    public static ItemStack safeResolvePickedStack(GuidebookLevel level, Block block, int x, int y, int z,
+        @Nullable MovingObjectPosition target, @Nullable World fakeWorld) {
         if (target == null) {
             return null;
         }
-        var world = level.getOrCreateFakeWorld();
         EntityPlayer player = null;
         try {
             player = Minecraft.getMinecraft().thePlayer;
         } catch (Throwable ignored) {}
         try {
-            return resolvePickedStackForTarget(block, world, player, x, y, z, target);
+            return resolvePickedStackForTarget(
+                block,
+                fakeWorld != null ? fakeWorld : level.getOrCreateFakeWorld(),
+                player,
+                x,
+                y,
+                z,
+                target);
         } catch (Throwable ignored) {
             return null;
         }

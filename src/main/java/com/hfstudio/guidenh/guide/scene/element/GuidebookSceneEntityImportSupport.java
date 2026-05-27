@@ -16,13 +16,21 @@ public class GuidebookSceneEntityImportSupport {
     @Nullable
     public static Entity loadImportedEntity(@Nullable World world, NBTTagCompound entry, float offsetX, float offsetY,
         float offsetZ, float maxY) {
-        return loadImportedEntity(world, entry, offsetX, offsetY, offsetZ, 0f, maxY);
+        ImportedSceneEntity importedEntity = loadImportedEntityRecord(
+            world,
+            entry,
+            offsetX,
+            offsetY,
+            offsetZ,
+            0f,
+            maxY);
+        return importedEntity != null ? importedEntity.entity() : null;
     }
 
     @Nullable
     public static Entity loadImportedEntityUnclamped(@Nullable World world, NBTTagCompound entry, float offsetX,
         float offsetY, float offsetZ) {
-        return loadImportedEntity(
+        ImportedSceneEntity importedEntity = loadImportedEntityRecord(
             world,
             entry,
             offsetX,
@@ -30,11 +38,40 @@ public class GuidebookSceneEntityImportSupport {
             offsetZ,
             Float.NEGATIVE_INFINITY,
             Float.POSITIVE_INFINITY);
+        return importedEntity != null ? importedEntity.entity() : null;
     }
 
     @Nullable
     public static Entity loadImportedEntity(@Nullable World world, NBTTagCompound entry, float offsetX, float offsetY,
         float offsetZ, float minY, float maxY) {
+        ImportedSceneEntity importedEntity = loadImportedEntityRecord(
+            world,
+            entry,
+            offsetX,
+            offsetY,
+            offsetZ,
+            minY,
+            maxY);
+        return importedEntity != null ? importedEntity.entity() : null;
+    }
+
+    @Nullable
+    public static ImportedSceneEntity loadImportedEntityRecord(@Nullable World world, NBTTagCompound entry,
+        float offsetX, float offsetY, float offsetZ, float minY, float maxY) {
+        Entity entity = loadImportedEntityInstance(world, entry, offsetX, offsetY, offsetZ, minY, maxY);
+        if (entity == null) {
+            return null;
+        }
+        return new ImportedSceneEntity(
+            entity,
+            GuidebookSceneEntityLoader.trimToNull(entry.getString("sceneEntityId")),
+            GuidebookSceneEntityLoader.trimToNull(entry.getString("mount")),
+            resolveUnmount(entry));
+    }
+
+    @Nullable
+    public static Entity loadImportedEntityInstance(@Nullable World world, NBTTagCompound entry, float offsetX,
+        float offsetY, float offsetZ, float minY, float maxY) {
         if (entry == null) {
             return null;
         }
@@ -117,6 +154,52 @@ public class GuidebookSceneEntityImportSupport {
         if (!GuideEntityDisplayResolver.isUsefulDisplayName(customName)) {
             entityNbt.removeTag("CustomName");
             entityNbt.removeTag("CustomNameVisible");
+        }
+    }
+
+    @Nullable
+    public static Boolean resolveUnmount(@Nullable NBTTagCompound entry) {
+        if (entry == null || !entry.hasKey("unmount")) {
+            return null;
+        }
+        return entry.getBoolean("unmount");
+    }
+
+    public static class ImportedSceneEntity {
+
+        private final Entity entity;
+        @Nullable
+        private final String sceneEntityId;
+        @Nullable
+        private final String mountTargetSceneEntityId;
+        @Nullable
+        private final Boolean unmount;
+
+        public ImportedSceneEntity(Entity entity, @Nullable String sceneEntityId,
+            @Nullable String mountTargetSceneEntityId, @Nullable Boolean unmount) {
+            this.entity = entity;
+            this.sceneEntityId = sceneEntityId;
+            this.mountTargetSceneEntityId = mountTargetSceneEntityId;
+            this.unmount = unmount;
+        }
+
+        public Entity entity() {
+            return entity;
+        }
+
+        @Nullable
+        public String sceneEntityId() {
+            return sceneEntityId;
+        }
+
+        @Nullable
+        public String mountTargetSceneEntityId() {
+            return mountTargetSceneEntityId;
+        }
+
+        @Nullable
+        public Boolean unmount() {
+            return unmount;
         }
     }
 }

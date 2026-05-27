@@ -110,6 +110,8 @@ GuideNH runtime Mermaid support is currently focused on `mindmap` diagrams:
 - auto-detected mermaid code fences whose content starts with `mindmap`
 - explicit `<Mermaid>...</Mermaid>` tags
 - explicit `<Mermaid src="./diagram.mmd" />` imports
+- rich inline markdown labels inside Mermaid node text
+- optional `<NodeContent id="...">...</NodeContent>` children for arbitrary runtime blocks inside matching nodes
 - whole-diagram drag-to-pan interaction in the in-game viewer
 - `layout: tidy-tree` frontmatter inside Mermaid source
 - common mindmap node shapes such as square, rounded, circle, bang, cloud, and hexagon
@@ -129,6 +131,23 @@ mindmap
 ```
 
 <Mermaid src="./markdown-mindmap.mmd" />
+
+<Mermaid width="340" height="240">
+mindmap
+  root["**GuideNH** [Index](./index.md)"]
+    runtime["Runtime blocks"]
+    export["Site export"]
+
+<NodeContent id="runtime">
+Runtime nodes can mix text, links, and blocks.
+
+<ItemImage id="minecraft:diamond" />
+</NodeContent>
+
+<NodeContent id="export">
+![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_en_us/test1.png)
+</NodeContent>
+</Mermaid>
 ````
 
 Mermaid diagrams that are not supported at runtime yet still fall back to regular Mermaid-labeled code blocks.
@@ -261,10 +280,10 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | Key | Type | Meaning |
 | --- | --- | --- |
 | `navigation` | map | Adds the page to the navigation tree |
-| `categories` | list of strings | Adds the page to the category index |
+| `categories` | list of strings | Adds the page to MediaWiki-style categories; each entry can optionally use `category|sort key` |
 | `item_ids` | list of item references | Makes the page discoverable by `<ItemLink>` |
 | `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
-| `quest_ids` | list of BetterQuesting quest UUID strings | Makes the page discoverable by `<QuestLink>` / `<QuestCard>` and by the open-guide hotkey when a quest is hovered in the BQ GUI. Only consumed when BetterQuesting is loaded. See [Mod Compatibility](Mod-Compatibility) |
+| `quest_ids` | list of BetterQuesting quest ids | Makes the page discoverable by `<QuestLink>` / `<QuestCard>` and by the open-guide hotkey when a quest is hovered in the BQ GUI. Accepts canonical UUID strings and BetterQuesting's compact Base64 form. Only consumed when BetterQuesting is loaded. See [Mod Compatibility](Mod-Compatibility) |
 | `author` | string | Single author name. Displayed in the bottom bar. |
 | `authors` | list of strings or `{name: ...}` maps | Multiple author names. At most two are displayed; additional ones are replaced with `...`. Takes precedence over `author` if both are present. |
 | `date` | string or YYYY-MM-DD date | Content creation date. Displayed in the bottom bar. |
@@ -278,7 +297,7 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | --- | --- | --- | --- |
 | `title` | yes | string | Display name in navigation and search title fallback |
 | `parent` | no | page id | Parent page id; omitted means top-level node |
-| `position` | no | integer | Sibling sort order; default `0` |
+| `position` | no | integer | Sibling sort order; default `0`, larger values appear earlier |
 | `priority` | no | integer | Load priority for same-path page overrides; default `0`, higher wins, equal priority lets the later resource pack entry win |
 | `icon` | no | item id | Item icon shown in navigation/search. Accepts `modid:name`, `modid:name:meta` (colon-separated damage/subtype), `<modid:name:meta>` (strict form; meta `32767` matches all subtypes), or `modid:name meta` (space-separated, filter-expression style). |
 | `icons` | no | list of item ids | List of item icons for animated cycling (one per second). Each entry uses the same syntax as `icon`. When present takes priority over `icon`. |
@@ -320,16 +339,28 @@ navigation:
   #   - test2.png
 categories:
   - basics
-  - examples
+  - examples|Examples Overview
 ore_ids:
   - ingotIron
   - oreCopper
 quest_ids:
   - 01234567-89ab-cdef-0123-456789abcdef
+  - AAAAAAAAAAAAAAAAAAAMug==
 author: ExampleAuthor
 date: 2024-01-15
 updated: 2024-06-01
 ```
+
+`categories` accepts either plain category names or `category|sort key` entries.
+Use `<Category name="examples" rows="3" />` to render a category listing block, and
+`<Special name="SpecialPages" rows="3" />` to embed the generated MediaWiki-style special-page index.
+
+For BetterQuesting integration, `quest_ids` accepts either of these formats:
+
+- canonical UUID strings such as `01234567-89ab-cdef-0123-456789abcdef`
+- BetterQuesting compact quest ids such as `AAAAAAAAAAAAAAAAAAAMug==`
+
+Do not list both forms for the same quest in one page's `quest_ids`; they normalize to the same internal UUID and would be treated as duplicates.
 
 When any of `author`, `authors`, `date`, or `updated` is present, GuideNH shows a
 bottom bar in the guide screen (matching the top toolbar style) with right-aligned

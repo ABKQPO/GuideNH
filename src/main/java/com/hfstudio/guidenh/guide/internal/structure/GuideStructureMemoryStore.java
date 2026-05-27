@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.internal.structure;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 public class GuideStructureMemoryStore {
 
     private final GuideStructurePlacementService placementService;
@@ -15,6 +17,12 @@ public class GuideStructureMemoryStore {
     public synchronized Entry remember(String label, String structureText) throws Exception {
         GuideStructureData data = placementService.parse(structureText);
         Entry entry = new Entry(label, structureText, data);
+        entries.add(entry);
+        return entry;
+    }
+
+    public synchronized Entry remember(String label, GuideStructureData data) {
+        Entry entry = new Entry(label, null, data);
         entries.add(entry);
         return entry;
     }
@@ -46,10 +54,11 @@ public class GuideStructureMemoryStore {
     public static class Entry {
 
         private final String label;
-        private final String structureText;
         private final GuideStructureData data;
+        @Nullable
+        private volatile String structureText;
 
-        private Entry(String label, String structureText, GuideStructureData data) {
+        private Entry(String label, @Nullable String structureText, GuideStructureData data) {
             this.label = label;
             this.structureText = structureText;
             this.data = data;
@@ -60,6 +69,9 @@ public class GuideStructureMemoryStore {
         }
 
         public String getStructureText() {
+            if (structureText == null) {
+                structureText = GuideTextNbtCodec.writeStructureSnbt(data.getRoot());
+            }
             return structureText;
         }
 

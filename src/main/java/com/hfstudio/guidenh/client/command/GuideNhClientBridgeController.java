@@ -4,7 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,6 +19,7 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureImportService;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureRuntime;
+import com.hfstudio.guidenh.guide.internal.structure.GuideStructureData;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
@@ -41,6 +44,7 @@ public class GuideNhClientBridgeController {
     private final AtomicInteger nextRegionExportRequestId;
     private final Map<Integer, CompletableFuture<String>> pendingRegionExports;
     private final Map<Integer, RegionReplyAssembler> pendingRegionExportChunks;
+    private final Set<String> rememberedSceneLabels;
 
     private CompletableFuture<SceneEditorStructureImportService.ImportResult> pendingImport;
     private PendingImportRequest pendingImportRequest;
@@ -51,6 +55,7 @@ public class GuideNhClientBridgeController {
         this.nextRegionExportRequestId = new AtomicInteger(1);
         this.pendingRegionExports = new HashMap<>();
         this.pendingRegionExportChunks = new HashMap<>();
+        this.rememberedSceneLabels = new HashSet<>();
     }
 
     public static GuideNhClientBridgeController getInstance() {
@@ -97,11 +102,26 @@ public class GuideNhClientBridgeController {
 
     public void rememberScene(String label, String structureText) {
         try {
-            var entry = GuideNhStructureRuntime.getClientMemoryStore()
+            GuideNhStructureRuntime.getClientMemoryStore()
                 .remember(label, structureText);
         } catch (Exception e) {
             // Silently ignore parse failures for auto-registered scenes
         }
+    }
+
+    public void rememberScene(String label, GuideStructureData structureData) {
+        if (structureData == null || label == null || label.isEmpty()) {
+            return;
+        }
+        if (!rememberedSceneLabels.add(label)) {
+            return;
+        }
+        GuideNhStructureRuntime.getClientMemoryStore()
+            .remember(label, structureData);
+    }
+
+    public boolean hasRememberedScene(String label) {
+        return label != null && rememberedSceneLabels.contains(label);
     }
 
     public void onServerHello() {
@@ -114,6 +134,7 @@ public class GuideNhClientBridgeController {
         GuideNhStructureRuntime.setClientStructureSyncNeeded(false);
         pendingImport = null;
         pendingImportRequest = null;
+        rememberedSceneLabels.clear();
         for (CompletableFuture<String> future : pendingRegionExports.values()) {
             future.complete(null);
         }

@@ -2,7 +2,8 @@
 navigation:
   title: Markdown Basics
   parent: index.md
-  position: 10
+  position: 190
+  recommend: 0
 categories:
   - markdown
 ---
@@ -265,11 +266,26 @@ Another width-hint sample with three columns:
 
 ## Details
 
-<details open>
-<summary>More</summary>
+`<details>` accepts `width`, `height`, `wrap`, and `align`. The summary supports inline tags, and
+the body can mix ordinary text with arbitrary runtime blocks.
 
-Body text inside runtime details.
+<details open width="220" height="150" wrap="square" align="right">
+<summary>Mixed runtime content <ItemImage id="minecraft:diamond" /></summary>
+
+This details body keeps normal [page links](./index.md), inline formatting, and block content
+together inside the same scrollable panel.
+
+![Machine Diagram](test1.png)
+
+<BlockImage id="minecraft:diamond_block" align="center" scale={2} />
+
+<GameScene width="120" height="90" zoom={5} interactive={false}>
+  <Block id="minecraft:diamond_block" />
+  <Block id="minecraft:glass" x="1" />
+</GameScene>
 </details>
+
+Text outside the block should still wrap around it when `wrap="square"` is used.
 
 ## Code Blocks
 
@@ -385,7 +401,7 @@ Imported CSV with widths:
 
 ## File Trees
 
-Fenced `tree` / `filetree` blocks render directory-style outlines with real connector lines. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) prefixes are accepted, mixed freely. Payload text supports the usual inline Markdown (links, **bold**, `code`, etc.).
+Fenced `tree` / `filetree` blocks render directory-style outlines with real connector lines. Both Unicode box-drawing (`│ ├ └ ─`) and ASCII (`| +-- \-- ` / four spaces) prefixes are accepted, mixed freely. Payload text supports the usual inline Markdown (links, **bold**, `code`, etc.), and those links should be clickable both in-game and in site export.
 
 ```tree
 project
@@ -412,10 +428,10 @@ Inside an MDX block tag, the same syntax works through `<FileTree>` with optiona
 ```html
 <FileTree indent="16" gap="2">
 docs
-├── intro.md
+├── [intro.md](./index.md#headings)
 └── advanced
-    ├── tags.md
-    └── recipes.md
+    ├── [tags.md](./index.md#details)
+    └── [recipes.md](./charts.md)
 </FileTree>
 ```
 
@@ -454,6 +470,25 @@ Imported Mermaid file:
 Fixed runtime Mermaid viewport size:
 
 <Mermaid src="./markdown-mindmap.mmd" width="320" height="220" />
+
+Mindmap with rich labels and explicit node content:
+
+<Mermaid width="340" height="240">
+mindmap
+  root["**GuideNH** [Index](./index.md)"]
+    runtime["Runtime blocks"]
+    preview["Scene preview"]
+
+<NodeContent id="runtime">
+Runtime nodes can mix normal text with embedded guide blocks.
+
+<ItemImage id="minecraft:diamond" />
+</NodeContent>
+
+<NodeContent id="preview">
+<BlockImage id="minecraft:diamond_block" scale={2} />
+</NodeContent>
+</Mermaid>
 
 ## Footnotes
 

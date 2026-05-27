@@ -18,12 +18,19 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 public class LytDetailsBlock extends LytBlock implements InteractiveElement, LytBlockContainer {
 
     private static final ConstantColor SUMMARY_COLOR = new ConstantColor(0xFFE2E6ED);
+    private static final String SUMMARY_OPEN_MARKER = "v";
+    private static final String SUMMARY_CLOSED_MARKER = ">";
+    private static final String DEFAULT_SUMMARY_TEXT = "Details";
 
     private final LytVBox root = new LytVBox();
-    private final LytParagraph summary = new LytParagraph();
+    private final LytHBox summaryRow = new LytHBox();
+    private final LytParagraph summaryMarker = new LytParagraph();
+    private final LytParagraph summaryContent = new LytParagraph();
     private final LytVBox content = new LytVBox();
 
     private boolean open;
+    @Nullable
+    private String fallbackSummaryText;
 
     public LytDetailsBlock() {
         root.parent = this;
@@ -33,32 +40,43 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         root.setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);
         root.setBorder(new BorderStyle(SymbolicColor.TABLE_BORDER, 1));
 
-        summary.setMarginTop(0);
-        summary.setMarginBottom(0);
-        summary.modifyStyle(
+        summaryRow.parent = root;
+        summaryRow.setGap(4);
+        summaryRow.setWrap(false);
+        summaryRow.setFullWidth(true);
+        summaryRow.setAlignItems(AlignItems.CENTER);
+
+        summaryMarker.setMarginTop(0);
+        summaryMarker.setMarginBottom(0);
+        summaryMarker.modifyStyle(
             style -> style.bold(true)
                 .color(SUMMARY_COLOR));
 
+        summaryContent.setMarginTop(0);
+        summaryContent.setMarginBottom(0);
+        summaryContent.modifyStyle(
+            style -> style.bold(true)
+                .color(SUMMARY_COLOR));
+
+        content.parent = root;
         content.setGap(4);
         content.setFullWidth(true);
 
-        root.append(summary);
+        summaryRow.append(summaryMarker);
+        summaryRow.append(summaryContent);
+        root.append(summaryRow);
         root.append(content);
+        syncSummaryMarker();
         syncContentVisibility();
     }
 
-    public void setSummaryText(String text) {
-        summary.clearContent();
-        String marker = open ? "▼ " : "▶ ";
-        summary.appendText(marker + (text != null && !text.isEmpty() ? text : "Details"));
+    public LytParagraph getSummaryBox() {
+        return summaryContent;
     }
 
-    public String getSummaryText() {
-        String text = summary.getTextContent();
-        if (text.startsWith("▼ ") || text.startsWith("▶ ")) {
-            return text.substring(2);
-        }
-        return text;
+    public void setFallbackSummaryText(@Nullable String fallbackSummaryText) {
+        this.fallbackSummaryText = fallbackSummaryText;
+        syncSummaryFallback();
     }
 
     public boolean isOpen() {
@@ -68,7 +86,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     public void setOpen(boolean open) {
         if (this.open != open) {
             this.open = open;
-            setSummaryText(getSummaryText());
+            syncSummaryMarker();
             syncContentVisibility();
             var document = getDocument();
             if (document != null) {
@@ -81,9 +99,25 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         return content;
     }
 
+    private void syncSummaryMarker() {
+        summaryMarker.clearContent();
+        summaryMarker.appendText(open ? SUMMARY_OPEN_MARKER : SUMMARY_CLOSED_MARKER);
+    }
+
+    private void syncSummaryFallback() {
+        if (!summaryContent.isEmpty()) {
+            return;
+        }
+        summaryContent.clearContent();
+        summaryContent.appendText(
+            fallbackSummaryText != null && !fallbackSummaryText.trim()
+                .isEmpty() ? fallbackSummaryText : DEFAULT_SUMMARY_TEXT);
+    }
+
     private void syncContentVisibility() {
+        syncSummaryFallback();
         root.clearContent();
-        root.append(summary);
+        root.append(summaryRow);
         if (open) {
             root.append(content);
         }
@@ -125,8 +159,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
             return false;
         }
 
-        @Nullable
-        LytRect summaryBounds = summary.getBounds();
+        LytRect summaryBounds = summaryRow.getBounds();
         if (summaryBounds != null && summaryBounds.contains(x, y)) {
             setOpen(!open);
             return true;

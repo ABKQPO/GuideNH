@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import net.minecraft.block.Block;
@@ -19,6 +20,7 @@ import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class MdxAttrs {
@@ -307,23 +309,36 @@ public class MdxAttrs {
     }
 
     public static boolean getBoolean(MdxJsxElementFields el, String name, boolean defaultValue) {
-        var attribute = el.getAttribute(name);
+        Boolean parsed = getOptionalBoolean(el, name);
+        return parsed != null ? parsed : defaultValue;
+    }
+
+    public static boolean getBoolean(@Nullable Boolean parsed, boolean defaultValue) {
+        return parsed != null ? parsed : defaultValue;
+    }
+
+    @Nullable
+    public static Boolean getOptionalBoolean(MdxJsxElementFields el, String name) {
+        return parseOptionalBoolean(el.getAttribute(name), name);
+    }
+
+    @Nullable
+    public static Boolean parseOptionalBoolean(@Nullable MdxJsxAttribute attribute, String attributeName) {
         if (attribute == null) {
-            return defaultValue;
+            return null;
         }
-        // Bare attribute (no value) is standard JSX shorthand for {true}.
         if (!attribute.hasExpressionValue() && !attribute.hasStringValue()) {
             return true;
         }
-        if (attribute.hasExpressionValue()) {
-            var expressionValue = attribute.getExpressionValue();
-            if (expressionValue.equals("true")) {
-                return true;
-            } else if (expressionValue.equals("false")) {
-                return false;
-            }
-        }
-        throw new AttributeException(name, name + " should be {true} or {false}");
+        String rawValue = attribute.hasExpressionValue() ? attribute.getExpressionValue() : attribute.getStringValue();
+        String normalizedValue = rawValue == null ? ""
+            : rawValue.trim()
+                .toLowerCase(Locale.ROOT);
+        return switch (normalizedValue) {
+            case "true", "1", "yes", "on" -> true;
+            case "false", "0", "no", "off" -> false;
+            default -> throw new AttributeException(attributeName, attributeName + " should be true or false");
+        };
     }
 
     public static ColorValue getColor(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,

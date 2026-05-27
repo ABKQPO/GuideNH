@@ -7,7 +7,6 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
-import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
@@ -36,14 +35,14 @@ public class SceneEditorPreviewBridge {
         SceneEditorSceneModel model = session.getSceneModel();
         LytGuidebookScene scene = new LytGuidebookScene();
         scene.setInteractive(true);
+        scene.setShowBackground(model.isShowBackground());
         scene.setForceOriginAxesVisible(true);
         scene.setSceneButtonsVisible(false);
         scene.setReserveBottomControlArea(false);
         scene.setVisibleLayerSliderEnabled(model.isAllowLayerSlider() || ModConfig.ui.sceneLayerSliderEnabled);
         scene.setSceneSize(model.getPreviewWidth(), model.getPreviewHeight());
-        applyExportCamera(scene.getCamera(), model);
         sceneNodePreviewApplier.apply(session, scene, structureLibSelectionOverride);
-        scene.snapshotInitialCamera();
+        previewCameraController.applyResolvedPreviewCamera(scene, model);
         return scene;
     }
 
@@ -57,6 +56,7 @@ public class SceneEditorPreviewBridge {
         boolean ponderFinished = scene.isPonderFinishedForPreviewRestore();
         scene.getAnnotations()
             .clear();
+        scene.clearSoundCues();
         scene.setHoveredStructureLibHatch(null);
         scene.setHoveredBlock(null);
         scene.setHoveredEntity(null);
@@ -65,16 +65,43 @@ public class SceneEditorPreviewBridge {
         scene.clearPonderDataForPreviewRebuild();
         scene.setLevel(new GuidebookLevel());
         scene.setReserveBottomControlArea(false);
+        scene.setShowBackground(
+            session.getSceneModel()
+                .isShowBackground());
         scene.setForceOriginAxesVisible(true);
         scene.setVisibleLayerSliderEnabled(
             session.getSceneModel()
                 .isAllowLayerSlider() || ModConfig.ui.sceneLayerSliderEnabled);
         sceneNodePreviewApplier.apply(session, scene, structureLibSelectionOverride);
+        previewCameraController.applyResolvedPreviewCamera(scene, session.getSceneModel());
         scene.initializePonderTimelineBaseline();
         scene.restorePonderPreviewState(ponderTick, ponderPaused, ponderFinished);
     }
 
-    private void applyExportCamera(CameraSettings camera, SceneEditorSceneModel model) {
-        previewCameraController.applyModelCamera(camera, model);
+    public void rebuildAnnotations(SceneEditorSession session, LytGuidebookScene scene) {
+        if (scene == null) {
+            return;
+        }
+        scene.getAnnotations()
+            .clear();
+        scene.clearAnnotationHover();
+        sceneNodePreviewApplier.applyAnnotations(session, scene);
+    }
+
+    public void releaseScene(@Nullable LytGuidebookScene scene) {
+        if (scene == null) {
+            return;
+        }
+        scene.setStructureLibSelectionChangeListener(null);
+        scene.getAnnotations()
+            .clear();
+        scene.clearSoundCues();
+        scene.clearAnnotationHover();
+        scene.setHoveredStructureLibHatch(null);
+        scene.setHoveredBlock(null);
+        scene.setHoveredEntity(null);
+        scene.setStructureLibSceneMetadata(null);
+        scene.clearPonderDataForPreviewRebuild();
+        scene.setLevel(new GuidebookLevel());
     }
 }

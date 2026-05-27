@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 public class MermaidMindmapNode {
 
     private final String id;
+    private final String labelSource;
     private final String text;
     private final MermaidMindmapNodeShape shape;
     private final List<String> classes;
@@ -20,9 +21,10 @@ public class MermaidMindmapNode {
     private final Integer y;
     private final List<MermaidMindmapNode> children = new ArrayList<>();
 
-    public MermaidMindmapNode(String id, String text, MermaidMindmapNodeShape shape, List<String> classes,
-        @Nullable String icon, @Nullable Integer x, @Nullable Integer y) {
+    public MermaidMindmapNode(String id, String labelSource, String text, MermaidMindmapNodeShape shape,
+        List<String> classes, @Nullable String icon, @Nullable Integer x, @Nullable Integer y) {
         this.id = id != null ? id : "";
+        this.labelSource = labelSource != null ? labelSource : "";
         this.text = text != null ? text : "";
         this.shape = shape != null ? shape : MermaidMindmapNodeShape.DEFAULT;
         this.classes = Collections
@@ -35,6 +37,10 @@ public class MermaidMindmapNode {
 
     public String getId() {
         return id;
+    }
+
+    public String getLabelSource() {
+        return labelSource;
     }
 
     public String getText() {

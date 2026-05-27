@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.scene;
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -17,9 +20,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
+import javax.imageio.ImageIO;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.renderer.ThreadDownloadImageData;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.resources.SkinManager;
 import net.minecraft.util.ResourceLocation;
@@ -42,10 +48,14 @@ public class GuidebookPreviewPlayerSkinResolver {
 
     private static final String PREVIEW_SKIN_RESOURCE_DOMAIN = "guidenh";
     private static final String PREVIEW_SKIN_RESOURCE_PATH_PREFIX = "preview-skins/";
+    private static final ResourceLocation DEFAULT_PREVIEW_SKIN_LOCATION = new ResourceLocation(
+        PREVIEW_SKIN_RESOURCE_DOMAIN,
+        PREVIEW_SKIN_RESOURCE_PATH_PREFIX + "default-steve");
     private static final int MAX_RESOLVED_SKINS = 256;
     public static final ExecutorService LOOKUP_EXECUTOR = Executors
         .newSingleThreadExecutor(new GuidebookPreviewPlayerSkinThreadFactory());
     public static final Map<String, ResolvedPreviewPlayerSkin> RESOLVED_SKINS = createResolvedSkinCache();
+    public static final Map<String, ResourceLocation> PREVIEW_SKIN_TEXTURE_LOCATIONS = new ConcurrentHashMap<>();
     public static final Map<String, List<WeakReference<GuidebookScenePreviewPlayerEntity>>> PENDING_ENTITIES = new ConcurrentHashMap<>();
     public static final Set<String> INFLIGHT_LOOKUPS = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
@@ -69,7 +79,7 @@ public class GuidebookPreviewPlayerSkinResolver {
             return;
         }
 
-        GameProfile cachedProfile = GuidebookSceneEntityLoader.resolveCachedPreviewPlayerProfile(playerName);
+        GameProfile cachedProfile = GuidebookSceneEntityLoader.findCachedPreviewPlayerProfile(playerName);
         GameProfile lookupProfile = selectLookupProfile(currentProfile, cachedProfile, playerName);
         if (hasUsableTextures(lookupProfile, playerName)) {
             ResolvedPreviewPlayerSkin resolvedSkin = resolveTexturesForProfile(lookupProfile);
@@ -102,6 +112,7 @@ public class GuidebookPreviewPlayerSkinResolver {
         ResolvedPreviewPlayerSkin resolvedSkin) {
         INFLIGHT_LOOKUPS.remove(cacheKey);
         if (resolvedSkin != null) {
+            prepareResolvedSkinTextures(resolvedSkin);
             GuidebookSceneEntityLoader.cacheResolvedPreviewPlayerProfile(playerName, resolvedSkin.profile);
             if (resolvedSkin.hasAnyTexture()) {
                 RESOLVED_SKINS.put(cacheKey, resolvedSkin);
@@ -184,9 +195,10 @@ public class GuidebookPreviewPlayerSkinResolver {
         ResolvedPreviewPlayerSkin resolvedSkin) {
         SkinManager skinManager = Minecraft.getMinecraft()
             .func_152342_ad();
-        if (resolvedSkin.skinTexture != null) {
-            entity.setGuidebookPreferredSkinLocation(loadPreviewSkinTexture(resolvedSkin.skinTexture));
-        }
+        ResourceLocation skinLocation = resolvedSkin.skinLocation != null ? resolvedSkin.skinLocation
+            : resolvedSkin.skinTexture != null ? loadPreviewSkinTexture(resolvedSkin.skinTexture)
+                : loadDefaultPreviewSkinTexture();
+        entity.setGuidebookPreferredSkinLocation(skinLocation);
         entity.setGuidebookSlimArms(resolvedSkin.slimArms);
         if (resolvedSkin.capeTexture != null) {
             ResourceLocation capeLocation = skinManager.func_152789_a(resolvedSkin.capeTexture, Type.CAPE, entity);
@@ -197,16 +209,33 @@ public class GuidebookPreviewPlayerSkinResolver {
         }
     }
 
+    public static ResourceLocation getDefaultPreviewSkinLocation() {
+        return loadDefaultPreviewSkinTexture();
+    }
+
     static boolean isGuidebookManagedSkinLocation(ResourceLocation skinLoc) {
         return skinLoc != null && PREVIEW_SKIN_RESOURCE_DOMAIN.equals(skinLoc.getResourceDomain())
             && skinLoc.getResourcePath()
                 .startsWith(PREVIEW_SKIN_RESOURCE_PATH_PREFIX);
     }
 
+    private static void prepareResolvedSkinTextures(ResolvedPreviewPlayerSkin resolvedSkin) {
+        if (resolvedSkin.skinTexture != null && resolvedSkin.skinLocation == null) {
+            resolvedSkin.skinLocation = loadPreviewSkinTexture(resolvedSkin.skinTexture);
+        }
+    }
+
     private static ResourceLocation loadPreviewSkinTexture(MinecraftProfileTexture skinTexture) {
-        ResourceLocation resourceLocation = new ResourceLocation(
-            PREVIEW_SKIN_RESOURCE_DOMAIN,
-            PREVIEW_SKIN_RESOURCE_PATH_PREFIX + skinTexture.getHash());
+        String textureHash = trimToNull(skinTexture.getHash());
+        if (textureHash == null) {
+            return loadDefaultPreviewSkinTexture();
+        }
+
+        ResourceLocation resourceLocation = PREVIEW_SKIN_TEXTURE_LOCATIONS.computeIfAbsent(
+            textureHash,
+            ignored -> new ResourceLocation(
+                PREVIEW_SKIN_RESOURCE_DOMAIN,
+                PREVIEW_SKIN_RESOURCE_PATH_PREFIX + textureHash));
         TextureManager textureManager = Minecraft.getMinecraft()
             .getTextureManager();
         if (textureManager.getTexture(resourceLocation) == null) {
@@ -219,6 +248,29 @@ public class GuidebookPreviewPlayerSkinResolver {
                     new GuidebookPreviewPlayerSkinImageBuffer()));
         }
         return resourceLocation;
+    }
+
+    private static ResourceLocation loadDefaultPreviewSkinTexture() {
+        TextureManager textureManager = Minecraft.getMinecraft()
+            .getTextureManager();
+        if (textureManager.getTexture(DEFAULT_PREVIEW_SKIN_LOCATION) != null) {
+            return DEFAULT_PREVIEW_SKIN_LOCATION;
+        }
+
+        try (InputStream inputStream = Minecraft.getMinecraft()
+            .getResourceManager()
+            .getResource(AbstractClientPlayer.locationStevePng)
+            .getInputStream()) {
+            BufferedImage sourceImage = ImageIO.read(inputStream);
+            BufferedImage convertedImage = GuidebookPreviewPlayerSkinImageBuffer.processSkinFormat(sourceImage);
+            if (convertedImage == null) {
+                return AbstractClientPlayer.locationStevePng;
+            }
+            textureManager.loadTexture(DEFAULT_PREVIEW_SKIN_LOCATION, new DynamicTexture(convertedImage));
+            return DEFAULT_PREVIEW_SKIN_LOCATION;
+        } catch (IOException ignored) {
+            return AbstractClientPlayer.locationStevePng;
+        }
     }
 
     public static void registerPendingEntity(String cacheKey, GuidebookScenePreviewPlayerEntity entity) {
@@ -308,6 +360,8 @@ public class GuidebookPreviewPlayerSkinResolver {
         private final MinecraftProfileTexture capeTexture;
         @Nullable
         private final Boolean slimArms;
+        @Nullable
+        private ResourceLocation skinLocation;
 
         private ResolvedPreviewPlayerSkin(GameProfile profile, MinecraftProfileTexture skinTexture,
             MinecraftProfileTexture capeTexture, @Nullable Boolean slimArms) {

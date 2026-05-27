@@ -23,7 +23,9 @@ public interface TagCompiler extends Extension {
     Set<String> getTagNames();
 
     default void compileBlockContext(PageCompiler compiler, LytBlockContainer parent, MdxJsxFlowElement el) {
-        parent.append(compiler.createErrorBlock("Cannot use MDX tag " + el.name + " in block context", el));
+        parent.append(
+            PageCompiler.wrapFloatAwareIfNeeded(
+                compiler.createErrorBlock("Cannot use MDX tag " + el.name + " in block context", el)));
     }
 
     default void compileFlowContext(PageCompiler compiler, LytFlowParent parent, MdxJsxTextElement el) {

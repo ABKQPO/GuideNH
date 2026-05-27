@@ -387,6 +387,11 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
+    public LytRect currentScissor() {
+        return scissorStack.peek();
+    }
+
+    @Override
     public void restoreExternalRenderState() {
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);

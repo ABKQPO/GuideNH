@@ -2,7 +2,7 @@
 navigation:
   title: 注解
   parent: index.md
-  position: 36
+  position: 164
 categories:
   - scenes
 ---
@@ -109,7 +109,7 @@ categories:
 <GameScene width="256" height="192" zoom={4} interactive={true}>
   <TextAnnotation
     pos="1.5 2.0 1.5"
-    text="在这里放入物品"
+    textKey="guidenh.sample.scene.insert_items"
     color="#FF44AAFF"
     maxWidth={120}
     backgroundAlpha={180}
@@ -137,7 +137,8 @@ categories:
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `x`, `y`, `z` | float | `0.0` | 世界坐标锚点。`independent={true}` 时忽略。 |
-| `text` | string | - | 必填。气泡内显示的文本。 |
+| `text` | string | - | 回退文本；当未提供 `textKey` 时直接使用。 |
+| `textKey` | string | - | 优先从资源包 `lang` 文件解析的翻译键；解析失败时回退到 `text` 或标签正文。 |
 | `color` | string | `"0xFFAAAAAA"` | 气泡边框颜色。 |
 | `backgroundAlpha` | integer | `204` | 背景透明度，`0` 为完全透明，`255` 为完全不透明。 |
 | `maxWidth` | integer | `0` | 换行宽度（像素）。`0` 表示单行显示。 |

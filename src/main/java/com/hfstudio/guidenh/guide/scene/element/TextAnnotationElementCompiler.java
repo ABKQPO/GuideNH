@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
@@ -36,16 +37,11 @@ public class TextAnnotationElementCompiler implements SceneElementTagCompiler {
             return;
         }
 
-        String text = MdxAttrs.getString(compiler, errorSink, el, "text", null);
-        if (text == null) {
-            text = compiler.getBlockTagChildrenSource(el);
-            if (text != null) {
-                text = trimCommonIndent(text);
-            }
-        }
+        String fallbackText = resolveFallbackText(compiler, errorSink, el);
+        String text = resolveLocalizedText(compiler, errorSink, el, fallbackText);
         if (text == null || text.trim()
             .isEmpty()) {
-            errorSink.appendError(compiler, "Missing text attribute.", el);
+            errorSink.appendError(compiler, "Missing text content. Provide text, textKey, or tag body content.", el);
             return;
         }
 
@@ -145,6 +141,32 @@ public class TextAnnotationElementCompiler implements SceneElementTagCompiler {
         float y = MdxAttrs.getFloat(compiler, errorSink, el, "y", 0f);
         float z = MdxAttrs.getFloat(compiler, errorSink, el, "z", 0f);
         return new Vector3f(x, y, z);
+    }
+
+    private static String resolveFallbackText(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
+        String text = MdxAttrs.getString(compiler, errorSink, el, "text", null);
+        if (text != null) {
+            return text;
+        }
+        text = compiler.getBlockTagChildrenSource(el);
+        if (text != null) {
+            return trimCommonIndent(text);
+        }
+        return null;
+    }
+
+    private static String resolveLocalizedText(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
+        String fallbackText) {
+        String textKey = MdxAttrs.getString(compiler, errorSink, el, "textKey", null);
+        if (textKey == null || compiler == null) {
+            return fallbackText;
+        }
+        String normalizedKey = textKey.trim();
+        if (normalizedKey.isEmpty()) {
+            return fallbackText;
+        }
+        String localized = GuideResourceLanguageIndex.getValue(compiler.getLanguage(), normalizedKey);
+        return localized != null && !localized.isEmpty() ? localized : fallbackText;
     }
 
     private static TextAnnotation.ConnectorSide parseConnectorSide(PageCompiler compiler, LytErrorSink errorSink,

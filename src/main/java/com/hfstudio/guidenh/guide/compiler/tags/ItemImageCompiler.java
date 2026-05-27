@@ -52,15 +52,16 @@ public class ItemImageCompiler extends FlowTagCompiler {
         }
 
         // noTooltip (legacy) and showTooltip — noTooltip=true or showTooltip=false both suppress.
-        boolean noTooltip = parseBool(el.getAttributeString("noTooltip", null));
-        String showTooltipRaw = el.getAttributeString("showTooltip", null);
-        boolean showTooltip = showTooltipRaw != null ? parseBool(showTooltipRaw) : !noTooltip;
+        Boolean noTooltipAttr = MdxAttrs.getOptionalBoolean(el, "noTooltip");
+        boolean noTooltip = MdxAttrs.getBoolean(noTooltipAttr, false);
+        Boolean showTooltipAttr = MdxAttrs.getOptionalBoolean(el, "showTooltip");
+        boolean showTooltip = showTooltipAttr != null ? showTooltipAttr : !noTooltip;
         img.setShowTooltip(showTooltip);
 
         // showIcon — whether to render the icon graphic (default true).
-        String showIconRaw = el.getAttributeString("showIcon", null);
-        if (showIconRaw != null) {
-            img.setShowIcon(parseBool(showIconRaw));
+        Boolean showIcon = MdxAttrs.getOptionalBoolean(el, "showIcon");
+        if (showIcon != null) {
+            img.setShowIcon(showIcon);
         }
 
         // label — "left" or "right" to display the item name next to the icon.
@@ -93,11 +94,4 @@ public class ItemImageCompiler extends FlowTagCompiler {
         return "right";
     }
 
-    public static boolean parseBool(String raw) {
-        if (raw == null) return false;
-        if (raw.isEmpty()) return true;
-        var v = raw.trim()
-            .toLowerCase(Locale.ROOT);
-        return !(v.equals("false") || v.equals("0") || v.equals("no"));
-    }
 }

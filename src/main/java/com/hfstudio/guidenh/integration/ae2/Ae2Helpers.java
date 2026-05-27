@@ -43,6 +43,7 @@ import appeng.tile.AEBaseTile;
 import appeng.tile.crafting.TileCraftingTile;
 import appeng.tile.networking.TileCableBus;
 import appeng.tile.qnb.TileQuantumBridge;
+import appeng.tile.spatial.TileSpatialPylon;
 import cpw.mods.fml.common.Optional;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -553,9 +554,11 @@ public final class Ae2Helpers {
         boolean applied = blob != null && blob.length > 0
             && Ae2BaseTileNetworkStreamPreview.applyAuthorityToPreviewTile(aeTile, blob);
         if (applied) {
+            syncSpecialPreviewConnectableSides(aeTile);
             return;
         }
         syncDescriptionPacket(aeTile);
+        syncSpecialPreviewConnectableSides(aeTile);
     }
 
     @Optional.Method(modid = "appliedenergistics2")
@@ -566,5 +569,28 @@ public final class Ae2Helpers {
                 tile.onDataPacket(null, updatePacket);
             }
         } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static void syncSpecialPreviewConnectableSides(AEBaseTile aeTile) {
+        if (aeTile instanceof TileSpatialPylon spatialPylon) {
+            syncSpatialPylonValidSides(spatialPylon);
+        }
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static void syncSpatialPylonValidSides(TileSpatialPylon spatialPylon) {
+        EnumSet<ForgeDirection> validSides = hasSpatialPylonClusterState(spatialPylon)
+            ? EnumSet.allOf(ForgeDirection.class)
+            : EnumSet.noneOf(ForgeDirection.class);
+        try {
+            spatialPylon.getProxy()
+                .setValidSides(validSides);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static boolean hasSpatialPylonClusterState(TileSpatialPylon spatialPylon) {
+        return (spatialPylon.getDisplayBits() & TileSpatialPylon.MB_STATUS) != 0;
     }
 }

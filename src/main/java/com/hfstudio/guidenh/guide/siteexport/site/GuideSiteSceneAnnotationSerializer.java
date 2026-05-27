@@ -16,6 +16,7 @@ import org.joml.Vector3f;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
@@ -52,7 +53,9 @@ import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 
@@ -97,6 +100,9 @@ public final class GuideSiteSceneAnnotationSerializer {
 
         if (scene != null) {
             for (SceneAnnotation annotation : scene.getAnnotations()) {
+                if (!scene.isStructureLibConditionSatisfied(annotation.getStructureLibCondition())) {
+                    continue;
+                }
                 if (annotation instanceof InWorldBoxAnnotation box) {
                     inWorld.add(serializeBox(box, templates, currentPageId, assetExporter, itemIconResolver));
                     continue;
@@ -112,6 +118,26 @@ public final class GuideSiteSceneAnnotationSerializer {
                 }
                 if (annotation instanceof DiamondAnnotation diamond) {
                     overlay.add(serializeDiamond(diamond, templates, currentPageId, assetExporter, itemIconResolver));
+                    continue;
+                }
+                if (annotation instanceof TextAnnotation textAnnotation) {
+                    overlay.add(
+                        serializeTextAnnotation(
+                            textAnnotation,
+                            templates,
+                            currentPageId,
+                            assetExporter,
+                            itemIconResolver));
+                    continue;
+                }
+                if (annotation instanceof PonderInputAnnotation inputAnnotation) {
+                    overlay.add(
+                        serializeInputAnnotation(
+                            inputAnnotation,
+                            templates,
+                            currentPageId,
+                            assetExporter,
+                            itemIconResolver));
                 }
             }
         }
@@ -132,6 +158,7 @@ public final class GuideSiteSceneAnnotationSerializer {
             currentPageId,
             assetExporter,
             itemIconResolver);
+        appendStructureLibCondition(data, box);
         data.put("minCorner", toVector(box.min()));
         data.put("maxCorner", toVector(box.max()));
         return data;
@@ -150,6 +177,7 @@ public final class GuideSiteSceneAnnotationSerializer {
             currentPageId,
             assetExporter,
             itemIconResolver);
+        appendStructureLibCondition(data, line);
         data.put("from", toVector(line.from()));
         data.put("to", toVector(line.to()));
         data.put("points", toVectors(line.points()));
@@ -163,7 +191,7 @@ public final class GuideSiteSceneAnnotationSerializer {
             data.put("showPoints", true);
         }
         data.put("pointColor", toCssColor(line.pointColor()));
-        data.put("pointSize", line.pointSize());
+        data.put("pointSize", exportWorldAnnotationSize(line.pointSize()));
         if (!line.pointStyles()
             .isEmpty()) {
             List<Map<String, Object>> pointStyles = new ArrayList<>();
@@ -177,7 +205,7 @@ public final class GuideSiteSceneAnnotationSerializer {
                     pointStyle.put("color", toCssColor(style.color()));
                 }
                 if (style.size() != null) {
-                    pointStyle.put("size", style.size());
+                    pointStyle.put("size", exportWorldAnnotationSize(style.size()));
                 }
                 pointStyles.add(pointStyle);
             }
@@ -199,6 +227,7 @@ public final class GuideSiteSceneAnnotationSerializer {
             currentPageId,
             assetExporter,
             itemIconResolver);
+        appendStructureLibCondition(data, blockOverlay);
         data.put(
             "minCorner",
             new float[] { blockOverlay.getBlockX(), blockOverlay.getBlockY(), blockOverlay.getBlockZ() });
@@ -212,10 +241,10 @@ public final class GuideSiteSceneAnnotationSerializer {
     private static Map<String, Object> serializeDiamond(DiamondAnnotation diamond, GuideSiteTemplateRegistry templates,
         @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("type", "overlay");
+        Map<String, Object> data = createBaseOverlayAnnotation("diamond");
         data.put("position", toVector(diamond.getPos()));
         data.put("color", toCssColor(diamond.getColor()));
+        appendStructureLibCondition(data, diamond);
         String templateId = createTemplateId(
             diamond.getTooltip(),
             templates,
@@ -228,6 +257,67 @@ public final class GuideSiteSceneAnnotationSerializer {
         return data;
     }
 
+    private static Map<String, Object> serializeTextAnnotation(TextAnnotation textAnnotation,
+        GuideSiteTemplateRegistry templates, @Nullable ResourceLocation currentPageId,
+        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+        Map<String, Object> data = createBaseOverlayAnnotation("text");
+        data.put("position", toVector(textAnnotation.getWorldPos()));
+        data.put("color", toCssColor(textAnnotation.getBorderColor()));
+        data.put("text", renderTextAnnotationHtml(textAnnotation, currentPageId, assetExporter, itemIconResolver));
+        data.put("plainText", textAnnotation.getText());
+        data.put("maxWidth", Math.max(0, textAnnotation.getMaxWidth()));
+        data.put("backgroundAlpha", textAnnotation.getBackgroundAlpha());
+        data.put("independent", textAnnotation.isIndependent());
+        data.put("screenYOffset", textAnnotation.getScreenYOffset());
+        data.put(
+            "connectorSide",
+            textAnnotation.getConnectorSide()
+                .serializedName());
+        data.put("connectorOffset", textAnnotation.getConnectorOffset());
+        data.put("connectorLength", textAnnotation.getConnectorLength());
+        appendStructureLibCondition(data, textAnnotation);
+        return data;
+    }
+
+    private static Map<String, Object> serializeInputAnnotation(PonderInputAnnotation inputAnnotation,
+        GuideSiteTemplateRegistry templates, @Nullable ResourceLocation currentPageId,
+        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+        Map<String, Object> data = createBaseOverlayAnnotation("input");
+        data.put("position", toVector(inputAnnotation.getWorldPos()));
+        data.put(
+            "inputType",
+            inputAnnotation.getInputType()
+                .name()
+                .toLowerCase());
+        String modifier = inputAnnotation.getModifier();
+        if (modifier != null && !modifier.trim()
+            .isEmpty()) {
+            data.put("modifier", modifier.trim());
+        }
+        ItemStack itemStack = inputAnnotation.getItemStack();
+        if (itemStack != null && itemStack.stackSize > 0) {
+            GuideSiteExportedItem exportedItem = GuideSiteItemSupport.export(itemStack, itemIconResolver);
+            if (!exportedItem.isEmpty()) {
+                data.put("item", serializeExportedItem(exportedItem));
+            }
+        }
+        appendStructureLibCondition(data, inputAnnotation);
+        return data;
+    }
+
+    private static void appendStructureLibCondition(Map<String, Object> data, SceneAnnotation annotation) {
+        if (data == null || annotation == null
+            || annotation.getStructureLibCondition() == null
+            || !annotation.getStructureLibCondition()
+                .hasAnyConstraint()) {
+            return;
+        }
+        data.put(
+            "structureLibCondition",
+            annotation.getStructureLibCondition()
+                .toSiteExportData());
+    }
+
     private static Map<String, Object> createBaseInWorldAnnotation(String type, ColorValue color, float thickness,
         boolean alwaysOnTop, @Nullable GuideTooltip tooltip, GuideSiteTemplateRegistry templates,
         @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
@@ -235,7 +325,7 @@ public final class GuideSiteSceneAnnotationSerializer {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("type", type);
         data.put("color", toCssColor(color));
-        data.put("thickness", exportAnnotationThickness(thickness));
+        data.put("thickness", exportWorldAnnotationSize(thickness));
         data.put("alwaysOnTop", alwaysOnTop);
         String templateId = createTemplateId(tooltip, templates, currentPageId, assetExporter, itemIconResolver);
         if (templateId != null) {
@@ -244,8 +334,33 @@ public final class GuideSiteSceneAnnotationSerializer {
         return data;
     }
 
-    private static float exportAnnotationThickness(float thickness) {
-        return Math.max(thickness / ANNOTATION_THICKNESS_SCALE, MIN_EXPORTED_WORLD_THICKNESS);
+    private static Map<String, Object> createBaseOverlayAnnotation(String type) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("type", type);
+        return data;
+    }
+
+    private static Map<String, Object> serializeExportedItem(GuideSiteExportedItem item) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("itemId", item.itemId());
+        data.put("displayName", item.displayName());
+        data.put("iconSrc", item.iconSrc());
+        return data;
+    }
+
+    private static String renderTextAnnotationHtml(TextAnnotation textAnnotation,
+        @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
+        GuideSiteItemIconResolver itemIconResolver) {
+        LytParagraph richContent = textAnnotation.getRichContent();
+        if (richContent != null) {
+            return TooltipHtmlRenderer
+                .renderBlock(richContent, currentPageId, assetExporter, itemIconResolver, null, false);
+        }
+        return TooltipHtmlRenderer.renderPlainTextFragment(textAnnotation.getText());
+    }
+
+    public static float exportWorldAnnotationSize(float size) {
+        return Math.max(size / ANNOTATION_THICKNESS_SCALE, MIN_EXPORTED_WORLD_THICKNESS);
     }
 
     @Nullable
@@ -280,6 +395,10 @@ public final class GuideSiteSceneAnnotationSerializer {
         @Nullable GuideSiteTemplateRegistry templates) {
         return TooltipHtmlRenderer
             .render(tooltip, currentPageId, assetExporter, itemIconResolver, templates, templates != null);
+    }
+
+    public static String renderPlainTextFragment(@Nullable String text) {
+        return TooltipHtmlRenderer.renderPlainTextFragment(text);
     }
 
     private static float[] toVector(Vector3f vector) {
@@ -348,6 +467,22 @@ public final class GuideSiteSceneAnnotationSerializer {
     private static final class TooltipHtmlRenderer {
 
         private TooltipHtmlRenderer() {}
+
+        private static String renderPlainTextFragment(@Nullable String text) {
+            if (text == null || text.isEmpty()) {
+                return "";
+            }
+            String normalized = text.indexOf('\\') >= 0 ? text.replace("\\n", "\n") : text;
+            String[] lines = normalized.split("\\n", -1);
+            StringBuilder html = new StringBuilder();
+            for (String line : lines) {
+                if (html.length() > 0) {
+                    html.append("<br>");
+                }
+                html.append(renderLegacyFormattedText(line));
+            }
+            return html.toString();
+        }
 
         private static String render(@Nullable GuideTooltip tooltip, @Nullable ResourceLocation currentPageId,
             @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
@@ -675,7 +810,7 @@ public final class GuideSiteSceneAnnotationSerializer {
         private static void appendTable(StringBuilder html, LytTable table, @Nullable ResourceLocation currentPageId,
             @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
             @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
-            html.append("<table>");
+            html.append("<div class=\"guide-table-wrap\"><table class=\"guide-table\">");
             List<LytTableRow> rows = table.getChildren();
             if (!rows.isEmpty()) {
                 html.append("<thead>");
@@ -705,7 +840,7 @@ public final class GuideSiteSceneAnnotationSerializer {
                 }
                 html.append("</tbody>");
             }
-            html.append("</table>");
+            html.append("</table></div>");
         }
 
         private static void appendTableRow(StringBuilder html, LytTableRow row, String cellTagName,
@@ -834,7 +969,9 @@ public final class GuideSiteSceneAnnotationSerializer {
             String href = null;
             PageAnchor pageAnchor = link.getPageAnchor();
             if (pageAnchor != null) {
-                href = GuideSiteHrefResolver.resolvePageAnchor(currentPageId, pageAnchor);
+                GuideAnchor guideAnchor = link.getGuideAnchor();
+                ResourceLocation targetGuideId = guideAnchor != null ? guideAnchor.guideId() : null;
+                href = GuideSiteHrefResolver.resolvePageAnchor(currentPageId, targetGuideId, pageAnchor);
             } else if (link.getExternalUrl() != null) {
                 href = link.getExternalUrl()
                     .toString();

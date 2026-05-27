@@ -21,6 +21,7 @@
 | `centerY` | float | auto | 显式世界旋转中心 Y |
 | `centerZ` | float | auto | 显式世界旋转中心 Z |
 | `interactive` | boolean expression | `true` | 是否启用鼠标交互 |
+| `showBackground` | boolean expression | `true` | 是否显示场景背景与边框 |
 | `allowLayerSlider` | boolean | `true` | 是否显示垂直层滑块 |
 | `gridButtonEnabled` | boolean | `true` | 是否显示地板网格切换按钮 |
 | `showGrid` | boolean | `false` | 地板网格的初始可见性 |
@@ -167,6 +168,66 @@
 </GameScene>
 ````
 
+## 导入示例
+
+下面这些例子专门覆盖导入结构时最容易踩坑的场景侧行为。
+
+带显式朝向、旋转、镜像和偏移的 StructureLib 导入：
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib
+    name="main"
+    controller="gregtech:gt.blockmachines:2741"
+    facing="north"
+    rotation="clockwise_180"
+    flip="none"
+    offsetX="2"
+    offsetY="1"
+    offsetZ="-3"
+  />
+</GameScene>
+````
+
+GregTech 控制器现在默认保持未成型，即使导入的多方块结构本身已经完整：
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" />
+</GameScene>
+````
+
+只有在你明确希望预览展示成型状态时，才设置 `formed={true}`：
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" formed={true} />
+</GameScene>
+````
+
+这个默认值同样适用于直接通过 `<Block>` 放置的控制器，包括依赖周围机械方块的 GregTech 控制器：
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="gregtech:gt.blockmachines:2741" />
+  <Block id="gregtech:gt.blockmachines:1000" x="3" formed={true} />
+</GameScene>
+````
+
+纯 `<Block>` 搭出来的简单布局仍然完全兼容，后续如果替换成 GT 多方块控制器，也能沿用同一套场景检测逻辑：
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:water" />
+  <Block id="minecraft:water" x="-1" />
+  <Block id="minecraft:water" x="1" />
+  <Block id="minecraft:grass" z="1" />
+  <Block id="minecraft:grass" x="1" z="1" />
+  <Block id="minecraft:glass" z="2" />
+  <Block id="minecraft:glass" x="1" z="2" />
+</GameScene>
+````
+
 ## 场景子元素
 
 GuideNH 当前注册了以下场景子标签：
@@ -178,6 +239,7 @@ GuideNH 当前注册了以下场景子标签：
 - `<BlockStats>`
 - `<PlaySound>`
 - `<RemoveBlocks>`
+- `<RemoveEntity>`
 - `<ReplaceBlock>`
 - `<PlaceBlock>`
 - `<BlockAnnotationTemplate>`
@@ -256,6 +318,7 @@ GuideNH 当前注册了以下场景子标签：
 | `meta` | 否 | 方块 metadata，整数 |
 | `facing` | 否 | `down`、`up`、`north`、`south`、`west`、`east` |
 | `nbt` | 否 | SNBT TileEntity compound |
+| `formed` | 否 | 是否让该结构控制器在预览同步时按成型状态处理；默认 `false` |
 
 说明：
 
@@ -263,13 +326,14 @@ GuideNH 当前注册了以下场景子标签：
 - 若省略 `meta`，且 `ore` 解析出的物品携带具体且非通配符的 damage，则会先使用该值，再回退到 `facing`
 - 若省略 `meta`，部分方块会根据 `facing` 推导合理默认值
 - 若 `nbt` 能成功创建 TileEntity，预览中会使用该实体
+- 当 GregTech 控制器即使结构完整也需要保持未成型时，可设置 `formed={false}`
 
 示例：
 
 ````md
 <Block id="minecraft:furnace" x="2" facing="south" />
 <Block ore="logWood" x="3" />
-<Block id="minecraft:chest" x="4" nbt="{id:\"Chest\",Items:[{Slot:0b,id:\"minecraft:diamond\",Count:1b,Damage:0s}]}" />
+<Block id="minecraft:chest" x="4" nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}' />
 ````
 
 ## `<ImportStructure>`
@@ -285,6 +349,7 @@ GuideNH 当前注册了以下场景子标签：
 | `offsetX` | 否 | 平移 X，整数（优先于 `x`） |
 | `offsetY` | 否 | 平移 Y，整数，会被限制在 `[0, 世界高度-1]`（优先于 `y`） |
 | `offsetZ` | 否 | 平移 Z，整数（优先于 `z`） |
+| `formed` | 否 | 是否让导入结构中的控制器在预览同步时按成型状态处理；默认 `false` |
 
 支持的格式：
 
@@ -302,6 +367,7 @@ GuideNH 当前注册了以下场景子标签：
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
 <ImportStructure src="/assets/example_structure.snbt" x="4" />
+<ImportStructure src="/assets/example_structure.snbt" formed={false} />
 ````
 
 ## `<ImportStructureLib>`
@@ -311,6 +377,7 @@ GuideNH 当前注册了以下场景子标签：
 | 属性 | 必需 | 含义 |
 | --- | --- | --- |
 | `controller` | 是 | 控制器方块 id，格式为 `modid:block[:meta]` |
+| `name` | 否 | 可选绑定名，供注解、模板和音效上的 `showWhenStructure` 使用 |
 | `piece` | 否 | StructureLib piece 名称覆盖值 |
 | `facing` | 否 | 传给导入器的朝向覆盖值 |
 | `rotation` | 否 | 传给导入器的旋转覆盖值 |
@@ -319,18 +386,51 @@ GuideNH 当前注册了以下场景子标签：
 | `offsetX` | 否 | 所有放置方块的 X 偏移，整数，默认 `0` |
 | `offsetY` | 否 | 所有放置方块的 Y 偏移，整数，会被限制在 `[0, 世界高度-1]`，默认 `0` |
 | `offsetZ` | 否 | 所有放置方块的 Z 偏移，整数，默认 `0` |
+| `formed` | 否 | 是否让导入的 StructureLib 控制器在预览同步时按成型状态处理；默认 `false` |
 
 说明：
 
 - 导入结构会从场景 `0 0 0` 开始；控制器不会被强制放在 `0 0 0`
 - 若有足够元数据，该标签会启用 StructureLib 专用 tooltip、舱口高亮和频道滑块 UI
 - 控制器匹配支持 GTNH 风格 `modid:block:meta`
+- 当场景里有多个 StructureLib 导入，而且其他标签需要只针对其中一个结构状态时，请显式提供 `name`
+- `facing`、`rotation` 与 `flip` 使用和 StructureLib 导出一致的朝向词汇；若请求的组合不被控制器允许，GuideNH 会自动回退到第一个有效对齐
+- GregTech 控制器预览默认朝向现在会相对旧预览方向绕 Y 轴旋转 180 度，也就是默认显示为旧朝向的背面
+- 若希望导入后的 GregTech 控制器保持未成型，请设置 `formed={false}`；这比故意提供残缺 NBT 更稳定
 
 示例：
 
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
+````
+
+按结构状态控制注解和音效的示例：
+
+````md
+<GameScene interactive={true}>
+  <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
+  <ImportStructureLib name="aux" controller="gregtech:gt.blockmachines:15412" />
+
+  <BlockAnnotation
+    pos="5 1 2"
+    color="#FFD24C"
+    showWhenStructure="main"
+    showWhenTier="2..4,!3"
+    showWhenChannels="input:1..3, casing:!2"
+  >
+    只会在匹配的 `main` 状态下显示。
+  </BlockAnnotation>
+
+  <PlaySound
+    sound="guidenh:machine.start"
+    trigger="click"
+    showWhenStructure="aux"
+    showWhenTier="1..2"
+  />
+</GameScene>
 ````
 
 ## `<IsometricCamera>`
@@ -391,12 +491,14 @@ GuideNH 当前注册了以下场景子标签：
 | `dx` | 否 | 包围盒宽度（默认 `1`）|
 | `dy` | 否 | 包围盒高度（默认 `1`）|
 | `dz` | 否 | 包围盒深度（默认 `1`）|
+| `formed` | 否 | 是否让替换结果中的控制器在预览同步时按成型状态处理；默认 `false` |
 
 说明：
 
 - 若 `x/y/z/dx/dy/dz` 均未提供，则全局扫描所有已填充方块
 - `from_nbt` 为**部分**匹配：仅检查模式中列出的键，TileEntity 中额外的键将被忽略
 - 替换使用与 `<Block>` 相同的方块放置流程，支持 GregTech MetaTile 及 BartWorks 方块
+- 若替换结果放入了控制器，`formed={false}` 可让该控制器在预览中保持未成型
 
 示例：
 
@@ -421,18 +523,21 @@ GuideNH 当前注册了以下场景子标签：
 | `dx` | 否 | 区域宽度，默认 `1` |
 | `dy` | 否 | 区域高度，默认 `1` |
 | `dz` | 否 | 区域深度，默认 `1` |
+| `formed` | 否 | 是否让放置出的控制器在预览同步时按成型状态处理；默认 `false` |
 
 说明：
 
 - 包围盒内所有方块均会被无条件放置（不检查原有方块）
 - NBT 复合标签在每次放置时独立复制
 - 使用与 `<Block>` 相同的方块放置流程，完整支持 GregTech MetaTile 及 BartWorks 方块
+- 若区域内放置了一个或多个控制器，`formed={false}` 会让这些控制器都保持未成型
 
 示例：
 
 ````md
 <PlaceBlock id="minecraft:stone" x="0" y="0" z="0" dx="5" dy="1" dz="5" />
 <PlaceBlock id="minecraft:glass" y="1" dx="3" dz="3" />
+<PlaceBlock id="gregtech:gt.blockmachines:15411" dx="3" dz="3" formed={false} />
 ````
 
 ## `<BlockAnnotationTemplate>`
@@ -475,6 +580,9 @@ GuideNH 当前注册了以下场景子标签：
 | `rotationY` | 否 | yaw，角度，默认 `-45` |
 | `rotationX` | 否 | pitch，角度，默认 `0` |
 | `data` | 否 | summon 风格 SNBT，会在生成前并入实体 NBT |
+| `sceneEntityId` | 否 | 稳定的场景内实体 id，供后续 `<Entity>` / `<RemoveEntity>` 操作以及导入场景快照恢复时引用 |
+| `mount` | 否 | 该实体生成后要骑乘的目标载具稳定 `sceneEntityId` |
+| `unmount` | 否 | 布尔表达式，生成后或状态重放时清除该实体当前的稳定骑乘关系 |
 | `name` | 否 | 当 `id` 是 `player`、`fakeplayer`、`minecraft:player` 或 `minecraft:fakeplayer` 时使用的预览玩家名 |
 | `uuid` | 否 | 使用上述玩家 id 时的预览玩家 UUID |
 | `showName` | 否 | 控制预览玩家头顶名牌的布尔表达式；对玩家预览 id 默认 `true` |
@@ -490,6 +598,10 @@ GuideNH 当前注册了以下场景子标签：
 
 - 实体包围盒会参与场景自动居中和可见层筛选
 - 当预览世界尚未准备好时，实体创建会优雅回退，并在首次渲染时绑定
+- `sceneEntityId` 不是必填，但只要后续要删除、重建、重新骑乘或从缓存恢复同一个逻辑实体，强烈建议填写
+- 同一个 `sceneEntityId` 可以关联多个运行时实体；`<RemoveEntity sceneEntityId="..."/>` 会一起移除当前登记到该稳定 id 的全部实体
+- `mount` 通过稳定场景 id 建立骑乘关系，而不是依赖原始 NBT 乘客链，因此回放、导入导出、预览重建和 Ponder 拖动时间轴时都能稳定恢复
+- `unmount={true}` 会先清除该实体当前的稳定骑乘关系，再应用后续新的骑乘关系
 - 玩家预览 id 会创建客户端侧 fake remote player，以复用普通玩家渲染器和皮肤管线
 - 若玩家预览既未提供 `name` 也未提供 `uuid`，GuideNH 会回退到 `Steve` 和原版默认皮肤
 - 只提供 `name` 时，GuideNH 会先尝试解析真实在线 profile 以加载皮肤和披风；失败时回退到稳定离线 UUID
@@ -507,6 +619,28 @@ GuideNH 当前注册了以下场景子标签：
 <GameScene zoom={4} interactive={true}>
   <Block id="minecraft:grass" />
   <Entity id="minecraft:sheep" y="1" data="{Color:2}" />
+</GameScene>
+````
+
+稳定 id 骑乘示例：
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="minecraft:horse" x="1.5" y="1" sceneEntityId="horse" />
+  <Entity id="player" x="1.5" y="2" sceneEntityId="rider" mount="horse" name="GuideNH" />
+</GameScene>
+````
+
+取消骑乘与删除示例：
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="minecraft:horse" x="1.5" y="1" sceneEntityId="horse" />
+  <Entity id="player" x="1.5" y="2" sceneEntityId="rider" mount="horse" name="GuideNH" />
+  <Entity id="player" x="3" y="1" sceneEntityId="rider" unmount={true} name="GuideNH" />
+  <RemoveEntity sceneEntityId="horse" />
 </GameScene>
 ````
 
@@ -536,6 +670,62 @@ GuideNH 当前注册了以下场景子标签：
   <Block id="minecraft:grass" />
   <Entity id="player" y="1" name="Huan_F" showName={true} showCape={true} />
   <Entity id="player" x="2" y="1" showName={false} showCape={false} />
+</GameScene>
+````
+
+## `<RemoveEntity>`
+
+按稳定 `sceneEntityId` 移除当前登记到该 id 的全部运行时实体。
+
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `sceneEntityId` | 是 | 需要移除的稳定场景实体 id |
+| `unmount` | 否 | 在移除前先清除稳定骑乘关系的布尔表达式 |
+
+说明：
+
+- 这是场景标签侧对应 Ponder `removeEntities` 的删除能力
+- 删除走稳定 id 索引，不需要每帧全量扫描全部实体
+- 如果多个导入或重放出的实体共享同一个 `sceneEntityId`，会被一起移除
+
+示例：
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="minecraft:pig" y="1" sceneEntityId="demoPig" />
+  <RemoveEntity sceneEntityId="demoPig" />
+</GameScene>
+````
+
+## Weather
+
+`<Weather>` 可直接为 `GameScene` 添加动画雨雪。与 Ponder 的天气预设不同，场景天气不归时间轴管理：
+它会在普通场景渲染时持续循环，不带淡入淡出，也不能单独暂停或拖动。底层渲染仍复用与 Ponder
+天气相同的降水几何路径，因此本地预览与 site export 的效果保持一致。
+
+| 属性 | 默认值 | 说明 |
+| --- | --- | --- |
+| `weather` / `type` | `rain` | 天气类型。支持 `rain`、`snow`。 |
+| `x`、`z` | 场景边界 | 覆盖的降水列。单值表示一列；数组按端点对定义一个或多个矩形区域。 |
+| `density` | 按类型决定 | 覆盖密度。值越高，保留的降水列越多；值越低，效果越稀疏。 |
+
+说明：
+
+- `<Weather>` 不使用 `y`；垂直范围由当前场景边界以及每一列中最高的降水遮挡方块共同推导。
+- 如果某一轴数组末尾有无法配对的多余值，这部分会被忽略。
+- 在同一个天气声明内，同一个 `x/z` 列不会叠加雨和雪。多个天气标签发生重叠时，前面声明的标签优先占用共享列。
+- 同一个 `GameScene` 中，不同且不重叠的列可以同时渲染雨和雪。
+
+示例：
+
+````md
+<GameScene width="256" height="160" zoom={4} interactive={false}>
+  <Block id="minecraft:grass" />
+  <Block id="minecraft:stone" x="1" />
+  <Block id="minecraft:stone" x="2" />
+  <Weather weather="rain" x="0 1" z="0 0" density="10" />
+  <Weather weather="snow" x="2 2" z="0 0" density="7" />
 </GameScene>
 ````
 

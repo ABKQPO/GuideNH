@@ -72,6 +72,9 @@ navigation:
 
 Without navigation frontmatter, the page can still exist and be linked to directly, but it will not automatically appear in the guide navigation tree.
 
+If you also want a page to appear in the home page Recommended panel, add `navigation.recommend`.
+The field is optional, `0` is valid, and larger values appear earlier.
+
 ## Adding Assets
 
 Place page-local assets next to the page file:

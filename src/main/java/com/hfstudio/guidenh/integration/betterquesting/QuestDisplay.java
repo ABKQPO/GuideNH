@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.integration.betterquesting;
 
-import net.minecraft.item.ItemStack;
-
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -16,15 +14,11 @@ public class QuestDisplay {
     private final String name;
     @Nullable
     private final String description;
-    @Nullable
-    private final ItemStack icon;
 
-    public QuestDisplay(QuestState state, @Nullable String name, @Nullable String description,
-        @Nullable ItemStack icon) {
+    public QuestDisplay(QuestState state, @Nullable String name, @Nullable String description) {
         this.state = state;
         this.name = name;
         this.description = description;
-        this.icon = icon;
     }
 
     public QuestState getState() {
@@ -39,10 +33,5 @@ public class QuestDisplay {
     @Nullable
     public String getDescription() {
         return description;
-    }
-
-    @Nullable
-    public ItemStack getIcon() {
-        return icon;
     }
 }

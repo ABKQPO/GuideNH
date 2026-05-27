@@ -6,12 +6,12 @@ GuideNH already ships a runtime example guide in `wiki/resourcepack/`. This page
 
 | Runtime file | What it demonstrates |
 | --- | --- |
-| `.../_en_us/index.md` | frontmatter, item ids, recipes, item/block images, command links, tooltips, scenes, annotations, `ImportStructureLib`, `RemoveBlocks`, `BlockAnnotationTemplate` |
-| `.../_en_us/markdown.md` | plain markdown features and tables |
+| `.../_en_us/index.md` | frontmatter, item ids, recipes, item/block images, command links, tooltips, scenes, annotations, `ImportStructureLib`, `RemoveBlocks`, `BlockAnnotationTemplate`, home-page recommendation example |
+| `.../_en_us/markdown.md` | plain markdown features, tables, and a `recommend: 0` example |
 | `.../_en_us/rendering.md` | block-level rendering and layout behavior |
 | `.../_en_us/scene-blocks.md` | static and interactive block scene examples |
 | `.../_en_us/japanese.md` | navigation child example |
-| `.../_en_us/navigation-guide.md` | navigation / linking example |
+| `.../_en_us/navigation-guide.md` | navigation, linking, and high-priority recommendation example |
 | `wiki/resourcepack/assets/gregtech/guidenh/_en_us/index.md` | second namespace example for cross-guide links and isolated same-name pages |
 
 ## Asset Examples
@@ -31,6 +31,23 @@ item_ids:
 navigation:
   title: Root
   icon_texture: test1.png
+  recommend: 3
+```
+
+### Home Recommendation
+
+```yaml
+navigation:
+  title: Markdown Basics
+  parent: index.md
+  recommend: 0
+```
+
+```yaml
+navigation:
+  title: Navigation & Index
+  parent: index.md
+  recommend: 5
 ```
 
 ### Relative Image

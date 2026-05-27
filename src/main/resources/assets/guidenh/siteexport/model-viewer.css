@@ -50,10 +50,158 @@ img.game-scene.guide-scene {
     position: relative;
 }
 
+.game-scene-wrapper .scene-annotation-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    overflow: hidden;
+}
+
 .game-scene-wrapper canvas {
     display: block;
     width: 100%;
     height: 100%;
+}
+
+.scene-text-annotation,
+.scene-input-annotation {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    font-family: 'Pixeloid Sans', sans-serif;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.95);
+    pointer-events: none;
+}
+
+.scene-text-annotation {
+    min-width: calc(24px * var(--gui-scale));
+    max-width: calc(96px * var(--gui-scale));
+    padding: calc(3px * var(--gui-scale)) calc(4px * var(--gui-scale));
+    border: 1px solid var(--annotation-border-color, rgba(255, 255, 255, 0.95));
+    background: var(--annotation-background, rgba(14, 14, 32, 0.8));
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75);
+    line-height: 1.3;
+    font-size: calc(4px * var(--gui-scale));
+}
+
+.scene-text-annotation[data-connector-side="bottom"]::after,
+.scene-text-annotation[data-connector-side="top"]::after,
+.scene-text-annotation[data-connector-side="left"]::after,
+.scene-text-annotation[data-connector-side="right"]::after {
+    content: "";
+    position: absolute;
+    background: var(--annotation-border-color, rgba(255, 255, 255, 0.95));
+}
+
+.scene-text-annotation[data-connector-side="bottom"]::after {
+    left: calc(50% + var(--annotation-connector-offset, 0px));
+    bottom: calc(-1 * var(--annotation-connector-length, 0px));
+    width: 1px;
+    height: var(--annotation-connector-length, 0px);
+    transform: translateX(-50%);
+}
+
+.scene-text-annotation[data-connector-side="top"] {
+    transform: translate(-50%, 0);
+}
+
+.scene-text-annotation[data-connector-side="top"]::after {
+    left: calc(50% + var(--annotation-connector-offset, 0px));
+    top: calc(-1 * var(--annotation-connector-length, 0px));
+    width: 1px;
+    height: var(--annotation-connector-length, 0px);
+    transform: translateX(-50%);
+}
+
+.scene-text-annotation[data-connector-side="left"] {
+    transform: translate(0, -50%);
+}
+
+.scene-text-annotation[data-connector-side="left"]::after {
+    top: calc(50% + var(--annotation-connector-offset, 0px));
+    left: calc(-1 * var(--annotation-connector-length, 0px));
+    width: var(--annotation-connector-length, 0px);
+    height: 1px;
+    transform: translateY(-50%);
+}
+
+.scene-text-annotation[data-connector-side="right"] {
+    transform: translate(-100%, -50%);
+}
+
+.scene-text-annotation[data-connector-side="right"]::after {
+    top: calc(50% + var(--annotation-connector-offset, 0px));
+    right: calc(-1 * var(--annotation-connector-length, 0px));
+    width: var(--annotation-connector-length, 0px);
+    height: 1px;
+    transform: translateY(-50%);
+}
+
+.scene-text-annotation[data-connector-side="none"]::after {
+    display: none;
+}
+
+.scene-text-annotation p {
+    margin: 0;
+}
+
+.scene-text-annotation br + * {
+    margin-top: calc(1px * var(--gui-scale));
+}
+
+.scene-input-annotation {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(2px * var(--gui-scale));
+}
+
+.scene-input-annotation-modifier {
+    font-size: calc(4px * var(--gui-scale));
+    color: rgb(204, 204, 204);
+}
+
+.scene-input-annotation-body {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(2px * var(--gui-scale));
+    padding: calc(3px * var(--gui-scale));
+    border: 1px solid rgba(170, 170, 221, 0.8);
+    background: rgba(14, 14, 32, 0.8);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75);
+}
+
+.scene-input-annotation-item {
+    width: calc(8px * var(--gui-scale));
+    height: calc(8px * var(--gui-scale));
+    image-rendering: pixelated;
+}
+
+.scene-input-annotation-item--fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: calc(8px * var(--gui-scale));
+    min-height: calc(8px * var(--gui-scale));
+    max-width: calc(28px * var(--gui-scale));
+    overflow: hidden;
+    font-size: calc(3px * var(--gui-scale));
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scene-input-annotation-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: calc(12px * var(--gui-scale));
+    min-height: calc(8px * var(--gui-scale));
+    padding: 0 calc(2px * var(--gui-scale));
+    background: rgba(255, 255, 255, 0.12);
+    font-size: calc(4px * var(--gui-scale));
+    font-weight: 700;
+    letter-spacing: 0.04em;
 }
 
 .game-scene-wrapper .controls {

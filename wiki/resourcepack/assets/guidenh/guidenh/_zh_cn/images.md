@@ -2,7 +2,7 @@
 navigation:
   title: 图片
   parent: index.md
-  position: 55
+  position: 145
   icon: minecraft:wool:1
 categories:
   - widgets
@@ -160,12 +160,22 @@ categories:
 
 ## BlockImage 缩放
 
+`BlockImage` 现在显示的是透明背景的 3D 放置方块预览，而不是物品形态图标。
+
 <Row>
   <BlockImage id="minecraft:stone" scale="1" />
   <BlockImage id="minecraft:stone" scale="2" />
   <BlockImage id="minecraft:stone" scale="3" />
   <BlockImage id="minecraft:stone" scale="4" />
   <BlockImage id="minecraft:stone" scale="6" />
+</Row>
+
+## BlockImage 视角与 Tile NBT
+
+<Row>
+  <BlockImage id="minecraft:furnace" scale="2.5" perspective="isometric-north-east" />
+  <BlockImage id="minecraft:furnace" scale="2.5" perspective="isometric-north-west" />
+  <BlockImage id="minecraft:chest" scale="2.5" nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}' />
 </Row>
 
 ## BlockImage 行列示例

@@ -30,18 +30,27 @@ public class ChartChildParser {
 
     public static List<ChartSeries> parseValueSeries(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields parentEl) {
-        return parseSeriesInternal(compiler, errorSink, parentEl, false);
+        return parseValueSeries(compiler, errorSink, childElements(compiler, parentEl));
     }
 
     public static List<ChartSeries> parsePointSeries(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields parentEl) {
-        return parseSeriesInternal(compiler, errorSink, parentEl, true);
+        return parsePointSeries(compiler, errorSink, childElements(compiler, parentEl));
+    }
+
+    public static List<ChartSeries> parseValueSeries(PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children) {
+        return parseSeriesInternal(compiler, errorSink, children, false);
+    }
+
+    public static List<ChartSeries> parsePointSeries(PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children) {
+        return parseSeriesInternal(compiler, errorSink, children, true);
     }
 
     private static List<ChartSeries> parseSeriesInternal(PageCompiler compiler, LytErrorSink errorSink,
-        MdxJsxElementFields parentEl, boolean usePoints) {
+        List<? extends MdAstAnyContent> children, boolean usePoints) {
         List<ChartSeries> result = new ArrayList<>();
-        List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(parentEl);
         int colorIdx = 0;
         for (MdAstAnyContent child : children) {
             MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(child);
@@ -85,8 +94,12 @@ public class ChartChildParser {
 
     public static List<PieSlice> parseSlices(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields parentEl) {
+        return parseSlices(compiler, errorSink, childElements(compiler, parentEl));
+    }
+
+    public static List<PieSlice> parseSlices(PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children) {
         List<PieSlice> result = new ArrayList<>();
-        List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(parentEl);
         int colorIdx = 0;
         for (MdAstAnyContent child : children) {
             MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(child);
@@ -126,8 +139,12 @@ public class ChartChildParser {
      */
     public static List<ChartSeries> parseLineOverlays(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields parentEl) {
+        return parseLineOverlays(compiler, errorSink, childElements(compiler, parentEl));
+    }
+
+    public static List<ChartSeries> parseLineOverlays(PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children) {
         List<ChartSeries> result = new ArrayList<>();
-        List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(parentEl);
         // Use a dedicated palette offset so line colors do not collide with the bar palette by default.
         int colorIdx = 0;
         for (MdAstAnyContent child : children) {
@@ -156,7 +173,11 @@ public class ChartChildParser {
      */
     public static PieInsetSpec parsePieInset(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields parentEl) {
-        List<? extends MdAstAnyContent> children = compiler.reparseBlockTagChildren(parentEl);
+        return parsePieInset(compiler, errorSink, childElements(compiler, parentEl));
+    }
+
+    public static PieInsetSpec parsePieInset(PageCompiler compiler, LytErrorSink errorSink,
+        List<? extends MdAstAnyContent> children) {
         for (MdAstAnyContent child : children) {
             MdxJsxElementFields childEl = SceneTagCompiler.unwrapSceneElement(child);
             if (childEl == null) continue;
@@ -181,11 +202,15 @@ public class ChartChildParser {
             if (titleColor != null) {
                 spec.setTitleColor(ChartAttrParser.parseColor(titleColor, spec.getTitleColor()));
             }
-            // Parse nested <Slice> children of the inset itself.
-            spec.setSlices(parseSlices(compiler, errorSink, childEl));
+            // Reuse the already reparsed inset subtree so nested tags do not need another source slice.
+            spec.setSlices(parseSlices(compiler, errorSink, childEl.children()));
             return spec;
         }
         return null;
+    }
+
+    public static List<? extends MdAstAnyContent> childElements(PageCompiler compiler, MdxJsxElementFields parentEl) {
+        return compiler.reparseBlockTagChildren(parentEl);
     }
 
     private static void applyIconAndTooltip(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,

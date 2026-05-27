@@ -12,6 +12,7 @@ import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibOrientationHelper;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.BuildContext;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.ResolvedController;
@@ -88,9 +89,9 @@ public class StructureLibAlignmentResolver {
         if (limits == null) {
             return true;
         }
-        ForgeDirection direction = StructureLibRuntimeFacade.parseDirection(orientation.getFacing(), warnings);
-        Rotation rotation = StructureLibRuntimeFacade.parseRotation(orientation.getRotation(), warnings);
-        Flip flip = StructureLibRuntimeFacade.parseFlip(orientation.getFlip(), warnings);
+        ForgeDirection direction = StructureLibOrientationHelper.parseDirection(orientation.getFacing(), warnings);
+        Rotation rotation = StructureLibOrientationHelper.parseRotation(orientation.getRotation(), warnings);
+        Flip flip = StructureLibOrientationHelper.parseFlip(orientation.getFlip(), warnings);
         return limits.isNewExtendedFacingValid(ExtendedFacing.of(direction, rotation, flip));
     }
 }

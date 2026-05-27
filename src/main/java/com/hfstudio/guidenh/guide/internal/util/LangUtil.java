@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class LangUtil {
 
+    public static final String ENGLISH_LANGUAGE = "en_us";
     public static final Pattern LANGUAGE_CODE_PATTERN = Pattern.compile("[a-z0-9][a-z0-9_\\-]*");
 
     private LangUtil() {}
@@ -28,7 +29,7 @@ public class LangUtil {
         if (client != null && client.gameSettings != null) {
             return normalizeLanguage(client.gameSettings.language);
         }
-        return "en_us";
+        return ENGLISH_LANGUAGE;
     }
 
     public static ResourceLocation getTranslatedAsset(ResourceLocation assetId, String language) {

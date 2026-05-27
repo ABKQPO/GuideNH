@@ -111,8 +111,8 @@ public final class GuideScreenEditorTextActions {
                     "project\n  src\n  docs");
             case SUB_PAGES:
                 return applyAttributeTag(source, start, end, "SubPages", "id", "", true);
-            case CATEGORY_INDEX:
-                return applyAttributeTag(source, start, end, "CategoryIndex", "category", "general", true);
+            case CATEGORY:
+                return applyNamedTag(source, start, end, "Category", "name", "general", " rows=\"3\"", true);
             case FOOTNOTE_LIST:
                 return applyNamedBlock(
                     source,
@@ -1150,10 +1150,15 @@ public final class GuideScreenEditorTextActions {
 
     private static Result applyAttributeTag(String source, int start, int end, String tagName, String attribute,
         String defaultValue, boolean selfClosing) {
+        return applyNamedTag(source, start, end, tagName, attribute, defaultValue, "", selfClosing);
+    }
+
+    private static Result applyNamedTag(String source, int start, int end, String tagName, String attribute,
+        String defaultValue, String extraAttributes, boolean selfClosing) {
         String selected = start < end ? sanitizeAttributeValue(source.substring(start, end)) : "";
         String value = selected.isEmpty() ? defaultValue : selected;
         String close = selfClosing ? " />" : "></" + tagName + ">";
-        String replacement = "<" + tagName + " " + attribute + "=\"" + value + "\"" + close;
+        String replacement = "<" + tagName + " " + attribute + "=\"" + value + "\"" + extraAttributes + close;
         int caretStart = start + replacement.indexOf(value);
         return new Result(
             source.substring(0, start) + replacement + source.substring(end),

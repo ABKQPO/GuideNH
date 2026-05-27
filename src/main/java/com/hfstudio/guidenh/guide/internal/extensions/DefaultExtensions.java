@@ -14,7 +14,6 @@ import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BoxFlowDirection;
 import com.hfstudio.guidenh.guide.compiler.tags.BoxTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BreakCompiler;
-import com.hfstudio.guidenh.guide.compiler.tags.CategoryIndexCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ColorTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CommentTagCompiler;
@@ -47,6 +46,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.chart.PieChartCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ScatterChartCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.CategoryCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.SpecialCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
@@ -62,12 +63,15 @@ import com.hfstudio.guidenh.guide.scene.element.ImportPonderElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.IsometricCameraElementCompiler;
+import com.hfstudio.guidenh.guide.scene.element.ParticleElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.PlaceBlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.PlaySoundElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.RemoveBlocksElementCompiler;
+import com.hfstudio.guidenh.guide.scene.element.RemoveEntityElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ReplaceBlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.element.TextAnnotationElementCompiler;
+import com.hfstudio.guidenh.guide.scene.element.WeatherElementCompiler;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.TagCompilerProvider;
 
@@ -112,7 +116,8 @@ public class DefaultExtensions {
                 new FileTreeTagCompiler(),
                 new RecipeCompiler(),
                 new ItemGridCompiler(),
-                new CategoryIndexCompiler(),
+                new CategoryCompiler(),
+                new SpecialCompiler(),
                 new BlockImageCompiler(),
                 new ItemImageCompiler(),
                 new BoxTagCompiler(BoxFlowDirection.ROW),
@@ -159,8 +164,11 @@ public class DefaultExtensions {
             new DiamondAnnotationElementCompiler(),
             new BlockAnnotationTemplateElementCompiler(),
             new TextAnnotationElementCompiler(),
+            new ParticleElementCompiler(),
+            new WeatherElementCompiler(),
             new PlaySoundElementCompiler(),
             new RemoveBlocksElementCompiler(),
+            new RemoveEntityElementCompiler(),
             new ReplaceBlockElementCompiler(),
             new PlaceBlockElementCompiler());
     }

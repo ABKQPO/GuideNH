@@ -3,7 +3,7 @@
   "keyframes": [
     {
       "time": 0,
-      "label": "Overview",
+      "labelKey": "guidenh.sample.ponder.label.overview",
       "camera": {
         "zoom": 1.5,
         "rotX": 20.0,
@@ -17,7 +17,7 @@
     },
     {
       "time": 60,
-      "label": "Input hatch",
+      "labelKey": "guidenh.sample.ponder.label.input",
       "camera": {
         "rotY": 180.0
       },
@@ -29,7 +29,7 @@
           "y": 1.5,
           "z": 1.5,
           "color": "0xFF44FF44",
-          "tooltip": "EV Input Bus",
+          "tooltipKey": "guidenh.sample.ponder.tooltip.input_bus",
           "alwaysOnTop": true
         },
         {
@@ -37,7 +37,7 @@
           "x": 0.5,
           "y": 3.0,
           "z": 1.5,
-          "text": "Insert ore here",
+          "textKey": "guidenh.sample.ponder.text.insert_ore",
           "color": "0xFF44FF44"
         },
         {
@@ -51,7 +51,7 @@
     },
     {
       "time": 140,
-      "label": "Output side",
+      "labelKey": "guidenh.sample.ponder.label.output",
       "camera": {
         "rotY": 90.0
       },
@@ -92,7 +92,7 @@
           "x": 2.5,
           "y": 3.0,
           "z": 1.5,
-          "text": "Collect dust here",
+          "textKey": "guidenh.sample.ponder.text.collect_dust",
           "color": "0xFF00AAFF"
         },
         {
@@ -106,7 +106,7 @@
     },
     {
       "time": 220,
-      "label": "Scroll layers",
+      "labelKey": "guidenh.sample.ponder.label.scroll",
       "camera": {
         "rotY": 225.0
       },
@@ -124,7 +124,7 @@
           "x": 1.5,
           "y": 3.5,
           "z": 1.5,
-          "text": "Scroll to show layers",
+          "textKey": "guidenh.sample.ponder.text.scroll_layers",
           "color": "0xFFFFCC00"
         }
       ]

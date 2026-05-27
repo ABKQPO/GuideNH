@@ -109,6 +109,8 @@ GuideNH 当前的 Mermaid 运行时支持聚焦在 `mindmap`：
 - 内容以 `mindmap` 开头时的自动识别
 - 显式 `<Mermaid>...</Mermaid>` 标签
 - 显式 `<Mermaid src="./diagram.mmd" />` 资源导入
+- Mermaid 节点文本中的富文本行内 Markdown
+- 作为 `<Mermaid>` 子元素的 `<NodeContent id="...">...</NodeContent>`，可为指定节点放入任意运行时块内容
 - 游戏内整张图拖拽平移
 - Mermaid 源文本里的 `layout: tidy-tree`
 - 常见 mindmap 节点形状，例如方形、圆角、圆形、bang、cloud、hexagon
@@ -128,6 +130,23 @@ mindmap
 ```
 
 <Mermaid src="./markdown-mindmap.mmd" />
+
+<Mermaid width="340" height="240">
+mindmap
+  root["**GuideNH** [首页](./index.md)"]
+    runtime["运行时块"]
+    export["站点导出"]
+
+<NodeContent id="runtime">
+运行时节点里可以混排普通文本、链接和块内容。
+
+<ItemImage id="minecraft:diamond" />
+</NodeContent>
+
+<NodeContent id="export">
+![Machine Diagram](./resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png)
+</NodeContent>
+</Mermaid>
 ````
 
 当前运行时尚未支持的 Mermaid 图类型，会继续按带有 Mermaid 标签的普通代码块显示。
@@ -250,10 +269,10 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | 键 | 类型 | 含义 |
 | --- | --- | --- |
 | `navigation` | map | 将页面加入导航树 |
-| `categories` | 字符串列表 | 将页面加入分类索引 |
+| `categories` | 字符串列表 | 将页面加入 MediaWiki 风格分类；每一项可选使用 `分类名|排序名` |
 | `item_ids` | 物品引用列表 | 让页面可被 `<ItemLink>` 发现 |
 | `ore_ids` | 矿辞名列表 | 让页面可被矿辞物品（如 `ingotIron`、`oreCopper`）索引 |
-| `quest_ids` | BetterQuesting 任务 UUID 字符串列表 | 让页面可被 `<QuestLink>` / `<QuestCard>` 以及 BQ 任务 GUI 中的打开指南快捷键发现。仅在 BetterQuesting 加载时生效。参见 [模组兼容](Mod-Compatibility-zh-CN) |
+| `quest_ids` | BetterQuesting 任务 id 列表 | 让页面可被 `<QuestLink>` / `<QuestCard>` 以及 BQ 任务 GUI 中的打开指南快捷键发现。支持标准 UUID 字符串和 BetterQuesting 的紧凑 Base64 形式。仅在 BetterQuesting 加载时生效。参见 [模组兼容](Mod-Compatibility-zh-CN) |
 | `author` | string | 单一作者名称。显示在底部栏中。 |
 | `authors` | 字符串列表或 `{name: ...}` 映射列表 | 多位作者名称。最多显示两位，多余的用 `...` 替代。与 `author` 同时存在时以 `authors` 为准。 |
 | `date` | 字符串或 YYYY-MM-DD 日期 | 内容创建日期。显示在底部栏中。 |
@@ -267,7 +286,7 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | --- | --- | --- | --- |
 | `title` | 是 | string | 导航显示名称，也可作为搜索标题后备值 |
 | `parent` | 否 | page id | 父页面 id；省略时为顶级节点 |
-| `position` | 否 | integer | 同级排序顺序，默认 `0` |
+| `position` | 否 | integer | 同级排序顺序，默认 `0`，数值越大越靠前 |
 | `priority` | 否 | integer | 同路径页面覆盖时的加载优先级；默认 `0`，数值更高者胜出，相同优先级时后处理的资源包条目覆盖先处理的 |
 | `icon` | 否 | item id | 导航和搜索中显示的物品图标。支持 `modid:name`、`modid:name:meta`（冒号分隔的损伤值/子类型）、`<modid:name:meta>`（严格形式；meta `32767` 匹配所有子类型）以及 `modid:name meta`（空格分隔，过滤表达式风格）。 |
 | `icons` | 否 | item id 列表 | 循环轮播的物品图标列表（每秒切换一次）。每项语法同 `icon`。存在时优先于 `icon` 使用。 |
@@ -309,16 +328,28 @@ navigation:
   #   - test2.png
 categories:
   - basics
-  - examples
+  - examples|Examples Overview
 ore_ids:
   - ingotIron
   - oreCopper
 quest_ids:
   - 01234567-89ab-cdef-0123-456789abcdef
+  - AAAAAAAAAAAAAAAAAAAMug==
 author: 示例作者
 date: 2024-01-15
 updated: 2024-06-01
 ```
+
+`categories` 既支持普通分类名，也支持 `分类名|排序名` 形式。
+可以使用 `<Category name="examples" rows="3" />` 渲染分类列表块，
+并使用 `<Special name="SpecialPages" rows="3" />` 嵌入自动生成的 MediaWiki 风格特殊页索引。
+
+对于 BetterQuesting 集成，`quest_ids` 支持两种格式：
+
+- 标准 UUID 字符串，例如 `01234567-89ab-cdef-0123-456789abcdef`
+- BetterQuesting 的紧凑 quest id，例如 `AAAAAAAAAAAAAAAAAAAMug==`
+
+不要在同一页面的 `quest_ids` 中同时填写同一个任务的两种写法；它们会归一化成同一个内部 UUID，并被视为重复项。
 
 当 `author`、`authors`、`date` 或 `updated` 中任意一项存在时，GuideNH 会在
 指南界面底部显示一个与顶部工具栏风格一致的底部栏，靠右对齐显示形如：

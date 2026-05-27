@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 public class LayoutContext implements FontMetrics {
 
     private final FontMetrics fontMetrics;
+    private float visualScale = 1.0f;
 
     private final List<LytRect> leftFloats = new ArrayList<>();
     private final List<LytRect> rightFloats = new ArrayList<>();
@@ -21,6 +22,15 @@ public class LayoutContext implements FontMetrics {
 
     public LayoutContext(FontMetrics fontMetrics) {
         this.fontMetrics = fontMetrics;
+    }
+
+    public LayoutContext withVisualScale(float visualScale) {
+        this.visualScale = Math.max(0.1f, Math.min(1.0f, visualScale));
+        return this;
+    }
+
+    public float getVisualScale() {
+        return visualScale;
     }
 
     public void addLeftFloat(LytRect bounds) {

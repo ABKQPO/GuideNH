@@ -164,7 +164,7 @@ public class RecipeCompiler extends BlockTagCompiler {
                 int recipeEnd = exactRecipeIndex >= 0 ? Math.min(num, exactRecipeIndex + 1) : num;
                 for (int ri = recipeStart; ri < recipeEnd && boxes.size() < limit; ri++) {
                     if (hasRecipeFilter && !recipeMatches(handler, ri, inputExpr, outputExpr)) continue;
-                    boxes.add(new LytNeiRecipeBox(handler, ri));
+                    boxes.add(new LytNeiRecipeBox(handler, ri, !usageQuery));
                 }
             }
             if (!boxes.isEmpty()) {

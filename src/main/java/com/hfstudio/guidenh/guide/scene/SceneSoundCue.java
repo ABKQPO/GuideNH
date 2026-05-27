@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 
@@ -7,6 +9,8 @@ public class SceneSoundCue {
 
     private final GuideSoundTrigger trigger;
     private final GuideSoundSpec sound;
+    @Nullable
+    private StructureLibSceneCondition structureLibCondition;
     private boolean entered;
     private boolean hovered;
 
@@ -21,6 +25,15 @@ public class SceneSoundCue {
 
     public GuideSoundSpec getSound() {
         return sound;
+    }
+
+    @Nullable
+    public StructureLibSceneCondition getStructureLibCondition() {
+        return structureLibCondition;
+    }
+
+    public void setStructureLibCondition(@Nullable StructureLibSceneCondition structureLibCondition) {
+        this.structureLibCondition = structureLibCondition;
     }
 
     public boolean isEntered() {

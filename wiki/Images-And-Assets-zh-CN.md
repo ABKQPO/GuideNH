@@ -223,6 +223,33 @@ GuideNH 页面也可以引用非图片类运行时资源，最常见的是结构
 - 多页面共享文件优先使用根路径 `/assets/...`
 - 只有在资源确实是图片时才使用纹理图标
 
+## `BlockImage`
+
+`<BlockImage>` 也遵循与 `<FloatingImage>` 相同的块级嵌入规则，但它显示的是透明背景的 3D
+单方块预览，而不是位图图片。它适合在正常正文里直接展示“方块被放在世界里时”的样子。
+
+关键行为：
+
+- 背景透明，边框透明
+- 没有场景按钮，没有 layer 滑条，也没有注解编辑面
+- 悬停时依然会显示方块选中线框与 tooltip
+- `scale` 控制相机缩放
+- `perspective` 支持 `isometric-north-east`、`isometric-north-west`、`up`
+- `nbt` 用于提供 TileEntity SNBT；`id="mod:block:meta:{...}"` 形式的内联 SNBT 仍然可用，
+  但独立 `nbt` 属性更清晰，推荐优先使用
+
+示例：
+
+````md
+<BlockImage id="minecraft:stone" scale="2" />
+<BlockImage id="minecraft:furnace" perspective="isometric-north-west" scale="2.5" />
+<BlockImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:apple",Count:8b,Damage:0s}]}'
+/>
+````
+
 ## 运行时示例文件
 
 - `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png`

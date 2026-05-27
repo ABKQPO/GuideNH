@@ -225,6 +225,34 @@ These assets are loaded through the same guide asset pipeline but are consumed b
 - prefer rooted `/assets/...` paths for shared files referenced by multiple pages
 - use texture icons only for real image assets
 
+## `BlockImage`
+
+`<BlockImage>` uses the same block-level embedding rules as `<FloatingImage>`, but the visual
+content is a transparent 3D single-block preview instead of a bitmap. It is best suited for
+showing how a placed block looks in-world while still fitting inline with normal guide prose.
+
+Key behavior:
+
+- transparent background and border
+- no scene buttons, no layer slider, no annotation authoring surface
+- hover still shows the selected block outline and tooltip
+- `scale` changes camera zoom
+- `perspective` accepts `isometric-north-east`, `isometric-north-west`, and `up`
+- `nbt` supplies tile-entity SNBT; inline `id="mod:block:meta:{...}"` SNBT still works, but the
+  standalone `nbt` attribute is easier to read and is preferred
+
+Example:
+
+````md
+<BlockImage id="minecraft:stone" scale="2" />
+<BlockImage id="minecraft:furnace" perspective="isometric-north-west" scale="2.5" />
+<BlockImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:apple",Count:8b,Damage:0s}]}'
+/>
+````
+
 ## Runtime Example Files
 
 - `wiki/resourcepack/assets/guidenh/guidenh/_en_us/test1.png`

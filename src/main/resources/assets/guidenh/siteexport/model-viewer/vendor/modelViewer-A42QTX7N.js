@@ -3588,7 +3588,7 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     W(F?.hoverRuntimeTarget);
     c(F?.templateId);
   };
-  return f.setAnimationLoop(J),t.append(f.domElement),{dispose(){D||(console.debug("Disposing model viewer for %s",e),D=!0,W(void 0),R&&R.disconnect(),f.setAnimationLoop(null),t.removeChild(f.domElement),f.dispose(),M?.dispose(),c(void 0))},resetView(){M?.reset()},zoomIn(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:-120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},zoomOut(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}}};
+  return f.setAnimationLoop(J),t.append(f.domElement),{dispose(){D||(console.debug("Disposing model viewer for %s",e),D=!0,W(void 0),R&&R.disconnect(),f.setAnimationLoop(null),t.removeChild(f.domElement),f.dispose(),M?.dispose(),c(void 0))},resetView(){M?.reset()},zoomIn(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:-120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},zoomOut(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},projectWorldPosition(A){if(!A||A.length<3||!f.domElement)return null;let q=new C(A[0],A[1],A[2]);g.localToWorld(q),q.project(S);if(!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isFinite(q.z))return null;let F=f.domElement.getBoundingClientRect();return{x:(q.x*.5+.5)*F.width,y:(-q.y*.5+.5)*F.height,z:q.z,visible:q.z>=-1&&q.z<=1}}};
 }
 
 function guidenhParseSceneArray(s,e){

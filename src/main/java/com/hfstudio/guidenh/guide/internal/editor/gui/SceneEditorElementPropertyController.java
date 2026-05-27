@@ -1,14 +1,18 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
+import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
 public class SceneEditorElementPropertyController {
@@ -92,6 +96,34 @@ public class SceneEditorElementPropertyController {
         element.setSecondaryX(x);
         element.setSecondaryY(y);
         element.setSecondaryZ(z);
+        if (element.getType() == SceneEditorElementType.LINE) {
+            syncLineEndpointsIntoStoredPoints(element);
+        }
+        syncText();
+        return true;
+    }
+
+    public boolean setLinePoints(UUID elementId, List<Vector3f> points) {
+        SceneEditorElementModel element = requireElement(elementId);
+        if (element == null || element.getType() != SceneEditorElementType.LINE
+            || points == null
+            || points.size() < 2) {
+            return false;
+        }
+        for (Vector3f point : points) {
+            if (point == null || hasInvalidNumber(point.x, point.y, point.z)) {
+                return false;
+            }
+        }
+        element.setLinePoints(points);
+        Vector3f first = points.get(0);
+        Vector3f last = points.get(points.size() - 1);
+        element.setPrimaryX(first.x);
+        element.setPrimaryY(first.y);
+        element.setPrimaryZ(first.z);
+        element.setSecondaryX(last.x);
+        element.setSecondaryY(last.y);
+        element.setSecondaryZ(last.z);
         syncText();
         return true;
     }
@@ -169,5 +201,20 @@ public class SceneEditorElementPropertyController {
         return session.getSceneModel()
             .getElement(elementId)
             .orElse(null);
+    }
+
+    private void syncLineEndpointsIntoStoredPoints(SceneEditorElementModel element) {
+        List<Vector3f> points = new ArrayList<>(element.getLinePoints());
+        if (points.size() < 2) {
+            points.clear();
+            points.add(new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()));
+            points.add(new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ()));
+        } else {
+            points.set(0, new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()));
+            points.set(
+                points.size() - 1,
+                new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ()));
+        }
+        element.setLinePoints(points);
     }
 }

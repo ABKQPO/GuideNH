@@ -23,14 +23,15 @@ public class GuideBlockBoundsResolver {
         if (block == null || block == Blocks.air) {
             return null;
         }
+        World fakeWorld = level.getOrCreateFakeWorld();
 
-        AxisAlignedBB mergedBounds = resolveCollisionBounds(level, block, x, y, z);
+        AxisAlignedBB mergedBounds = resolveCollisionBounds(level, block, x, y, z, fakeWorld);
         if (mergedBounds != null) {
             return mergedBounds;
         }
 
         try {
-            AxisAlignedBB selectedBounds = block.getSelectedBoundingBoxFromPool(level.getOrCreateFakeWorld(), x, y, z);
+            AxisAlignedBB selectedBounds = block.getSelectedBoundingBoxFromPool(fakeWorld, x, y, z);
             if (selectedBounds != null && isNonEmpty(selectedBounds)) {
                 return selectedBounds;
             }
@@ -44,7 +45,7 @@ public class GuideBlockBoundsResolver {
         double maxZ = 1d;
 
         try {
-            block.setBlockBoundsBasedOnState(level, x, y, z);
+            block.setBlockBoundsBasedOnState(fakeWorld != null ? fakeWorld : level, x, y, z);
             minX = block.getBlockBoundsMinX();
             minY = block.getBlockBoundsMinY();
             minZ = block.getBlockBoundsMinZ();
@@ -125,17 +126,35 @@ public class GuideBlockBoundsResolver {
 
     @Nullable
     public static AxisAlignedBB resolveCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
+        return resolveCollisionBounds(level, block, x, y, z, null);
+    }
+
+    @Nullable
+    public static AxisAlignedBB resolveCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z,
+        @Nullable World fakeWorld) {
         try {
-            return mergeCollisionBounds(collectCollisionBounds(level, block, x, y, z));
+            return mergeCollisionBounds(collectCollisionBounds(level, block, x, y, z, fakeWorld));
         } catch (Throwable ignored) {
             return null;
         }
     }
 
     public static List<AxisAlignedBB> collectCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z) {
+        return collectCollisionBounds(level, block, x, y, z, null);
+    }
+
+    public static List<AxisAlignedBB> collectCollisionBounds(GuidebookLevel level, Block block, int x, int y, int z,
+        @Nullable World fakeWorld) {
         List<AxisAlignedBB> collisionBoxes = new ArrayList<>();
         AxisAlignedBB fullBlockBounds = AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d);
-        block.addCollisionBoxesToList(level.getOrCreateFakeWorld(), x, y, z, fullBlockBounds, collisionBoxes, null);
+        block.addCollisionBoxesToList(
+            fakeWorld != null ? fakeWorld : level.getOrCreateFakeWorld(),
+            x,
+            y,
+            z,
+            fullBlockBounds,
+            collisionBoxes,
+            null);
         return collisionBoxes;
     }
 

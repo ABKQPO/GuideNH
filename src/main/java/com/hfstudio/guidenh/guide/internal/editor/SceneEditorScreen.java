@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -23,6 +24,7 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
@@ -36,6 +38,7 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlayRenderer;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorDraftTextController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorElementContextMenuController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorElementController;
@@ -68,6 +71,9 @@ import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownElementRange;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
+import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
+import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
+import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorCameraMarkerOverlay;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorHandleOverlay;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorPickingService;
@@ -87,6 +93,7 @@ import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.SavedCameraSettings;
+import com.hfstudio.guidenh.guide.scene.annotation.LineAnnotationPointParser;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
@@ -134,6 +141,8 @@ public class SceneEditorScreen extends GuiScreen {
     public static final int INTERACTIVE_CHECKBOX_SIZE = 12;
     public static final int PREVIEW_FRAME_BUTTON_WIDTH = 74;
     public static final int PREVIEW_FRAME_BUTTON_HEIGHT = 14;
+    public static final int AUTO_ACTION_BUTTON_WIDTH = 64;
+    public static final int ACTION_ROW_BUTTON_GAP = 8;
     public static final int ELEMENT_ROW_HEIGHT = 20;
     public static final int ELEMENT_ROW_GAP = 4;
     public static final int ELEMENT_EXPANDED_HEIGHT = 154;
@@ -199,6 +208,7 @@ public class SceneEditorScreen extends GuiScreen {
     private final Random elementColorRandom;
     private final SceneEditorHoverMenuState addElementMenuState;
     private final SceneEditorMarkdownPanelState markdownPanelState;
+    private final GuideDebugOverlayRenderer debugOverlayRenderer;
 
     private GuideIconButton closeButton;
     private GuideIconButton resetPreviewButton;
@@ -241,6 +251,10 @@ public class SceneEditorScreen extends GuiScreen {
     private int interactiveToggleX;
     private int interactiveToggleY;
     private int interactiveLabelX;
+    private int autoCenterButtonX;
+    private int autoCenterButtonY;
+    private int autoRotationButtonX;
+    private int autoRotationButtonY;
     private int previewFrameButtonX;
     private int previewFrameButtonY;
     private int elementsBoxX;
@@ -344,6 +358,7 @@ public class SceneEditorScreen extends GuiScreen {
         this.elementPanelScrollState = new SceneEditorScrollState();
         this.addElementMenuState = new SceneEditorHoverMenuState();
         this.markdownPanelState = SceneEditorMarkdownPanelState.fromConfig(false);
+        this.debugOverlayRenderer = new GuideDebugOverlayRenderer();
         this.previewScene = null;
         this.activePreviewScene = null;
         this.activePointDrag = null;
@@ -495,9 +510,18 @@ public class SceneEditorScreen extends GuiScreen {
     public void onGuiClosed() {
         Keyboard.enableRepeatEvents(false);
         GuideSoundPlayback.stopAll();
+        previewBridge.releaseScene(previewScene);
+        if (activePreviewScene != null && activePreviewScene != previewScene) {
+            previewBridge.releaseScene(activePreviewScene);
+        }
         super.onGuiClosed();
+        pendingStructureImport = null;
+        pendingServerSelectionSync = null;
+        pendingServerSelectionBaseSnbt = null;
+        session.setImportedStructureSnbt(null);
         previewScene = null;
         activePreviewScene = null;
+        activePointDrag = null;
         expandedElementEditor = null;
     }
 
@@ -744,6 +768,7 @@ public class SceneEditorScreen extends GuiScreen {
 
         if (closeConfirmDialogOpen) {
             drawCloseConfirmDialog(mouseX, mouseY);
+            debugOverlayRenderer.render(mc, partialTicks, mouseX, mouseY);
             return;
         }
 
@@ -775,6 +800,7 @@ public class SceneEditorScreen extends GuiScreen {
         } else {
             drawPreviewSceneHoverTooltip(mouseX, mouseY);
         }
+        debugOverlayRenderer.render(mc, partialTicks, mouseX, mouseY);
     }
 
     @Override
@@ -908,6 +934,18 @@ public class SceneEditorScreen extends GuiScreen {
             return;
         }
         if (handleParameterMouseClick(mouseX, mouseY, button)) {
+            return;
+        }
+        if (button == 0 && isInsideAutoCenterButton(mouseX, mouseY)) {
+            parameterController.resetAutoCenter();
+            onParameterValueApplied();
+            syncParameterRowsFromModel();
+            return;
+        }
+        if (button == 0 && isInsideAutoRotationButton(mouseX, mouseY)) {
+            parameterController.resetAutoRotation();
+            onParameterValueApplied();
+            syncParameterRowsFromModel();
             return;
         }
         if (button == 0 && isInsidePreviewFrameButton(mouseX, mouseY)) {
@@ -1285,7 +1323,7 @@ public class SceneEditorScreen extends GuiScreen {
             }
             previewRenderContext.pushScissor(previewViewport);
             try {
-                cameraMarkerOverlay.render(session.getSceneModel(), previewScene.getCamera(), previewViewport);
+                cameraMarkerOverlay.render(previewScene.getCamera(), previewViewport);
             } finally {
                 previewRenderContext.popScissor();
             }
@@ -1619,7 +1657,7 @@ public class SceneEditorScreen extends GuiScreen {
         for (NumericParameterRow row : getVisibleParameterRows()) {
             row.draw(mouseX, mouseY);
         }
-        drawInteractiveToggle();
+        drawSettingsActions();
         drawElementPanel(mouseX, mouseY);
     }
 
@@ -2040,6 +2078,7 @@ public class SceneEditorScreen extends GuiScreen {
         if (markdownTextArea == null) {
             return true;
         }
+        SceneEditorSceneModel previousModel = session.getSceneModel();
         clearPendingMarkdownLiveSync();
         textSyncController.setDraftText(markdownTextArea.getText());
         if (!textSyncController.commitDraftText(MARKDOWN_UNDO_MERGE_KEY, captureCurrentUiUndoState())) {
@@ -2050,7 +2089,9 @@ public class SceneEditorScreen extends GuiScreen {
         session.getSelectionState()
             .setSelectedElementId(null);
         expandedElementId = null;
-        previewDirty = true;
+        if (!refreshPreviewWithoutLevelRebuild(previousModel)) {
+            previewDirty = true;
+        }
         return true;
     }
 
@@ -2139,7 +2180,7 @@ public class SceneEditorScreen extends GuiScreen {
         }
 
         numericParameterRows.add(
-            createDecimalParameterRow(
+            createOptionalDecimalParameterRow(
                 GuidebookText.SceneEditorCameraX,
                 session.getSceneModel()
                     .getCenterX(),
@@ -2149,7 +2190,7 @@ public class SceneEditorScreen extends GuiScreen {
                 () -> session.getSceneModel()
                     .getCenterX()));
         numericParameterRows.add(
-            createDecimalParameterRow(
+            createOptionalDecimalParameterRow(
                 GuidebookText.SceneEditorCameraY,
                 session.getSceneModel()
                     .getCenterY(),
@@ -2159,7 +2200,7 @@ public class SceneEditorScreen extends GuiScreen {
                 () -> session.getSceneModel()
                     .getCenterY()));
         numericParameterRows.add(
-            createDecimalParameterRow(
+            createOptionalDecimalParameterRow(
                 GuidebookText.SceneEditorCameraZ,
                 session.getSceneModel()
                     .getCenterZ(),
@@ -2229,7 +2270,7 @@ public class SceneEditorScreen extends GuiScreen {
                 () -> session.getSceneModel()
                     .getRotationZ()));
         numericParameterRows.add(
-            createDecimalParameterRow(
+            createOptionalDecimalParameterRow(
                 GuidebookText.SceneEditorZoom,
                 session.getSceneModel()
                     .getZoom(),
@@ -2270,6 +2311,20 @@ public class SceneEditorScreen extends GuiScreen {
         return new NumericParameterRow(label, controller, minValue, maxValue, modelValueProvider);
     }
 
+    private NumericParameterRow createOptionalDecimalParameterRow(GuidebookText label, float initialValue,
+        float minValue, float maxValue, NullableFloatValueSetter valueSetter,
+        FloatModelValueProvider modelValueProvider) {
+        SceneEditorNumericFieldController controller = SceneEditorNumericFieldController
+            .optionalDecimal(initialValue, minValue, maxValue, value -> {
+                valueSetter.setValue(value);
+                onParameterValueApplied();
+            }, value -> {
+                valueSetter.setValue(value);
+                onParameterValueApplied();
+            });
+        return new NumericParameterRow(label, controller, minValue, maxValue, modelValueProvider);
+    }
+
     private NumericParameterRow createIntegerParameterRow(GuidebookText label, int initialValue, int minValue,
         int maxValue, IntValueSetter valueSetter, FloatModelValueProvider modelValueProvider) {
         SceneEditorNumericFieldController controller = SceneEditorNumericFieldController
@@ -2303,6 +2358,10 @@ public class SceneEditorScreen extends GuiScreen {
         interactiveLabelX = contentLeft;
         interactiveToggleX = contentLeft + PARAMETER_LABEL_WIDTH + 2;
         interactiveToggleY = rowY + 2;
+        autoCenterButtonX = contentRight - AUTO_ACTION_BUTTON_WIDTH;
+        autoCenterButtonY = interactiveToggleY - 1;
+        autoRotationButtonX = contentRight - AUTO_ACTION_BUTTON_WIDTH;
+        autoRotationButtonY = interactiveToggleY - 1;
         previewFrameButtonX = contentRight - PREVIEW_FRAME_BUTTON_WIDTH;
         previewFrameButtonY = interactiveToggleY - 1;
         settingsBoxHeight = interactiveToggleY + INTERACTIVE_CHECKBOX_SIZE + 8 - settingsBoxY;
@@ -2337,7 +2396,7 @@ public class SceneEditorScreen extends GuiScreen {
         textSyncController
             .recordAppliedSnapshot(mergeKey, captureCurrentUiUndoState(), resolveAppliedUndoKeepOpen(mergeKey != null));
         if (previewScene != null && !previewDirty) {
-            previewCameraController.applyModelCamera(previewScene, session.getSceneModel());
+            previewCameraController.applyResolvedPreviewCamera(previewScene, session.getSceneModel());
         } else {
             previewDirty = true;
         }
@@ -2483,6 +2542,33 @@ public class SceneEditorScreen extends GuiScreen {
         row.setFocused(true);
     }
 
+    private void drawSettingsActions() {
+        if (activeSettingsTab == SceneEditorSettingsTab.CAMERA) {
+            drawInteractiveToggle();
+            drawTextActionButton(
+                autoCenterButtonX,
+                autoCenterButtonY,
+                AUTO_ACTION_BUTTON_WIDTH,
+                PREVIEW_FRAME_BUTTON_HEIGHT,
+                GuidebookText.SceneEditorAutoCenter.text(),
+                isInsideAutoCenterButton(currentMouseX(), currentMouseY()));
+            return;
+        }
+        if (activeSettingsTab == SceneEditorSettingsTab.ROTATION) {
+            drawTextActionButton(
+                autoRotationButtonX,
+                autoRotationButtonY,
+                AUTO_ACTION_BUTTON_WIDTH,
+                PREVIEW_FRAME_BUTTON_HEIGHT,
+                GuidebookText.SceneEditorAutoRotation.text(),
+                isInsideAutoRotationButton(currentMouseX(), currentMouseY()));
+            return;
+        }
+        if (activeSettingsTab == SceneEditorSettingsTab.PREVIEW) {
+            drawPreviewFrameButton();
+        }
+    }
+
     private void drawInteractiveToggle() {
         int boxRight = interactiveToggleX + INTERACTIVE_CHECKBOX_SIZE;
         int boxBottom = interactiveToggleY + INTERACTIVE_CHECKBOX_SIZE;
@@ -2504,37 +2590,67 @@ public class SceneEditorScreen extends GuiScreen {
             interactiveLabelX,
             interactiveToggleY + 2,
             PANEL_MUTED_TEXT);
-        if (activeSettingsTab == SceneEditorSettingsTab.PREVIEW) {
-            int mouseX = Mouse.getX() * this.width / this.mc.displayWidth;
-            int mouseY = this.height - Mouse.getY() * this.height / this.mc.displayHeight - 1;
-            boolean hovered = isInsidePreviewFrameButton(mouseX, mouseY);
-            int backgroundColor = previewFrameOverlayVisible ? 0xA61C252E : hovered ? 0x7A1C252E : 0x5512181C;
-            drawRect(
-                previewFrameButtonX,
-                previewFrameButtonY,
-                previewFrameButtonX + PREVIEW_FRAME_BUTTON_WIDTH,
-                previewFrameButtonY + PREVIEW_FRAME_BUTTON_HEIGHT,
-                backgroundColor);
-            drawBorder(
-                previewFrameButtonX,
-                previewFrameButtonY,
-                PREVIEW_FRAME_BUTTON_WIDTH,
-                PREVIEW_FRAME_BUTTON_HEIGHT,
-                previewFrameOverlayVisible ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
-            this.drawCenteredString(
-                this.fontRendererObj,
-                GuidebookText.SceneEditorPreviewFrame.text(),
-                previewFrameButtonX + PREVIEW_FRAME_BUTTON_WIDTH / 2,
-                previewFrameButtonY + 3,
-                PANEL_HEADER_COLOR);
-        }
+    }
+
+    private void drawPreviewFrameButton() {
+        boolean hovered = isInsidePreviewFrameButton(currentMouseX(), currentMouseY());
+        int backgroundColor = previewFrameOverlayVisible ? 0xA61C252E : hovered ? 0x7A1C252E : 0x5512181C;
+        drawRect(
+            previewFrameButtonX,
+            previewFrameButtonY,
+            previewFrameButtonX + PREVIEW_FRAME_BUTTON_WIDTH,
+            previewFrameButtonY + PREVIEW_FRAME_BUTTON_HEIGHT,
+            backgroundColor);
+        drawBorder(
+            previewFrameButtonX,
+            previewFrameButtonY,
+            PREVIEW_FRAME_BUTTON_WIDTH,
+            PREVIEW_FRAME_BUTTON_HEIGHT,
+            previewFrameOverlayVisible ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
+        this.drawCenteredString(
+            this.fontRendererObj,
+            GuidebookText.SceneEditorPreviewFrame.text(),
+            previewFrameButtonX + PREVIEW_FRAME_BUTTON_WIDTH / 2,
+            previewFrameButtonY + 3,
+            PANEL_HEADER_COLOR);
+    }
+
+    private void drawTextActionButton(int x, int y, int width, int height, String text, boolean hovered) {
+        int backgroundColor = hovered ? 0x7A1C252E : 0x5512181C;
+        drawRect(x, y, x + width, y + height, backgroundColor);
+        drawBorder(x, y, width, height, hovered ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
+        this.drawCenteredString(this.fontRendererObj, text, x + width / 2, y + 3, PANEL_HEADER_COLOR);
+    }
+
+    private int currentMouseX() {
+        return Mouse.getX() * this.width / this.mc.displayWidth;
+    }
+
+    private int currentMouseY() {
+        return this.height - Mouse.getY() * this.height / this.mc.displayHeight - 1;
     }
 
     private boolean isInsideInteractiveToggle(int mouseX, int mouseY) {
-        int rowRight = activeSettingsTab == SceneEditorSettingsTab.PREVIEW ? previewFrameButtonX - 8
-            : settingsBoxX + settingsBoxWidth - SETTINGS_BOX_PADDING;
+        if (activeSettingsTab != SceneEditorSettingsTab.CAMERA) {
+            return false;
+        }
+        int rowRight = autoCenterButtonX - ACTION_ROW_BUTTON_GAP;
         int rowBottom = interactiveToggleY + INTERACTIVE_ROW_HEIGHT;
         return mouseX >= interactiveLabelX && mouseX < rowRight && mouseY >= interactiveToggleY && mouseY < rowBottom;
+    }
+
+    private boolean isInsideAutoCenterButton(int mouseX, int mouseY) {
+        return activeSettingsTab == SceneEditorSettingsTab.CAMERA && mouseX >= autoCenterButtonX
+            && mouseX < autoCenterButtonX + AUTO_ACTION_BUTTON_WIDTH
+            && mouseY >= autoCenterButtonY
+            && mouseY < autoCenterButtonY + PREVIEW_FRAME_BUTTON_HEIGHT;
+    }
+
+    private boolean isInsideAutoRotationButton(int mouseX, int mouseY) {
+        return activeSettingsTab == SceneEditorSettingsTab.ROTATION && mouseX >= autoRotationButtonX
+            && mouseX < autoRotationButtonX + AUTO_ACTION_BUTTON_WIDTH
+            && mouseY >= autoRotationButtonY
+            && mouseY < autoRotationButtonY + PREVIEW_FRAME_BUTTON_HEIGHT;
     }
 
     private boolean isInsideRightPanelToggle(int mouseX, int mouseY) {
@@ -2828,6 +2944,11 @@ public class SceneEditorScreen extends GuiScreen {
             .recordAppliedSnapshot(mergeKey, captureCurrentUiUndoState(), resolveAppliedUndoKeepOpen(mergeKey != null));
         ensureElementPanelStateValid();
         syncExpandedElementEditorFromModel();
+        if (previewScene != null && !previewDirty) {
+            previewBridge.rebuildAnnotations(session, previewScene);
+            preservePreviewCameraOnNextRebuild = false;
+            return;
+        }
         previewDirty = true;
         preservePreviewCameraOnNextRebuild = true;
     }
@@ -2864,11 +2985,13 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private void applyUndoSnapshot(SceneEditorUndoSnapshot snapshot) {
+        SceneEditorSceneModel previousModel = session.getSceneModel();
         textSyncController.restoreSnapshot(snapshot);
-        reloadUiFromSessionContent(snapshot.getUiState());
+        reloadUiFromSessionContent(snapshot.getUiState(), previousModel);
     }
 
-    private void reloadUiFromSessionContent(SceneEditorUndoUiState uiState) {
+    private void reloadUiFromSessionContent(SceneEditorUndoUiState uiState,
+        @Nullable SceneEditorSceneModel previousModel) {
         clearPendingMarkdownLiveSync();
         if (markdownTextArea != null) {
             markdownTextArea.setText(session.getRawText());
@@ -2891,8 +3014,10 @@ public class SceneEditorScreen extends GuiScreen {
             .setSelectedHandleId(null);
         session.getSelectionState()
             .setDragging(false);
-        previewDirty = true;
-        preservePreviewCameraOnNextRebuild = false;
+        if (!refreshPreviewWithoutLevelRebuild(previousModel)) {
+            previewDirty = true;
+            preservePreviewCameraOnNextRebuild = false;
+        }
         refreshLinkedSelectionFromMarkdownCursor();
         refreshMarkdownHighlightFromSelectedElement();
     }
@@ -2967,20 +3092,21 @@ public class SceneEditorScreen extends GuiScreen {
             return;
         }
         clearPendingMarkdownLiveSync();
+        SceneEditorSceneModel previousModel = session.getSceneModel();
         SceneEditorTextSyncController.LiveApplyResult result = textSyncController.applyLiveDraftText();
         if (result == SceneEditorTextSyncController.LiveApplyResult.NO_CHANGE) {
             return;
         }
         recordCurrentUiDraftSnapshot(MARKDOWN_UNDO_MERGE_KEY);
         if (result == SceneEditorTextSyncController.LiveApplyResult.APPLIED) {
-            applyLiveMarkdownState();
+            applyLiveMarkdownState(previousModel);
             return;
         }
         refreshLinkedSelectionFromMarkdownCursor();
         refreshMarkdownHighlightFromSelectedElement();
     }
 
-    private void applyLiveMarkdownState() {
+    private void applyLiveMarkdownState(@Nullable SceneEditorSceneModel previousModel) {
         syncParameterRowsFromModel();
         refreshLinkedSelectionFromMarkdownCursor();
         if (expandedElementId != null) {
@@ -2989,9 +3115,68 @@ public class SceneEditorScreen extends GuiScreen {
         }
         ensureElementPanelStateValid();
         syncExpandedElementEditorFromModel();
-        previewDirty = true;
-        preservePreviewCameraOnNextRebuild = true;
+        if (!refreshPreviewWithoutLevelRebuild(previousModel)) {
+            previewDirty = true;
+            preservePreviewCameraOnNextRebuild = true;
+        }
         refreshMarkdownHighlightFromSelectedElement();
+    }
+
+    private boolean refreshPreviewWithoutLevelRebuild(@Nullable SceneEditorSceneModel previousModel) {
+        if (previousModel == null || previewScene == null || previewDirty) {
+            return false;
+        }
+        if (!canRefreshPreviewWithoutLevelRebuild(previousModel, session.getSceneModel())) {
+            return false;
+        }
+        previewScene.setVisibleLayerSliderEnabled(
+            session.getSceneModel()
+                .isAllowLayerSlider() || ModConfig.ui.sceneLayerSliderEnabled);
+        previewScene.setShowBackground(
+            session.getSceneModel()
+                .isShowBackground());
+        previewBridge.rebuildAnnotations(session, previewScene);
+        previewCameraController.applyResolvedPreviewCamera(previewScene, session.getSceneModel());
+        previewDirty = false;
+        preservePreviewCameraOnNextRebuild = false;
+        return true;
+    }
+
+    private boolean canRefreshPreviewWithoutLevelRebuild(SceneEditorSceneModel previousModel,
+        SceneEditorSceneModel currentModel) {
+        if (!Objects.equals(previousModel.getStructureSource(), currentModel.getStructureSource())) {
+            return false;
+        }
+        List<SceneEditorSceneNodeModel> previousNodes = levelAffectingPreviewNodes(previousModel);
+        List<SceneEditorSceneNodeModel> currentNodes = levelAffectingPreviewNodes(currentModel);
+        if (previousNodes.size() != currentNodes.size()) {
+            return false;
+        }
+        for (int i = 0; i < previousNodes.size(); i++) {
+            if (!sameLevelAffectingPreviewNode(previousNodes.get(i), currentNodes.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private List<SceneEditorSceneNodeModel> levelAffectingPreviewNodes(SceneEditorSceneModel model) {
+        List<SceneEditorSceneNodeModel> nodes = new ArrayList<>();
+        for (SceneEditorSceneNodeModel node : model.getSceneNodes()) {
+            if (node.getType() == SceneEditorSceneNodeType.ANNOTATION
+                || node.getType() == SceneEditorSceneNodeType.BLOCK_ANNOTATION_TEMPLATE) {
+                continue;
+            }
+            nodes.add(node);
+        }
+        return nodes;
+    }
+
+    private boolean sameLevelAffectingPreviewNode(SceneEditorSceneNodeModel previousNode,
+        SceneEditorSceneNodeModel currentNode) {
+        return previousNode.getType() == currentNode.getType()
+            && Objects.equals(previousNode.getAttributes(), currentNode.getAttributes())
+            && Objects.equals(previousNode.getOpaqueText(), currentNode.getOpaqueText());
     }
 
     private boolean commitWithAppliedUndoContext(@Nullable String mergeKey, boolean keepOpen, BooleanSupplier action) {
@@ -3220,7 +3405,8 @@ public class SceneEditorScreen extends GuiScreen {
             + (type.supportsMaxWidth() ? 1 : 0)
             + (type.supportsBackgroundAlpha() ? 1 : 0)
             + (type.supportsAlwaysOnTop() ? 1 : 0);
-        int areaCount = (type.supportsText() ? 1 : 0) + (type.supportsTooltip() ? 1 : 0);
+        int areaCount = (type.supportsText() ? 1 : 0) + (type.supportsTooltip() ? 1 : 0)
+            + (type == SceneEditorElementType.LINE ? 1 : 0);
         return 6 + rowCount * ELEMENT_FIELD_ROW_HEIGHT + areaCount * (14 + ELEMENT_TOOLTIP_HEIGHT);
     }
 
@@ -4037,6 +4223,10 @@ public class SceneEditorScreen extends GuiScreen {
         @Nullable
         private final ElementInputField backgroundAlphaField;
         @Nullable
+        private final SceneEditorDraftTextController linePointsController;
+        @Nullable
+        private final SceneEditorMultilineTextArea linePointsArea;
+        @Nullable
         private final SceneEditorDraftTextController textController;
         @Nullable
         private final SceneEditorMultilineTextArea textArea;
@@ -4049,6 +4239,7 @@ public class SceneEditorScreen extends GuiScreen {
         private ElementInputField focusedField;
         private boolean textFocused;
         private boolean tooltipFocused;
+        private boolean linePointsFocused;
         private int x;
         private int y;
         private int width;
@@ -4056,6 +4247,7 @@ public class SceneEditorScreen extends GuiScreen {
         private int alwaysOnTopX;
         private int alwaysOnTopY;
         private int alwaysOnTopLabelX;
+        private int linePointsLabelY;
         private int textLabelY;
         private int tooltipLabelY;
 
@@ -4100,6 +4292,12 @@ public class SceneEditorScreen extends GuiScreen {
                         true,
                         this::applyBackgroundAlphaDraft))
                 : null;
+            this.linePointsController = type == SceneEditorElementType.LINE
+                ? new SceneEditorDraftTextController(this::formatCurrentLinePoints, false, this::applyLinePointsDraft)
+                : null;
+            this.linePointsArea = type == SceneEditorElementType.LINE
+                ? new SceneEditorMultilineTextArea(SceneEditorScreen.this.fontRendererObj)
+                : null;
             this.textController = type.supportsText()
                 ? new SceneEditorDraftTextController(() -> readCurrentElement().getTextMarkdown(), false, draft -> {
                     boolean applied = elementPropertyController.setText(elementId, draft);
@@ -4127,6 +4325,7 @@ public class SceneEditorScreen extends GuiScreen {
             this.focusedField = null;
             this.textFocused = false;
             this.tooltipFocused = false;
+            this.linePointsFocused = false;
             syncFromModel(element);
         }
 
@@ -4176,6 +4375,12 @@ public class SceneEditorScreen extends GuiScreen {
                 rowY += ELEMENT_FIELD_ROW_HEIGHT;
             }
 
+            if (linePointsArea != null) {
+                linePointsLabelY = rowY + 2;
+                linePointsArea.setBounds(contentX, rowY + 12, width - 12, ELEMENT_TOOLTIP_HEIGHT);
+                rowY += 14 + ELEMENT_TOOLTIP_HEIGHT;
+            }
+
             if (textArea != null) {
                 textLabelY = rowY + 2;
                 textArea.setBounds(contentX, rowY + 12, width - 12, ELEMENT_TOOLTIP_HEIGHT);
@@ -4211,6 +4416,15 @@ public class SceneEditorScreen extends GuiScreen {
             }
             if (type.supportsAlwaysOnTop()) {
                 drawAlwaysOnTop();
+            }
+            if (linePointsArea != null && linePointsController != null) {
+                SceneEditorScreen.this.drawString(
+                    SceneEditorScreen.this.fontRendererObj,
+                    GuidebookText.SceneEditorElementPoints.text(),
+                    x + 6,
+                    linePointsLabelY,
+                    PANEL_MUTED_TEXT);
+                linePointsArea.draw(linePointsController.hasValidationError());
             }
             if (textArea != null && textController != null) {
                 SceneEditorScreen.this.drawString(
@@ -4257,6 +4471,13 @@ public class SceneEditorScreen extends GuiScreen {
         }
 
         private boolean keyTyped(char typedChar, int keyCode) {
+            if (linePointsFocused && linePointsArea != null
+                && linePointsController != null
+                && linePointsArea.keyTyped(typedChar, keyCode)) {
+                linePointsController.setDraftText(linePointsArea.getText());
+                recordCurrentUiDraftSnapshot(linePointsUndoFieldKey());
+                return true;
+            }
             if (textFocused && textArea != null && textController != null && textArea.keyTyped(typedChar, keyCode)) {
                 textController.setDraftText(textArea.getText());
                 recordCurrentUiDraftSnapshot(textUndoFieldKey());
@@ -4299,6 +4520,10 @@ public class SceneEditorScreen extends GuiScreen {
         }
 
         private boolean handleScrollWheel(int mouseX, int mouseY, int wheelDelta) {
+            if (linePointsArea != null && linePointsArea.contains(mouseX, mouseY)) {
+                linePointsArea.scrollWheel(wheelDelta);
+                return true;
+            }
             if (textArea != null && textArea.contains(mouseX, mouseY)) {
                 textArea.scrollWheel(wheelDelta);
                 return true;
@@ -4317,6 +4542,21 @@ public class SceneEditorScreen extends GuiScreen {
                 }
                 focusedField.setFocused(false);
                 focusedField = null;
+            }
+            if (linePointsFocused && linePointsArea != null
+                && linePointsController != null
+                && !linePointsArea.contains(mouseX, mouseY)) {
+                linePointsController.setDraftText(linePointsArea.getText());
+                if (!commitWithAppliedUndoContext(
+                    linePointsUndoFieldKey(),
+                    false,
+                    linePointsController::commitDraftText)) {
+                    recordCurrentUiDraftSnapshot(linePointsUndoFieldKey(), false);
+                    return false;
+                }
+                linePointsArea.setText(linePointsController.getDraftText());
+                linePointsArea.setFocused(false);
+                linePointsFocused = false;
             }
             if (textFocused && textArea != null && textController != null && !textArea.contains(mouseX, mouseY)) {
                 textController.setDraftText(textArea.getText());
@@ -4344,7 +4584,7 @@ public class SceneEditorScreen extends GuiScreen {
         }
 
         private boolean hasFocusedInput() {
-            return focusedField != null || textFocused || tooltipFocused;
+            return focusedField != null || linePointsFocused || textFocused || tooltipFocused;
         }
 
         private boolean mouseClicked(int mouseX, int mouseY, int button) {
@@ -4387,9 +4627,38 @@ public class SceneEditorScreen extends GuiScreen {
                 }
                 return true;
             }
+            if (linePointsArea != null && linePointsController != null && linePointsArea.contains(mouseX, mouseY)) {
+                clearFocusedField();
+                textFocused = false;
+                tooltipFocused = false;
+                if (textArea != null) {
+                    textArea.setFocused(false);
+                }
+                if (tooltipArea != null) {
+                    tooltipArea.setFocused(false);
+                }
+                linePointsFocused = true;
+                linePointsArea.setFocused(true);
+                if (button == 1) {
+                    linePointsArea.setText("");
+                    linePointsController.setDraftText("");
+                    recordCurrentUiDraftSnapshot(linePointsUndoFieldKey());
+                    return true;
+                }
+                if (button == 0) {
+                    linePointsArea.mouseClicked(mouseX, mouseY, button);
+                    linePointsController.setDraftText(linePointsArea.getText());
+                    return true;
+                }
+                return true;
+            }
             if (textArea != null && textController != null && textArea.contains(mouseX, mouseY)) {
                 clearFocusedField();
+                linePointsFocused = false;
                 tooltipFocused = false;
+                if (linePointsArea != null) {
+                    linePointsArea.setFocused(false);
+                }
                 if (tooltipArea != null) {
                     tooltipArea.setFocused(false);
                 }
@@ -4410,7 +4679,11 @@ public class SceneEditorScreen extends GuiScreen {
             }
             if (tooltipArea != null && tooltipController != null && tooltipArea.contains(mouseX, mouseY)) {
                 clearFocusedField();
+                linePointsFocused = false;
                 textFocused = false;
+                if (linePointsArea != null) {
+                    linePointsArea.setFocused(false);
+                }
                 if (textArea != null) {
                     textArea.setFocused(false);
                 }
@@ -4453,6 +4726,10 @@ public class SceneEditorScreen extends GuiScreen {
             if (backgroundAlphaField != null) {
                 backgroundAlphaField.syncFromController();
             }
+            if (linePointsController != null && linePointsArea != null) {
+                linePointsController.syncFromAppliedValue();
+                linePointsArea.setText(linePointsController.getDraftText());
+            }
             if (textController != null && textArea != null) {
                 textController.syncFromAppliedValue();
                 textArea.setText(textController.getDraftText());
@@ -4483,6 +4760,13 @@ public class SceneEditorScreen extends GuiScreen {
             }
             if (backgroundAlphaField != null) {
                 backgroundAlphaField.captureUndoState(builder);
+            }
+            if (linePointsController != null) {
+                builder.put(
+                    linePointsUndoFieldKey(),
+                    new SceneEditorUndoFieldState(
+                        linePointsController.getDraftText(),
+                        linePointsController.hasValidationError()));
             }
             if (textController != null) {
                 builder.put(
@@ -4518,6 +4802,13 @@ public class SceneEditorScreen extends GuiScreen {
             }
             if (backgroundAlphaField != null) {
                 backgroundAlphaField.restoreUndoState(uiState);
+            }
+            if (linePointsController != null && linePointsArea != null) {
+                uiState.getField(linePointsUndoFieldKey())
+                    .ifPresent(state -> {
+                        linePointsController.restoreDraftState(state.getDraftText(), state.hasValidationError());
+                        linePointsArea.setText(linePointsController.getDraftText());
+                    });
             }
             if (textController != null && textArea != null) {
                 uiState.getField(textUndoFieldKey())
@@ -4654,8 +4945,69 @@ public class SceneEditorScreen extends GuiScreen {
             return applied;
         }
 
+        private String formatCurrentLinePoints() {
+            SceneEditorElementModel element = readCurrentElement();
+            List<Vector3f> points = element.getLinePoints();
+            if (points.isEmpty()) {
+                points = new ArrayList<>(2);
+                points.add(new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()));
+                points.add(new Vector3f(element.getSecondaryX(), element.getSecondaryY(), element.getSecondaryZ()));
+            }
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < points.size(); i++) {
+                if (i > 0) {
+                    builder.append('\n');
+                }
+                Vector3f point = points.get(i);
+                builder.append(formatFloat(point.x))
+                    .append(' ')
+                    .append(formatFloat(point.y))
+                    .append(' ')
+                    .append(formatFloat(point.z));
+            }
+            return builder.toString();
+        }
+
+        private boolean applyLinePointsDraft(String draft) {
+            List<Vector3f> points = parseLinePointsDraft(draft);
+            if (points == null) {
+                return false;
+            }
+            boolean applied = elementPropertyController.setLinePoints(elementId, points);
+            if (applied) {
+                onElementModelApplied();
+            }
+            return applied;
+        }
+
+        @Nullable
+        private List<Vector3f> parseLinePointsDraft(String draft) {
+            String trimmed = draft == null ? "" : draft.trim();
+            if (trimmed.isEmpty()) {
+                return null;
+            }
+            String[] rawLines = trimmed.split("\\r?\\n");
+            List<Vector3f> points = new ArrayList<>(rawLines.length);
+            for (String rawLine : rawLines) {
+                String line = rawLine.trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
+                try {
+                    points.add(LineAnnotationPointParser.parsePoint(line));
+                } catch (IllegalArgumentException e) {
+                    return null;
+                }
+            }
+            return points.size() >= 2 ? points : null;
+        }
+
         private String elementFieldKey(String fieldName) {
             return "element:" + elementId + ":" + fieldName;
+        }
+
+        private String linePointsUndoFieldKey() {
+            return elementFieldKey("line-points");
         }
 
         private String textUndoFieldKey() {
@@ -4667,8 +5019,12 @@ public class SceneEditorScreen extends GuiScreen {
         }
 
         private void focusField(ElementInputField field, int mouseX, int mouseY, int button) {
+            linePointsFocused = false;
             textFocused = false;
             tooltipFocused = false;
+            if (linePointsArea != null) {
+                linePointsArea.setFocused(false);
+            }
             if (textArea != null) {
                 textArea.setFocused(false);
             }
@@ -4843,6 +5199,12 @@ public class SceneEditorScreen extends GuiScreen {
     private interface FloatValueSetter {
 
         void setValue(float value);
+    }
+
+    @FunctionalInterface
+    private interface NullableFloatValueSetter {
+
+        void setValue(@Nullable Float value);
     }
 
     @FunctionalInterface

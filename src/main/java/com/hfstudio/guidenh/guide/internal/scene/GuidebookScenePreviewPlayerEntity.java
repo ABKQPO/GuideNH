@@ -40,6 +40,8 @@ public class GuidebookScenePreviewPlayerEntity extends EntityOtherPlayerMP
 
     public GuidebookScenePreviewPlayerEntity(World world, GameProfile gameProfile) {
         super(world, gameProfile);
+        this.guidebookPreferredSkinLocation = GuidebookPreviewPlayerSkinResolver.getDefaultPreviewSkinLocation();
+        super.func_152121_a(Type.SKIN, this.guidebookPreferredSkinLocation);
         GuidebookPreviewPlayerSkinResolver.queueSkinRefresh(this);
     }
 
@@ -154,6 +156,11 @@ public class GuidebookScenePreviewPlayerEntity extends EntityOtherPlayerMP
         if (skinLocation != null) {
             super.func_152121_a(Type.SKIN, skinLocation);
         }
+    }
+
+    @Override
+    public ResourceLocation getLocationSkin() {
+        return guidebookPreferredSkinLocation != null ? guidebookPreferredSkinLocation : super.getLocationSkin();
     }
 
     public void setGuidebookSlimArms(@Nullable Boolean slimArms) {

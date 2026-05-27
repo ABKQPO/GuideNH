@@ -1,8 +1,10 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -166,270 +168,142 @@ public final class GuideSiteGraphRenderer {
     private static final int MM_BADGE_BG = 0xFF262A33;
     private static final int MM_DEFAULT_ACCENT = 0xFF7AA2F7;
 
-    private static final class MmLayoutNode {
+    private static class MmLayoutNode {
 
         private final MermaidMindmapNode source;
+        @Nullable
+        private final String parentId;
         private final boolean isRoot;
+        @Nullable
+        private final String htmlContent;
         private final String[] lines;
         private final @Nullable String badge;
-        int width;
-        int height;
-        int subtreeWidth;
-        int subtreeHeight;
-        int x;
-        int y;
         final List<MmLayoutNode> children = new ArrayList<>();
 
-        private MmLayoutNode(MermaidMindmapNode source, boolean isRoot) {
+        private MmLayoutNode(MermaidMindmapNode source, @Nullable String parentId, boolean isRoot,
+            @Nullable String htmlContent) {
             this.source = source;
+            this.parentId = parentId;
             this.isRoot = isRoot;
+            this.htmlContent = htmlContent;
             String text = source.getText() != null ? source.getText() : "";
             this.lines = text.isEmpty() ? new String[] { "" } : text.split("\n");
-            this.badge = source.getIcon();
+            this.badge = simplifyMermaidIcon(source.getIcon());
         }
     }
 
     public static String renderMermaidTree(MermaidMindmapDocument doc) {
-        if (doc == null || doc.getRoot() == null) {
-            return "<div class=\"guide-mermaid-pan\" data-guide-pannable>"
-                + "<svg class=\"guide-mermaid-canvas\" width=\"100\" height=\"40\"></svg></div>";
-        }
-        MmLayoutNode root = buildMmLayout(doc.getRoot(), true);
-        measureMmTopDown(root);
-        layoutMmTopDown(root, 0, 0);
-
-        int contentW = root.subtreeWidth;
-        int contentH = root.subtreeHeight;
-        int totalW = contentW + MM_CANVAS_PAD * 2;
-        int totalH = contentH + MM_CANVAS_PAD * 2;
-
-        StringBuilder svg = new StringBuilder();
-        // Outer pan/zoom wrapper consumed by app.js (installMermaidPanZoom).
-        svg.append("<div class=\"guide-mermaid-pan\" data-guide-pannable>");
-        svg.append("<svg class=\"guide-mermaid-canvas\" xmlns=\"http://www.w3.org/2000/svg\" width=\"")
-            .append(totalW)
-            .append("\" height=\"")
-            .append(totalH)
-            .append("\" viewBox=\"0 0 ")
-            .append(totalW)
-            .append(" ")
-            .append(totalH)
-            .append("\">");
-        // Canvas background and border, mirroring the in-game LytMermaidMindmapCanvas frame.
-        svg.append("<rect x=\"0.5\" y=\"0.5\" width=\"")
-            .append(totalW - 1)
-            .append("\" height=\"")
-            .append(totalH - 1)
-            .append("\" fill=\"")
-            .append(argbToRgba(MM_BG_COLOR))
-            .append("\" stroke=\"")
-            .append(argbToRgba(MM_BORDER_COLOR))
-            .append("\" stroke-width=\"1\"/>");
-        // Translate the diagram into the padded interior.
-        svg.append("<g transform=\"translate(")
-            .append(MM_CANVAS_PAD)
-            .append(",")
-            .append(MM_CANVAS_PAD)
-            .append(")\">");
-        renderMmConnectors(svg, root);
-        renderMmNodes(svg, root);
-        svg.append("</g></svg></div>");
-        return svg.toString();
+        return renderMermaidTree(doc, new LinkedHashMap<String, String>());
     }
 
-    private static MmLayoutNode buildMmLayout(MermaidMindmapNode source, boolean isRoot) {
-        MmLayoutNode node = new MmLayoutNode(source, isRoot);
-        // Node width: longest line * approx char width, plus padding and the accent stripe.
-        int charW = isRoot ? MM_ROOT_CHAR_WIDTH : MM_CHAR_WIDTH;
-        int textWidth = 0;
-        for (String line : node.lines) {
-            textWidth = Math.max(textWidth, line.length() * charW);
+    public static String renderMermaidTree(MermaidMindmapDocument doc, Map<String, String> nodeHtmlById) {
+        if (doc == null || doc.getRoot() == null) {
+            return "<div class=\"guide-mermaid-pan\" data-guide-pannable>"
+                + "<div class=\"guide-mermaid-stage\" data-guide-mermaid-stage>"
+                + "<svg class=\"guide-mermaid-canvas\" width=\"100\" height=\"40\"></svg>"
+                + "<div class=\"guide-mermaid-node-layer\"></div></div></div>";
         }
-        if (node.badge != null) {
-            textWidth = Math.max(textWidth, node.badge.length() * MM_CHAR_WIDTH + 8);
-        }
-        int lineH = isRoot ? MM_ROOT_LINE_HEIGHT : MM_LINE_HEIGHT;
-        int textHeight = node.lines.length * lineH;
-        int badgeExtra = node.badge != null ? lineH + 4 : 0;
-        node.width = Math.max(MM_MIN_NODE_WIDTH, textWidth + MM_NODE_PAD_X * 2 + MM_ACCENT_STRIPE);
-        node.height = textHeight + badgeExtra + MM_NODE_PAD_Y * 2;
+        MmLayoutNode root = buildMmLayout(
+            doc.getRoot(),
+            null,
+            true,
+            nodeHtmlById != null ? nodeHtmlById : new LinkedHashMap<String, String>());
+        StringBuilder html = new StringBuilder();
+        html.append(
+            "<div class=\"guide-mermaid-pan\" data-guide-pannable><div class=\"guide-mermaid-stage\" data-guide-mermaid-stage>");
+        html.append(
+            "<svg class=\"guide-mermaid-canvas\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\"></svg>");
+        html.append("<div class=\"guide-mermaid-node-layer\">");
+        renderMmNodes(html, root);
+        html.append("</div></div></div>");
+        return html.toString();
+    }
+
+    private static MmLayoutNode buildMmLayout(MermaidMindmapNode source, @Nullable String parentId, boolean isRoot,
+        Map<String, String> nodeHtmlById) {
+        MmLayoutNode node = new MmLayoutNode(source, parentId, isRoot, nodeHtmlById.get(source.getId()));
         for (MermaidMindmapNode child : source.getChildren()) {
-            node.children.add(buildMmLayout(child, false));
+            node.children.add(buildMmLayout(child, source.getId(), false, nodeHtmlById));
         }
         return node;
     }
 
-    private static void measureMmTopDown(MmLayoutNode node) {
-        if (node.children.isEmpty()) {
-            node.subtreeWidth = node.width;
-            node.subtreeHeight = node.height;
-            return;
+    private static void renderMmNodes(StringBuilder html, MmLayoutNode node) {
+        html.append("<article class=\"guide-mermaid-node guide-mermaid-shape-")
+            .append(escapeShapeClass(node.source.getShape()))
+            .append(node.isRoot ? " guide-mermaid-node-root" : "")
+            .append("\" data-node-id=\"")
+            .append(esc(node.source.getId()))
+            .append("\"");
+        if (node.parentId != null && !node.parentId.isEmpty()) {
+            html.append(" data-parent-id=\"")
+                .append(esc(node.parentId))
+                .append("\"");
         }
-        int childrenW = 0;
-        int childrenH = 0;
-        for (MmLayoutNode child : node.children) {
-            measureMmTopDown(child);
-            childrenW += child.subtreeWidth;
-            childrenH = Math.max(childrenH, child.subtreeHeight);
-        }
-        childrenW += MM_GAP_X * (node.children.size() - 1);
-        node.subtreeWidth = Math.max(node.width, childrenW);
-        node.subtreeHeight = node.height + MM_GAP_Y + childrenH;
-    }
-
-    private static void layoutMmTopDown(MmLayoutNode node, int x, int y) {
-        node.x = x + (node.subtreeWidth - node.width) / 2;
-        node.y = y;
-        if (node.children.isEmpty()) {
-            return;
-        }
-        int childrenW = 0;
-        for (MmLayoutNode child : node.children) {
-            childrenW += child.subtreeWidth;
-        }
-        childrenW += MM_GAP_X * (node.children.size() - 1);
-        int cursorX = x + (node.subtreeWidth - childrenW) / 2;
-        int childY = y + node.height + MM_GAP_Y;
-        for (MmLayoutNode child : node.children) {
-            layoutMmTopDown(child, cursorX, childY);
-            cursorX += child.subtreeWidth + MM_GAP_X;
-        }
-    }
-
-    private static void renderMmConnectors(StringBuilder svg, MmLayoutNode node) {
-        String stroke = argbToRgba(MM_CONNECTOR_COLOR);
-        int parentCx = node.x + node.width / 2;
-        int parentBottom = node.y + node.height;
-        for (MmLayoutNode child : node.children) {
-            int childCx = child.x + child.width / 2;
-            int childTop = child.y;
-            int midY = (parentBottom + childTop) / 2;
-            // L-shaped 1px connector: parent bottom -> midY -> over child column -> child top.
-            svg.append("<path d=\"M")
-                .append(parentCx)
-                .append(" ")
-                .append(parentBottom)
-                .append(" V")
-                .append(midY)
-                .append(" H")
-                .append(childCx)
-                .append(" V")
-                .append(childTop)
-                .append("\" stroke=\"")
-                .append(stroke)
-                .append("\" stroke-width=\"1\" fill=\"none\" shape-rendering=\"crispEdges\"/>");
-            renderMmConnectors(svg, child);
-        }
-    }
-
-    private static void renderMmNodes(StringBuilder svg, MmLayoutNode node) {
-        int accent = resolveMmAccent(node);
-        int bg = node.isRoot ? MM_ROOT_BG : MM_NODE_BG;
-        renderMmNodeShape(svg, node, accent, bg);
-        // Accent stripe along the left edge (matches the in-game canvas).
-        svg.append("<rect x=\"")
-            .append(node.x)
-            .append("\" y=\"")
-            .append(node.y)
-            .append("\" width=\"")
-            .append(MM_ACCENT_STRIPE)
-            .append("\" height=\"")
-            .append(node.height)
-            .append("\" fill=\"")
-            .append(argbToRgba(accent))
-            .append("\"/>");
-
-        int textX = node.x + MM_ACCENT_STRIPE + MM_NODE_PAD_X;
-        int contentTop = node.y + MM_NODE_PAD_Y;
-        if (node.badge != null) {
-            int badgeWidth = node.badge.length() * MM_CHAR_WIDTH + 8;
-            int badgeHeight = MM_LINE_HEIGHT + 2;
-            svg.append("<rect x=\"")
-                .append(textX)
-                .append("\" y=\"")
-                .append(contentTop)
-                .append("\" width=\"")
-                .append(badgeWidth)
-                .append("\" height=\"")
-                .append(badgeHeight)
-                .append("\" fill=\"")
-                .append(argbToRgba(MM_BADGE_BG))
-                .append("\" stroke=\"")
-                .append(argbToRgba(MM_BORDER_COLOR))
-                .append("\" stroke-width=\"1\"/>");
-            svg.append("<text x=\"")
-                .append(textX + 4)
-                .append("\" y=\"")
-                .append(contentTop + badgeHeight - 4)
-                .append("\" font-size=\"10\" fill=\"")
-                .append(argbToRgba(MM_BADGE_TEXT))
-                .append("\" font-family=\"inherit\">")
+        html.append(" data-accent=\"")
+            .append(argbToRgba(resolveMmAccent(node)))
+            .append("\"");
+        html.append(">");
+        html.append("<span class=\"guide-mermaid-node-accent\"></span>");
+        if (node.badge != null && !node.badge.isEmpty()) {
+            html.append("<div class=\"guide-mermaid-node-badge\">")
                 .append(esc(node.badge))
-                .append("</text>");
-            contentTop += badgeHeight + 4;
+                .append("</div>");
         }
-
-        int lineHeight = node.isRoot ? MM_ROOT_LINE_HEIGHT : MM_LINE_HEIGHT;
-        int fontSize = node.isRoot ? 13 : 12;
-        String textColor = argbToRgba(node.isRoot ? MM_ROOT_TEXT : MM_NODE_TEXT);
-        for (int i = 0; i < node.lines.length; i++) {
-            int ly = contentTop + (i + 1) * lineHeight - 3;
-            svg.append("<text x=\"")
-                .append(textX)
-                .append("\" y=\"")
-                .append(ly)
-                .append("\" font-size=\"")
-                .append(fontSize)
-                .append("\" fill=\"")
-                .append(textColor)
-                .append("\" font-family=\"inherit\"");
-            if (node.isRoot) {
-                svg.append(" font-weight=\"bold\"");
-            }
-            svg.append(">")
-                .append(esc(node.lines[i]))
-                .append("</text>");
+        html.append("<div class=\"guide-mermaid-node-body\">");
+        if (node.htmlContent != null && !node.htmlContent.trim()
+            .isEmpty()) {
+            html.append(node.htmlContent);
+        } else {
+            appendMmFallbackLines(html, node);
         }
-
+        html.append("</div></article>");
         for (MmLayoutNode child : node.children) {
-            renderMmNodes(svg, child);
+            renderMmNodes(html, child);
         }
     }
 
-    private static void renderMmNodeShape(StringBuilder svg, MmLayoutNode node, int accent, int bg) {
-        String fill = argbToRgba(bg);
-        String stroke = argbToRgba(accent);
-        MermaidMindmapNodeShape shape = node.source.getShape();
-        if (shape == null) {
-            shape = MermaidMindmapNodeShape.DEFAULT;
+    private static void appendMmFallbackLines(StringBuilder html, MmLayoutNode node) {
+        for (String line : node.lines) {
+            html.append("<div class=\"guide-mermaid-node-line\">")
+                .append(esc(line))
+                .append("</div>");
         }
-        int strokeWidth = shape == MermaidMindmapNodeShape.BANG ? 2 : 1;
-        int rx = switch (shape) {
-            case ROUNDED, CIRCLE -> Math.min(node.height, node.width) / 2;
-            case BANG -> 4;
-            case CLOUD, HEXAGON -> 8;
-            case SQUARE -> 0;
-            default -> 3;
+    }
+
+    private static String escapeShapeClass(@Nullable MermaidMindmapNodeShape shape) {
+        return switch (shape != null ? shape : MermaidMindmapNodeShape.DEFAULT) {
+            case ROUNDED -> "rounded";
+            case CIRCLE -> "circle";
+            case HEXAGON -> "hexagon";
+            case CLOUD -> "cloud";
+            case BANG -> "bang";
+            case SQUARE -> "square";
+            default -> "default";
         };
-        svg.append("<rect x=\"")
-            .append(node.x)
-            .append("\" y=\"")
-            .append(node.y)
-            .append("\" width=\"")
-            .append(node.width)
-            .append("\" height=\"")
-            .append(node.height)
-            .append("\" rx=\"")
-            .append(rx)
-            .append("\" ry=\"")
-            .append(rx)
-            .append("\" fill=\"")
-            .append(fill)
-            .append("\" stroke=\"")
-            .append(stroke)
-            .append("\" stroke-width=\"")
-            .append(strokeWidth)
-            .append("\"/>");
+    }
+
+    private static @Nullable String simplifyMermaidIcon(@Nullable String icon) {
+        if (icon == null || icon.trim()
+            .isEmpty()) {
+            return null;
+        }
+        String trimmed = icon.trim();
+        String leaf = trimmed.substring(lastWhitespaceSeparatedTokenStart(trimmed));
+        if (leaf.startsWith("fa-")) {
+            leaf = leaf.substring(3);
+        }
+        leaf = leaf.replace('-', ' ')
+            .trim();
+        return leaf.isEmpty() ? trimmed : leaf;
+    }
+
+    private static int lastWhitespaceSeparatedTokenStart(String text) {
+        int index = text.length() - 1;
+        while (index >= 0 && !Character.isWhitespace(text.charAt(index))) {
+            index--;
+        }
+        return index + 1;
     }
 
     private static int resolveMmAccent(MmLayoutNode node) {
@@ -472,10 +346,10 @@ public final class GuideSiteGraphRenderer {
 
     public static String renderCsvTable(List<List<String>> rows, boolean hasHeader) {
         if (rows.isEmpty()) {
-            return "<table class=\"guide-csv-table\"></table>";
+            return "<div class=\"guide-csv-table-wrap\"><table class=\"guide-csv-table\"></table></div>";
         }
         StringBuilder html = new StringBuilder();
-        html.append("<table class=\"guide-csv-table\">");
+        html.append("<div class=\"guide-csv-table-wrap\"><table class=\"guide-csv-table\">");
         int start = 0;
         if (hasHeader) {
             html.append("<thead><tr>");
@@ -500,7 +374,7 @@ public final class GuideSiteGraphRenderer {
             }
             html.append("</tbody>");
         }
-        html.append("</table>");
+        html.append("</table></div>");
         return html.toString();
     }
 
@@ -845,7 +719,7 @@ public final class GuideSiteGraphRenderer {
         if (showLegend) {
             renderLegend(svg, series, left, bottom + AXIS_PAD_BOTTOM + LEGEND_GAP, w - 2 * PADDING);
         }
-        return svg.append("</svg>")
+        return svg.append("</svg></div>")
             .toString();
     }
 
@@ -1014,7 +888,7 @@ public final class GuideSiteGraphRenderer {
         if (showLegend) {
             renderLegend(svg, series, left, bottom + AXIS_PAD_BOTTOM + LEGEND_GAP, w - 2 * PADDING);
         }
-        return svg.append("</svg>")
+        return svg.append("</svg></div>")
             .toString();
     }
 
@@ -1238,7 +1112,7 @@ public final class GuideSiteGraphRenderer {
         if (showLegend) {
             renderLegend(svg, series, left, bottom + AXIS_PAD_BOTTOM + LEGEND_GAP, w - 2 * PADDING);
         }
-        return svg.append("</svg>")
+        return svg.append("</svg></div>")
             .toString();
     }
 
@@ -1334,7 +1208,7 @@ public final class GuideSiteGraphRenderer {
             }
             renderLegend(svg, legendItems, PADDING, bottom + LEGEND_GAP, w - 2 * PADDING);
         }
-        return svg.append("</svg>")
+        return svg.append("</svg></div>")
             .toString();
     }
 
@@ -1487,7 +1361,7 @@ public final class GuideSiteGraphRenderer {
         if (showLegend) {
             renderLegend(svg, series, left, bottom + AXIS_PAD_BOTTOM + LEGEND_GAP, w - 2 * PADDING);
         }
-        return svg.append("</svg>")
+        return svg.append("</svg></div>")
             .toString();
     }
 
@@ -1830,7 +1704,7 @@ public final class GuideSiteGraphRenderer {
             cornerLegendWidth,
             cornerLegendHeight,
             cornerLegendBackgroundColor);
-        return svg.append("</svg>")
+        return svg.append("</svg></div>")
             .toString();
     }
 
@@ -2338,7 +2212,7 @@ public final class GuideSiteGraphRenderer {
 
     private static StringBuilder openSvg(int w, int h, String cls, int bgColor, int borderColor) {
         StringBuilder svg = new StringBuilder();
-        svg.append("<svg class=\"")
+        svg.append("<div class=\"guide-svg-wrap\"><svg class=\"")
             .append(cls)
             .append("\" width=\"")
             .append(w)

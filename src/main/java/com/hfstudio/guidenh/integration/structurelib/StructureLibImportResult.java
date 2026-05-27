@@ -20,10 +20,15 @@ public class StructureLibImportResult {
 
     public StructureLibImportResult(boolean success, List<PlacedBlock> blocks, List<String> warnings,
         List<String> errors, @Nullable StructureLibSceneMetadata metadata) {
+        this(success, immutableCopy(blocks), immutableCopy(warnings), immutableCopy(errors), metadata, true);
+    }
+
+    private StructureLibImportResult(boolean success, List<PlacedBlock> blocks, List<String> warnings,
+        List<String> errors, @Nullable StructureLibSceneMetadata metadata, boolean reuseImmutableLists) {
         this.success = success;
-        this.blocks = immutableCopy(blocks);
-        this.warnings = immutableCopy(warnings);
-        this.errors = immutableCopy(errors);
+        this.blocks = reuseImmutableLists ? blocks : immutableCopy(blocks);
+        this.warnings = reuseImmutableLists ? warnings : immutableCopy(warnings);
+        this.errors = reuseImmutableLists ? errors : immutableCopy(errors);
         this.metadata = metadata;
     }
 
@@ -61,6 +66,10 @@ public class StructureLibImportResult {
 
     public List<String> getErrors() {
         return errors;
+    }
+
+    public StructureLibImportResult withWarnings(List<String> nextWarnings) {
+        return new StructureLibImportResult(success, blocks, immutableCopy(nextWarnings), errors, metadata, true);
     }
 
     @Nullable

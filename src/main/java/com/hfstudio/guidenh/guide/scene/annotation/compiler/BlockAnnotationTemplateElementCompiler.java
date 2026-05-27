@@ -11,6 +11,8 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
+import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
+import com.hfstudio.guidenh.guide.scene.StructureLibSceneConditionParser;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
@@ -56,6 +58,14 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
         }
 
         List<SceneAnnotation> templateAnnotations = collectTemplateAnnotations(compiler, errorSink, el);
+        StructureLibSceneCondition templateCondition = StructureLibSceneConditionParser.parse(compiler, errorSink, el);
+        if (templateCondition != null) {
+            for (SceneAnnotation templateAnnotation : templateAnnotations) {
+                if (templateAnnotation.getStructureLibCondition() == null) {
+                    templateAnnotation.setStructureLibCondition(templateCondition);
+                }
+            }
+        }
         for (SceneAnnotation annotation : BlockAnnotationTemplateExpander.expand(level, matcher, templateAnnotations)) {
             scene.addAnnotation(annotation);
         }
@@ -97,6 +107,8 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
             }
 
             AnnotationTagCompiler.applyTooltip(compiler, annotation, childElement);
+            annotation
+                .setStructureLibCondition(StructureLibSceneConditionParser.parse(compiler, errorSink, childElement));
             templateAnnotations.add(annotation);
             return;
         }

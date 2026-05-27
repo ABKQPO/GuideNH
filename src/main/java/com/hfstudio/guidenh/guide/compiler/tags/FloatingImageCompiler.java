@@ -39,6 +39,11 @@ public class FloatingImageCompiler extends FlowTagCompiler {
     @Override
     protected void compile(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
         var src = el.getAttributeString("src", null);
+        if (src == null || src.trim()
+            .isEmpty()) {
+            parent.appendError(compiler, "FloatingImage requires a non-empty src attribute.", el);
+            return;
+        }
         var align = el.getAttributeString("align", "left");
         var title = el.getAttributeString("title", null);
         int widthPx = parseIntAttr(el, "width", -1);
@@ -65,6 +70,14 @@ public class FloatingImageCompiler extends FlowTagCompiler {
             image.setTitle("Invalid image URL: " + src);
         }
 
+        var wholeImageSound = GuideSoundParsers.parseAttributes(compiler, parent, el, "soundSrc");
+        if (wholeImageSound != null) {
+            var soundAnnotation = new ImageRegionAnnotation(false, ConstantColor.WHITE, 1);
+            soundAnnotation.setSound(wholeImageSound);
+            soundAnnotation.setSoundTrigger(parseTrigger(compiler, parent, el));
+            image.addAnnotation(soundAnnotation);
+        }
+
         // Parse <ImageAnnotation> child elements.
         var children = el.children();
         if (children != null) {
@@ -79,13 +92,6 @@ public class FloatingImageCompiler extends FlowTagCompiler {
                     }
                 }
             }
-        }
-        var wholeImageSound = GuideSoundParsers.parseAttributes(compiler, parent, el);
-        if (wholeImageSound != null) {
-            var soundAnnotation = new ImageRegionAnnotation(false, ConstantColor.WHITE, 1);
-            soundAnnotation.setSound(wholeImageSound);
-            soundAnnotation.setSoundTrigger(parseTrigger(compiler, parent, el));
-            image.addAnnotation(soundAnnotation);
         }
 
         // Wrap it in a flow content inline block

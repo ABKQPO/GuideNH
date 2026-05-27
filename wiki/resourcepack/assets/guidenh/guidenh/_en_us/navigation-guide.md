@@ -2,7 +2,8 @@
 navigation:
   title: Navigation & Index
   parent: index.md
-  position: 5
+  position: 195
+  recommend: 5
 categories:
   - markdown
 ---
@@ -10,6 +11,10 @@ categories:
 # Navigation & Content Index
 
 GuideNH uses YAML frontmatter to declare navigation structure — no `index.md` hardcoding, no manifest files. Every page controls where it appears in the sidebar through its own frontmatter.
+
+When nested pages are expanded in the in-game sidebar, every expanded ancestor that still owns
+visible descendants stays pinned at the top. Multiple ancestor levels can stack there at once,
+making deep trees easier to track while scrolling.
 
 ## Quick Example
 
@@ -58,13 +63,25 @@ the page is loaded from the `gregtech:guidenh` data-driven guide when this guide
 
 ### `navigation.position`
 
-Integer sort order within siblings. Lower numbers appear first. Ties are broken by `title` alphabetically.
+Integer sort order within siblings. Larger numbers appear first. Ties are broken by `title` alphabetically.
 
 ```yaml
 navigation:
   title: Markdown Basics
   parent: index.md
   position: 10
+```
+
+### `navigation.recommend`
+
+Optional integer used by the home page Recommended panel. The page only appears there when this field is present.
+`0` is valid. Larger values appear earlier. Equal values are sorted by title alphabetically.
+
+```yaml
+navigation:
+  title: Markdown Basics
+  parent: index.md
+  recommend: 0
 ```
 
 ### `navigation.priority`
@@ -129,15 +146,19 @@ navigation:
 
 ### `categories`
 
-A list of category tags. Pages with the same category are grouped together by `<CategoryIndex>`.
+A list of MediaWiki-style categories. Each entry can be either `category` or `category|sort key`.
 
 ```yaml
 categories:
   - markdown
-  - charts
+  - charts|Charts Overview
 ```
 
-On the parent page, use `<CategoryIndex category="markdown"></CategoryIndex>` to auto-generate a list of all pages in that category.
+On the parent page, use `<Category name="markdown" rows="3" />` to auto-generate a list of all pages in that category.
+Each category also gets an auto-generated hidden searchable page such as `Category:markdown`.
+GuideNH also provides hidden special pages such as `Special:SpecialPages`, `Special:AllPages`, and `Special:Categories`.
+Use `<Special name="SpecialPages" rows="3" />`, `<Special name="AllPages" rows="3" />`, or `<Special name="Categories" rows="3" />` to embed them directly.
+All `Special:*` pages stay out of normal guide search, while `Category:*` pages remain searchable.
 
 ### `item_ids`
 

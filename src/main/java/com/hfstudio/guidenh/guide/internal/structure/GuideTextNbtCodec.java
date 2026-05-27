@@ -4,6 +4,9 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 import net.minecraft.item.Item;
@@ -24,6 +27,16 @@ import net.minecraft.nbt.NBTTagString;
  */
 public class GuideTextNbtCodec {
 
+    private static final int MAX_TEXT_SAFE_COMPOUND_CACHE_SIZE = 512;
+    private static final Map<String, NBTTagCompound> TEXT_SAFE_COMPOUND_CACHE = Collections
+        .synchronizedMap(new LinkedHashMap<String, NBTTagCompound>(256, 0.75f, true) {
+
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, NBTTagCompound> eldest) {
+                return size() > MAX_TEXT_SAFE_COMPOUND_CACHE_SIZE;
+            }
+        });
+
     public static final String ENCODED_KEYS_TAG = "__guidenh_encoded_keys_v1";
     public static final String ENTRY_KEY_TAG = "k";
     public static final String ENTRY_VALUE_TAG = "v";
@@ -41,9 +54,16 @@ public class GuideTextNbtCodec {
             normalized = normalized.substring(1);
         }
 
+        NBTTagCompound cached = TEXT_SAFE_COMPOUND_CACHE.get(normalized);
+        if (cached != null) {
+            return (NBTTagCompound) cached.copy();
+        }
+
         NBTBase parsed = JsonToNBT.func_150315_a(normalized);
         if (parsed instanceof NBTTagCompound compound) {
-            return decodeCompound(compound);
+            NBTTagCompound decoded = decodeCompound(compound);
+            TEXT_SAFE_COMPOUND_CACHE.put(normalized, (NBTTagCompound) decoded.copy());
+            return decoded;
         }
 
         throw new IllegalStateException("SNBT root must be a Compound");

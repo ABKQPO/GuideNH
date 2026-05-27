@@ -51,6 +51,11 @@ public class GuideScreenNeiBridge {
         return isNeiLoaded() && GuideScreenNeiNativeBridge.keyTyped(editorAccess, typedChar, keyCode);
     }
 
+    public static boolean keyTypedForHoveredGuideItem(EditorAccess editorAccess, char typedChar, int keyCode) {
+        return isNeiLoaded()
+            && GuideScreenNeiNativeBridge.keyTypedForHoveredGuideItem(editorAccess, typedChar, keyCode);
+    }
+
     public static void tick(EditorAccess editorAccess) {
         if (isNeiLoaded()) {
             GuideScreenNeiNativeBridge.tick(editorAccess);

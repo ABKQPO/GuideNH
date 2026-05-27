@@ -24,6 +24,7 @@ public class SceneEditorSceneModel {
     private float offsetY;
     private float zoom;
     private boolean interactive;
+    private boolean showBackground;
     private boolean allowLayerSlider;
     private float centerX;
     private float centerY;
@@ -36,17 +37,18 @@ public class SceneEditorSceneModel {
         this.perspectivePreset = null;
         this.previewWidth = 256;
         this.previewHeight = 192;
-        this.rotationX = 35f;
-        this.rotationY = 45f;
-        this.rotationZ = 0f;
-        this.offsetX = 0f;
-        this.offsetY = 0f;
-        this.zoom = 1f;
+        this.rotationX = Float.NaN;
+        this.rotationY = Float.NaN;
+        this.rotationZ = Float.NaN;
+        this.offsetX = Float.NaN;
+        this.offsetY = Float.NaN;
+        this.zoom = Float.NaN;
         this.interactive = true;
+        this.showBackground = true;
         this.allowLayerSlider = false;
-        this.centerX = 0f;
-        this.centerY = 0f;
-        this.centerZ = 0f;
+        this.centerX = Float.NaN;
+        this.centerY = Float.NaN;
+        this.centerZ = Float.NaN;
         this.sceneNodes = new ArrayList<>();
         this.elements = new ArrayList<>();
     }
@@ -73,6 +75,7 @@ public class SceneEditorSceneModel {
         copy.setOffsetY(this.offsetY);
         copy.setZoom(this.zoom);
         copy.setInteractive(this.interactive);
+        copy.setShowBackground(this.showBackground);
         copy.setAllowLayerSlider(this.allowLayerSlider);
         copy.setCenterX(this.centerX);
         copy.setCenterY(this.centerY);
@@ -168,6 +171,18 @@ public class SceneEditorSceneModel {
         this.rotationZ = rotationZ;
     }
 
+    public boolean hasExplicitRotationX() {
+        return !Float.isNaN(rotationX);
+    }
+
+    public boolean hasExplicitRotationY() {
+        return !Float.isNaN(rotationY);
+    }
+
+    public boolean hasExplicitRotationZ() {
+        return !Float.isNaN(rotationZ);
+    }
+
     public float getOffsetX() {
         return offsetX;
     }
@@ -200,6 +215,14 @@ public class SceneEditorSceneModel {
         this.interactive = interactive;
     }
 
+    public boolean isShowBackground() {
+        return showBackground;
+    }
+
+    public void setShowBackground(boolean showBackground) {
+        this.showBackground = showBackground;
+    }
+
     public boolean isAllowLayerSlider() {
         return allowLayerSlider;
     }
@@ -230,6 +253,34 @@ public class SceneEditorSceneModel {
 
     public void setCenterZ(float centerZ) {
         this.centerZ = centerZ;
+    }
+
+    public boolean hasExplicitOffsetX() {
+        return !Float.isNaN(offsetX);
+    }
+
+    public boolean hasExplicitOffsetY() {
+        return !Float.isNaN(offsetY);
+    }
+
+    public boolean hasExplicitZoom() {
+        return !Float.isNaN(zoom);
+    }
+
+    public boolean hasExplicitCenterX() {
+        return !Float.isNaN(centerX);
+    }
+
+    public boolean hasExplicitCenterY() {
+        return !Float.isNaN(centerY);
+    }
+
+    public boolean hasExplicitCenterZ() {
+        return !Float.isNaN(centerZ);
+    }
+
+    public boolean hasExplicitCenter() {
+        return hasExplicitCenterX() || hasExplicitCenterY() || hasExplicitCenterZ();
     }
 
     public List<SceneEditorSceneNodeModel> getSceneNodes() {

@@ -17,11 +17,11 @@ import com.hfstudio.guidenh.guide.indices.UniqueIndex;
 import cpw.mods.fml.common.FMLLog;
 
 /**
- * An index of BetterQuesting quest UUIDs to the main guidebook page describing them.
+ * An index of BetterQuesting quest ids to the main guidebook page describing them.
  * <p/>
- * The {@code quest_ids} frontmatter list contains plain UUID strings. When the player views a
- * quest in the BetterQuesting GUI, holding the open-guide hotkey will look up this index to
- * navigate to the appropriate page.
+ * The {@code quest_ids} frontmatter list accepts both canonical UUID strings and BetterQuesting's
+ * compact Base64 quest-id encoding. When the player views a quest in the BetterQuesting GUI,
+ * holding the open-guide hotkey will look up this index to navigate to the appropriate page.
  * <p/>
  * The index itself is independent of BetterQuesting: it only stores {@link UUID} keys and never
  * touches any BQ types. This keeps the class safe to load even when BetterQuesting is absent.
@@ -46,15 +46,12 @@ public class QuestIndex extends UniqueIndex<UUID, PageAnchor> {
     }
 
     /**
-     * Convenience overload that parses the UUID string. Invalid UUIDs return {@code null}.
+     * Convenience overload that parses supported BetterQuesting quest-id formats.
      */
     @Nullable
     public PageAnchor findByUuidString(@Nullable String questId) {
-        if (questId == null || questId.isEmpty()) return null;
-        UUID parsed;
-        try {
-            parsed = UUID.fromString(questId.trim());
-        } catch (IllegalArgumentException e) {
+        UUID parsed = QuestIdParser.parse(questId);
+        if (parsed == null) {
             return null;
         }
         return get(parsed);
@@ -85,10 +82,8 @@ public class QuestIndex extends UniqueIndex<UUID, PageAnchor> {
                         .warn("[GuideNH] [QuestIndex] Page {} contains an empty quest_ids frontmatter entry", pageId);
                     continue;
                 }
-                UUID parsed;
-                try {
-                    parsed = UUID.fromString(trimmed);
-                } catch (IllegalArgumentException e) {
+                UUID parsed = QuestIdParser.parse(trimmed);
+                if (parsed == null) {
                     FMLLog.getLogger()
                         .warn(
                             "[GuideNH] [QuestIndex] Page {} contains a malformed quest_ids frontmatter entry: {}",

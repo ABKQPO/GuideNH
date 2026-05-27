@@ -24,7 +24,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     public static final int BASE_SIZE = 16;
 
     private static final int LABEL_GAP = 2;
-    private static final int DEFAULT_INLINE_ITEM_VISUAL_Y_OFFSET = -2;
+    private static final int DEFAULT_INLINE_ITEM_VISUAL_Y_OFFSET = 0;
 
     public static int DEFAULT_TEXT_INLINE_Y_OFFSET = 0;
     public static int DEFAULT_INLINE_Y_OFFSET = 0;

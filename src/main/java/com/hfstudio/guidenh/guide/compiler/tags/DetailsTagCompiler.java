@@ -7,10 +7,10 @@ import java.util.Set;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytDetailsBlock;
+import com.hfstudio.guidenh.guide.document.block.LytSizeBox;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 
 public class DetailsTagCompiler extends BlockTagCompiler {
 
@@ -25,35 +25,62 @@ public class DetailsTagCompiler extends BlockTagCompiler {
         details.setMarginTop(PageCompiler.DEFAULT_ELEMENT_SPACING);
         details.setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
         details.setOpen(el.hasAttribute("open"));
+        details.setFallbackSummaryText("Details");
 
-        List<? extends MdAstAnyContent> children = el.children();
+        String detailsBodySource = compiler.getBlockTagChildrenSource(el);
+        List<? extends MdAstAnyContent> children = detailsBodySource != null ? compiler.reparseBlockTagChildren(el)
+            : el.children();
         int bodyStart = 0;
         if (!children.isEmpty() && children.get(0) instanceof MdxJsxFlowElement summaryElement
             && "summary".equals(summaryElement.name())) {
-            String summaryText = collectText(summaryElement);
-            if (!summaryText.trim()
+            details.getSummaryBox()
+                .clearContent();
+            compiler.compileInlineFragment(summaryElement.children(), details.getSummaryBox());
+            if (details.getSummaryBox()
                 .isEmpty()) {
-                details.setSummaryText(summaryText.trim());
+                details.setFallbackSummaryText("Details");
             }
             bodyStart = 1;
         }
-        if (bodyStart == 0) {
-            details.setSummaryText("Details");
+
+        if (bodyStart < children.size()) {
+            List<? extends MdAstAnyContent> bodyChildren = children.subList(bodyStart, children.size());
+            if (detailsBodySource != null) {
+                compiler.withSourceContext(
+                    detailsBodySource,
+                    () -> compiler.compileBlockContextInSourceContext(bodyChildren, details.getContentBox()));
+            } else {
+                compiler.compileBlockContextInSourceContext(bodyChildren, details.getContentBox());
+            }
         }
 
-        for (int i = bodyStart; i < children.size(); i++) {
-            compiler.compileBlockContext(Collections.singletonList(children.get(i)), details.getContentBox());
+        Integer width = readOptionalInt(el, "width");
+        Integer height = readOptionalInt(el, "height");
+        if (width != null || height != null) {
+            LytSizeBox sizeBox = new LytSizeBox();
+            if (width != null) {
+                sizeBox.setPreferredWidth(width);
+            }
+            if (height != null) {
+                sizeBox.setPreferredHeight(height);
+            }
+            sizeBox.append(details);
+            parent.append(sizeBox);
+            return;
         }
         parent.append(details);
     }
 
-    private String collectText(MdxJsxFlowElement element) {
-        StringBuilder buffer = new StringBuilder();
-        for (MdAstAnyContent child : element.children()) {
-            if (child instanceof MdAstParagraph paragraph) {
-                paragraph.toText(buffer);
-            }
+    private Integer readOptionalInt(MdxJsxElementFields el, String name) {
+        String raw = el.getAttributeString(name, null);
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return null;
         }
-        return buffer.toString();
+        try {
+            return Math.max(0, Integer.parseInt(raw.trim()));
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 }

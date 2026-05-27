@@ -11,6 +11,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.Logger;
 
+import com.hfstudio.guidenh.config.ModConfig;
+
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -146,7 +148,7 @@ public final class GuideDevelopmentResourcePackWatcher implements AutoCloseable 
 
     private static void logInfo(String message, Object... args) {
         Logger logger = FMLLog.getLogger();
-        if (logger != null) {
+        if (logger != null && ModConfig.debug.enableDebugMode) {
             logger.info("[GuideNH] [GuideDevelopmentResourcePackWatcher] " + message, args);
         }
     }

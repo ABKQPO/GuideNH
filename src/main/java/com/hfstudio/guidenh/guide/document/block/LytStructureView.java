@@ -59,8 +59,10 @@ public class LytStructureView extends LytBlock {
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int w = Math.min(viewWidth, availableWidth);
-        return new LytRect(x, y, w, viewHeight);
+        int targetWidth = ResponsiveVisualSizing.scaleWidth(viewWidth, context.getVisualScale(), 32);
+        int width = Math.max(1, Math.min(targetWidth, availableWidth));
+        int height = ResponsiveVisualSizing.scaleHeightForWidth(viewWidth, viewHeight, width, 32);
+        return new LytRect(x, y, width, height);
     }
 
     @Override
@@ -74,18 +76,6 @@ public class LytStructureView extends LytBlock {
 
         if (blocks.isEmpty()) {
             return;
-        }
-
-        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
-        int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
-        int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
-        for (BlockEntry b : blocks) {
-            if (b.x < minX) minX = b.x;
-            if (b.x > maxX) maxX = b.x;
-            if (b.y < minY) minY = b.y;
-            if (b.y > maxY) maxY = b.y;
-            if (b.z < minZ) minZ = b.z;
-            if (b.z > maxZ) maxZ = b.z;
         }
 
         int sxMin = Integer.MAX_VALUE, sxMax = Integer.MIN_VALUE;

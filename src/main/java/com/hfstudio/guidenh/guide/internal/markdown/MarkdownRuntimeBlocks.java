@@ -137,8 +137,7 @@ public final class MarkdownRuntimeBlocks {
         if (text == null || text.isEmpty() || startIndex < 0 || startIndex >= text.length()) {
             return "";
         }
-        return text.substring(startIndex)
-            .trim();
+        return text.substring(startIndex);
     }
 
     private static List<String> splitTokens(String expression) {

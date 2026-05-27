@@ -12,11 +12,10 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.network.GuideNhAe2BaseTileNetworkBatchAwait;
 import com.hfstudio.guidenh.integration.ae2.network.GuideNhAe2BaseTileNetworkBatchReplyMessage;
@@ -30,9 +29,7 @@ import cpw.mods.fml.common.Optional;
  * Type2 MP snapshot + structure NBT attach for {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID}, mirroring
  * {@link Ae2CableStructureSupport}.
  */
-public final class Ae2BaseTileNetworkStructureSupport {
-
-    private static final Logger LOG = LogManager.getLogger("GuideNH/Ae2Preview");
+public class Ae2BaseTileNetworkStructureSupport {
 
     private static volatile boolean mpFetchEmptyLoggedBaseTile;
 
@@ -45,7 +42,7 @@ public final class Ae2BaseTileNetworkStructureSupport {
     }
 
     /** Per-export: dim:x:y:z 鈫?raw {@code X} description bytes. */
-    public static final class Ae2BaseTileNetworkMpSnapshot {
+    public static class Ae2BaseTileNetworkMpSnapshot {
 
         private final Map<String, byte[]> xpByKey;
 
@@ -144,7 +141,7 @@ public final class Ae2BaseTileNetworkStructureSupport {
     private static void logEmptyFetchOnceBaseTile() {
         if (!mpFetchEmptyLoggedBaseTile) {
             mpFetchEmptyLoggedBaseTile = true;
-            LOG.info(
+            GuideDebugLog.info(
                 "AE2 BaseTile-network preview MP batch unavailable or malformed; exporting ae_base_tile_network supplements from local/client only.");
         }
     }

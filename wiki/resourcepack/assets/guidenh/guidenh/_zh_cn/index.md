@@ -3,7 +3,8 @@ item_ids:
   - guidenh:guide
 navigation:
   title: GuideNH 示例
-  position: 0
+  position: 200
+  recommend: 3
 author: GuideNH
 date: 2024-01-01
 ---
@@ -12,17 +13,36 @@ date: 2024-01-01
 
 欢迎使用 GuideNH 演示指南。本指南展示了作者可用的渲染、布局和场景能力。参见 [导航与索引](./navigation-guide.md) 了解如何构建你自己的指南页面。
 
-| 分类 | 页面 |
-|---|---|
-| Markdown | [Markdown 基础](./markdown.md) · [图表](./charts.md) · [函数图](./function-graph.md) |
-| 3D 场景 | [方块场景](./scene-blocks.md) · [实体场景](./scene-entities.md) · [镜头与视口](./scene-camera.md) |
-| 注解 | [注解](./scene-annotations.md) · [导入结构](./scene-import.md) · [思索动画](./ponder.md) |
-| 组件 | [配方](./recipes.md) · [图片](./images.md) · [Tooltip](./tooltips.md) · [内容嵌入](./content-embed.md) |
-| 其他 | [渲染演示](./rendering.md) · [调试](./debug.md) |
+## Markdown
+
+<Category name="markdown" rows="3" />
+
+## 场景
+
+重点场景文档：[场景粒子](./scene-particles.md)
+
+<Category name="scenes" rows="3" />
+
+## 组件
+
+<Category name="widgets" rows="3" />
+
+## 其他
+
+<Category name="other" rows="3" />
+
+## 隐藏的 MediaWiki 页面
+
+可以直接体验这些自动生成的 MediaWiki 风格页面：
+
+- [Special:SpecialPages](Special:SpecialPages)
+- [Special:AllPages](Special:AllPages)
+- [Special:Categories](Special:Categories)
+- [Category:markdown](Category:markdown)
 
 ## 行内元素
 
-缺失配方（回退文字）：<Recipe id="minecraft:missingrecipe" fallbackText="该物品无法合成。" />
+<Recipe id="missingrecipe" fallbackText="该物品无法合成。" />
 
 欢迎来到 <ItemImage id="minecraft:stone" /> 的世界，<PlayerName />！
 

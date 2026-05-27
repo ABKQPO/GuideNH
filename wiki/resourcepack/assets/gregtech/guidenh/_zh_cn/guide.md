@@ -2,7 +2,7 @@
 navigation:
   title: GregTech 子页面
   parent: /index.md
-  position: 10
+  position: 0
 ---
 
 # GregTech 子页面

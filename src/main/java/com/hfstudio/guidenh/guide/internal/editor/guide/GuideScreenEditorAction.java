@@ -33,7 +33,7 @@ public enum GuideScreenEditorAction {
     MERMAID(GuidebookText.GuideEditorMermaid),
     FILE_TREE(GuidebookText.GuideEditorFileTree),
     SUB_PAGES(GuidebookText.GuideEditorSubPages),
-    CATEGORY_INDEX(GuidebookText.GuideEditorCategoryIndex),
+    CATEGORY(GuidebookText.GuideEditorCategory),
     FOOTNOTE_LIST(GuidebookText.GuideEditorFootnoteList),
     ROW(GuidebookText.GuideEditorRow),
     COLUMN(GuidebookText.GuideEditorColumn),
@@ -188,8 +188,8 @@ public enum GuideScreenEditorAction {
                 return GuideIconButton.Role.GUIDE_EDITOR_FILE_TREE;
             case SUB_PAGES:
                 return GuideIconButton.Role.GUIDE_EDITOR_SUB_PAGES;
-            case CATEGORY_INDEX:
-                return GuideIconButton.Role.GUIDE_EDITOR_CATEGORY_INDEX;
+            case CATEGORY:
+                return GuideIconButton.Role.GUIDE_EDITOR_CATEGORY;
             case FOOTNOTE_LIST:
                 return GuideIconButton.Role.GUIDE_EDITOR_FOOTNOTE_LIST;
             case ROW:

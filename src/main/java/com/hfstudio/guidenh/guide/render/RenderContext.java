@@ -130,6 +130,10 @@ public interface RenderContext {
         pushScissor(toScreenRect(rect));
     }
 
+    default LytRect currentScissor() {
+        return null;
+    }
+
     void popScissor();
 
     default void restoreExternalRenderState() {}

@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.internal.datadriven;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -16,10 +15,12 @@ import net.minecraft.client.resources.AbstractResourcePack;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePack;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePacks;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.mixins.early.fml.AccessorFMLClientHandler;
 import com.hfstudio.guidenh.mixins.early.minecraft.AccessorAbstractResourcePack;
@@ -31,39 +32,87 @@ public class DataDrivenGuideLoader {
 
     public static final String AUTO_GUIDE_FOLDER = "guidenh";
     public static final String LANGUAGE_FOLDER_PREFIX = "_";
-    /** @deprecated Data-driven guides are now isolated per namespace. */
-    @Deprecated
-    public static final ResourceLocation MERGED_GUIDE_ID = new ResourceLocation("guidenh", AUTO_GUIDE_FOLDER);
 
     private DataDrivenGuideLoader() {}
 
     public static Map<ResourceLocation, MutableGuide> load() {
-        var discoveredLanguages = new LinkedHashMap<ResourceLocation, LinkedHashSet<String>>();
+        long startedAt = System.nanoTime();
+        long stageStartedAt = startedAt;
+        var activeResourcePacks = getActiveResourcePacks();
+        long resourcePackResolveNs = System.nanoTime() - stageStartedAt;
 
-        for (var resourcePack : getActiveResourcePacks()) {
+        var discoveredLanguages = new LinkedHashMap<ResourceLocation, LinkedHashSet<String>>();
+        stageStartedAt = System.nanoTime();
+        for (var resourcePack : activeResourcePacks) {
             scanResourcePack(resourcePack, discoveredLanguages);
         }
+        long scanNs = System.nanoTime() - stageStartedAt;
 
+        stageStartedAt = System.nanoTime();
         var guides = new LinkedHashMap<ResourceLocation, MutableGuide>();
         for (var entry : discoveredLanguages.entrySet()) {
             ResourceLocation guideId = entry.getKey();
             var builder = Guide.builder(guideId)
                 .register(false)
                 .folder(AUTO_GUIDE_FOLDER)
-                .defaultLanguage(selectDefaultLanguage(entry.getValue()));
+                .defaultLanguage(autoDiscoveredDefaultLanguage());
             guides.put(guideId, (MutableGuide) builder.build());
+        }
+        long buildNs = System.nanoTime() - stageStartedAt;
+        int discoveredLanguageCount = countDiscoveredLanguages(discoveredLanguages);
+        long totalNs = System.nanoTime() - startedAt;
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [DataDrivenGuideLoader] Loaded {} guides across {} languages from {} resource packs in {} ns (resourcePackResolveNs={}, scanNs={}, buildNs={})",
+                    guides.size(),
+                    discoveredLanguageCount,
+                    activeResourcePacks.size(),
+                    totalNs,
+                    resourcePackResolveNs,
+                    scanNs,
+                    buildNs);
         }
         return guides;
     }
 
     public static LinkedHashMap<String, LinkedHashSet<String>> discoverPagePaths(String folder) {
+        long startedAt = System.nanoTime();
+        var activeResourcePacks = getActiveResourcePacks();
         var pagePaths = new LinkedHashMap<String, LinkedHashSet<String>>();
 
-        for (var resourcePack : getActiveResourcePacks()) {
+        for (var resourcePack : activeResourcePacks) {
             scanPagePathsAllNamespaces(resourcePack, folder, pagePaths);
         }
 
+        long totalNs = System.nanoTime() - startedAt;
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [DataDrivenGuideLoader] Discovered {} page paths across {} namespaces for folder {} from {} resource packs in {} ns",
+                    countDiscoveredPagePaths(pagePaths),
+                    pagePaths.size(),
+                    folder,
+                    activeResourcePacks.size(),
+                    totalNs);
+        }
         return pagePaths;
+    }
+
+    private static int countDiscoveredLanguages(Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
+        int total = 0;
+        for (var languages : discoveredLanguages.values()) {
+            total += languages.size();
+        }
+        return total;
+    }
+
+    private static int countDiscoveredPagePaths(LinkedHashMap<String, LinkedHashSet<String>> pagePaths) {
+        int total = 0;
+        for (var namespacePaths : pagePaths.values()) {
+            total += namespacePaths.size();
+        }
+        return total;
     }
 
     private static void scanPagePathsAllNamespaces(IResourcePack resourcePack, String folder,
@@ -163,8 +212,6 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    /** @deprecated Use {@link #discoverPagePaths(String)} instead. */
-    @Deprecated
     public static Set<String> discoverPagePaths(ResourceLocation guideId, String folder) {
         var result = new LinkedHashSet<String>();
         for (var resourcePack : getActiveResourcePacks()) {
@@ -232,8 +279,11 @@ public class DataDrivenGuideLoader {
             return;
         }
 
-        if (!resourcePackFile.isDirectory()) return;
-        scanResourcePackFolder(resourcePackFile, discoveredLanguages);
+        if (resourcePackFile.isDirectory()) {
+            scanResourcePackFolder(resourcePackFile, discoveredLanguages);
+        } else {
+            scanResourcePackZip(resourcePackFile, discoveredLanguages);
+        }
     }
 
     public static void scanPagePaths(IResourcePack resourcePack, String prefix, Set<String> pagePaths) {
@@ -276,7 +326,7 @@ public class DataDrivenGuideLoader {
             return null;
         }
         try (var input = resourcePack.getInputStream(resourceLocation)) {
-            return com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess.readFully(input);
+            return GuideResourceAccess.readFully(input);
         } catch (IOException e) {
             FMLLog.getLogger()
                 .warn(
@@ -286,6 +336,17 @@ public class DataDrivenGuideLoader {
                     e);
             return null;
         }
+    }
+
+    public static IResourcePack findResourcePack(ResourceLocation resourceLocation) {
+        return findResourcePack(resourceLocation, getActiveResourcePacks());
+    }
+
+    public static IResourcePack findResourcePack(ResourceLocation resourceLocation,
+        Iterable<? extends IResourcePack> resourcePacks) {
+        GuidePageResourceSelector.SelectedPageResource selected = GuidePageResourceSelector
+            .select(resourceLocation, resourcePacks);
+        return selected != null ? selected.resourcePack() : null;
     }
 
     public static void scanResourcePackFolder(File resourcePackRoot,
@@ -321,6 +382,60 @@ public class DataDrivenGuideLoader {
                 discoveredLanguages.computeIfAbsent(guideId, ignored -> new LinkedHashSet<>())
                     .add(toLanguageCode(languageFolder));
             }
+        }
+    }
+
+    public static void scanResourcePackZip(File resourcePackFile,
+        Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
+        String assetsPrefix = "assets/";
+        try (var zip = new ZipFile(resourcePackFile)) {
+            var entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                var entry = entries.nextElement();
+                if (entry.isDirectory()) {
+                    continue;
+                }
+
+                var path = entry.getName();
+                if (!path.startsWith(assetsPrefix) || !path.endsWith(".md")) {
+                    continue;
+                }
+
+                var afterAssets = path.substring(assetsPrefix.length());
+                var namespaceEnd = afterAssets.indexOf('/');
+                if (namespaceEnd <= 0) {
+                    continue;
+                }
+
+                var namespace = afterAssets.substring(0, namespaceEnd);
+                var afterNamespace = afterAssets.substring(namespaceEnd + 1);
+                if (!afterNamespace.startsWith(AUTO_GUIDE_FOLDER + "/")) {
+                    continue;
+                }
+
+                var afterGuideFolder = afterNamespace.substring(AUTO_GUIDE_FOLDER.length() + 1);
+                var languageEnd = afterGuideFolder.indexOf('/');
+                if (languageEnd <= 0) {
+                    continue;
+                }
+
+                var languageFolder = afterGuideFolder.substring(0, languageEnd);
+                if (!isLanguageFolder(languageFolder)) {
+                    continue;
+                }
+
+                discoveredLanguages
+                    .computeIfAbsent(
+                        new ResourceLocation(namespace, AUTO_GUIDE_FOLDER),
+                        ignored -> new LinkedHashSet<>())
+                    .add(toLanguageCode(languageFolder));
+            }
+        } catch (IOException e) {
+            FMLLog.getLogger()
+                .warn(
+                    "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide languages from resource pack {}",
+                    resourcePackFile.getAbsolutePath(),
+                    e);
         }
     }
 
@@ -423,14 +538,8 @@ public class DataDrivenGuideLoader {
         return LangUtil.normalizeLanguage(folderName.substring(LANGUAGE_FOLDER_PREFIX.length()));
     }
 
-    public static String selectDefaultLanguage(Set<String> languages) {
-        if (languages.contains("en_us")) {
-            return "en_us";
-        }
-
-        return languages.stream()
-            .min(Comparator.naturalOrder())
-            .orElse("en_us");
+    public static String autoDiscoveredDefaultLanguage() {
+        return LangUtil.ENGLISH_LANGUAGE;
     }
 
     public static String toFolderPrefix(String namespace, String folder) {

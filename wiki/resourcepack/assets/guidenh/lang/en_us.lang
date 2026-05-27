@@ -1,0 +1,11 @@
+guidenh.sample.ponder.label.overview=Overview
+guidenh.sample.ponder.label.input=Input hatch
+guidenh.sample.ponder.label.output=Output side
+guidenh.sample.ponder.label.scroll=Scroll layers
+guidenh.sample.ponder.text.overview=A simple smelting setup: hopper feeds the furnace, chest collects output.
+guidenh.sample.ponder.tooltip.input_bus=EV Input Bus
+guidenh.sample.ponder.text.insert_ore=Insert ore here
+guidenh.sample.ponder.text.collect_dust=Collect dust here
+guidenh.sample.ponder.text.collect_ingots=Collect ingots from the chest
+guidenh.sample.ponder.text.scroll_layers=Scroll to show layers
+guidenh.sample.scene.insert_items=Insert items here

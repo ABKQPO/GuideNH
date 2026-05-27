@@ -2,7 +2,7 @@
 navigation:
   title: GregTech Child Page
   parent: /index.md
-  position: 10
+  position: 0
 ---
 
 # GregTech Child Page

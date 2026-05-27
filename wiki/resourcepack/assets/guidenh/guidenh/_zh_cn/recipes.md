@@ -2,7 +2,7 @@
 navigation:
   title: 配方
   parent: index.md
-  position: 50
+  position: 150
 categories:
   - widgets
 ---
@@ -137,7 +137,7 @@ categories:
 
 - 第一个匹配到的物品：<ItemImage ore="ingotIron" /> 铁锭
 - 第一个匹配到的文本链接：<ItemLink ore="stickWood" />
-- 方块物品形态：<BlockImage ore="logWood" scale="3" />
+- 方块预览：<BlockImage ore="logWood" scale="3" />
 - `ore` 优先于 `id`：<ItemImage id="minecraft:apple" ore="gemDiamond" />
 
 <GameScene width="192" height="128" zoom={5} interactive={true}>

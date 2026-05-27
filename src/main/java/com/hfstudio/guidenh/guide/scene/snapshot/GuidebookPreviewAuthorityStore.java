@@ -92,4 +92,30 @@ public class GuidebookPreviewAuthorityStore {
         }
         return snapshot.isEmpty() ? Collections.emptyMap() : snapshot;
     }
+
+    public Map<Long, Map<String, byte[]>> snapshotAll() {
+        if (byPos.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        HashMap<Long, Map<String, byte[]>> snapshot = new HashMap<>();
+        for (Long packedPos : byPos.keySet()) {
+            snapshot.put(packedPos, snapshotAt(packedPos.longValue()));
+        }
+        return snapshot.isEmpty() ? Collections.emptyMap() : snapshot;
+    }
+
+    public void restoreAll(Map<Long, Map<String, byte[]>> snapshot) {
+        clear();
+        if (snapshot == null || snapshot.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<Long, Map<String, byte[]>> entry : snapshot.entrySet()) {
+            if (entry.getKey() != null) {
+                restoreAt(
+                    entry.getKey()
+                        .longValue(),
+                    entry.getValue());
+            }
+        }
+    }
 }

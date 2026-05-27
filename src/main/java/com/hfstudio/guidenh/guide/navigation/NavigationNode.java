@@ -10,5 +10,5 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 
 @Desugar
-public record NavigationNode(@Nullable ResourceLocation pageId, String title, @Nullable GuidePageIcon icon,
-    List<NavigationNode> children, int position, boolean hasPage) {}
+public record NavigationNode(@Nullable ResourceLocation guideId, @Nullable ResourceLocation pageId, String title,
+    @Nullable GuidePageIcon icon, List<NavigationNode> children, int position, boolean hasPage) {}

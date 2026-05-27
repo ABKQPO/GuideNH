@@ -12,6 +12,7 @@ import static org.lwjgl.opengl.GL11.GL_SCISSOR_TEST;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,12 +27,13 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.entity.Entity;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.ForgeHooksClient;
 
-import org.apache.logging.log4j.LogManager;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import org.joml.Vector3fc;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
@@ -44,6 +46,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteSceneTessellatorCapture;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 
@@ -51,9 +54,15 @@ public class GuidebookLevelRenderer {
 
     public static final GuidebookLevelRenderer INSTANCE = new GuidebookLevelRenderer();
     public static final int FULL_BRIGHTNESS = 15728880;
+    public static final ResourceLocation RAIN_TEXTURE = new ResourceLocation("textures/environment/rain.png");
+    public static final ResourceLocation SNOW_TEXTURE = new ResourceLocation("textures/environment/snow.png");
+    public static final int WEATHER_RENDER_RADIUS = 10;
+    public static final int WEATHER_COVERAGE_RESOLUTION = 1024;
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
     private final GuideEntityRenderStateResolver.ResolvedEntityRenderState entityRenderState = new GuideEntityRenderStateResolver.ResolvedEntityRenderState();
+    private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnsScratch = new ArrayList<>();
+    private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnPool = new ArrayList<>();
 
     // Rebind RenderBlocks only when the level instance changes.
     private RenderBlocks cachedRenderBlocks;
@@ -163,13 +172,40 @@ public class GuidebookLevelRenderer {
             annotations,
             lightDarkMode,
             GuidebookSceneLayerSelection.fromVisibleLayer(visibleLayerY),
-            particles);
+            particles,
+            Collections.emptyList(),
+            0.0f);
     }
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
         List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, GuidebookSceneLayerSelection layerSelection,
         List<GuidebookSceneParticle> particles) {
+        render(
+            level,
+            camera,
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight,
+            scissorX,
+            scissorY,
+            scissorW,
+            scissorH,
+            partialTicks,
+            annotations,
+            lightDarkMode,
+            layerSelection,
+            particles,
+            Collections.emptyList(),
+            0.0f);
+    }
+
+    public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
+        int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
+        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, GuidebookSceneLayerSelection layerSelection,
+        List<GuidebookSceneParticle> particles, List<GuidebookSceneWeatherEffect> weatherEffects,
+        float weatherAnimationTick) {
 
         int cx0 = Math.max(panelX, scissorX);
         int cy0 = Math.max(panelY, scissorY);
@@ -259,6 +295,9 @@ public class GuidebookLevelRenderer {
 
                         if (!annotations.isEmpty()) {
                             InWorldAnnotationRenderer.render(annotations, lightDarkMode);
+                        }
+                        if (weatherEffects != null && !weatherEffects.isEmpty()) {
+                            renderWeatherInContext(level, camera, layerSelection, weatherEffects, weatherAnimationTick);
                         }
                         if (!particles.isEmpty()) {
                             renderParticlesInContext(particles, partialTicks);
@@ -522,28 +561,16 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderParticlesInContext(List<GuidebookSceneParticle> particles, float partialTicks) {
-        matrixBuffer.clear();
-        GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, matrixBuffer);
-        // For a billboard facing the camera we need the camera right/up vectors in scene space.
-        // The modelview matrix M maps scene coords to eye coords (M = V * S, S = scene transform).
-        // GL stores M in column-major order: element [col*4 + row].
-        // Row 0 of M = [m[0], m[4], m[8]] → camera-right in scene space.
-        // Row 1 of M = [m[1], m[5], m[9]] → camera-up in scene space.
-        // Normalize because the scene transform S may include a scale factor.
-        float rx = matrixBuffer.get(0), ry = matrixBuffer.get(4), rz = matrixBuffer.get(8);
-        float ux = matrixBuffer.get(1), uy = matrixBuffer.get(5), uz = matrixBuffer.get(9);
-        float rLen = (float) Math.sqrt(rx * rx + ry * ry + rz * rz);
-        if (rLen > 1e-6f) {
-            rx /= rLen;
-            ry /= rLen;
-            rz /= rLen;
+        if (particles == null || particles.isEmpty()) {
+            return;
         }
-        float uLen = (float) Math.sqrt(ux * ux + uy * uy + uz * uz);
-        if (uLen > 1e-6f) {
-            ux /= uLen;
-            uy /= uLen;
-            uz /= uLen;
-        }
+        BillboardAxes billboardAxes = resolveBillboardAxes();
+        float rx = billboardAxes.rightX();
+        float ry = billboardAxes.rightY();
+        float rz = billboardAxes.rightZ();
+        float ux = billboardAxes.upX();
+        float uy = billboardAxes.upY();
+        float uz = billboardAxes.upZ();
 
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
         try {
@@ -556,32 +583,522 @@ public class GuidebookLevelRenderer {
             GL11.glDisable(GL_ALPHA_TEST);
 
             OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
-            Minecraft.getMinecraft()
-                .getTextureManager()
-                .bindTexture(TextureMap.locationBlocksTexture);
-
             var tess = Tessellator.instance;
-            tess.startDrawingQuads();
+            ResourceLocation activeTexture = null;
+            boolean drawing = false;
             for (GuidebookSceneParticle p : particles) {
-                if (p.isDead()) continue;
+                if (p.isDead() || !p.isReadyToRender()) continue;
+                ResourceLocation nextTexture = p.texture != null ? p.texture : TextureMap.locationBlocksTexture;
+                if (!drawing || !nextTexture.equals(activeTexture)) {
+                    if (drawing) {
+                        tess.draw();
+                    }
+                    Minecraft.getMinecraft()
+                        .getTextureManager()
+                        .bindTexture(nextTexture);
+                    tess.startDrawingQuads();
+                    activeTexture = nextTexture;
+                    drawing = true;
+                }
                 float alpha = p.getAlpha(partialTicks);
+                int brightness = p.getBrightness(partialTicks);
+                tess.setBrightness(
+                    brightness != GuidebookSceneParticle.NO_BRIGHTNESS_OVERRIDE ? brightness : FULL_BRIGHTNESS);
                 tess.setColorRGBA_F(p.red, p.green, p.blue, alpha);
-                float s = p.size;
+                float s = p.getSize(partialTicks);
                 float cx = p.getRenderX(partialTicks), cy = p.getRenderY(partialTicks), cz = p.getRenderZ(partialTicks);
                 tess.addVertexWithUV(cx - rx * s - ux * s, cy - ry * s - uy * s, cz - rz * s - uz * s, p.u0, p.v1);
                 tess.addVertexWithUV(cx + rx * s - ux * s, cy + ry * s - uy * s, cz + rz * s - uz * s, p.u1, p.v1);
                 tess.addVertexWithUV(cx + rx * s + ux * s, cy + ry * s + uy * s, cz + rz * s + uz * s, p.u1, p.v0);
                 tess.addVertexWithUV(cx - rx * s + ux * s, cy - ry * s + uy * s, cz - rz * s + uz * s, p.u0, p.v0);
             }
-            tess.draw();
+            if (drawing) {
+                tess.draw();
+            }
         } finally {
             GL11.glPopAttrib();
         }
     }
 
+    private void renderWeatherInContext(GuidebookLevel level, CameraSettings camera,
+        GuidebookSceneLayerSelection layerSelection, List<GuidebookSceneWeatherEffect> weatherEffects,
+        float animationTick) {
+        if (level == null || weatherEffects == null || weatherEffects.isEmpty()) {
+            return;
+        }
+
+        int[] bounds = level.getBounds();
+        if (bounds == null || bounds.length < 6) {
+            return;
+        }
+        Vector3fc rotationCenter = camera != null ? camera.getRotationCenter() : null;
+        float[] levelCenter = level.getCenter();
+        float centerX = rotationCenter != null ? rotationCenter.x() : levelCenter[0];
+        float centerY = rotationCenter != null ? rotationCenter.y() : levelCenter[1];
+        float centerZ = rotationCenter != null ? rotationCenter.z() : levelCenter[2];
+        BillboardAxes billboardAxes = resolveBillboardAxes();
+
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        try {
+            GL11.glEnable(GL_BLEND);
+            OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+            GL11.glEnable(GL_TEXTURE_2D);
+            GL11.glDisable(GL_LIGHTING);
+            GL11.glDisable(GL_CULL_FACE);
+            GL11.glDepthMask(false);
+            GL11.glEnable(GL_ALPHA_TEST);
+            GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
+            GL11.glNormal3f(0.0f, 1.0f, 0.0f);
+
+            boolean drewRain = appendWeatherEffectQuads(
+                level,
+                layerSelection,
+                weatherEffects,
+                bounds,
+                animationTick,
+                centerX,
+                centerY,
+                centerZ,
+                billboardAxes,
+                GuidebookSceneWeatherType.RAIN);
+            boolean drewSnow = appendWeatherEffectQuads(
+                level,
+                layerSelection,
+                weatherEffects,
+                bounds,
+                animationTick,
+                centerX,
+                centerY,
+                centerZ,
+                billboardAxes,
+                GuidebookSceneWeatherType.SNOW);
+            if (!drewRain && !drewSnow) {
+                return;
+            }
+        } finally {
+            GL11.glPopAttrib();
+        }
+    }
+
+    private boolean appendWeatherEffectQuads(GuidebookLevel level, GuidebookSceneLayerSelection layerSelection,
+        List<GuidebookSceneWeatherEffect> weatherEffects, int[] bounds, float animationTick, float centerX,
+        float centerY, float centerZ, BillboardAxes billboardAxes, GuidebookSceneWeatherType weatherType) {
+        weatherColumnsScratch.clear();
+        collectWeatherColumns(
+            weatherColumnsScratch,
+            level,
+            layerSelection,
+            weatherEffects,
+            bounds,
+            animationTick,
+            centerX,
+            centerY,
+            centerZ,
+            weatherType);
+        if (weatherColumnsScratch.isEmpty()) {
+            return false;
+        }
+
+        ResourceLocation weatherTexture = weatherType == GuidebookSceneWeatherType.SNOW ? SNOW_TEXTURE : RAIN_TEXTURE;
+        Minecraft.getMinecraft()
+            .getTextureManager()
+            .bindTexture(weatherTexture);
+        GuideSiteSceneTessellatorCapture activeCapture = GuideSiteSceneTessellatorCapture.getActive();
+        if (activeCapture != null) {
+            activeCapture.setCurrentSourceTextureId(weatherTexture.toString());
+        }
+
+        Tessellator tessellator = Tessellator.instance;
+        try {
+            tessellator.startDrawingQuads();
+            for (GuidebookSceneWeatherRenderColumn column : weatherColumnsScratch) {
+                appendWeatherColumnQuad(level, tessellator, column, animationTick, centerX, centerZ, billboardAxes);
+            }
+            tessellator.draw();
+        } finally {
+            if (activeCapture != null) {
+                activeCapture.setCurrentSourceTextureId(null);
+            }
+        }
+        weatherColumnsScratch.clear();
+        return true;
+    }
+
+    private void collectWeatherColumns(List<GuidebookSceneWeatherRenderColumn> out, GuidebookLevel level,
+        GuidebookSceneLayerSelection layerSelection, List<GuidebookSceneWeatherEffect> weatherEffects, int[] bounds,
+        float animationTick, float centerX, float centerY, float centerZ, GuidebookSceneWeatherType weatherType) {
+        if (out == null || weatherEffects == null || weatherEffects.isEmpty()) {
+            return;
+        }
+        int pooledColumnCount = 0;
+        for (GuidebookSceneWeatherEffect effect : weatherEffects) {
+            if (effect == null || effect.getWeatherType() != weatherType
+                || !effect.isActiveAt((int) Math.floor(animationTick))) {
+                continue;
+            }
+            float intensity = effect.resolveIntensity(animationTick);
+            if (intensity <= 0.001f) {
+                continue;
+            }
+            float alpha = GuidebookSceneWeatherSupport.resolveAlpha(effect.getWeatherType()) * intensity;
+            if (alpha <= 0.001f) {
+                continue;
+            }
+            float coverage = effect.resolveCoverage();
+            for (GuidebookSceneWeatherArea area : effect.resolveAreas(bounds)) {
+                if (area == null) {
+                    continue;
+                }
+                int minZ = Math.max(area.getMinZ(), resolveWeatherMinCoordinate(centerZ));
+                int maxZ = Math.min(area.getMaxZ(), resolveWeatherMaxCoordinate(centerZ));
+                int minX = Math.max(area.getMinX(), resolveWeatherMinCoordinate(centerX));
+                int maxX = Math.min(area.getMaxX(), resolveWeatherMaxCoordinate(centerX));
+                if (minX > maxX || minZ > maxZ) {
+                    continue;
+                }
+                for (int z = minZ; z <= maxZ; z++) {
+                    for (int x = minX; x <= maxX; x++) {
+                        if (!shouldRenderWeatherColumn(x, z, coverage)) {
+                            continue;
+                        }
+                        GuidebookSceneWeatherRenderColumn column = createWeatherRenderColumn(
+                            level,
+                            layerSelection,
+                            bounds,
+                            effect.getWeatherType(),
+                            x,
+                            z,
+                            alpha,
+                            centerY,
+                            pooledColumnCount);
+                        if (column != null) {
+                            out.add(column);
+                            pooledColumnCount++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private GuidebookSceneWeatherRenderColumn createWeatherRenderColumn(GuidebookLevel level,
+        GuidebookSceneLayerSelection layerSelection, int[] bounds, GuidebookSceneWeatherType weatherType, int x, int z,
+        float alpha, float centerY, int pooledColumnIndex) {
+        int precipitationBottom = Math.max(bounds[1], level.getPrecipitationHeight(x, z, bounds[1], bounds[4]));
+        int precipitationTop = bounds[4] + 1;
+        if (precipitationBottom > precipitationTop) {
+            return null;
+        }
+        if (!isWeatherColumnVisible(layerSelection, precipitationBottom, precipitationTop)) {
+            return null;
+        }
+        int renderBottom = precipitationBottom;
+        int renderTop = precipitationTop;
+        if (layerSelection != null && layerSelection.getMode() == GuidebookSceneLayerSelection.Mode.EACH
+            && layerSelection.getSingleExportLayer() != null) {
+            int visibleLayer = layerSelection.getSingleExportLayer();
+            renderBottom = Math.max(renderBottom, visibleLayer);
+            renderTop = Math.min(renderTop, visibleLayer + 1);
+            if (renderBottom >= renderTop) {
+                return null;
+            }
+        }
+        int lightSampleY = Math.max(precipitationBottom, Math.min(precipitationTop, (int) Math.floor(centerY)));
+        return acquireWeatherRenderColumn(pooledColumnIndex)
+            .set(weatherType, x, z, renderBottom, renderTop, lightSampleY, alpha);
+    }
+
+    private GuidebookSceneWeatherRenderColumn acquireWeatherRenderColumn(int index) {
+        while (weatherColumnPool.size() <= index) {
+            weatherColumnPool.add(new GuidebookSceneWeatherRenderColumn());
+        }
+        return weatherColumnPool.get(index);
+    }
+
+    private boolean isWeatherColumnVisible(GuidebookSceneLayerSelection layerSelection, int precipitationBottom,
+        int precipitationTop) {
+        if (layerSelection == null || layerSelection.getMode() == GuidebookSceneLayerSelection.Mode.ALL) {
+            return true;
+        }
+        Integer singleExportLayer = layerSelection.getSingleExportLayer();
+        if (singleExportLayer != null) {
+            return singleExportLayer >= precipitationBottom && singleExportLayer < precipitationTop;
+        }
+        for (int y = precipitationBottom; y < precipitationTop; y++) {
+            if (layerSelection.isLayerVisible(y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void appendWeatherColumnQuad(GuidebookLevel level, Tessellator tessellator,
+        GuidebookSceneWeatherRenderColumn column, float animationTick, float centerX, float centerZ,
+        BillboardAxes billboardAxes) {
+        float halfWidth = GuidebookSceneWeatherSupport.resolveHalfWidth(column.weatherType());
+        float offsetX = billboardAxes.horizontalRightX() * halfWidth;
+        float offsetZ = billboardAxes.horizontalRightZ() * halfWidth;
+        float x0 = column.x() + 0.5f - offsetX;
+        float x1 = column.x() + 0.5f + offsetX;
+        float z0 = column.z() + 0.5f - offsetZ;
+        float z1 = column.z() + 0.5f + offsetZ;
+        float alpha = resolveWeatherColumnAlpha(column, centerX, centerZ);
+        if (alpha <= 0.001f) {
+            return;
+        }
+        int brightness = resolveWeatherColumnBrightness(level, column);
+        tessellator.setBrightness(brightness);
+        tessellator.setColorRGBA_F(1.0f, 1.0f, 1.0f, alpha);
+
+        float uvOffsetU = 0.0f;
+        float uvOffsetV = resolveWeatherUvOffsetV(column, animationTick);
+        if (column.weatherType() == GuidebookSceneWeatherType.SNOW) {
+            uvOffsetU = resolveSnowUvOffsetU(column, animationTick);
+        }
+
+        tessellator.addVertexWithUV(
+            x0,
+            column.renderBottom(),
+            z0,
+            0.0f + uvOffsetU,
+            column.renderBottom() * 0.25f + uvOffsetV);
+        tessellator.addVertexWithUV(
+            x1,
+            column.renderBottom(),
+            z1,
+            1.0f + uvOffsetU,
+            column.renderBottom() * 0.25f + uvOffsetV);
+        tessellator
+            .addVertexWithUV(x1, column.renderTop(), z1, 1.0f + uvOffsetU, column.renderTop() * 0.25f + uvOffsetV);
+        tessellator
+            .addVertexWithUV(x0, column.renderTop(), z0, 0.0f + uvOffsetU, column.renderTop() * 0.25f + uvOffsetV);
+    }
+
+    private BillboardAxes resolveBillboardAxes() {
+        matrixBuffer.clear();
+        GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, matrixBuffer);
+        float rightX = matrixBuffer.get(0);
+        float rightY = matrixBuffer.get(4);
+        float rightZ = matrixBuffer.get(8);
+        float upX = matrixBuffer.get(1);
+        float upY = matrixBuffer.get(5);
+        float upZ = matrixBuffer.get(9);
+        float rightLength = normalize3(rightX, rightY, rightZ);
+        if (rightLength > 1.0e-6f) {
+            rightX /= rightLength;
+            rightY /= rightLength;
+            rightZ /= rightLength;
+        } else {
+            rightX = 1.0f;
+            rightY = 0.0f;
+            rightZ = 0.0f;
+        }
+        float upLength = normalize3(upX, upY, upZ);
+        if (upLength > 1.0e-6f) {
+            upX /= upLength;
+            upY /= upLength;
+            upZ /= upLength;
+        } else {
+            upX = 0.0f;
+            upY = 1.0f;
+            upZ = 0.0f;
+        }
+
+        float horizontalRightX = rightX;
+        float horizontalRightZ = rightZ;
+        float horizontalLength = normalize2(horizontalRightX, horizontalRightZ);
+        if (horizontalLength > 1.0e-6f) {
+            horizontalRightX /= horizontalLength;
+            horizontalRightZ /= horizontalLength;
+        } else {
+            horizontalRightX = 1.0f;
+            horizontalRightZ = 0.0f;
+        }
+        return new BillboardAxes(rightX, rightY, rightZ, upX, upY, upZ, horizontalRightX, horizontalRightZ);
+    }
+
+    private float normalize3(float x, float y, float z) {
+        return (float) Math.sqrt(x * x + y * y + z * z);
+    }
+
+    private float normalize2(float x, float z) {
+        return (float) Math.sqrt(x * x + z * z);
+    }
+
+    private int resolveWeatherMinCoordinate(float center) {
+        return (int) Math.floor(center) - WEATHER_RENDER_RADIUS;
+    }
+
+    private int resolveWeatherMaxCoordinate(float center) {
+        return (int) Math.floor(center) + WEATHER_RENDER_RADIUS;
+    }
+
+    private boolean shouldRenderWeatherColumn(int x, int z, float coverage) {
+        if (coverage >= 0.999f) {
+            return true;
+        }
+        int threshold = Math
+            .max(1, Math.min(WEATHER_COVERAGE_RESOLUTION, Math.round(coverage * WEATHER_COVERAGE_RESOLUTION)));
+        return Math.floorMod(resolveWeatherCoverageSeed(x, z), WEATHER_COVERAGE_RESOLUTION) < threshold;
+    }
+
+    private int resolveWeatherCoverageSeed(int x, int z) {
+        return x * 73428767 ^ z * 912931;
+    }
+
+    private float resolveWeatherColumnAlpha(GuidebookSceneWeatherRenderColumn column, float centerX, float centerZ) {
+        float alphaRadiusScale = GuidebookSceneWeatherSupport.resolveAlphaRadiusScale(column.weatherType());
+        float dx = column.centerX() - centerX;
+        float dz = column.centerZ() - centerZ;
+        float radiusSquared = (dx * dx + dz * dz) / (WEATHER_RENDER_RADIUS * WEATHER_RENDER_RADIUS);
+        float radialAlpha = (1.0f - radiusSquared) * alphaRadiusScale + 0.5f;
+        radialAlpha = Math.max(0.0f, Math.min(1.0f, radialAlpha));
+        return column.baseAlpha() * radialAlpha;
+    }
+
+    private int resolveWeatherColumnBrightness(GuidebookLevel level, GuidebookSceneWeatherRenderColumn column) {
+        int brightness = level.getLightBrightnessForSkyBlocks(column.x(), column.lightSampleY(), column.z(), 0);
+        if (column.weatherType() == GuidebookSceneWeatherType.SNOW) {
+            return (brightness * 3 + FULL_BRIGHTNESS) / 4;
+        }
+        return brightness;
+    }
+
+    private float resolveWeatherUvOffsetV(GuidebookSceneWeatherRenderColumn column, float animationTick) {
+        if (column.weatherType() == GuidebookSceneWeatherType.SNOW) {
+            return ((animationTick % 512.0f) / 512.0f);
+        }
+        int seed = column.seed();
+        return ((seed & 31) + animationTick) / 32.0f;
+    }
+
+    private float resolveSnowUvOffsetU(GuidebookSceneWeatherRenderColumn column, float animationTick) {
+        int seed = column.seed();
+        return ((seed & 31) / 32.0f) + animationTick * 0.01f * (((seed >> 5) & 1) == 0 ? 1.0f : -1.0f);
+    }
+
+    private static class GuidebookSceneWeatherRenderColumn {
+
+        private GuidebookSceneWeatherType weatherType;
+        private int x;
+        private int z;
+        private int renderBottom;
+        private int renderTop;
+        private int lightSampleY;
+        private float baseAlpha;
+
+        private GuidebookSceneWeatherRenderColumn set(GuidebookSceneWeatherType weatherType, int x, int z,
+            int renderBottom, int renderTop, int lightSampleY, float baseAlpha) {
+            this.weatherType = weatherType;
+            this.x = x;
+            this.z = z;
+            this.renderBottom = renderBottom;
+            this.renderTop = renderTop;
+            this.lightSampleY = lightSampleY;
+            this.baseAlpha = baseAlpha;
+            return this;
+        }
+
+        public GuidebookSceneWeatherType weatherType() {
+            return weatherType;
+        }
+
+        public int x() {
+            return x;
+        }
+
+        public int z() {
+            return z;
+        }
+
+        public int renderBottom() {
+            return renderBottom;
+        }
+
+        public int renderTop() {
+            return renderTop;
+        }
+
+        public int lightSampleY() {
+            return lightSampleY;
+        }
+
+        public float baseAlpha() {
+            return baseAlpha;
+        }
+
+        public float centerX() {
+            return x + 0.5f;
+        }
+
+        public float centerZ() {
+            return z + 0.5f;
+        }
+
+        public int seed() {
+            return x * x * 3121 + x * 45238971 + z * z * 418711 + z * 13761;
+        }
+    }
+
+    private static class BillboardAxes {
+
+        private final float rightX;
+        private final float rightY;
+        private final float rightZ;
+        private final float upX;
+        private final float upY;
+        private final float upZ;
+        private final float horizontalRightX;
+        private final float horizontalRightZ;
+
+        private BillboardAxes(float rightX, float rightY, float rightZ, float upX, float upY, float upZ,
+            float horizontalRightX, float horizontalRightZ) {
+            this.rightX = rightX;
+            this.rightY = rightY;
+            this.rightZ = rightZ;
+            this.upX = upX;
+            this.upY = upY;
+            this.upZ = upZ;
+            this.horizontalRightX = horizontalRightX;
+            this.horizontalRightZ = horizontalRightZ;
+        }
+
+        public float rightX() {
+            return rightX;
+        }
+
+        public float rightY() {
+            return rightY;
+        }
+
+        public float rightZ() {
+            return rightZ;
+        }
+
+        public float upX() {
+            return upX;
+        }
+
+        public float upY() {
+            return upY;
+        }
+
+        public float upZ() {
+            return upZ;
+        }
+
+        public float horizontalRightX() {
+            return horizontalRightX;
+        }
+
+        public float horizontalRightZ() {
+            return horizontalRightZ;
+        }
+    }
+
     public static void log(Throwable t) {
         try {
-            GuideDebugLog.warn(LogManager.getLogger("GuideNH/SceneRenderer"), "Scene render warning", t);
+            GuideDebugLog.warn("Scene render warning", t);
         } catch (Throwable ignore) {}
     }
 }

@@ -112,8 +112,8 @@ public class OpenGuideHotkey {
         var found = guidebookPages.get(0);
 
         var current = GuideScreen.current();
-        if (current != null && current.getCurrentPageId()
-            .equals(found.page.pageId())) {
+        if (current != null && found.page.pageId()
+            .equals(current.getCurrentPageId())) {
             return;
         }
 
@@ -140,8 +140,8 @@ public class OpenGuideHotkey {
 
         var found = pages.get(0);
         var current = GuideScreen.current();
-        if (current != null && current.getCurrentPageId()
-            .equals(found.page.pageId())) {
+        if (current != null && found.page.pageId()
+            .equals(current.getCurrentPageId())) {
             return false;
         }
 
@@ -302,7 +302,7 @@ public class OpenGuideHotkey {
                 var found = questGuidebookPages.get(0);
                 var mc = Minecraft.getMinecraft();
                 if (mc.currentScreen instanceof GuideUiHost) {
-                    ((GuideUiHost) mc.currentScreen).navigateTo(found.page);
+                    ((GuideUiHost) mc.currentScreen).navigateTo(found.guide.getId(), found.page);
                 } else {
                     GuideScreen.openFromGuideHotkey(found.guide.getId(), found.page);
                 }

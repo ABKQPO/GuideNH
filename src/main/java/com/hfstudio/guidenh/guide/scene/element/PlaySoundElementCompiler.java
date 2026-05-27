@@ -9,6 +9,7 @@ import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.SceneSoundCue;
+import com.hfstudio.guidenh.guide.scene.StructureLibSceneConditionParser;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
@@ -37,6 +38,8 @@ public class PlaySoundElementCompiler implements SceneElementTagCompiler {
         }
         var trigger = GuideSoundTrigger
             .parse(MdxAttrs.getString(compiler, errorSink, el, "trigger", null), GuideSoundTrigger.CLICK);
-        scene.addSoundCue(new SceneSoundCue(trigger, sound));
+        SceneSoundCue cue = new SceneSoundCue(trigger, sound);
+        cue.setStructureLibCondition(StructureLibSceneConditionParser.parse(compiler, errorSink, el));
+        scene.addSoundCue(cue);
     }
 }

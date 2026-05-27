@@ -81,6 +81,16 @@ public class PonderInputAnnotation extends OverlayAnnotation {
         return inputType;
     }
 
+    @Nullable
+    public String getModifier() {
+        return modifier;
+    }
+
+    @Nullable
+    public ItemStack getItemStack() {
+        return item;
+    }
+
     private int totalBoxWidth() {
         int iconCols = item != null ? 2 : 1;
         return ICON_SIZE * iconCols + (item != null ? ITEM_GAP : 0) + BOX_PAD * 2;

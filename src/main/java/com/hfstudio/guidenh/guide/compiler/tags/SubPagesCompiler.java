@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.document.block.LytList;
 import com.hfstudio.guidenh.guide.document.block.LytListItem;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
+import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
@@ -33,8 +34,7 @@ public class SubPagesCompiler extends BlockTagCompiler {
         var pageIdStr = el.getAttributeString("id", null);
         var alphabetical = MdxAttrs.getBoolean(compiler, parent, el, "alphabetical", false);
 
-        var navigationTree = compiler.getPageCollection()
-            .getNavigationTree();
+        var navigationTree = GuideRegistry.getMergedNavigationTree();
 
         List<NavigationNode> subNodes;
         if ("".equals(pageIdStr)) {
@@ -72,7 +72,7 @@ public class SubPagesCompiler extends BlockTagCompiler {
             var listItemPar = new LytParagraph();
 
             var link = new LytFlowLink();
-            link.setPageLink(PageAnchor.page(childNode.pageId()));
+            link.setGuideLink(childNode.guideId(), PageAnchor.page(childNode.pageId()));
             link.appendText(childNode.title());
             listItemPar.append(link);
 

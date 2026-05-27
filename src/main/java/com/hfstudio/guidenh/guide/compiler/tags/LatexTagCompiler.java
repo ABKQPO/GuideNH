@@ -69,7 +69,7 @@ public class LatexTagCompiler implements TagCompiler {
     public void compileBlockContext(PageCompiler compiler, LytBlockContainer parent, MdxJsxFlowElement el) {
         LytLatexDisplayBlock block = buildDisplayBlock(compiler, parent, el);
         if (block != null) {
-            parent.append(block);
+            parent.append(PageCompiler.wrapFloatAwareIfNeeded(block));
         }
     }
 

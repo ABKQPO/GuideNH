@@ -73,7 +73,8 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
             return Collections.emptyList();
         }
 
-        if (!(itemIdsNode instanceof List<?>itemIdList)) {
+        List<?> itemIdList = normalizeItemIdEntries(page, itemIdsNode);
+        if (itemIdList == null) {
             FMLLog.getLogger()
                 .warn("[GuideNH] [ItemIndex] Page {} contains malformed item_ids frontmatter", page.getId());
             return Collections.emptyList();
@@ -126,5 +127,22 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
         }
 
         return itemAnchors;
+    }
+
+    @Nullable
+    private static List<?> normalizeItemIdEntries(ParsedGuidePage page, Object itemIdsNode) {
+        if (itemIdsNode instanceof List<?>itemIdList) {
+            return itemIdList;
+        }
+        if (itemIdsNode instanceof String itemIdEntry) {
+            String trimmed = itemIdEntry.trim();
+            if (trimmed.isEmpty()) {
+                FMLLog.getLogger()
+                    .warn("[GuideNH] [ItemIndex] Page {} contains an empty item_ids frontmatter entry", page.getId());
+                return Collections.emptyList();
+            }
+            return Collections.singletonList(trimmed);
+        }
+        return null;
     }
 }

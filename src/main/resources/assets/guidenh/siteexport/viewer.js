@@ -23,6 +23,9 @@ const activeScenes = [];
 // Nodes whose viewport status entry is "intersecting" but that have been
 // throttled because the live set is full. They will be promoted as slots free.
 const pendingScenes = new Set();
+// Tracks one observer per hydration root so repeated tooltip/document hydration
+// does not stack duplicate IntersectionObservers over the same scene nodes.
+const observerEntries = new Map();
 
 function markActive(node) {
   const idx = activeScenes.indexOf(node);
@@ -58,8 +61,24 @@ async function hydrateNode(node, module) {
   module.setupGameScene(node);
 }
 
+function disconnectObserverEntry(root) {
+  const entry = observerEntries.get(root);
+  if (!entry) {
+    return;
+  }
+  entry.observer.disconnect();
+  for (const node of entry.nodes) {
+    pendingScenes.delete(node);
+  }
+  observerEntries.delete(root);
+}
+
 export function hydrateVisibleScenes(root) {
-  const sceneNodes = root.querySelectorAll("[data-scene-src]");
+  if (!root?.querySelectorAll) {
+    return;
+  }
+  disconnectObserverEntry(root);
+  const sceneNodes = Array.from(root.querySelectorAll("[data-scene-src]"));
   if (!sceneNodes.length) {
     return;
   }
@@ -108,12 +127,14 @@ export function hydrateVisibleScenes(root) {
   for (const node of sceneNodes) {
     observer.observe(node);
   }
+  observerEntries.set(root, { observer, nodes: sceneNodes });
 }
 
 export function disposeHydratedScenes(root) {
-  if (!root || !loadedModelViewerModule) {
+  if (!root) {
     return;
   }
+  disconnectObserverEntry(root);
   // Drop any nodes inside `root` from our bookkeeping so they don't leak across navigations.
   if (root.querySelectorAll) {
     for (const node of root.querySelectorAll("[data-scene-src]")) {
@@ -124,5 +145,5 @@ export function disposeHydratedScenes(root) {
       pendingScenes.delete(node);
     }
   }
-  loadedModelViewerModule.disposeHydratedScenes?.(root);
+  loadedModelViewerModule?.disposeHydratedScenes?.(root);
 }

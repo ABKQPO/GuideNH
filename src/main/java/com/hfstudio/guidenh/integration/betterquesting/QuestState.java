@@ -15,7 +15,7 @@ public class QuestState {
 
     private static final Map<String, QuestState> STATES = new LinkedHashMap<>();
 
-    /** The quest exists, is unlocked for the player and not yet completed. */
+    /** The quest exists, is shown by BetterQuesting for the player, and is not yet completed. */
     public static final QuestState VISIBLE = register("guidenh:betterquesting_visible");
     /** The quest exists and the player has completed it. */
     public static final QuestState COMPLETED = register("guidenh:betterquesting_completed");

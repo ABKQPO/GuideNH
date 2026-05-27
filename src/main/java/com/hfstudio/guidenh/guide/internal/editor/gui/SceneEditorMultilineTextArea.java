@@ -437,9 +437,6 @@ public class SceneEditorMultilineTextArea {
             selectionModel.setCursorIndex(cursorIndex);
             selectingWithMouse = false;
         }
-        if (button == 1) {
-            selectionModel.insertText("");
-        }
         rebuildLayoutCache();
         syncImeFocusProxy();
         ensureCursorVisible();

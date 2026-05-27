@@ -2,7 +2,7 @@
 navigation:
   title: Tooltip
   parent: index.md
-  position: 60
+  position: 140
 categories:
   - widgets
 ---
@@ -13,7 +13,7 @@ categories:
 
 ## 悬停基础测试
 
-将鼠标移到物品图标或方块图标上时，会浮现原生游戏 tooltip：
+将鼠标移到物品图标或方块 3D 预览上时，会浮现对应 tooltip：
 
 <Row>
   <ItemImage id="minecraft:diamond" />

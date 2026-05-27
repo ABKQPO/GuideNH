@@ -17,8 +17,6 @@ import net.minecraft.nbt.NBTTagString;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.snapshot.ImportBlockContext;
@@ -31,7 +29,6 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuidebookPreviewBlockPlacer {
 
-    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     public static final String BYTE_ARRAY_WRAPPER_TAG = "__guidenh_byte_array_v1";
     public static final String GREGTECH_BLOCK_MACHINES_CLASS = "gregtech.common.blocks.BlockMachines";
     public static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS = "bartworks.system.material.BWMetaGeneratedBlocks";
@@ -62,6 +59,8 @@ public class GuidebookPreviewBlockPlacer {
         NBTTagCompound previewTileTag = sanitizeGregTechInitTag(tileTag);
         PlacementData placementData = resolvePlacementData(block, meta, previewTileTag);
         logPlacementRequest(x, y, z, block, meta, previewTileTag, explicitBlockId, placementData);
+        World previewWorld = null;
+        World effectiveWorld = null;
 
         // Place the block before loading its tile so world-aware tile initialization sees the correct block/meta.
         level.setBlock(x, y, z, block, placementData.blockMeta, null);
@@ -70,10 +69,12 @@ public class GuidebookPreviewBlockPlacer {
         NBTTagCompound tileSnapshot = null;
         if (previewTileTag != null || block.hasTileEntity(placementData.blockMeta)) {
             try {
+                previewWorld = level.getOrCreateFakeWorld();
+                effectiveWorld = previewWorld;
                 tileEntity = GuidebookTileEntityLoader
-                    .load(level.getOrCreateFakeWorld(), block, placementData.blockMeta, x, y, z, previewTileTag);
+                    .load(previewWorld, block, placementData.blockMeta, x, y, z, previewTileTag);
             } catch (Throwable t) {
-                GuideDebugLog.warn(LOG, "Preview tile entity load failed, falling back to block-only placement", t);
+                GuideDebugLog.warn("Preview tile entity load failed, falling back to block-only placement", t);
             }
         }
         if (tileEntity != null) {
@@ -86,7 +87,12 @@ public class GuidebookPreviewBlockPlacer {
             logLoadedTile("post-facing-meta", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
             TileEntity residentTile = preferPreparedTileEntity(
                 tileEntity,
-                resolveWorldResidentTile(level.getOrCreateFakeWorld(), x, y, z, tileEntity));
+                resolveWorldResidentTile(
+                    effectiveWorld != null ? effectiveWorld : level.getOrCreateFakeWorld(),
+                    x,
+                    y,
+                    z,
+                    tileEntity));
             level.setTileEntity(x, y, z, residentTile);
             residentTile = finalizeSpecialPreviewTile(level, x, y, z, residentTile);
             tileSnapshot = captureTileSnapshot(residentTile);
@@ -108,7 +114,8 @@ public class GuidebookPreviewBlockPlacer {
                 placementData.metaTileId,
                 GuideGregTechTileSupport.describeTileTag(previewTileTag));
         }
-        invokeOnBlockAdded(block, level.getOrCreateFakeWorld(), x, y, z);
+        World blockAddedWorld = effectiveWorld != null ? effectiveWorld : level.getOrCreateFakeWorld();
+        invokeOnBlockAdded(block, blockAddedWorld, x, y, z);
         tileEntity = restoreTileAfterOnBlockAdded(
             level,
             x,
@@ -187,7 +194,7 @@ public class GuidebookPreviewBlockPlacer {
         try {
             return GuideGregTechTileSupport.getMetaTileBaseType(metaTileId);
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "Failed to resolve GregTech base meta for preview block {}", metaTileId, t);
+            GuideDebugLog.warn("Failed to resolve GregTech base meta for preview block {}", metaTileId, t);
             return null;
         }
     }
@@ -212,7 +219,7 @@ public class GuidebookPreviewBlockPlacer {
                 "Preview GregTech init byte-array key shapes for metaTileId={} are [{}]",
                 metaTileId,
                 describeKnownGregTechByteArrayKeys(tileTag));
-            GuideDebugLog.warn(LOG, "Failed to initialize GregTech preview tile {}", metaTileId, t);
+            GuideDebugLog.warn("Failed to initialize GregTech preview tile {}", metaTileId, t);
         }
     }
 
@@ -231,7 +238,7 @@ public class GuidebookPreviewBlockPlacer {
                 .getField("mMetaData")
                 .setShort(tileEntity, (short) blockMeta);
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "Failed to apply BartWorks preview meta {}", blockMeta, t);
+            GuideDebugLog.warn("Failed to apply BartWorks preview meta {}", blockMeta, t);
         }
     }
 
@@ -242,7 +249,7 @@ public class GuidebookPreviewBlockPlacer {
         try {
             block.onBlockAdded(world, x, y, z);
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "Preview block onBlockAdded hook failed for {}", block, t);
+            GuideDebugLog.warn("Preview block onBlockAdded hook failed for {}", block, t);
         }
     }
 

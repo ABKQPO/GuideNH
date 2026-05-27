@@ -40,6 +40,11 @@ public class GuidebookSceneEntityLoader {
     public static final Map<String, GameProfile> PREVIEW_PLAYER_PROFILE_CACHE = Collections
         .synchronizedMap(createPreviewPlayerProfileCache());
     public static volatile GameProfileRepository previewPlayerProfileRepository;
+    @Nullable
+    public static volatile Constructor<?> previewPlayerConstructor;
+    @Nullable
+    public static volatile Constructor<?> fallbackPreviewPlayerConstructor;
+    public static volatile boolean previewPlayerConstructorsResolved;
 
     private GuidebookSceneEntityLoader() {}
 
@@ -346,21 +351,16 @@ public class GuidebookSceneEntityLoader {
 
     @Nullable
     public static Entity createPreviewPlayerEntity(World world, GameProfile gameProfile) {
+        Constructor<?> constructor = resolvePreviewPlayerConstructor();
+        if (constructor == null) {
+            return null;
+        }
+
         try {
-            Class<?> entityClass = Class
-                .forName("com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity");
-            Constructor<?> constructor = entityClass.getConstructor(World.class, GameProfile.class);
             Object entity = constructor.newInstance(world, gameProfile);
             return entity instanceof Entity ? (Entity) entity : null;
         } catch (Throwable ignored) {
-            try {
-                Class<?> entityClass = Class.forName("net.minecraft.client.entity.EntityOtherPlayerMP");
-                Constructor<?> constructor = entityClass.getConstructor(World.class, GameProfile.class);
-                Object entity = constructor.newInstance(world, gameProfile);
-                return entity instanceof Entity ? (Entity) entity : null;
-            } catch (Throwable ignoredToo) {
-                return null;
-            }
+            return null;
         }
     }
 
@@ -369,7 +369,7 @@ public class GuidebookSceneEntityLoader {
             return new GameProfile(profileSpec.getUuid(), profileSpec.getName());
         }
 
-        GameProfile resolvedNamedProfile = resolveCachedPreviewPlayerProfile(profileSpec.getName());
+        GameProfile resolvedNamedProfile = findCachedPreviewPlayerProfile(profileSpec.getName());
         if (resolvedNamedProfile != null && resolvedNamedProfile.getId() != null) {
             return resolvedNamedProfile;
         }
@@ -382,21 +382,13 @@ public class GuidebookSceneEntityLoader {
     @Nullable
     public static GameProfile resolveCachedPreviewPlayerProfile(String playerName) {
         String cacheKey = normalizeProfileCacheKey(playerName);
-        GameProfile cachedProfile = cacheKey == null ? null : PREVIEW_PLAYER_PROFILE_CACHE.get(cacheKey);
-        if (cachedProfile != null) {
-            return cachedProfile;
-        }
+        return cacheKey == null ? null : PREVIEW_PLAYER_PROFILE_CACHE.get(cacheKey);
+    }
 
-        GameProfile profile = lookupProfileFromServerCache(playerName);
-        if (isOfflineFallbackProfile(profile, playerName)) {
-            profile = null;
-        }
-        if (profile == null) {
-            return null;
-        }
-
-        cachePreviewPlayerProfile(playerName, profile);
-        return profile;
+    @Nullable
+    public static GameProfile findCachedPreviewPlayerProfile(@Nullable String playerName) {
+        String cacheKey = normalizeProfileCacheKey(playerName);
+        return cacheKey == null ? null : PREVIEW_PLAYER_PROFILE_CACHE.get(cacheKey);
     }
 
     @Nullable
@@ -616,6 +608,32 @@ public class GuidebookSceneEntityLoader {
                 return size() > MAX_PREVIEW_PLAYER_PROFILE_CACHE_ENTRIES;
             }
         };
+    }
+
+    @Nullable
+    private static Constructor<?> resolvePreviewPlayerConstructor() {
+        if (!previewPlayerConstructorsResolved) {
+            synchronized (GuidebookSceneEntityLoader.class) {
+                if (!previewPlayerConstructorsResolved) {
+                    previewPlayerConstructor = tryResolvePreviewPlayerConstructor(
+                        "com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity");
+                    fallbackPreviewPlayerConstructor = tryResolvePreviewPlayerConstructor(
+                        "net.minecraft.client.entity.EntityOtherPlayerMP");
+                    previewPlayerConstructorsResolved = true;
+                }
+            }
+        }
+        return previewPlayerConstructor != null ? previewPlayerConstructor : fallbackPreviewPlayerConstructor;
+    }
+
+    @Nullable
+    private static Constructor<?> tryResolvePreviewPlayerConstructor(String className) {
+        try {
+            Class<?> entityClass = Class.forName(className);
+            return entityClass.getConstructor(World.class, GameProfile.class);
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     public static class GameProfileSpec {

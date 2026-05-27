@@ -2,36 +2,62 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 
 import java.util.function.Consumer;
 
+import org.jetbrains.annotations.Nullable;
+
 public class SceneEditorNumericFieldController {
 
     private final boolean integerMode;
     private final float minValue;
     private final float maxValue;
     private final Consumer<Float> valueApplier;
+    @Nullable
+    private final Consumer<Float> nullableValueApplier;
+    private final boolean allowEmptyDraft;
 
     private float value;
     private String draftText;
     private boolean validationError;
 
     private SceneEditorNumericFieldController(boolean integerMode, float initialValue, float minValue, float maxValue,
-        Consumer<Float> valueApplier) {
+        Consumer<Float> valueApplier, @Nullable Consumer<Float> nullableValueApplier, boolean allowEmptyDraft) {
         this.integerMode = integerMode;
         this.minValue = minValue;
         this.maxValue = maxValue;
         this.valueApplier = valueApplier;
-        this.value = clamp(initialValue);
-        this.draftText = formatValue(this.value);
+        this.nullableValueApplier = nullableValueApplier;
+        this.allowEmptyDraft = allowEmptyDraft;
+        this.value = Float.isNaN(initialValue) ? clamp(minValue) : clamp(initialValue);
+        this.draftText = Float.isNaN(initialValue) && allowEmptyDraft ? "" : formatValue(this.value);
         this.validationError = false;
     }
 
     public static SceneEditorNumericFieldController integer(float initialValue, float minValue, float maxValue,
         Consumer<Float> valueApplier) {
-        return new SceneEditorNumericFieldController(true, initialValue, minValue, maxValue, valueApplier);
+        return new SceneEditorNumericFieldController(true, initialValue, minValue, maxValue, valueApplier, null, false);
     }
 
     public static SceneEditorNumericFieldController decimal(float initialValue, float minValue, float maxValue,
         Consumer<Float> valueApplier) {
-        return new SceneEditorNumericFieldController(false, initialValue, minValue, maxValue, valueApplier);
+        return new SceneEditorNumericFieldController(
+            false,
+            initialValue,
+            minValue,
+            maxValue,
+            valueApplier,
+            null,
+            false);
+    }
+
+    public static SceneEditorNumericFieldController optionalDecimal(float initialValue, float minValue, float maxValue,
+        Consumer<Float> valueApplier, Consumer<Float> nullableValueApplier) {
+        return new SceneEditorNumericFieldController(
+            false,
+            initialValue,
+            minValue,
+            maxValue,
+            valueApplier,
+            nullableValueApplier,
+            true);
     }
 
     public float getValue() {
@@ -54,9 +80,15 @@ public class SceneEditorNumericFieldController {
     public boolean commitDraftText() {
         if (draftText.trim()
             .isEmpty()) {
-            draftText = formatValue(value);
+            if (!allowEmptyDraft || nullableValueApplier == null) {
+                draftText = formatValue(value);
+                validationError = false;
+                valueApplier.accept(value);
+                return true;
+            }
             validationError = false;
-            valueApplier.accept(value);
+            draftText = "";
+            nullableValueApplier.accept(null);
             return true;
         }
 
@@ -92,8 +124,13 @@ public class SceneEditorNumericFieldController {
     }
 
     public void syncFromModel(float nextValue) {
-        this.value = clamp(nextValue);
-        this.draftText = formatValue(this.value);
+        if (Float.isNaN(nextValue) && allowEmptyDraft) {
+            this.value = Float.NaN;
+            this.draftText = "";
+        } else {
+            this.value = clamp(nextValue);
+            this.draftText = formatValue(this.value);
+        }
         this.validationError = false;
     }
 

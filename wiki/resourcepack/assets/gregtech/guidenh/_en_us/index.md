@@ -1,7 +1,7 @@
 ---
 navigation:
   title: GregTech Namespace Example
-  position: 0
+  position: 10
   priority: 0
 ---
 

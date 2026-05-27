@@ -1,7 +1,9 @@
 package com.hfstudio.guidenh.guide.compiler;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -14,10 +16,18 @@ import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
-import com.github.bsideup.jabel.Desugar;
+public class Frontmatter {
 
-@Desugar
-public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<String, Object> additionalProperties) {
+    @Nullable
+    private final FrontmatterNavigation navigationEntry;
+    private final Map<String, Object> additionalProperties;
+
+    public Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<String, Object> additionalProperties) {
+        this.navigationEntry = navigationEntry;
+        this.additionalProperties = additionalProperties;
+    }
+
+    public static final int NAVIGATION_RECOMMEND_ABSENT = Integer.MIN_VALUE;
 
     // SnakeYAML's Yaml is not thread-safe; use a per-thread cached instance to avoid
     // re-allocating LoaderOptions/SafeConstructor for every page parsed.
@@ -43,6 +53,10 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
             var position = 0;
             if (navigationMap.containsKey("position")) {
                 position = getInt(navigationMap, "position");
+            }
+            int recommend = NAVIGATION_RECOMMEND_ABSENT;
+            if (navigationMap.containsKey("recommend")) {
+                recommend = getInt(navigationMap, "recommend");
             }
             int loadPriority = 0;
             if (navigationMap.containsKey("priority")) {
@@ -166,6 +180,7 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
                 title,
                 parentId,
                 position,
+                recommend,
                 iconId,
                 iconMeta,
                 iconComponents,
@@ -177,6 +192,15 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
         }
 
         return new Frontmatter(navigation, Collections.unmodifiableMap(new HashMap<>(data)));
+    }
+
+    @Nullable
+    public FrontmatterNavigation navigationEntry() {
+        return navigationEntry;
+    }
+
+    public Map<String, Object> additionalProperties() {
+        return additionalProperties;
     }
 
     @Nullable
@@ -317,8 +341,8 @@ public record Frontmatter(@Nullable FrontmatterNavigation navigationEntry, Map<S
             String s = ((String) value).trim();
             return s.isEmpty() ? null : s;
         }
-        if (value instanceof java.util.Date) {
-            return new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format((java.util.Date) value);
+        if (value instanceof Date) {
+            return new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format((Date) value);
         }
         return value.toString();
     }

@@ -8,7 +8,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
-import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -100,7 +99,8 @@ public class GregTechStructureLibControllerIntegration implements StructureLibCo
             return true;
         }
         return alignment.getAlignmentLimits()
-            .isNewExtendedFacingValid(ExtendedFacing.of(ForgeDirection.SOUTH, Rotation.NORMAL, Flip.NONE));
+            .isNewExtendedFacingValid(
+                ExtendedFacing.of(GregTechHelpers.defaultPreviewFacing(), Rotation.NORMAL, Flip.NONE));
     }
 
     @Override

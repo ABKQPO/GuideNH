@@ -39,13 +39,15 @@ import org.apache.lucene.store.ByteBuffersDirectory;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.Guides;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstHeading;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageTitleResolver;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 import cpw.mods.fml.common.FMLLog;
@@ -55,8 +57,10 @@ import cpw.mods.fml.common.FMLLog;
  */
 public class GuideSearch implements AutoCloseable {
 
-    /** Maximum indexing time budget per tick. */
-    public static final long TIME_PER_TICK = TimeUnit.MILLISECONDS.toNanos(5);
+    /** Small background budget to avoid guide indexing from competing with gameplay-critical work. */
+    public static final long BACKGROUND_TIME_PER_TICK = TimeUnit.MILLISECONDS.toNanos(1);
+    /** Default budget used when indexing can make stronger forward progress. */
+    public static final long DEFAULT_TIME_PER_TICK = TimeUnit.MILLISECONDS.toNanos(5);
 
     private final ByteBuffersDirectory directory = new ByteBuffersDirectory();
 
@@ -135,6 +139,10 @@ public class GuideSearch implements AutoCloseable {
     }
 
     public void processWork() {
+        processWork(DEFAULT_TIME_PER_TICK);
+    }
+
+    public void processWork(long budgetNanos) {
         if (pendingTasks.isEmpty()) {
             return;
         }
@@ -143,7 +151,7 @@ public class GuideSearch implements AutoCloseable {
 
         var guideTaskIt = pendingTasks.iterator();
         while (guideTaskIt.hasNext()) {
-            if (isTimeElapsed(start)) {
+            if (isTimeElapsed(start, budgetNanos)) {
                 return;
             }
 
@@ -152,7 +160,7 @@ public class GuideSearch implements AutoCloseable {
 
             var pageIt = guideTask.pendingPages.iterator();
             while (pageIt.hasNext()) {
-                if (isTimeElapsed(start)) {
+                if (isTimeElapsed(start, budgetNanos)) {
                     return;
                 }
 
@@ -187,21 +195,23 @@ public class GuideSearch implements AutoCloseable {
             throw new UncheckedIOException(e);
         }
 
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideSearch] Indexing of {} pages finished in {}",
-                pagesIndexed,
-                Duration.between(indexingStarted, Instant.now()));
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideSearch] Indexing of {} pages finished in {}",
+                    pagesIndexed,
+                    Duration.between(indexingStarted, Instant.now()));
+        }
     }
 
     public void processAllWork() {
         while (!pendingTasks.isEmpty()) {
-            processWork();
+            processWork(DEFAULT_TIME_PER_TICK);
         }
     }
 
-    private boolean isTimeElapsed(long start) {
-        return System.nanoTime() - start >= TIME_PER_TICK;
+    private boolean isTimeElapsed(long start, long budgetNanos) {
+        return System.nanoTime() - start >= budgetNanos;
     }
 
     private void refreshIndexReader() throws IOException {
@@ -301,17 +311,48 @@ public class GuideSearch implements AutoCloseable {
 
                 var pageTitle = document.get(IndexSchema.FIELD_TITLE);
                 result.add(
-                    new SearchResult(guideId, pageId, pageTitle, GuideSearchSnippetFormatter.format(bestFragment)));
+                    new SearchResult(
+                        guideId,
+                        pageId,
+                        pageTitle,
+                        GuideSearchSnippetFormatter.format(bestFragment),
+                        scoreDoc.score));
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
 
+        result.sort((left, right) -> {
+            int leftPriority = searchPriority(left.pageId());
+            int rightPriority = searchPriority(right.pageId());
+            if (leftPriority != rightPriority) {
+                return Integer.compare(leftPriority, rightPriority);
+            }
+            int scoreCompare = Float.compare(right.score(), left.score());
+            if (scoreCompare != 0) {
+                return scoreCompare;
+            }
+            return left.pageTitle()
+                .compareToIgnoreCase(right.pageTitle());
+        });
         return result;
+    }
+
+    private int searchPriority(ResourceLocation pageId) {
+        if (MediaWikiPageIds.isCategoryPage(pageId)) {
+            return 2;
+        }
+        if (MediaWikiPageIds.isSpecialPage(pageId)) {
+            return 3;
+        }
+        return 1;
     }
 
     @Nullable
     private Document createPageDocument(Guide guide, ParsedGuidePage page) {
+        if (MediaWikiPageIds.isSpecialPage(page.getId())) {
+            return null;
+        }
         var pageText = getSearchableText(guide, page);
         var pageTitle = getPageTitle(guide, page);
 
@@ -356,38 +397,7 @@ public class GuideSearch implements AutoCloseable {
     }
 
     public static String getPageTitle(Guide guide, ParsedGuidePage page) {
-
-        // Frontmatter navigation title wins.
-        var navigationEntry = page.getFrontmatter()
-            .navigationEntry();
-        if (navigationEntry != null) {
-            return navigationEntry.title();
-        }
-
-        // Fall back to the first level-1 heading.
-        for (var child : page.getAstRoot()
-            .children()) {
-            if (child instanceof MdAstHeading heading && heading.depth == 1) {
-                var pageTitle = new StringBuilder();
-                var sink = new IndexingSink() {
-
-                    @Override
-                    public void appendText(UnistNode parent, String text) {
-                        pageTitle.append(text);
-                    }
-
-                    @Override
-                    public void appendBreak() {
-                        pageTitle.append(' ');
-                    }
-                };
-                new PageIndexer(guide, guide.getExtensions(), page.getId()).indexContent(heading.children(), sink);
-                return pageTitle.toString();
-            }
-        }
-
-        return page.getId()
-            .toString();
+        return MediaWikiPageTitleResolver.resolvePageTitle(guide, page);
     }
 
     public static String getSearchableText(Guide guide, ParsedGuidePage page) {
@@ -443,8 +453,8 @@ public class GuideSearch implements AutoCloseable {
     record GuideIndexingTask(Guide guide, List<ParsedGuidePage> pendingPages) {}
 
     @Desugar
-    public record SearchResult(ResourceLocation guideId, ResourceLocation pageId, String pageTitle,
-        LytFlowContent text) {
+    public record SearchResult(ResourceLocation guideId, ResourceLocation pageId, String pageTitle, LytFlowContent text,
+        float score) {
 
         public SearchResult {
             Objects.requireNonNull(guideId, "guideId");

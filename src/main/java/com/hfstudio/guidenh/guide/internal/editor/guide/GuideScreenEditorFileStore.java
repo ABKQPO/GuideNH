@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
+import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 
 public final class GuideScreenEditorFileStore {
@@ -134,20 +135,51 @@ public final class GuideScreenEditorFileStore {
     }
 
     public boolean hasWritablePage(MutableGuide guide, ResourceLocation pageId, String language) {
-        Path sourcePackRoot = findWritableResourcePackRootContaining(guide, pageId, language);
-        return sourcePackRoot != null && Files.isRegularFile(buildPagePath(sourcePackRoot, guide, pageId, language));
+        return Files.isRegularFile(resolveExistingWritablePagePath(guide, pageId, language));
     }
 
     private Path resolveExistingWritablePagePath(MutableGuide guide, ResourceLocation pageId, String language) {
-        Path sourcePackRoot = findWritableResourcePackRootContaining(guide, pageId, language);
-        if (sourcePackRoot != null) {
-            return buildPagePath(sourcePackRoot, guide, pageId, language);
+        Path selectedSourcePath = resolveExistingWritableSelectedSourcePath(guide, pageId, language);
+        if (selectedSourcePath != null) {
+            return selectedSourcePath;
         }
         Path fallbackPath = buildPagePath(packRoot, guide, pageId, language);
         if (Files.isRegularFile(fallbackPath)) {
             return fallbackPath;
         }
         return fallbackPath;
+    }
+
+    @Nullable
+    private Path resolveExistingWritableSelectedSourcePath(MutableGuide guide, ResourceLocation pageId,
+        String language) {
+        var resourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
+        GuidePageResourceSelector.SelectedPageResource selected = GuidePageResourceSelector.selectFirstPresent(
+            resourcePacks,
+            toResourcePackPageId(guide, pageId, language),
+            language != null && !language.equals(guide.getDefaultLanguage())
+                ? toResourcePackPageId(guide, pageId, guide.getDefaultLanguage())
+                : null,
+            toNeutralPageId(guide, pageId));
+        if (selected == null) {
+            return null;
+        }
+        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.resourcePack());
+        if (resourcePackFile == null || !resourcePackFile.isDirectory()) {
+            return null;
+        }
+        Path root = resourcePackFile.toPath();
+        if (!Files.isWritable(root)) {
+            return null;
+        }
+        return root.resolve("assets")
+            .resolve(
+                selected.sourceId()
+                    .getResourceDomain())
+            .resolve(
+                selected.sourceId()
+                    .getResourcePath()
+                    .replace('/', File.separatorChar));
     }
 
     private Path resolveWritablePackRoot(MutableGuide guide, @Nullable ResourceLocation sourcePageId, String language) {
@@ -162,45 +194,45 @@ public final class GuideScreenEditorFileStore {
 
     @Nullable
     private Path findWritableResourcePackRootContaining(MutableGuide guide, ResourceLocation pageId, String language) {
-        Path root = findWritableResourcePackRootContainingAsset(toResourcePackPageId(guide, pageId, language));
+        Path root = findWritableResourcePackRootContainingAsset(
+            toResourcePackPageId(guide, pageId, language),
+            language != null && !language.equals(guide.getDefaultLanguage())
+                ? toResourcePackPageId(guide, pageId, guide.getDefaultLanguage())
+                : null,
+            toNeutralPageId(guide, pageId));
         if (root != null) {
             return root;
-        }
-        if (language != null && !language.equals(guide.getDefaultLanguage())) {
-            return findWritableResourcePackRootContainingAsset(
-                toResourcePackPageId(guide, pageId, guide.getDefaultLanguage()));
         }
         return null;
     }
 
     @Nullable
-    private Path findWritableResourcePackRootContainingAsset(ResourceLocation assetId) {
+    private Path findWritableResourcePackRootContainingAsset(ResourceLocation... assetIds) {
         var resourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
-        for (int i = resourcePacks.size() - 1; i >= 0; i--) {
-            IResourcePack resourcePack = resourcePacks.get(i);
-            if (resourcePack == null || !resourcePack.resourceExists(assetId)) {
-                continue;
-            }
-            File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(resourcePack);
-            if (resourcePackFile == null || !resourcePackFile.isDirectory()) {
-                continue;
-            }
-            Path root = resourcePackFile.toPath();
-            if (Files.isWritable(root)) {
-                return root;
-            }
+        GuidePageResourceSelector.SelectedPageResource selected = GuidePageResourceSelector
+            .selectFirstPresent(resourcePacks, assetIds);
+        if (selected == null) {
+            return null;
         }
-        return null;
+        IResourcePack resourcePack = selected.resourcePack();
+        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(resourcePack);
+        if (resourcePackFile == null || !resourcePackFile.isDirectory()) {
+            return null;
+        }
+        Path root = resourcePackFile.toPath();
+        return Files.isWritable(root) ? root : null;
     }
 
     private boolean resourcePageExists(MutableGuide guide, ResourceLocation pageId, String language) {
-        ResourceLocation assetId = toResourcePackPageId(guide, pageId, language);
-        for (IResourcePack resourcePack : DataDrivenGuideLoader.getActiveResourcePacks()) {
-            if (resourcePack != null && resourcePack.resourceExists(assetId)) {
-                return true;
-            }
-        }
-        return false;
+        ResourceLocation localizedId = toResourcePackPageId(guide, pageId, language);
+        ResourceLocation defaultId = language != null && !language.equals(guide.getDefaultLanguage())
+            ? toResourcePackPageId(guide, pageId, guide.getDefaultLanguage())
+            : null;
+        return GuidePageResourceSelector.selectFirstPresent(
+            DataDrivenGuideLoader.getActiveResourcePacks(),
+            localizedId,
+            defaultId,
+            toNeutralPageId(guide, pageId)) != null;
     }
 
     private ResourceLocation toResourcePackPageId(MutableGuide guide, ResourceLocation pageId, String language) {
@@ -209,6 +241,11 @@ public final class GuideScreenEditorFileStore {
             + langFolder
             + "/"
             + normalizePageFileName(pageId.getResourcePath());
+        return new ResourceLocation(guide.getDefaultNamespace(), path);
+    }
+
+    private ResourceLocation toNeutralPageId(MutableGuide guide, ResourceLocation pageId) {
+        String path = guide.getContentRootFolder() + "/" + normalizePageFileName(pageId.getResourcePath());
         return new ResourceLocation(guide.getDefaultNamespace(), path);
     }
 

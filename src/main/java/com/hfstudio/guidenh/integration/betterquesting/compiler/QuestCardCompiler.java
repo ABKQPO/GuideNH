@@ -7,7 +7,6 @@ import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.StatCollector;
 
-import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
@@ -15,21 +14,20 @@ import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.integration.betterquesting.BqHelpers;
 import com.hfstudio.guidenh.integration.betterquesting.QuestDisplay;
-import com.hfstudio.guidenh.integration.betterquesting.QuestIndex;
+import com.hfstudio.guidenh.integration.betterquesting.QuestIdParser;
 import com.hfstudio.guidenh.integration.betterquesting.QuestState;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * Compiles {@code <QuestCard id="<uuid>" [show_desc="false"]/>} into a block-level summary card
- * for a BetterQuesting quest. Renders the quest title (with state-aware styling), a clickable
- * link when visible, and the quest description as a body paragraph when {@code show_desc} is
- * not disabled.
+ * Compiles {@code <QuestCard id="<uuid>" [show_desc="false"] [show_tooltip="false"]/>} into a
+ * block-level summary card for a BetterQuesting quest. Renders the quest title with state-aware
+ * styling, keeps the title clickable for non-hidden quests, and renders the quest description as
+ * a body paragraph when {@code show_desc} is not disabled.
  * <p/>
- * For hidden, locked or missing quests, the card collapses to a single placeholder line.
+ * For hidden or missing quests, the card collapses to a single placeholder line.
  */
 public class QuestCardCompiler extends BlockTagCompiler {
 
@@ -42,19 +40,19 @@ public class QuestCardCompiler extends BlockTagCompiler {
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         String idAttr = MdxAttrs.getString(compiler, parent, el, "id", null);
         if (idAttr == null) {
-            parent.appendError(compiler, "QuestCard requires an 'id' attribute (quest UUID).", el);
+            parent.appendError(compiler, "QuestCard requires an 'id' attribute (BetterQuesting quest id).", el);
             return;
         }
-        UUID questId;
-        try {
-            questId = UUID.fromString(idAttr.trim());
-        } catch (IllegalArgumentException e) {
-            parent.appendError(compiler, "QuestCard id is not a valid UUID: " + idAttr, el);
+        UUID questId = QuestIdParser.parse(idAttr);
+        if (questId == null) {
+            parent.appendError(compiler, "QuestCard id is not a valid BetterQuesting quest id: " + idAttr, el);
             return;
         }
         boolean showDesc = !"false".equalsIgnoreCase(MdxAttrs.getString(compiler, parent, el, "show_desc", "true"));
+        boolean showTooltip = QuestTagSupport.resolveShowTooltip(compiler, parent, el);
 
-        QuestDisplay display = BqHelpers.resolveDisplay(questId, Minecraft.getMinecraft().thePlayer);
+        QuestDisplay display = BqHelpers
+            .resolveDisplay(questId, Minecraft.getMinecraft().thePlayer, showTooltip || showDesc);
         QuestState state = display.getState();
 
         var box = new LytQuoteBox();
@@ -65,7 +63,7 @@ public class QuestCardCompiler extends BlockTagCompiler {
         var title = new LytParagraph();
         title.setMarginTop(0);
         title.setMarginBottom(2);
-        appendTitle(compiler, title, questId, display);
+        appendTitle(compiler, title, questId, display, showTooltip);
         box.append(title);
 
         // Description body: only shown when the player can actually see the quest.
@@ -81,26 +79,13 @@ public class QuestCardCompiler extends BlockTagCompiler {
         parent.append(box);
     }
 
-    private static void appendTitle(PageCompiler compiler, LytParagraph title, UUID questId, QuestDisplay display) {
+    private static void appendTitle(PageCompiler compiler, LytParagraph title, UUID questId, QuestDisplay display,
+        boolean showTooltip) {
         QuestState state = display.getState();
         String name = resolveTitleText(display, questId);
 
-        if (isVisibleToPlayer(state)) {
-            PageAnchor pageAnchor = compiler.getIndex(QuestIndex.class)
-                .findByUuid(questId);
-            var link = new LytFlowLink();
-            if (pageAnchor != null) {
-                link.setPageLink(pageAnchor);
-            } else {
-                link.setClickCallback(screen -> BqHelpers.openQuestGui(questId));
-            }
-            if (state == QuestState.COMPLETED) {
-                link.modifyStyle(style -> style.color(SymbolicColor.GREEN));
-                link.appendText(name + " \u2713");
-            } else {
-                link.appendText(name);
-            }
-            title.append(link);
+        if (QuestTagSupport.isNavigable(state)) {
+            title.append(QuestTagSupport.createQuestLink(compiler, questId, display, name, showTooltip));
         } else {
             var span = new LytFlowSpan();
             span.modifyStyle(
@@ -113,12 +98,11 @@ public class QuestCardCompiler extends BlockTagCompiler {
 
     private static String resolveTitleText(QuestDisplay display, UUID questId) {
         QuestState state = display.getState();
-        if (isVisibleToPlayer(state)) {
-            String name = display.getName();
-            return name != null && !name.isEmpty() ? name : "Quest " + questId;
+        if (state == QuestState.COMPLETED) {
+            return QuestTagSupport.nameOrFallback(display, questId) + " \u2713";
         }
-        if (state == QuestState.LOCKED) {
-            return "[" + StatCollector.translateToLocal("guidenh.compat.bq.locked") + "]";
+        if (QuestTagSupport.isNavigable(state)) {
+            return QuestTagSupport.nameOrFallback(display, questId);
         }
         if (state == QuestState.HIDDEN) {
             return "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
@@ -153,6 +137,6 @@ public class QuestCardCompiler extends BlockTagCompiler {
     }
 
     private static boolean isVisibleToPlayer(QuestState state) {
-        return state == QuestState.VISIBLE || state == QuestState.COMPLETED;
+        return QuestTagSupport.isVisibleToPlayer(state);
     }
 }

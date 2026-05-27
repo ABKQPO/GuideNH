@@ -32,9 +32,10 @@ public class ItemLinkCompiler extends FlowTagCompiler {
         var stack = itemAndId.getRight();
 
         // showTooltip — default true for ItemLink
-        boolean noTooltip = ItemImageCompiler.parseBool(el.getAttributeString("noTooltip", null));
-        String showTooltipRaw = el.getAttributeString("showTooltip", null);
-        boolean showTooltip = showTooltipRaw != null ? ItemImageCompiler.parseBool(showTooltipRaw) : !noTooltip;
+        Boolean noTooltipAttr = MdxAttrs.getOptionalBoolean(el, "noTooltip");
+        boolean noTooltip = MdxAttrs.getBoolean(noTooltipAttr, false);
+        Boolean showTooltipAttr = MdxAttrs.getOptionalBoolean(el, "showTooltip");
+        boolean showTooltip = showTooltipAttr != null ? showTooltipAttr : !noTooltip;
 
         // showIcon — null/falsy = no icon; "left", "right", or any truthy = icon at that side
         String showIconRaw = el.getAttributeString("showIcon", null);

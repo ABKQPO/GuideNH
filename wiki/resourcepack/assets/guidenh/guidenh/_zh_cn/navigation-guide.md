@@ -2,7 +2,8 @@
 navigation:
   title: 导航与索引
   parent: index.md
-  position: 5
+  position: 195
+  recommend: 5
 categories:
   - markdown
 ---
@@ -10,6 +11,8 @@ categories:
 # 导航与内容索引
 
 GuideNH 使用 YAML frontmatter 声明导航结构——无需 `index.md` 硬编码，无需 manifest 文件。每个页面通过自身的 frontmatter 决定在侧边栏中的位置。
+
+当游戏内侧边栏展开多层页面时，只要某个祖先节点的可见子孙仍在列表中，它就会固定在顶部。多层祖先可以同时逐层堆叠，便于在深层树结构中滚动定位。
 
 ## 快速示例
 
@@ -58,13 +61,25 @@ Markdown 页面链接也使用同一套规则。`guide.md`、`./guide.md` 和 `/
 
 ### `navigation.position`
 
-同级页面中的整数排序值。数字越小越靠前。相同 position 时按 `title` 字母序排列。
+同级页面中的整数排序值。数字越大越靠前。相同 position 时按 `title` 字母序排列。
 
 ```yaml
 navigation:
   title: Markdown 基础
   parent: index.md
   position: 10
+```
+
+### `navigation.recommend`
+
+用于首页推荐面板的可选整数。只有写了这个字段的页面才会出现在推荐列表中。
+`0` 是有效值，数值越大越靠前，数值相同时按标题字母序排序。
+
+```yaml
+navigation:
+  title: Markdown Basics
+  parent: index.md
+  recommend: 0
 ```
 
 ### `navigation.priority`
@@ -128,15 +143,19 @@ navigation:
 
 ### `categories`
 
-分类标签列表。具有相同 category 的页面会被 `<CategoryIndex>` 自动聚合。
+MediaWiki 风格分类列表。每一项既可以写成 `分类名`，也可以写成 `分类名|排序名`。
 
 ```yaml
 categories:
   - markdown
-  - charts
+  - charts|Charts Overview
 ```
 
-在父页面中使用 `<CategoryIndex category="markdown"></CategoryIndex>` 即可自动生成该分类下所有页面的列表。
+在父页面中使用 `<Category name="markdown" rows="3" />` 即可自动生成该分类下所有页面的列表。
+每个分类还会自动生成一个隐藏但可搜索的页面，例如 `Category:markdown`。
+GuideNH 还提供隐藏的特殊页面，例如 `Special:SpecialPages`、`Special:AllPages` 与 `Special:Categories`。
+可分别通过 `<Special name="SpecialPages" rows="3" />`、`<Special name="AllPages" rows="3" />` 和 `<Special name="Categories" rows="3" />` 直接嵌入。
+所有 `Special:*` 页面都不会进入普通指南搜索，而 `Category:*` 页面仍然可被搜索到。
 
 ### `item_ids`
 

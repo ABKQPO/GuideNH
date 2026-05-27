@@ -3,7 +3,8 @@ item_ids:
   - guidenh:guide
 navigation:
   title: GuideNH Examples
-  position: 0
+  position: 200
+  recommend: 3
 author: GuideNH
 date: 2024-01-01
 ---
@@ -14,19 +15,30 @@ Welcome to the GuideNH demo guide. This showcases the rendering, layout, and sce
 
 ## Markdown
 
-<CategoryIndex category="markdown"></CategoryIndex>
+<Category name="markdown" rows="3" />
 
 ## Scenes
 
-<CategoryIndex category="scenes"></CategoryIndex>
+Featured scene docs: [Scene Particles](./scene-particles.md)
+
+<Category name="scenes" rows="3" />
 
 ## Widgets
 
-<CategoryIndex category="widgets"></CategoryIndex>
+<Category name="widgets" rows="3" />
 
 ## Other
 
-<CategoryIndex category="other"></CategoryIndex>
+<Category name="other" rows="3" />
+
+## Hidden MediaWiki Pages
+
+Explore the generated MediaWiki-style pages:
+
+- [Special:SpecialPages](Special:SpecialPages)
+- [Special:AllPages](Special:AllPages)
+- [Special:Categories](Special:Categories)
+- [Category:markdown](Category:markdown)
 
 ## Inline Elements
 

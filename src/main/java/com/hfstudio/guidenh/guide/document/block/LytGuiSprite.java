@@ -63,6 +63,12 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         float actualWidth = size.width();
         float actualHeight = size.height();
+        float visualScale = context.getVisualScale();
+
+        if (visualScale < 0.999f) {
+            actualWidth *= visualScale;
+            actualHeight *= visualScale;
+        }
 
         if (actualWidth > availableWidth) {
             var f = availableWidth / actualWidth;

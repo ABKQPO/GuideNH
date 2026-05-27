@@ -1,7 +1,11 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.util.ResourceLocation;
@@ -10,25 +14,16 @@ import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidMindmap;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.document.block.LytVBox;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeContentExtractor;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstBlockquote;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstCode;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstEmphasis;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstHTML;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstInlineCode;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstLink;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstLinkReference;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstListItem;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstStrong;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 
 import cpw.mods.fml.common.FMLLog;
 
@@ -50,14 +45,19 @@ public class MermaidCompiler extends BlockTagCompiler {
 
         try {
             var document = MermaidMindmapParser.parse(source);
-            LytMermaidMindmap block = new LytMermaidMindmap(document, source);
+            Map<String, LytBlock> nodeContentBlocks = compileNodeContentBlocks(
+                compiler,
+                parent,
+                el,
+                document.getRoot());
+            LytMermaidMindmap block = new LytMermaidMindmap(document, source, nodeContentBlocks);
             int width = MdxAttrs.getInt(compiler, parent, el, "width", 0);
             int height = MdxAttrs.getInt(compiler, parent, el, "height", 0);
             if (width > 0 || height > 0) {
                 block.setPreferredSize(width, height);
             }
             FMLLog.getLogger()
-                .info(
+                .debug(
                     "[GuideNH] [MermaidCompiler] Compiled Mermaid runtime block for page {} with root='{}', children={}, sourceLength={}, width={}, height={}",
                     compiler.getPageId(),
                     document.getRoot()
@@ -102,7 +102,12 @@ public class MermaidCompiler extends BlockTagCompiler {
             .isEmpty()) {
             return loadSource(compiler, src.trim());
         }
-        return MermaidMindmapParser.normalize(extractInlineSource(el));
+        String rawTagBodySource = compiler.getBlockTagChildrenSource(el);
+        if (rawTagBodySource != null && !rawTagBodySource.trim()
+            .isEmpty()) {
+            return MermaidMindmapNodeContentExtractor.stripExplicitNodeContentBlocks(rawTagBodySource);
+        }
+        return MermaidMindmapNodeContentExtractor.extractDiagramSource(el.children());
     }
 
     private String resolveSource(IndexingContext indexer, MdxJsxElementFields el) {
@@ -117,7 +122,7 @@ public class MermaidCompiler extends BlockTagCompiler {
             .isEmpty()) {
             return loadSource(indexer, src.trim());
         }
-        return MermaidMindmapParser.normalize(extractInlineSource(el));
+        return MermaidMindmapNodeContentExtractor.extractDiagramSource(el.children());
     }
 
     private String loadSource(PageCompiler compiler, String src) {
@@ -135,7 +140,7 @@ public class MermaidCompiler extends BlockTagCompiler {
             }
             String loaded = MermaidMindmapParser.normalize(new String(data, StandardCharsets.UTF_8));
             FMLLog.getLogger()
-                .info(
+                .debug(
                     "[GuideNH] [MermaidCompiler] Loaded Mermaid src '{}' for page {} as asset {} ({} chars)",
                     src,
                     compiler.getPageId(),
@@ -163,59 +168,77 @@ public class MermaidCompiler extends BlockTagCompiler {
         }
     }
 
-    private String extractInlineSource(MdxJsxElementFields el) {
-        StringBuilder builder = new StringBuilder();
-        appendSource(builder, el.children(), false);
-        return builder.toString()
-            .trim();
+    private Map<String, LytBlock> compileNodeContentBlocks(PageCompiler compiler, LytBlockContainer parent,
+        MdxJsxElementFields mermaidElement, MermaidMindmapNode root) {
+        Map<String, MermaidMindmapNode> nodesById = indexNodesById(root);
+        Map<String, MdxJsxFlowElement> explicitBlocksById = new LinkedHashMap<>();
+        for (MdxJsxFlowElement child : MermaidMindmapNodeContentExtractor
+            .collectNodeContentElements(mermaidElement.children())) {
+            String id = MermaidMindmapNodeContentExtractor.readNodeContentId(child);
+            if (id == null) {
+                parent.appendError(compiler, "Mermaid <NodeContent> requires a non-empty id attribute.", child);
+                continue;
+            }
+            if (!nodesById.containsKey(id)) {
+                parent.appendError(compiler, "Mermaid <NodeContent> references unknown node id '" + id + "'.", child);
+                continue;
+            }
+            if (explicitBlocksById.put(id, child) != null) {
+                parent.appendError(compiler, "Duplicate Mermaid <NodeContent> id '" + id + "'.", child);
+            }
+        }
+
+        Map<String, LytBlock> result = new LinkedHashMap<>();
+        for (MermaidMindmapNode node : nodesById.values()) {
+            LytBlock compiled = compileNodeContentBlock(compiler, explicitBlocksById.get(node.getId()), node);
+            if (compiled != null) {
+                result.put(node.getId(), compiled);
+            }
+        }
+        return result;
     }
 
-    private void appendSource(StringBuilder builder, Iterable<? extends MdAstAnyContent> children,
-        boolean appendBreak) {
-        boolean first = true;
-        for (MdAstAnyContent child : children) {
-            if (!first && appendBreak) {
-                builder.append('\n');
+    private Map<String, MermaidMindmapNode> indexNodesById(MermaidMindmapNode root) {
+        Map<String, MermaidMindmapNode> nodesById = new LinkedHashMap<>();
+        ArrayDeque<MermaidMindmapNode> pending = new ArrayDeque<>();
+        pending.add(root);
+        while (!pending.isEmpty()) {
+            MermaidMindmapNode node = pending.removeFirst();
+            nodesById.putIfAbsent(node.getId(), node);
+            List<MermaidMindmapNode> children = node.getChildren();
+            for (int index = 0; index < children.size(); index++) {
+                pending.addLast(children.get(index));
             }
-            appendSource(builder, child);
-            first = false;
         }
+        return nodesById;
     }
 
-    private void appendSource(StringBuilder builder, MdAstAnyContent content) {
-        if (content instanceof MdAstText text) {
-            builder.append(text.value);
-        } else if (content instanceof MdAstBreak) {
-            builder.append('\n');
-        } else if (content instanceof MdAstInlineCode code) {
-            builder.append(code.value);
-        } else if (content instanceof MdAstCode codeBlock) {
-            builder.append(codeBlock.value);
-        } else if (content instanceof MdAstHTML html) {
-            builder.append(html.value);
-        } else if (content instanceof MdAstLink link) {
-            appendSource(builder, link.children(), false);
-        } else if (content instanceof MdAstLinkReference reference) {
-            appendSource(builder, reference.children(), false);
-        } else if (content instanceof MdAstStrong strong) {
-            appendSource(builder, strong.children(), false);
-        } else if (content instanceof MdAstEmphasis emphasis) {
-            appendSource(builder, emphasis.children(), false);
-        } else if (content instanceof MdAstParagraph paragraph) {
-            appendSource(builder, paragraph.children(), false);
-            builder.append('\n');
-        } else if (content instanceof MdAstBlockquote blockquote) {
-            appendSource(builder, blockquote.children(), true);
-            builder.append('\n');
-        } else if (content instanceof MdAstList list) {
-            for (MdAstAnyContent child : list.children()) {
-                appendSource(builder, child);
-                builder.append('\n');
-            }
-        } else if (content instanceof MdAstListItem listItem) {
-            appendSource(builder, listItem.children(), true);
-        } else if (content instanceof MdAstParent<?>parent) {
-            appendSource(builder, parent.children(), false);
+    private LytBlock compileNodeContentBlock(PageCompiler compiler, MdxJsxFlowElement explicitContent,
+        MermaidMindmapNode node) {
+        if (explicitContent != null) {
+            LytVBox box = new LytVBox();
+            compiler.withBlockTagChildrenSourceContext(
+                explicitContent,
+                () -> compiler.compileBlockContext(explicitContent.children(), box));
+            return box.getChildren()
+                .isEmpty() ? null : box;
         }
+        if (!shouldCompileRichInlineLabel(node)) {
+            return null;
+        }
+        LytParagraph paragraph = new LytParagraph();
+        compiler.withSourceContext(
+            node.getLabelSource(),
+            () -> compiler.compileInlineMarkdown(node.getLabelSource(), paragraph));
+        return paragraph.isEmpty() ? null : paragraph;
+    }
+
+    private boolean shouldCompileRichInlineLabel(MermaidMindmapNode node) {
+        String labelSource = node.getLabelSource();
+        if (labelSource == null || labelSource.trim()
+            .isEmpty()) {
+            return false;
+        }
+        return !labelSource.equals(node.getText());
     }
 }

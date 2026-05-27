@@ -1,0 +1,11 @@
+guidenh.sample.ponder.label.overview=概览
+guidenh.sample.ponder.label.input=输入仓
+guidenh.sample.ponder.label.output=输出侧
+guidenh.sample.ponder.label.scroll=滚动查看分层
+guidenh.sample.ponder.text.overview=简单的熔炼流程：漏斗向熔炉投料，箱子收集产出。
+guidenh.sample.ponder.tooltip.input_bus=EV 输入总线
+guidenh.sample.ponder.text.insert_ore=在这里放入矿石
+guidenh.sample.ponder.text.collect_dust=在这里收集矿粉
+guidenh.sample.ponder.text.collect_ingots=从箱子中取出锭
+guidenh.sample.ponder.text.scroll_layers=滚动鼠标滚轮查看分层
+guidenh.sample.scene.insert_items=在这里放入物品

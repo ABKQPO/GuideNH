@@ -177,18 +177,20 @@ public class MermaidMindmapParser {
         String label = parsedShape != null ? parsedShape.label() : working;
         MermaidMindmapNodeShape shape = parsedShape != null ? parsedShape.shape() : MermaidMindmapNodeShape.DEFAULT;
 
-        String normalizedLabel = normalizeLabel(label);
-        if (normalizedLabel.isEmpty() && icon != null && !icon.isEmpty()) {
-            normalizedLabel = formatIconLabel(icon);
+        String labelSource = normalizeLabelSource(label);
+        String plainText = toPlainText(labelSource);
+        if (plainText.isEmpty() && icon != null && !icon.isEmpty()) {
+            labelSource = formatIconLabel(icon);
+            plainText = labelSource;
         }
-        if (normalizedLabel.isEmpty()) {
+        if (plainText.isEmpty()) {
             throw new IllegalArgumentException("Mermaid mindmap contains an empty node declaration.");
         }
         if (id.isEmpty()) {
-            id = toSlugId(normalizedLabel);
+            id = toSlugId(plainText);
         }
 
-        return new MermaidMindmapNode(id, normalizedLabel, shape, classes, icon, posX, posY);
+        return new MermaidMindmapNode(id, labelSource, plainText, shape, classes, icon, posX, posY);
     }
 
     private static List<String> splitClasses(String classes) {
@@ -252,18 +254,34 @@ public class MermaidMindmapParser {
         return new ShapeParseResult(prefix, stripWrappingQuotes(label.trim()), shape);
     }
 
-    private static String normalizeLabel(String text) {
+    private static String normalizeLabelSource(String text) {
         String normalized = text != null ? text : "";
         normalized = normalized.replace("<br/>", "\n")
             .replace("<br />", "\n")
             .replace("<br>", "\n")
             .replace("&lt;", "<")
             .replace("&gt;", ">")
-            .replace("&amp;", "&")
-            .replace("**", "")
+            .replace("&amp;", "&");
+        return stripWrappingQuotes(normalized.trim());
+    }
+
+    private static String toPlainText(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        String normalized = text;
+        normalized = normalized.replace("![", "[");
+        normalized = normalized.replaceAll("\\[([^\\]]+)]\\(([^)]+)\\)", "$1");
+        normalized = normalized.replaceAll("\\[([^\\]]+)]\\[([^\\]]+)]", "$1");
+        normalized = normalized.replace("**", "")
             .replace("__", "")
             .replace("~~", "")
-            .replace("`", "");
+            .replace("++", "")
+            .replace("^^", "")
+            .replace("::", "")
+            .replace("`", "")
+            .replace("<", "")
+            .replace(">", "");
         return stripWrappingQuotes(normalized.trim());
     }
 

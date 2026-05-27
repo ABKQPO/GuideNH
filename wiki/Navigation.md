@@ -2,6 +2,11 @@
 
 GuideNH builds its navigation tree from page frontmatter.
 
+In the in-game sidebar, expanded ancestor pages stay pinned at the top while their still-visible
+descendants scroll underneath. Multiple expanded ancestor levels can stack at once, and each sticky
+row is pushed away only when its entire visible subtree scrolls out, similar to the VSCode file
+explorer.
+
 ## Navigation Frontmatter
 
 The `navigation` map controls whether a page appears in the guide tree.
@@ -21,12 +26,40 @@ navigation:
 | `title` | Required display title |
 | `parent` | Optional parent page id, resolved like a guide page link |
 | `position` | Optional sibling ordering hint |
+| `recommend` | Optional home-page recommendation priority; absent means the page is not shown in the Recommended panel |
 | `priority` | Optional load priority for same-path page overrides; default `0` |
 | `icon` | Optional item icon |
 | `icon_texture` | Optional texture icon resolved from guide assets |
 | `icon_components` | Parsed but not currently used by built-in rendering |
 | `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
 | `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
+
+### `navigation.position`
+
+`navigation.position` is an optional integer used to order sibling pages in the navigation tree.
+
+- Missing `position` defaults to `0`.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
+
+## Home Page Recommendations
+
+### `navigation.recommend`
+
+`navigation.recommend` is an optional integer used by the home page Recommended panel.
+
+- Pages only appear in the Recommended panel when this field is present.
+- `0` is valid.
+- Larger values appear earlier.
+- If two pages have the same value, they are sorted by title alphabetically.
+- The panel works at the `GuidePage` level, so each recommended page entry jumps directly to that page.
+
+```yaml
+navigation:
+  title: Steam Stage Checklist
+  parent: index.md
+  recommend: 0
+```
 
 ## Mod Requirements
 
@@ -106,10 +139,13 @@ Pages can join one or more named categories using frontmatter:
 ```yaml
 categories:
   - basics
-  - machines
+  - machines|Arc Furnace
 ```
 
-Those categories become queryable through the built-in `<CategoryIndex>` tag.
+Each entry can be either a category name or `category|sort key`.
+
+Those categories are queryable through the built-in `<Category name="machines" rows="3" />` tag and also auto-create hidden searchable pages such as `Category:machines`.
+GuideNH also auto-creates the hidden searchable special pages `Special:AllPages` and `Special:Categories`.
 
 ## Item-Indexed Pages
 
@@ -196,15 +232,42 @@ Navigating to a link with an anchor scrolls the guide to the target heading or n
 
 Special case: `id=""` lists root navigation nodes.
 
-## `<CategoryIndex>`
+## `<Category>`
 
-`<CategoryIndex>` renders links to every page in a named category.
+`<Category>` renders links to every page in a named category.
+
+### Attributes
+
+| Attribute | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `name` | string | none | Category name to render |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
 
 ````md
-<CategoryIndex category="machines" />
+<Category name="machines" rows="3" />
 ````
 
 If the category is missing, GuideNH renders an inline error.
+
+The same category also has an auto-generated hidden searchable page at `Category:machines`.
+
+## `<Special>`
+
+`<Special>` renders one of the built-in MediaWiki-style special page listings.
+
+### Attributes
+
+| Attribute | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `name` | string | none | Supported values: `AllPages`, `Categories` |
+| `rows` | positive integer | `3` | Number of display columns in the MediaWiki-style layout |
+
+````md
+<Special name="AllPages" rows="4" />
+<Special name="Categories" rows="3" />
+````
+
+The same content is also available through the hidden searchable pages `Special:AllPages` and `Special:Categories`.
 
 ## Search Result Titles
 

@@ -19,6 +19,7 @@
 | `centerY` | float | auto | explicit world rotation center Y |
 | `centerZ` | float | auto | explicit world rotation center Z |
 | `interactive` | boolean expression | `true` | enables mouse interaction |
+| `showBackground` | boolean expression | `true` | shows the scene background fill and border |
 | `allowLayerSlider` | boolean | `true` | shows the vertical layer slider |
 | `gridButtonEnabled` | boolean | `true` | shows the floor grid toggle button |
 | `showGrid` | boolean | `false` | initial visibility of the floor grid |
@@ -184,6 +185,70 @@ Some text {<GameScene wrap="square" align="left" width="80" height="80">
 </GameScene>
 ````
 
+## Import Examples
+
+These examples focus on the scene-side behavior that most often trips people up when importing
+structures.
+
+StructureLib import with explicit facing, rotation, flip, and offsets:
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib
+    name="main"
+    controller="gregtech:gt.blockmachines:2741"
+    facing="north"
+    rotation="clockwise_180"
+    flip="none"
+    offsetX="2"
+    offsetY="1"
+    offsetZ="-3"
+  />
+</GameScene>
+````
+
+GregTech controllers stay unformed by default, even when the imported multiblock is otherwise
+valid:
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" />
+</GameScene>
+````
+
+Set `formed={true}` only when the preview should intentionally show the formed controller state:
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" formed={true} />
+</GameScene>
+````
+
+The same default also applies to controllers placed directly with `<Block>`, including GregTech
+controllers that rely on surrounding multiblock casings:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="gregtech:gt.blockmachines:2741" />
+  <Block id="gregtech:gt.blockmachines:1000" x="3" formed={true} />
+</GameScene>
+````
+
+Simple block-only layouts can still be authored directly and remain compatible with multiblock
+inspection logic:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:water" />
+  <Block id="minecraft:water" x="-1" />
+  <Block id="minecraft:water" x="1" />
+  <Block id="minecraft:grass" z="1" />
+  <Block id="minecraft:grass" x="1" z="1" />
+  <Block id="minecraft:glass" z="2" />
+  <Block id="minecraft:glass" x="1" z="2" />
+</GameScene>
+````
+
 ## Scene Child Elements
 
 GuideNH currently registers these scene child tags:
@@ -195,6 +260,7 @@ GuideNH currently registers these scene child tags:
 - `<BlockStats>`
 - `<PlaySound>`
 - `<RemoveBlocks>`
+- `<RemoveEntity>`
 - `<ReplaceBlock>`
 - `<PlaceBlock>`
 - `<BlockAnnotationTemplate>`
@@ -276,6 +342,7 @@ Places a block into the preview world.
 | `meta` | no | integer block metadata |
 | `facing` | no | `down`, `up`, `north`, `south`, `west`, `east` |
 | `nbt` | no | SNBT TileEntity compound |
+| `formed` | no | whether the placed structure controller should be treated as formed during preview sync; default `false` |
 
 Notes:
 
@@ -283,13 +350,14 @@ Notes:
 - if `meta` is omitted and an `ore` match carries concrete non-wildcard item damage, that damage is used before the `facing` fallback
 - if `meta` is omitted, some blocks derive a sensible default from `facing`
 - if `nbt` creates a TileEntity successfully, the preview uses it
+- set `formed={false}` when a controller-based structure should stay unformed in preview even though the surrounding structure is otherwise valid
 
 Example:
 
 ````md
 <Block id="minecraft:furnace" x="2" facing="south" />
 <Block ore="logWood" x="3" />
-<Block id="minecraft:chest" x="4" nbt="{id:\"Chest\",Items:[{Slot:0b,id:\"minecraft:diamond\",Count:1b,Damage:0s}]}" />
+<Block id="minecraft:chest" x="4" nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}' />
 ````
 
 ## `<ImportStructure>`
@@ -305,6 +373,7 @@ Loads an external structure file into the scene.
 | `offsetX` | no | integer translation X (preferred over `x`) |
 | `offsetY` | no | integer translation Y, clamped to `[0, worldHeight-1]` (preferred over `y`) |
 | `offsetZ` | no | integer translation Z (preferred over `z`) |
+| `formed` | no | whether imported structure controllers should be treated as formed during preview sync; default `false` |
 
 Supported formats:
 
@@ -322,6 +391,7 @@ Example:
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
 <ImportStructure src="/assets/example_structure.snbt" x="4" />
+<ImportStructure src="/assets/example_structure.snbt" formed={false} />
 ````
 
 ## `<ImportStructureLib>`
@@ -331,6 +401,7 @@ Imports a StructureLib multiblock preview by controller id.
 | Attribute | Required | Meaning |
 | --- | --- | --- |
 | `controller` | yes | controller block id, using `modid:block[:meta]` |
+| `name` | no | optional binding name used by `showWhenStructure` on annotations, templates, and sounds |
 | `piece` | no | StructureLib piece name override |
 | `facing` | no | facing override passed to the importer |
 | `rotation` | no | rotation override passed to the importer |
@@ -339,18 +410,51 @@ Imports a StructureLib multiblock preview by controller id.
 | `offsetX` | no | integer X offset applied to all placed blocks (default `0`) |
 | `offsetY` | no | integer Y offset applied to all placed blocks, clamped to `[0, worldHeight-1]` (default `0`) |
 | `offsetZ` | no | integer Z offset applied to all placed blocks (default `0`) |
+| `formed` | no | whether imported StructureLib controllers should be treated as formed during preview sync; default `false` |
 
 Notes:
 
 - the imported structure starts from scene `0 0 0`; the controller is not forced to be placed at `0 0 0`
 - this tag enables StructureLib-specific tooltip, hatch highlight, and channel slider UI when metadata is available
 - controller matching supports the GTNH-style `modid:block:meta` form
+- use `name` when the scene contains multiple StructureLib imports and another tag needs to target one specific structure state
+- `facing`, `rotation`, and `flip` use the same orientation vocabulary as StructureLib export; when a requested combination is not allowed by the controller, GuideNH falls back to the first valid alignment automatically
+- GregTech controller previews now default to the controller's opposite horizontal facing from the older preview orientation, rotating the preview front by 180 degrees around the Y axis
+- set `formed={false}` when the imported controller should remain visibly unformed; this is the supported alternative to shipping intentionally broken NBT
 
 Example:
 
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
+````
+
+Structure-aware annotation and sound example:
+
+````md
+<GameScene interactive={true}>
+  <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
+  <ImportStructureLib name="aux" controller="gregtech:gt.blockmachines:15412" />
+
+  <BlockAnnotation
+    pos="5 1 2"
+    color="#FFD24C"
+    showWhenStructure="main"
+    showWhenTier="2..4,!3"
+    showWhenChannels="input:1..3, casing:!2"
+  >
+    Visible only for matching `main` states.
+  </BlockAnnotation>
+
+  <PlaySound
+    sound="guidenh:machine.start"
+    trigger="click"
+    showWhenStructure="aux"
+    showWhenTier="1..2"
+  />
+</GameScene>
 ````
 
 ## `<IsometricCamera>`
@@ -412,6 +516,7 @@ bounding box.
 | `dx` | no | bounding box width (default `1`) |
 | `dy` | no | bounding box height (default `1`) |
 | `dz` | no | bounding box depth (default `1`) |
+| `formed` | no | whether replacement result controllers should be treated as formed during preview sync; default `false` |
 
 Notes:
 
@@ -420,6 +525,7 @@ Notes:
   the actual tile entity are ignored
 - the replacement is performed via the same block placement pipeline as `<Block>`, so GregTech MetaTile
   and BartWorks tile entities are handled correctly
+- if the replacement places a controller, `formed={false}` keeps that controller unformed during preview
 
 Example:
 
@@ -445,6 +551,7 @@ Unlike `<Block>` (which targets a single position), `<PlaceBlock>` supports mult
 | `dx` | no | region width, default `1` |
 | `dy` | no | region height, default `1` |
 | `dz` | no | region depth, default `1` |
+| `formed` | no | whether placed controllers should be treated as formed during preview sync; default `false` |
 
 Notes:
 
@@ -452,12 +559,14 @@ Notes:
 - the NBT compound is copied for each individual placement
 - the same block placement pipeline as `<Block>` is used, so GregTech MetaTile and BartWorks tile entities
   are fully supported
+- if the region places one or more controllers, `formed={false}` keeps every affected controller unformed
 
 Example:
 
 ````md
 <PlaceBlock id="minecraft:stone" x="0" y="0" z="0" dx="5" dy="1" dz="5" />
 <PlaceBlock id="minecraft:glass" y="1" dx="3" dz="3" />
+<PlaceBlock id="gregtech:gt.blockmachines:15411" dx="3" dz="3" formed={false} />
 ````
 
 ## `<BlockAnnotationTemplate>`
@@ -500,6 +609,9 @@ The attributes follow summon-style entity placement and SNBT data.
 | `rotationY` | no | yaw in degrees, default `-45` |
 | `rotationX` | no | pitch in degrees, default `0` |
 | `data` | no | summon-style SNBT merged into the entity NBT before spawn |
+| `sceneEntityId` | no | stable scene-local entity id used by later `<Entity>` / `<RemoveEntity>` operations and by imported scene snapshots |
+| `mount` | no | stable `sceneEntityId` of the vehicle that this entity should ride after spawn |
+| `unmount` | no | boolean expression that clears this entity's current stable mount relation after spawn or state replay |
 | `baby` | no | boolean expression forcing supported entities into baby form; omitted leaves the entity's normal age/state unchanged |
 | `name` | no | preview player name when `id` is `player`, `fakeplayer`, `minecraft:player`, or `minecraft:fakeplayer` |
 | `uuid` | no | preview player UUID when using one of the player ids above |
@@ -516,6 +628,10 @@ Notes:
 
 - entity bounds participate in scene auto-centering and visible-layer filtering
 - entity creation falls back gracefully when the preview world is not ready yet, then binds on first render
+- `sceneEntityId` is optional, but strongly recommended whenever later scene mutations need to find, remove, remount, or restore the same logical entity without scanning by raw runtime id
+- one `sceneEntityId` can own more than one runtime entity instance; `<RemoveEntity sceneEntityId="..."/>` removes every entity currently registered to that stable id
+- `mount` links entities by stable scene id rather than by raw NBT passenger lists, so replay, import/export, preview rebuild, and Ponder seeking can all restore the same rider/vehicle relation deterministically
+- `unmount={true}` clears the stable mount relation for that entity before any later mount is applied
 - `baby={true}` currently supports preview players, ageable mobs, vanilla zombies, and modded entities that expose stable `setChild(boolean)` or `setBaby(boolean)` style APIs
 - child-state entities are re-aligned to their current position after resizing so hover and pick bounds stay centered on the rendered model
 - player preview ids create a client-side fake remote player so the normal player renderer and skin pipeline can be used
@@ -535,6 +651,28 @@ Example:
 <GameScene zoom={4} interactive={true}>
   <Block id="minecraft:grass" />
   <Entity id="minecraft:sheep" y="1" data="{Color:2}" />
+</GameScene>
+````
+
+Stable-id mount example:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="minecraft:horse" x="1.5" y="1" sceneEntityId="horse" />
+  <Entity id="player" x="1.5" y="2" sceneEntityId="rider" mount="horse" name="GuideNH" />
+</GameScene>
+````
+
+Removal and unmount example:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="minecraft:horse" x="1.5" y="1" sceneEntityId="horse" />
+  <Entity id="player" x="1.5" y="2" sceneEntityId="rider" mount="horse" name="GuideNH" />
+  <Entity id="player" x="3" y="1" sceneEntityId="rider" unmount={true} name="GuideNH" />
+  <RemoveEntity sceneEntityId="horse" />
 </GameScene>
 ````
 
@@ -574,6 +712,66 @@ Preview player name and cape example:
   <Block id="minecraft:grass" />
   <Entity id="player" y="1" name="Huan_F" showName={true} showCape={true} />
   <Entity id="player" x="2" y="1" showName={false} showCape={false} />
+</GameScene>
+````
+
+## `<RemoveEntity>`
+
+Removes every runtime entity currently registered to one stable `sceneEntityId`.
+
+| Attribute | Required | Meaning |
+| --- | --- | --- |
+| `sceneEntityId` | yes | stable scene-local entity id to remove |
+| `unmount` | no | boolean expression that clears the stable mount relation before removal |
+
+Notes:
+
+- this is the scene-side counterpart to Ponder's `removeEntities`
+- removal works on the indexed stable-id registry, so it does not need to scan all entities every frame
+- if multiple imported or replayed entities share the same `sceneEntityId`, they are removed together
+
+Example:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:grass" />
+  <Entity id="minecraft:pig" y="1" sceneEntityId="demoPig" />
+  <RemoveEntity sceneEntityId="demoPig" />
+</GameScene>
+````
+
+## Weather
+
+`<Weather>` adds animated rain or snow directly to a `GameScene`. Unlike Ponder weather presets,
+scene weather is not timeline-owned: it keeps looping during normal scene rendering, it does not
+fade in or fade out, and it cannot be paused or scrubbed independently. The renderer still uses the
+same precipitation geometry path as Ponder weather, so local preview and site export stay aligned.
+
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `weather` / `type` | `rain` | Weather kind. Supported values: `rain`, `snow`. |
+| `x`, `z` | scene bounds | Covered precipitation columns. A scalar targets one column. Arrays use endpoint pairs to define one or more rectangles. |
+| `density` | type-specific | Coverage density. Higher values keep more precipitation columns active; lower values sparsify the effect. |
+
+Notes:
+
+- `<Weather>` ignores `y`; the vertical span is derived from the current scene bounds and from the
+  highest precipitation-blocking block in each covered column.
+- If one axis has unmatched extra array values, the unmatched tail is ignored.
+- Within one weather declaration, rain and snow never stack on the same `x/z` column. If multiple
+  weather tags overlap, earlier tags keep the shared columns.
+- Different non-overlapping columns in the same `GameScene` can render rain and snow at the same
+  time.
+
+Example:
+
+````md
+<GameScene width="256" height="160" zoom={4} interactive={false}>
+  <Block id="minecraft:grass" />
+  <Block id="minecraft:stone" x="1" />
+  <Block id="minecraft:stone" x="2" />
+  <Weather weather="rain" x="0 1" z="0 0" density="10" />
+  <Weather weather="snow" x="2 2" z="0 0" density="7" />
 </GameScene>
 ````
 

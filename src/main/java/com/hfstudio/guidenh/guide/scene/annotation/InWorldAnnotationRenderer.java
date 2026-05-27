@@ -95,7 +95,15 @@ public class InWorldAnnotationRenderer {
         boolean occluded) {
         var points = line.points();
         for (int i = 0; i + 1 < points.size(); i++) {
-            drawLine(points.get(i), points.get(i + 1), color, line.thickness());
+            Vector3f from = points.get(i);
+            Vector3f to = points.get(i + 1);
+            if (line.arrow() == InWorldLineAnnotation.Arrow.START && i == 0) {
+                from = clipLineStartForArrow(from, to, line.thickness());
+            }
+            if (line.arrow() == InWorldLineAnnotation.Arrow.END && i + 2 == points.size()) {
+                to = clipLineEndForArrow(from, to, line.thickness());
+            }
+            drawLine(from, to, color, line.thickness());
         }
         if (line.arrow() == InWorldLineAnnotation.Arrow.START) {
             drawArrowHead(points.get(0), points.get(1), color, line.thickness());
@@ -219,6 +227,50 @@ public class InWorldAnnotationRenderer {
         GL11.glEnd();
     }
 
+    private static Vector3f clipLineStartForArrow(Vector3f tip, Vector3f next, float thickness) {
+        float dx = next.x - tip.x;
+        float dy = next.y - tip.y;
+        float dz = next.z - tip.z;
+        float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len < 1e-6f) {
+            return tip;
+        }
+        float clipDistance = Math.min(computeArrowBaseOffset(thickness) + computeLineHalfThickness(thickness), len);
+        float invLen = 1f / len;
+        return new Vector3f(
+            tip.x + dx * invLen * clipDistance,
+            tip.y + dy * invLen * clipDistance,
+            tip.z + dz * invLen * clipDistance);
+    }
+
+    private static Vector3f clipLineEndForArrow(Vector3f previous, Vector3f tip, float thickness) {
+        float dx = tip.x - previous.x;
+        float dy = tip.y - previous.y;
+        float dz = tip.z - previous.z;
+        float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len < 1e-6f) {
+            return tip;
+        }
+        float clipDistance = Math.min(computeArrowBaseOffset(thickness) + computeLineHalfThickness(thickness), len);
+        float invLen = 1f / len;
+        return new Vector3f(
+            tip.x - dx * invLen * clipDistance,
+            tip.y - dy * invLen * clipDistance,
+            tip.z - dz * invLen * clipDistance);
+    }
+
+    private static float computeLineHalfThickness(float thickness) {
+        return Math.max(thickness / 32f, 1f / 256f) * 0.5f;
+    }
+
+    private static float computeArrowBaseRadius(float thickness) {
+        return Math.max(computeLineHalfThickness(thickness) * 1.35f, 0.028f);
+    }
+
+    private static float computeArrowBaseOffset(float thickness) {
+        return Math.max(computeArrowBaseRadius(thickness) * 3.5f, 0.14f);
+    }
+
     public static void drawArrowHead(Vector3f tip, Vector3f lineInterior, int argb, float thickness) {
         float dx = tip.x - lineInterior.x;
         float dy = tip.y - lineInterior.y;
@@ -226,9 +278,8 @@ public class InWorldAnnotationRenderer {
         float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (len < 1e-6f) return;
         float ix = dx / len, iy = dy / len, iz = dz / len;
-        float t = Math.max(thickness / 32f, 1f / 256f);
-        float arrowLength = Math.max(t * 8f, 0.18f);
-        float arrowRadius = Math.max(t * 3.5f, 0.08f);
+        float arrowLength = computeArrowBaseOffset(thickness);
+        float arrowRadius = computeArrowBaseRadius(thickness);
 
         float ux, uy, uz;
         if (Math.abs(iy) < 0.9f) {
@@ -335,7 +386,7 @@ public class InWorldAnnotationRenderer {
         // Extrude the segment into a 4-sided square prism with two end caps. Both ends are pushed
         // outward by half-thickness along the segment direction so when several lines meet they
         // overlap into a clean corner.
-        float t = Math.max(thickness / 32f, 1f / 256f) * 0.5f;
+        float t = computeLineHalfThickness(thickness);
         float dx = to.x - from.x;
         float dy = to.y - from.y;
         float dz = to.z - from.z;

@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.ResponsiveVisualSizing;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
@@ -33,6 +34,7 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     protected static final int LEGEND_GAP = 6;
     protected static final int LEGEND_SWATCH_SIZE = 8;
     protected static final int LEGEND_ENTRY_GAP = 12;
+    protected static final int MIN_PLOT_HEIGHT = 72;
 
     private String title;
     private int explicitWidth = -1;
@@ -143,13 +145,35 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int width = explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH;
-        width += getExtraPlotWidth();
+        int width = preferredWidth();
+        width = ResponsiveVisualSizing.scaleWidth(width, context.getVisualScale(), 64);
         int height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT;
-        if (width > availableWidth) {
-            width = availableWidth;
-        }
+        width = Math.max(1, Math.min(width, availableWidth));
+        height = ResponsiveVisualSizing.scaleBodyHeightForWidth(
+            preferredWidth(),
+            height,
+            width,
+            estimateFixedChromeHeight(context, width),
+            MIN_PLOT_HEIGHT);
         return new LytRect(x, y, width, height);
+    }
+
+    private int preferredWidth() {
+        return (explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH) + getExtraPlotWidth();
+    }
+
+    private int estimateFixedChromeHeight(LayoutContext context, int width) {
+        int chromeHeight = PADDING * 2;
+        if (title != null && !title.isEmpty()) {
+            chromeHeight += context.getLineHeight(textStyle(titleColor)) + TITLE_GAP;
+        }
+        int contentWidth = Math.max(1, width - PADDING * 2);
+        chromeHeight += ChartLegendRenderer
+            .measureHeight(context, collectLegendEntries(), legendPosition, contentWidth);
+        if (legendPosition == ChartLegendPosition.TOP || legendPosition == ChartLegendPosition.BOTTOM) {
+            chromeHeight += legendPosition == ChartLegendPosition.NONE ? 0 : LEGEND_GAP;
+        }
+        return chromeHeight;
     }
 
     /**

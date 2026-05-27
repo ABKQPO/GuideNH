@@ -6,6 +6,7 @@ import java.util.List;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
@@ -13,6 +14,9 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
  * Legend rendering: lay out and draw based on position (horizontal at top/bottom, vertical at left/right).
  */
 public class ChartLegendRenderer {
+
+    private static final int SWATCH_TEXT_GAP = 4;
+    private static final int HORIZONTAL_ROW_GAP = 2;
 
     protected ChartLegendRenderer() {}
 
@@ -82,7 +86,14 @@ public class ChartLegendRenderer {
         switch (position) {
             case TOP:
             case BOTTOM: {
-                int height = Math.max(swatch, lineHeight);
+                int height = measureHorizontalLegendHeight(
+                    entries,
+                    position,
+                    Math.max(1, contentRight - contentLeft),
+                    context::getStringWidth,
+                    lineHeight,
+                    swatch,
+                    textStyle);
                 LytRect rect;
                 int plotTop = contentTop;
                 int plotBottom = contentBottom;
@@ -99,7 +110,7 @@ public class ChartLegendRenderer {
             case RIGHT: {
                 int width = 0;
                 for (LegendEntry e : entries) {
-                    int w = swatch + 4 + context.getStringWidth(e.name, textStyle);
+                    int w = swatch + SWATCH_TEXT_GAP + context.getStringWidth(e.name, textStyle);
                     if (w > width) {
                         width = w;
                     }
@@ -144,18 +155,26 @@ public class ChartLegendRenderer {
                 int totalWidth = 0;
                 for (int i = 0; i < layout.entries.size(); i++) {
                     LegendEntry e = layout.entries.get(i);
-                    totalWidth += swatch + 4 + context.getStringWidth(e.name, textStyle);
+                    totalWidth += swatch + SWATCH_TEXT_GAP + context.getStringWidth(e.name, textStyle);
                     if (i < layout.entries.size() - 1) {
                         totalWidth += LytChartBase.LEGEND_ENTRY_GAP;
                     }
                 }
+                int rowHeight = Math.max(swatch, lineHeight);
                 int x = rect.x() + Math.max(0, (rect.width() - totalWidth) / 2);
-                int y = rect.y() + (rect.height() - Math.max(swatch, lineHeight)) / 2;
-                int textY = y + (Math.max(swatch, lineHeight) - lineHeight) / 2;
-                int swY = y + (Math.max(swatch, lineHeight) - swatch) / 2;
+                int y = rect.y();
+                int textY = y + (rowHeight - lineHeight) / 2;
+                int swY = y + (rowHeight - swatch) / 2;
                 for (LegendEntry e : layout.entries) {
+                    int itemWidth = swatch + SWATCH_TEXT_GAP + context.getStringWidth(e.name, textStyle);
+                    if (x > rect.x() && x + itemWidth > rect.right()) {
+                        x = rect.x();
+                        y += rowHeight + HORIZONTAL_ROW_GAP;
+                        textY = y + (rowHeight - lineHeight) / 2;
+                        swY = y + (rowHeight - swatch) / 2;
+                    }
                     drawSwatch(context, e, x, swY, swatch);
-                    x += swatch + 4;
+                    x += swatch + SWATCH_TEXT_GAP;
                     context.drawText(e.name, x, textY, textStyle);
                     x += context.getStringWidth(e.name, textStyle) + LytChartBase.LEGEND_ENTRY_GAP;
                 }
@@ -168,7 +187,7 @@ public class ChartLegendRenderer {
                 for (LegendEntry e : layout.entries) {
                     int swY = y + (lineHeight - swatch) / 2;
                     drawSwatch(context, e, x, swY, swatch);
-                    context.drawText(e.name, x + swatch + 4, y, textStyle);
+                    context.drawText(e.name, x + swatch + SWATCH_TEXT_GAP, y, textStyle);
                     y += lineHeight + 2;
                     if (y + lineHeight > rect.bottom()) {
                         break;
@@ -179,6 +198,65 @@ public class ChartLegendRenderer {
             default:
                 break;
         }
+    }
+
+    public static int measureHeight(LayoutContext context, List<LegendEntry> entries, ChartLegendPosition position,
+        int availableWidth) {
+        if (entries == null || entries.isEmpty() || position == null || position == ChartLegendPosition.NONE) {
+            return 0;
+        }
+        if (position != ChartLegendPosition.TOP && position != ChartLegendPosition.BOTTOM) {
+            return 0;
+        }
+        ResolvedTextStyle textStyle = LytChartBase.textStyle(0xFFCCCCCC);
+        return measureHorizontalLegendHeight(
+            entries,
+            position,
+            Math.max(1, availableWidth),
+            (text, style) -> measureTextWidth(context, text, style),
+            context.getLineHeight(textStyle),
+            LytChartBase.LEGEND_SWATCH_SIZE,
+            textStyle);
+    }
+
+    private static int measureHorizontalLegendHeight(List<LegendEntry> entries, ChartLegendPosition position,
+        int availableWidth, TextWidthMeasure textWidthMeasure, int lineHeight, int swatch,
+        ResolvedTextStyle textStyle) {
+        if (position != ChartLegendPosition.TOP && position != ChartLegendPosition.BOTTOM) {
+            return Math.max(swatch, lineHeight);
+        }
+        int rowHeight = Math.max(swatch, lineHeight);
+        int rows = 1;
+        int rowWidth = 0;
+        for (LegendEntry entry : entries) {
+            int itemWidth = swatch + SWATCH_TEXT_GAP + textWidthMeasure.measure(entry.name, textStyle);
+            int nextWidth = rowWidth == 0 ? itemWidth : rowWidth + LytChartBase.LEGEND_ENTRY_GAP + itemWidth;
+            if (rowWidth > 0 && nextWidth > availableWidth) {
+                rows++;
+                rowWidth = itemWidth;
+            } else {
+                rowWidth = nextWidth;
+            }
+        }
+        return rows * rowHeight + Math.max(0, rows - 1) * HORIZONTAL_ROW_GAP;
+    }
+
+    private static int measureTextWidth(LayoutContext context, String text, ResolvedTextStyle style) {
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        float width = 0f;
+        for (int offset = 0; offset < text.length();) {
+            int codePoint = text.codePointAt(offset);
+            width += context.getAdvance(codePoint, style);
+            offset += Character.charCount(codePoint);
+        }
+        return Math.round(width);
+    }
+
+    private interface TextWidthMeasure {
+
+        int measure(String text, ResolvedTextStyle style);
     }
 
     private static void drawSwatch(RenderContext context, LegendEntry entry, int x, int y, int size) {

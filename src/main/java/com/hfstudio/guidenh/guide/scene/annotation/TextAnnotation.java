@@ -55,12 +55,14 @@ public class TextAnnotation extends OverlayAnnotation {
 
     @Nullable
     private List<String> resolvedLines;
+    private int resolvedWrapWidth = Integer.MIN_VALUE;
 
     @Nullable
     private LytParagraph richContent;
 
     @Nullable
     private LayoutMeasure cachedMeasure;
+    private int cachedMeasureWrapWidth = Integer.MIN_VALUE;
 
     public TextAnnotation(Vector3f worldPos, String text, int borderArgb) {
         this(worldPos, text, new ConstantColor(borderArgb), 0);
@@ -120,6 +122,7 @@ public class TextAnnotation extends OverlayAnnotation {
                 .color(ConstantColor.WHITE));
         this.richContent = para;
         this.cachedMeasure = null;
+        this.cachedMeasureWrapWidth = Integer.MIN_VALUE;
     }
 
     public int getBackgroundAlpha() {
@@ -136,6 +139,10 @@ public class TextAnnotation extends OverlayAnnotation {
         this.connectorLength = Math.max(0, connectorLength);
     }
 
+    public ColorValue getBorderColor() {
+        return borderColor;
+    }
+
     public Vector3f getWorldPos() {
         return worldPos;
     }
@@ -148,20 +155,48 @@ public class TextAnnotation extends OverlayAnnotation {
         return text;
     }
 
-    private List<String> getLines(FontRenderer fr) {
-        if (resolvedLines != null) {
+    public int getMaxWidth() {
+        return maxWidth;
+    }
+
+    public float getScreenYOffset() {
+        return screenYOffset;
+    }
+
+    public ConnectorSide getConnectorSide() {
+        return connectorSide;
+    }
+
+    public int getConnectorOffset() {
+        return connectorOffset;
+    }
+
+    public int getConnectorLength() {
+        return connectorLength;
+    }
+
+    @Nullable
+    public LytParagraph getRichContent() {
+        return richContent;
+    }
+
+    private List<String> getLines(FontRenderer fr, int contentWidth) {
+        if (resolvedLines != null && resolvedWrapWidth == contentWidth) {
             return resolvedLines;
         }
         if (text == null || text.isEmpty()) {
             resolvedLines = Collections.emptyList();
+            resolvedWrapWidth = contentWidth;
             return resolvedLines;
         }
-        if (maxWidth <= 0) {
+        if (contentWidth <= 0) {
             resolvedLines = Collections.singletonList(text);
+            resolvedWrapWidth = contentWidth;
             return resolvedLines;
         }
-        List<String> wrapped = fr.listFormattedStringToWidth(text, maxWidth);
+        List<String> wrapped = fr.listFormattedStringToWidth(text, contentWidth);
         resolvedLines = wrapped.isEmpty() ? Collections.singletonList(text) : wrapped;
+        resolvedWrapWidth = contentWidth;
         return resolvedLines;
     }
 
@@ -176,8 +211,8 @@ public class TextAnnotation extends OverlayAnnotation {
             cx = viewport.x() + viewport.width() / 2 + Math.round(screen.x);
             cy = viewport.y() + viewport.height() / 2 + Math.round(screen.y);
         }
-        LayoutMeasure measure = measureLayout();
-        return bubbleRect(cx, cy, measure.boxWidth(), measure.boxHeight());
+        LayoutMeasure measure = measureLayout(viewport.width());
+        return constrainBubbleRect(bubbleRect(cx, cy, measure.boxWidth(), measure.boxHeight()), viewport);
     }
 
     @Override
@@ -201,12 +236,19 @@ public class TextAnnotation extends OverlayAnnotation {
             cy = viewport.y() + viewport.height() / 2 + Math.round(screen.y) - docOy + scroll;
         }
 
+        LytRect localViewport = new LytRect(
+            viewport.x() - docOx,
+            viewport.y() - docOy + scroll,
+            viewport.width(),
+            viewport.height());
         float fade = getFade();
         int borderArgb = borderColor.resolve(context.lightDarkMode());
-        LayoutMeasure measure = measureLayout();
+        LayoutMeasure measure = measureLayout(localViewport.width());
 
         if (richContent != null) {
-            LytRect bubble = bubbleRect(cx, cy, measure.boxWidth(), measure.boxHeight());
+            LytRect bubble = constrainBubbleRect(
+                bubbleRect(cx, cy, measure.boxWidth(), measure.boxHeight()),
+                localViewport);
             int bx = bubble.x();
             int by = bubble.y();
             LayoutContext layoutContext = new LayoutContext(new MinecraftFontMetrics());
@@ -243,7 +285,9 @@ public class TextAnnotation extends OverlayAnnotation {
         List<String> lines = measure.lines();
         if (lines.isEmpty()) return;
 
-        LytRect bubble = bubbleRect(cx, cy, measure.boxWidth(), measure.boxHeight());
+        LytRect bubble = constrainBubbleRect(
+            bubbleRect(cx, cy, measure.boxWidth(), measure.boxHeight()),
+            localViewport);
         int bx = bubble.x();
         int by = bubble.y();
 
@@ -293,25 +337,27 @@ public class TextAnnotation extends OverlayAnnotation {
         return (backgroundAlpha << 24) | BACKGROUND_RGB;
     }
 
-    private LayoutMeasure measureLayout() {
-        if (cachedMeasure != null) {
+    private LayoutMeasure measureLayout(int viewportWidth) {
+        int wrapWidth = resolveContentWrapWidth(viewportWidth);
+        if (cachedMeasure != null && cachedMeasureWrapWidth == wrapWidth) {
             return cachedMeasure;
         }
         if (richContent != null) {
             LayoutContext layoutContext = new LayoutContext(new MinecraftFontMetrics());
-            int availableWidth = maxWidth > 0 ? maxWidth : Integer.MAX_VALUE;
+            int availableWidth = wrapWidth > 0 ? wrapWidth : Integer.MAX_VALUE;
             LytRect contentBounds = richContent.layout(layoutContext, 0, 0, availableWidth);
             cachedMeasure = new LayoutMeasure(
                 contentBounds.width() + PADDING_X * 2,
                 contentBounds.height() + PADDING_Y * 2,
                 Collections.emptyList(),
                 availableWidth);
+            cachedMeasureWrapWidth = wrapWidth;
             return cachedMeasure;
         }
 
         Minecraft mc = Minecraft.getMinecraft();
         FontRenderer fr = mc.fontRenderer;
-        List<String> lines = getLines(fr);
+        List<String> lines = getLines(fr, wrapWidth);
         int lineCount = Math.max(1, lines.size());
         int maxLineW = 0;
         for (String line : lines) {
@@ -321,8 +367,17 @@ public class TextAnnotation extends OverlayAnnotation {
             maxLineW + PADDING_X * 2,
             fr.FONT_HEIGHT * lineCount + LINE_GAP * (lineCount - 1) + PADDING_Y * 2,
             lines,
-            0);
+            wrapWidth);
+        cachedMeasureWrapWidth = wrapWidth;
         return cachedMeasure;
+    }
+
+    private int resolveContentWrapWidth(int viewportWidth) {
+        int viewportContentWidth = Math.max(1, viewportWidth - PADDING_X * 2 - 2);
+        if (maxWidth > 0) {
+            return Math.max(1, Math.min(maxWidth, viewportContentWidth));
+        }
+        return viewportContentWidth;
     }
 
     private LytRect bubbleRect(int anchorX, int anchorY, int boxW, int boxH) {
@@ -341,6 +396,19 @@ public class TextAnnotation extends OverlayAnnotation {
                 boxW,
                 boxH);
         };
+    }
+
+    private LytRect constrainBubbleRect(LytRect bubble, LytRect viewport) {
+        if (bubble == null || viewport == null || viewport.isEmpty()) {
+            return bubble;
+        }
+        int constrainedX = bubble.x();
+        int constrainedY = bubble.y();
+        int maxX = viewport.right() - bubble.width();
+        int maxY = viewport.bottom() - bubble.height();
+        constrainedX = Math.max(viewport.x(), Math.min(maxX, constrainedX));
+        constrainedY = Math.max(viewport.y(), Math.min(maxY, constrainedY));
+        return new LytRect(constrainedX, constrainedY, bubble.width(), bubble.height());
     }
 
     private void drawConnector(int anchorX, int anchorY, LytRect bubble, int argb) {

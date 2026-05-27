@@ -25,6 +25,7 @@ import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorScreen;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandExportMode;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureExportAccess;
@@ -268,7 +269,7 @@ public class GuideNhClientCommand extends CommandBase {
     private void exportStructure(ICommandSender sender, String[] args) throws CommandException {
         EntityPlayer player = getCommandSenderAsPlayer(sender);
         ExportStructureOptions options = parseExportStructureOptions(args);
-        if (options.coordinateStartIndex > 0 && args.length - options.coordinateStartIndex < 6) {
+        if (options.coordinateStartIndex() > 0 && args.length - options.coordinateStartIndex() < 6) {
             send(sender, GuidebookText.CommandExportStructureUsage);
             return;
         }
@@ -280,11 +281,11 @@ public class GuideNhClientCommand extends CommandBase {
             int sizeX;
             int sizeY;
             int sizeZ;
-            if (options.coordinateStartIndex > 0) {
+            if (options.coordinateStartIndex() > 0) {
                 int baseX = MathHelper.floor_double(player.posX);
                 int baseY = MathHelper.floor_double(player.posY);
                 int baseZ = MathHelper.floor_double(player.posZ);
-                int i = options.coordinateStartIndex;
+                int i = options.coordinateStartIndex();
                 x = GuideStructureCoordinateParser.parsePosition(baseX, args[i]);
                 y = GuideStructureCoordinateParser.parsePosition(baseY, args[i + 1]);
                 z = GuideStructureCoordinateParser.parsePosition(baseZ, args[i + 2]);
@@ -309,7 +310,7 @@ public class GuideNhClientCommand extends CommandBase {
                 return;
             }
 
-            String structureText = exportRegion(player, x, y, z, sizeX, sizeY, sizeZ, options.mode);
+            String structureText = exportRegion(player, x, y, z, sizeX, sizeY, sizeZ, options.mode());
             if (structureText == null) {
                 send(
                     sender,
@@ -319,7 +320,10 @@ public class GuideNhClientCommand extends CommandBase {
             }
 
             Path savedPath = GuideNhClientBridgeController.getInstance()
-                .exportStructureToFile("exportstructure-" + RegionWandItem.modeDisplay(options.mode), structureText);
+                .exportStructureToFile(
+                    "exportstructure-" + options.mode()
+                        .getDisplayName(),
+                    structureText);
             send(sender, GuidebookText.CommandStructureSaved, savedPath.toString());
         } catch (Throwable t) {
             send(sender, GuidebookText.CommandExportFailure, getErrorMessage(t));
@@ -327,14 +331,14 @@ public class GuideNhClientCommand extends CommandBase {
     }
 
     private String exportRegion(EntityPlayer player, int x, int y, int z, int sizeX, int sizeY, int sizeZ,
-        String mode) {
+        RegionWandExportMode mode) {
         int maxX = x + sizeX - 1;
         int maxY = y + sizeY - 1;
         int maxZ = z + sizeZ - 1;
-        boolean includeEntities = RegionWandItem.includeEntities(mode);
+        boolean includeEntities = mode.includeEntities();
         List<Entity> entities = includeEntities ? collectEntities(player, x, y, z, maxX, maxY, maxZ)
             : Collections.emptyList();
-        if (RegionWandItem.MODE_BLOCKS.equals(mode) || RegionWandItem.MODE_BLOCKS_ENTITIES.equals(mode)) {
+        if (mode == RegionWandExportMode.BLOCKS || mode == RegionWandExportMode.BLOCKS_ENTITIES) {
             return RegionWandItem.exportBlocks(player.worldObj, x, y, z, maxX, maxY, maxZ, entities)
                 .text();
         }
@@ -355,7 +359,7 @@ public class GuideNhClientCommand extends CommandBase {
     }
 
     private ExportStructureOptions parseExportStructureOptions(String[] args) {
-        String mode = RegionWandItem.MODE_SNBT;
+        RegionWandExportMode mode = RegionWandExportMode.SNBT;
         int coordinateStart = -1;
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
@@ -370,15 +374,14 @@ public class GuideNhClientCommand extends CommandBase {
         return new ExportStructureOptions(mode, coordinateStart);
     }
 
-    private String normalizeExportMode(String mode) {
-        if (RegionWandItem.MODE_BLOCKS.equalsIgnoreCase(mode)) return RegionWandItem.MODE_BLOCKS;
-        if (RegionWandItem.MODE_BLOCKS_ENTITIES.equalsIgnoreCase(mode) || "blocks+entities".equalsIgnoreCase(mode)) {
-            return RegionWandItem.MODE_BLOCKS_ENTITIES;
+    private RegionWandExportMode normalizeExportMode(String mode) {
+        if ("blocks+entities".equalsIgnoreCase(mode)) {
+            return RegionWandExportMode.BLOCKS_ENTITIES;
         }
-        if (RegionWandItem.MODE_SNBT_ENTITIES.equalsIgnoreCase(mode) || "snbt+entities".equalsIgnoreCase(mode)) {
-            return RegionWandItem.MODE_SNBT_ENTITIES;
+        if ("snbt+entities".equalsIgnoreCase(mode)) {
+            return RegionWandExportMode.SNBT_ENTITIES;
         }
-        return RegionWandItem.MODE_SNBT;
+        return RegionWandExportMode.fromCliValue(mode);
     }
 
     private void setSelectionPos(ICommandSender sender, String[] args, int which) throws CommandException {
@@ -436,5 +439,5 @@ public class GuideNhClientCommand extends CommandBase {
     }
 
     @Desugar
-    private record ExportStructureOptions(String mode, int coordinateStartIndex) {}
+    private record ExportStructureOptions(RegionWandExportMode mode, int coordinateStartIndex) {}
 }

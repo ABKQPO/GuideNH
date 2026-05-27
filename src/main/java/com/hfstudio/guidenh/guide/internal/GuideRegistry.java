@@ -12,7 +12,9 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 
 import cpw.mods.fml.common.FMLLog;
 
@@ -27,6 +29,9 @@ public class GuideRegistry {
 
     // Merged between data-driven and in-code guides
     public static volatile Map<ResourceLocation, MutableGuide> mergedGuides = Collections.emptyMap();
+    private static volatile NavigationTree mergedNavigationTree = new NavigationTree();
+    private static volatile long navigationRevision = 1L;
+    private static volatile long cachedNavigationRevision = Long.MIN_VALUE;
 
     public static Collection<MutableGuide> getAll() {
         return mergedGuides.values();
@@ -41,6 +46,29 @@ public class GuideRegistry {
 
     public static @Nullable MutableGuide getById(ResourceLocation id) {
         return mergedGuides.get(id);
+    }
+
+    public static NavigationTree getMergedNavigationTree() {
+        if (cachedNavigationRevision == navigationRevision) {
+            return mergedNavigationTree;
+        }
+
+        synchronized (GuideRegistry.class) {
+            if (cachedNavigationRevision != navigationRevision) {
+                var guides = new ArrayList<>(mergedGuides.values());
+                guides.sort(
+                    Comparator.comparing(
+                        guide -> guide.getId()
+                            .toString()));
+                mergedNavigationTree = NavigationTree.buildMerged(guides);
+                cachedNavigationRevision = navigationRevision;
+            }
+            return mergedNavigationTree;
+        }
+    }
+
+    public static long getNavigationRevision() {
+        return navigationRevision;
     }
 
     /**
@@ -67,8 +95,21 @@ public class GuideRegistry {
      * Register all dynamic guides (defined in resource packs), which replaces all previously available dynamic guides.
      */
     public static void setDataDriven(Map<ResourceLocation, MutableGuide> guides) {
+        int previousCount = dataDrivenGuides.size();
+        for (MutableGuide existingGuide : new ArrayList<>(dataDrivenGuides.values())) {
+            if (existingGuide != null) {
+                existingGuide.close();
+            }
+        }
         dataDrivenGuides.clear();
         dataDrivenGuides.putAll(guides);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideRegistry] Replaced {} data-driven guides with {} freshly loaded guides",
+                    previousCount,
+                    dataDrivenGuides.size());
+        }
 
         rebuildGuides();
     }
@@ -77,9 +118,22 @@ public class GuideRegistry {
      * Update parsed pages for a specific guide after a resource reload.
      */
     public static void updatePages(ResourceLocation guideId, Map<ResourceLocation, ParsedGuidePage> pages) {
+        updatePages(guideId, pages, true);
+    }
+
+    public static void updatePages(ResourceLocation guideId, Map<ResourceLocation, ParsedGuidePage> pages,
+        boolean invalidateMergedNavigationTree) {
         var guide = mergedGuides.get(guideId);
         if (guide != null) {
-            guide.setPages(pages);
+            guide.setPages(pages, invalidateMergedNavigationTree);
+        }
+    }
+
+    public static void invalidateMergedNavigationTree() {
+        synchronized (GuideRegistry.class) {
+            navigationRevision++;
+            cachedNavigationRevision = Long.MIN_VALUE;
+            mergedNavigationTree = new NavigationTree();
         }
     }
 
@@ -94,12 +148,15 @@ public class GuideRegistry {
 
         if (!overridden.isEmpty()) {
             Collections.sort(overridden, Comparator.comparing(ResourceLocation::toString));
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideRegistry] The following guides are overridden in resource packs: {}",
-                    overridden);
+            if (ModConfig.debug.enableDebugMode) {
+                FMLLog.getLogger()
+                    .info(
+                        "[GuideNH] [GuideRegistry] The following guides are overridden in resource packs: {}",
+                        overridden);
+            }
         }
 
         GuideRegistry.mergedGuides = Collections.unmodifiableMap(merged);
+        invalidateMergedNavigationTree();
     }
 }

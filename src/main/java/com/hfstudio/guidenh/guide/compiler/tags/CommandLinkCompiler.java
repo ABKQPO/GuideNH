@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -44,8 +45,10 @@ public class CommandLinkCompiler extends FlowTagCompiler {
         link.setClickCallback(uiHost -> {
             var mc = Minecraft.getMinecraft();
             if (mc.thePlayer != null) {
-                FMLLog.getLogger()
-                    .info("[GuideNH] [CommandLinkCompiler] Sending command from page {}: {}", pageId, sendCommand);
+                if (ModConfig.debug.enableDebugMode) {
+                    FMLLog.getLogger()
+                        .info("[GuideNH] [CommandLinkCompiler] Sending command from page {}: {}", pageId, sendCommand);
+                }
                 mc.thePlayer.sendChatMessage(sendCommand);
             }
         });

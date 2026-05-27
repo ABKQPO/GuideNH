@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.document.block.LytVBox;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.StructureLibSceneConditionParser;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
@@ -31,6 +32,7 @@ public abstract class AnnotationTagCompiler implements SceneElementTagCompiler {
         SceneAnnotation annotation = createAnnotation(compiler, errorSink, el);
         if (annotation == null) return;
         applyTooltip(compiler, annotation, el);
+        annotation.setStructureLibCondition(StructureLibSceneConditionParser.parse(compiler, errorSink, el));
         scene.addAnnotation(annotation);
     }
 
@@ -45,7 +47,12 @@ public abstract class AnnotationTagCompiler implements SceneElementTagCompiler {
 
         var contentBox = new LytVBox();
         if (lineAnnotation) {
-            compiler.compileBlockContextInSourceContext(children, contentBox);
+            String tooltipSource = LineAnnotationElementCompiler.tooltipSource(compiler, el);
+            if (tooltipSource != null && !tooltipSource.isEmpty()) {
+                compiler.withSourceContext(tooltipSource, () -> compiler.compileBlockContext(children, contentBox));
+            } else {
+                compiler.compileBlockContext(children, contentBox);
+            }
         } else {
             compiler.compileBlockTagChildren(el, contentBox);
         }

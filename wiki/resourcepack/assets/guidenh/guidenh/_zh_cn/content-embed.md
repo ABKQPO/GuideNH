@@ -2,7 +2,7 @@
 navigation:
   title: 内容嵌入
   parent: index.md
-  position: 65
+  position: 135
   icon: minecraft:wool:3
 categories:
   - widgets
@@ -34,29 +34,29 @@ categories:
 
 ## 嵌入型（默认）
 
-默认嵌入模式下的方块图标——占据自己的垂直位置。
+默认嵌入模式下的方块 3D 预览，会占据自己的垂直位置。
 
 <BlockImage id="minecraft:stone" />
 
-方块下方的文字。
+方块预览下方的文字。
 
 ## 上下型，居中对齐
 
 <BlockImage id="minecraft:planks" align="center" />
 
-方块两侧没有文字，方块水平居中。
+方块预览两侧没有文字，预览水平居中。
 
 ## 上下型，右对齐
 
 <BlockImage id="minecraft:planks" align="right" />
 
-方块推至右侧边缘。
+方块预览推至右侧边缘。
 
 ## 方形环绕，左浮动
 
 <BlockImage id="minecraft:stone" wrap="square" align="left" scale={2} />
 
-此段落文字将流向方块图标右侧。方块被注册为左侧文档级浮动元素，后续段落会自动
+此段落文字将流向方块预览右侧。预览会被注册为左侧文档级浮动元素，后续段落会自动
 收窄可用宽度以避开它，效果等同于 CSS 的 `float: left`。更多文字用于演示
 多行文字的环绕效果。
 
@@ -64,14 +64,14 @@ categories:
 
 <BlockImage id="minecraft:glass" wrap="square" align="right" scale={2} />
 
-此段落文字流向方块图标左侧。`wrap="square"` 配合 `align="right"` 将在布局
+此段落文字流向方块预览左侧。`wrap="square"` 配合 `align="right"` 将在布局
 引擎中注册一个右侧浮动元素。更长的句子会在浮动块左侧折行显示。
 
 ## 居中对齐（无文字环绕）
 
 <BlockImage id="minecraft:diamond_block" align="center" scale={2} />
 
-方块水平居中，两侧没有文字。
+方块预览水平居中，两侧没有文字。
 
 ## 物品图标
 
@@ -102,7 +102,7 @@ categories:
 
 ## 游戏场景左浮动
 
-<GameScene wrap="square" align="left" zoom={4} background="transparent" width="120" height="90">
+<GameScene wrap="square" align="left" zoom={4} showBackground={false} width="120" height="90">
   <Block id="minecraft:furnace" />
 </GameScene>
 
@@ -112,7 +112,7 @@ categories:
 
 ## 游戏场景居中
 
-<GameScene align="center" zoom={4} background="transparent" width="200" height="120">
+<GameScene align="center" zoom={4} showBackground={false} width="200" height="120">
   <Block id="minecraft:crafting_table" />
 </GameScene>
 
@@ -120,7 +120,7 @@ categories:
 
 ## 游戏场景右浮动
 
-<GameScene wrap="square" align="right" zoom={4} background="transparent" width="120" height="90">
+<GameScene wrap="square" align="right" zoom={4} showBackground={false} width="120" height="90">
   <Block id="minecraft:chest" />
 </GameScene>
 

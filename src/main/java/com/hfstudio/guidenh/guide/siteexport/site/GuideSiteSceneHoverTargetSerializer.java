@@ -26,6 +26,7 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
@@ -43,6 +44,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
     private static final String ENTITY_HOVER_COLOR = "rgba(255,255,255,0.92)";
     private static final String HATCH_HOVER_COLOR = "rgba(217,180,74,0.9)";
     private static final double BOUNDS_EPSILON = 1.0e-4d;
+    private static final int BLOCK_FACE_COUNT = 6;
     private static final int[][] RAY_SIDE_OFFSETS = { { 0, -1, 0 }, { 0, 1, 0 }, { 0, 0, -1 }, { 0, 0, 1 },
         { -1, 0, 0 }, { 1, 0, 0 } };
 
@@ -65,9 +67,11 @@ public final class GuideSiteSceneHoverTargetSerializer {
         List<Map<String, Object>> targets = new ArrayList<>();
         Map<String, String> templateIdsByHtml = new LinkedHashMap<>();
         Integer visibleLayerY = resolveVisibleLayerY(scene);
-        StructureLibSceneMetadata structureLibMetadata = scene.getStructureLibSceneMetadata();
-        Set<Long> hatchPositions = structureLibMetadata != null ? structureLibMetadata.getHatchTooltipPositions()
-            : Collections.emptySet();
+        List<StructureLibSceneMetadata> structureLibMetadataList = collectStructureLibMetadata(scene);
+        Set<Long> hatchPositions = new LinkedHashSet<>();
+        for (StructureLibSceneMetadata metadata : structureLibMetadataList) {
+            hatchPositions.addAll(metadata.getHatchTooltipPositions());
+        }
         Set<Long> exportedHatchPositions = new LinkedHashSet<>();
 
         for (int[] pos : level.getFilledBlocks()) {
@@ -89,7 +93,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
                         z,
                         AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d),
                         HATCH_HOVER_COLOR,
-                        resolveSceneBlockTooltip(scene, x, y, z, null),
+                        resolveSceneBlockTooltip(scene, structureLibMetadataList, x, y, z, null),
                         templates,
                         templateIdsByHtml,
                         currentPageId,
@@ -104,6 +108,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
                     x,
                     y,
                     z,
+                    structureLibMetadataList,
                     templates,
                     templateIdsByHtml,
                     currentPageId,
@@ -111,7 +116,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
                     itemIconResolver));
         }
 
-        if (structureLibMetadata != null) {
+        for (StructureLibSceneMetadata structureLibMetadata : structureLibMetadataList) {
             for (StructureLibSceneMetadata.BlockTooltipEntry entry : structureLibMetadata.getHatchTooltipEntries()) {
                 if (entry == null || !isVisibleBlock(entry.getY(), visibleLayerY)) {
                     continue;
@@ -134,7 +139,13 @@ public final class GuideSiteSceneHoverTargetSerializer {
                             entry.getY() + 1d,
                             entry.getZ() + 1d),
                         HATCH_HOVER_COLOR,
-                        resolveSceneBlockTooltip(scene, entry.getX(), entry.getY(), entry.getZ(), null),
+                        resolveSceneBlockTooltip(
+                            scene,
+                            structureLibMetadataList,
+                            entry.getX(),
+                            entry.getY(),
+                            entry.getZ(),
+                            null),
                         templates,
                         templateIdsByHtml,
                         currentPageId,
@@ -162,15 +173,35 @@ public final class GuideSiteSceneHoverTargetSerializer {
         return GSON.toJson(targets);
     }
 
+    private static List<StructureLibSceneMetadata> collectStructureLibMetadata(LytGuidebookScene scene) {
+        if (scene == null) {
+            return Collections.emptyList();
+        }
+        List<StructureLibSceneMetadata> metadataList = new ArrayList<>();
+        for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
+            if (binding != null && binding.getMetadata() != null) {
+                metadataList.add(binding.getMetadata());
+            }
+        }
+        if (!metadataList.isEmpty()) {
+            return metadataList;
+        }
+        StructureLibSceneMetadata metadata = scene.getStructureLibSceneMetadata();
+        return metadata != null ? Collections.singletonList(metadata) : Collections.emptyList();
+    }
+
     private static List<Map<String, Object>> buildBlockTargets(LytGuidebookScene scene, int x, int y, int z,
-        GuideSiteTemplateRegistry templates, Map<String, String> templateIdsByHtml,
-        @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-        GuideSiteItemIconResolver itemIconResolver) {
-        GuidebookLevel level = scene.getLevel();
-        List<AxisAlignedBB> boundsList = resolveBlockHoverBounds(level, x, y, z);
-        List<Map<String, Object>> targets = new ArrayList<>(boundsList.size());
-        for (AxisAlignedBB bounds : boundsList) {
-            MovingObjectPosition target = resolveTooltipTarget(level, x, y, z, bounds);
+        List<StructureLibSceneMetadata> structureLibMetadataList, GuideSiteTemplateRegistry templates,
+        Map<String, String> templateIdsByHtml, @Nullable ResourceLocation currentPageId,
+        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
+        BlockHoverGeometry geometry = resolveBlockHoverGeometry(scene.getLevel(), x, y, z);
+        if (geometry == null || geometry.bounds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Map<String, Object>> targets = new ArrayList<>(geometry.bounds.size());
+        for (AxisAlignedBB bounds : geometry.bounds) {
+            MovingObjectPosition target = resolveTooltipTarget(scene.getLevel(), geometry, x, y, z, bounds);
             targets.add(
                 buildBlockTarget(
                     "block",
@@ -179,7 +210,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
                     z,
                     bounds,
                     BLOCK_HOVER_COLOR,
-                    resolveSceneBlockTooltip(scene, x, y, z, target),
+                    resolveSceneBlockTooltip(scene, structureLibMetadataList, x, y, z, target),
                     templates,
                     templateIdsByHtml,
                     currentPageId,
@@ -246,14 +277,16 @@ public final class GuideSiteSceneHoverTargetSerializer {
     }
 
     @Nullable
-    private static GuideTooltip resolveSceneBlockTooltip(LytGuidebookScene scene, int x, int y, int z,
+    private static GuideTooltip resolveSceneBlockTooltip(LytGuidebookScene scene,
+        List<StructureLibSceneMetadata> structureLibMetadataList, int x, int y, int z,
         @Nullable MovingObjectPosition target) {
-        String name = resolveSceneBlockName(scene, x, y, z, target);
-        GuideTooltip structureLibTooltip = resolveStructureLibTooltip(scene, x, y, z, name);
         ItemStack stack = resolveSceneBlockStack(scene, x, y, z, target);
         if (stack != null && stack.stackSize > 0) {
             return new ItemTooltip(stack.copy());
         }
+
+        String name = resolveSceneBlockName(scene, x, y, z, target);
+        GuideTooltip structureLibTooltip = resolveStructureLibTooltip(structureLibMetadataList, x, y, z, name);
         if (structureLibTooltip != null) {
             return structureLibTooltip;
         }
@@ -262,27 +295,24 @@ public final class GuideSiteSceneHoverTargetSerializer {
     }
 
     @Nullable
-    private static GuideTooltip resolveStructureLibTooltip(LytGuidebookScene scene, int x, int y, int z,
-        @Nullable String blockName) {
-        StructureLibSceneMetadata metadata = scene.getStructureLibSceneMetadata();
-        if (metadata == null) {
-            return null;
+    private static GuideTooltip resolveStructureLibTooltip(List<StructureLibSceneMetadata> structureLibMetadataList,
+        int x, int y, int z, @Nullable String blockName) {
+        for (StructureLibSceneMetadata metadata : structureLibMetadataList) {
+            StructureLibSceneMetadata.BlockTooltipData tooltipData = metadata.getBlockTooltipData(x, y, z);
+            if (tooltipData == null || !tooltipData.hasAdditionalTooltipContent()) {
+                continue;
+            }
+            ContentTooltip tooltip = StructureLibTooltipContentBuilder.build(
+                blockName != null && !blockName.trim()
+                    .isEmpty() ? blockName : "Block",
+                tooltipData.getStructureLibDescription(),
+                false,
+                tooltipData.getBlockCandidates(),
+                tooltipData.getHatchDescriptionLines(),
+                tooltipData.getHatchCandidates());
+            return tooltip;
         }
-
-        StructureLibSceneMetadata.BlockTooltipData tooltipData = metadata.getBlockTooltipData(x, y, z);
-        if (tooltipData == null || !tooltipData.hasAdditionalTooltipContent()) {
-            return null;
-        }
-
-        ContentTooltip tooltip = StructureLibTooltipContentBuilder.build(
-            blockName != null && !blockName.trim()
-                .isEmpty() ? blockName : "Block",
-            tooltipData.getStructureLibDescription(),
-            false,
-            tooltipData.getBlockCandidates(),
-            tooltipData.getHatchDescriptionLines(),
-            tooltipData.getHatchCandidates());
-        return tooltip;
+        return null;
     }
 
     @Nullable
@@ -314,10 +344,11 @@ public final class GuideSiteSceneHoverTargetSerializer {
         }
     }
 
-    private static List<AxisAlignedBB> resolveBlockHoverBounds(GuidebookLevel level, int x, int y, int z) {
+    @Nullable
+    private static BlockHoverGeometry resolveBlockHoverGeometry(GuidebookLevel level, int x, int y, int z) {
         Block block = level.getBlock(x, y, z);
         if (block == null || block == Blocks.air) {
-            return Collections.emptyList();
+            return null;
         }
 
         List<AxisAlignedBB> collisionBounds;
@@ -327,40 +358,45 @@ public final class GuideSiteSceneHoverTargetSerializer {
             collisionBounds = Collections.emptyList();
         }
 
-        List<AxisAlignedBB> bounds = new ArrayList<>();
-        Set<String> seen = new LinkedHashSet<>();
+        List<AxisAlignedBB> bounds = new ArrayList<>(collisionBounds.size());
         for (AxisAlignedBB collisionBoundsBox : collisionBounds) {
             AxisAlignedBB normalized = normalizeBounds(collisionBoundsBox);
             if (!GuideBlockBoundsResolver.isNonEmpty(normalized)) {
                 continue;
             }
-            String key = boundsKey(normalized);
-            if (seen.add(key)) {
-                bounds.add(normalized);
-            }
+            appendUniqueBounds(bounds, normalized);
         }
 
         if (!bounds.isEmpty()) {
-            return bounds;
+            AxisAlignedBB selectedBounds = GuideBlockBoundsResolver.resolveSelectedBounds(level, x, y, z);
+            return new BlockHoverGeometry(
+                block,
+                bounds,
+                collisionBounds,
+                selectedBounds != null ? normalizeBounds(selectedBounds) : null);
         }
 
         AxisAlignedBB fallbackBounds = GuideBlockBoundsResolver.resolveSelectedBounds(level, x, y, z);
         if (fallbackBounds == null || !GuideBlockBoundsResolver.isNonEmpty(fallbackBounds)) {
             fallbackBounds = AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d);
         }
-        return Collections.singletonList(normalizeBounds(fallbackBounds));
+        AxisAlignedBB normalizedFallbackBounds = normalizeBounds(fallbackBounds);
+        return new BlockHoverGeometry(
+            block,
+            Collections.singletonList(normalizedFallbackBounds),
+            Collections.<AxisAlignedBB>emptyList(),
+            normalizedFallbackBounds);
     }
 
     @Nullable
-    private static MovingObjectPosition resolveTooltipTarget(GuidebookLevel level, int x, int y, int z,
-        AxisAlignedBB bounds) {
-        Block block = level.getBlock(x, y, z);
-        if (block == null || block == Blocks.air) {
+    private static MovingObjectPosition resolveTooltipTarget(GuidebookLevel level, BlockHoverGeometry geometry, int x,
+        int y, int z, AxisAlignedBB bounds) {
+        if (geometry.block == null || geometry.block == Blocks.air) {
             return null;
         }
 
         for (Integer side : resolveCandidateSides(bounds, x, y, z)) {
-            MovingObjectPosition target = resolveTooltipTargetForSide(level, block, x, y, z, bounds, side);
+            MovingObjectPosition target = resolveTooltipTargetForSide(level, geometry, x, y, z, bounds, side);
             if (target != null) {
                 return target;
             }
@@ -371,8 +407,8 @@ public final class GuideSiteSceneHoverTargetSerializer {
     }
 
     @Nullable
-    private static MovingObjectPosition resolveTooltipTargetForSide(GuidebookLevel level, Block block, int x, int y,
-        int z, AxisAlignedBB bounds, int side) {
+    private static MovingObjectPosition resolveTooltipTargetForSide(GuidebookLevel level, BlockHoverGeometry geometry,
+        int x, int y, int z, AxisAlignedBB bounds, int side) {
         Vec3 hitPoint = faceCenter(bounds, side);
         int[] sideOffset = RAY_SIDE_OFFSETS[side];
         Vec3 rayStart = Vec3.createVectorHelper(
@@ -384,13 +420,17 @@ public final class GuideSiteSceneHoverTargetSerializer {
             hitPoint.yCoord - sideOffset[1] * 0.25d,
             hitPoint.zCoord - sideOffset[2] * 0.25d);
 
-        AxisAlignedBB hitBounds = GuideBlockBoundsResolver.resolveRayHitBounds(level, x, y, z, rayStart, rayEnd);
+        AxisAlignedBB hitBounds = resolveNearestRayHitBounds(geometry.collisionBounds, rayStart, rayEnd);
+        if (hitBounds == null) {
+            hitBounds = geometry.selectedBounds;
+        }
         if (!sameBounds(bounds, hitBounds)) {
             return null;
         }
 
         try {
-            MovingObjectPosition hit = block.collisionRayTrace(level.getOrCreateFakeWorld(), x, y, z, rayStart, rayEnd);
+            MovingObjectPosition hit = geometry.block
+                .collisionRayTrace(level.getOrCreateFakeWorld(), x, y, z, rayStart, rayEnd);
             if (hit != null && hit.hitVec != null) {
                 return new MovingObjectPosition(x, y, z, hit.sideHit, hit.hitVec);
             }
@@ -400,7 +440,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
     }
 
     private static List<Integer> resolveCandidateSides(AxisAlignedBB bounds, int x, int y, int z) {
-        List<Integer> sides = new ArrayList<>(6);
+        List<Integer> sides = new ArrayList<>(BLOCK_FACE_COUNT);
         if (touches(bounds.minY, y)) {
             sides.add(0);
         }
@@ -442,6 +482,31 @@ public final class GuideSiteSceneHoverTargetSerializer {
         return preferredDistance <= 0.5d + BOUNDS_EPSILON ? preferredSide : null;
     }
 
+    @Nullable
+    private static AxisAlignedBB resolveNearestRayHitBounds(List<AxisAlignedBB> collisionBounds, Vec3 rayStart,
+        Vec3 rayEnd) {
+        if (collisionBounds == null || rayStart == null || rayEnd == null) {
+            return null;
+        }
+        AxisAlignedBB bestBounds = null;
+        double bestDistanceSq = Double.POSITIVE_INFINITY;
+        for (AxisAlignedBB collisionBoundsBox : collisionBounds) {
+            if (collisionBoundsBox == null || !GuideBlockBoundsResolver.isNonEmpty(collisionBoundsBox)) {
+                continue;
+            }
+            MovingObjectPosition intercept = collisionBoundsBox.calculateIntercept(rayStart, rayEnd);
+            if (intercept == null || intercept.hitVec == null) {
+                continue;
+            }
+            double distanceSq = intercept.hitVec.squareDistanceTo(rayStart);
+            if (distanceSq < bestDistanceSq) {
+                bestDistanceSq = distanceSq;
+                bestBounds = collisionBoundsBox;
+            }
+        }
+        return bestBounds != null ? GuideBlockBoundsResolver.copyOf(bestBounds) : null;
+    }
+
     private static boolean sameBounds(AxisAlignedBB expected, @Nullable AxisAlignedBB actual) {
         if (expected == null || actual == null) {
             return false;
@@ -458,17 +523,13 @@ public final class GuideSiteSceneHoverTargetSerializer {
         return Math.abs(actual - expected) <= BOUNDS_EPSILON;
     }
 
-    private static String boundsKey(AxisAlignedBB bounds) {
-        return bounds.minX + ":"
-            + bounds.minY
-            + ":"
-            + bounds.minZ
-            + ":"
-            + bounds.maxX
-            + ":"
-            + bounds.maxY
-            + ":"
-            + bounds.maxZ;
+    private static void appendUniqueBounds(List<AxisAlignedBB> bounds, AxisAlignedBB candidate) {
+        for (AxisAlignedBB existing : bounds) {
+            if (sameBounds(existing, candidate)) {
+                return;
+            }
+        }
+        bounds.add(candidate);
     }
 
     private static MovingObjectPosition createSyntheticTarget(int x, int y, int z, AxisAlignedBB bounds, int side) {
@@ -548,5 +609,21 @@ public final class GuideSiteSceneHoverTargetSerializer {
         String templateId = templates.create(html);
         templateIdsByHtml.put(html, templateId);
         return templateId;
+    }
+
+    private static class BlockHoverGeometry {
+
+        private final Block block;
+        private final List<AxisAlignedBB> bounds;
+        private final List<AxisAlignedBB> collisionBounds;
+        private final AxisAlignedBB selectedBounds;
+
+        private BlockHoverGeometry(Block block, List<AxisAlignedBB> bounds, List<AxisAlignedBB> collisionBounds,
+            AxisAlignedBB selectedBounds) {
+            this.block = block;
+            this.bounds = bounds;
+            this.collisionBounds = collisionBounds;
+            this.selectedBounds = selectedBounds;
+        }
     }
 }

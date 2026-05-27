@@ -2,7 +2,7 @@
 navigation:
   title: Annotations
   parent: index.md
-  position: 36
+  position: 164
 categories:
   - scenes
 ---
@@ -112,7 +112,7 @@ All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (
 <GameScene width="256" height="192" zoom={4} interactive={true}>
   <TextAnnotation
     pos="1.5 2.0 1.5"
-    text="Insert items here"
+    textKey="guidenh.sample.scene.insert_items"
     color="#FF44AAFF"
     maxWidth={120}
     backgroundAlpha={180}
@@ -141,6 +141,7 @@ Use `independent={true}` to place the bubble in fixed screen space instead of fo
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | float | `0.0` | World-space anchor position. Ignored when `independent={true}`. |
 | `text` | string | - | Required. Text shown inside the bubble. |
+| `textKey` | string | - | Translation key resolved from resource-pack `lang` files before falling back to `text` or the tag body. |
 | `color` | string | `"0xFFAAAAAA"` | Bubble border color. |
 | `backgroundAlpha` | integer | `204` | Background opacity from `0` (transparent) to `255` (opaque). |
 | `maxWidth` | integer | `0` | Word-wrap width in pixels. `0` keeps the bubble on one line. |

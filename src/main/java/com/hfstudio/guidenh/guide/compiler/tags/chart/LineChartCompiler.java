@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.compiler.tags.chart;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -10,6 +11,7 @@ import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartAxisOptions;
 import com.hfstudio.guidenh.guide.document.block.chart.LytLineChart;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 
 public class LineChartCompiler extends BlockTagCompiler {
 
@@ -37,11 +39,12 @@ public class LineChartCompiler extends BlockTagCompiler {
         chart.setNumericX(numericX);
         boolean showPoints = MdxAttrs.getBoolean(compiler, parent, el, "showPoints", true);
         chart.setShowPoints(showPoints);
+        List<? extends MdAstAnyContent> children = ChartChildParser.childElements(compiler, el);
 
         if (numericX) {
-            chart.setSeries(ChartChildParser.parsePointSeries(compiler, parent, el));
+            chart.setSeries(ChartChildParser.parsePointSeries(compiler, parent, children));
         } else {
-            chart.setSeries(ChartChildParser.parseValueSeries(compiler, parent, el));
+            chart.setSeries(ChartChildParser.parseValueSeries(compiler, parent, children));
         }
         parent.append(chart);
     }

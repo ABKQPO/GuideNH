@@ -4,12 +4,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class StructureImportPipeline {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/StructureImport");
     private static final Comparator<StructureImportContributor> PRIORITY_COMPARATOR = Comparator
         .comparingInt(StructureImportContributor::priority);
 
@@ -27,7 +25,7 @@ public class StructureImportPipeline {
             try {
                 c.apply(ctx);
             } catch (Throwable t) {
-                LOG.warn(
+                GuideDebugLog.warn(
                     "Structure import apply failed: {}",
                     c.getClass()
                         .getName(),

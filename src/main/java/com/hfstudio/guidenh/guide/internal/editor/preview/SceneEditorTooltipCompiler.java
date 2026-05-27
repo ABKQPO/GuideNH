@@ -59,6 +59,7 @@ final class SceneEditorTooltipCompiler {
             PAGE_COLLECTION,
             EXTENSIONS,
             parsed.getSourcePack(),
+            parsed.getLanguage(),
             parsed.getId(),
             parsed.getSource());
     }
@@ -131,7 +132,7 @@ final class SceneEditorTooltipCompiler {
 
         @Override
         public NavigationTree getNavigationTree() {
-            return new NavigationTree();
+            return GuideRegistry.getMergedNavigationTree();
         }
 
         @Override

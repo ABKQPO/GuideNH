@@ -15,7 +15,7 @@ public class SceneEditorTextSelectionModel {
     }
 
     public void setText(String text) {
-        this.text = text != null ? text : "";
+        this.text = normalizeLineEndings(text);
         this.cursorIndex = Math.min(cursorIndex, this.text.length());
         if (selectionActive) {
             this.selectionAnchor = Math.min(selectionAnchor, this.text.length());
@@ -99,7 +99,7 @@ public class SceneEditorTextSelectionModel {
     }
 
     public void insertText(String insertion) {
-        String replacement = insertion != null ? insertion : "";
+        String replacement = normalizeLineEndings(insertion);
         int start = getSelectionStart();
         int end = getSelectionEnd();
         if (hasSelection()) {
@@ -111,6 +111,17 @@ public class SceneEditorTextSelectionModel {
         }
         selectionAnchor = cursorIndex;
         selectionActive = false;
+    }
+
+    private String normalizeLineEndings(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        if (text.indexOf('\r') < 0) {
+            return text;
+        }
+        return text.replace("\r\n", "\n")
+            .replace('\r', '\n');
     }
 
     public String cutSelection() {

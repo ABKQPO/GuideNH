@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
@@ -32,9 +34,21 @@ public class SceneEditorParameterController {
         syncText();
     }
 
+    public void setRotationX(@Nullable Float value) {
+        session.getSceneModel()
+            .setRotationX(value != null ? value : Float.NaN);
+        syncText();
+    }
+
     public void setRotationY(float value) {
         session.getSceneModel()
             .setRotationY(value);
+        syncText();
+    }
+
+    public void setRotationY(@Nullable Float value) {
+        session.getSceneModel()
+            .setRotationY(value != null ? value : Float.NaN);
         syncText();
     }
 
@@ -44,9 +58,21 @@ public class SceneEditorParameterController {
         syncText();
     }
 
+    public void setRotationZ(@Nullable Float value) {
+        session.getSceneModel()
+            .setRotationZ(value != null ? value : Float.NaN);
+        syncText();
+    }
+
     public void setZoom(float value) {
         session.getSceneModel()
             .setZoom(value);
+        syncText();
+    }
+
+    public void setZoom(@Nullable Float value) {
+        session.getSceneModel()
+            .setZoom(value != null ? value : Float.NaN);
         syncText();
     }
 
@@ -56,9 +82,21 @@ public class SceneEditorParameterController {
         syncText();
     }
 
+    public void setCenterX(@Nullable Float value) {
+        session.getSceneModel()
+            .setCenterX(value != null ? value : Float.NaN);
+        syncText();
+    }
+
     public void setCenterY(float value) {
         session.getSceneModel()
             .setCenterY(value);
+        syncText();
+    }
+
+    public void setCenterY(@Nullable Float value) {
+        session.getSceneModel()
+            .setCenterY(value != null ? value : Float.NaN);
         syncText();
     }
 
@@ -68,9 +106,33 @@ public class SceneEditorParameterController {
         syncText();
     }
 
+    public void setCenterZ(@Nullable Float value) {
+        session.getSceneModel()
+            .setCenterZ(value != null ? value : Float.NaN);
+        syncText();
+    }
+
     public void setInteractive(boolean value) {
         session.getSceneModel()
             .setInteractive(value);
+        syncText();
+    }
+
+    public void resetAutoCenter() {
+        SceneEditorSceneModel sceneModel = session.getSceneModel();
+        sceneModel.setCenterX(Float.NaN);
+        sceneModel.setCenterY(Float.NaN);
+        sceneModel.setCenterZ(Float.NaN);
+        sceneModel.setOffsetX(Float.NaN);
+        sceneModel.setOffsetY(Float.NaN);
+        syncText();
+    }
+
+    public void resetAutoRotation() {
+        SceneEditorSceneModel sceneModel = session.getSceneModel();
+        sceneModel.setRotationX(Float.NaN);
+        sceneModel.setRotationY(Float.NaN);
+        sceneModel.setRotationZ(Float.NaN);
         syncText();
     }
 

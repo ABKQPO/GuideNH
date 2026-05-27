@@ -14,6 +14,11 @@ const SCENE_BUTTON_ICONS = {
   toggleGrid: [16, 64],
   toggleBlockStats: [0, 0],
 };
+const PONDER_INPUT_LABELS = {
+  lmb: "LMB",
+  rmb: "RMB",
+  scroll: "Scroll",
+};
 
 function findDescriptor(target, property) {
   let current = target;
@@ -156,9 +161,28 @@ function createSceneNode(documentRef, descriptor, variant) {
   }
   setOrRemoveAttribute(node, "data-scene-in-world-annotations", variant?.inWorldAnnotationsJson);
   setOrRemoveAttribute(node, "data-scene-overlay-annotations", variant?.overlayAnnotationsJson);
+  setOrRemoveAttribute(node, "data-guide-scene-sounds", variant?.sceneSoundsJson);
   setOrRemoveAttribute(node, "data-scene-hover-targets", variant?.hoverTargetsJson);
   applySceneGridDescriptor(node, descriptor);
   return node;
+}
+
+function getSceneDisplayScale(descriptor) {
+  const rawScale = Number(descriptor?.attributes?.["data-scene-display-scale"]);
+  return Number.isFinite(rawScale) && rawScale > 0 ? rawScale : 1;
+}
+
+function splitOverlayAnnotations(annotations) {
+  const vendorAnnotations = [];
+  const htmlAnnotations = [];
+  for (const annotation of Array.isArray(annotations) ? annotations : []) {
+    if (annotation?.type === "text" || annotation?.type === "input") {
+      htmlAnnotations.push(annotation);
+      continue;
+    }
+    vendorAnnotations.push(annotation);
+  }
+  return { vendorAnnotations, htmlAnnotations };
 }
 
 function attachSceneContext(sceneContext) {
@@ -171,6 +195,7 @@ function attachSceneContext(sceneContext) {
     }
     normalizeVendorSceneControls(wrapper);
     mountSceneActionControls(sceneContext);
+    mountSceneOverlayAnnotations(sceneContext);
   }
 }
 
@@ -190,6 +215,8 @@ function disposeSceneContext(sceneContext, removeWrapper = true) {
   runtime.controller?.dispose?.();
   runtime.tooltipBridge?.hide?.();
   runtime.abortController?.abort?.();
+  sceneContext.overlayRuntime?.dispose?.();
+  sceneContext.overlayRuntime = null;
   if (removeWrapper && wrapper?.isConnected) {
     wrapper.remove();
   }
@@ -251,6 +278,203 @@ function normalizeVector(value, fallback = [1, 0, 0]) {
   return len > 1e-6 ? [value[0] / len, value[1] / len, value[2] / len] : fallback;
 }
 
+function ensureSceneOverlayHost(wrapper) {
+  if (!(wrapper instanceof HTMLElement)) {
+    return null;
+  }
+  let host = wrapper.querySelector(":scope > .scene-annotation-overlay");
+  if (!(host instanceof HTMLElement)) {
+    host = wrapper.ownerDocument.createElement("div");
+    host.className = "scene-annotation-overlay";
+    wrapper.append(host);
+  }
+  return host;
+}
+
+function createTextAnnotationNode(documentRef, annotation, displayScale) {
+  const bubble = documentRef.createElement("div");
+  const connectorSide = annotation?.independent ? "none" : annotation?.connectorSide || "bottom";
+  bubble.className = "scene-text-annotation";
+  bubble.dataset.connectorSide = connectorSide;
+  bubble.innerHTML = typeof annotation?.text === "string" ? annotation.text : "";
+  bubble.style.setProperty("--annotation-border-color", annotation?.color || "rgba(255,255,255,1)");
+  const alpha = Math.max(0, Math.min(255, Number(annotation?.backgroundAlpha) || 0));
+  bubble.style.setProperty("--annotation-background", `rgba(14, 14, 32, ${alpha / 255})`);
+  const width = Math.max(0, Number(annotation?.maxWidth) || 0);
+  if (width > 0) {
+    bubble.style.maxWidth = `${width * displayScale}px`;
+  }
+  bubble.style.setProperty(
+    "--annotation-connector-length",
+    `${Math.max(0, Number(annotation?.connectorLength) || 0) * displayScale}px`,
+  );
+  bubble.style.setProperty(
+    "--annotation-connector-offset",
+    `${(Number(annotation?.connectorOffset) || 0) * displayScale}px`,
+  );
+  return bubble;
+}
+
+function createInputAnnotationNode(documentRef, annotation) {
+  const wrapper = documentRef.createElement("div");
+  wrapper.className = "scene-input-annotation";
+
+  const modifier = `${annotation?.modifier || ""}`.trim();
+  if (modifier) {
+    const modifierNode = documentRef.createElement("div");
+    modifierNode.className = "scene-input-annotation-modifier";
+    modifierNode.textContent = modifier === "sneak" ? "Sneak +" : modifier === "ctrl" ? "Ctrl +" : `${modifier} +`;
+    wrapper.append(modifierNode);
+  }
+
+  const body = documentRef.createElement("div");
+  body.className = "scene-input-annotation-body";
+  wrapper.append(body);
+
+  const item = annotation?.item;
+  if (item?.iconSrc) {
+    const icon = documentRef.createElement("img");
+    icon.className = "scene-input-annotation-item";
+    icon.src = item.iconSrc;
+    icon.alt = item.displayName || item.itemId || "";
+    icon.decoding = "async";
+    body.append(icon);
+  } else if (item?.displayName || item?.itemId) {
+    const fallback = documentRef.createElement("span");
+    fallback.className = "scene-input-annotation-item scene-input-annotation-item--fallback";
+    fallback.textContent = item.displayName || item.itemId;
+    body.append(fallback);
+  }
+
+  const input = documentRef.createElement("span");
+  input.className = "scene-input-annotation-key";
+  input.textContent = PONDER_INPUT_LABELS[`${annotation?.inputType || ""}`.toLowerCase()] || "LMB";
+  body.append(input);
+
+  return wrapper;
+}
+
+function createOverlayAnnotationNode(documentRef, annotation, displayScale) {
+  if (annotation?.type === "text") {
+    return createTextAnnotationNode(documentRef, annotation, displayScale);
+  }
+  if (annotation?.type === "input") {
+    return createInputAnnotationNode(documentRef, annotation);
+  }
+  return null;
+}
+
+function resolveOverlayAnchorPosition(sceneContext, annotation) {
+  const projector = sceneContext?.runtime?.controller?.projectWorldPosition;
+  const displayScale = getSceneDisplayScale(sceneContext?.descriptor);
+  if (annotation?.independent) {
+    const viewport = sceneContext?.runtime?.viewport;
+    if (!(viewport instanceof HTMLElement)) {
+      return null;
+    }
+    return {
+      x: viewport.clientWidth * 0.5,
+      y: viewport.clientHeight * 0.5 + (Number(annotation?.screenYOffset) || 0) * displayScale,
+      visible: true,
+    };
+  }
+  if (typeof projector !== "function") {
+    return null;
+  }
+  const projected = projector(vectorFromArray(annotation?.position));
+  return projected?.visible ? projected : null;
+}
+
+function updateOverlayAnnotationNode(node, annotation, anchor) {
+  if (!(node instanceof HTMLElement) || !anchor?.visible) {
+    if (node instanceof HTMLElement) {
+      node.hidden = true;
+    }
+    return;
+  }
+  node.hidden = false;
+  node.style.left = `${anchor.x}px`;
+  node.style.top = `${anchor.y}px`;
+}
+
+function mountSceneOverlayAnnotations(sceneContext) {
+  const wrapper = sceneContext?.runtime?.wrapper;
+  const host = ensureSceneOverlayHost(wrapper);
+  if (!(host instanceof HTMLElement)) {
+    return;
+  }
+  host.textContent = "";
+  const annotations = sceneContext?.htmlOverlayAnnotations;
+  if (!Array.isArray(annotations) || annotations.length === 0) {
+    sceneContext.overlayRuntime = {
+      dispose() {
+        host.textContent = "";
+      },
+    };
+    return;
+  }
+
+  const documentRef = host.ownerDocument;
+  const displayScale = getSceneDisplayScale(sceneContext?.descriptor);
+  const entries = [];
+  for (const annotation of annotations) {
+    const node = createOverlayAnnotationNode(documentRef, annotation, displayScale);
+    if (!(node instanceof HTMLElement)) {
+      continue;
+    }
+    host.append(node);
+    entries.push({ annotation, node });
+  }
+
+  let rafId = 0;
+  let disposed = false;
+  let resizeObserver = null;
+  const needsAnimation = sceneContext?.descriptor?.interactive
+    && entries.some((entry) => !entry.annotation?.independent);
+  const update = () => {
+    if (disposed) {
+      return;
+    }
+    for (const entry of entries) {
+      updateOverlayAnnotationNode(entry.node, entry.annotation, resolveOverlayAnchorPosition(sceneContext, entry.annotation));
+    }
+    if (needsAnimation) {
+      rafId = window.requestAnimationFrame(update);
+    }
+  };
+  update();
+
+  if (typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver(() => {
+      update();
+    });
+    resizeObserver.observe(host);
+  }
+
+  sceneContext.overlayRuntime = {
+    dispose() {
+      disposed = true;
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
+      resizeObserver?.disconnect?.();
+      host.textContent = "";
+    },
+  };
+}
+
+function computeAnnotationLineHalfThickness(thickness) {
+  return Math.max((Number(thickness) || 0) / 32, 1 / 256) * 0.5;
+}
+
+function computeAnnotationArrowBaseRadius(thickness) {
+  return Math.max(computeAnnotationLineHalfThickness(thickness) * 1.35, 0.028);
+}
+
+function computeAnnotationArrowLength(thickness) {
+  return Math.max(computeAnnotationArrowBaseRadius(thickness) * 3.5, 0.14);
+}
+
 function pointBoxAnnotation(point, color, size, alwaysOnTop) {
   const half = Math.max(Number(size) || 0, 1 / 256) * 0.5;
   return {
@@ -269,9 +493,8 @@ function arrowLineAnnotations(tip, interior, annotation) {
   const n1 = normalizeVector(crossVector(dir, up), [0, 0, 1]);
   const n2 = normalizeVector(crossVector(dir, n1), [0, 1, 0]);
   const thickness = Number(annotation.thickness) || 1;
-  const scaled = Math.max(thickness / 32, 1 / 256);
-  const length = Math.max(scaled * 8, 0.18);
-  const radius = Math.max(scaled * 3.5, 0.08);
+  const length = computeAnnotationArrowLength(thickness);
+  const radius = computeAnnotationArrowBaseRadius(thickness);
   const base = addScaledVector(tip, dir, -length);
   const basePoints = [
     addScaledVector(base, n1, radius),
@@ -288,7 +511,7 @@ function arrowLineAnnotations(tip, interior, annotation) {
     arrow: undefined,
     showPoints: undefined,
     pointStyles: undefined,
-    thickness: Math.max(thickness * 0.6, 0.02),
+    thickness: Math.max(thickness * 0.55, 0.02),
   }));
 }
 
@@ -370,10 +593,23 @@ function applySceneGridDescriptor(node, descriptor) {
 }
 
 function buildStateKey(state) {
-  let key = `layer=${Math.max(0, Number(state.visibleLayer) || 0)}|ponder=${Math.max(0, Number(state.ponderTick) || 0)}|tier=${Math.max(1, Number(state.tier) || 1)}`;
-  const channels = state.channels || {};
-  for (const channelId of Object.keys(channels)) {
-    key += `|channel:${channelId}=${Math.max(0, Number(channels[channelId]) || 0)}`;
+  let key = `layer=${Math.max(0, Number(state.visibleLayer) || 0)}|ponder=${Math.max(0, Number(state.ponderTick) || 0)}`;
+  const structures = normalizeStateStructures(state);
+  if (Object.keys(structures).length === 0) {
+    key += `|tier=${Math.max(1, Number(state.tier) || 1)}`;
+    const channels = state.channels || {};
+    for (const channelId of Object.keys(channels)) {
+      key += `|channel:${channelId}=${Math.max(0, Number(channels[channelId]) || 0)}`;
+    }
+    return key;
+  }
+  for (const structureId of Object.keys(structures)) {
+    const structureState = structures[structureId] || {};
+    key += `|structure:${structureId}|tier=${Math.max(1, Number(structureState.tier) || 1)}`;
+    const channels = structureState.channels || {};
+    for (const channelId of Object.keys(channels)) {
+      key += `|channel:${channelId}=${Math.max(0, Number(channels[channelId]) || 0)}`;
+    }
   }
   return key;
 }
@@ -384,7 +620,24 @@ function cloneState(state) {
     ponderTick: Math.max(0, Number(state?.ponderTick) || 0),
     tier: Math.max(1, Number(state?.tier) || 1),
     channels: { ...(state?.channels || {}) },
+    structures: normalizeStateStructures(state),
   };
+}
+
+function normalizeStateStructures(state) {
+  const structures = state?.structures;
+  if (!structures || typeof structures !== "object") {
+    return {};
+  }
+  const normalized = {};
+  for (const structureId of Object.keys(structures)) {
+    const structureState = structures[structureId];
+    normalized[structureId] = {
+      tier: Math.max(1, Number(structureState?.tier) || 1),
+      channels: { ...(structureState?.channels || {}) },
+    };
+  }
+  return normalized;
 }
 
 function loadSceneStateManifest(src) {
@@ -845,11 +1098,84 @@ async function mountSceneStateControls(sceneContext) {
       );
     }
   }
+
+  if (Array.isArray(controls.structures)) {
+    for (const structure of controls.structures) {
+      const structureId = structure?.id;
+      if (!structureId) {
+        continue;
+      }
+      const structureLabel = structure.label || structureId;
+      const currentStructureState = sceneContext.currentState.structures?.[structureId] || { tier: 1, channels: {} };
+      if (structure.tier && Number.isFinite(Number(structure.tier.min)) && Number.isFinite(Number(structure.tier.max))) {
+        const min = Math.max(1, Number(structure.tier.min) || 1);
+        const max = Math.max(min, Number(structure.tier.max) || min);
+        host.append(
+          createRangeControl(
+            documentRef,
+            `${structureLabel} ${structure.tier.label || "Tier"}`,
+            min,
+            max,
+            currentStructureState.tier,
+            (value) => String(value),
+            (value) =>
+              updateSceneState(sceneContext, {
+                structures: {
+                  [structureId]: {
+                    tier: value,
+                  },
+                },
+              }),
+          ),
+        );
+      }
+      if (Array.isArray(structure.channels)) {
+        for (const channel of structure.channels) {
+          const min = Math.max(0, Number(channel?.min) || 0);
+          const max = Math.max(0, Number(channel?.max) || 0);
+          host.append(
+            createRangeControl(
+              documentRef,
+              `${structureLabel} ${channel.label || channel.id || "Channel"}`,
+              min,
+              max,
+              currentStructureState.channels?.[channel.id] ?? min,
+              (value) => (value === 0 && min === 0 ? channel.unsetLabel || "Not set" : String(value)),
+              (value) =>
+                updateSceneState(sceneContext, {
+                  structures: {
+                    [structureId]: {
+                      channels: {
+                        [channel.id]: value,
+                      },
+                    },
+                  },
+                }),
+            ),
+          );
+        }
+      }
+    }
+  }
 }
 
 async function updateSceneState(sceneContext, patch) {
   if (!sceneContext.manifest || sceneContext.transitioning) {
     return;
+  }
+
+  const currentStructures = sceneContext.currentState?.structures || {};
+  const patchedStructures = patch?.structures || {};
+  const mergedStructures = { ...currentStructures };
+  for (const structureId of Object.keys(patchedStructures)) {
+    mergedStructures[structureId] = {
+      ...(currentStructures[structureId] || {}),
+      ...(patchedStructures[structureId] || {}),
+      channels: {
+        ...(currentStructures[structureId]?.channels || {}),
+        ...(patchedStructures[structureId]?.channels || {}),
+      },
+    };
   }
 
   const nextState = cloneState({
@@ -859,6 +1185,7 @@ async function updateSceneState(sceneContext, patch) {
       ...(sceneContext.currentState?.channels || {}),
       ...(patch?.channels || {}),
     },
+    structures: mergedStructures,
   });
   const key = buildStateKey(nextState);
   const variant = sceneContext.manifest.states[key];
@@ -883,6 +1210,12 @@ async function recreateSceneRuntime(sceneContext, variant) {
   }
 
   const replacement = createSceneNode(parent.ownerDocument, sceneContext.descriptor, variant);
+  sceneContext.descriptor = captureSceneDescriptor(replacement);
+  const split = splitOverlayAnnotations(
+    parseSceneJsonAttribute(replacement.getAttribute("data-scene-overlay-annotations"), []),
+  );
+  replacement.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(split.vendorAnnotations));
+  sceneContext.htmlOverlayAnnotations = split.htmlAnnotations;
   parent.insertBefore(replacement, sceneContext.runtime.wrapper);
 
   disposeSceneContext(sceneContext);
@@ -905,6 +1238,8 @@ async function initializeScene(node) {
 
   const descriptor = captureSceneDescriptor(node);
   applySceneGridDescriptor(node, descriptor);
+  const split = splitOverlayAnnotations(parseSceneJsonAttribute(node.getAttribute("data-scene-overlay-annotations"), []));
+  node.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(split.vendorAnnotations));
   const runtime = await setupVendorGameScene(node);
   if (!runtime) {
     return null;
@@ -912,6 +1247,8 @@ async function initializeScene(node) {
 
   const sceneContext = {
     descriptor,
+    htmlOverlayAnnotations: split.htmlAnnotations,
+    overlayRuntime: null,
     runtime,
     manifest: null,
     currentState: null,

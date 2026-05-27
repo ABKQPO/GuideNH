@@ -2,7 +2,7 @@
 navigation:
   title: Import Structure
   parent: index.md
-  position: 38
+  position: 162
 categories:
   - scenes
 ---
@@ -20,6 +20,68 @@ categories:
 </GameScene>
 
 Hover blocks in the StructureLib preview to inspect the extra structure text. Hold `Shift` to expand replacement candidates. If the imported structure exposes hatch or channel metadata, the preview also adds the hatch highlight button and the bottom sliders automatically.
+
+`facing`, `rotation`, and `flip` use the same orientation vocabulary as StructureLib export. If a
+controller rejects the requested combination, GuideNH automatically falls back to the first valid
+alignment. GregTech controller previews also default to the opposite horizontal facing from the
+older preview orientation, rotating the visible front by 180 degrees around the Y axis.
+
+Add `formed={false}` when a controller should remain unformed in preview even if the surrounding
+structure is otherwise valid. GregTech controllers are the main built-in example today.
+
+Default unformed controller preview:
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" />
+</GameScene>
+```
+
+Explicit formed controller preview:
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" formed={true} />
+</GameScene>
+```
+
+StructureLib import with orientation and offsets:
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib
+    name="main"
+    controller="gregtech:gt.blockmachines:2741"
+    facing="north"
+    rotation="clockwise_180"
+    flip="none"
+    offsetX="2"
+    offsetY="1"
+    offsetZ="-3"
+  />
+</GameScene>
+```
+
+Named StructureLib imports can drive conditional annotations and sounds:
+
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib name="main" controller="botanichorizons:automatedCraftingPool" />
+  <BlockAnnotation
+    pos="5 1 2"
+    color="#FFD24C"
+    showWhenStructure="main"
+    showWhenTier="1..3"
+    showWhenChannels="input:1..3"
+  >
+    This marker follows the selected `main` StructureLib state.
+  </BlockAnnotation>
+  <PlaySound
+    sound="guidenh:guide.sample_click"
+    trigger="click"
+    showWhenStructure="main"
+    showWhenTier="2..3"
+  />
+</GameScene>
 
 ## ImportStructure + RemoveBlocks
 
@@ -45,7 +107,8 @@ are provided:
 </GameScene>
 
 Add `from_nbt` to narrow the match to blocks whose TileEntity NBT contains specific keys, and
-`to_nbt` to supply tile entity data for the replacement block.
+`to_nbt` to supply tile entity data for the replacement block. If the replacement result includes a
+controller, `formed={false}` keeps that controller unformed.
 
 ## PlaceBlock
 
@@ -56,6 +119,15 @@ already there. Use `dx`/`dy`/`dz` to fill multi-block regions:
   <PlaceBlock id="minecraft:stone" dx="5" dy="1" dz="5" />
   <PlaceBlock id="minecraft:glass" y="1" dx="5" dz="5" />
 </GameScene>
+
+If the filled region includes controllers, set `formed={false}` to keep every affected controller
+unformed in preview.
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <PlaceBlock id="gregtech:gt.blockmachines:15411" dx="3" dz="3" formed={false} />
+</GameScene>
+```
 
 ## SNBT File Format
 

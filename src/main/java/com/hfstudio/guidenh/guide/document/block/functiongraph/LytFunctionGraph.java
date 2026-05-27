@@ -7,6 +7,7 @@ import java.util.Optional;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.ResponsiveVisualSizing;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendEntry;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
@@ -58,6 +59,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     private static final int AUTO_POINT_Y_SCAN_STEPS = 128;
     private static final int AUTO_POINT_SOLVE_STEPS = 24;
     private static final int AUTO_POINT_LABEL_GAP = 3;
+    private static final int MIN_PLOT_HEIGHT = 88;
 
     private static final ResolvedTextStyle TITLE_STYLE = makeStyle(0xFFE6E6E6, true);
     private static final ResolvedTextStyle AXIS_LABEL_STYLE = makeStyle(0xFFB8C2CF, false);
@@ -275,11 +277,25 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int width = explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH;
-        if (width > availableWidth) {
-            width = availableWidth;
-        }
+        int width = ResponsiveVisualSizing
+            .scaleWidth(explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH, context.getVisualScale(), 72);
+        width = Math.max(1, Math.min(width, availableWidth));
         int height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT;
+        int plotWidth = Math.max(0, width - PADDING * 2 - AXIS_PAD_LEFT);
+        int fixedChromeHeight = PADDING * 2 + AXIS_PAD_BOTTOM;
+        if (title != null && !title.isEmpty()) {
+            fixedChromeHeight += context.getLineHeight(TITLE_STYLE) + TITLE_GAP;
+        }
+        int legendHeight = measureLegendHeight(context, plotWidth);
+        if (legendHeight > 0) {
+            fixedChromeHeight += legendHeight + LEGEND_GAP_ABOVE;
+        }
+        height = ResponsiveVisualSizing.scaleBodyHeightForWidth(
+            explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH,
+            height,
+            width,
+            fixedChromeHeight,
+            MIN_PLOT_HEIGHT);
         invalidateSamples();
         return new LytRect(x, y, width, height);
     }
@@ -1015,6 +1031,55 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             }
         }
         return rows * rowHeight + (rows - 1) * LEGEND_ROW_GAP;
+    }
+
+    private int measureLegendHeight(LayoutContext context, int availableWidth) {
+        if (availableWidth <= 0) {
+            return 0;
+        }
+        boolean any = false;
+        for (FunctionPlot plot : plots) {
+            if (plot.getLabel() != null && !plot.getLabel()
+                .isEmpty()) {
+                any = true;
+                break;
+            }
+        }
+        if (!any) {
+            return 0;
+        }
+        int rowHeight = Math.max(LEGEND_SWATCH_SIZE, context.getLineHeight(LEGEND_LABEL_STYLE));
+        int rows = 1;
+        int rowWidth = 0;
+        for (FunctionPlot plot : plots) {
+            String label = plot.getLabel();
+            if (label == null || label.isEmpty()) {
+                continue;
+            }
+            int itemWidth = LEGEND_SWATCH_SIZE + LEGEND_SWATCH_TEXT_GAP
+                + measureTextWidth(context, LEGEND_LABEL_STYLE, label);
+            int needed = rowWidth == 0 ? itemWidth : rowWidth + LEGEND_ITEM_GAP + itemWidth;
+            if (rowWidth > 0 && needed > availableWidth) {
+                rows++;
+                rowWidth = itemWidth;
+            } else {
+                rowWidth = needed;
+            }
+        }
+        return rows * rowHeight + (rows - 1) * LEGEND_ROW_GAP;
+    }
+
+    private int measureTextWidth(LayoutContext context, ResolvedTextStyle style, String text) {
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        float width = 0f;
+        for (int offset = 0; offset < text.length();) {
+            int codePoint = text.codePointAt(offset);
+            width += context.getAdvance(codePoint, style);
+            offset += Character.charCount(codePoint);
+        }
+        return Math.round(width);
     }
 
     /**

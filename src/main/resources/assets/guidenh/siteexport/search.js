@@ -92,6 +92,9 @@ export function installSearchUi(root) {
 
       const title = document.createElement("span");
       title.className = "guide-search-result-title";
+      if (entry.mediaWikiSpecialPage) {
+        title.classList.add("guide-search-result-title-special");
+      }
       title.textContent = entry.title || entry.pageId || entry.url;
       head.appendChild(title);
       link.appendChild(head);
