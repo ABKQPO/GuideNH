@@ -118,20 +118,26 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     public void setLive(boolean live) {
         if (this.live == live) return;
         this.live = live;
-        cascadeLive(this);
+        cascadeLive(this, live);
     }
 
-    private static void cascadeLive(LytNode node) {
-        if (node instanceof LytDocument doc) {
-            if (doc.live) {
-                doc.onAttach();
-            } else {
-                doc.onDetach();
-            }
+    private static void cascadeLive(LytNode node, boolean live) {
+        if (live) {
+            node.onAttach();
+        } else {
+            node.onDetach();
         }
         for (var child : node.getChildren()) {
-            cascadeLive(child);
+            cascadeLive(child, live);
         }
+    }
+
+    static void notifyAttach(LytNode node) {
+        cascadeLive(node, true);
+    }
+
+    static void notifyDetach(LytNode node) {
+        cascadeLive(node, false);
     }
 
     public void invalidateLayout() {

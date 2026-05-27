@@ -1,9 +1,14 @@
 package com.hfstudio.guidenh.guide.internal.host;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 
 class ScriptContextImpl implements ScriptContext {
     private final Map<String, Object> data = new HashMap<>();
@@ -27,8 +32,20 @@ class ScriptContextImpl implements ScriptContext {
             if (parent != null) {
                 parent.replaceChild(ln, newLn);
             }
+            return;
         }
-        // Flow-content replacement deferred to Phase 4
+        if (node instanceof LytFlowContent fc && newNode instanceof LytFlowContent newFc) {
+            LytFlowParent parent = fc.getParent();
+            if (parent instanceof LytFlowSpan span) {
+                List<LytFlowContent> children = span.getChildren();
+                int idx = children.indexOf(fc);
+                if (idx >= 0) {
+                    fc.setParent(null);
+                    newFc.setParent(span);
+                    children.set(idx, newFc);
+                }
+            }
+        }
     }
 
     @Override

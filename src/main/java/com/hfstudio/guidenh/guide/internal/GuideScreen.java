@@ -2522,6 +2522,7 @@ public class GuideScreen extends GuiContainer
         }
         currentPage = loadedPage;
         document = loadedPage != null ? loadedPage.document() : null;
+        ClientProxy.getLytHost().setCurrentPageId(currentAnchor.pageId().toString());
         ClientProxy.getLytHost().setDocument(document);
         if (document != null && isSpecialPageWithSearchField()) {
             applySpecialPageSearchQuery(queryFromCurrentAnchor());

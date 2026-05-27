@@ -4,12 +4,14 @@ import java.util.stream.Stream;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContainer;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.flow.FlowBuilder;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.style.TextStyle;
 
 public class LytParagraph extends LytBlock implements LytFlowContainer {
 
@@ -175,6 +177,26 @@ public class LytParagraph extends LytBlock implements LytFlowContainer {
      */
     public static LytParagraph of(String text) {
         var paragraph = new LytParagraph();
+        paragraph.appendText(text);
+        return paragraph;
+    }
+
+    /**
+     * The text style used for loading placeholders: gray, italic, obfuscated.
+     */
+    public static final TextStyle LOADING_STYLE = TextStyle.builder()
+        .italic(true)
+        .obfuscated(true)
+        .color(new ConstantColor(0xFF808080))
+        .build();
+
+    /**
+     * Creates a placeholder paragraph with distinctive "loading" visual style
+     * (gray, italic, obfuscated text) so pending materialization is obvious.
+     */
+    public static LytParagraph loading(String text) {
+        var paragraph = new LytParagraph();
+        paragraph.setStyle(LOADING_STYLE);
         paragraph.appendText(text);
         return paragraph;
     }

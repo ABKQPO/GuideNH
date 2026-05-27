@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 
@@ -172,6 +173,20 @@ public class LytHost {
         if (fc instanceof LytFlowSpan span) {
             for (var child : span.getChildren()) {
                 dispatchMountEventsFlowRecursive(child);
+            }
+        } else if (fc instanceof LytFlowInlineBlock inlineBlock && inlineBlock.getBlock() != null) {
+            LytBlock inner = inlineBlock.getBlock();
+            String innerCls = inner.getStyleClass();
+            if (innerCls != null) {
+                LytScript script = scripts.get(innerCls);
+                if (script != null) {
+                    try {
+                        ScriptContextImpl ctx = new ScriptContextImpl(inlineBlock, this, document);
+                        script.onEvent(inlineBlock, new LytEvent(EventType.MOUNT, inlineBlock), ctx);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         }
     }

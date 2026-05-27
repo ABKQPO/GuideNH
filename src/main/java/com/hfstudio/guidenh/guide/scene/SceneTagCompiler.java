@@ -134,6 +134,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             childrenSource
         );
         placeholder.setStyleClass(styleClass);
+        placeholder.setStyle(LytParagraph.LOADING_STYLE);
         placeholder.appendText("[" + styleClass + "]");
         parent.append(placeholder);
     }

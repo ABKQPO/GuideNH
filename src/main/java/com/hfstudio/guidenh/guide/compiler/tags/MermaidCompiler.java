@@ -143,6 +143,7 @@ public class MermaidCompiler extends BlockTagCompiler {
             this.height = height;
             this.nodeContentBlocks = nodeContentBlocks;
             setStyleClass("Mermaid");
+            setStyle(LytParagraph.LOADING_STYLE);
         }
     }
 }

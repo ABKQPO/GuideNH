@@ -157,6 +157,7 @@ public class CsvTableCompiler extends BlockTagCompiler {
             this.header = header;
             this.widths = widths;
             setStyleClass("CsvTable");
+            setStyle(LytParagraph.LOADING_STYLE);
         }
     }
 }

@@ -67,6 +67,7 @@ import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.LytHostWorkItem;
+import com.hfstudio.guidenh.guide.internal.scheduler.LytHostPreheatItem;
 import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CategoryScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CommandLinkScript;
@@ -156,6 +157,7 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
         MasterScheduler.init();
         MasterScheduler.getInstance().submit(new LytHostWorkItem(lytHost));
+        MasterScheduler.getInstance().submit(new LytHostPreheatItem(lytHost));
         MasterScheduler.getInstance().submit(new SearchIndexWorkItem());
 
         // Phase 3: LytScript registrations

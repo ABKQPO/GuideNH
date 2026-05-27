@@ -5,6 +5,7 @@ import java.util.Set;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -35,6 +36,7 @@ public class ImageCompiler extends FlowTagCompiler {
         if (!title.isEmpty()) block.setTitle(title);
 
         block.appendText("Loading image...");
+        block.setStyle(LytParagraph.LOADING_STYLE);
 
         var inlineBlock = new LytFlowInlineBlock();
         inlineBlock.setBlock(block);

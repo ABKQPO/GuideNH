@@ -52,10 +52,10 @@ public class CategoryCompiler extends BlockTagCompiler {
         }
     }
 
-    private static class CategoryPlaceholder extends LytParagraph {
-        final String name;
-        final int rows;
-        final ResourceLocation guideId;
+    public static class CategoryPlaceholder extends LytParagraph {
+        public final String name;
+        public final int rows;
+        public final ResourceLocation guideId;
 
         CategoryPlaceholder(String name, int rows, ResourceLocation guideId) {
             this.name = name;
