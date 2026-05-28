@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -24,7 +23,7 @@ public class GuideBookmarkStore {
     public Set<ResourceLocation> parse(String raw) {
         if (raw == null || raw.trim()
             .isEmpty()) {
-            return Collections.emptySet();
+            return Set.of();
         }
         Set<ResourceLocation> result = new LinkedHashSet<ResourceLocation>();
         String[] tokens = raw.split("\\|");
@@ -45,7 +44,7 @@ public class GuideBookmarkStore {
             return "";
         }
         var ordered = new ArrayList<ResourceLocation>(pageIds);
-        Collections.sort(ordered, Comparator.comparing(ResourceLocation::toString));
+        ordered.sort(Comparator.comparing(ResourceLocation::toString));
         StringBuilder builder = new StringBuilder();
         for (ResourceLocation pageId : ordered) {
             if (pageId == null) {

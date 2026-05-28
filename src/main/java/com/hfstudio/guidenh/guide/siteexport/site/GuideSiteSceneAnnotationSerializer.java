@@ -59,7 +59,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 
-public final class GuideSiteSceneAnnotationSerializer {
+public class GuideSiteSceneAnnotationSerializer {
 
     private static final float ANNOTATION_THICKNESS_SCALE = 32.0f;
     private static final float MIN_EXPORTED_WORLD_THICKNESS = 1.0f / 256.0f;
@@ -74,7 +74,7 @@ public final class GuideSiteSceneAnnotationSerializer {
     public static ExportedSceneLookupScope pushExportedSceneLookup(
         @Nullable Map<LytGuidebookScene, GuideSiteExportedScene> exportedScenesByScene) {
         Map<LytGuidebookScene, GuideSiteExportedScene> previous = EXPORTED_SCENE_LOOKUP.get();
-        EXPORTED_SCENE_LOOKUP.set(exportedScenesByScene != null ? exportedScenesByScene : Collections.emptyMap());
+        EXPORTED_SCENE_LOOKUP.set(exportedScenesByScene != null ? exportedScenesByScene : Map.of());
         return new ExportedSceneLookupScope(previous);
     }
 
@@ -103,41 +103,28 @@ public final class GuideSiteSceneAnnotationSerializer {
                 if (!scene.isStructureLibConditionSatisfied(annotation.getStructureLibCondition())) {
                     continue;
                 }
-                if (annotation instanceof InWorldBoxAnnotation box) {
-                    inWorld.add(serializeBox(box, templates, currentPageId, assetExporter, itemIconResolver));
-                    continue;
-                }
-                if (annotation instanceof InWorldLineAnnotation line) {
-                    inWorld.add(serializeLine(line, templates, currentPageId, assetExporter, itemIconResolver));
-                    continue;
-                }
-                if (annotation instanceof InWorldBlockFaceOverlayAnnotation blockOverlay) {
-                    inWorld.add(
-                        serializeBlockOverlay(blockOverlay, templates, currentPageId, assetExporter, itemIconResolver));
-                    continue;
-                }
-                if (annotation instanceof DiamondAnnotation diamond) {
-                    overlay.add(serializeDiamond(diamond, templates, currentPageId, assetExporter, itemIconResolver));
-                    continue;
-                }
-                if (annotation instanceof TextAnnotation textAnnotation) {
-                    overlay.add(
-                        serializeTextAnnotation(
-                            textAnnotation,
-                            templates,
-                            currentPageId,
-                            assetExporter,
-                            itemIconResolver));
-                    continue;
-                }
-                if (annotation instanceof PonderInputAnnotation inputAnnotation) {
-                    overlay.add(
-                        serializeInputAnnotation(
-                            inputAnnotation,
-                            templates,
-                            currentPageId,
-                            assetExporter,
-                            itemIconResolver));
+                switch (annotation) {
+                    case InWorldBoxAnnotation box -> inWorld.add(serializeBox(box, templates, currentPageId, assetExporter, itemIconResolver));
+                    case InWorldLineAnnotation line -> inWorld.add(serializeLine(line, templates, currentPageId, assetExporter, itemIconResolver));
+                    case InWorldBlockFaceOverlayAnnotation blockOverlay -> inWorld.add(
+                            serializeBlockOverlay(blockOverlay, templates, currentPageId, assetExporter, itemIconResolver));
+                    case DiamondAnnotation diamond -> overlay.add(serializeDiamond(diamond, templates, currentPageId, assetExporter, itemIconResolver));
+                    case TextAnnotation textAnnotation -> overlay.add(
+                            serializeTextAnnotation(
+                                    textAnnotation,
+                                    templates,
+                                    currentPageId,
+                                    assetExporter,
+                                    itemIconResolver));
+                    case PonderInputAnnotation inputAnnotation -> overlay.add(
+                            serializeInputAnnotation(
+                                    inputAnnotation,
+                                    templates,
+                                    currentPageId,
+                                    assetExporter,
+                                    itemIconResolver));
+                    default -> {
+                    }
                 }
             }
         }
@@ -460,7 +447,7 @@ public final class GuideSiteSceneAnnotationSerializer {
 
         @Override
         public void close() {
-            EXPORTED_SCENE_LOOKUP.set(previous != null ? previous : Collections.emptyMap());
+            EXPORTED_SCENE_LOOKUP.set(previous != null ? previous : Map.of());
         }
     }
 
@@ -476,7 +463,7 @@ public final class GuideSiteSceneAnnotationSerializer {
             String[] lines = normalized.split("\\n", -1);
             StringBuilder html = new StringBuilder();
             for (String line : lines) {
-                if (html.length() > 0) {
+                if (!html.isEmpty()) {
                     html.append("<br>");
                 }
                 html.append(renderLegacyFormattedText(line));
@@ -487,25 +474,18 @@ public final class GuideSiteSceneAnnotationSerializer {
         private static String render(@Nullable GuideTooltip tooltip, @Nullable ResourceLocation currentPageId,
             @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
             @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
-            if (tooltip == null) {
-                return "";
-            }
-            if (tooltip instanceof TextTooltip textTooltip) {
-                return renderPlainTextTooltip(textTooltip.getText());
-            }
-            if (tooltip instanceof ItemTooltip itemTooltip) {
-                return renderItemTooltip(itemTooltip, itemIconResolver);
-            }
-            if (tooltip instanceof ContentTooltip contentTooltip) {
-                return renderBlock(
-                    contentTooltip.getContent(),
-                    currentPageId,
-                    assetExporter,
-                    itemIconResolver,
-                    templates,
-                    allowNestedItemTooltips);
-            }
-            return "";
+            return switch (tooltip) {
+                case TextTooltip textTooltip -> renderPlainTextTooltip(textTooltip.getText());
+                case ItemTooltip itemTooltip -> renderItemTooltip(itemTooltip, itemIconResolver);
+                case ContentTooltip contentTooltip -> renderBlock(
+                        contentTooltip.getContent(),
+                        currentPageId,
+                        assetExporter,
+                        itemIconResolver,
+                        templates,
+                        allowNestedItemTooltips);
+                case null, default -> "";
+            };
         }
 
         private static String renderPlainTextTooltip(@Nullable String text) {
@@ -577,143 +557,147 @@ public final class GuideSiteSceneAnnotationSerializer {
             @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
             GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
             boolean allowNestedItemTooltips) {
-            if (node == null) {
-                return;
-            }
-            if (node instanceof LytDocument document) {
-                for (LytBlock child : document.getBlocks()) {
-                    appendBlock(
-                        html,
-                        child,
-                        currentPageId,
-                        assetExporter,
-                        itemIconResolver,
-                        templates,
-                        allowNestedItemTooltips);
+            switch (node) {
+                case null -> {
+                    return;
                 }
-                return;
-            }
-            if (node instanceof LytGuidebookScene scene) {
-                // Inside a hover/content tooltip we MUST NOT spawn a second WebGL-backed scene
-                // viewer: rehydrating a live <GameScene> inside a popover blows past the
-                // browser's per-document WebGL context cap, which makes the page-level scenes
-                // forfeit their context (going transparent) and frequently hard-crashes the
-                // page on Firefox/Chromium. Render a static placeholder image instead so the
-                // tooltip still shows what the scene looks like without re-hydrating it.
-                GuideSiteExportedScene exportedScene = resolveExportedScene(scene);
-                int width = Math.max(16, scene.getSceneWidth());
-                int height = Math.max(16, scene.getSceneHeight());
-                html.append(GuideSiteSceneTagRenderer.renderStaticScenePlaceholder(width, height, exportedScene));
-                return;
-            }
-            if (node instanceof LytHeading heading) {
-                appendParagraph(
-                    html,
-                    heading,
-                    "h" + clampHeadingDepth(heading.getDepth()),
-                    currentPageId,
-                    assetExporter,
-                    itemIconResolver,
-                    templates,
-                    allowNestedItemTooltips);
-                return;
-            }
-            if (node instanceof LytParagraph paragraph) {
-                appendParagraph(
-                    html,
-                    paragraph,
-                    "p",
-                    currentPageId,
-                    assetExporter,
-                    itemIconResolver,
-                    templates,
-                    allowNestedItemTooltips);
-                return;
-            }
-            if (node instanceof LytList list) {
-                appendList(
-                    html,
-                    list,
-                    currentPageId,
-                    assetExporter,
-                    itemIconResolver,
-                    templates,
-                    allowNestedItemTooltips);
-                return;
-            }
-            if (node instanceof LytListItem listItem) {
-                appendListItem(
-                    html,
-                    listItem,
-                    currentPageId,
-                    assetExporter,
-                    itemIconResolver,
-                    templates,
-                    allowNestedItemTooltips);
-                return;
-            }
-            if (node instanceof LytThematicBreak) {
-                html.append("<hr>");
-                return;
-            }
-            if (node instanceof LytTable table) {
-                appendTable(
-                    html,
-                    table,
-                    currentPageId,
-                    assetExporter,
-                    itemIconResolver,
-                    templates,
-                    allowNestedItemTooltips);
-                return;
-            }
-            if (node instanceof LytSlotGrid slotGrid) {
-                appendSlotGrid(
-                    html,
-                    slotGrid,
-                    itemIconResolver,
-                    currentPageId,
-                    assetExporter,
-                    templates,
-                    allowNestedItemTooltips);
-                return;
-            }
-            if (node instanceof LytItemGrid itemGrid) {
-                appendItemGrid(
-                    html,
-                    itemGrid,
-                    itemIconResolver,
-                    currentPageId,
-                    assetExporter,
-                    templates,
-                    allowNestedItemTooltips);
-                return;
-            }
-            if (node instanceof LytItemImage itemImage) {
-                appendItemStacks(
-                    html,
-                    itemImage.getStacks(),
-                    itemIconResolver,
-                    currentPageId,
-                    assetExporter,
-                    templates,
-                    allowNestedItemTooltips);
-                return;
-            }
-            if (node instanceof LytImage image) {
-                appendImage(html, image, assetExporter);
-                return;
-            }
-            if (node instanceof LytSlot slot) {
-                appendSlot(
-                    html,
-                    slot,
-                    itemIconResolver,
-                    currentPageId,
-                    assetExporter,
-                    templates,
-                    allowNestedItemTooltips);
-                return;
+                case LytDocument document -> {
+                    for (LytBlock child : document.getBlocks()) {
+                        appendBlock(
+                                html,
+                                child,
+                                currentPageId,
+                                assetExporter,
+                                itemIconResolver,
+                                templates,
+                                allowNestedItemTooltips);
+                    }
+                    return;
+                }
+                case LytGuidebookScene scene -> {
+                    // Inside a hover/content tooltip we MUST NOT spawn a second WebGL-backed scene
+                    // viewer: rehydrating a live <GameScene> inside a popover blows past the
+                    // browser's per-document WebGL context cap, which makes the page-level scenes
+                    // forfeit their context (going transparent) and frequently hard-crashes the
+                    // page on Firefox/Chromium. Render a static placeholder image instead so the
+                    // tooltip still shows what the scene looks like without re-hydrating it.
+                    GuideSiteExportedScene exportedScene = resolveExportedScene(scene);
+                    int width = Math.max(16, scene.getSceneWidth());
+                    int height = Math.max(16, scene.getSceneHeight());
+                    html.append(GuideSiteSceneTagRenderer.renderStaticScenePlaceholder(width, height, exportedScene));
+                    return;
+                }
+                case LytHeading heading -> {
+                    appendParagraph(
+                            html,
+                            heading,
+                            "h" + clampHeadingDepth(heading.getDepth()),
+                            currentPageId,
+                            assetExporter,
+                            itemIconResolver,
+                            templates,
+                            allowNestedItemTooltips);
+                    return;
+                }
+                case LytParagraph paragraph -> {
+                    appendParagraph(
+                            html,
+                            paragraph,
+                            "p",
+                            currentPageId,
+                            assetExporter,
+                            itemIconResolver,
+                            templates,
+                            allowNestedItemTooltips);
+                    return;
+                }
+                case LytList list -> {
+                    appendList(
+                            html,
+                            list,
+                            currentPageId,
+                            assetExporter,
+                            itemIconResolver,
+                            templates,
+                            allowNestedItemTooltips);
+                    return;
+                }
+                case LytListItem listItem -> {
+                    appendListItem(
+                            html,
+                            listItem,
+                            currentPageId,
+                            assetExporter,
+                            itemIconResolver,
+                            templates,
+                            allowNestedItemTooltips);
+                    return;
+                }
+                case LytThematicBreak lytThematicBreak -> {
+                    html.append("<hr>");
+                    return;
+                }
+                case LytTable table -> {
+                    appendTable(
+                            html,
+                            table,
+                            currentPageId,
+                            assetExporter,
+                            itemIconResolver,
+                            templates,
+                            allowNestedItemTooltips);
+                    return;
+                }
+                case LytSlotGrid slotGrid -> {
+                    appendSlotGrid(
+                            html,
+                            slotGrid,
+                            itemIconResolver,
+                            currentPageId,
+                            assetExporter,
+                            templates,
+                            allowNestedItemTooltips);
+                    return;
+                }
+                case LytItemGrid itemGrid -> {
+                    appendItemGrid(
+                            html,
+                            itemGrid,
+                            itemIconResolver,
+                            currentPageId,
+                            assetExporter,
+                            templates,
+                            allowNestedItemTooltips);
+                    return;
+                }
+                case LytItemImage itemImage -> {
+                    appendItemStacks(
+                            html,
+                            itemImage.getStacks(),
+                            itemIconResolver,
+                            currentPageId,
+                            assetExporter,
+                            templates,
+                            allowNestedItemTooltips);
+                    return;
+                }
+                case LytImage image -> {
+                    appendImage(html, image, assetExporter);
+                    return;
+                }
+                case LytSlot slot -> {
+                    appendSlot(
+                            html,
+                            slot,
+                            itemIconResolver,
+                            currentPageId,
+                            assetExporter,
+                            templates,
+                            allowNestedItemTooltips);
+                    return;
+                }
+                default -> {
+                }
             }
 
             List<? extends LytNode> children = node.getChildren();
@@ -816,7 +800,7 @@ public final class GuideSiteSceneAnnotationSerializer {
                 html.append("<thead>");
                 appendTableRow(
                     html,
-                    rows.get(0),
+                    rows.getFirst(),
                     "th",
                     currentPageId,
                     assetExporter,
@@ -876,7 +860,7 @@ public final class GuideSiteSceneAnnotationSerializer {
             } else if (style.alignment() == TextAlignment.RIGHT) {
                 css.append("text-align:right;");
             }
-            if (css.length() > 0) {
+            if (!css.isEmpty()) {
                 html.append(" style=\"")
                     .append(escapeAttribute(css.toString()))
                     .append("\"");
@@ -887,49 +871,33 @@ public final class GuideSiteSceneAnnotationSerializer {
             @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
             GuideSiteItemIconResolver itemIconResolver, @Nullable GuideSiteTemplateRegistry templates,
             boolean allowNestedItemTooltips) {
-            if (content == null) {
-                return;
-            }
-            if (content instanceof LytFlowText text) {
-                html.append(escapeHtml(text.getText()));
-                return;
-            }
-            if (content instanceof LytFlowBreak) {
-                html.append("<br>");
-                return;
-            }
-            if (content instanceof LytFlowAnchor flowAnchor) {
-                html.append("<span id=\"")
-                    .append(escapeAttribute(flowAnchor.getName()))
-                    .append("\"></span>");
-                return;
-            }
-            if (content instanceof LytFlowInlineBlock inlineBlock) {
-                appendInlineBlock(
-                    html,
-                    inlineBlock,
-                    currentPageId,
-                    assetExporter,
-                    itemIconResolver,
-                    templates,
-                    allowNestedItemTooltips);
-                return;
-            }
-            if (content instanceof LytFlowLink link) {
-                appendLink(html, link, currentPageId, itemIconResolver, templates, allowNestedItemTooltips);
-                return;
-            }
-            if (content instanceof LytFlowSpan span) {
-                appendStyledFlowContainer(
-                    html,
-                    span,
-                    "span",
-                    currentPageId,
-                    assetExporter,
-                    itemIconResolver,
-                    templates,
-                    allowNestedItemTooltips,
-                    null);
+            switch (content) {
+                case LytFlowText text -> html.append(escapeHtml(text.getText()));
+                case LytFlowBreak lytFlowBreak -> html.append("<br>");
+                case LytFlowAnchor flowAnchor -> html.append("<span id=\"")
+                        .append(escapeAttribute(flowAnchor.getName()))
+                        .append("\"></span>");
+                case LytFlowInlineBlock inlineBlock -> appendInlineBlock(
+                        html,
+                        inlineBlock,
+                        currentPageId,
+                        assetExporter,
+                        itemIconResolver,
+                        templates,
+                        allowNestedItemTooltips);
+                case LytFlowLink link -> appendLink(html, link, currentPageId, itemIconResolver, templates, allowNestedItemTooltips);
+                case LytFlowSpan span -> appendStyledFlowContainer(
+                        html,
+                        span,
+                        "span",
+                        currentPageId,
+                        assetExporter,
+                        itemIconResolver,
+                        templates,
+                        allowNestedItemTooltips,
+                        null);
+                case null, default -> {
+                }
             }
         }
 
@@ -1073,7 +1041,7 @@ public final class GuideSiteSceneAnnotationSerializer {
                     .append(style.fontScale())
                     .append("em;");
             }
-            if (css.length() > 0) {
+            if (!css.isEmpty()) {
                 html.append(" style=\"")
                     .append(escapeAttribute(css.toString()))
                     .append("\"");
@@ -1249,7 +1217,7 @@ public final class GuideSiteSceneAnnotationSerializer {
         }
 
         private static void appendLegacySegment(StringBuilder html, StringBuilder segment, LegacyStyle style) {
-            if (segment.length() == 0) {
+            if (segment.isEmpty()) {
                 return;
             }
             String text = escapeHtml(segment.toString());
@@ -1281,7 +1249,7 @@ public final class GuideSiteSceneAnnotationSerializer {
                 css.append("filter:blur(0.6px);");
             }
 
-            if (css.length() == 0) {
+            if (css.isEmpty()) {
                 html.append(text);
                 return;
             }

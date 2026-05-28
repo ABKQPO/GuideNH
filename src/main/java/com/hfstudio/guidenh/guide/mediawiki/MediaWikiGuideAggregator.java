@@ -44,14 +44,14 @@ public class MediaWikiGuideAggregator implements Guide {
         Map<ResourceLocation, MutableGuide> ownerGuidesByPageId, List<MutableGuide> componentGuides,
         NavigationTree navigationTree, CategoryIndex categoryIndex) {
         this.primaryGuide = primaryGuide;
-        this.parsedPagesById = Collections.unmodifiableMap(new LinkedHashMap<>(parsedPagesById));
-        this.ownerGuidesByPageId = Collections.unmodifiableMap(new LinkedHashMap<>(ownerGuidesByPageId));
-        this.componentGuides = Collections.unmodifiableList(new ArrayList<>(componentGuides));
+        this.parsedPagesById = Map.copyOf(new LinkedHashMap<>(parsedPagesById));
+        this.ownerGuidesByPageId = Map.copyOf(new LinkedHashMap<>(ownerGuidesByPageId));
+        this.componentGuides = List.copyOf(new ArrayList<>(componentGuides));
         this.navigationTree = navigationTree != null ? navigationTree : new NavigationTree();
         this.categoryIndex = categoryIndex;
         LinkedHashMap<Class<?>, PageIndex> overrides = new LinkedHashMap<>();
         overrides.put(CategoryIndex.class, categoryIndex);
-        this.indexOverrides = Collections.unmodifiableMap(overrides);
+        this.indexOverrides = Map.copyOf(overrides);
     }
 
     public static MediaWikiGuideAggregator create(Guide primaryGuide) {

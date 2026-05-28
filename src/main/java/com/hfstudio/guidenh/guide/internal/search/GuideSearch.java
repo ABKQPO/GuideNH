@@ -39,6 +39,7 @@ import org.apache.lucene.store.ByteBuffersDirectory;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.Guides;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
@@ -194,11 +195,13 @@ public class GuideSearch implements AutoCloseable {
             throw new UncheckedIOException(e);
         }
 
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideSearch] Indexing of {} pages finished in {}",
-                pagesIndexed,
-                Duration.between(indexingStarted, Instant.now()));
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideSearch] Indexing of {} pages finished in {}",
+                    pagesIndexed,
+                    Duration.between(indexingStarted, Instant.now()));
+        }
     }
 
     public void processAllWork() {
@@ -221,7 +224,7 @@ public class GuideSearch implements AutoCloseable {
 
     public List<SearchResult> searchGuide(String queryText, @Nullable Guide onlyFromGuide) {
         if (queryText.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         if (!pendingTasks.isEmpty()) {
@@ -237,7 +240,7 @@ public class GuideSearch implements AutoCloseable {
         } catch (Exception e) {
             FMLLog.getLogger()
                 .debug("[GuideNH] [GuideSearch] Failed to parse search query: '{}'", queryText, e);
-            return Collections.emptyList();
+            return List.of();
         }
 
         // Add an exact guide filter without changing the parsed query.
@@ -262,7 +265,7 @@ public class GuideSearch implements AutoCloseable {
         } catch (IOException e) {
             FMLLog.getLogger()
                 .error("[GuideNH] [GuideSearch] Failed to search for '{}'", queryText, e);
-            return Collections.emptyList();
+            return List.of();
         }
 
         var result = new ArrayList<SearchResult>(topDocs.scoreDocs.length);

@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
 public class SceneEditorUndoUiState {
 
-    public static final SceneEditorUndoUiState EMPTY = new SceneEditorUndoUiState(Collections.emptyMap());
+    public static final SceneEditorUndoUiState EMPTY = new SceneEditorUndoUiState(Map.of());
 
     private final Map<String, SceneEditorUndoFieldState> fieldStates;
 
@@ -50,7 +49,7 @@ public class SceneEditorUndoUiState {
             if (fieldStates.isEmpty()) {
                 return empty();
             }
-            return new SceneEditorUndoUiState(Collections.unmodifiableMap(new LinkedHashMap<>(fieldStates)));
+            return new SceneEditorUndoUiState(Map.copyOf(new LinkedHashMap<>(fieldStates)));
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import java.util.Collections;
 import java.util.List;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -61,7 +60,7 @@ public class LytAlignedBlock extends LytBlock {
 
     @Override
     public List<? extends LytNode> getChildren() {
-        return Collections.singletonList(inner);
+        return List.of(inner);
     }
 
     @Override

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.screen;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -9,14 +8,14 @@ import net.minecraft.util.ResourceLocation;
 
 public class GuideNavBarState {
 
-    private static final GuideNavBarState DEFAULT_STATE = new GuideNavBarState(true, Collections.emptySet());
+    private static final GuideNavBarState DEFAULT_STATE = new GuideNavBarState(true, Set.of());
 
     private final boolean bookmarkGroupExpanded;
     private final Set<ResourceLocation> expandedPageIds;
 
     public GuideNavBarState(boolean bookmarkGroupExpanded, Set<ResourceLocation> expandedPageIds) {
         this.bookmarkGroupExpanded = bookmarkGroupExpanded;
-        this.expandedPageIds = Collections.unmodifiableSet(
+        this.expandedPageIds = Set.copyOf(
             expandedPageIds == null ? new LinkedHashSet<ResourceLocation>()
                 : new LinkedHashSet<ResourceLocation>(expandedPageIds));
     }

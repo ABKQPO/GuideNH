@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.mediawiki;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -125,7 +124,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         this.resolver = resolver;
         this.queryParameters = queryParameters != null && !queryParameters.isEmpty()
             ? new LinkedHashMap<>(queryParameters)
-            : Collections.<String, String>emptyMap();
+            : Map.of();
     }
 
     public void setRows(int rows) {
@@ -173,7 +172,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         MediaWikiSpecialPageQuery query = new MediaWikiSpecialPageQuery(
             queryText != null ? queryText : "",
             Integer.MAX_VALUE,
-            queryParameters != null ? queryParameters : Collections.<String, String>emptyMap());
+            queryParameters != null ? queryParameters : Map.of());
         MediaWikiSpecialPageResult refreshed = resolver.resolve(listContext, definition, query);
         if (refreshed != null) {
             result = refreshed;
@@ -555,10 +554,10 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             columns.add(new ArrayList<GroupLayout>());
         }
         List<MediaWikiSpecialListEntry> entries = visibleResult.flatEntries() != null ? visibleResult.flatEntries()
-            : Collections.<MediaWikiSpecialListEntry>emptyList();
+            : List.of();
         if (entries.isEmpty()) {
             columns.get(0)
-                .add(new GroupLayout(null, Collections.<MediaWikiSpecialListEntry>emptyList()));
+                .add(new GroupLayout(null, List.of()));
             return columns;
         }
         int perColumn = Math.max(1, (entries.size() + columnCount - 1) / columnCount);
@@ -579,17 +578,12 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         if (visibleResult.kind() == MediaWikiSpecialPageKind.GROUPED
             || visibleResult.kind() == MediaWikiSpecialPageKind.GROUP_INDEX) {
             for (MediaWikiSpecialGroupedEntry group : visibleResult.groupedEntries()) {
-                groups.add(
-                    new GroupLayout(
-                        group.title(),
-                        group.children() != null ? group.children() : Collections.emptyList()));
+                groups.add(new GroupLayout(group.title(), group.children() != null ? group.children() : List.of()));
             }
             return groups;
         }
-        groups.add(
-            new GroupLayout(
-                null,
-                visibleResult.flatEntries() != null ? visibleResult.flatEntries() : Collections.emptyList()));
+        groups
+            .add(new GroupLayout(null, visibleResult.flatEntries() != null ? visibleResult.flatEntries() : List.of()));
         return groups;
     }
 
@@ -785,7 +779,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     private List<String> wrapLines(LayoutContext context, @Nullable String text, int maxWidth,
         ResolvedTextStyle style) {
         if (text == null || text.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<String> lines = new ArrayList<>();
         for (String rawLine : GuideStringLines.splitLines(text)) {
@@ -797,7 +791,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     private List<String> wrapLines(RenderContext context, @Nullable String text, int maxWidth,
         ResolvedTextStyle style) {
         if (text == null || text.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<String> lines = new ArrayList<>();
         for (String rawLine : GuideStringLines.splitLines(text)) {

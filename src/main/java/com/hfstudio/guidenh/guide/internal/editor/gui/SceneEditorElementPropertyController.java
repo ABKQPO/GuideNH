@@ -116,8 +116,8 @@ public class SceneEditorElementPropertyController {
             }
         }
         element.setLinePoints(points);
-        Vector3f first = points.get(0);
-        Vector3f last = points.get(points.size() - 1);
+        Vector3f first = points.getFirst();
+        Vector3f last = points.getLast();
         element.setPrimaryX(first.x);
         element.setPrimaryY(first.y);
         element.setPrimaryZ(first.z);

@@ -1,7 +1,6 @@
 package com.hfstudio.structurelibexport;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +16,7 @@ public class GameSceneExportManifest {
     }
 
     public List<Entry> getEntries() {
-        return Collections.unmodifiableList(entries);
+        return List.copyOf(entries);
     }
 
     public static class Entry {
@@ -61,8 +60,8 @@ public class GameSceneExportManifest {
             this.path = path;
             this.width = width;
             this.height = height;
-            this.warnings = warnings != null ? new ArrayList<>(warnings) : Collections.emptyList();
-            this.errors = errors != null ? new ArrayList<>(errors) : Collections.emptyList();
+            this.warnings = warnings != null ? List.copyOf(warnings) : List.of();
+            this.errors = errors != null ? List.copyOf(errors) : List.of();
         }
     }
 }

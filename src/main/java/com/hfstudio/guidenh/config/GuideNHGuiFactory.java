@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.config;
 
-import java.util.Collections;
 import java.util.Set;
 
 import net.minecraft.client.Minecraft;
@@ -20,7 +19,7 @@ public class GuideNHGuiFactory implements IModGuiFactory {
 
     @Override
     public Set<RuntimeOptionCategoryElement> runtimeGuiCategories() {
-        return Collections.emptySet();
+        return Set.of();
     }
 
     @Override

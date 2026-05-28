@@ -1,6 +1,5 @@
 package com.hfstudio.structurelibexport;
 
-import java.util.Collections;
 import java.util.List;
 
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
@@ -18,7 +17,7 @@ public class StructureLibExportLevelRenderer extends GuidebookLevelRenderer {
             level,
             camera,
             layers,
-            Collections.emptyList(),
+            List.of(),
             panelX,
             panelY,
             panelWidth,
@@ -42,9 +41,9 @@ public class StructureLibExportLevelRenderer extends GuidebookLevelRenderer {
             tileWidth,
             tileHeight,
             0f,
-            annotations != null ? annotations : Collections.emptyList(),
+            annotations != null ? annotations : List.of(),
             LightDarkMode.LIGHT_MODE,
             layers,
-            Collections.emptyList());
+            List.of());
     }
 }

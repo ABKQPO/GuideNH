@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -26,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
@@ -205,8 +205,10 @@ public class GuideSourceWatcher implements AutoCloseable {
         if (!Files.isDirectory(sourceFolder)) {
             throw new RuntimeException("Cannot find the specified folder with guidebook sources: " + sourceFolder);
         }
-        FMLLog.getLogger()
-            .info("[GuideNH] [GuideSourceWatcher] Watching guidebook sources in {}", sourceFolder);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info("[GuideNH] [GuideSourceWatcher] Watching guidebook sources in {}", sourceFolder);
+        }
 
         watchExecutor = Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setDaemon(true)
@@ -291,11 +293,13 @@ public class GuideSourceWatcher implements AutoCloseable {
         }
         long walkNs = System.nanoTime() - stageStartedAt;
 
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideSourceWatcher] Loading {} guidebook pages from {} localized variants",
-                pageIds.size(),
-                pageSources.size());
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideSourceWatcher] Loading {} guidebook pages from {} localized variants",
+                    pageIds.size(),
+                    pageSources.size());
+        }
         stageStartedAt = System.nanoTime();
         Map<String, Map<String, String>> localizedSourcesByNamespace = loadLocalizedSourceOverrides(
             currentLanguage,
@@ -328,19 +332,21 @@ public class GuideSourceWatcher implements AutoCloseable {
         int sourceLanguageCount = countSourceLanguages(pageSources.keySet());
         long totalNs = System.nanoTime() - startedAt;
 
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideSourceWatcher] Loaded {} pages from {} with namespaceFilter={} sourceVariants={} sourceLanguages={} localizedNamespaces={} walkNs={} localizedOverrideNs={} parseNs={} totalNs={}",
-                loadedPages.size(),
-                sourceFolder,
-                namespaceFilter != null ? namespaceFilter : "<all>",
-                pageSources.size(),
-                sourceLanguageCount,
-                localizedSourcesByNamespace.size(),
-                walkNs,
-                localizedOverrideNs,
-                parseNs,
-                totalNs);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideSourceWatcher] Loaded {} pages from {} with namespaceFilter={} sourceVariants={} sourceLanguages={} localizedNamespaces={} walkNs={} localizedOverrideNs={} parseNs={} totalNs={}",
+                    loadedPages.size(),
+                    sourceFolder,
+                    namespaceFilter != null ? namespaceFilter : "<all>",
+                    pageSources.size(),
+                    sourceLanguageCount,
+                    localizedSourcesByNamespace.size(),
+                    walkNs,
+                    localizedOverrideNs,
+                    parseNs,
+                    totalNs);
+        }
         return loadedPages;
     }
 
@@ -378,7 +384,7 @@ public class GuideSourceWatcher implements AutoCloseable {
 
     private synchronized Set<PageReloadRequest> takeReloadRequests() {
         if (reloadRequests.isEmpty()) {
-            return Collections.emptySet();
+            return Set.of();
         }
         Map<String, Boolean> mergedByNamespace = new HashMap<>();
         for (PageReloadRequest request : reloadRequests) {
@@ -417,7 +423,7 @@ public class GuideSourceWatcher implements AutoCloseable {
 
     private List<GuidePageChange> takeQueuedChanges() {
         if (deletedPages.isEmpty() && changedPages.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         var changes = new ArrayList<GuidePageChange>();
@@ -694,7 +700,7 @@ public class GuideSourceWatcher implements AutoCloseable {
     }
 
     private void clearQueuedPageState(ResourceLocation pageId) {
-        clearQueuedPageStates(Collections.singleton(pageId));
+        clearQueuedPageStates(Set.of(pageId));
     }
 
     private void clearQueuedPageStates(Set<ResourceLocation> pageIds) {
@@ -785,13 +791,13 @@ public class GuideSourceWatcher implements AutoCloseable {
 
     private Set<String> resolveNamespacesForLocalizedSources(@Nullable String namespaceFilter) {
         if (namespaceFilter != null) {
-            return Collections.singleton(namespaceFilter);
+            return Set.of(namespaceFilter);
         }
 
         if (sourceLayout == GuideDevelopmentSourceLayout.RESOURCE_PACK_ROOT) {
             Path assetsPath = sourceFolder.resolve("assets");
             if (!Files.isDirectory(assetsPath)) {
-                return Collections.emptySet();
+                return Set.of();
             }
 
             Set<String> namespaces = new HashSet<>();
@@ -811,7 +817,7 @@ public class GuideSourceWatcher implements AutoCloseable {
             return namespaces;
         }
 
-        return Collections.singleton(namespace);
+        return Set.of(namespace);
     }
 
     private int countSourceLanguages(Set<PageLangKey> pageKeys) {
@@ -827,7 +833,7 @@ public class GuideSourceWatcher implements AutoCloseable {
     private Map<String, String> loadLocalizedSourceOverridesForNamespace(String sourceNamespace, String language) {
         Path langFilePath = getLangFilePath(sourceNamespace, language);
         if (!Files.isRegularFile(langFilePath)) {
-            return Collections.emptyMap();
+            return Map.of();
         }
 
         try (InputStream input = Files.newInputStream(langFilePath)) {
@@ -835,7 +841,7 @@ public class GuideSourceWatcher implements AutoCloseable {
         } catch (IOException e) {
             FMLLog.getLogger()
                 .warn("[GuideNH] [GuideSourceWatcher] Failed to read localized page lang file {}", langFilePath, e);
-            return Collections.emptyMap();
+            return Map.of();
         }
     }
 

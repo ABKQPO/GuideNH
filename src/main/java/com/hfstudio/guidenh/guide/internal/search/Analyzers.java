@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.search;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +63,7 @@ public class Analyzers {
     public static final String LANG_SWEDISH = "sw";
     public static final String LANG_TURKISH = "tr";
 
-    public static final List<String> LANGUAGES = Arrays.asList(
+    public static final List<String> LANGUAGES = List.of(
         LANG_ARABIC,
         LANG_BRAZILIAN,
         LANG_BULGARIAN,
@@ -127,7 +125,7 @@ public class Analyzers {
         map.put(LANG_SPANISH, SpanishAnalyzer::new);
         map.put(LANG_SWEDISH, SwedishAnalyzer::new);
         map.put(LANG_TURKISH, TurkishAnalyzer::new);
-        ANALYZERS = Collections.unmodifiableMap(new HashMap<>(map));
+        ANALYZERS = Map.copyOf(new HashMap<>(map));
 
         var langMap = new HashMap<String, String>();
         langMap.put("ar_sa", LANG_ARABIC);
@@ -159,6 +157,6 @@ public class Analyzers {
         langMap.put("ru_ru", LANG_RUSSIAN);
         langMap.put("sv_se", LANG_SWEDISH);
         langMap.put("tr_tr", LANG_TURKISH);
-        MINECRAFT_TO_LUCENE_LANG = Collections.unmodifiableMap(new HashMap<>(langMap));
+        MINECRAFT_TO_LUCENE_LANG = Map.copyOf(new HashMap<>(langMap));
     }
 }

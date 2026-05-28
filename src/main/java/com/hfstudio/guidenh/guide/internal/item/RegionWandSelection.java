@@ -4,12 +4,10 @@ import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 
-public final class RegionWandSelection {
+public class RegionWandSelection {
 
-    @Nullable
-    private static int[] pos1;
-    @Nullable
-    private static int[] pos2;
+    private static int @Nullable [] pos1;
+    private static int @Nullable [] pos2;
 
     private RegionWandSelection() {}
 
@@ -22,8 +20,7 @@ public final class RegionWandSelection {
         }
     }
 
-    @Nullable
-    public static int[] getPos(int which) {
+    public static int @Nullable [] getPos(int which) {
         int[] pos = which == 1 ? pos1 : which == 2 ? pos2 : null;
         if (pos == null) {
             return null;

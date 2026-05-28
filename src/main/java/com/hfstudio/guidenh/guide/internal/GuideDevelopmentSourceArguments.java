@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 
-public final class GuideDevelopmentSourceArguments {
+public class GuideDevelopmentSourceArguments {
 
     public static final String RESOURCE_PACK_SOURCES_PROPERTY = "guideme.resourcePacks.sources";
     public static final String RESOURCE_PACK_SOURCE_PROPERTY = "guideme.resourcePack.sources";

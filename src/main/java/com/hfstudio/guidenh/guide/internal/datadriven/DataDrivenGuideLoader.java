@@ -15,6 +15,7 @@ import net.minecraft.client.resources.AbstractResourcePack;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePack;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePacks;
@@ -60,16 +61,18 @@ public class DataDrivenGuideLoader {
         long buildNs = System.nanoTime() - stageStartedAt;
         int discoveredLanguageCount = countDiscoveredLanguages(discoveredLanguages);
         long totalNs = System.nanoTime() - startedAt;
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [DataDrivenGuideLoader] Loaded {} guides across {} languages from {} resource packs in {} ns (resourcePackResolveNs={}, scanNs={}, buildNs={})",
-                guides.size(),
-                discoveredLanguageCount,
-                activeResourcePacks.size(),
-                totalNs,
-                resourcePackResolveNs,
-                scanNs,
-                buildNs);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [DataDrivenGuideLoader] Loaded {} guides across {} languages from {} resource packs in {} ns (resourcePackResolveNs={}, scanNs={}, buildNs={})",
+                    guides.size(),
+                    discoveredLanguageCount,
+                    activeResourcePacks.size(),
+                    totalNs,
+                    resourcePackResolveNs,
+                    scanNs,
+                    buildNs);
+        }
         return guides;
     }
 
@@ -83,14 +86,16 @@ public class DataDrivenGuideLoader {
         }
 
         long totalNs = System.nanoTime() - startedAt;
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [DataDrivenGuideLoader] Discovered {} page paths across {} namespaces for folder {} from {} resource packs in {} ns",
-                countDiscoveredPagePaths(pagePaths),
-                pagePaths.size(),
-                folder,
-                activeResourcePacks.size(),
-                totalNs);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [DataDrivenGuideLoader] Discovered {} page paths across {} namespaces for folder {} from {} resource packs in {} ns",
+                    countDiscoveredPagePaths(pagePaths),
+                    pagePaths.size(),
+                    folder,
+                    activeResourcePacks.size(),
+                    totalNs);
+        }
         return pagePaths;
     }
 
@@ -234,8 +239,7 @@ public class DataDrivenGuideLoader {
     }
 
     public static List<IResourcePack> getActiveResourcePacks() {
-        var resourcePacks = new LinkedHashSet<IResourcePack>();
-        resourcePacks.addAll(GuideDevelopmentResourcePacks.getConfiguredPacks());
+        var resourcePacks = new LinkedHashSet<IResourcePack>(GuideDevelopmentResourcePacks.getConfiguredPacks());
 
         try {
             var accessor = (AccessorFMLClientHandler) FMLClientHandler.instance();
@@ -495,13 +499,12 @@ public class DataDrivenGuideLoader {
         }
 
         for (var child : children) {
+            String childPath = relativePath.isEmpty() ? child.getName() : relativePath + "/" + child.getName();
             if (child.isDirectory()) {
-                var childRelative = relativePath.isEmpty() ? child.getName() : relativePath + "/" + child.getName();
-                collectMarkdownPaths(child, childRelative, pagePaths);
+                collectMarkdownPaths(child, childPath, pagePaths);
             } else if (child.isFile() && child.getName()
                 .endsWith(".md")) {
-                    var pagePath = relativePath.isEmpty() ? child.getName() : relativePath + "/" + child.getName();
-                    pagePaths.add(pagePath);
+                    pagePaths.add(childPath);
                 }
         }
     }

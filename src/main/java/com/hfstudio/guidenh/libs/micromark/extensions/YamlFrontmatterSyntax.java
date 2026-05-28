@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark.extensions;
 
-import java.util.Collections;
+import java.util.List;
 
 import com.hfstudio.guidenh.libs.micromark.CharUtil;
 import com.hfstudio.guidenh.libs.micromark.Construct;
@@ -46,7 +46,7 @@ public class YamlFrontmatterSyntax {
         construct.tokenize = YamlFrontmatterSyntax::tokenizeFrontmatter;
 
         INSTANCE = new Extension();
-        INSTANCE.flow.put((int) FENCE.charAt(0), Collections.singletonList(construct));
+        INSTANCE.flow.put((int) FENCE.charAt(0), List.of(construct));
     }
 
     public static State tokenizeFrontmatter(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {

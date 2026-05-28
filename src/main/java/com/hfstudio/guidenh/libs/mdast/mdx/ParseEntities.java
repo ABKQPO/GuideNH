@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.libs.mdast.mdx;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -203,7 +202,7 @@ public class ParseEntities {
         codes.put(156, "œ");
         codes.put(158, "ž");
         codes.put(159, "Ÿ");
-        characterReferenceInvalid = Collections.unmodifiableMap(new HashMap<>(codes));
+        characterReferenceInvalid = Map.copyOf(new HashMap<>(codes));
     }
 
 }

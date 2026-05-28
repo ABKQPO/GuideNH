@@ -19,6 +19,8 @@ import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompile
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
+import com.hfstudio.guidenh.guide.scene.support.SceneStructureOptions;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
@@ -72,11 +74,14 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         StructureLibSceneOptions childOptions = StructureLibSceneOptionParser.parseChildren(compiler, errorSink, el);
         StructureLibSceneOptions legacyOptions = StructureLibSceneOptionParser.parseAttributes(compiler, errorSink, el);
         StructureLibSceneOptions sceneOptions = legacyOptions.merge(childOptions);
+        boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
         String structureName = MdxAttrs.getString(compiler, errorSink, el, "name", null);
         StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
         StructureLibPreviewSelection selectionOverride = binding.getPendingSelection() != null
             ? binding.getPendingSelection()
-            : scene.getPendingStructureLibPreviewSelection(structureName);
+            : scene.getPendingStructureLibPreviewSelection(structureName) != null
+                ? scene.getPendingStructureLibPreviewSelection(structureName)
+                : scene.getPendingStructureLibPreviewSelection();
         StructureLibPreviewSelection defaultSelection = sceneOptions
             .createSelection(requestedChannel == Integer.MIN_VALUE ? null : Integer.valueOf(requestedChannel));
         StructureLibPreviewSelection selection = selectionOverride != null
@@ -120,6 +125,12 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
                 placedBlock.getMeta(),
                 placedBlock.getTileTag(),
                 placedBlock.getBlockId());
+            ScenePreviewFormedState.updateAfterPlacement(
+                level,
+                placedBlock.getX() + offsetX,
+                clampedY,
+                placedBlock.getZ() + offsetZ,
+                formed);
         }
     }
 

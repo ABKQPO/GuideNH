@@ -1,7 +1,6 @@
 package com.hfstudio.structurelibexport;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.command.CommandBase;
@@ -63,7 +62,7 @@ public class StructureExportCommand extends CommandBase {
     @Override
     public List<String> addTabCompletionOptions(ICommandSender sender, String[] args) {
         if (args == null || args.length == 0) {
-            return Collections.emptyList();
+            return List.of();
         }
         if (args.length == 1) {
             return getListOfStringsMatchingLastWord(args, availableSubcommands());
@@ -72,14 +71,14 @@ public class StructureExportCommand extends CommandBase {
         String[] childArgs = Arrays.copyOfRange(args, 1, args.length);
         if (SUBCOMMAND_STRUCTURE_LIB.equals(subcommand)) {
             if (!Mods.StructureLib.isModLoaded()) {
-                return Collections.emptyList();
+                return List.of();
             }
             return getListOfStringsMatchingLastWord(childArgs, STRUCTURE_LIB_OPTIONS);
         }
         if (SUBCOMMAND_GAME_SCENE.equals(subcommand)) {
             return getListOfStringsMatchingLastWord(childArgs, GAME_SCENE_OPTIONS);
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     private String[] availableSubcommands() {

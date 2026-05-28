@@ -16,7 +16,7 @@ import io.netty.buffer.Unpooled;
 /**
  * Packs AE2 cable-bus {@link IPart#writeToStream} bytes per facing ({@code 0}鈥搟@code 5}) for preview wire and MP batch.
  */
-public final class Ae2CableBusPartStreamCodec {
+public class Ae2CableBusPartStreamCodec {
 
     /** Keeps Forge packet chunks bounded; oversized streams are skipped. */
     public static final int MAX_SIDE_PAYLOAD = 8192;
@@ -91,7 +91,7 @@ public final class Ae2CableBusPartStreamCodec {
         return out;
     }
 
-    public static Ae2CableBusSideStreams unpack(@Nullable byte[] payload) {
+    public static Ae2CableBusSideStreams unpack(byte @Nullable [] payload) {
         if (payload == null || payload.length < 2) {
             return Ae2CableBusSideStreams.EMPTY;
         }

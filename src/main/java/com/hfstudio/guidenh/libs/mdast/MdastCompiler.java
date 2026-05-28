@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.mdast;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -338,7 +337,7 @@ public class MdastCompiler implements MdastContext {
                         events,
                         (lineIndex != null ? (lineIndex) : (index)),
                         0,
-                        Collections.singletonList(Tokenizer.Event.exit(listItem, event.context())));
+                        List.of(Tokenizer.Event.exit(listItem, event.context())));
                     index++;
                     length++;
                 }
@@ -351,11 +350,7 @@ public class MdastCompiler implements MdastContext {
                     listItem.start = event.token().start;
 
                     // @ts-expect-error: `listItem` is most definitely defined, TS...
-                    ListUtils.splice(
-                        events,
-                        index,
-                        0,
-                        Collections.singletonList(Tokenizer.Event.enter(listItem, event.context())));
+                    ListUtils.splice(events, index, 0, List.of(Tokenizer.Event.enter(listItem, event.context())));
                     index++;
                     length++;
                     firstBlankLineIndex = null;

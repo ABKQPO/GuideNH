@@ -431,7 +431,7 @@ public class SceneEditorSnapService {
         return dx * dx + dy * dy + dz * dz;
     }
 
-    private interface SnapCandidateVisitor {
+    public interface SnapCandidateVisitor {
 
         void visit(float x, float y, float z, float distanceMultiplier);
     }

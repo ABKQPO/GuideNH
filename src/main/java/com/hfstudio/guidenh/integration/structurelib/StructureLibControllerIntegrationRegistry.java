@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class StructureLibControllerIntegrationRegistry {
@@ -44,19 +43,19 @@ public class StructureLibControllerIntegrationRegistry {
     }
 
     public synchronized List<StructureLibControllerDiscoveryIntegration> discoveryIntegrations() {
-        return Collections.unmodifiableList(new ArrayList<>(discoveryIntegrations));
+        return List.copyOf(discoveryIntegrations);
     }
 
     public synchronized List<StructureLibControllerPlacementIntegration> placementIntegrations() {
-        return Collections.unmodifiableList(new ArrayList<>(placementIntegrations));
+        return List.copyOf(placementIntegrations);
     }
 
     public synchronized List<StructureLibPreviewItemProvider> previewItemProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(previewItemProviders));
+        return List.copyOf(previewItemProviders);
     }
 
     public synchronized List<StructureLibPreviewStateSynchronizer> previewStateSynchronizers() {
-        return Collections.unmodifiableList(new ArrayList<>(previewStateSynchronizers));
+        return List.copyOf(previewStateSynchronizers);
     }
 
     private boolean containsIntegrationType(List<?> integrations, Class<?> integrationType) {

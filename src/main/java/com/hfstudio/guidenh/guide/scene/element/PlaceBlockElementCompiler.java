@@ -15,6 +15,8 @@ import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
+import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
+import com.hfstudio.guidenh.guide.scene.support.SceneStructureOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class PlaceBlockElementCompiler implements SceneElementTagCompiler {
@@ -70,6 +72,7 @@ public class PlaceBlockElementCompiler implements SceneElementTagCompiler {
         int dx = Math.max(1, MdxAttrs.getInt(compiler, errorSink, el, "dx", 1));
         int dy = Math.max(1, MdxAttrs.getInt(compiler, errorSink, el, "dy", 1));
         int dz = Math.max(1, MdxAttrs.getInt(compiler, errorSink, el, "dz", 1));
+        boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
 
         String explicitId = blockMatcher.getBlockId();
         int endX = x + dx;
@@ -77,9 +80,13 @@ public class PlaceBlockElementCompiler implements SceneElementTagCompiler {
         int endZ = z + dz;
         for (int bx = x; bx < endX; bx++) {
             for (int by = y; by < endY; by++) {
+                if (by < 0 || by >= level.getHeight()) {
+                    continue;
+                }
                 for (int bz = z; bz < endZ; bz++) {
                     NBTTagCompound tagCopy = tileTag != null ? (NBTTagCompound) tileTag.copy() : null;
                     GuidebookPreviewBlockPlacer.place(level, bx, by, bz, block, meta, tagCopy, explicitId);
+                    ScenePreviewFormedState.updateAfterPlacement(level, bx, by, bz, formed);
                 }
             }
         }

@@ -432,17 +432,17 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     public Set<String> getSceneEntityIds() {
-        return Collections.unmodifiableSet(sceneEntityIds.keySet());
+        return Set.copyOf(sceneEntityIds.keySet());
     }
 
     public List<Entity> getEntitiesBySceneEntityId(@Nullable String sceneEntityId) {
         String normalizedSceneEntityId = trimToNull(sceneEntityId);
         if (normalizedSceneEntityId == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         LinkedHashSet<Integer> entityIds = sceneEntityIds.get(normalizedSceneEntityId);
         if (entityIds == null || entityIds.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         List<Entity> resolved = new ArrayList<>(entityIds.size());
         for (Integer entityId : entityIds) {

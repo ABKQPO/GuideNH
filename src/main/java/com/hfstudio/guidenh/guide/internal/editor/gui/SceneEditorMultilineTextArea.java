@@ -974,8 +974,7 @@ public class SceneEditorMultilineTextArea {
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         int lineHeight = getLineHeight();
         int drawY = y + PADDING - scrollState.getOffsetPixels();
-        for (int i = 0; i < lines.size(); i++) {
-            SceneEditorMultilineTextLayoutCache.VisualLine line = lines.get(i);
+        for (SceneEditorMultilineTextLayoutCache.VisualLine line : lines) {
             if (drawY + lineHeight >= y && drawY < y + clipHeight) {
                 drawExternalHighlightForLine(line, drawY);
                 drawSelectionForLine(line, drawY);
@@ -1077,12 +1076,11 @@ public class SceneEditorMultilineTextArea {
             return;
         }
 
+        int max = Math.max(0, highlightStart - line.startIndex());
         String beforeSelection = line.text()
-            .substring(0, Math.max(0, highlightStart - line.startIndex()));
+            .substring(0, max);
         String selectedText = line.text()
-            .substring(
-                Math.max(0, highlightStart - line.startIndex()),
-                Math.max(0, Math.min(highlightEnd, line.endIndex()) - line.startIndex()));
+            .substring(max, Math.max(0, highlightEnd - line.startIndex()));
         int selectionX = x + PADDING + fontRenderer.getStringWidth(beforeSelection) - horizontalOffsetPixels;
         int selectionWidth = fontRenderer.getStringWidth(selectedText);
         if (selectionWidth <= 0 && spansLineBreak) {
@@ -1110,12 +1108,11 @@ public class SceneEditorMultilineTextArea {
             return;
         }
 
+        int max = Math.max(0, highlightStart - line.startIndex());
         String beforeHighlight = line.text()
-            .substring(0, Math.max(0, highlightStart - line.startIndex()));
+            .substring(0, max);
         String highlightedText = line.text()
-            .substring(
-                Math.max(0, highlightStart - line.startIndex()),
-                Math.max(0, Math.min(highlightEnd, line.endIndex()) - line.startIndex()));
+            .substring(max, Math.max(0, highlightEnd - line.startIndex()));
         int highlightX = x + PADDING + fontRenderer.getStringWidth(beforeHighlight) - horizontalOffsetPixels;
         int highlightWidth = fontRenderer.getStringWidth(highlightedText);
         if (highlightWidth <= 0 && spansLineBreak) {
@@ -1143,12 +1140,11 @@ public class SceneEditorMultilineTextArea {
             return;
         }
 
+        int max = Math.max(0, highlightStart - line.startIndex());
         String beforeWarning = line.text()
-            .substring(0, Math.max(0, highlightStart - line.startIndex()));
+            .substring(0, max);
         String warnedText = line.text()
-            .substring(
-                Math.max(0, highlightStart - line.startIndex()),
-                Math.max(0, Math.min(highlightEnd, line.endIndex()) - line.startIndex()));
+            .substring(max, Math.max(0, highlightEnd - line.startIndex()));
         int warningX = x + PADDING + fontRenderer.getStringWidth(beforeWarning) - horizontalOffsetPixels;
         int warningWidth = fontRenderer.getStringWidth(warnedText);
         if (warningWidth <= 0 && spansLineBreak) {
@@ -1379,14 +1375,14 @@ public class SceneEditorMultilineTextArea {
         if (requestedOffset < 0) {
             return 0;
         }
-        return requestedOffset > maxOffset ? maxOffset : requestedOffset;
+        return Math.min(requestedOffset, maxOffset);
     }
 
     private int clamp(int value, int min, int max) {
         if (value < min) {
             return min;
         }
-        return value > max ? max : value;
+        return Math.min(value, max);
     }
 
     private int getContentClipWidth() {

@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -34,7 +33,7 @@ public class StructureLibSceneMetadata {
 
     public StructureLibSceneMetadata(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip) {
-        this(controller, piece, facing, rotation, flip, null, Collections.emptyList(), Collections.emptyMap());
+        this(controller, piece, facing, rotation, flip, null, List.of(), Map.of());
     }
 
     private StructureLibSceneMetadata(String controller, @Nullable String piece, @Nullable String facing,
@@ -203,7 +202,7 @@ public class StructureLibSceneMetadata {
 
     public static List<ChannelData> immutableChannels(@Nullable List<ChannelData> source) {
         if (source == null || source.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         LinkedHashMap<String, ChannelData> deduplicated = new LinkedHashMap<>(source.size());
         for (ChannelData channelData : source) {
@@ -211,31 +210,30 @@ public class StructureLibSceneMetadata {
                 deduplicated.put(channelData.getChannelId(), channelData);
             }
         }
-        return deduplicated.isEmpty() ? Collections.emptyList()
-            : Collections.unmodifiableList(new ArrayList<>(deduplicated.values()));
+        return deduplicated.isEmpty() ? List.of() : List.copyOf(deduplicated.values());
     }
 
     public static Map<String, ChannelData> indexChannels(List<ChannelData> channels) {
         if (channels.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         LinkedHashMap<String, ChannelData> indexed = new LinkedHashMap<>(channels.size());
         for (ChannelData channelData : channels) {
             indexed.put(channelData.getChannelId(), channelData);
         }
-        return Collections.unmodifiableMap(indexed);
+        return Map.copyOf(indexed);
     }
 
     public static Map<Long, BlockTooltipData> immutableCopy(@Nullable Map<Long, BlockTooltipData> source) {
         if (source == null || source.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
-        return Collections.unmodifiableMap(new LinkedHashMap<>(source));
+        return Map.copyOf(new LinkedHashMap<>(source));
     }
 
     public static Map<Long, BlockTooltipData> filterTooltipData(@Nullable Map<Long, BlockTooltipData> source) {
         if (source == null || source.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         LinkedHashMap<Long, BlockTooltipData> filtered = new LinkedHashMap<>(source.size());
         for (Map.Entry<Long, BlockTooltipData> entry : source.entrySet()) {
@@ -244,13 +242,13 @@ public class StructureLibSceneMetadata {
                 filtered.put(entry.getKey(), value);
             }
         }
-        return filtered.isEmpty() ? Collections.emptyMap() : filtered;
+        return filtered.isEmpty() ? Map.of() : filtered;
     }
 
     public static List<BlockTooltipEntry> computeHatchTooltipEntries(
         Map<Long, BlockTooltipData> blockTooltipDataByPos) {
         if (blockTooltipDataByPos.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         List<BlockTooltipEntry> entries = new ArrayList<>();
         for (Map.Entry<Long, BlockTooltipData> entry : blockTooltipDataByPos.entrySet()) {
@@ -264,7 +262,7 @@ public class StructureLibSceneMetadata {
                         value));
             }
         }
-        return entries.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(entries);
+        return entries.isEmpty() ? List.of() : List.copyOf(entries);
     }
 
     public static long packBlockPos(int x, int y, int z) {
@@ -273,13 +271,13 @@ public class StructureLibSceneMetadata {
 
     public static Set<Long> computeHatchTooltipPositions(List<BlockTooltipEntry> hatchTooltipEntries) {
         if (hatchTooltipEntries.isEmpty()) {
-            return Collections.emptySet();
+            return Set.of();
         }
         Set<Long> positions = new LinkedHashSet<>(hatchTooltipEntries.size());
         for (BlockTooltipEntry entry : hatchTooltipEntries) {
             positions.add(packBlockPos(entry.getX(), entry.getY(), entry.getZ()));
         }
-        return Collections.unmodifiableSet(positions);
+        return Set.copyOf(positions);
     }
 
     public static int unpackBlockPosX(long packedPos) {
@@ -370,7 +368,7 @@ public class StructureLibSceneMetadata {
 
         public static List<ItemStack> immutableStacks(@Nullable List<ItemStack> stacks) {
             if (stacks == null || stacks.isEmpty()) {
-                return Collections.emptyList();
+                return List.of();
             }
             List<ItemStack> copied = new ArrayList<>(stacks.size());
             for (ItemStack stack : stacks) {
@@ -378,13 +376,13 @@ public class StructureLibSceneMetadata {
                     copied.add(stack.copy());
                 }
             }
-            return copied.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(copied);
+            return copied.isEmpty() ? List.of() : List.copyOf(copied);
         }
 
         public static List<StructureLibHatchDescriptionLine> immutableLines(
             @Nullable List<StructureLibHatchDescriptionLine> lines) {
             if (lines == null || lines.isEmpty()) {
-                return Collections.emptyList();
+                return List.of();
             }
             List<StructureLibHatchDescriptionLine> copied = new ArrayList<>(lines.size());
             for (StructureLibHatchDescriptionLine line : lines) {
@@ -392,7 +390,7 @@ public class StructureLibSceneMetadata {
                     copied.add(line);
                 }
             }
-            return copied.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(copied);
+            return copied.isEmpty() ? List.of() : List.copyOf(copied);
         }
     }
 

@@ -5,7 +5,6 @@ import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -53,33 +52,13 @@ public class StructureLibSceneImageExporter {
 
     public ExportedImage export(GuidebookLevel level, CameraSettings camera, GuidebookSceneLayerSelection layers,
         StructureLibExportBackground background, Path target, int width, int height, long maxPixels) throws Exception {
-        return export(
-            level,
-            camera,
-            layers,
-            Collections.emptyList(),
-            Collections.emptyList(),
-            background,
-            target,
-            width,
-            height,
-            maxPixels);
+        return export(level, camera, layers, List.of(), List.of(), background, target, width, height, maxPixels);
     }
 
     public ExportedImage export(GuidebookLevel level, CameraSettings camera, GuidebookSceneLayerSelection layers,
         List<InWorldAnnotation> annotations, StructureLibExportBackground background, Path target, int width,
         int height, long maxPixels) throws Exception {
-        return export(
-            level,
-            camera,
-            layers,
-            annotations,
-            Collections.emptyList(),
-            background,
-            target,
-            width,
-            height,
-            maxPixels);
+        return export(level, camera, layers, annotations, List.of(), background, target, width, height, maxPixels);
     }
 
     public ExportedImage export(GuidebookLevel level, CameraSettings camera, GuidebookSceneLayerSelection layers,

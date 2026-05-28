@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.integration.nei;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -20,7 +19,7 @@ public class NeiRecipeEntryProvider implements RecipeEntryProvider {
 
     public static List<RecipeEntry> convertEntries(@Nullable List<NeiRecipeLookup.Entry> entries) {
         if (entries == null || entries.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<RecipeEntry> converted = new ArrayList<>(entries.size());
         for (NeiRecipeLookup.Entry entry : entries) {

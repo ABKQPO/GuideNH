@@ -18,7 +18,7 @@ import com.hfstudio.guidenh.integration.Mods;
  * {@link ServerPreviewSupplementRegistry}: cable-bus (type1) and AEBaseTile {@code X} stream (type2 non-cable).
  * Bootstrap calls {@link #register()} only.
  */
-public final class Ae2ServerPreviewRegistration {
+public class Ae2ServerPreviewRegistration {
 
     public static final String SUPPLEMENT_ID = "guidenh.ae2.cable_bus";
 

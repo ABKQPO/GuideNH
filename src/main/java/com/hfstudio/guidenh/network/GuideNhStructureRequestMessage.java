@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.network;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -87,7 +86,7 @@ public class GuideNhStructureRequestMessage implements IMessage {
         byte[] bytes = structureText != null ? structureText.getBytes(StandardCharsets.UTF_8) : new byte[0];
         int maxChunkBytes = GuideNhCustomPayloadLimits.MAX_STRUCTURE_BYTES_PER_PACKET;
         if (bytes.length <= maxChunkBytes) {
-            return Collections.singletonList(new GuideNhStructureRequestMessage(singleAction, x, y, z, 0, 0, 0, bytes));
+            return List.of(new GuideNhStructureRequestMessage(singleAction, x, y, z, 0, 0, 0, bytes));
         }
 
         int chunkCount = (bytes.length + maxChunkBytes - 1) / maxChunkBytes;

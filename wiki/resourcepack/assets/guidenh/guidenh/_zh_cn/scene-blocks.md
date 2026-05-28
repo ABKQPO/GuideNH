@@ -48,6 +48,7 @@ categories:
 | `meta` | 否 | 方块 metadata。省略时，部分方块会根据 `facing` 推导默认值。 |
 | `facing` | 否 | `down`、`up`、`north`、`south`、`west` 或 `east`。 |
 | `nbt` | 否 | SNBT TileEntity 复合标签。 |
+| `formed` | 否 | 是否让放置出的控制器预览在同步时按成型状态处理。默认 `false`。 |
 
 ```mdx
 <GameScene zoom={4} interactive={true}>
@@ -70,6 +71,60 @@ categories:
     <Block id="minecraft:glass" z="2" />
     <Block id="minecraft:glass" x="1" z="2" />
 </GameScene>
+
+## 控制器预览成型控制
+
+如果某个控制器在预览里需要保持未成型，可在放置它的标签上添加 `formed={false}`。这同样适用于
+多方块放置标签，例如 `<PlaceBlock>`、`<ReplaceBlock>`、`<ImportStructure>` 和
+`<ImportStructureLib>`。
+
+`formed` 现在默认就是 `false`，因此控制器预览会默认保持未成型，只有场景显式要求时才会自动成型。
+目前内置接入里最常见的例子仍然是 GregTech 控制器。
+
+```mdx
+<Block id="gregtech:gt.blockmachines:15411" formed={false} />
+<PlaceBlock id="gregtech:gt.blockmachines:15411" dx="3" dz="3" formed={false} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
+```
+
+显式展示成型状态的例子：
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" formed={true} />
+</GameScene>
+```
+
+带朝向和偏移的 StructureLib 导入：
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib
+    name="main"
+    controller="gregtech:gt.blockmachines:2741"
+    facing="north"
+    rotation="clockwise_180"
+    flip="none"
+    offsetX="2"
+    offsetY="1"
+    offsetZ="-3"
+  />
+</GameScene>
+```
+
+纯 `<Block>` 搭建的简单布局也可以直接使用，并且后续切换成控制器结构时仍能复用同一套检测逻辑：
+
+```mdx
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:water" />
+  <Block id="minecraft:water" x="-1" />
+  <Block id="minecraft:water" x="1" />
+  <Block id="minecraft:grass" z="1" />
+  <Block id="minecraft:grass" x="1" z="1" />
+  <Block id="minecraft:glass" z="2" />
+  <Block id="minecraft:glass" x="1" z="2" />
+</GameScene>
+```
 
 ## 默认统计按钮的红石线路
 

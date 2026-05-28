@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.libs.mdx;
 
-public final class MdxCommentMasker {
+public class MdxCommentMasker {
 
     private MdxCommentMasker() {}
 

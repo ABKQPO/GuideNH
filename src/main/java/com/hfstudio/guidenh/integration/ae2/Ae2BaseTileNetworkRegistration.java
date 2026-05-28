@@ -19,7 +19,7 @@ import com.hfstudio.guidenh.integration.Mods;
  * excluding {@link appeng.tile.networking.TileCableBus}): multiplayer batch RPC, snippet encode/decode, session shared
  * key {@link #SHARED_BASE_TILE_MP_SNAPSHOT}. Priority 11 so cable-bus fetch/snippet runs first (default 10).
  */
-public final class Ae2BaseTileNetworkRegistration {
+public class Ae2BaseTileNetworkRegistration {
 
     /** Session key parallel to {@link Ae2ServerPreviewRegistration} cable snapshot key. */
     static final String SHARED_BASE_TILE_MP_SNAPSHOT = "guidenh.ae2.previewAuthority.baseTileXpSnapshot_v1";

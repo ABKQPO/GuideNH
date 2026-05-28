@@ -5,6 +5,8 @@ import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 
+import com.hfstudio.guidenh.bridge.GuideNhRuntimeBridge;
+import com.hfstudio.guidenh.bridge.GuideNhRuntimeBridgeSettings;
 import com.hfstudio.guidenh.client.RegionWandRenderer;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.command.GuideNhClientCommand;
@@ -12,6 +14,8 @@ import com.hfstudio.guidenh.client.hotkey.CycleRegionWandModeHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHomeHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
+import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.internal.GuideDevWatcherPump;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePackWatcher;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
@@ -98,6 +102,8 @@ public class ClientProxy extends CommonProxy {
     public static LytHost getLytHost() {
         return lytHost;
     }
+
+    private final GuideNhRuntimeBridge runtimeBridge = new GuideNhRuntimeBridge();
 
     @Override
     public void preInit(FMLPreInitializationEvent event) {
@@ -193,6 +199,24 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("RecipesFor", recipeScript);
 
         MinecraftForge.EVENT_BUS.register(this);
+        GuideNH.LOG.info(
+            "GuideNH runtime bridge configuration loaded. enabled={}, hostConfigured={}, port={}, tokenConfigured={}",
+            ModConfig.runtimeBridge.enabled,
+            ModConfig.runtimeBridge.host != null && !ModConfig.runtimeBridge.host.trim()
+                .isEmpty(),
+            ModConfig.runtimeBridge.port,
+            ModConfig.runtimeBridge.token != null && !ModConfig.runtimeBridge.token.isEmpty());
+        runtimeBridge.start(
+            new GuideNhRuntimeBridgeSettings(
+                ModConfig.runtimeBridge.enabled,
+                ModConfig.runtimeBridge.host,
+                ModConfig.runtimeBridge.port,
+                ModConfig.runtimeBridge.token,
+                ModConfig.runtimeBridge.maxMessageBytes,
+                ModConfig.runtimeBridge.maxPageSize,
+                ModConfig.runtimeBridge.maxSubscriptions,
+                ModConfig.runtimeBridge.maxConnections,
+                ModConfig.runtimeBridge.maxDeltaEntries));
     }
 
     @Override
@@ -210,6 +234,8 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+        GuideNH.LOG.info("Minecraft client disconnected. Stopping GuideNH runtime bridge session state");
+        runtimeBridge.stop();
         GuideME.closeSearch();
         lytHost.getNavigation().clear();
     }

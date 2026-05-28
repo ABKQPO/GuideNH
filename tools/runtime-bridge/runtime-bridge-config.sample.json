@@ -1,0 +1,12 @@
+{
+  "host": "127.0.0.1",
+  "port": 8765,
+  "token": "guide-runtime-bridge-token",
+  "guideNhRoot": "E:\\Github\\GuideNH",
+  "guideVscRoot": "E:\\Github\\guide-vsc",
+  "guideVscAllowRemote": false,
+  "guideVscTimeoutMs": 30000,
+  "runTask": "runClient25",
+  "launchClient": false,
+  "startupTimeoutSeconds": 240
+}

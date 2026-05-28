@@ -1,11 +1,12 @@
 package com.hfstudio.guidenh.integration.ae2;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
@@ -47,15 +48,14 @@ public class Ae2BaseTileNetworkStructureSupport {
         private final Map<String, byte[]> xpByKey;
 
         Ae2BaseTileNetworkMpSnapshot(Map<String, byte[]> xpByKey) {
-            this.xpByKey = xpByKey != null ? xpByKey : Collections.emptyMap();
+            this.xpByKey = xpByKey != null ? xpByKey : Map.of();
         }
 
         public static Ae2BaseTileNetworkMpSnapshot empty() {
-            return new Ae2BaseTileNetworkMpSnapshot(Collections.emptyMap());
+            return new Ae2BaseTileNetworkMpSnapshot(Map.of());
         }
 
-        @Nullable
-        public byte[] lookupXpPayload(int dim, int x, int y, int z) {
+        public byte @Nullable [] lookupXpPayload(int dim, int x, int y, int z) {
             return xpByKey.get(mpKey(dim, x, y, z));
         }
     }
@@ -66,7 +66,8 @@ public class Ae2BaseTileNetworkStructureSupport {
         if (!Mods.AE2.isModLoaded() || exportWorld == null || !exportWorld.isRemote || lookup == null) {
             return Ae2BaseTileNetworkMpSnapshot.empty();
         }
-        if (!Ae2CableStructureSupport.isMultiplayerClientNoIntegratedServerPublic()) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.theIntegratedServer == null) {
             return Ae2BaseTileNetworkMpSnapshot.empty();
         }
         int dim = exportWorld.provider.dimensionId;
@@ -100,7 +101,7 @@ public class Ae2BaseTileNetworkStructureSupport {
                 xyz[i * 3 + 1] = p[1];
                 xyz[i * 3 + 2] = p[2];
             }
-            long corr = java.util.concurrent.ThreadLocalRandom.current()
+            long corr = ThreadLocalRandom.current()
                 .nextLong();
             GuideNhAe2BaseTileNetworkBatchAwait.register(corr);
             GuideNhNetwork.channel()
@@ -165,7 +166,7 @@ public class Ae2BaseTileNetworkStructureSupport {
     @Optional.Method(modid = "appliedenergistics2")
     public static void attachBaseTileNetworkToExport(@Nullable TileEntity tileEntity, NBTTagCompound structureBlockTag,
         @Nullable World exportWorldForAe2, @Nullable Ae2BaseTileNetworkMpSnapshot mpSnapshot) {
-        if (tileEntity == null || !Ae2BaseTileNetworkStreamPreview.eligible(tileEntity)) {
+        if (!Ae2BaseTileNetworkStreamPreview.eligible(tileEntity)) {
             return;
         }
         if (!(tileEntity instanceof AEBaseTile aeTile)) {
@@ -194,9 +195,9 @@ public class Ae2BaseTileNetworkStructureSupport {
         writeXpToStructure(structureBlockTag, chosen);
     }
 
-    @Nullable
     @Optional.Method(modid = "appliedenergistics2")
-    private static byte[] captureXpFromWorldTile(AEBaseTile clientOrLocalTile, @Nullable World exportWorldForAe2) {
+    private static byte @Nullable [] captureXpFromWorldTile(AEBaseTile clientOrLocalTile,
+        @Nullable World exportWorldForAe2) {
         TileEntity workTe = resolveServerAeBaseTileTile(clientOrLocalTile, exportWorldForAe2);
         if (!(workTe instanceof AEBaseTile ae)) {
             return null;
@@ -204,7 +205,7 @@ public class Ae2BaseTileNetworkStructureSupport {
         return Ae2BaseTileNetworkStreamPreview.captureAuthoritativeXPayload(ae);
     }
 
-    private static void writeXpToStructure(NBTTagCompound structureBlockTag, @Nullable byte[] xp) {
+    private static void writeXpToStructure(NBTTagCompound structureBlockTag, byte @Nullable [] xp) {
         if (xp == null || xp.length == 0) {
             ServerPreviewSupplementNbt
                 .removeSupplement(structureBlockTag, Ae2BaseTileNetworkStreamPreview.SUPPLEMENT_ID);
@@ -246,7 +247,7 @@ public class Ae2BaseTileNetworkStructureSupport {
         }
 
         TileEntity srv = sw.getTileEntity(x, y, z);
-        if (srv != null && Ae2BaseTileNetworkStreamPreview.eligible(srv)) {
+        if (Ae2BaseTileNetworkStreamPreview.eligible(srv)) {
             return srv;
         }
         return clientTe;

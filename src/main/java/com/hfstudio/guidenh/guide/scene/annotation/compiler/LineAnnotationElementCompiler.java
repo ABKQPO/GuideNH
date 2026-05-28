@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.annotation.compiler;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -28,7 +26,7 @@ public class LineAnnotationElementCompiler extends AnnotationTagCompiler {
 
     @Override
     public Set<String> getTagNames() {
-        return Collections.singleton("LineAnnotation");
+        return Set.of("LineAnnotation");
     }
 
     @Override
@@ -62,13 +60,13 @@ public class LineAnnotationElementCompiler extends AnnotationTagCompiler {
                 return LineAnnotationPointParser.parsePoints(rawPoints);
             } catch (IllegalArgumentException e) {
                 errorSink.appendError(compiler, e.getMessage(), el);
-                return Arrays.asList(new Vector3f(), new Vector3f());
+                return List.of(new Vector3f(), new Vector3f());
             }
         }
 
         var from = MdxAttrs.getVector3(compiler, errorSink, el, "from", new Vector3f());
         var to = MdxAttrs.getVector3(compiler, errorSink, el, "to", new Vector3f());
-        return Arrays.asList(from, to);
+        return List.of(from, to);
     }
 
     private static InWorldLineAnnotation.Arrow parseArrow(PageCompiler compiler, LytErrorSink errorSink,

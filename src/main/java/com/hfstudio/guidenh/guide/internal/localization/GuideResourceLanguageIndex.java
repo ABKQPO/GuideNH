@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -17,6 +16,7 @@ import net.minecraft.util.StringTranslate;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 
@@ -49,14 +49,16 @@ public class GuideResourceLanguageIndex {
             loadResourcePackLanguage(resourcePack, normalizedLanguage, merged);
         }
         long totalNs = System.nanoTime() - startedAt;
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideResourceLanguageIndex] Loaded {} lang entries for language {} from {} resource packs in {} ns",
-                merged.size(),
-                normalizedLanguage,
-                activeResourcePacks.size(),
-                totalNs);
-        return merged.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(merged);
+        if (ModConfig.debug.enableDebugMode) {
+            FMLLog.getLogger()
+                .info(
+                    "[GuideNH] [GuideResourceLanguageIndex] Loaded {} lang entries for language {} from {} resource packs in {} ns",
+                    merged.size(),
+                    normalizedLanguage,
+                    activeResourcePacks.size(),
+                    totalNs);
+        }
+        return merged.isEmpty() ? Map.of() : Map.copyOf(merged);
     }
 
     private static void loadResourcePackLanguage(IResourcePack resourcePack, String normalizedLanguage,

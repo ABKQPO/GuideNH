@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -68,8 +67,7 @@ public class GuideScreenContextMenu {
     private int hoveredIndex = -1;
 
     public GuideScreenContextMenu(List<Entry> entries) {
-        this.entries = entries != null ? Collections.unmodifiableList(new ArrayList<>(entries))
-            : Collections.emptyList();
+        this.entries = entries != null ? List.copyOf(new ArrayList<>(entries)) : List.of();
     }
 
     public boolean isOpen() {

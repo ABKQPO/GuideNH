@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,13 +26,13 @@ public class RecipeCache {
     private RecipeCache() {}
 
     public static synchronized List<Object> getCraftingHandlers(ItemStack target) {
-        if (target == null) return Collections.emptyList();
+        if (target == null) return List.of();
         Key key = Key.of(target);
         List<Object> cached = HANDLERS.get(key);
         if (cached != null) return cached;
         List<Object> fresh = GuideNhIntegrationRegistry.global()
             .queryRawCraftingHandlers(target);
-        List<Object> stored = fresh.isEmpty() ? Collections.emptyList() : new ArrayList<>(fresh);
+        List<Object> stored = fresh.isEmpty() ? List.of() : new ArrayList<>(fresh);
         HANDLERS.put(key, stored);
         return stored;
     }
@@ -43,13 +42,13 @@ public class RecipeCache {
      * (anvil / fuel / brewing ingredient) and thus do not appear in the crafting-handler list.
      */
     public static synchronized List<Object> getUsageHandlers(ItemStack target) {
-        if (target == null) return Collections.emptyList();
+        if (target == null) return List.of();
         Key key = Key.of(target);
         List<Object> cached = USAGE_HANDLERS.get(key);
         if (cached != null) return cached;
         List<Object> fresh = GuideNhIntegrationRegistry.global()
             .queryRawUsageHandlers(target);
-        List<Object> stored = fresh.isEmpty() ? Collections.emptyList() : new ArrayList<>(fresh);
+        List<Object> stored = fresh.isEmpty() ? List.of() : new ArrayList<>(fresh);
         USAGE_HANDLERS.put(key, stored);
         return stored;
     }

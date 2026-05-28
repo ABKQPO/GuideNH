@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -214,9 +213,7 @@ public class Tokenizer {
         /**
          * Interrupt is used for stuff right after a line of content.
          */
-        public Hook interrupt = constructFactory(
-            Tokenizer.this::onsuccessfulcheck,
-            Collections.singletonMap("interrupt", Boolean.TRUE));
+        public Hook interrupt = constructFactory(Tokenizer.this::onsuccessfulcheck, Map.of("interrupt", Boolean.TRUE));
     }
 
     /**
@@ -299,15 +296,13 @@ public class Tokenizer {
         State hook(List<Construct> constructs, State returnState, State bogusState);
 
         default State hook(Construct construct, State returnState, State bogusState) {
-            return hook(Collections.singletonList(construct), returnState, bogusState);
+            return hook(List.of(construct), returnState, bogusState);
         }
 
         default State hook(Map<Integer, List<Construct>> map, State returnState, State bogusState) {
             return code -> {
-                List<Construct> def = code != Codes.eof ? map.getOrDefault(code, Collections.emptyList())
-                    : Collections.emptyList();
-                List<Construct> all = code != Codes.eof ? map.getOrDefault(Codes.eof, Collections.emptyList())
-                    : Collections.emptyList();
+                List<Construct> def = code != Codes.eof ? map.getOrDefault(code, List.of()) : List.of();
+                List<Construct> all = code != Codes.eof ? map.getOrDefault(Codes.eof, List.of()) : List.of();
                 var list = new ArrayList<Construct>();
                 list.addAll(def);
                 list.addAll(all);

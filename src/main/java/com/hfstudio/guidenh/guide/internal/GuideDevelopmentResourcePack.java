@@ -15,7 +15,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class GuideDevelopmentResourcePack implements IResourcePack {
+public class GuideDevelopmentResourcePack implements IResourcePack {
 
     private final Path root;
     private final Set<String> resourceDomains;

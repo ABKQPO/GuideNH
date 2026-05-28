@@ -8,7 +8,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
-public final class GuideSiteLocalServerJarWriter {
+public class GuideSiteLocalServerJarWriter {
 
     private GuideSiteLocalServerJarWriter() {}
 

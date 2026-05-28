@@ -7,7 +7,7 @@ import org.lwjgl.input.Keyboard;
 
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
-public final class GuideScreenEditorConflictPrompt extends GuiScreen {
+public class GuideScreenEditorConflictPrompt extends GuiScreen {
 
     public interface Callback {
 

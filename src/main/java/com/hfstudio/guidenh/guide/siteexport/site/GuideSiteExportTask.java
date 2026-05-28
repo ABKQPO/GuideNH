@@ -153,8 +153,7 @@ public class GuideSiteExportTask {
 
             for (Map.Entry<ResourceLocation, MutableGuide> guideEntry : guidesById.entrySet()) {
                 MutableGuide guide = guideEntry.getValue();
-                List<GuideSitePageVariant> variants = variantsByGuideId
-                    .getOrDefault(guideEntry.getKey(), Collections.emptyList());
+                List<GuideSitePageVariant> variants = variantsByGuideId.getOrDefault(guideEntry.getKey(), List.of());
                 guidesExported++;
 
                 Map<String, List<GuideSitePageVariant>> variantsByLanguage = new LinkedHashMap<>();
@@ -597,7 +596,7 @@ public class GuideSiteExportTask {
     private Map<ResourceLocation, List<GuideSiteLanguageLink>> buildLanguageLinks(GuideSiteWriter writer,
         MutableGuide guide, List<GuideSitePageVariant> variants, List<String> languageOrder) {
         if (variants.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
 
         Map<ResourceLocation, Map<String, GuideSitePageVariant>> variantsByPageId = new LinkedHashMap<>();
@@ -1188,16 +1187,24 @@ public class GuideSiteExportTask {
         if (scene == null || state == null) {
             return;
         }
+        boolean structureSelectionChanged = false;
+        String structureToNotify = null;
         for (StructureStatePlan structurePlan : structurePlans) {
             StructureVariantState structureState = state.structures.get(structurePlan.bindingKey);
             if (structureState == null) {
                 continue;
             }
-            scene.setStructureLibCurrentTierSilently(structurePlan.structureName, structureState.tier);
-            for (String channelId : structurePlan.channelIds) {
-                int value = structureState.channels.containsKey(channelId) ? structureState.channels.get(channelId) : 0;
-                scene.setStructureLibChannelValueSilently(structurePlan.structureName, channelId, value);
+            boolean changed = scene.applyStructureLibPreviewSelection(
+                structurePlan.structureName,
+                new StructureLibPreviewSelection(structureState.tier, structureState.channels),
+                false);
+            if (changed) {
+                structureSelectionChanged = true;
+                structureToNotify = structurePlan.structureName;
             }
+        }
+        if (structureSelectionChanged) {
+            scene.notifyStructureLibSelectionChanged(structureToNotify);
         }
         if (scene.hasPonderData()) {
             if (state.exportState) {
@@ -1231,7 +1238,7 @@ public class GuideSiteExportTask {
             || scene.getLevel() == null
             || scene.getLevel()
                 .isEmpty()) {
-            return Collections.singletonList(scene != null ? scene.getCurrentVisibleLayer() : 0);
+            return List.of(scene != null ? scene.getCurrentVisibleLayer() : 0);
         }
 
         int[] bounds = scene.getLevel()
@@ -1247,7 +1254,7 @@ public class GuideSiteExportTask {
 
     private List<Integer> buildPonderTickStates(LytGuidebookScene scene) {
         if (scene == null || !scene.hasPonderData()) {
-            return Collections.singletonList(0);
+            return List.of(0);
         }
         ArrayList<Integer> states = new ArrayList<>();
         if (options.exportPonderEveryTick()) {
@@ -1255,20 +1262,20 @@ public class GuideSiteExportTask {
             for (int tick = 0; tick <= totalTime; tick++) {
                 states.add(tick);
             }
-            return states.isEmpty() ? Collections.singletonList(0) : states;
+            return states.isEmpty() ? List.of(0) : states;
         }
         addUniquePonderTickState(states, scene.getPonderCurrentTickForExport());
         for (PonderTimelineKeyframe keyframe : scene.getPonderTimelineKeyframesForExport()) {
             addUniquePonderTickState(states, keyframe.getTime());
         }
         addUniquePonderTickState(states, scene.getPonderTotalTimeForExport());
-        return states.isEmpty() ? Collections.singletonList(0) : states;
+        return states.isEmpty() ? List.of(0) : states;
     }
 
     private List<StructureStatePlan> buildStructureStatePlans(LytGuidebookScene scene) {
         if (scene == null || scene.getStructureLibBindings()
             .isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<StructureStatePlan> plans = new ArrayList<>();
         for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
@@ -1319,8 +1326,7 @@ public class GuideSiteExportTask {
         ArrayList<StructureVariantState> states = new ArrayList<>();
         appendStructureVariantStates(states, tiers, channelIds, channelValues, 0, new ArrayList<>());
         return states.isEmpty()
-            ? Collections
-                .singletonList(new StructureVariantState(StructureLibPreviewSelection.DEFAULT_MASTER_TIER, null))
+            ? List.of(new StructureVariantState(StructureLibPreviewSelection.DEFAULT_MASTER_TIER, null))
             : states;
     }
 
@@ -1363,8 +1369,8 @@ public class GuideSiteExportTask {
             || metadata.getTierData() == null
             || !metadata.getTierData()
                 .isSelectable()) {
-            return Collections.singletonList(
-                binding != null ? binding.getCurrentTier() : StructureLibPreviewSelection.DEFAULT_MASTER_TIER);
+            return List
+                .of(binding != null ? binding.getCurrentTier() : StructureLibPreviewSelection.DEFAULT_MASTER_TIER);
         }
         ArrayList<Integer> tiers = new ArrayList<>();
         for (int tier = metadata.getTierData()
@@ -1377,7 +1383,7 @@ public class GuideSiteExportTask {
 
     private List<StructureLibSceneMetadata.ChannelData> buildSelectableChannels(StructureLibSceneMetadata metadata) {
         if (metadata == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<StructureLibSceneMetadata.ChannelData> channels = new ArrayList<>();
         for (StructureLibSceneMetadata.ChannelData channelData : metadata.getChannelDataList()) {
@@ -1390,7 +1396,7 @@ public class GuideSiteExportTask {
 
     private List<Integer> buildChannelStates(StructureLibSceneMetadata.ChannelData channelData) {
         if (channelData == null || !channelData.isSelectable()) {
-            return Collections.singletonList(0);
+            return List.of(0);
         }
         ArrayList<Integer> states = new ArrayList<>(channelData.getMaxValue() + 1);
         for (int value = channelData.getMinValue(); value <= channelData.getMaxValue(); value++) {
@@ -1550,13 +1556,11 @@ public class GuideSiteExportTask {
             this.bindingKey = bindingKey;
             this.structureName = structureName;
             this.label = label;
-            this.tiers = tiers != null ? new ArrayList<>(tiers) : Collections.emptyList();
-            this.selectableChannels = selectableChannels != null ? new ArrayList<>(selectableChannels)
-                : Collections.emptyList();
-            this.channelIds = channelIds != null ? new ArrayList<>(channelIds) : Collections.emptyList();
+            this.tiers = tiers != null ? new ArrayList<>(tiers) : List.of();
+            this.selectableChannels = selectableChannels != null ? new ArrayList<>(selectableChannels) : List.of();
+            this.channelIds = channelIds != null ? new ArrayList<>(channelIds) : List.of();
             this.states = states != null ? new ArrayList<>(states)
-                : Collections
-                    .singletonList(new StructureVariantState(StructureLibPreviewSelection.DEFAULT_MASTER_TIER, null));
+                : List.of(new StructureVariantState(StructureLibPreviewSelection.DEFAULT_MASTER_TIER, null));
         }
 
         private boolean hasControls() {
@@ -1664,11 +1668,11 @@ public class GuideSiteExportTask {
         Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
 
         private static final LanguageExportContext EMPTY = new LanguageExportContext(
-            Collections.emptyMap(),
+            Map.of(),
             new NavigationTree(),
-            Collections.emptyMap(),
-            Collections.emptyMap(),
-            Collections.emptyMap(),
-            Collections.emptyMap());
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of());
     }
 }

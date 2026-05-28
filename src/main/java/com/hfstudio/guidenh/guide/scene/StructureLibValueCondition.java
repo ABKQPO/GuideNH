@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,7 +106,7 @@ public class StructureLibValueCondition {
 
     private static List<ValueRange> immutableRanges(@Nullable List<ValueRange> ranges) {
         if (ranges == null || ranges.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<ValueRange> copied = new ArrayList<>(ranges.size());
         for (ValueRange range : ranges) {
@@ -115,7 +114,7 @@ public class StructureLibValueCondition {
                 copied.add(range);
             }
         }
-        return copied.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(copied);
+        return copied.isEmpty() ? List.of() : List.copyOf(copied);
     }
 
     public static class ValueRange {

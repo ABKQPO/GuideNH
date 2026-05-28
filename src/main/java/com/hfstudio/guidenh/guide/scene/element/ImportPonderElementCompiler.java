@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.element;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -63,7 +62,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
 
     @Override
     public Set<String> getTagNames() {
-        return Collections.singleton("ImportPonder");
+        return Set.of("ImportPonder");
     }
 
     @Override
@@ -99,14 +98,14 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
         for (PonderKeyframe kf : data.getKeyframes()) {
             List<PonderKeyframeAnnotation> rawList = kf.getAnnotations();
             if (rawList.isEmpty()) {
-                result.add(Collections.emptyList());
+                result.add(List.of());
                 continue;
             }
             List<SceneAnnotation> resolved = new ArrayList<>(rawList.size());
             for (PonderKeyframeAnnotation raw : rawList) {
                 resolveAndAdd(raw, resolved, compiler);
             }
-            result.add(resolved.isEmpty() ? Collections.emptyList() : resolved);
+            result.add(resolved.isEmpty() ? List.of() : resolved);
         }
         return result;
     }
@@ -116,7 +115,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
         for (PonderKeyframe kf : data.getKeyframes()) {
             List<PonderKeyframeSound> rawList = kf.getSounds();
             if (rawList.isEmpty()) {
-                result.add(Collections.emptyList());
+                result.add(List.of());
                 continue;
             }
             List<GuideSoundSpec> resolved = new ArrayList<>(rawList.size());
@@ -126,7 +125,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
                     resolved.add(sound);
                 }
             }
-            result.add(resolved.isEmpty() ? Collections.emptyList() : resolved);
+            result.add(resolved.isEmpty() ? List.of() : resolved);
         }
         return result;
     }
@@ -206,12 +205,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
                 int by = raw.getBlockY(0);
                 int bz = raw.getBlockZ(0);
                 int argb = raw.parseColor(0x80FFFFFF);
-                var ann = new InWorldBlockFaceOverlayAnnotation(
-                    bx,
-                    by,
-                    bz,
-                    new ConstantColor(argb),
-                    Collections.emptySet());
+                var ann = new InWorldBlockFaceOverlayAnnotation(bx, by, bz, new ConstantColor(argb), Set.of());
                 ann.setAlwaysOnTop(raw.isAlwaysOnTop());
                 return ann;
             }
@@ -281,11 +275,11 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
             try {
                 return LineAnnotationPointParser.parsePoints(pointsElement.getAsString());
             } catch (IllegalArgumentException ignored) {
-                return Collections.emptyList();
+                return List.of();
             }
         }
         if (!pointsElement.isJsonArray()) {
-            return Collections.emptyList();
+            return List.of();
         }
         JsonArray array = pointsElement.getAsJsonArray();
         List<Vector3f> result = new ArrayList<>(array.size());

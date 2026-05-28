@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
-public final class CodeBlockLanguage {
+public class CodeBlockLanguage {
 
     private final String id;
     private final String displayName;

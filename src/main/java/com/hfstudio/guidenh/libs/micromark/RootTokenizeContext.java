@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +15,7 @@ import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 /**
  * A context object that helps w/ tokenizing markdown constructs.
  */
-class RootTokenizeContext implements TokenizeContext {
+public class RootTokenizeContext implements TokenizeContext {
 
     // Data attached to this context by extensions
     @Nullable
@@ -101,7 +100,7 @@ class RootTokenizeContext implements TokenizeContext {
 
         // Exit if we’re not done, resolve might change stuff.
         if (!Objects.equals(tokenizer.chunks.get(tokenizer.chunks.size() - 1), Codes.eof)) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         tokenizer.addResult(tokenizer.initialize, 0);

@@ -9,6 +9,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.oredict.OreDictionary;
 
+import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver.ResolvedBlockReference;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
@@ -17,6 +18,8 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
+import com.hfstudio.guidenh.guide.scene.support.SceneStructureOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class BlockElementCompiler implements SceneElementTagCompiler {
@@ -42,13 +45,7 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
         int meta = MdxAttrs.getInt(compiler, errorSink, el, "meta", Integer.MIN_VALUE);
         String facing = MdxAttrs.getString(compiler, errorSink, el, "facing", null);
         if (meta == Integer.MIN_VALUE) {
-            int stackMeta = blockReference.hasExplicitMeta() && blockReference.stack() != null ? blockReference.stack()
-                .getItemDamage() : 0;
-            if (blockReference.hasExplicitMeta() && stackMeta != OreDictionary.WILDCARD_VALUE) {
-                meta = stackMeta;
-            } else {
-                meta = defaultMetaFor(block, facing);
-            }
+            meta = resolvePlacementMeta(blockReference, facing);
         }
 
         NBTTagCompound tileTag = null;
@@ -60,9 +57,18 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
                 errorSink.appendError(compiler, "Bad NBT: " + e.getMessage(), el);
             }
         }
+        boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
         String explicitBlockId = blockReference.registryId()
             .toString();
         GuidebookPreviewBlockPlacer.place(level, x, y, z, block, meta, tileTag, explicitBlockId);
+        ScenePreviewFormedState.updateAfterPlacement(level, x, y, z, formed);
+    }
+
+    public static int resolvePlacementMeta(ResolvedBlockReference blockReference, String facing) {
+        if (blockReference.hasExplicitMeta() && blockReference.explicitMeta() != OreDictionary.WILDCARD_VALUE) {
+            return blockReference.explicitMeta();
+        }
+        return defaultMetaFor(blockReference.block(), facing);
     }
 
     public static int defaultMetaFor(Block block, String facing) {

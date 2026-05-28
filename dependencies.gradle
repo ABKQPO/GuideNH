@@ -1,6 +1,7 @@
 dependencies {
 
-    api("com.github.GTNewHorizons:GTNHLib:0.9.62:dev")
+    api("com.github.GTNewHorizons:GTNHLib:0.10.3:dev")
+    implementation("io.github.legacymoddingmc:unimixins:0.3.1:dev")
 
     shadowImplementation("org.yaml:snakeyaml:1.33") { transitive = false }
     shadowImplementation("io.methvin:directory-watcher:0.17.1")
@@ -8,7 +9,6 @@ dependencies {
     shadowImplementation("org.apache.lucene:lucene-analyzers-common:8.11.4")
     shadowImplementation("org.apache.lucene:lucene-queryparser:8.11.4")
     shadowImplementation("org.apache.lucene:lucene-highlighter:8.11.4")
-    shadowImplementation("org.apache.commons:commons-lang3:3.3.2") { transitive = false }
     shadowImplementation("com.google.flatbuffers:flatbuffers-java:23.5.26") { transitive = false }
     shadowImplementation("org.scilab.forge:jlatexmath:1.0.7") { transitive = false }
 
@@ -41,6 +41,8 @@ dependencies {
     compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.2.21-GTNH-daily") { transitive = false }
     compileOnlyApi("com.github.DarkShadow44:DistantHorizonsStandalone:9.9.9:dev") { transitive = false }
 
+    // jvmDowngrader
+    compileOnly("javax.xml.bind:jaxb-api:2.3.1")
     compileOnly("org.jetbrains:annotations:26.0.1")
     compileOnly("org.projectlombok:lombok:1.18.42") { transitive = false }
     annotationProcessor("org.projectlombok:lombok:1.18.42")

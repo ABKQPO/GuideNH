@@ -71,6 +71,7 @@ without adding a full annotation shape.
 | `meta` | no | Block metadata. If omitted, some blocks derive a default from `facing`. |
 | `facing` | no | `down`, `up`, `north`, `south`, `west`, or `east`. |
 | `nbt` | no | SNBT TileEntity compound. |
+| `formed` | no | Whether placed controller previews should be treated as formed during preview sync. Defaults to `false`. |
 
 ```mdx
 <GameScene zoom={4} interactive={true}>
@@ -93,6 +94,61 @@ Transparent blocks are rendered in scene order and still participate in hover pi
     <Block id="minecraft:glass" z="2" />
     <Block id="minecraft:glass" x="1" z="2" />
 </GameScene>
+
+## Controller Preview Control
+
+Use `formed={false}` when a placed controller should stay visibly unformed in preview. This works
+for single-block placement as well as multi-block placement tags such as `<PlaceBlock>`,
+`<ReplaceBlock>`, `<ImportStructure>`, and `<ImportStructureLib>`.
+
+`formed` now defaults to `false`, so controller previews stay unformed unless a scene explicitly
+asks to auto-form them. GregTech controllers are the primary built-in example today.
+
+```mdx
+<Block id="gregtech:gt.blockmachines:15411" formed={false} />
+<PlaceBlock id="gregtech:gt.blockmachines:15411" dx="3" dz="3" formed={false} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
+```
+
+Explicit formed preview:
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" formed={true} />
+</GameScene>
+```
+
+StructureLib import with orientation and offsets:
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib
+    name="main"
+    controller="gregtech:gt.blockmachines:2741"
+    facing="north"
+    rotation="clockwise_180"
+    flip="none"
+    offsetX="2"
+    offsetY="1"
+    offsetZ="-3"
+  />
+</GameScene>
+```
+
+Plain block layouts still work as-is and remain compatible with later controller-based structure
+checks:
+
+```mdx
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:water" />
+  <Block id="minecraft:water" x="-1" />
+  <Block id="minecraft:water" x="1" />
+  <Block id="minecraft:grass" z="1" />
+  <Block id="minecraft:grass" x="1" z="1" />
+  <Block id="minecraft:glass" z="2" />
+  <Block id="minecraft:glass" x="1" z="2" />
+</GameScene>
+```
 
 ## Redstone Circuit With Default Statistics
 

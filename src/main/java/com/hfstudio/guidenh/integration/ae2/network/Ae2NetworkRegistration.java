@@ -5,7 +5,7 @@ import com.hfstudio.guidenh.network.GuideNhNetwork;
 
 import cpw.mods.fml.relauncher.Side;
 
-public final class Ae2NetworkRegistration {
+public class Ae2NetworkRegistration {
 
     public static final int CABLE_BATCH_REQUEST_ID = 3;
     public static final int CABLE_BATCH_REPLY_ID = 4;

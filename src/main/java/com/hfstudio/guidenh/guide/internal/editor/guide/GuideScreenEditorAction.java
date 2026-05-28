@@ -132,236 +132,121 @@ public enum GuideScreenEditorAction {
     }
 
     public GuideIconButton.Role toRole() {
-        switch (this) {
-            case HEADING_1:
-                return GuideIconButton.Role.GUIDE_EDITOR_HEADING_1;
-            case HEADING_2:
-                return GuideIconButton.Role.GUIDE_EDITOR_HEADING_2;
-            case HEADING_3:
-                return GuideIconButton.Role.GUIDE_EDITOR_HEADING_3;
-            case HEADING_4:
-                return GuideIconButton.Role.GUIDE_EDITOR_HEADING_4;
-            case HEADING_5:
-                return GuideIconButton.Role.GUIDE_EDITOR_HEADING_5;
-            case HEADING_6:
-                return GuideIconButton.Role.GUIDE_EDITOR_HEADING_6;
-            case BOLD:
-                return GuideIconButton.Role.GUIDE_EDITOR_BOLD;
-            case ITALIC:
-                return GuideIconButton.Role.GUIDE_EDITOR_ITALIC;
-            case STRIKETHROUGH:
-                return GuideIconButton.Role.GUIDE_EDITOR_STRIKETHROUGH;
-            case UNDERLINE:
-                return GuideIconButton.Role.GUIDE_EDITOR_UNDERLINE;
-            case KBD:
-                return GuideIconButton.Role.GUIDE_EDITOR_KEYBOARD;
-            case SUBSCRIPT:
-                return GuideIconButton.Role.GUIDE_EDITOR_SUBSCRIPT;
-            case SUPERSCRIPT:
-                return GuideIconButton.Role.GUIDE_EDITOR_SUPERSCRIPT;
-            case FOOTNOTE:
-                return GuideIconButton.Role.GUIDE_EDITOR_FOOTNOTE;
-            case TOOLTIP:
-                return GuideIconButton.Role.GUIDE_EDITOR_TOOLTIP;
-            case ITEM_IMAGE:
-                return GuideIconButton.Role.GUIDE_EDITOR_ITEM_IMAGE;
-            case BLOCK_IMAGE:
-                return GuideIconButton.Role.GUIDE_EDITOR_BLOCK_IMAGE;
-            case ITEM_LINK:
-                return GuideIconButton.Role.GUIDE_EDITOR_ITEM_LINK;
-            case LATEX:
-                return GuideIconButton.Role.GUIDE_EDITOR_LATEX;
-            case CSV_TABLE:
-                return GuideIconButton.Role.GUIDE_EDITOR_CSV_TABLE;
-            case COMMAND_LINK:
-                return GuideIconButton.Role.GUIDE_EDITOR_COMMAND_LINK;
-            case RECIPE:
-                return GuideIconButton.Role.GUIDE_EDITOR_RECIPE;
-            case RECIPE_FOR:
-                return GuideIconButton.Role.GUIDE_EDITOR_RECIPE_FOR;
-            case RECIPES_FOR:
-                return GuideIconButton.Role.GUIDE_EDITOR_RECIPES_FOR;
-            case FLOATING_IMAGE:
-                return GuideIconButton.Role.GUIDE_EDITOR_FLOATING_IMAGE;
-            case MERMAID:
-                return GuideIconButton.Role.GUIDE_EDITOR_MERMAID;
-            case FILE_TREE:
-                return GuideIconButton.Role.GUIDE_EDITOR_FILE_TREE;
-            case SUB_PAGES:
-                return GuideIconButton.Role.GUIDE_EDITOR_SUB_PAGES;
-            case CATEGORY:
-                return GuideIconButton.Role.GUIDE_EDITOR_CATEGORY;
-            case FOOTNOTE_LIST:
-                return GuideIconButton.Role.GUIDE_EDITOR_FOOTNOTE_LIST;
-            case ROW:
-                return GuideIconButton.Role.GUIDE_EDITOR_ROW;
-            case COLUMN:
-                return GuideIconButton.Role.GUIDE_EDITOR_COLUMN;
-            case DIV:
-                return GuideIconButton.Role.GUIDE_EDITOR_DIV;
-            case ITEM_GRID:
-                return GuideIconButton.Role.GUIDE_EDITOR_ITEM_GRID;
-            case CSV_TABLE_IMPORT:
-                return GuideIconButton.Role.GUIDE_EDITOR_CSV_TABLE_IMPORT;
-            case ANCHOR:
-                return GuideIconButton.Role.GUIDE_EDITOR_ANCHOR;
-            case COLUMN_CHART:
-                return GuideIconButton.Role.GUIDE_EDITOR_COLUMN_CHART;
-            case BAR_CHART:
-                return GuideIconButton.Role.GUIDE_EDITOR_BAR_CHART;
-            case LINE_CHART:
-                return GuideIconButton.Role.GUIDE_EDITOR_LINE_CHART;
-            case PIE_CHART:
-                return GuideIconButton.Role.GUIDE_EDITOR_PIE_CHART;
-            case SCATTER_CHART:
-                return GuideIconButton.Role.GUIDE_EDITOR_SCATTER_CHART;
-            case CHART_SERIES:
-                return GuideIconButton.Role.GUIDE_EDITOR_CHART_SERIES;
-            case CHART_LINE_SERIES:
-                return GuideIconButton.Role.GUIDE_EDITOR_CHART_LINE_SERIES;
-            case CHART_SLICE:
-                return GuideIconButton.Role.GUIDE_EDITOR_CHART_SLICE;
-            case CHART_PIE_INSET:
-                return GuideIconButton.Role.GUIDE_EDITOR_CHART_PIE_INSET;
-            case FUNCTION_GRAPH:
-                return GuideIconButton.Role.GUIDE_EDITOR_FUNCTION_GRAPH;
-            case FUNCTION:
-                return GuideIconButton.Role.GUIDE_EDITOR_FUNCTION;
-            case FUNCTION_PLOT:
-                return GuideIconButton.Role.GUIDE_EDITOR_FUNCTION_PLOT;
-            case FUNCTION_POINT:
-                return GuideIconButton.Role.GUIDE_EDITOR_FUNCTION_POINT;
-            case FUNCTION_GRAPH_FENCE:
-                return GuideIconButton.Role.GUIDE_EDITOR_FUNCTION_GRAPH_FENCE;
-            case STRUCTURE:
-                return GuideIconButton.Role.GUIDE_EDITOR_STRUCTURE;
-            case GAME_SCENE:
-                return GuideIconButton.Role.GUIDE_EDITOR_GAME_SCENE;
-            case SCENE_BLOCK:
-                return GuideIconButton.Role.GUIDE_EDITOR_SCENE_BLOCK;
-            case SCENE_ENTITY:
-                return GuideIconButton.Role.GUIDE_EDITOR_SCENE_ENTITY;
-            case ISOMETRIC_CAMERA:
-                return GuideIconButton.Role.GUIDE_EDITOR_ISOMETRIC_CAMERA;
-            case BOX_ANNOTATION:
-                return GuideIconButton.Role.GUIDE_EDITOR_BOX_ANNOTATION;
-            case BLOCK_ANNOTATION:
-                return GuideIconButton.Role.GUIDE_EDITOR_BLOCK_ANNOTATION;
-            case LINE_ANNOTATION:
-                return GuideIconButton.Role.GUIDE_EDITOR_LINE_ANNOTATION;
-            case DIAMOND_ANNOTATION:
-                return GuideIconButton.Role.GUIDE_EDITOR_DIAMOND_ANNOTATION;
-            case TEXT_ANNOTATION:
-                return GuideIconButton.Role.GUIDE_EDITOR_TEXT_ANNOTATION;
-            case BLOCK_ANNOTATION_TEMPLATE:
-                return GuideIconButton.Role.GUIDE_EDITOR_BLOCK_ANNOTATION_TEMPLATE;
-            case IMPORT_STRUCTURE:
-                return GuideIconButton.Role.GUIDE_EDITOR_IMPORT_STRUCTURE;
-            case IMPORT_STRUCTURE_LIB:
-                return GuideIconButton.Role.GUIDE_EDITOR_IMPORT_STRUCTURE_LIB;
-            case IMPORT_PONDER:
-                return GuideIconButton.Role.GUIDE_EDITOR_IMPORT_PONDER;
-            case PLACE_BLOCK:
-                return GuideIconButton.Role.GUIDE_EDITOR_PLACE_BLOCK;
-            case REPLACE_BLOCK:
-                return GuideIconButton.Role.GUIDE_EDITOR_REPLACE_BLOCK;
-            case REMOVE_BLOCKS:
-                return GuideIconButton.Role.GUIDE_EDITOR_REMOVE_BLOCKS;
-            case QUEST_LINK:
-                return GuideIconButton.Role.GUIDE_EDITOR_QUEST_LINK;
-            case QUEST_CARD:
-                return GuideIconButton.Role.GUIDE_EDITOR_QUEST_CARD;
-            case QUEST_IDS:
-                return GuideIconButton.Role.GUIDE_EDITOR_QUEST_IDS;
-            case NAV_POSITION:
-                return GuideIconButton.Role.GUIDE_EDITOR_NAV_POSITION;
-            case NAV_ICON:
-                return GuideIconButton.Role.GUIDE_EDITOR_NAV_ICON;
-            case NAV_ICON_TEXTURE:
-                return GuideIconButton.Role.GUIDE_EDITOR_NAV_ICON_TEXTURE;
-            case NAV_ICONS:
-                return GuideIconButton.Role.GUIDE_EDITOR_NAV_ICONS;
-            case NAV_ICON_TEXTURES:
-                return GuideIconButton.Role.GUIDE_EDITOR_NAV_ICON_TEXTURES;
-            case NAV_REQUIRED_MODS:
-                return GuideIconButton.Role.GUIDE_EDITOR_NAV_REQUIRED_MODS;
-            case PAGE_CATEGORIES:
-                return GuideIconButton.Role.GUIDE_EDITOR_PAGE_CATEGORIES;
-            case PAGE_ITEM_IDS:
-                return GuideIconButton.Role.GUIDE_EDITOR_PAGE_ITEM_IDS;
-            case PAGE_ORE_IDS:
-                return GuideIconButton.Role.GUIDE_EDITOR_PAGE_ORE_IDS;
-            case PAGE_METADATA:
-                return GuideIconButton.Role.GUIDE_EDITOR_PAGE_METADATA;
-            case QUOTE_CALLOUT:
-                return GuideIconButton.Role.GUIDE_EDITOR_QUOTE_CALLOUT;
-            case QUOTE_ICON_TEXT:
-                return GuideIconButton.Role.GUIDE_EDITOR_QUOTE_ICON_TEXT;
-            case QUOTE_ICON_ITEM:
-                return GuideIconButton.Role.GUIDE_EDITOR_QUOTE_ICON_ITEM;
-            case QUOTE_ICON_PNG:
-                return GuideIconButton.Role.GUIDE_EDITOR_QUOTE_ICON_PNG;
-            case LATEX_SHORTHAND:
-                return GuideIconButton.Role.GUIDE_EDITOR_LATEX_SHORTHAND;
-            case LINK:
-                return GuideIconButton.Role.GUIDE_EDITOR_LINK;
-            case IMAGE:
-                return GuideIconButton.Role.GUIDE_EDITOR_IMAGE;
-            case INLINE_CODE:
-                return GuideIconButton.Role.GUIDE_EDITOR_INLINE_CODE;
-            case CODE_BLOCK:
-                return GuideIconButton.Role.GUIDE_EDITOR_CODE_BLOCK;
-            case BLOCKQUOTE:
-                return GuideIconButton.Role.GUIDE_EDITOR_QUOTE;
-            case UNORDERED_LIST:
-                return GuideIconButton.Role.GUIDE_EDITOR_BULLET_LIST;
-            case ORDERED_LIST:
-                return GuideIconButton.Role.GUIDE_EDITOR_NUMBERED_LIST;
-            case TASK_LIST:
-                return GuideIconButton.Role.GUIDE_EDITOR_TASK_LIST;
-            case TABLE:
-                return GuideIconButton.Role.GUIDE_EDITOR_TABLE;
-            case ALERT_NOTE:
-                return GuideIconButton.Role.GUIDE_EDITOR_ALERT_NOTE;
-            case ALERT_TIP:
-                return GuideIconButton.Role.GUIDE_EDITOR_ALERT_TIP;
-            case ALERT_IMPORTANT:
-                return GuideIconButton.Role.GUIDE_EDITOR_ALERT_IMPORTANT;
-            case ALERT_WARNING:
-                return GuideIconButton.Role.GUIDE_EDITOR_ALERT_WARNING;
-            case ALERT_CAUTION:
-                return GuideIconButton.Role.GUIDE_EDITOR_ALERT_CAUTION;
-            case DETAILS:
-                return GuideIconButton.Role.GUIDE_EDITOR_DETAILS;
-            case KEY_BIND:
-                return GuideIconButton.Role.GUIDE_EDITOR_KEY_BIND;
-            case PLAYER_NAME:
-                return GuideIconButton.Role.GUIDE_EDITOR_PLAYER_NAME;
-            case COLOR:
-                return GuideIconButton.Role.GUIDE_EDITOR_COLOR;
-            case BREAK:
-                return GuideIconButton.Role.GUIDE_EDITOR_BREAK;
-            case REFERENCE_LINK:
-                return GuideIconButton.Role.GUIDE_EDITOR_REFERENCE_LINK;
-            case REFERENCE_IMAGE:
-                return GuideIconButton.Role.GUIDE_EDITOR_REFERENCE_IMAGE;
-            case THEMATIC_BREAK:
-                return GuideIconButton.Role.GUIDE_EDITOR_RULE;
-            case UNDO:
-                return GuideIconButton.Role.GUIDE_EDITOR_UNDO;
-            case REDO:
-                return GuideIconButton.Role.GUIDE_EDITOR_REDO;
-            case CUT:
-                return GuideIconButton.Role.GUIDE_EDITOR_CUT;
-            case COPY:
-                return GuideIconButton.Role.GUIDE_EDITOR_COPY;
-            case PASTE:
-                return GuideIconButton.Role.GUIDE_EDITOR_PASTE;
-            case SELECT_ALL:
-                return GuideIconButton.Role.GUIDE_EDITOR_SELECT_ALL;
-            case TOGGLE_ADVANCED:
-            default:
-                return GuideIconButton.Role.GUIDE_EDITOR_ADVANCED_TOGGLE;
-        }
+        return switch (this) {
+            case HEADING_1 -> GuideIconButton.Role.GUIDE_EDITOR_HEADING_1;
+            case HEADING_2 -> GuideIconButton.Role.GUIDE_EDITOR_HEADING_2;
+            case HEADING_3 -> GuideIconButton.Role.GUIDE_EDITOR_HEADING_3;
+            case HEADING_4 -> GuideIconButton.Role.GUIDE_EDITOR_HEADING_4;
+            case HEADING_5 -> GuideIconButton.Role.GUIDE_EDITOR_HEADING_5;
+            case HEADING_6 -> GuideIconButton.Role.GUIDE_EDITOR_HEADING_6;
+            case BOLD -> GuideIconButton.Role.GUIDE_EDITOR_BOLD;
+            case ITALIC -> GuideIconButton.Role.GUIDE_EDITOR_ITALIC;
+            case STRIKETHROUGH -> GuideIconButton.Role.GUIDE_EDITOR_STRIKETHROUGH;
+            case UNDERLINE -> GuideIconButton.Role.GUIDE_EDITOR_UNDERLINE;
+            case KBD -> GuideIconButton.Role.GUIDE_EDITOR_KEYBOARD;
+            case SUBSCRIPT -> GuideIconButton.Role.GUIDE_EDITOR_SUBSCRIPT;
+            case SUPERSCRIPT -> GuideIconButton.Role.GUIDE_EDITOR_SUPERSCRIPT;
+            case FOOTNOTE -> GuideIconButton.Role.GUIDE_EDITOR_FOOTNOTE;
+            case TOOLTIP -> GuideIconButton.Role.GUIDE_EDITOR_TOOLTIP;
+            case ITEM_IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_ITEM_IMAGE;
+            case BLOCK_IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_BLOCK_IMAGE;
+            case ITEM_LINK -> GuideIconButton.Role.GUIDE_EDITOR_ITEM_LINK;
+            case LATEX -> GuideIconButton.Role.GUIDE_EDITOR_LATEX;
+            case CSV_TABLE -> GuideIconButton.Role.GUIDE_EDITOR_CSV_TABLE;
+            case COMMAND_LINK -> GuideIconButton.Role.GUIDE_EDITOR_COMMAND_LINK;
+            case RECIPE -> GuideIconButton.Role.GUIDE_EDITOR_RECIPE;
+            case RECIPE_FOR -> GuideIconButton.Role.GUIDE_EDITOR_RECIPE_FOR;
+            case RECIPES_FOR -> GuideIconButton.Role.GUIDE_EDITOR_RECIPES_FOR;
+            case FLOATING_IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_FLOATING_IMAGE;
+            case MERMAID -> GuideIconButton.Role.GUIDE_EDITOR_MERMAID;
+            case FILE_TREE -> GuideIconButton.Role.GUIDE_EDITOR_FILE_TREE;
+            case SUB_PAGES -> GuideIconButton.Role.GUIDE_EDITOR_SUB_PAGES;
+            case CATEGORY -> GuideIconButton.Role.GUIDE_EDITOR_CATEGORY;
+            case FOOTNOTE_LIST -> GuideIconButton.Role.GUIDE_EDITOR_FOOTNOTE_LIST;
+            case ROW -> GuideIconButton.Role.GUIDE_EDITOR_ROW;
+            case COLUMN -> GuideIconButton.Role.GUIDE_EDITOR_COLUMN;
+            case DIV -> GuideIconButton.Role.GUIDE_EDITOR_DIV;
+            case ITEM_GRID -> GuideIconButton.Role.GUIDE_EDITOR_ITEM_GRID;
+            case CSV_TABLE_IMPORT -> GuideIconButton.Role.GUIDE_EDITOR_CSV_TABLE_IMPORT;
+            case ANCHOR -> GuideIconButton.Role.GUIDE_EDITOR_ANCHOR;
+            case COLUMN_CHART -> GuideIconButton.Role.GUIDE_EDITOR_COLUMN_CHART;
+            case BAR_CHART -> GuideIconButton.Role.GUIDE_EDITOR_BAR_CHART;
+            case LINE_CHART -> GuideIconButton.Role.GUIDE_EDITOR_LINE_CHART;
+            case PIE_CHART -> GuideIconButton.Role.GUIDE_EDITOR_PIE_CHART;
+            case SCATTER_CHART -> GuideIconButton.Role.GUIDE_EDITOR_SCATTER_CHART;
+            case CHART_SERIES -> GuideIconButton.Role.GUIDE_EDITOR_CHART_SERIES;
+            case CHART_LINE_SERIES -> GuideIconButton.Role.GUIDE_EDITOR_CHART_LINE_SERIES;
+            case CHART_SLICE -> GuideIconButton.Role.GUIDE_EDITOR_CHART_SLICE;
+            case CHART_PIE_INSET -> GuideIconButton.Role.GUIDE_EDITOR_CHART_PIE_INSET;
+            case FUNCTION_GRAPH -> GuideIconButton.Role.GUIDE_EDITOR_FUNCTION_GRAPH;
+            case FUNCTION -> GuideIconButton.Role.GUIDE_EDITOR_FUNCTION;
+            case FUNCTION_PLOT -> GuideIconButton.Role.GUIDE_EDITOR_FUNCTION_PLOT;
+            case FUNCTION_POINT -> GuideIconButton.Role.GUIDE_EDITOR_FUNCTION_POINT;
+            case FUNCTION_GRAPH_FENCE -> GuideIconButton.Role.GUIDE_EDITOR_FUNCTION_GRAPH_FENCE;
+            case STRUCTURE -> GuideIconButton.Role.GUIDE_EDITOR_STRUCTURE;
+            case GAME_SCENE -> GuideIconButton.Role.GUIDE_EDITOR_GAME_SCENE;
+            case SCENE_BLOCK -> GuideIconButton.Role.GUIDE_EDITOR_SCENE_BLOCK;
+            case SCENE_ENTITY -> GuideIconButton.Role.GUIDE_EDITOR_SCENE_ENTITY;
+            case ISOMETRIC_CAMERA -> GuideIconButton.Role.GUIDE_EDITOR_ISOMETRIC_CAMERA;
+            case BOX_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_BOX_ANNOTATION;
+            case BLOCK_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_BLOCK_ANNOTATION;
+            case LINE_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_LINE_ANNOTATION;
+            case DIAMOND_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_DIAMOND_ANNOTATION;
+            case TEXT_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_TEXT_ANNOTATION;
+            case BLOCK_ANNOTATION_TEMPLATE -> GuideIconButton.Role.GUIDE_EDITOR_BLOCK_ANNOTATION_TEMPLATE;
+            case IMPORT_STRUCTURE -> GuideIconButton.Role.GUIDE_EDITOR_IMPORT_STRUCTURE;
+            case IMPORT_STRUCTURE_LIB -> GuideIconButton.Role.GUIDE_EDITOR_IMPORT_STRUCTURE_LIB;
+            case IMPORT_PONDER -> GuideIconButton.Role.GUIDE_EDITOR_IMPORT_PONDER;
+            case PLACE_BLOCK -> GuideIconButton.Role.GUIDE_EDITOR_PLACE_BLOCK;
+            case REPLACE_BLOCK -> GuideIconButton.Role.GUIDE_EDITOR_REPLACE_BLOCK;
+            case REMOVE_BLOCKS -> GuideIconButton.Role.GUIDE_EDITOR_REMOVE_BLOCKS;
+            case QUEST_LINK -> GuideIconButton.Role.GUIDE_EDITOR_QUEST_LINK;
+            case QUEST_CARD -> GuideIconButton.Role.GUIDE_EDITOR_QUEST_CARD;
+            case QUEST_IDS -> GuideIconButton.Role.GUIDE_EDITOR_QUEST_IDS;
+            case NAV_POSITION -> GuideIconButton.Role.GUIDE_EDITOR_NAV_POSITION;
+            case NAV_ICON -> GuideIconButton.Role.GUIDE_EDITOR_NAV_ICON;
+            case NAV_ICON_TEXTURE -> GuideIconButton.Role.GUIDE_EDITOR_NAV_ICON_TEXTURE;
+            case NAV_ICONS -> GuideIconButton.Role.GUIDE_EDITOR_NAV_ICONS;
+            case NAV_ICON_TEXTURES -> GuideIconButton.Role.GUIDE_EDITOR_NAV_ICON_TEXTURES;
+            case NAV_REQUIRED_MODS -> GuideIconButton.Role.GUIDE_EDITOR_NAV_REQUIRED_MODS;
+            case PAGE_CATEGORIES -> GuideIconButton.Role.GUIDE_EDITOR_PAGE_CATEGORIES;
+            case PAGE_ITEM_IDS -> GuideIconButton.Role.GUIDE_EDITOR_PAGE_ITEM_IDS;
+            case PAGE_ORE_IDS -> GuideIconButton.Role.GUIDE_EDITOR_PAGE_ORE_IDS;
+            case PAGE_METADATA -> GuideIconButton.Role.GUIDE_EDITOR_PAGE_METADATA;
+            case QUOTE_CALLOUT -> GuideIconButton.Role.GUIDE_EDITOR_QUOTE_CALLOUT;
+            case QUOTE_ICON_TEXT -> GuideIconButton.Role.GUIDE_EDITOR_QUOTE_ICON_TEXT;
+            case QUOTE_ICON_ITEM -> GuideIconButton.Role.GUIDE_EDITOR_QUOTE_ICON_ITEM;
+            case QUOTE_ICON_PNG -> GuideIconButton.Role.GUIDE_EDITOR_QUOTE_ICON_PNG;
+            case LATEX_SHORTHAND -> GuideIconButton.Role.GUIDE_EDITOR_LATEX_SHORTHAND;
+            case LINK -> GuideIconButton.Role.GUIDE_EDITOR_LINK;
+            case IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_IMAGE;
+            case INLINE_CODE -> GuideIconButton.Role.GUIDE_EDITOR_INLINE_CODE;
+            case CODE_BLOCK -> GuideIconButton.Role.GUIDE_EDITOR_CODE_BLOCK;
+            case BLOCKQUOTE -> GuideIconButton.Role.GUIDE_EDITOR_QUOTE;
+            case UNORDERED_LIST -> GuideIconButton.Role.GUIDE_EDITOR_BULLET_LIST;
+            case ORDERED_LIST -> GuideIconButton.Role.GUIDE_EDITOR_NUMBERED_LIST;
+            case TASK_LIST -> GuideIconButton.Role.GUIDE_EDITOR_TASK_LIST;
+            case TABLE -> GuideIconButton.Role.GUIDE_EDITOR_TABLE;
+            case ALERT_NOTE -> GuideIconButton.Role.GUIDE_EDITOR_ALERT_NOTE;
+            case ALERT_TIP -> GuideIconButton.Role.GUIDE_EDITOR_ALERT_TIP;
+            case ALERT_IMPORTANT -> GuideIconButton.Role.GUIDE_EDITOR_ALERT_IMPORTANT;
+            case ALERT_WARNING -> GuideIconButton.Role.GUIDE_EDITOR_ALERT_WARNING;
+            case ALERT_CAUTION -> GuideIconButton.Role.GUIDE_EDITOR_ALERT_CAUTION;
+            case DETAILS -> GuideIconButton.Role.GUIDE_EDITOR_DETAILS;
+            case KEY_BIND -> GuideIconButton.Role.GUIDE_EDITOR_KEY_BIND;
+            case PLAYER_NAME -> GuideIconButton.Role.GUIDE_EDITOR_PLAYER_NAME;
+            case COLOR -> GuideIconButton.Role.GUIDE_EDITOR_COLOR;
+            case BREAK -> GuideIconButton.Role.GUIDE_EDITOR_BREAK;
+            case REFERENCE_LINK -> GuideIconButton.Role.GUIDE_EDITOR_REFERENCE_LINK;
+            case REFERENCE_IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_REFERENCE_IMAGE;
+            case THEMATIC_BREAK -> GuideIconButton.Role.GUIDE_EDITOR_RULE;
+            case UNDO -> GuideIconButton.Role.GUIDE_EDITOR_UNDO;
+            case REDO -> GuideIconButton.Role.GUIDE_EDITOR_REDO;
+            case CUT -> GuideIconButton.Role.GUIDE_EDITOR_CUT;
+            case COPY -> GuideIconButton.Role.GUIDE_EDITOR_COPY;
+            case PASTE -> GuideIconButton.Role.GUIDE_EDITOR_PASTE;
+            case SELECT_ALL -> GuideIconButton.Role.GUIDE_EDITOR_SELECT_ALL;
+            default -> GuideIconButton.Role.GUIDE_EDITOR_ADVANCED_TOGGLE;
+        };
     }
 }

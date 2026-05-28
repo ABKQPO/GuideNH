@@ -455,7 +455,7 @@ public class SceneEditorPointDragService {
         BOX_CORNER
     }
 
-    private enum DragMode {
+    public enum DragMode {
 
         CENTER(SceneEditorHandleOverlay.CENTER_HANDLE_ID, false, false, false),
         AXIS_X(SceneEditorHandleOverlay.X_AXIS_HANDLE_ID, false, true, true),

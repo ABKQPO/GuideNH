@@ -25,7 +25,7 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
  * <a href=
  * "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flow_Layout/Block_and_Inline_Layout_in_Normal_Flow">...</a>
  */
-class LineBuilder implements Consumer<LytFlowContent> {
+public class LineBuilder implements Consumer<LytFlowContent> {
 
     private static final ThreadLocal<BreakIterator> LINE_BREAK_ITERATOR = ThreadLocal
         .withInitial(BreakIterator::getLineInstance);

@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.integration.gregtech;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -76,12 +77,37 @@ public class GregTechHelpers {
     }
 
     public static boolean isGregTechTileEntity(@Nullable TileEntity tileEntity) {
-        return Mods.GregTech.isModLoaded() && isGregTechTileEntityImpl(tileEntity);
+        if (tileEntity == null) {
+            return false;
+        }
+        try {
+            return Mods.GregTech.isModLoaded() && isGregTechTileEntityImpl(tileEntity);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     @Optional.Method(modid = "gregtech")
     private static boolean isGregTechTileEntityImpl(TileEntity tileEntity) {
         return tileEntity instanceof IGregTechTileEntity;
+    }
+
+    public static boolean isMultiblockController(@Nullable TileEntity tileEntity) {
+        if (!isGregTechTileEntity(tileEntity)) {
+            return false;
+        }
+        try {
+            return isMultiblockControllerImpl(tileEntity);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static boolean isMultiblockControllerImpl(TileEntity tileEntity) {
+        IGregTechTileEntity gtTile = (IGregTechTileEntity) tileEntity;
+        IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
+        return metaTileEntity instanceof MTEMultiBlockBase;
     }
 
     public static int resolveMetaTileId(@Nullable TileEntity tileEntity, int fallback) {
@@ -237,7 +263,7 @@ public class GregTechHelpers {
     }
 
     public static boolean isMachineItem(@Nullable Item item) {
-        return item != null && Mods.GregTech.isModLoaded() && isMachineItemImpl(item);
+        return Mods.GregTech.isModLoaded() && isMachineItemImpl(item);
     }
 
     @Optional.Method(modid = "gregtech")
@@ -385,8 +411,9 @@ public class GregTechHelpers {
         if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
             return;
         }
-        if (gtTile.isValidFacing(ForgeDirection.SOUTH)) {
-            gtTile.setFrontFacing(ForgeDirection.SOUTH);
+        ForgeDirection previewFacing = defaultPreviewFacing();
+        if (gtTile.isValidFacing(previewFacing)) {
+            gtTile.setFrontFacing(previewFacing);
         }
     }
 
@@ -431,24 +458,102 @@ public class GregTechHelpers {
         }
 
         try {
+            boolean activeBefore = gtTile.isActive();
+            Boolean machineBefore = readPreviewMachineState(multiBlockBase);
             multiBlockBase.clearHatches();
             boolean valid = multiBlockBase.checkMachine(gtTile, triggerStack);
+            boolean machineApplied = applyPreviewMachineState(multiBlockBase, valid);
+            Boolean machineAfter = readPreviewMachineState(multiBlockBase);
             if (!valid) {
                 logInfoOnce(
                     "preview-state-sync-invalid:" + describeTile(controllerTile),
                     "GregTech preview state sync kept invalid structure state for {}",
                     describeTile(controllerTile));
             }
-            if (activeController) {
+            if (shouldActivatePreviewController(activeController, valid)) {
                 gtTile.setActive(true);
                 gtTile.issueTextureUpdate();
+                applyPreviewTextureUpdate(metaTileEntity);
             }
+            GuideDebugLog.info(
+                LOG,
+                "GregTech preview sync controller={} meta={} facing={} valid={} activeRequested={} activeBefore={} activeAfter={} machineBefore={} machineAfter={} machineApplied={}",
+                describeTile(controllerTile),
+                describeMetaTile(metaTileEntity),
+                describeFacing(gtTile),
+                valid,
+                activeController,
+                activeBefore,
+                gtTile.isActive(),
+                machineBefore,
+                machineAfter,
+                machineApplied);
         } catch (Throwable t) {
             logInfoOnce(
                 "preview-state-sync-failed:" + describeTile(controllerTile),
                 "GregTech preview state sync could not finish for {}",
                 describeTile(controllerTile));
         }
+    }
+
+    public static boolean applyPreviewMachineState(@Nullable Object multiBlockController, boolean formed) {
+        if (multiBlockController == null) {
+            return false;
+        }
+        for (Class<?> type = multiBlockController.getClass(); type != null; type = type.getSuperclass()) {
+            try {
+                Field field = type.getDeclaredField("mMachine");
+                if (field.getType() != Boolean.TYPE) {
+                    continue;
+                }
+                field.setAccessible(true);
+                field.setBoolean(multiBlockController, formed);
+                return true;
+            } catch (NoSuchFieldException ignored) {
+                continue;
+            } catch (Throwable ignored) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    public static boolean applyPreviewTextureUpdate(@Nullable Object metaTileEntity) {
+        if (!(metaTileEntity instanceof IMetaTileEntity gregTechMetaTile)) {
+            return false;
+        }
+        try {
+            gregTechMetaTile.onTextureUpdate();
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    public static boolean shouldActivatePreviewController(boolean activeControllerRequested, boolean validStructure) {
+        return activeControllerRequested && validStructure;
+    }
+
+    @Nullable
+    public static Boolean readPreviewMachineState(@Nullable Object multiBlockController) {
+        if (multiBlockController == null) {
+            return null;
+        }
+        for (Class<?> type = multiBlockController.getClass(); type != null; type = type.getSuperclass()) {
+            try {
+                Field field = type.getDeclaredField("mMachine");
+                if (field.getType() != Boolean.TYPE) {
+                    continue;
+                }
+                field.setAccessible(true);
+                return field.getBoolean(multiBlockController);
+            } catch (NoSuchFieldException ignored) {
+                continue;
+            } catch (Throwable ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     public static void applyDefaultFacing(@Nullable TileEntity tileEntity, @Nullable NBTTagCompound tileTag) {
@@ -472,7 +577,7 @@ public class GregTechHelpers {
         if (current != null && current != ForgeDirection.UNKNOWN && gtTile.isValidFacing(current)) {
             return;
         }
-        ForgeDirection[] preferred = new ForgeDirection[] { ForgeDirection.SOUTH, ForgeDirection.NORTH,
+        ForgeDirection[] preferred = new ForgeDirection[] { defaultPreviewFacing(), ForgeDirection.SOUTH,
             ForgeDirection.EAST, ForgeDirection.WEST, ForgeDirection.UP, ForgeDirection.DOWN };
         for (ForgeDirection facing : preferred) {
             if (gtTile.isValidFacing(facing)) {
@@ -537,7 +642,7 @@ public class GregTechHelpers {
     }
 
     public static boolean isMTEHatch(@Nullable Object metaTileEntity) {
-        return metaTileEntity != null && Mods.GregTech.isModLoaded() && isMTEHatchImpl(metaTileEntity);
+        return Mods.GregTech.isModLoaded() && isMTEHatchImpl(metaTileEntity);
     }
 
     @Optional.Method(modid = "gregtech")
@@ -622,7 +727,7 @@ public class GregTechHelpers {
         appendTagValue(builder, tileTag, "mID");
         appendTagValue(builder, tileTag, "mFacing");
         appendTagValue(builder, tileTag, "m");
-        if (builder.length() == 0) {
+        if (builder.isEmpty()) {
             builder.append("empty-tag");
         }
         return builder.toString();
@@ -646,11 +751,43 @@ public class GregTechHelpers {
             + hasValidMetaTileBinding(tileEntity);
     }
 
+    public static String describeMetaTile(@Nullable Object metaTileEntity) {
+        if (metaTileEntity == null) {
+            return "null-meta";
+        }
+        if (metaTileEntity instanceof IMetaTileEntity gregTechMetaTile) {
+            try {
+                ItemStack stackForm = gregTechMetaTile.getStackForm(1L);
+                if (stackForm != null) {
+                    return metaTileEntity.getClass()
+                        .getName() + " stack="
+                        + Item.itemRegistry.getNameForObject(stackForm.getItem())
+                        + ":"
+                        + stackForm.getItemDamage();
+                }
+            } catch (Throwable ignored) {}
+        }
+        return metaTileEntity.getClass()
+            .getName();
+    }
+
+    public static String describeFacing(@Nullable IGregTechTileEntity gtTile) {
+        if (gtTile == null) {
+            return "null-facing";
+        }
+        try {
+            ForgeDirection frontFacing = gtTile.getFrontFacing();
+            return frontFacing != null ? frontFacing.name() : "null-facing";
+        } catch (Throwable ignored) {
+            return "unavailable-facing";
+        }
+    }
+
     public static void appendTagValue(StringBuilder builder, NBTTagCompound tileTag, String key) {
         if (!tileTag.hasKey(key)) {
             return;
         }
-        if (builder.length() > 0) {
+        if (!builder.isEmpty()) {
             builder.append(", ");
         }
         builder.append(key)
@@ -716,5 +853,13 @@ public class GregTechHelpers {
             .isInstance(adjMte)
             || adjMte.getClass()
                 .isInstance(pipe);
+    }
+
+    public static ForgeDirection defaultPreviewFacing() {
+        return ForgeDirection.NORTH;
+    }
+
+    public static int defaultPreviewFacingMeta() {
+        return defaultPreviewFacing().ordinal();
     }
 }

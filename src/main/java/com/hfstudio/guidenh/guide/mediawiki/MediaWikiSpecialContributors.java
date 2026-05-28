@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -32,13 +31,13 @@ public class MediaWikiSpecialContributors {
         }
         byte[] data = loadContributorsBytes();
         if (data == null || data.length == 0) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<ContributorEntry> contributors = GSON
             .fromJson(new String(data, StandardCharsets.UTF_8), new TypeToken<List<ContributorEntry>>() {}.getType());
         if (contributors == null || contributors.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         ArrayList<ContributorEntry> sanitized = new ArrayList<>(contributors.size());
@@ -51,7 +50,7 @@ public class MediaWikiSpecialContributors {
             }
             sanitized.add(contributor);
         }
-        List<ContributorEntry> immutable = Collections.unmodifiableList(sanitized);
+        List<ContributorEntry> immutable = List.copyOf(sanitized);
         cachedContributors = immutable;
         return immutable;
     }

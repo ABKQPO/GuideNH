@@ -65,25 +65,25 @@ public class SceneEditorTextSyncController {
 
     public boolean commitDraftText(@Nullable String mergeKey, @Nullable SceneEditorUndoUiState uiState) {
         SceneEditorMarkdownParseResult result = codec.parse(session.getRawText());
-        if (result instanceof SceneEditorMarkdownParseResult.Success success) {
+        if (result instanceof SceneEditorMarkdownParseResult.Success(SceneEditorSceneModel model)) {
             ensureHistoryInitialized();
-            String synchronizedText = codec.serialize(success.model());
-            applyParsedModel(success.model(), synchronizedText, true);
+            String synchronizedText = codec.serialize(model);
+            applyParsedModel(model, synchronizedText, true);
             recordAppliedSnapshot(mergeKey, uiState, false);
             rememberProcessedDraftState();
             return true;
         }
-        if (result instanceof SceneEditorMarkdownParseResult.SyntaxError syntaxError) {
+        if (result instanceof SceneEditorMarkdownParseResult.SyntaxError(String message)) {
             validationKind = ValidationKind.SYNTAX;
-            validationMessage = syntaxError.message();
+            validationMessage = message;
             rebuildRangeIndexes();
             recordCurrentSnapshot(mergeKey, uiState, false);
             rememberProcessedDraftState();
             return false;
         }
-        if (result instanceof SceneEditorMarkdownParseResult.Unsupported unsupported) {
+        if (result instanceof SceneEditorMarkdownParseResult.Unsupported(String message)) {
             validationKind = ValidationKind.UNSUPPORTED;
-            validationMessage = unsupported.message();
+            validationMessage = message;
             rebuildRangeIndexes();
             recordCurrentSnapshot(mergeKey, uiState, false);
             rememberProcessedDraftState();
@@ -107,8 +107,8 @@ public class SceneEditorTextSyncController {
         }
 
         SceneEditorMarkdownParseResult result = codec.parse(draftText);
-        if (result instanceof SceneEditorMarkdownParseResult.Success success) {
-            String synchronizedText = codec.serialize(success.model());
+        if (result instanceof SceneEditorMarkdownParseResult.Success(SceneEditorSceneModel model)) {
+            String synchronizedText = codec.serialize(model);
             if (synchronizedText.equals(session.getLastAppliedText())) {
                 validationKind = ValidationKind.NONE;
                 validationMessage = null;
@@ -116,20 +116,20 @@ public class SceneEditorTextSyncController {
                 rememberProcessedDraftState();
                 return LiveApplyResult.NO_CHANGE;
             }
-            applyParsedModel(success.model(), synchronizedText, false);
+            applyParsedModel(model, synchronizedText, false);
             rememberProcessedDraftState();
             return LiveApplyResult.APPLIED;
         }
-        if (result instanceof SceneEditorMarkdownParseResult.SyntaxError syntaxError) {
+        if (result instanceof SceneEditorMarkdownParseResult.SyntaxError(String message)) {
             validationKind = ValidationKind.SYNTAX;
-            validationMessage = syntaxError.message();
+            validationMessage = message;
             rebuildRangeIndexes();
             rememberProcessedDraftState();
             return LiveApplyResult.INVALID;
         }
-        if (result instanceof SceneEditorMarkdownParseResult.Unsupported unsupported) {
+        if (result instanceof SceneEditorMarkdownParseResult.Unsupported(String message)) {
             validationKind = ValidationKind.UNSUPPORTED;
-            validationMessage = unsupported.message();
+            validationMessage = message;
             rebuildRangeIndexes();
             rememberProcessedDraftState();
             return LiveApplyResult.INVALID;

@@ -48,7 +48,7 @@ public class SceneEditorHorizontalScrollbar {
         if (value < minValue) {
             return minValue;
         }
-        return value > maxValue ? maxValue : value;
+        return Math.min(value, maxValue);
     }
 
     @Desugar

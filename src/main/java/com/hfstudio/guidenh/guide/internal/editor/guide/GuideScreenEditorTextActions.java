@@ -42,367 +42,269 @@ public class GuideScreenEditorTextActions {
         if (action == null) {
             return new Result(source, start, end);
         }
-        switch (action) {
-            case HEADING_1:
-                return applyLinePrefix(source, start, end, "# ", 0, 0);
-            case HEADING_2:
-                return applyLinePrefix(source, start, end, "## ", 0, 0);
-            case HEADING_3:
-                return applyLinePrefix(source, start, end, "### ", 0, 0);
-            case HEADING_4:
-                return applyLinePrefix(source, start, end, "#### ", 0, 0);
-            case HEADING_5:
-                return applyLinePrefix(source, start, end, "##### ", 0, 0);
-            case HEADING_6:
-                return applyLinePrefix(source, start, end, "###### ", 0, 0);
-            case BOLD:
-                return wrap(source, start, end, "**", "**", "", "");
-            case ITALIC:
-                return wrap(source, start, end, "*", "*", "", "");
-            case STRIKETHROUGH:
-                return wrap(source, start, end, "~~", "~~", "", "");
-            case UNDERLINE:
-                return wrap(source, start, end, "++", "++", "", "");
-            case KBD:
-                return wrap(source, start, end, "<kbd>", "</kbd>", "key", "");
-            case SUBSCRIPT:
-                return wrap(source, start, end, "<sub>", "</sub>", "1", "");
-            case SUPERSCRIPT:
-                return wrap(source, start, end, "<sup>", "</sup>", "2", "");
-            case FOOTNOTE:
-                return applyFootnote(source, start, end);
-            case TOOLTIP:
-                return applyTooltip(source, start, end);
-            case ITEM_IMAGE:
-                return applyItemTag(source, start, end, "ItemImage");
-            case BLOCK_IMAGE:
-                return applyItemTag(source, start, end, "BlockImage");
-            case ITEM_LINK:
-                return applyItemTag(source, start, end, "ItemLink");
-            case LATEX:
-                return applyAttributeTag(source, start, end, "Latex", "formula", "E=mc^2", true);
-            case CSV_TABLE:
-                return applyCsvTable(source, start, end);
-            case COMMAND_LINK:
-                return applyCommandLink(source, start, end);
-            case RECIPE:
-                return applyRecipeTag(source, start, end, "Recipe", " fallbackText=\"Recipe unavailable.\"");
-            case RECIPE_FOR:
-                return applyRecipeTag(source, start, end, "RecipeFor", "");
-            case RECIPES_FOR:
-                return applyRecipeTag(source, start, end, "RecipesFor", " limit=\"3\"");
-            case FLOATING_IMAGE:
-                return applyFloatingImage(source, start, end);
-            case MERMAID:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<Mermaid width=\"320\" height=\"220\">",
-                    "</Mermaid>",
-                    "mindmap\n  root((GuideNH))");
-            case FILE_TREE:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<FileTree indent=\"16\" gap=\"2\">",
-                    "</FileTree>",
-                    "project\n  src\n  docs");
-            case SUB_PAGES:
-                return applyAttributeTag(source, start, end, "SubPages", "id", "", true);
-            case CATEGORY:
-                return applyNamedTag(source, start, end, "Category", "name", "general", " rows=\"3\"", true);
-            case FOOTNOTE_LIST:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<FootnoteList width=\"220\">",
-                    "</FootnoteList>",
-                    "[^note]: tooltip text");
-            case ROW:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<Row gap=\"5\" alignItems=\"START\">",
-                    "</Row>",
-                    "Left\nRight");
-            case COLUMN:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<Column gap=\"5\" alignItems=\"START\">",
-                    "</Column>",
-                    "Top\nBottom");
-            case DIV:
-                return applyNamedBlock(source, start, end, "<div>", "</div>", "Content");
-            case ITEM_GRID:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<ItemGrid>",
-                    "</ItemGrid>",
-                    "  <ItemIcon id=\"minecraft:stone\" />\n  <ItemIcon id=\"minecraft:diamond\" />");
-            case CSV_TABLE_IMPORT:
-                return applyAttributeTag(source, start, end, "CsvTable", "src", "./data.csv", true);
-            case ANCHOR:
-                return applyAttributeTag(source, start, end, "a", "name", "anchor-name", true);
-            case COLUMN_CHART:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<ColumnChart title=\"Quarterly Output\" categories=\"Q1,Q2,Q3,Q4\" labelPosition=\"above\">",
-                    "</ColumnChart>",
-                    "  <Series name=\"Iron\" data=\"120,180,150,210\" color=\"#4E79A7\" />");
-            case BAR_CHART:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<BarChart title=\"Mod Downloads\" categories=\"GTNH,IC2,Thermal,Mekanism\" labelPosition=\"outside\">",
-                    "</BarChart>",
-                    "  <Series name=\"Downloads\" data=\"320,210,180,150\" />");
-            case LINE_CHART:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<LineChart title=\"Temperature\" categories=\"Mon,Tue,Wed,Thu,Fri\" yAxisUnit=\"C\">",
-                    "</LineChart>",
-                    "  <Series name=\"Outdoor\" data=\"5,8,11,9,6\" color=\"#4E79A7\" />");
-            case PIE_CHART:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<PieChart title=\"Resource Share\" labelPosition=\"outside\" legend=\"right\">",
-                    "</PieChart>",
-                    "  <Slice label=\"Iron\" value=\"45\" color=\"#4E79A7\" />\n"
-                        + "  <Slice label=\"Copper\" value=\"25\" color=\"#F28E2B\" />");
-            case SCATTER_CHART:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<ScatterChart title=\"Height-Weight\" xAxisLabel=\"Height\" yAxisLabel=\"Weight\">",
-                    "</ScatterChart>",
-                    "  <Series name=\"Sample\" points=\"160:55,170:65,180:78\" color=\"#4E79A7\" />");
-            case CHART_SERIES:
-                return applyChartSeries(source, start, end);
-            case CHART_LINE_SERIES:
-                return applyChartLineSeries(source, start, end);
-            case CHART_SLICE:
-                return applyChartSlice(source, start, end);
-            case CHART_PIE_INSET:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<PieInset title=\"Share\" position=\"topRight\" size=\"56\">",
-                    "</PieInset>",
-                    "  <Slice label=\"Iron\" value=\"45\" color=\"#4E79A7\" />\n"
-                        + "  <Slice label=\"Copper\" value=\"25\" color=\"#F28E2B\" />");
-            case FUNCTION_GRAPH:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<FunctionGraph width=\"360\" height=\"220\" xRange=\"-6..6\" yRange=\"-3..3\" quadrants=\"all\">",
-                    "</FunctionGraph>",
-                    "  <Plot expr=\"sin(x)\" color=\"#ff5566\" label=\"sin x\" />\n  <Point x=\"0\" y=\"0\" />");
-            case FUNCTION:
-                return applyFunction(source, start, end);
-            case FUNCTION_PLOT:
-                return applyFunctionPlot(source, start, end);
-            case FUNCTION_POINT:
-                return applyFunctionPoint(source, start, end);
-            case FUNCTION_GRAPH_FENCE:
-                return applyFunctionGraphFence(source, start, end);
-            case STRUCTURE:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<Structure width=\"192\" height=\"144\">",
-                    "</Structure>",
-                    "0 0 0 minecraft:stone");
-            case GAME_SCENE:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<GameScene width=\"256\" height=\"160\" zoom={4} interactive={true}>",
-                    "</GameScene>",
-                    "  <Block id=\"minecraft:stone\" />");
-            case SCENE_BLOCK:
-                return applySceneBlock(source, start, end);
-            case SCENE_ENTITY:
-                return applySceneEntity(source, start, end);
-            case ISOMETRIC_CAMERA:
-                return applyIsometricCamera(source, start, end);
-            case BOX_ANNOTATION:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<BoxAnnotation color=\"#ee3333\" min=\"0 0 0\" max=\"1 1 1\" thickness=\"0.04\">",
-                    "</BoxAnnotation>",
-                    "Important area");
-            case BLOCK_ANNOTATION:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<BlockAnnotation color=\"#33ddee\" pos=\"0 0 0\" alwaysOnTop={true}>",
-                    "</BlockAnnotation>",
-                    "Block note");
-            case LINE_ANNOTATION:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<LineAnnotation color=\"#ffd24c\" from=\"0.5 1.2 0.5\" to=\"2.5 1.2 2.5\" thickness=\"0.08\">",
-                    "</LineAnnotation>",
-                    "Line note");
-            case DIAMOND_ANNOTATION:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<DiamondAnnotation pos=\"0.5 1.2 0.5\" color=\"#ffd24c\">",
-                    "</DiamondAnnotation>",
-                    "Point note");
-            case TEXT_ANNOTATION:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<TextAnnotation pos=\"0.5 1.4 0.5\" color=\"#ffffff\" maxWidth=\"120\">",
-                    "</TextAnnotation>",
-                    "Scene note");
-            case BLOCK_ANNOTATION_TEMPLATE:
-                return applyNamedBlock(
-                    source,
-                    start,
-                    end,
-                    "<BlockAnnotationTemplate id=\"minecraft:stone\">",
-                    "</BlockAnnotationTemplate>",
-                    "  <DiamondAnnotation pos=\"0.5 0.5 0.5\" color=\"#ff0000\">\n    Stone\n  </DiamondAnnotation>");
-            case IMPORT_STRUCTURE:
-                return applyImportFile(
-                    source,
-                    start,
-                    end,
-                    "ImportStructure",
-                    "src",
-                    "./scene.snbt",
-                    " x=\"0\" y=\"0\" z=\"0\"");
-            case IMPORT_STRUCTURE_LIB:
-                return applyImportStructureLib(source, start, end);
-            case IMPORT_PONDER:
-                return applyImportFile(source, start, end, "ImportPonder", "src", "./scene.json", "");
-            case PLACE_BLOCK:
-                return applyPlaceBlock(source, start, end);
-            case REPLACE_BLOCK:
-                return applyReplaceBlock(source, start, end);
-            case REMOVE_BLOCKS:
-                return applyRemoveBlocks(source, start, end);
-            case QUEST_LINK:
-                return applyQuestTag(source, start, end, "QuestLink");
-            case QUEST_CARD:
-                return applyQuestTag(source, start, end, "QuestCard");
-            case QUEST_IDS:
-                return applyQuestIdsFrontmatter(source, start, end);
-            case NAV_POSITION:
-                return applyNavigationScalarFrontmatter(source, start, end, "position", "0", true);
-            case NAV_ICON:
-                return applyNavigationScalarFrontmatter(source, start, end, "icon", "minecraft:book", false);
-            case NAV_ICON_TEXTURE:
-                return applyNavigationScalarFrontmatter(source, start, end, "icon_texture", "test1.png", false);
-            case NAV_ICONS:
-                return applyNavigationListFrontmatter(source, start, end, "icons", "minecraft:book");
-            case NAV_ICON_TEXTURES:
-                return applyNavigationListFrontmatter(source, start, end, "icon_textures", "test1.png");
-            case NAV_REQUIRED_MODS:
-                return applyNavigationRequiredModsFrontmatter(source, start, end);
-            case PAGE_CATEGORIES:
-                return applyTopLevelListFrontmatter(source, start, end, "categories", "general");
-            case PAGE_ITEM_IDS:
-                return applyTopLevelListFrontmatter(source, start, end, "item_ids", "minecraft:stone");
-            case PAGE_ORE_IDS:
-                return applyTopLevelListFrontmatter(source, start, end, "ore_ids", "ingotIron");
-            case PAGE_METADATA:
-                return applyPageMetadataFrontmatter(source, start, end);
-            case QUOTE_CALLOUT:
-                return applyQuoteDirective(source, start, end, "title=\"Callout\" color=\"#7C8795\"");
-            case QUOTE_ICON_TEXT:
-                return applyQuoteDirective(source, start, end, "title=\"Callout\" color=\"#7C8795\" icon=\"i\"");
-            case QUOTE_ICON_ITEM:
-                return applyQuoteDirective(
-                    source,
-                    start,
-                    end,
-                    "title=\"Callout\" color=\"#7C8795\" iconItem=\"minecraft:stone\"");
-            case QUOTE_ICON_PNG:
-                return applyQuoteDirective(
-                    source,
-                    start,
-                    end,
-                    "title=\"Callout\" color=\"#7C8795\" iconPng=\"./icon.png\"");
-            case LATEX_SHORTHAND:
-                return wrap(source, start, end, "$$", "$$", "formula", "");
-            case LINK:
-                return wrap(source, start, end, "[", "]()", "", "");
-            case IMAGE:
-                return wrap(source, start, end, "![](", ")", "", "");
-            case INLINE_CODE:
-                return wrap(source, start, end, "`", "`", "", "");
-            case CODE_BLOCK:
-                return wrapBlock(source, start, end, "```", "```");
-            case BLOCKQUOTE:
-                return applyLinePrefix(source, start, end, "> ", 0, 0);
-            case UNORDERED_LIST:
-                return applyLinePrefix(source, start, end, "- ", 0, 0);
-            case ORDERED_LIST:
-                return applyOrderedList(source, start, end);
-            case TASK_LIST:
-                return applyLinePrefix(source, start, end, "- [ ] ", 0, 0);
-            case TABLE:
-                return applyTableTemplate(source, start, end);
-            case ALERT_NOTE:
-                return applyAlertBlock(source, start, end, "NOTE");
-            case ALERT_TIP:
-                return applyAlertBlock(source, start, end, "TIP");
-            case ALERT_IMPORTANT:
-                return applyAlertBlock(source, start, end, "IMPORTANT");
-            case ALERT_WARNING:
-                return applyAlertBlock(source, start, end, "WARNING");
-            case ALERT_CAUTION:
-                return applyAlertBlock(source, start, end, "CAUTION");
-            case DETAILS:
-                return applyDetailsBlock(source, start, end);
-            case KEY_BIND:
-                return applyAttributeTag(source, start, end, "KeyBind", "id", "key.jump", true);
-            case PLAYER_NAME:
-                return insertAt(source, start, end, "<PlayerName />", 0, 0);
-            case COLOR:
-                return applyColor(source, start, end);
-            case BREAK:
-                return insertAt(source, start, end, "<br clear=\"all\" />", 0, 0);
-            case REFERENCE_LINK:
-                return applyReference(source, start, end, false);
-            case REFERENCE_IMAGE:
-                return applyReference(source, start, end, true);
-            case THEMATIC_BREAK:
-                return insertAt(source, start, end, "\n---\n", 1, 4);
-            default:
-                return new Result(source, start, end);
-        }
+        return switch (action) {
+            case HEADING_1 -> applyLinePrefix(source, start, end, "# ", 0, 0);
+            case HEADING_2 -> applyLinePrefix(source, start, end, "## ", 0, 0);
+            case HEADING_3 -> applyLinePrefix(source, start, end, "### ", 0, 0);
+            case HEADING_4 -> applyLinePrefix(source, start, end, "#### ", 0, 0);
+            case HEADING_5 -> applyLinePrefix(source, start, end, "##### ", 0, 0);
+            case HEADING_6 -> applyLinePrefix(source, start, end, "###### ", 0, 0);
+            case BOLD -> wrap(source, start, end, "**", "**", "", "");
+            case ITALIC -> wrap(source, start, end, "*", "*", "", "");
+            case STRIKETHROUGH -> wrap(source, start, end, "~~", "~~", "", "");
+            case UNDERLINE -> wrap(source, start, end, "++", "++", "", "");
+            case KBD -> wrap(source, start, end, "<kbd>", "</kbd>", "key", "");
+            case SUBSCRIPT -> wrap(source, start, end, "<sub>", "</sub>", "1", "");
+            case SUPERSCRIPT -> wrap(source, start, end, "<sup>", "</sup>", "2", "");
+            case FOOTNOTE -> applyFootnote(source, start, end);
+            case TOOLTIP -> applyTooltip(source, start, end);
+            case ITEM_IMAGE -> applyItemTag(source, start, end, "ItemImage");
+            case BLOCK_IMAGE -> applyItemTag(source, start, end, "BlockImage");
+            case ITEM_LINK -> applyItemTag(source, start, end, "ItemLink");
+            case LATEX -> applyAttributeTag(source, start, end, "Latex", "formula", "E=mc^2", true);
+            case CSV_TABLE -> applyCsvTable(source, start, end);
+            case COMMAND_LINK -> applyCommandLink(source, start, end);
+            case RECIPE -> applyRecipeTag(source, start, end, "Recipe", " fallbackText=\"Recipe unavailable.\"");
+            case RECIPE_FOR -> applyRecipeTag(source, start, end, "RecipeFor", "");
+            case RECIPES_FOR -> applyRecipeTag(source, start, end, "RecipesFor", " limit=\"3\"");
+            case FLOATING_IMAGE -> applyFloatingImage(source, start, end);
+            case MERMAID -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<Mermaid width=\"320\" height=\"220\">",
+                "</Mermaid>",
+                "mindmap\n  root((GuideNH))");
+            case FILE_TREE -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<FileTree indent=\"16\" gap=\"2\">",
+                "</FileTree>",
+                "project\n  src\n  docs");
+            case SUB_PAGES -> applyAttributeTag(source, start, end, "SubPages", "id", "", true);
+            case CATEGORY -> applyNamedTag(source, start, end, "Category", "name", "general", " rows=\"3\"", true);
+            case FOOTNOTE_LIST -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<FootnoteList width=\"220\">",
+                "</FootnoteList>",
+                "[^note]: tooltip text");
+            case ROW -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<Row gap=\"5\" alignItems=\"START\">",
+                "</Row>",
+                "Left\nRight");
+            case COLUMN -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<Column gap=\"5\" alignItems=\"START\">",
+                "</Column>",
+                "Top\nBottom");
+            case DIV -> applyNamedBlock(source, start, end, "<div>", "</div>", "Content");
+            case ITEM_GRID -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<ItemGrid>",
+                "</ItemGrid>",
+                "  <ItemIcon id=\"minecraft:stone\" />\n  <ItemIcon id=\"minecraft:diamond\" />");
+            case CSV_TABLE_IMPORT -> applyAttributeTag(source, start, end, "CsvTable", "src", "./data.csv", true);
+            case ANCHOR -> applyAttributeTag(source, start, end, "a", "name", "anchor-name", true);
+            case COLUMN_CHART -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<ColumnChart title=\"Quarterly Output\" categories=\"Q1,Q2,Q3,Q4\" labelPosition=\"above\">",
+                "</ColumnChart>",
+                "  <Series name=\"Iron\" data=\"120,180,150,210\" color=\"#4E79A7\" />");
+            case BAR_CHART -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<BarChart title=\"Mod Downloads\" categories=\"GTNH,IC2,Thermal,Mekanism\" labelPosition=\"outside\">",
+                "</BarChart>",
+                "  <Series name=\"Downloads\" data=\"320,210,180,150\" />");
+            case LINE_CHART -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<LineChart title=\"Temperature\" categories=\"Mon,Tue,Wed,Thu,Fri\" yAxisUnit=\"C\">",
+                "</LineChart>",
+                "  <Series name=\"Outdoor\" data=\"5,8,11,9,6\" color=\"#4E79A7\" />");
+            case PIE_CHART -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<PieChart title=\"Resource Share\" labelPosition=\"outside\" legend=\"right\">",
+                "</PieChart>",
+                "  <Slice label=\"Iron\" value=\"45\" color=\"#4E79A7\" />\n"
+                    + "  <Slice label=\"Copper\" value=\"25\" color=\"#F28E2B\" />");
+            case SCATTER_CHART -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<ScatterChart title=\"Height-Weight\" xAxisLabel=\"Height\" yAxisLabel=\"Weight\">",
+                "</ScatterChart>",
+                "  <Series name=\"Sample\" points=\"160:55,170:65,180:78\" color=\"#4E79A7\" />");
+            case CHART_SERIES -> applyChartSeries(source, start, end);
+            case CHART_LINE_SERIES -> applyChartLineSeries(source, start, end);
+            case CHART_SLICE -> applyChartSlice(source, start, end);
+            case CHART_PIE_INSET -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<PieInset title=\"Share\" position=\"topRight\" size=\"56\">",
+                "</PieInset>",
+                "  <Slice label=\"Iron\" value=\"45\" color=\"#4E79A7\" />\n"
+                    + "  <Slice label=\"Copper\" value=\"25\" color=\"#F28E2B\" />");
+            case FUNCTION_GRAPH -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<FunctionGraph width=\"360\" height=\"220\" xRange=\"-6..6\" yRange=\"-3..3\" quadrants=\"all\">",
+                "</FunctionGraph>",
+                "  <Plot expr=\"sin(x)\" color=\"#ff5566\" label=\"sin x\" />\n  <Point x=\"0\" y=\"0\" />");
+            case FUNCTION -> applyFunction(source, start, end);
+            case FUNCTION_PLOT -> applyFunctionPlot(source, start, end);
+            case FUNCTION_POINT -> applyFunctionPoint(source, start, end);
+            case FUNCTION_GRAPH_FENCE -> applyFunctionGraphFence(source, start, end);
+            case STRUCTURE -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<Structure width=\"192\" height=\"144\">",
+                "</Structure>",
+                "0 0 0 minecraft:stone");
+            case GAME_SCENE -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<GameScene width=\"256\" height=\"160\" zoom={4} interactive={true}>",
+                "</GameScene>",
+                "  <Block id=\"minecraft:stone\" />");
+            case SCENE_BLOCK -> applySceneBlock(source, start, end);
+            case SCENE_ENTITY -> applySceneEntity(source, start, end);
+            case ISOMETRIC_CAMERA -> applyIsometricCamera(source, start, end);
+            case BOX_ANNOTATION -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<BoxAnnotation color=\"#ee3333\" min=\"0 0 0\" max=\"1 1 1\" thickness=\"0.04\">",
+                "</BoxAnnotation>",
+                "Important area");
+            case BLOCK_ANNOTATION -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<BlockAnnotation color=\"#33ddee\" pos=\"0 0 0\" alwaysOnTop={true}>",
+                "</BlockAnnotation>",
+                "Block note");
+            case LINE_ANNOTATION -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<LineAnnotation color=\"#ffd24c\" from=\"0.5 1.2 0.5\" to=\"2.5 1.2 2.5\" thickness=\"0.08\">",
+                "</LineAnnotation>",
+                "Line note");
+            case DIAMOND_ANNOTATION -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<DiamondAnnotation pos=\"0.5 1.2 0.5\" color=\"#ffd24c\">",
+                "</DiamondAnnotation>",
+                "Point note");
+            case TEXT_ANNOTATION -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<TextAnnotation pos=\"0.5 1.4 0.5\" color=\"#ffffff\" maxWidth=\"120\">",
+                "</TextAnnotation>",
+                "Scene note");
+            case BLOCK_ANNOTATION_TEMPLATE -> applyNamedBlock(
+                source,
+                start,
+                end,
+                "<BlockAnnotationTemplate id=\"minecraft:stone\">",
+                "</BlockAnnotationTemplate>",
+                "  <DiamondAnnotation pos=\"0.5 0.5 0.5\" color=\"#ff0000\">\n    Stone\n  </DiamondAnnotation>");
+            case IMPORT_STRUCTURE -> applyImportFile(
+                source,
+                start,
+                end,
+                "ImportStructure",
+                "src",
+                "./scene.snbt",
+                " x=\"0\" y=\"0\" z=\"0\"");
+            case IMPORT_STRUCTURE_LIB -> applyImportStructureLib(source, start, end);
+            case IMPORT_PONDER -> applyImportFile(source, start, end, "ImportPonder", "src", "./scene.json", "");
+            case PLACE_BLOCK -> applyPlaceBlock(source, start, end);
+            case REPLACE_BLOCK -> applyReplaceBlock(source, start, end);
+            case REMOVE_BLOCKS -> applyRemoveBlocks(source, start, end);
+            case QUEST_LINK -> applyQuestTag(source, start, end, "QuestLink");
+            case QUEST_CARD -> applyQuestTag(source, start, end, "QuestCard");
+            case QUEST_IDS -> applyQuestIdsFrontmatter(source, start, end);
+            case NAV_POSITION -> applyNavigationScalarFrontmatter(source, start, end, "position", "0", true);
+            case NAV_ICON -> applyNavigationScalarFrontmatter(source, start, end, "icon", "minecraft:book", false);
+            case NAV_ICON_TEXTURE -> applyNavigationScalarFrontmatter(
+                source,
+                start,
+                end,
+                "icon_texture",
+                "test1.png",
+                false);
+            case NAV_ICONS -> applyNavigationListFrontmatter(source, start, end, "icons", "minecraft:book");
+            case NAV_ICON_TEXTURES -> applyNavigationListFrontmatter(source, start, end, "icon_textures", "test1.png");
+            case NAV_REQUIRED_MODS -> applyNavigationRequiredModsFrontmatter(source, start, end);
+            case PAGE_CATEGORIES -> applyTopLevelListFrontmatter(source, start, end, "categories", "general");
+            case PAGE_ITEM_IDS -> applyTopLevelListFrontmatter(source, start, end, "item_ids", "minecraft:stone");
+            case PAGE_ORE_IDS -> applyTopLevelListFrontmatter(source, start, end, "ore_ids", "ingotIron");
+            case PAGE_METADATA -> applyPageMetadataFrontmatter(source, start, end);
+            case QUOTE_CALLOUT -> applyQuoteDirective(source, start, end, "title=\"Callout\" color=\"#7C8795\"");
+            case QUOTE_ICON_TEXT -> applyQuoteDirective(
+                source,
+                start,
+                end,
+                "title=\"Callout\" color=\"#7C8795\" icon=\"i\"");
+            case QUOTE_ICON_ITEM -> applyQuoteDirective(
+                source,
+                start,
+                end,
+                "title=\"Callout\" color=\"#7C8795\" iconItem=\"minecraft:stone\"");
+            case QUOTE_ICON_PNG -> applyQuoteDirective(
+                source,
+                start,
+                end,
+                "title=\"Callout\" color=\"#7C8795\" iconPng=\"./icon.png\"");
+            case LATEX_SHORTHAND -> wrap(source, start, end, "$$", "$$", "formula", "");
+            case LINK -> wrap(source, start, end, "[", "]()", "", "");
+            case IMAGE -> wrap(source, start, end, "![](", ")", "", "");
+            case INLINE_CODE -> wrap(source, start, end, "`", "`", "", "");
+            case CODE_BLOCK -> wrapBlock(source, start, end, "```", "```");
+            case BLOCKQUOTE -> applyLinePrefix(source, start, end, "> ", 0, 0);
+            case UNORDERED_LIST -> applyLinePrefix(source, start, end, "- ", 0, 0);
+            case ORDERED_LIST -> applyOrderedList(source, start, end);
+            case TASK_LIST -> applyLinePrefix(source, start, end, "- [ ] ", 0, 0);
+            case TABLE -> applyTableTemplate(source, start, end);
+            case ALERT_NOTE -> applyAlertBlock(source, start, end, "NOTE");
+            case ALERT_TIP -> applyAlertBlock(source, start, end, "TIP");
+            case ALERT_IMPORTANT -> applyAlertBlock(source, start, end, "IMPORTANT");
+            case ALERT_WARNING -> applyAlertBlock(source, start, end, "WARNING");
+            case ALERT_CAUTION -> applyAlertBlock(source, start, end, "CAUTION");
+            case DETAILS -> applyDetailsBlock(source, start, end);
+            case KEY_BIND -> applyAttributeTag(source, start, end, "KeyBind", "id", "key.jump", true);
+            case PLAYER_NAME -> insertAt(source, start, end, "<PlayerName />", 0, 0);
+            case COLOR -> applyColor(source, start, end);
+            case BREAK -> insertAt(source, start, end, "<br clear=\"all\" />", 0, 0);
+            case REFERENCE_LINK -> applyReference(source, start, end, false);
+            case REFERENCE_IMAGE -> applyReference(source, start, end, true);
+            case THEMATIC_BREAK -> insertAt(source, start, end, "\n---\n", 1, 4);
+            default -> new Result(source, start, end);
+        };
     }
 
     public static String formatDocument(String text) {
@@ -744,12 +646,10 @@ public class GuideScreenEditorTextActions {
             .trim();
         String replacement = "> {:" + directive + "}\n> ";
         int caret;
-        if (body.isEmpty()) {
-            caret = range.start + replacement.length();
-        } else {
+        if (!body.isEmpty()) {
             replacement += body.replace("\n", "\n> ");
-            caret = range.start + replacement.length();
         }
+        caret = range.start + replacement.length();
         return new Result(source.substring(0, range.start) + replacement + source.substring(range.end), caret, caret);
     }
 
@@ -1177,13 +1077,11 @@ public class GuideScreenEditorTextActions {
         int caretEnd;
         if (selected.isEmpty()) {
             replacement = "[^" + id + "]" + definition;
-            caretStart = start + replacement.indexOf("tooltip text");
-            caretEnd = caretStart + "tooltip text".length();
         } else {
             replacement = selected + "[^" + id + "]" + definition;
-            caretStart = start + replacement.indexOf("tooltip text");
-            caretEnd = caretStart + "tooltip text".length();
         }
+        caretStart = start + replacement.indexOf("tooltip text");
+        caretEnd = caretStart + "tooltip text".length();
         return new Result(source.substring(0, start) + replacement + source.substring(end), caretStart, caretEnd);
     }
 
@@ -1196,13 +1094,11 @@ public class GuideScreenEditorTextActions {
         int caretEnd;
         if (body.isEmpty()) {
             replacement = "<Tooltip label=\"Hover\">\n  Tooltip content\n</Tooltip>";
-            caretStart = range.start + replacement.indexOf("Hover");
-            caretEnd = caretStart + "Hover".length();
         } else {
             replacement = "<Tooltip label=\"Hover\">\n  " + body.replace("\n", "\n  ") + "\n</Tooltip>";
-            caretStart = range.start + replacement.indexOf("Hover");
-            caretEnd = caretStart + "Hover".length();
         }
+        caretStart = range.start + replacement.indexOf("Hover");
+        caretEnd = caretStart + "Hover".length();
         return new Result(
             source.substring(0, range.start) + replacement + source.substring(range.end),
             caretStart,
@@ -1314,15 +1210,13 @@ public class GuideScreenEditorTextActions {
         replacement.append("<details>\n");
         replacement.append("<summary>Details</summary>\n\n");
         int caret;
-        if (body.isEmpty()) {
-            caret = range.start + replacement.length();
-        } else {
+        if (!body.isEmpty()) {
             replacement.append(body);
             if (!body.endsWith("\n")) {
                 replacement.append('\n');
             }
-            caret = range.start + replacement.length();
         }
+        caret = range.start + replacement.length();
         replacement.append("</details>");
         return new Result(source.substring(0, range.start) + replacement + source.substring(range.end), caret, caret);
     }

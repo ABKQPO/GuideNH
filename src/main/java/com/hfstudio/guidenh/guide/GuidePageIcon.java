@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -61,7 +59,7 @@ public record GuidePageIcon(@Nullable ItemStack itemStack, @Nullable ResourceLoc
     }
 
     private static <T> List<T> copy(List<T> values) {
-        return Collections.unmodifiableList(new ArrayList<>(values));
+        return List.copyOf(values);
     }
 
     public boolean isItemIcon() {

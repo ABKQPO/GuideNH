@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.siteexport.site.layout;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -10,17 +8,17 @@ import java.util.List;
  * and returns non-empty HTML wins; {@link DefaultSiteRecipeLayoutStrategy} should be registered
  * last as unconditional fallback.
  */
-public final class SiteRecipeLayoutStrategyRegistry {
+public class SiteRecipeLayoutStrategyRegistry {
 
     private final List<SiteRecipeLayoutStrategy> strategies;
 
     public SiteRecipeLayoutStrategyRegistry(List<SiteRecipeLayoutStrategy> strategies) {
-        this.strategies = Collections.unmodifiableList(new ArrayList<>(strategies));
+        this.strategies = List.copyOf(new ArrayList<>(strategies));
     }
 
     public static SiteRecipeLayoutStrategyRegistry createDefault() {
         return new SiteRecipeLayoutStrategyRegistry(
-            Arrays.asList(new PositionedNeiSiteRecipeLayoutStrategy(), new DefaultSiteRecipeLayoutStrategy()));
+            List.of(new PositionedNeiSiteRecipeLayoutStrategy(), new DefaultSiteRecipeLayoutStrategy()));
     }
 
     public String render(SiteRecipeLayoutContext ctx) {

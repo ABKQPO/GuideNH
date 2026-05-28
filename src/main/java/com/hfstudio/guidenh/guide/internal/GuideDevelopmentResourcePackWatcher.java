@@ -11,6 +11,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.Logger;
 
+import com.hfstudio.guidenh.config.ModConfig;
+
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -19,7 +21,7 @@ import io.methvin.watcher.DirectoryChangeEvent;
 import io.methvin.watcher.DirectoryChangeListener;
 import io.methvin.watcher.DirectoryWatcher;
 
-public final class GuideDevelopmentResourcePackWatcher implements AutoCloseable {
+public class GuideDevelopmentResourcePackWatcher implements AutoCloseable {
 
     private final List<DirectoryWatcher> watchers = new ArrayList<>();
     private final ExecutorService watchExecutor;
@@ -146,7 +148,7 @@ public final class GuideDevelopmentResourcePackWatcher implements AutoCloseable 
 
     private static void logInfo(String message, Object... args) {
         Logger logger = FMLLog.getLogger();
-        if (logger != null) {
+        if (logger != null && ModConfig.debug.enableDebugMode) {
             logger.info("[GuideNH] [GuideDevelopmentResourcePackWatcher] " + message, args);
         }
     }

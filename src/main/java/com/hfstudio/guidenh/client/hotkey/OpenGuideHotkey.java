@@ -180,10 +180,10 @@ public class OpenGuideHotkey {
 
         var sb = new StringBuilder();
         sb.append(EnumChatFormatting.GRAY);
-        for (int i = 0; i < filled; i++) sb.append('|');
+        sb.append("|".repeat(filled));
         if (filled < totalChars) {
             sb.append(EnumChatFormatting.DARK_GRAY);
-            for (int i = 0; i < totalChars - filled; i++) sb.append('|');
+            sb.append("|".repeat(totalChars - filled));
         }
         return sb.toString();
     }
@@ -223,7 +223,6 @@ public class OpenGuideHotkey {
             if (ticksKeyHeld < TICKS_TO_OPEN && ++ticksKeyHeld == TICKS_TO_OPEN) {
                 if (!guidebookPages.isEmpty()) {
                     var found = guidebookPages.get(0);
-                    var mc = Minecraft.getMinecraft();
                     List<PageAnchor> allPages = found.guide.getIndex(ItemMultiIndex.class)
                         .findAllByStack(stack);
                     PageAnchor target = allPages.size() > 1 ? GuideItemLinksPage.anchorForStack(stack) : found.page;

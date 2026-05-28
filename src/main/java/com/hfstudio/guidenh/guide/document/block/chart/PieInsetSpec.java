@@ -89,32 +89,14 @@ public class PieInsetSpec {
 
     public static Position parsePosition(String raw, Position fallback) {
         if (raw == null) return fallback;
-        switch (raw.trim()
+        return switch (raw.trim()
             .toLowerCase(Locale.ROOT)) {
-            case "topright":
-            case "top-right":
-            case "tr":
-                return Position.TOP_RIGHT;
-            case "topleft":
-            case "top-left":
-            case "tl":
-                return Position.TOP_LEFT;
-            case "bottomright":
-            case "bottom-right":
-            case "br":
-                return Position.BOTTOM_RIGHT;
-            case "bottomleft":
-            case "bottom-left":
-            case "bl":
-                return Position.BOTTOM_LEFT;
-            case "right":
-            case "rightoutside":
-            case "right-outside":
-            case "outside":
-            case "side":
-                return Position.RIGHT_OUTSIDE;
-            default:
-                return fallback;
-        }
+            case "topright", "top-right", "tr" -> Position.TOP_RIGHT;
+            case "topleft", "top-left", "tl" -> Position.TOP_LEFT;
+            case "bottomright", "bottom-right", "br" -> Position.BOTTOM_RIGHT;
+            case "bottomleft", "bottom-left", "bl" -> Position.BOTTOM_LEFT;
+            case "right", "rightoutside", "right-outside", "outside", "side" -> Position.RIGHT_OUTSIDE;
+            default -> fallback;
+        };
     }
 }

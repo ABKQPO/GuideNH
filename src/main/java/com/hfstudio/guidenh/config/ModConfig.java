@@ -23,6 +23,7 @@ public class ModConfig {
 
     public static final Debug debug = new Debug();
     public static final Ui ui = new Ui();
+    public static final RuntimeBridge runtimeBridge = new RuntimeBridge();
 
     @Comment("Debug section")
     public static class Debug {
@@ -209,6 +210,47 @@ public class ModConfig {
 
     public static int clampPositiveHomeLimit(int value, int fallback) {
         return value >= 1 ? value : fallback;
+    }
+
+    @Comment("Runtime bridge section. The bridge is disabled by default and requires a client restart.")
+    public static class RuntimeBridge {
+
+        @Comment("Whether the GuideNH runtime bridge WebSocket server is enabled. Default: false.")
+        @DefaultBoolean(false)
+        @RequiresMcRestart
+        public boolean enabled = false;
+
+        @Comment("Runtime bridge host. No default is provided; set this explicitly when enabling the bridge.")
+        @RequiresMcRestart
+        public String host = "";
+
+        @Comment("Runtime bridge port. No default is provided; set this explicitly when enabling the bridge.")
+        @RequiresMcRestart
+        public int port = 0;
+
+        @Comment("Runtime bridge authentication token. Empty values prevent the bridge from starting.")
+        @RequiresMcRestart
+        public String token = "";
+
+        @Comment("Maximum accepted WebSocket message size in bytes.")
+        @RequiresMcRestart
+        public int maxMessageBytes = 262144;
+
+        @Comment("Maximum semantic query page size.")
+        @RequiresMcRestart
+        public int maxPageSize = 200;
+
+        @Comment("Maximum subscriptions per connection.")
+        @RequiresMcRestart
+        public int maxSubscriptions = 16;
+
+        @Comment("Maximum concurrent runtime bridge connections.")
+        @RequiresMcRestart
+        public int maxConnections = 2;
+
+        @Comment("Maximum semantic delta entries sent in one message.")
+        @RequiresMcRestart
+        public int maxDeltaEntries = 200;
     }
 
     public static void save() {

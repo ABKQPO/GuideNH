@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
+import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
@@ -36,7 +36,7 @@ public class GuideSceneStructureFingerprintResolver {
         @Nullable Map<String, StructureLibPreviewSelection> structureLibSelections) {
         GuideSceneStructureFingerprintBuilder builder = new GuideSceneStructureFingerprintBuilder();
         Map<String, StructureLibPreviewSelection> selections = structureLibSelections != null ? structureLibSelections
-            : Collections.emptyMap();
+            : Map.of();
         int structuralIndex = 0;
         int structureLibIndex = 0;
         for (MdAstAnyContent child : children) {
@@ -326,9 +326,9 @@ public class GuideSceneStructureFingerprintResolver {
             return null;
         }
         try {
-            Path path = workingRoot.resolve(normalizedSource)
-                .normalize();
-            if (!Files.exists(path)) {
+            Path path = SceneEditorStructureCache.resolveSceneStructurePath(workingRoot, normalizedSource)
+                .orElse(null);
+            if (path == null || !Files.exists(path)) {
                 return null;
             }
             return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);

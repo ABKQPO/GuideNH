@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.integration.betterquesting;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -62,13 +61,13 @@ public class QuestIndex extends UniqueIndex<UUID, PageAnchor> {
             .additionalProperties()
             .get("quest_ids");
         if (questIdsNode == null) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         if (!(questIdsNode instanceof List<?>questIdList)) {
             FMLLog.getLogger()
                 .warn("[GuideNH] [QuestIndex] Page {} contains malformed quest_ids frontmatter", page.getId());
-            return Collections.emptyList();
+            return List.of();
         }
 
         ResourceLocation pageId = page.getId();

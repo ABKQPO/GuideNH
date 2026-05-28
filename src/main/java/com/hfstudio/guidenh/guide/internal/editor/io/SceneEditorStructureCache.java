@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.io;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,15 +36,7 @@ public class SceneEditorStructureCache {
     }
 
     public Optional<Path> resolveStructureCachePath(@Nullable String structureSource) {
-        if (structureSource == null || structureSource.isEmpty()) {
-            return Optional.empty();
-        }
-
-        Path path = Paths.get(structureSource);
-        if (!path.isAbsolute()) {
-            path = workingRoot.resolve(path);
-        }
-        return Optional.of(path.normalize());
+        return resolveSceneStructurePath(workingRoot, structureSource);
     }
 
     public void writeStructureCache(Path path, String snbtText) throws IOException {
@@ -53,6 +44,29 @@ public class SceneEditorStructureCache {
         if (parent != null) {
             Files.createDirectories(parent);
         }
-        Files.write(path, snbtText.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(path, snbtText);
+    }
+
+    public static Optional<Path> resolveSceneStructurePath(Path workingRoot, @Nullable String structureSource) {
+        if (structureSource == null || structureSource.trim()
+            .isEmpty()) {
+            return Optional.empty();
+        }
+
+        Path path = Paths.get(structureSource.trim());
+        if (path.isAbsolute()) {
+            return Optional.of(
+                path.toAbsolutePath()
+                    .normalize());
+        }
+
+        Path normalizedRoot = workingRoot.toAbsolutePath()
+            .normalize();
+        Path resolved = normalizedRoot.resolve(path)
+            .normalize();
+        if (!resolved.startsWith(normalizedRoot)) {
+            return Optional.empty();
+        }
+        return Optional.of(resolved);
     }
 }

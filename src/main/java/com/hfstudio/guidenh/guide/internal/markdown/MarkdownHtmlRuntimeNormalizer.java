@@ -23,7 +23,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstPhrasingContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
-public final class MarkdownHtmlRuntimeNormalizer {
+public class MarkdownHtmlRuntimeNormalizer {
 
     private static final Pattern SIMPLE_TAG_PATTERN = Pattern
         .compile("^<\\s*(/)?\\s*([A-Za-z][A-Za-z0-9:-]*)([^>]*)>$", Pattern.DOTALL);
@@ -65,12 +65,12 @@ public final class MarkdownHtmlRuntimeNormalizer {
 
     @SuppressWarnings("unchecked")
     private static List<MdAstPhrasingContent> castPhrasingChildren(List<?> children) {
-        return (List<MdAstPhrasingContent>) (List<?>) children;
+        return (List<MdAstPhrasingContent>) children;
     }
 
     @SuppressWarnings("unchecked")
     private static List<MdAstAnyContent> castAnyChildren(List<?> children) {
-        return (List<MdAstAnyContent>) (List<?>) children;
+        return (List<MdAstAnyContent>) children;
     }
 
     private static void normalizePhrasingChildren(List<MdAstPhrasingContent> children) {
@@ -86,12 +86,12 @@ public final class MarkdownHtmlRuntimeNormalizer {
 
             String name = info.name();
             if ("br".equals(name) && !info.closing()) {
-                children.set(i, createTextElement(info, new ArrayList<MdAstPhrasingContent>()));
+                children.set(i, createTextElement(info, new ArrayList<>()));
                 continue;
             }
 
             if ("a".equals(name) && !info.closing() && info.selfClosing()) {
-                children.set(i, createTextElement(info, new ArrayList<MdAstPhrasingContent>()));
+                children.set(i, createTextElement(info, new ArrayList<>()));
                 continue;
             }
 
@@ -119,7 +119,7 @@ public final class MarkdownHtmlRuntimeNormalizer {
 
             TagInfo info = parseSimpleTag(html.value);
             if (info != null && isSupportedStandaloneFlowTag(info)) {
-                children.set(i, createFlowElement(info, new ArrayList<MdAstFlowContent>()));
+                children.set(i, createFlowElement(info, new ArrayList<>()));
                 continue;
             }
 

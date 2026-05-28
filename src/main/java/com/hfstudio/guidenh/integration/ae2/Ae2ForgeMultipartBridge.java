@@ -12,7 +12,7 @@ import codechicken.multipart.TMultiPart;
 import codechicken.multipart.TileMultipart;
 import cpw.mods.fml.common.Optional;
 
-final class Ae2ForgeMultipartBridge {
+public class Ae2ForgeMultipartBridge {
 
     private Ae2ForgeMultipartBridge() {}
 

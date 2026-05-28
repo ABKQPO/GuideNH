@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.mediawiki;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +21,7 @@ public class MediaWikiSpecialCatalog {
         groups.add(new MediaWikiSpecialGroup("developer", "guidenh.mediawiki.special.group.developer", 3));
         groups.add(new MediaWikiSpecialGroup("translation", "guidenh.mediawiki.special.group.translation", 4));
         groups.add(new MediaWikiSpecialGroup("other", "guidenh.mediawiki.special.group.other", 5));
-        GROUPS = Collections.unmodifiableList(groups);
+        GROUPS = List.copyOf(groups);
 
         ArrayList<MediaWikiSpecialDefinition> definitions = new ArrayList<>();
         definitions.add(
@@ -211,7 +210,7 @@ public class MediaWikiSpecialCatalog {
                 "other",
                 MediaWikiSpecialPageKind.FLAT));
 
-        DEFINITIONS = Collections.unmodifiableList(definitions);
+        DEFINITIONS = List.copyOf(definitions);
     }
 
     private MediaWikiSpecialCatalog() {}

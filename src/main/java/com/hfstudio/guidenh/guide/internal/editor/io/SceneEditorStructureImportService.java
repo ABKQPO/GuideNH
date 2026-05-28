@@ -5,7 +5,6 @@ import java.awt.FileDialog;
 import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
@@ -40,7 +39,7 @@ public class SceneEditorStructureImportService {
     public SceneEditorStructureImportService(SceneEditorStructureCache structureCache) {
         this.structureCache = structureCache;
         this.fileChooser = this::chooseStructureFileOnDialogThread;
-        this.structureTextReader = path -> new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+        this.structureTextReader = Files::readString;
         this.importExecutor = IMPORT_EXECUTOR;
     }
 

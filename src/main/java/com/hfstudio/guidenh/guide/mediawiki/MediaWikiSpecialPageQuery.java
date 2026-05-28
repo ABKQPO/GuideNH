@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.mediawiki;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -17,13 +16,13 @@ public record MediaWikiSpecialPageQuery(String searchText, int visibleCount, Map
     public static final MediaWikiSpecialPageQuery UNLIMITED = new MediaWikiSpecialPageQuery("", Integer.MAX_VALUE);
 
     public MediaWikiSpecialPageQuery(String searchText, int visibleCount) {
-        this(searchText, visibleCount, Collections.<String, String>emptyMap());
+        this(searchText, visibleCount, Map.of());
     }
 
     public MediaWikiSpecialPageQuery {
         searchText = searchText != null ? searchText : "";
-        parameters = parameters == null || parameters.isEmpty() ? Collections.<String, String>emptyMap()
-            : Collections.unmodifiableMap(new LinkedHashMap<>(parameters));
+        parameters = parameters == null || parameters.isEmpty() ? Map.of()
+            : Map.copyOf(new LinkedHashMap<>(parameters));
     }
 
     public MediaWikiSpecialPageQuery loadMore() {

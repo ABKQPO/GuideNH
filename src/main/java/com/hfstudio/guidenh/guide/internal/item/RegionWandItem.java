@@ -4,7 +4,6 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -147,8 +146,7 @@ public class RegionWandItem extends Item {
         RegionWandSelection.setPos(which, x, y, z);
     }
 
-    @Nullable
-    public static int[] getPos(ItemStack stack, int which) {
+    public static int @Nullable [] getPos(ItemStack stack, int which) {
         return RegionWandSelection.getPos(which);
     }
 
@@ -195,7 +193,6 @@ public class RegionWandItem extends Item {
         if (GuideStructureVolume.exceedsLimit(dx, dy, dz, MAX_EXPORT_BLOCKS)) {
             return null;
         }
-        @SuppressWarnings("unchecked")
         List<Entity> all = world.getEntitiesWithinAABBExcludingEntity(
             null,
             AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1));
@@ -316,9 +313,8 @@ public class RegionWandItem extends Item {
         }
 
         RegionWandExportMode mode = getExportMode();
-        List<Entity> entities = Collections.emptyList();
+        List<Entity> entities = List.of();
         if (mode.includeEntities()) {
-            @SuppressWarnings("unchecked")
             List<Entity> all = world.getEntitiesWithinAABBExcludingEntity(
                 null,
                 AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1));
@@ -375,7 +371,7 @@ public class RegionWandItem extends Item {
     }
 
     public static ExportResult exportBlocks(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-        return exportBlocks(world, minX, minY, minZ, maxX, maxY, maxZ, Collections.emptyList());
+        return exportBlocks(world, minX, minY, minZ, maxX, maxY, maxZ, List.of());
     }
 
     public static ExportResult exportBlocks(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -528,7 +524,7 @@ public class RegionWandItem extends Item {
 
     public static ExportResult exportSnbt(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
         int maxY, int maxZ, int dx, int dy, int dz) {
-        return exportSnbt(access, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz, Collections.emptyList());
+        return exportSnbt(access, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz, List.of());
     }
 
     private static ExportResult exportSnbt(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
@@ -545,7 +541,7 @@ public class RegionWandItem extends Item {
 
     private static ExportPayload exportStructure(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
         int maxY, int maxZ, int dx, int dy, int dz) {
-        return exportStructure(access, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz, Collections.emptyList());
+        return exportStructure(access, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz, List.of());
     }
 
     private static ExportPayload exportStructure(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
@@ -696,13 +692,12 @@ public class RegionWandItem extends Item {
         return new int[] { MathHelper.floor_double(x), MathHelper.floor_double(y), MathHelper.floor_double(z) };
     }
 
-    @Nullable
-    public static int[] resolveLookingAtSelection(EntityPlayer player, World world, boolean selectBlockBody) {
+    public static int @Nullable [] resolveLookingAtSelection(EntityPlayer player, World world,
+        boolean selectBlockBody) {
         return resolveLookingAtSelection(player, world, selectBlockBody, DEFAULT_REACH_DISTANCE);
     }
 
-    @Nullable
-    public static int[] resolveLookingAtSelection(EntityPlayer player, World world, boolean selectBlockBody,
+    public static int @Nullable [] resolveLookingAtSelection(EntityPlayer player, World world, boolean selectBlockBody,
         double reachDistance) {
         if (player == null || world == null) {
             return null;

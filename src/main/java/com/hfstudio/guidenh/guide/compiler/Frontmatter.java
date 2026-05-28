@@ -207,7 +207,7 @@ public class Frontmatter {
                 loadPriority);
         }
 
-        return new Frontmatter(navigation, Collections.unmodifiableMap(new HashMap<>(data)));
+        return new Frontmatter(navigation, Map.copyOf(new HashMap<>(data)));
     }
 
     @Nullable
@@ -292,7 +292,7 @@ public class Frontmatter {
             if (z > 0f) zoom = z;
         }
 
-        return new FrontmatterPageMeta(Collections.unmodifiableList(authors), date, updated, zoom);
+        return new FrontmatterPageMeta(List.copyOf(authors), date, updated, zoom);
     }
 
     @Nullable
@@ -352,13 +352,19 @@ public class Frontmatter {
 
     @Nullable
     private static String toDateString(@Nullable Object value) {
-        if (value == null) return null;
-        if (value instanceof String) {
-            String s = ((String) value).trim();
-            return s.isEmpty() ? null : s;
-        }
-        if (value instanceof Date) {
-            return new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format((Date) value);
+        switch (value) {
+            case null -> {
+                return null;
+            }
+            case String string -> {
+                String s = string.trim();
+                return s.isEmpty() ? null : s;
+            }
+            case Date date -> {
+                return new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(date);
+            }
+            default -> {
+            }
         }
         return value.toString();
     }

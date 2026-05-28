@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark.commonmark;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import com.hfstudio.guidenh.libs.micromark.ClassifyCharacter;
@@ -119,7 +118,7 @@ public class Attention {
                         if (openEvent.token().end.offset() - openEvent.token().start.offset() != 0) {
                             nextEvents = ListUtils.push(
                                 nextEvents,
-                                Arrays.asList(
+                                List.of(
                                     Tokenizer.Event.enter(openEvent.token(), context),
                                     Tokenizer.Event.exit(openEvent.token(), context)));
                         }
@@ -127,7 +126,7 @@ public class Attention {
                         // Opening.
                         nextEvents = ListUtils.push(
                             nextEvents,
-                            Arrays.asList(
+                            List.of(
                                 Tokenizer.Event.enter(group, context),
                                 Tokenizer.Event.enter(openingSequence, context),
                                 Tokenizer.Event.exit(openingSequence, context),
@@ -144,7 +143,7 @@ public class Attention {
                         // Closing.
                         nextEvents = ListUtils.push(
                             nextEvents,
-                            Arrays.asList(
+                            List.of(
                                 Tokenizer.Event.exit(text, context),
                                 Tokenizer.Event.enter(closingSequence, context),
                                 Tokenizer.Event.exit(closingSequence, context),
@@ -155,7 +154,7 @@ public class Attention {
                             offset = 2;
                             nextEvents = ListUtils.push(
                                 nextEvents,
-                                Arrays.asList(
+                                List.of(
                                     Tokenizer.Event.enter(event.token(), context),
                                     Tokenizer.Event.exit(event.token(), context)));
                         } else {

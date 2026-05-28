@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.model;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,7 +115,7 @@ public class SceneEditorElementModel {
     }
 
     public List<Vector3f> getLinePoints() {
-        return Collections.unmodifiableList(linePoints);
+        return List.copyOf(linePoints);
     }
 
     public void setLinePoints(List<Vector3f> points) {
@@ -228,7 +227,7 @@ public class SceneEditorElementModel {
     }
 
     public Map<String, String> getExtraAttributes() {
-        return Collections.unmodifiableMap(extraAttributes);
+        return Map.copyOf(extraAttributes);
     }
 
     public String getExtraAttribute(String name) {

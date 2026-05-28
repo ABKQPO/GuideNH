@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.guide;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureExportAccess;
 
-public final class GuideScreenEditorState {
+public class GuideScreenEditorState {
 
     private static final String DEFAULT_AUTHOR = "GuideNH";
     private static final String DEFAULT_NEW_PAGE_PATH = "NewGuide.md";

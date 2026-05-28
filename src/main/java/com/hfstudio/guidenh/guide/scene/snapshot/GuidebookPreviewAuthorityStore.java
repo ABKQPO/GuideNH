@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.snapshot;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -81,7 +80,7 @@ public class GuidebookPreviewAuthorityStore {
     public Map<String, byte[]> snapshotAt(long packedPos) {
         HashMap<String, byte[]> slot = byPos.get(packedPos);
         if (slot == null || slot.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         HashMap<String, byte[]> snapshot = new HashMap<>();
         for (Map.Entry<String, byte[]> entry : slot.entrySet()) {
@@ -90,18 +89,18 @@ public class GuidebookPreviewAuthorityStore {
                 snapshot.put(entry.getKey(), payload.clone());
             }
         }
-        return snapshot.isEmpty() ? Collections.emptyMap() : snapshot;
+        return snapshot.isEmpty() ? Map.of() : snapshot;
     }
 
     public Map<Long, Map<String, byte[]>> snapshotAll() {
         if (byPos.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         HashMap<Long, Map<String, byte[]>> snapshot = new HashMap<>();
         for (Long packedPos : byPos.keySet()) {
             snapshot.put(packedPos, snapshotAt(packedPos.longValue()));
         }
-        return snapshot.isEmpty() ? Collections.emptyMap() : snapshot;
+        return snapshot.isEmpty() ? Map.of() : snapshot;
     }
 
     public void restoreAll(Map<Long, Map<String, byte[]>> snapshot) {

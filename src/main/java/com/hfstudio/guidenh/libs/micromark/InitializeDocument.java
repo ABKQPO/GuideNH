@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -394,7 +393,7 @@ public class InitializeDocument {
             if (childFlow == null) {
                 throw new IllegalStateException("expected 'childFlow' to be defined when closing it");
             }
-            childFlow.write(Collections.singletonList(Codes.eof));
+            childFlow.write(List.of(Codes.eof));
             childToken = null;
             childFlow = null;
             context.getContainerState()

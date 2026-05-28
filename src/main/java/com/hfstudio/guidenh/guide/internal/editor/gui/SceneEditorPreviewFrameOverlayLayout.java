@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.LytRect;
 
-public final class SceneEditorPreviewFrameOverlayLayout {
+public class SceneEditorPreviewFrameOverlayLayout {
 
     public static final int LABEL_PADDING = 4;
     public static final int LABEL_ABOVE_OFFSET = 10;

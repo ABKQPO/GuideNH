@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -26,7 +24,7 @@ public class InWorldLineAnnotation extends InWorldAnnotation {
     private final List<PointStyle> pointStyles = new ArrayList<>();
 
     public InWorldLineAnnotation(Vector3f from, Vector3f to, ColorValue color, float thickness) {
-        this(Arrays.asList(from, to), color, thickness);
+        this(List.of(from, to), color, thickness);
     }
 
     public InWorldLineAnnotation(List<Vector3f> points, ColorValue color, float thickness) {
@@ -37,7 +35,7 @@ public class InWorldLineAnnotation extends InWorldAnnotation {
         for (Vector3f point : points) {
             copied.add(new Vector3f(point));
         }
-        this.points = Collections.unmodifiableList(copied);
+        this.points = List.copyOf(copied);
         this.color = color;
         this.thickness = thickness;
         this.pointColor = color;
@@ -107,7 +105,7 @@ public class InWorldLineAnnotation extends InWorldAnnotation {
     }
 
     public List<PointStyle> pointStyles() {
-        return Collections.unmodifiableList(pointStyles);
+        return List.copyOf(pointStyles);
     }
 
     @Nullable

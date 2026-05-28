@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.internal.editor.md;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,126 +40,114 @@ public class SceneEditorMarkdownCodec {
 
     public static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.sceneEditor();
 
-    public static final Set<String> ROOT_TAG_NAMES = Collections
-        .unmodifiableSet(new HashSet<>(Arrays.asList("GameScene", "Scene")));
-    public static final Set<String> ROOT_ATTRIBUTES = Collections.unmodifiableSet(
-        new HashSet<>(
-            Arrays.asList(
-                "width",
-                "height",
-                "perspective",
-                "zoom",
-                "rotateX",
-                "rotateY",
-                "rotateZ",
-                "offsetX",
-                "offsetY",
-                "centerX",
-                "centerY",
-                "centerZ",
-                "interactive",
-                "showBackground",
-                "allowLayerSlider")));
-    public static final Set<String> IMPORT_STRUCTURE_ATTRIBUTES = Collections
-        .unmodifiableSet(new HashSet<>(Collections.singletonList("src")));
-    public static final Set<String> IMPORT_STRUCTURE_LIB_ATTRIBUTES = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList("controller", "name", "piece", "facing", "rotation", "flip", "channel")));
-    public static final Set<String> STRUCTURE_LIB_OPTION_ATTRIBUTES = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList("name", "id", "value", "expr", "tier", "facing", "rotation", "flip", "channel")));
-    public static final Set<String> STRUCTURE_LIB_OPTION_TAGS = Collections.unmodifiableSet(
-        new HashSet<>(
-            Arrays.asList(
-                "Tier",
-                "Channel",
-                "Facing",
-                "Rotation",
-                "Flip",
-                "Orientation",
-                "GregTechActiveController",
-                "GtActiveController",
-                "GregTechPlaceHatches",
-                "GtPlaceHatches")));
-    public static final Set<String> REMOVE_BLOCKS_ATTRIBUTES = Collections
-        .unmodifiableSet(new HashSet<>(Collections.singletonList("id")));
-    public static final Set<String> BLOCK_ANNOTATION_TEMPLATE_ATTRIBUTES = Collections
-        .unmodifiableSet(new HashSet<>(Arrays.asList("id", "showWhenStructure", "showWhenTier", "showWhenChannels")));
-    public static final Set<String> BLOCK_ATTRIBUTES = Collections.unmodifiableSet(
-        new HashSet<>(
-            Arrays.asList(
-                "pos",
-                "color",
-                "thickness",
-                "alwaysOnTop",
-                "visible",
-                "showWhenStructure",
-                "showWhenTier",
-                "showWhenChannels")));
-    public static final Set<String> BOX_ATTRIBUTES = Collections.unmodifiableSet(
-        new HashSet<>(
-            Arrays.asList(
-                "min",
-                "max",
-                "color",
-                "thickness",
-                "alwaysOnTop",
-                "visible",
-                "showWhenStructure",
-                "showWhenTier",
-                "showWhenChannels")));
-    public static final Set<String> LINE_ATTRIBUTES = Collections.unmodifiableSet(
-        new HashSet<>(
-            Arrays.asList(
-                "from",
-                "to",
-                "points",
-                "arrow",
-                "color",
-                "thickness",
-                "alwaysOnTop",
-                "visible",
-                "showPoints",
-                "pointColor",
-                "pointSize",
-                "showWhenStructure",
-                "showWhenTier",
-                "showWhenChannels")));
-    public static final Set<String> DIAMOND_ATTRIBUTES = Collections.unmodifiableSet(
-        new HashSet<>(
-            Arrays.asList(
-                "pos",
-                "color",
-                "alwaysOnTop",
-                "visible",
-                "showWhenStructure",
-                "showWhenTier",
-                "showWhenChannels")));
-    public static final Set<String> TEXT_ATTRIBUTES = Collections.unmodifiableSet(
-        new HashSet<>(
-            Arrays.asList(
-                "pos",
-                "x",
-                "y",
-                "z",
-                "color",
-                "maxWidth",
-                "backgroundAlpha",
-                "textKey",
-                "independent",
-                "yOffset",
-                "connectorSide",
-                "connectorOffset",
-                "connectorLength",
-                "hlMinX",
-                "hlMinY",
-                "hlMinZ",
-                "hlMaxX",
-                "hlMaxY",
-                "hlMaxZ",
-                "highlightColor",
-                "visible",
-                "showWhenStructure",
-                "showWhenTier",
-                "showWhenChannels")));
+    public static final Set<String> ROOT_TAG_NAMES = Set.of("GameScene", "Scene");
+    public static final Set<String> ROOT_ATTRIBUTES = Set.of(
+        "width",
+        "height",
+        "perspective",
+        "zoom",
+        "rotateX",
+        "rotateY",
+        "rotateZ",
+        "offsetX",
+        "offsetY",
+        "centerX",
+        "centerY",
+        "centerZ",
+        "interactive",
+        "showBackground",
+        "allowLayerSlider");
+    public static final Set<String> IMPORT_STRUCTURE_ATTRIBUTES = Set
+        .of("src", "x", "y", "z", "offsetX", "offsetY", "offsetZ", "formed");
+    public static final Set<String> IMPORT_STRUCTURE_LIB_ATTRIBUTES = Set.of(
+        "controller",
+        "name",
+        "piece",
+        "facing",
+        "rotation",
+        "flip",
+        "channel",
+        "offsetX",
+        "offsetY",
+        "offsetZ",
+        "formed");
+    public static final Set<String> STRUCTURE_LIB_OPTION_ATTRIBUTES = Set
+        .of("name", "id", "value", "expr", "tier", "facing", "rotation", "flip", "channel");
+    public static final Set<String> STRUCTURE_LIB_OPTION_TAGS = Set.of(
+        "Tier",
+        "Channel",
+        "Facing",
+        "Rotation",
+        "Flip",
+        "Orientation",
+        "GregTechActiveController",
+        "GtActiveController",
+        "GregTechPlaceHatches",
+        "GtPlaceHatches");
+    public static final Set<String> REMOVE_BLOCKS_ATTRIBUTES = Set.of("id");
+    public static final Set<String> BLOCK_ANNOTATION_TEMPLATE_ATTRIBUTES = Set
+        .of("id", "showWhenStructure", "showWhenTier", "showWhenChannels");
+    public static final Set<String> BLOCK_ATTRIBUTES = Set.of(
+        "pos",
+        "color",
+        "thickness",
+        "alwaysOnTop",
+        "visible",
+        "showWhenStructure",
+        "showWhenTier",
+        "showWhenChannels");
+    public static final Set<String> BOX_ATTRIBUTES = Set.of(
+        "min",
+        "max",
+        "color",
+        "thickness",
+        "alwaysOnTop",
+        "visible",
+        "showWhenStructure",
+        "showWhenTier",
+        "showWhenChannels");
+    public static final Set<String> LINE_ATTRIBUTES = Set.of(
+        "from",
+        "to",
+        "points",
+        "arrow",
+        "color",
+        "thickness",
+        "alwaysOnTop",
+        "visible",
+        "showPoints",
+        "pointColor",
+        "pointSize",
+        "showWhenStructure",
+        "showWhenTier",
+        "showWhenChannels");
+    public static final Set<String> DIAMOND_ATTRIBUTES = Set
+        .of("pos", "color", "alwaysOnTop", "visible", "showWhenStructure", "showWhenTier", "showWhenChannels");
+    public static final Set<String> TEXT_ATTRIBUTES = Set.of(
+        "pos",
+        "x",
+        "y",
+        "z",
+        "color",
+        "maxWidth",
+        "backgroundAlpha",
+        "textKey",
+        "independent",
+        "yOffset",
+        "connectorSide",
+        "connectorOffset",
+        "connectorLength",
+        "hlMinX",
+        "hlMinY",
+        "hlMinZ",
+        "hlMaxX",
+        "hlMaxY",
+        "hlMaxZ",
+        "highlightColor",
+        "visible",
+        "showWhenStructure",
+        "showWhenTier",
+        "showWhenChannels");
 
     public SceneEditorMarkdownParseResult parse(String markdown) {
         String normalized = normalizeLineEndings(markdown);
@@ -300,6 +287,9 @@ public class SceneEditorMarkdownCodec {
         try {
             model.addElement(parseElement(element, source));
         } catch (UnsupportedSubsetException ignored) {
+            if (isKnownSceneTag(tagName)) {
+                throw ignored;
+            }
             String rawText = extractRawNodeText(node, source);
             if (rawText != null && !rawText.trim()
                 .isEmpty()) {
@@ -317,10 +307,19 @@ public class SceneEditorMarkdownCodec {
             return false;
         }
         SceneEditorMarkdownParseResult nestedResult = parseSceneChildFragment(rawText);
-        if (!(nestedResult instanceof SceneEditorMarkdownParseResult.Success success)) {
+        String rawTagName = extractLeadingTagName(rawText);
+        if (nestedResult instanceof SceneEditorMarkdownParseResult.Unsupported(String message)
+            && isKnownSceneTag(rawTagName)) {
+            throw new UnsupportedSubsetException(message);
+        }
+        if (nestedResult instanceof SceneEditorMarkdownParseResult.SyntaxError(String message)
+            && isKnownSceneTag(rawTagName)) {
+            throw new InvalidSceneSyntaxException(message);
+        }
+        if (!(nestedResult instanceof SceneEditorMarkdownParseResult.Success(SceneEditorSceneModel model1))) {
             return false;
         }
-        mergeParsedSceneChild(model, success.model());
+        mergeParsedSceneChild(model, model1);
         return true;
     }
 
@@ -495,6 +494,13 @@ public class SceneEditorMarkdownCodec {
 
         SceneEditorSceneNodeModel node = new SceneEditorSceneNodeModel(SceneEditorSceneNodeType.IMPORT_STRUCTURE);
         node.setAttribute("src", src);
+        copyOptionalIntegerAttribute(element, node, "x");
+        copyOptionalIntegerAttribute(element, node, "y");
+        copyOptionalIntegerAttribute(element, node, "z");
+        copyOptionalIntegerAttribute(element, node, "offsetX");
+        copyOptionalIntegerAttribute(element, node, "offsetY");
+        copyOptionalIntegerAttribute(element, node, "offsetZ");
+        copyOptionalAttribute(element, node, "formed");
         return node;
     }
 
@@ -513,6 +519,10 @@ public class SceneEditorMarkdownCodec {
         copyOptionalAttribute(element, node, "rotation");
         copyOptionalAttribute(element, node, "flip");
         copyOptionalIntegerAttribute(element, node, "channel");
+        copyOptionalIntegerAttribute(element, node, "offsetX");
+        copyOptionalIntegerAttribute(element, node, "offsetY");
+        copyOptionalIntegerAttribute(element, node, "offsetZ");
+        copyOptionalAttribute(element, node, "formed");
         return node;
     }
 
@@ -641,7 +651,7 @@ public class SceneEditorMarkdownCodec {
             SceneEditorSceneNodeModel importStructure = new SceneEditorSceneNodeModel(
                 SceneEditorSceneNodeType.IMPORT_STRUCTURE);
             importStructure.setAttribute("src", model.getStructureSource());
-            sceneNodes.add(0, importStructure);
+            sceneNodes.addFirst(importStructure);
         }
 
         Set<UUID> annotationIds = new HashSet<>();
@@ -707,7 +717,15 @@ public class SceneEditorMarkdownCodec {
         }
         builder.append("    <ImportStructure src=\"")
             .append(escapeAttribute(src))
-            .append("\" />\n");
+            .append('"');
+        appendSceneNodeAttribute(builder, sceneNode, "x");
+        appendSceneNodeAttribute(builder, sceneNode, "y");
+        appendSceneNodeAttribute(builder, sceneNode, "z");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetX");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetY");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetZ");
+        appendSceneNodeBooleanAttribute(builder, sceneNode, "formed");
+        builder.append(" />\n");
     }
 
     private void appendImportStructureLibNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {
@@ -724,6 +742,10 @@ public class SceneEditorMarkdownCodec {
         appendSceneNodeAttribute(builder, sceneNode, "rotation");
         appendSceneNodeAttribute(builder, sceneNode, "flip");
         appendSceneNodeAttribute(builder, sceneNode, "channel");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetX");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetY");
+        appendSceneNodeAttribute(builder, sceneNode, "offsetZ");
+        appendSceneNodeBooleanAttribute(builder, sceneNode, "formed");
         builder.append(" />\n");
     }
 
@@ -779,6 +801,19 @@ public class SceneEditorMarkdownCodec {
             .append("=\"")
             .append(escapeAttribute(value))
             .append('"');
+    }
+
+    private void appendSceneNodeBooleanAttribute(StringBuilder builder, SceneEditorSceneNodeModel sceneNode,
+        String attribute) {
+        String value = sceneNode.getAttribute(attribute);
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+        builder.append(' ')
+            .append(attribute)
+            .append("={")
+            .append(value)
+            .append('}');
     }
 
     private void appendElement(StringBuilder builder, SceneEditorElementModel element) {
@@ -1005,7 +1040,7 @@ public class SceneEditorMarkdownCodec {
     }
 
     private void appendExtraAttributes(StringBuilder builder, SceneEditorElementModel element, String... attributes) {
-        if (builder == null || element == null || attributes == null || attributes.length == 0) {
+        if (builder == null || element == null || attributes == null) {
             return;
         }
         for (String attribute : attributes) {
@@ -1082,7 +1117,52 @@ public class SceneEditorMarkdownCodec {
             if (!(attributeNode instanceof MdxJsxAttribute attribute)) {
                 throw new UnsupportedSubsetException("Spread attributes are not supported on <" + tagName + ">");
             }
+            String attributeName = attribute.name;
+            if (attributeName == null || !allowedAttributes.contains(attributeName)) {
+                throw new UnsupportedSubsetException(
+                    "Attribute '" + attributeName + "' is not supported on <" + tagName + ">");
+            }
         }
+    }
+
+    private boolean isKnownSceneTag(@Nullable String tagName) {
+        if (tagName == null) {
+            return false;
+        }
+        return "ImportStructure".equals(tagName) || "ImportStructureLib".equals(tagName)
+            || "RemoveBlocks".equals(tagName)
+            || "BlockAnnotationTemplate".equals(tagName)
+            || "BlockAnnotation".equals(tagName)
+            || "BoxAnnotation".equals(tagName)
+            || "LineAnnotation".equals(tagName)
+            || "DiamondAnnotation".equals(tagName)
+            || "TextAnnotation".equals(tagName);
+    }
+
+    @Nullable
+    private String extractLeadingTagName(String rawText) {
+        String trimmed = trimSceneChildRawText(rawText);
+        if (trimmed.isEmpty() || trimmed.charAt(0) != '<') {
+            return null;
+        }
+        int start = 1;
+        while (start < trimmed.length() && Character.isWhitespace(trimmed.charAt(start))) {
+            start++;
+        }
+        if (start >= trimmed.length() || trimmed.charAt(start) == '/'
+            || trimmed.charAt(start) == '!'
+            || trimmed.charAt(start) == '?') {
+            return null;
+        }
+        int end = start;
+        while (end < trimmed.length()) {
+            char ch = trimmed.charAt(end);
+            if (Character.isWhitespace(ch) || ch == '>' || ch == '/') {
+                break;
+            }
+            end++;
+        }
+        return end > start ? trimmed.substring(start, end) : null;
     }
 
     @Nullable

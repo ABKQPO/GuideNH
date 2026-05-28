@@ -185,6 +185,70 @@ Some text {<GameScene wrap="square" align="left" width="80" height="80">
 </GameScene>
 ````
 
+## Import Examples
+
+These examples focus on the scene-side behavior that most often trips people up when importing
+structures.
+
+StructureLib import with explicit facing, rotation, flip, and offsets:
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib
+    name="main"
+    controller="gregtech:gt.blockmachines:2741"
+    facing="north"
+    rotation="clockwise_180"
+    flip="none"
+    offsetX="2"
+    offsetY="1"
+    offsetZ="-3"
+  />
+</GameScene>
+````
+
+GregTech controllers stay unformed by default, even when the imported multiblock is otherwise
+valid:
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" />
+</GameScene>
+````
+
+Set `formed={true}` only when the preview should intentionally show the formed controller state:
+
+````md
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:2741" formed={true} />
+</GameScene>
+````
+
+The same default also applies to controllers placed directly with `<Block>`, including GregTech
+controllers that rely on surrounding multiblock casings:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="gregtech:gt.blockmachines:2741" />
+  <Block id="gregtech:gt.blockmachines:1000" x="3" formed={true} />
+</GameScene>
+````
+
+Simple block-only layouts can still be authored directly and remain compatible with multiblock
+inspection logic:
+
+````md
+<GameScene zoom={4} interactive={true}>
+  <Block id="minecraft:water" />
+  <Block id="minecraft:water" x="-1" />
+  <Block id="minecraft:water" x="1" />
+  <Block id="minecraft:grass" z="1" />
+  <Block id="minecraft:grass" x="1" z="1" />
+  <Block id="minecraft:glass" z="2" />
+  <Block id="minecraft:glass" x="1" z="2" />
+</GameScene>
+````
+
 ## Scene Child Elements
 
 GuideNH currently registers these scene child tags:
@@ -278,6 +342,7 @@ Places a block into the preview world.
 | `meta` | no | integer block metadata |
 | `facing` | no | `down`, `up`, `north`, `south`, `west`, `east` |
 | `nbt` | no | SNBT TileEntity compound |
+| `formed` | no | whether the placed structure controller should be treated as formed during preview sync; default `false` |
 
 Notes:
 
@@ -285,6 +350,7 @@ Notes:
 - if `meta` is omitted and an `ore` match carries concrete non-wildcard item damage, that damage is used before the `facing` fallback
 - if `meta` is omitted, some blocks derive a sensible default from `facing`
 - if `nbt` creates a TileEntity successfully, the preview uses it
+- set `formed={false}` when a controller-based structure should stay unformed in preview even though the surrounding structure is otherwise valid
 
 Example:
 
@@ -307,6 +373,7 @@ Loads an external structure file into the scene.
 | `offsetX` | no | integer translation X (preferred over `x`) |
 | `offsetY` | no | integer translation Y, clamped to `[0, worldHeight-1]` (preferred over `y`) |
 | `offsetZ` | no | integer translation Z (preferred over `z`) |
+| `formed` | no | whether imported structure controllers should be treated as formed during preview sync; default `false` |
 
 Supported formats:
 
@@ -324,6 +391,7 @@ Example:
 ````md
 <ImportStructure src="/assets/example_structure.snbt" />
 <ImportStructure src="/assets/example_structure.snbt" x="4" />
+<ImportStructure src="/assets/example_structure.snbt" formed={false} />
 ````
 
 ## `<ImportStructureLib>`
@@ -342,6 +410,7 @@ Imports a StructureLib multiblock preview by controller id.
 | `offsetX` | no | integer X offset applied to all placed blocks (default `0`) |
 | `offsetY` | no | integer Y offset applied to all placed blocks, clamped to `[0, worldHeight-1]` (default `0`) |
 | `offsetZ` | no | integer Z offset applied to all placed blocks (default `0`) |
+| `formed` | no | whether imported StructureLib controllers should be treated as formed during preview sync; default `false` |
 
 Notes:
 
@@ -349,6 +418,9 @@ Notes:
 - this tag enables StructureLib-specific tooltip, hatch highlight, and channel slider UI when metadata is available
 - controller matching supports the GTNH-style `modid:block:meta` form
 - use `name` when the scene contains multiple StructureLib imports and another tag needs to target one specific structure state
+- `facing`, `rotation`, and `flip` use the same orientation vocabulary as StructureLib export; when a requested combination is not allowed by the controller, GuideNH falls back to the first valid alignment automatically
+- GregTech controller previews now default to the controller's opposite horizontal facing from the older preview orientation, rotating the preview front by 180 degrees around the Y axis
+- set `formed={false}` when the imported controller should remain visibly unformed; this is the supported alternative to shipping intentionally broken NBT
 
 Example:
 
@@ -356,6 +428,7 @@ Example:
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
 
 Structure-aware annotation and sound example:
@@ -476,6 +549,7 @@ bounding box.
 | `dx` | no | bounding box width (default `1`) |
 | `dy` | no | bounding box height (default `1`) |
 | `dz` | no | bounding box depth (default `1`) |
+| `formed` | no | whether replacement result controllers should be treated as formed during preview sync; default `false` |
 
 Notes:
 
@@ -484,6 +558,7 @@ Notes:
   the actual tile entity are ignored
 - the replacement is performed via the same block placement pipeline as `<Block>`, so GregTech MetaTile
   and BartWorks tile entities are handled correctly
+- if the replacement places a controller, `formed={false}` keeps that controller unformed during preview
 
 Example:
 
@@ -509,6 +584,7 @@ Unlike `<Block>` (which targets a single position), `<PlaceBlock>` supports mult
 | `dx` | no | region width, default `1` |
 | `dy` | no | region height, default `1` |
 | `dz` | no | region depth, default `1` |
+| `formed` | no | whether placed controllers should be treated as formed during preview sync; default `false` |
 
 Notes:
 
@@ -516,12 +592,14 @@ Notes:
 - the NBT compound is copied for each individual placement
 - the same block placement pipeline as `<Block>` is used, so GregTech MetaTile and BartWorks tile entities
   are fully supported
+- if the region places one or more controllers, `formed={false}` keeps every affected controller unformed
 
 Example:
 
 ````md
 <PlaceBlock id="minecraft:stone" x="0" y="0" z="0" dx="5" dy="1" dz="5" />
 <PlaceBlock id="minecraft:glass" y="1" dx="3" dz="3" />
+<PlaceBlock id="gregtech:gt.blockmachines:15411" dx="3" dz="3" formed={false} />
 ````
 
 ## `<BlockAnnotationTemplate>`

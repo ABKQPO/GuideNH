@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.mediawiki;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -12,7 +11,7 @@ public class MediaWikiSpecialSearchSupport {
     public static List<MediaWikiSpecialListEntry> filterFlatEntries(List<MediaWikiSpecialListEntry> entries,
         String rawQuery) {
         if (entries == null || entries.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         String query = normalize(rawQuery);
         if (query.isEmpty()) {
@@ -31,7 +30,7 @@ public class MediaWikiSpecialSearchSupport {
     public static List<MediaWikiSpecialGroupedEntry> filterGroupedEntries(List<MediaWikiSpecialGroupedEntry> entries,
         String rawQuery) {
         if (entries == null || entries.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         String query = normalize(rawQuery);
         if (query.isEmpty()) {
@@ -67,7 +66,7 @@ public class MediaWikiSpecialSearchSupport {
 
     public static <T> List<T> limit(List<T> entries, int visibleCount) {
         if (entries == null || entries.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         if (visibleCount >= entries.size()) {
             return entries;

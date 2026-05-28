@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class GuideSiteOutputPaths {
+public class GuideSiteOutputPaths {
 
     private static final DateTimeFormatter DEFAULT_FOLDER_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 

@@ -11,6 +11,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -42,16 +43,17 @@ public class GuideScopedView implements Guide, MediaWikiListContextProvider {
         NavigationTree navigationTree, Map<Class<?>, PageIndex> indexOverrides,
         @Nullable MediaWikiListContext mediaWikiListContext) {
         this.delegate = delegate;
-        this.parsedPagesById = Collections.unmodifiableMap(new LinkedHashMap<>(parsedPagesById));
+        this.parsedPagesById = Map.copyOf(new LinkedHashMap<>(parsedPagesById));
         this.navigationTree = navigationTree != null ? navigationTree : new NavigationTree();
-        this.indexOverrides = indexOverrides != null ? new LinkedHashMap<>(indexOverrides) : Collections.emptyMap();
+        this.indexOverrides = indexOverrides != null ? Map.copyOf(new LinkedHashMap<>(indexOverrides)) : Map.of();
         this.mediaWikiListContext = mediaWikiListContext;
     }
 
     public static GuideScopedView create(Guide delegate, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         Map<Class<?>, PageIndex> indexOverrides) {
-        Map<Class<?>, PageIndex> safeIndexOverrides = indexOverrides != null ? new LinkedHashMap<>(indexOverrides)
-            : Collections.emptyMap();
+        Map<Class<?>, PageIndex> safeIndexOverrides = indexOverrides != null
+            ? Map.copyOf(new LinkedHashMap<>(indexOverrides))
+            : Map.of();
         NavigationTree navigationTree = NavigationTree.build(delegate, parsedPagesById.values());
         return new GuideScopedView(delegate, parsedPagesById, navigationTree, safeIndexOverrides, null);
     }
@@ -143,11 +145,13 @@ public class GuideScopedView implements Guide, MediaWikiListContextProvider {
             }
             long startNanos = System.nanoTime();
             mediaWikiListContext = createFallbackMediaWikiListContext();
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideScopedView] Built preview MediaWikiListContext in {} ms for guide {}",
-                    nanosToMillis(System.nanoTime() - startNanos),
-                    delegate.getId());
+            if (ModConfig.debug.enableDebugMode) {
+                FMLLog.getLogger()
+                    .info(
+                        "[GuideNH] [GuideScopedView] Built preview MediaWikiListContext in {} ms for guide {}",
+                        nanosToMillis(System.nanoTime() - startNanos),
+                        delegate.getId());
+            }
             return mediaWikiListContext;
         }
     }

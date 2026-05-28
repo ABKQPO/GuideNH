@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -33,7 +32,7 @@ public class LytFloatAwareBlock extends LytBlock {
 
     @Override
     public List<? extends LytNode> getChildren() {
-        return Collections.singletonList(inner);
+        return List.of(inner);
     }
 
     @Override
@@ -48,7 +47,7 @@ public class LytFloatAwareBlock extends LytBlock {
             }
 
             var nextFloatBottom = context.getNextFloatBottomEdge(laneY);
-            if (!nextFloatBottom.isPresent()) {
+            if (nextFloatBottom.isEmpty()) {
                 return inner.layout(context, x, laneY, availableWidth);
             }
 

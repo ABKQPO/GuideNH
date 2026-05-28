@@ -9,7 +9,7 @@ public class StructureLibBoundedCache<K, V> {
 
     public StructureLibBoundedCache(int maxEntries) {
         int capacity = Math.max(1, maxEntries);
-        this.entries = new LinkedHashMap<K, V>(capacity, 0.75F, true) {
+        this.entries = new LinkedHashMap<>(capacity, 0.75F, true) {
 
             @Override
             protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {

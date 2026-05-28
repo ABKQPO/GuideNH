@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +48,7 @@ public class Extensions {
 
         for (var code : right.keySet()) {
             if (!left.containsKey(code)) {
-                left.put(code, Collections.emptyList());
+                left.put(code, List.of());
             }
 
             left.put(code, constructs(left.get(code), right.get(code)));

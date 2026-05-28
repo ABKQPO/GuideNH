@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -34,7 +33,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
-public final class GuideSiteSceneHoverTargetSerializer {
+public class GuideSiteSceneHoverTargetSerializer {
 
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
         .serializeNulls()
@@ -175,7 +174,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
 
     private static List<StructureLibSceneMetadata> collectStructureLibMetadata(LytGuidebookScene scene) {
         if (scene == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         List<StructureLibSceneMetadata> metadataList = new ArrayList<>();
         for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
@@ -187,7 +186,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
             return metadataList;
         }
         StructureLibSceneMetadata metadata = scene.getStructureLibSceneMetadata();
-        return metadata != null ? Collections.singletonList(metadata) : Collections.emptyList();
+        return metadata != null ? List.of(metadata) : List.of();
     }
 
     private static List<Map<String, Object>> buildBlockTargets(LytGuidebookScene scene, int x, int y, int z,
@@ -196,7 +195,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
         @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
         BlockHoverGeometry geometry = resolveBlockHoverGeometry(scene.getLevel(), x, y, z);
         if (geometry == null || geometry.bounds.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<Map<String, Object>> targets = new ArrayList<>(geometry.bounds.size());
@@ -355,7 +354,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
         try {
             collisionBounds = GuideBlockBoundsResolver.collectCollisionBounds(level, block, x, y, z);
         } catch (Throwable ignored) {
-            collisionBounds = Collections.emptyList();
+            collisionBounds = List.of();
         }
 
         List<AxisAlignedBB> bounds = new ArrayList<>(collisionBounds.size());
@@ -377,15 +376,11 @@ public final class GuideSiteSceneHoverTargetSerializer {
         }
 
         AxisAlignedBB fallbackBounds = GuideBlockBoundsResolver.resolveSelectedBounds(level, x, y, z);
-        if (fallbackBounds == null || !GuideBlockBoundsResolver.isNonEmpty(fallbackBounds)) {
+        if (!GuideBlockBoundsResolver.isNonEmpty(fallbackBounds)) {
             fallbackBounds = AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d);
         }
         AxisAlignedBB normalizedFallbackBounds = normalizeBounds(fallbackBounds);
-        return new BlockHoverGeometry(
-            block,
-            Collections.singletonList(normalizedFallbackBounds),
-            Collections.<AxisAlignedBB>emptyList(),
-            normalizedFallbackBounds);
+        return new BlockHoverGeometry(block, List.of(normalizedFallbackBounds), List.of(), normalizedFallbackBounds);
     }
 
     @Nullable
@@ -461,7 +456,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
         }
         Integer inferredSide = inferPreferredSide(bounds, x, y, z);
         if (inferredSide != null && !sides.contains(inferredSide)) {
-            sides.add(0, inferredSide);
+            sides.addFirst(inferredSide);
         }
         return sides;
     }
@@ -491,7 +486,7 @@ public final class GuideSiteSceneHoverTargetSerializer {
         AxisAlignedBB bestBounds = null;
         double bestDistanceSq = Double.POSITIVE_INFINITY;
         for (AxisAlignedBB collisionBoundsBox : collisionBounds) {
-            if (collisionBoundsBox == null || !GuideBlockBoundsResolver.isNonEmpty(collisionBoundsBox)) {
+            if (!GuideBlockBoundsResolver.isNonEmpty(collisionBoundsBox)) {
                 continue;
             }
             MovingObjectPosition intercept = collisionBoundsBox.calculateIntercept(rayStart, rayEnd);

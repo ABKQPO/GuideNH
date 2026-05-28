@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -132,7 +131,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
 
     @Override
     public List<? extends LytNode> getChildren() {
-        return Collections.emptyList();
+        return List.of();
     }
 
     public String getFormula() {

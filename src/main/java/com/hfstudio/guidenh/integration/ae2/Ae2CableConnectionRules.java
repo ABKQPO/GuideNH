@@ -1,10 +1,10 @@
 package com.hfstudio.guidenh.integration.ae2;
 
-final class Ae2CableConnectionRules {
+public class Ae2CableConnectionRules {
 
     private Ae2CableConnectionRules() {}
 
-    static boolean shouldConnect(boolean sourceHasSidePart, boolean sourceBlocked, boolean sourceCanConnect,
+    public static boolean shouldConnect(boolean sourceHasSidePart, boolean sourceBlocked, boolean sourceCanConnect,
         boolean neighborCanConnect, boolean neighborFaceBlockedByPart, boolean neighborBlocked,
         boolean neighborAcceptsSide) {
         return !sourceHasSidePart && !sourceBlocked
@@ -15,7 +15,7 @@ final class Ae2CableConnectionRules {
             && neighborAcceptsSide;
     }
 
-    static boolean facePartBlocksAdjacentCable(boolean hasFacePart, boolean facePartCanConnect) {
+    public static boolean facePartBlocksAdjacentCable(boolean hasFacePart, boolean facePartCanConnect) {
         return hasFacePart && !facePartCanConnect;
     }
 }

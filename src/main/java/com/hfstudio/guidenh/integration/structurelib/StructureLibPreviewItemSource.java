@@ -42,7 +42,7 @@ public class StructureLibPreviewItemSource implements IItemSource {
         }
         ItemStack stack = findMatchingStack(predicate);
         if (stack != null) {
-            result.put(stack, Math.max(1, count));
+            result.put(stack, count);
         }
         return result;
     }

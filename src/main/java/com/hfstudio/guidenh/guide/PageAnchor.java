@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide;
 
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
@@ -33,7 +34,7 @@ public record PageAnchor(ResourceLocation pageId, @Nullable String anchor) {
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         if (anchor != null) {
             return pageId.toString() + "#" + anchor;
         } else {

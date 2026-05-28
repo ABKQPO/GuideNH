@@ -209,8 +209,7 @@ public class SceneEditorScreenshotExportService {
             return renderTiled(scene, width, height, maxFboSize);
         }
 
-        private BufferedImage renderTiled(LytGuidebookScene scene, int fullWidth, int fullHeight, int tileSize)
-            throws Exception {
+        private BufferedImage renderTiled(LytGuidebookScene scene, int fullWidth, int fullHeight, int tileSize) {
             scene.setSceneSize(fullWidth, fullHeight);
             scene.layout(new LayoutContext(new MinecraftFontMetrics()), 0, 0, fullWidth);
 
@@ -278,7 +277,7 @@ public class SceneEditorScreenshotExportService {
             return success;
         }
 
-        public Path getSavedPath() {
+        public @Nullable Path getSavedPath() {
             return savedPath;
         }
 

@@ -15,7 +15,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import net.minecraft.util.ResourceLocation;
@@ -137,24 +136,24 @@ public class GuideSiteWriter {
             .replace("{{sidebar}}", sidebarHtml)
             .replace("{{content}}", contentHtml + String.join("", templateHtml))
             .replace("{{root}}", relativeRoot(outDir, pagePath));
-        Files.write(pagePath, layout.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(pagePath, layout);
     }
 
     public void writeNavigationIndex(Path outDir, String namespace, String guidePath, String language, String json)
         throws Exception {
         Path path = outDir.resolve(Paths.get("_data", "nav", namespace, guidePath, language + ".json"));
         Files.createDirectories(path.getParent());
-        Files.write(path, json.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(path, json);
     }
 
     public void writeSearchIndex(Path outDir, String language, String json) throws Exception {
         Path path = outDir.resolve(Paths.get("_data", "search", language + ".json"));
         Files.createDirectories(path.getParent());
-        Files.write(path, json.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(path, json);
     }
 
     public void writeReport(Path outDir, String json) throws Exception {
-        Files.write(outDir.resolve("export-report.json"), json.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(outDir.resolve("export-report.json"), json);
     }
 
     public void writeLandingPage(Path outDir, @Nullable String firstPageUrl, String title) throws Exception {
@@ -178,7 +177,7 @@ public class GuideSiteWriter {
                 + escapeHtml(uiText.siteExportOpenGuide())
                 + "</a></p></body></html>";
         }
-        Files.write(outDir.resolve("index.html"), html.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(outDir.resolve("index.html"), html);
     }
 
     public void writeExternalLinkPage(Path outDir) throws Exception {
@@ -246,7 +245,7 @@ public class GuideSiteWriter {
             .replace("{{zh_message}}", escapeJsString(chinese.externalLinkMessage()))
             .replace("{{zh_open}}", escapeJsString(chinese.externalLinkOpen()))
             .replace("{{zh_back}}", escapeJsString(chinese.externalLinkBack()));
-        Files.write(pagePath, html.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(pagePath, html);
     }
 
     public String pageUrl(String namespace, String guidePath, String language, String pageRelativeFile) {
@@ -329,12 +328,12 @@ public class GuideSiteWriter {
     }
 
     private void writeStartScripts(Path outDir) throws Exception {
-        Files.write(outDir.resolve("start.bat"), windowsStartScript().getBytes(StandardCharsets.UTF_8));
-        Files.write(outDir.resolve("stop.bat"), windowsStopScript().getBytes(StandardCharsets.UTF_8));
+        Files.writeString(outDir.resolve("start.bat"), windowsStartScript());
+        Files.writeString(outDir.resolve("stop.bat"), windowsStopScript());
         Path startSh = outDir.resolve("start.sh");
         Path stopSh = outDir.resolve("stop.sh");
-        Files.write(startSh, unixStartScript().getBytes(StandardCharsets.UTF_8));
-        Files.write(stopSh, unixStopScript().getBytes(StandardCharsets.UTF_8));
+        Files.writeString(startSh, unixStartScript());
+        Files.writeString(stopSh, unixStopScript());
         trySetExecutable(startSh);
         trySetExecutable(stopSh);
     }
@@ -742,7 +741,7 @@ public class GuideSiteWriter {
             while ((read = in.read(buffer)) >= 0) {
                 out.write(buffer, 0, read);
             }
-            return new String(out.toByteArray(), StandardCharsets.UTF_8);
+            return out.toString(StandardCharsets.UTF_8);
         }
     }
 
@@ -932,7 +931,7 @@ public class GuideSiteWriter {
         if (Files.isDirectory(normalizedTarget)) {
             try (Stream<Path> stream = Files.walk(normalizedTarget)) {
                 for (Path path : stream.sorted(Comparator.reverseOrder())
-                    .collect(Collectors.toList())) {
+                    .toList()) {
                     Files.deleteIfExists(path);
                 }
             }

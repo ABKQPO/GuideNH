@@ -18,6 +18,8 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
+import com.hfstudio.guidenh.guide.scene.support.SceneStructureOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
@@ -102,6 +104,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
         int offsetZ = MdxAttrs.getString(compiler, errorSink, el, "offsetZ", null) != null
             ? MdxAttrs.getInt(compiler, errorSink, el, "offsetZ", 0)
             : MdxAttrs.getInt(compiler, errorSink, el, "z", 0);
+        boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
 
         if (!root.hasKey("palette") || !root.hasKey("blocks")) {
             errorSink.appendError(compiler, "Unsupported structure format (missing palette/blocks)", el);
@@ -135,6 +138,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
 
             NBTTagCompound tileTag = b.hasKey("nbt", 10) ? b.getCompoundTag("nbt") : null;
             GuidebookPreviewBlockPlacer.place(level, px, py, pz, block, meta, tileTag, name, b);
+            ScenePreviewFormedState.updateAfterPlacement(level, px, py, pz, formed);
             placed++;
         }
 

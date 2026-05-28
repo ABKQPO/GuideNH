@@ -94,13 +94,13 @@ public class SceneEditorUndoHistory {
 
     private void discardRedoEntries() {
         while (entries.size() > currentIndex + 1) {
-            entries.remove(entries.size() - 1);
+            entries.removeLast();
         }
     }
 
     private void trimToMaxEntries() {
         while (entries.size() > maxEntries) {
-            entries.remove(0);
+            entries.removeFirst();
             currentIndex--;
         }
         syncCurrentMergeState();

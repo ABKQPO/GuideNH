@@ -29,7 +29,7 @@ import cpw.mods.fml.common.FMLLog;
  *
  * @see com.hfstudio.guidenh.guide.internal.recipe.NeiHandlerRenderer
  */
-public final class GuideSiteNeiPhase1BackgroundExporter {
+public class GuideSiteNeiPhase1BackgroundExporter {
 
     /**
      * Extra transparent border around the NEI body rectangle. GregTech (and similar) ModularUI / nine-patch chrome

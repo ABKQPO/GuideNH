@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.integration.betterquesting;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -50,7 +49,7 @@ public class QuestState {
     }
 
     public static synchronized Map<String, QuestState> states() {
-        return Collections.unmodifiableMap(new LinkedHashMap<>(STATES));
+        return Map.copyOf(new LinkedHashMap<>(STATES));
     }
 
     public String id() {

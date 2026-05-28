@@ -6,6 +6,7 @@ import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
 
 public class LinkParser {
 
@@ -46,7 +47,7 @@ public class LinkParser {
             pageId = compiler.getPageId();
         } else {
             try {
-                pageId = IdUtils.resolveLink(href, compiler.getPageId());
+                pageId = resolveGuidePageLink(compiler, href);
             } catch (IllegalArgumentException ignored) {
                 visitor.handleError("Invalid link");
                 return;
@@ -71,6 +72,14 @@ public class LinkParser {
             return currentGuideId;
         }
         return new ResourceLocation(pageId.getResourceDomain(), currentGuideId.getResourcePath());
+    }
+
+    private static ResourceLocation resolveGuidePageLink(PageCompiler compiler, String href) {
+        ResourceLocation syntheticPageId = MediaWikiPageIds.tryResolveSyntheticTitle(
+            compiler.getPageId()
+                .getResourceDomain(),
+            href);
+        return syntheticPageId != null ? syntheticPageId : IdUtils.resolveLink(href, compiler.getPageId());
     }
 
     public interface Visitor {

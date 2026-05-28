@@ -24,7 +24,7 @@ public class GuideItemReferenceResolver {
 
     @Desugar
     public record ResolvedBlockReference(ResourceLocation registryId, Block block, @Nullable ItemStack stack,
-        boolean hasExplicitMeta) {}
+        boolean hasExplicitMeta, int explicitMeta) {}
 
     @Nullable
     public static ResolvedItemReference resolveItemReference(String defaultNamespace, @Nullable String idText,
@@ -69,7 +69,7 @@ public class GuideItemReferenceResolver {
             if (block == null || block == Blocks.air || registryId == null) {
                 return null;
             }
-            return new ResolvedBlockReference(registryId, block, stack, true);
+            return new ResolvedBlockReference(registryId, block, stack, true, stack.getItemDamage());
         }
 
         String trimmedIdText = trimToNull(idText);
@@ -93,7 +93,7 @@ public class GuideItemReferenceResolver {
             stack.stackTagCompound = (NBTTagCompound) ref.nbt()
                 .copy();
         }
-        return new ResolvedBlockReference(ref.id(), block, stack, ref.hasExplicitMeta());
+        return new ResolvedBlockReference(ref.id(), block, stack, ref.hasExplicitMeta(), ref.meta());
     }
 
     @Nullable

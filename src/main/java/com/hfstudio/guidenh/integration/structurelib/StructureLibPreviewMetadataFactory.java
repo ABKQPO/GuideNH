@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.integration.structurelib;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,9 +26,9 @@ public class StructureLibPreviewMetadataFactory {
     private static final Map<Class<?>, List<Field>> CHANNEL_FIELDS_CACHE = new ConcurrentHashMap<>();
     private static final StructureLibSceneMetadata.BlockTooltipData GENERIC_TOOLTIP_DATA = new StructureLibSceneMetadata.BlockTooltipData(
         GENERIC_STRUCTURELIB_DESCRIPTION,
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList());
+        List.of(),
+        List.of(),
+        List.of());
 
     private final StructureLibElementTooltipResolver tooltipResolver;
 
@@ -68,8 +67,7 @@ public class StructureLibPreviewMetadataFactory {
             request.getFlip());
         int resolvedMaxTier = Math.max(maxTier, resolveHintMaxTier(visitedElementsByPos, constructable));
         if (resolvedMaxTier > 0) {
-            metadata = metadata
-                .withTierData(1, Math.max(1, resolvedMaxTier), selection.getMasterTier(), selection.getMasterTier());
+            metadata = metadata.withTierData(1, resolvedMaxTier, selection.getMasterTier(), selection.getMasterTier());
         }
         if (channelMaxTierMap != null && !channelMaxTierMap.isEmpty()) {
             for (Map.Entry<String, Integer> entry : channelMaxTierMap.entrySet()) {
@@ -267,7 +265,7 @@ public class StructureLibPreviewMetadataFactory {
             }
             current = current.getSuperclass();
         }
-        return fields.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(fields);
+        return fields.isEmpty() ? List.of() : List.copyOf(fields);
     }
 
     public static long pack(int x, int y, int z) {

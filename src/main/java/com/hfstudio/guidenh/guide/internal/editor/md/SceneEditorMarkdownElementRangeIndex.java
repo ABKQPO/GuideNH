@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.md;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,7 +13,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 public class SceneEditorMarkdownElementRangeIndex {
 
     public static final SceneEditorMarkdownElementRangeIndex EMPTY = new SceneEditorMarkdownElementRangeIndex(
-        Collections.emptyList());
+        List.of());
 
     private final List<SceneEditorMarkdownElementRange> ranges;
 
@@ -54,7 +53,7 @@ public class SceneEditorMarkdownElementRangeIndex {
         if (ranges.isEmpty()) {
             return empty();
         }
-        return new SceneEditorMarkdownElementRangeIndex(Collections.unmodifiableList(ranges));
+        return new SceneEditorMarkdownElementRangeIndex(List.copyOf(ranges));
     }
 
     public boolean isEmpty() {

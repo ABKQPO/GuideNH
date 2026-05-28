@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.internal.editor;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
@@ -369,7 +368,7 @@ public class SceneEditorScreen extends GuiScreen {
         this.contextMenuElementId = null;
         this.contextMenuX = 0;
         this.contextMenuY = 0;
-        this.contextMenuActions = Collections.emptyList();
+        this.contextMenuActions = List.of();
         this.addElementMenuOpen = false;
         this.snapModeMenuOpen = false;
         this.screenshotScaleField = null;
@@ -581,8 +580,6 @@ public class SceneEditorScreen extends GuiScreen {
                 return;
             }
             applyServerSelectionSnbt(serverSnbt, baseSnbt);
-        } catch (CompletionException ignored) {
-            // Keep the client-first editor usable even if the optional server sync fails.
         } catch (Exception ignored) {
             // Keep the client-first editor usable even if the optional server sync fails.
         }
@@ -774,26 +771,22 @@ public class SceneEditorScreen extends GuiScreen {
 
         GuideIconButton hoveredButton = hoveredButton(mouseX, mouseY);
         if (hoveredButton != null) {
-            this.drawHoveringText(
-                Collections.singletonList(hoveredButton.getTooltip()),
-                mouseX,
-                mouseY,
-                this.fontRendererObj);
+            this.drawHoveringText(List.of(hoveredButton.getTooltip()), mouseX, mouseY, this.fontRendererObj);
         } else if (isInsideMarkdownToggle(mouseX, mouseY)) {
             this.drawHoveringText(
-                Collections.singletonList(GuidebookText.SceneEditorMarkdownPanel.text()),
+                List.of(GuidebookText.SceneEditorMarkdownPanel.text()),
                 mouseX,
                 mouseY,
                 this.fontRendererObj);
         } else if (isInsideRightPanelToggle(mouseX, mouseY)) {
             this.drawHoveringText(
-                Collections.singletonList(GuidebookText.SceneEditorSettingsPanel.text()),
+                List.of(GuidebookText.SceneEditorSettingsPanel.text()),
                 mouseX,
                 mouseY,
                 this.fontRendererObj);
         } else if (isInsideMarkdownFooter(mouseX, mouseY)) {
             this.drawHoveringText(
-                Collections.singletonList(GuidebookText.SceneEditorMarkdownWrap.text()),
+                List.of(GuidebookText.SceneEditorMarkdownWrap.text()),
                 mouseX,
                 mouseY,
                 this.fontRendererObj);
@@ -1808,10 +1801,7 @@ public class SceneEditorScreen extends GuiScreen {
             && !expandedElementEditor.commitFocusedDraft(Integer.MIN_VALUE, Integer.MIN_VALUE)) {
             return false;
         }
-        if (!commitScreenshotScaleDraft()) {
-            return false;
-        }
-        return true;
+        return commitScreenshotScaleDraft();
     }
 
     private void closeEditorNow() {
@@ -3312,23 +3302,23 @@ public class SceneEditorScreen extends GuiScreen {
     private void ensureElementPanelStateValid() {
         UUID selectedElementId = session.getSelectionState()
             .getSelectedElementId();
-        if (selectedElementId != null && !session.getSceneModel()
+        if (selectedElementId != null && session.getSceneModel()
             .getElement(selectedElementId)
-            .isPresent()) {
+            .isEmpty()) {
             session.getSelectionState()
                 .setSelectedElementId(null);
         }
-        if (expandedElementId != null && !session.getSceneModel()
+        if (expandedElementId != null && session.getSceneModel()
             .getElement(expandedElementId)
-            .isPresent()) {
+            .isEmpty()) {
             expandedElementId = null;
         }
         if (expandedElementId == null) {
             expandedElementEditor = null;
         }
-        if (contextMenuElementId != null && !session.getSceneModel()
+        if (contextMenuElementId != null && session.getSceneModel()
             .getElement(contextMenuElementId)
-            .isPresent()) {
+            .isEmpty()) {
             closeElementContextMenu();
         }
         if (!elementReorderController.isDragging() && session.getSceneModel()
@@ -3816,7 +3806,7 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void closeElementContextMenu() {
         contextMenuElementId = null;
-        contextMenuActions = Collections.emptyList();
+        contextMenuActions = List.of();
     }
 
     private boolean isContextMenuOpen() {
@@ -4007,15 +3997,15 @@ public class SceneEditorScreen extends GuiScreen {
         }
         int lineY;
         if (insertionIndex <= 0) {
-            lineY = layouts.get(0).rowY;
+            lineY = layouts.getFirst().rowY;
         } else if (insertionIndex >= layouts.size()) {
-            ElementRowLayout last = layouts.get(layouts.size() - 1);
+            ElementRowLayout last = layouts.getLast();
             lineY = last.rowY + last.totalHeight;
         } else {
             lineY = layouts.get(insertionIndex).rowY;
         }
-        int lineX = layouts.get(0).rowX;
-        int lineWidth = layouts.get(0).rowWidth;
+        int lineX = layouts.getFirst().rowX;
+        int lineWidth = layouts.getFirst().rowWidth;
         drawRect(lineX, lineY - 1, lineX + lineWidth, lineY + 1, 0xFF00CAF2);
     }
 

@@ -17,7 +17,7 @@ import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 
-public final class GuideScreenEditorFileStore {
+public class GuideScreenEditorFileStore {
 
     private final Path resourcePacksRoot;
     private final Path packRoot;
@@ -69,7 +69,7 @@ public final class GuideScreenEditorFileStore {
         Files.createDirectories(packRoot);
         Files.createDirectories(resourcePacksRoot);
         if (!Files.exists(packMetaPath)) {
-            Files.write(packMetaPath, buildPackMeta().getBytes(StandardCharsets.UTF_8));
+            Files.writeString(packMetaPath, buildPackMeta());
         }
     }
 
@@ -85,14 +85,14 @@ public final class GuideScreenEditorFileStore {
         }
         Path pagePath = buildPagePath(targetPackRoot, guide, pageId, language);
         Files.createDirectories(pagePath.getParent());
-        Files.write(pagePath, text.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(pagePath, text);
     }
 
     public void savePageInRoot(Path root, MutableGuide guide, ResourceLocation pageId, String language, String text)
         throws IOException {
         Path pagePath = buildPagePath(root, guide, pageId, language);
         Files.createDirectories(pagePath.getParent());
-        Files.write(pagePath, text.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(pagePath, text);
     }
 
     public boolean canSaveBesideSource(MutableGuide guide, @Nullable ResourceLocation sourcePageId, String language) {
@@ -144,9 +144,7 @@ public final class GuideScreenEditorFileStore {
             return selectedSourcePath;
         }
         Path fallbackPath = buildPagePath(packRoot, guide, pageId, language);
-        if (Files.isRegularFile(fallbackPath)) {
-            return fallbackPath;
-        }
+        Files.isRegularFile(fallbackPath);
         return fallbackPath;
     }
 
@@ -194,16 +192,12 @@ public final class GuideScreenEditorFileStore {
 
     @Nullable
     private Path findWritableResourcePackRootContaining(MutableGuide guide, ResourceLocation pageId, String language) {
-        Path root = findWritableResourcePackRootContainingAsset(
+        return findWritableResourcePackRootContainingAsset(
             toResourcePackPageId(guide, pageId, language),
             language != null && !language.equals(guide.getDefaultLanguage())
                 ? toResourcePackPageId(guide, pageId, guide.getDefaultLanguage())
                 : null,
             toNeutralPageId(guide, pageId));
-        if (root != null) {
-            return root;
-        }
-        return null;
     }
 
     @Nullable

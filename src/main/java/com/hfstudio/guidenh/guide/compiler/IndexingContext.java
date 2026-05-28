@@ -39,7 +39,7 @@ public interface IndexingContext {
 
     void indexContent(MdAstAnyContent content, IndexingSink sink);
 
-    default @Nullable byte[] loadAsset(ResourceLocation imageId) {
+    default byte @Nullable [] loadAsset(ResourceLocation imageId) {
         return getPageCollection().loadAsset(imageId);
     }
 

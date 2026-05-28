@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -69,7 +68,7 @@ public class StructureLibTooltipContentBuilder {
             return;
         }
         for (StructureLibHatchDescriptionLine line : lines) {
-            if (hintBlockLinesOnly != null && isHintBlockLine(line) != hintBlockLinesOnly.booleanValue()) {
+            if (hintBlockLinesOnly != null && isHintBlockLine(line) != hintBlockLinesOnly) {
                 continue;
             }
             LytParagraph paragraph = createDescriptionParagraph(line);
@@ -179,7 +178,7 @@ public class StructureLibTooltipContentBuilder {
 
     public static List<ItemStack> normalizeStacks(@Nullable List<ItemStack> candidates) {
         if (candidates == null || candidates.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         List<ItemStack> normalized = new ArrayList<>(candidates.size());
         for (ItemStack stack : candidates) {
@@ -187,7 +186,7 @@ public class StructureLibTooltipContentBuilder {
                 normalized.add(stack);
             }
         }
-        return normalized.isEmpty() ? Collections.emptyList() : normalized;
+        return normalized.isEmpty() ? List.of() : normalized;
     }
 
     public static String requireBlockName(@Nullable String blockName) {

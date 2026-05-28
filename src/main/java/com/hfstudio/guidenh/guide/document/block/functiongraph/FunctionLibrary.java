@@ -15,140 +15,65 @@ public class FunctionLibrary {
 
     /** Returns 1 for unary functions, 2 for binary, otherwise 0. */
     public static int resolveArity(String name) {
-        switch (name) {
-            case "sin":
-            case "cos":
-            case "tan":
-            case "asin":
-            case "acos":
-            case "atan":
-            case "sinh":
-            case "cosh":
-            case "tanh":
-            case "ln":
-            case "log":
-            case "log2":
-            case "log10":
-            case "exp":
-            case "sqrt":
-            case "cbrt":
-            case "abs":
-            case "sign":
-            case "floor":
-            case "ceil":
-            case "round":
-            case "deg":
-            case "rad":
-            case "gamma":
-                return 1;
-            case "atan2":
-            case "min":
-            case "max":
-            case "pow":
-            case "hypot":
-            case "mod":
-                return 2;
-            default:
-                return 0;
-        }
+        return switch (name) {
+            case "sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh", "ln", "log", "log2", "log10", "exp", "sqrt", "cbrt", "abs", "sign", "floor", "ceil", "round", "deg", "rad", "gamma" -> 1;
+            case "atan2", "min", "max", "pow", "hypot", "mod" -> 2;
+            default -> 0;
+        };
     }
 
     /** Recognised mathematical constants. Returns {@link Double#NaN} when the name is unknown. */
     public static double constant(String name) {
-        switch (name) {
-            case "pi":
-            case "PI":
-            case "Pi":
-                return Math.PI;
-            case "e":
-            case "E":
-                return Math.E;
-            case "tau":
-            case "TAU":
-            case "Tau":
-                return Math.PI * 2d;
-            case "phi":
-            case "PHI":
-                return (1d + Math.sqrt(5d)) / 2d;
-            default:
-                return Double.NaN;
-        }
+        return switch (name) {
+            case "pi", "PI", "Pi" -> Math.PI;
+            case "e", "E" -> Math.E;
+            case "tau", "TAU", "Tau" -> Math.PI * 2d;
+            case "phi", "PHI" -> (1d + Math.sqrt(5d)) / 2d;
+            default -> Double.NaN;
+        };
     }
 
     /** Evaluate a unary built-in. */
     public static double call1(String name, double a) {
-        switch (name) {
-            case "sin":
-                return Math.sin(a);
-            case "cos":
-                return Math.cos(a);
-            case "tan":
-                return Math.tan(a);
-            case "asin":
-                return Math.asin(a);
-            case "acos":
-                return Math.acos(a);
-            case "atan":
-                return Math.atan(a);
-            case "sinh":
-                return Math.sinh(a);
-            case "cosh":
-                return Math.cosh(a);
-            case "tanh":
-                return Math.tanh(a);
-            case "ln":
-                return Math.log(a);
-            case "log":
-                return Math.log10(a);
-            case "log2":
-                return Math.log(a) / Math.log(2d);
-            case "log10":
-                return Math.log10(a);
-            case "exp":
-                return Math.exp(a);
-            case "sqrt":
-                return a < 0d ? Double.NaN : Math.sqrt(a);
-            case "cbrt":
-                return Math.cbrt(a);
-            case "abs":
-                return Math.abs(a);
-            case "sign":
-                return Math.signum(a);
-            case "floor":
-                return Math.floor(a);
-            case "ceil":
-                return Math.ceil(a);
-            case "round":
-                return Math.rint(a);
-            case "deg":
-                return Math.toDegrees(a);
-            case "rad":
-                return Math.toRadians(a);
-            case "gamma":
-                return gamma(a);
-            default:
-                return Double.NaN;
-        }
+        return switch (name) {
+            case "sin" -> Math.sin(a);
+            case "cos" -> Math.cos(a);
+            case "tan" -> Math.tan(a);
+            case "asin" -> Math.asin(a);
+            case "acos" -> Math.acos(a);
+            case "atan" -> Math.atan(a);
+            case "sinh" -> Math.sinh(a);
+            case "cosh" -> Math.cosh(a);
+            case "tanh" -> Math.tanh(a);
+            case "ln" -> Math.log(a);
+            case "log", "log10" -> Math.log10(a);
+            case "log2" -> Math.log(a) / Math.log(2d);
+            case "exp" -> Math.exp(a);
+            case "sqrt" -> a < 0d ? Double.NaN : Math.sqrt(a);
+            case "cbrt" -> Math.cbrt(a);
+            case "abs" -> Math.abs(a);
+            case "sign" -> Math.signum(a);
+            case "floor" -> Math.floor(a);
+            case "ceil" -> Math.ceil(a);
+            case "round" -> Math.rint(a);
+            case "deg" -> Math.toDegrees(a);
+            case "rad" -> Math.toRadians(a);
+            case "gamma" -> gamma(a);
+            default -> Double.NaN;
+        };
     }
 
     /** Evaluate a binary built-in. */
     public static double call2(String name, double a, double b) {
-        switch (name) {
-            case "atan2":
-                return Math.atan2(a, b);
-            case "min":
-                return Math.min(a, b);
-            case "max":
-                return Math.max(a, b);
-            case "pow":
-                return Math.pow(a, b);
-            case "hypot":
-                return Math.hypot(a, b);
-            case "mod":
-                return b == 0d ? Double.NaN : a % b;
-            default:
-                return Double.NaN;
-        }
+        return switch (name) {
+            case "atan2" -> Math.atan2(a, b);
+            case "min" -> Math.min(a, b);
+            case "max" -> Math.max(a, b);
+            case "pow" -> Math.pow(a, b);
+            case "hypot" -> Math.hypot(a, b);
+            case "mod" -> b == 0d ? Double.NaN : a % b;
+            default -> Double.NaN;
+        };
     }
 
     /**
