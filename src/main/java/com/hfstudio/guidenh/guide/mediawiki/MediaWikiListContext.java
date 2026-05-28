@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.mediawiki;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -21,7 +20,7 @@ import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 public record MediaWikiListContext(Guide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
     NavigationTree navigationTree, CategoryIndex categoryIndex, MediaWikiSpecialDataIndex specialDataIndex) {
 
-    private static final Set<ResourceLocation> EMPTY_PAGE_IDS = Collections.emptySet();
+    private static final Set<ResourceLocation> EMPTY_PAGE_IDS = Set.of();
 
     public MediaWikiListContext {
         Objects.requireNonNull(guide, "guide");
@@ -29,7 +28,7 @@ public record MediaWikiListContext(Guide guide, Map<ResourceLocation, ParsedGuid
         Objects.requireNonNull(navigationTree, "navigationTree");
         Objects.requireNonNull(categoryIndex, "categoryIndex");
         Objects.requireNonNull(specialDataIndex, "specialDataIndex");
-        parsedPagesById = Collections.unmodifiableMap(new LinkedHashMap<>(parsedPagesById));
+        parsedPagesById = Map.copyOf(new LinkedHashMap<>(parsedPagesById));
     }
 
     public static MediaWikiListContext create(Guide guide, Collection<ParsedGuidePage> pages,

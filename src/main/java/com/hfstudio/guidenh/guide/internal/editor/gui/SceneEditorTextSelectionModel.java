@@ -171,9 +171,6 @@ public class SceneEditorTextSelectionModel {
         if (index < 0) {
             return 0;
         }
-        if (index > text.length()) {
-            return text.length();
-        }
-        return index;
+        return Math.min(index, text.length());
     }
 }

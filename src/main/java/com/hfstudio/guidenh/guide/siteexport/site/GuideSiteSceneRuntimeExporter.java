@@ -4,7 +4,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -181,7 +180,7 @@ public class GuideSiteSceneRuntimeExporter {
                     width,
                     height,
                     0.0f,
-                    Collections.emptyList(),
+                    List.of(),
                     LightDarkMode.LIGHT_MODE,
                     layerSelection,
                     scene.getRenderableParticlesForExport(),

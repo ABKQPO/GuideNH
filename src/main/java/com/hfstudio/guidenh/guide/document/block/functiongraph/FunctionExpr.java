@@ -11,7 +11,7 @@ public interface FunctionExpr {
     double evaluate(double x, double y);
 
     /** Constant numeric literal. */
-    final class Constant implements FunctionExpr {
+    class Constant implements FunctionExpr {
 
         private final double value;
 
@@ -26,7 +26,7 @@ public interface FunctionExpr {
     }
 
     /** Variable reference. {@code which} = 0 -> x, {@code which} = 1 -> y. */
-    final class Variable implements FunctionExpr {
+    class Variable implements FunctionExpr {
 
         private final int which;
 
@@ -41,7 +41,7 @@ public interface FunctionExpr {
     }
 
     /** Unary negation. */
-    final class Neg implements FunctionExpr {
+    class Neg implements FunctionExpr {
 
         private final FunctionExpr inner;
 
@@ -56,7 +56,7 @@ public interface FunctionExpr {
     }
 
     /** Absolute value, e.g. produced by {@code |expr|}. */
-    final class Abs implements FunctionExpr {
+    class Abs implements FunctionExpr {
 
         private final FunctionExpr inner;
 
@@ -71,7 +71,7 @@ public interface FunctionExpr {
     }
 
     /** Postfix factorial; uses Lanczos gamma for non-integer / negative inputs (rejects negative integers). */
-    final class Factorial implements FunctionExpr {
+    class Factorial implements FunctionExpr {
 
         private final FunctionExpr inner;
 
@@ -86,7 +86,7 @@ public interface FunctionExpr {
     }
 
     /** Binary arithmetic (+ - * / % ^). */
-    final class Binary implements FunctionExpr {
+    class Binary implements FunctionExpr {
 
         public static final int ADD = 0;
         public static final int SUB = 1;
@@ -122,7 +122,7 @@ public interface FunctionExpr {
     }
 
     /** Named function call with one or two arguments. */
-    final class Call implements FunctionExpr {
+    class Call implements FunctionExpr {
 
         private final String name;
         private final FunctionExpr[] args;

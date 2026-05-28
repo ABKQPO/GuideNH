@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.client.gui.FontRenderer;
@@ -11,7 +10,7 @@ import com.github.bsideup.jabel.Desugar;
 public class SceneEditorMultilineTextLayoutCache {
 
     private final List<VisualLine> visualLines = new ArrayList<>();
-    private List<VisualLine> readonlyVisualLines = Collections.emptyList();
+    private List<VisualLine> readonlyVisualLines = List.of();
     private int contentWidthPixels;
     private int contentHeightPixels;
 
@@ -39,7 +38,7 @@ public class SceneEditorMultilineTextLayoutCache {
             visualLines.add(new VisualLine(0, 0, "", false));
         }
 
-        readonlyVisualLines = Collections.unmodifiableList(new ArrayList<>(visualLines));
+        readonlyVisualLines = List.copyOf(new ArrayList<>(visualLines));
         contentHeightPixels = visualLines.size() * Math.max(0, lineHeight);
     }
 

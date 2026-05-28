@@ -4,7 +4,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.command.CommandBase;
@@ -113,7 +112,7 @@ public class GuideNhClientCommand extends CommandBase {
         if (args.length >= 2 && args[0].equalsIgnoreCase("exportstructure")) {
             return getListOfStringsMatchingLastWord(args, EXPORT_STRUCTURE_FLAGS);
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override
@@ -336,8 +335,7 @@ public class GuideNhClientCommand extends CommandBase {
         int maxY = y + sizeY - 1;
         int maxZ = z + sizeZ - 1;
         boolean includeEntities = mode.includeEntities();
-        List<Entity> entities = includeEntities ? collectEntities(player, x, y, z, maxX, maxY, maxZ)
-            : Collections.emptyList();
+        List<Entity> entities = includeEntities ? collectEntities(player, x, y, z, maxX, maxY, maxZ) : List.of();
         if (mode == RegionWandExportMode.BLOCKS || mode == RegionWandExportMode.BLOCKS_ENTITIES) {
             return RegionWandItem.exportBlocks(player.worldObj, x, y, z, maxX, maxY, maxZ, entities)
                 .text();
@@ -349,13 +347,12 @@ public class GuideNhClientCommand extends CommandBase {
             .text();
     }
 
-    @SuppressWarnings("unchecked")
     private List<Entity> collectEntities(EntityPlayer player, int minX, int minY, int minZ, int maxX, int maxY,
         int maxZ) {
         List<Entity> all = player.worldObj.getEntitiesWithinAABBExcludingEntity(
             null,
             AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1));
-        return all != null ? all : Collections.emptyList();
+        return all != null ? all : List.of();
     }
 
     private ExportStructureOptions parseExportStructureOptions(String[] args) {

@@ -25,14 +25,12 @@ public class LytSlotGrid extends LytBox {
 
     public static LytSlotGrid columnFromStacks(List<ItemStack> items, boolean skipEmpty) {
         int count = 0;
-        for (int i = 0; i < items.size(); i++) {
-            ItemStack s = items.get(i);
+        for (ItemStack s : items) {
             if (!skipEmpty || (s != null && s.stackSize > 0)) count++;
         }
         var grid = new LytSlotGrid(1, count);
         int row = 0;
-        for (int i = 0; i < items.size(); i++) {
-            ItemStack s = items.get(i);
+        for (ItemStack s : items) {
             if (!skipEmpty || (s != null && s.stackSize > 0)) {
                 grid.setItem(0, row++, s);
             }
@@ -42,14 +40,12 @@ public class LytSlotGrid extends LytBox {
 
     public static LytSlotGrid rowFromStacks(List<ItemStack> items, boolean skipEmpty) {
         int count = 0;
-        for (int i = 0; i < items.size(); i++) {
-            ItemStack s = items.get(i);
+        for (ItemStack s : items) {
             if (!skipEmpty || (s != null && s.stackSize > 0)) count++;
         }
         var grid = new LytSlotGrid(count, 1);
         int col = 0;
-        for (int i = 0; i < items.size(); i++) {
-            ItemStack s = items.get(i);
+        for (ItemStack s : items) {
             if (!skipEmpty || (s != null && s.stackSize > 0)) {
                 grid.setItem(col++, 0, s);
             }

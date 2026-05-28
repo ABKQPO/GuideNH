@@ -154,23 +154,24 @@ public class SceneEditorSceneNodePreviewApplier {
 
     private boolean applyNode(SceneEditorSession session, LytGuidebookScene scene, SceneEditorSceneNodeModel node,
         @Nullable StructureLibPreviewSelection structureLibSelectionOverride, boolean structureMutationEnabled) {
-        switch (node.getType()) {
-            case IMPORT_STRUCTURE:
-                return applyImportStructure(session, scene.getLevel(), node, structureMutationEnabled);
-            case IMPORT_STRUCTURE_LIB:
-                return applyImportStructureLib(scene, node, structureLibSelectionOverride, structureMutationEnabled);
-            case REMOVE_BLOCKS:
-                return applyRemoveBlocks(scene.getLevel(), node, structureMutationEnabled);
-            case BLOCK_ANNOTATION_TEMPLATE:
+        return switch (node.getType()) {
+            case IMPORT_STRUCTURE -> applyImportStructure(session, scene.getLevel(), node, structureMutationEnabled);
+            case IMPORT_STRUCTURE_LIB -> applyImportStructureLib(
+                scene,
+                node,
+                structureLibSelectionOverride,
+                structureMutationEnabled);
+            case REMOVE_BLOCKS -> applyRemoveBlocks(scene.getLevel(), node, structureMutationEnabled);
+            case BLOCK_ANNOTATION_TEMPLATE -> {
                 applyBlockAnnotationTemplate(scene, node);
-                return true;
-            case ANNOTATION:
+                yield true;
+            }
+            case ANNOTATION -> {
                 appendAnnotation(scene, node.getAnnotationElement());
-                return true;
-            case OPAQUE:
-            default:
-                return true;
-        }
+                yield true;
+            }
+            default -> true;
+        };
     }
 
     private void applyAnnotationNode(LytGuidebookScene scene, SceneEditorSceneNodeModel node) {
@@ -396,7 +397,7 @@ public class SceneEditorSceneNodePreviewApplier {
         }
 
         try {
-            return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+            return Files.readString(path);
         } catch (Exception e) {
             GuideDebugLog.warn("Failed to read scene editor preview structure {}", normalizedSource, e);
             return null;
@@ -506,7 +507,7 @@ public class SceneEditorSceneNodePreviewApplier {
             annotation.setAlwaysOnTop(element.isAlwaysOnTop());
             applyTooltip(annotation, element.getTooltipMarkdown());
             applyStructureLibCondition(annotation, element);
-            return Collections.<SceneAnnotation>singletonList(annotation);
+            return Collections.singletonList(annotation);
         }
         if (element.getType() == SceneEditorElementType.BOX) {
             Vector3f min = new Vector3f(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ());
@@ -516,7 +517,7 @@ public class SceneEditorSceneNodePreviewApplier {
             annotation.setAlwaysOnTop(element.isAlwaysOnTop());
             applyTooltip(annotation, element.getTooltipMarkdown());
             applyStructureLibCondition(annotation, element);
-            return Collections.<SceneAnnotation>singletonList(annotation);
+            return Collections.singletonList(annotation);
         }
         if (element.getType() == SceneEditorElementType.LINE) {
             InWorldLineAnnotation annotation = new InWorldLineAnnotation(
@@ -526,7 +527,7 @@ public class SceneEditorSceneNodePreviewApplier {
             annotation.setAlwaysOnTop(element.isAlwaysOnTop());
             applyTooltip(annotation, element.getTooltipMarkdown());
             applyStructureLibCondition(annotation, element);
-            return Collections.<SceneAnnotation>singletonList(annotation);
+            return Collections.singletonList(annotation);
         }
         if (element.getType() == SceneEditorElementType.TEXT) {
             String text = resolveAnnotationText(element);
@@ -557,7 +558,7 @@ public class SceneEditorSceneNodePreviewApplier {
         annotation.setAlwaysOnTop(element.isAlwaysOnTop());
         applyTooltip(annotation, element.getTooltipMarkdown());
         applyStructureLibCondition(annotation, element);
-        return Collections.<SceneAnnotation>singletonList(annotation);
+        return Collections.singletonList(annotation);
     }
 
     private List<Vector3f> resolveLinePoints(SceneEditorElementModel element) {
@@ -732,6 +733,6 @@ public class SceneEditorSceneNodePreviewApplier {
 
     private static int parseIntegerAttributeOrDefault(@Nullable String value, int defaultValue) {
         Integer parsed = parseIntegerAttribute(value);
-        return parsed != null ? parsed.intValue() : defaultValue;
+        return parsed != null ? parsed : defaultValue;
     }
 }

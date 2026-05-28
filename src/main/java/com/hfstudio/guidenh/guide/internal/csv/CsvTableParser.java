@@ -38,7 +38,7 @@ public class CsvTableParser {
             }
         }
 
-        if (!row.isEmpty() || cell.length() > 0) {
+        if (!row.isEmpty() || !cell.isEmpty()) {
             flushRow(rows, row, cell);
         }
 
@@ -75,7 +75,7 @@ public class CsvTableParser {
         if (row.size() != 1) {
             return false;
         }
-        return row.get(0)
+        return row.getFirst()
             .isEmpty();
     }
 }

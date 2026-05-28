@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -22,8 +21,6 @@ public class LytPlaceholderBlock extends LytBlock {
     private LytBlock currentBlock;
 
     private final List<LytBlock> currentChildren = new ArrayList<>(1);
-
-    private final List<LytBlock> unmodifiableChildren = Collections.unmodifiableList(currentChildren);
 
     public LytPlaceholderBlock(CompletableFuture<LytBlock> future) {
         var loading = new LytParagraph();
@@ -80,6 +77,6 @@ public class LytPlaceholderBlock extends LytBlock {
 
     @Override
     public List<? extends LytNode> getChildren() {
-        return unmodifiableChildren;
+        return List.copyOf(currentChildren);
     }
 }

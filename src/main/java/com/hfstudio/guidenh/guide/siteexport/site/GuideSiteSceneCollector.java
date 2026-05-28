@@ -2,8 +2,8 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Optional;
 
 import com.hfstudio.guidenh.guide.GuidePage;
@@ -18,13 +18,13 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 
-public final class GuideSiteSceneCollector {
+public class GuideSiteSceneCollector {
 
     private GuideSiteSceneCollector() {}
 
     public static GuideSiteCollectedScenes collect(GuidePage compiledPage) {
         if (compiledPage == null || compiledPage.document() == null) {
-            return new GuideSiteCollectedScenes(Collections.emptyList(), Collections.emptyList());
+            return new GuideSiteCollectedScenes(List.of(), List.of());
         }
 
         CollectorState state = new CollectorState();

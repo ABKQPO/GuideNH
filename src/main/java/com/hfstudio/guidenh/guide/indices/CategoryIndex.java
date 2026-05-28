@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.indices;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,7 +42,7 @@ public class CategoryIndex implements PageIndex {
     public List<PageAnchor> get(String categoryName) {
         List<MediaWikiCategoryMember> members = getMembers(categoryName);
         if (members.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         var anchors = new ArrayList<PageAnchor>(members.size());
@@ -55,7 +54,7 @@ public class CategoryIndex implements PageIndex {
 
     public List<MediaWikiCategoryMember> getMembers(String categoryName) {
         List<MediaWikiCategoryMember> members = categories.get(resolveCanonicalCategoryName(categoryName));
-        return members != null ? new ArrayList<>(members) : Collections.<MediaWikiCategoryMember>emptyList();
+        return members != null ? new ArrayList<>(members) : List.of();
     }
 
     public List<String> getCategoryNames() {

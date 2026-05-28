@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.io;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -45,7 +44,7 @@ public class SceneEditorStructureCache {
         if (parent != null) {
             Files.createDirectories(parent);
         }
-        Files.write(path, snbtText.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(path, snbtText);
     }
 
     public static Optional<Path> resolveSceneStructurePath(Path workingRoot, @Nullable String structureSource) {

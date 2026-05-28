@@ -25,7 +25,7 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
 
     public LytGuiSprite() {}
 
-    public LytGuiSprite(GuiSprite sprite, LytSize size) {
+    public LytGuiSprite(@Nullable GuiSprite sprite, LytSize size) {
         this.sprite = sprite;
         this.size = size;
     }

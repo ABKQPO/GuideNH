@@ -121,7 +121,7 @@ public class LytTable extends LytBlock {
             }
 
             if (assignedWidth < innerWidth) {
-                var lastCol = columns.get(columns.size() - 1);
+                var lastCol = columns.getLast();
                 lastCol.width += innerWidth - assignedWidth;
             }
             return;
@@ -134,7 +134,7 @@ public class LytTable extends LytBlock {
             colX += column.width + CELL_BORDER;
         }
 
-        var lastCol = columns.get(columns.size() - 1);
+        var lastCol = columns.getLast();
         lastCol.width = (x + availableWidth) - lastCol.x - CELL_BORDER;
     }
 

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.libs.micromark;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -18,7 +17,7 @@ public class NamedCharacterEntities {
     }
 
     public static Set<String> getNames() {
-        return Collections.unmodifiableSet(ENTITIES.keySet());
+        return Set.copyOf(ENTITIES.keySet());
     }
 
     static {

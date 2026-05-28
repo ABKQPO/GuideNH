@@ -5,7 +5,6 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -17,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiExternalLinkSupport;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
 
 import cpw.mods.fml.common.FMLLog;
 
@@ -59,7 +59,7 @@ public class GuideSiteHrefResolver {
 
         try {
             ResourceLocation targetPageId = target.isEmpty() ? currentPageId
-                : IdUtils.resolveLink(target, currentPageId);
+                : resolveTargetPageId(currentPageId, target);
             return resolvePageAnchor(currentPageId, new PageAnchor(targetPageId, fragment));
         } catch (IllegalArgumentException e) {
             FMLLog.getLogger()
@@ -132,6 +132,12 @@ public class GuideSiteHrefResolver {
         return collapseWhitespaceToDashes(
             text.toLowerCase(Locale.ROOT)
                 .trim());
+    }
+
+    private static ResourceLocation resolveTargetPageId(ResourceLocation currentPageId, String target) {
+        ResourceLocation syntheticPageId = MediaWikiPageIds
+            .tryResolveSyntheticTitle(currentPageId.getResourceDomain(), target);
+        return syntheticPageId != null ? syntheticPageId : IdUtils.resolveLink(target, currentPageId);
     }
 
     private static String collapseWhitespaceToDashes(String text) {
@@ -247,9 +253,9 @@ public class GuideSiteHrefResolver {
             this.guidePath = guidePath;
             this.language = language;
             if (guideIdsByPageId == null || guideIdsByPageId.isEmpty()) {
-                this.guideIdsByPageId = Collections.emptyMap();
+                this.guideIdsByPageId = Map.of();
             } else {
-                this.guideIdsByPageId = Collections.unmodifiableMap(new LinkedHashMap<>(guideIdsByPageId));
+                this.guideIdsByPageId = Map.copyOf(new LinkedHashMap<>(guideIdsByPageId));
             }
         }
 

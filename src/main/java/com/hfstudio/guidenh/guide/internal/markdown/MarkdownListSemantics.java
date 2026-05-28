@@ -11,7 +11,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
-public final class MarkdownListSemantics {
+public class MarkdownListSemantics {
 
     private static final Pattern TASK_PATTERN = Pattern.compile("^\\[( |x|X)]\\s+(.*)$");
 

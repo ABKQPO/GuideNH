@@ -22,7 +22,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
-public final class GuidebookPreviewPlayerCompat {
+public class GuidebookPreviewPlayerCompat {
 
     private static final String TEXTURES_PROPERTY_NAME = "textures";
     private static final String SLIM_MODEL_NAME = "slim";

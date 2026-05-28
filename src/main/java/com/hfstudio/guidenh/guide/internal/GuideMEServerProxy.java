@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 
-class GuideMEServerProxy implements GuideMEProxy {
+public class GuideMEServerProxy implements GuideMEProxy {
 
     @Override
     public @Nullable String getGuideDisplayName(ResourceLocation guideId) {

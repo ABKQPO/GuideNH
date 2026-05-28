@@ -5,7 +5,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Unified server-authoritative preview payload for an AE2 {@link appeng.tile.networking.TileCableBus}.
  */
-public final class Ae2CablePreviewSnapshot {
+public class Ae2CablePreviewSnapshot {
 
     public static final Ae2CablePreviewSnapshot EMPTY = new Ae2CablePreviewSnapshot(
         false,

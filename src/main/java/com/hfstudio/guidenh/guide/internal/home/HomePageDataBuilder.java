@@ -90,7 +90,7 @@ public class HomePageDataBuilder {
 
     private List<HomePageEntry> buildRecommendedEntries(NavigationTree navigationTree, PageLookup pageLookup,
         int limit) {
-        List<HomePageEntry> entries = new ArrayList<HomePageEntry>();
+        List<HomePageEntry> entries = new ArrayList<>();
         for (PageReference pageReference : pageLookup.pages()) {
             ParsedGuidePage page = pageReference.page();
             FrontmatterNavigation navigation = page.getFrontmatter()
@@ -115,7 +115,7 @@ public class HomePageDataBuilder {
 
     private List<HomePageEntry> buildBookmarkedEntries(GuideBookmarkState bookmarkState, NavigationTree navigationTree,
         PageLookup pageLookup, int limit) {
-        List<HomePageEntry> entries = new ArrayList<HomePageEntry>();
+        List<HomePageEntry> entries = new ArrayList<>();
         for (ResourceLocation pageId : bookmarkState.getBookmarksView()) {
             HomePageEntry entry = toEntry(
                 pageLookup.guideByPageId()
@@ -132,7 +132,7 @@ public class HomePageDataBuilder {
 
     private List<HomePageEntry> buildHistoryEntries(GuideScreenHomeHistory history, NavigationTree navigationTree,
         PageLookup pageLookup, int limit) {
-        List<HomePageEntry> entries = new ArrayList<HomePageEntry>();
+        List<HomePageEntry> entries = new ArrayList<>();
         for (GuideScreenHomeHistory.Entry historyEntry : history.snapshot()) {
             HomePageEntry entry = toEntry(
                 pageLookup.guideByGuideId()
@@ -199,10 +199,10 @@ public class HomePageDataBuilder {
     }
 
     private PageLookup buildPageLookup() {
-        Map<ResourceLocation, MutableGuide> guideByPageId = new HashMap<ResourceLocation, MutableGuide>();
-        Map<ResourceLocation, MutableGuide> guideByGuideId = new HashMap<ResourceLocation, MutableGuide>();
-        Set<ResourceLocation> ambiguousPageIds = new HashSet<ResourceLocation>();
-        List<PageReference> pages = new ArrayList<PageReference>();
+        Map<ResourceLocation, MutableGuide> guideByPageId = new HashMap<>();
+        Map<ResourceLocation, MutableGuide> guideByGuideId = new HashMap<>();
+        Set<ResourceLocation> ambiguousPageIds = new HashSet<>();
+        List<PageReference> pages = new ArrayList<>();
         for (MutableGuide guide : GuideRegistry.getAll()) {
             guideByGuideId.put(guide.getId(), guide);
             for (ParsedGuidePage page : guide.getPages()) {
@@ -223,7 +223,7 @@ public class HomePageDataBuilder {
         if (entries.size() <= limit) {
             return entries;
         }
-        return new ArrayList<HomePageEntry>(entries.subList(0, limit));
+        return new ArrayList<>(entries.subList(0, limit));
     }
 
     public static class HomePageSections {

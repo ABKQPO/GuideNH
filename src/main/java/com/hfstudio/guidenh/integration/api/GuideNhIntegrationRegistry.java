@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.integration.api;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +66,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<IntegrationModDescriptor> modDescriptors() {
-        return Collections.unmodifiableList(new ArrayList<>(modDescriptors.values()));
+        return List.copyOf(modDescriptors.values());
     }
 
     public synchronized void registerItemStackNormalizationProvider(ItemStackNormalizationProvider provider) {
@@ -80,7 +79,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<ItemStackNormalizationProvider> itemStackNormalizationProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(itemStackNormalizationProviders));
+        return List.copyOf(itemStackNormalizationProviders);
     }
 
     public synchronized void registerBlockDisplayProvider(BlockDisplayProvider provider) {
@@ -93,7 +92,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<BlockDisplayProvider> blockDisplayProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(blockDisplayProviders));
+        return List.copyOf(blockDisplayProviders);
     }
 
     public synchronized void registerBlockDisplayNameProvider(BlockDisplayNameProvider provider) {
@@ -106,7 +105,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<BlockDisplayNameProvider> blockDisplayNameProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(blockDisplayNameProviders));
+        return List.copyOf(blockDisplayNameProviders);
     }
 
     public synchronized void registerBlockExportIdProvider(BlockExportIdProvider provider) {
@@ -119,7 +118,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<BlockExportIdProvider> blockExportIdProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(blockExportIdProviders));
+        return List.copyOf(blockExportIdProviders);
     }
 
     public synchronized void registerPreviewTileEntityProvider(PreviewTileEntityProvider provider) {
@@ -132,7 +131,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<PreviewTileEntityProvider> previewTileEntityProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(previewTileEntityProviders));
+        return List.copyOf(previewTileEntityProviders);
     }
 
     public synchronized void registerPreviewTileEntityFinalizer(PreviewTileEntityFinalizer finalizer) {
@@ -145,7 +144,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<PreviewTileEntityFinalizer> previewTileEntityFinalizers() {
-        return Collections.unmodifiableList(new ArrayList<>(previewTileEntityFinalizers));
+        return List.copyOf(previewTileEntityFinalizers);
     }
 
     public synchronized void registerPreviewPrepareContributor(PreviewPrepareContributor contributor) {
@@ -158,7 +157,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<PreviewPrepareContributor> previewPrepareContributors() {
-        return Collections.unmodifiableList(new ArrayList<>(previewPrepareContributors));
+        return List.copyOf(previewPrepareContributors);
     }
 
     public synchronized void registerGuideBuilderIntegrationHook(GuideBuilderIntegrationHook hook) {
@@ -171,7 +170,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<GuideBuilderIntegrationHook> guideBuilderIntegrationHooks() {
-        return Collections.unmodifiableList(new ArrayList<>(guideBuilderIntegrationHooks));
+        return List.copyOf(guideBuilderIntegrationHooks);
     }
 
     public synchronized void registerTagCompilerProvider(TagCompilerProvider provider) {
@@ -184,7 +183,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<TagCompilerProvider> tagCompilerProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(tagCompilerProviders));
+        return List.copyOf(tagCompilerProviders);
     }
 
     public synchronized void registerRawRecipeHandlerProvider(RawRecipeHandlerProvider provider) {
@@ -197,7 +196,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<RawRecipeHandlerProvider> rawRecipeHandlerProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(rawRecipeHandlerProviders));
+        return List.copyOf(rawRecipeHandlerProviders);
     }
 
     public synchronized void registerRecipeEntryProvider(RecipeEntryProvider provider) {
@@ -210,7 +209,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<RecipeEntryProvider> recipeEntryProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(recipeEntryProviders));
+        return List.copyOf(recipeEntryProviders);
     }
 
     public synchronized void registerRecipeItemTooltipProvider(RecipeItemTooltipProvider provider) {
@@ -223,7 +222,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<RecipeItemTooltipProvider> recipeItemTooltipProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(recipeItemTooltipProviders));
+        return List.copyOf(recipeItemTooltipProviders);
     }
 
     public synchronized void registerRecipeAnimationUpdateProvider(RecipeAnimationUpdateProvider provider) {
@@ -236,7 +235,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<RecipeAnimationUpdateProvider> recipeAnimationUpdateProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(recipeAnimationUpdateProviders));
+        return List.copyOf(recipeAnimationUpdateProviders);
     }
 
     public synchronized void registerRecipeHandlerMetadataProvider(RecipeHandlerMetadataProvider provider) {
@@ -249,7 +248,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<RecipeHandlerMetadataProvider> recipeHandlerMetadataProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(recipeHandlerMetadataProviders));
+        return List.copyOf(recipeHandlerMetadataProviders);
     }
 
     public synchronized void registerRecipeHandlerSlotProvider(RecipeHandlerSlotProvider provider) {
@@ -262,7 +261,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<RecipeHandlerSlotProvider> recipeHandlerSlotProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(recipeHandlerSlotProviders));
+        return List.copyOf(recipeHandlerSlotProviders);
     }
 
     public synchronized void registerRecipeAvailabilityProvider(RecipeAvailabilityProvider provider) {
@@ -275,7 +274,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<RecipeAvailabilityProvider> recipeAvailabilityProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(recipeAvailabilityProviders));
+        return List.copyOf(recipeAvailabilityProviders);
     }
 
     public synchronized void registerRecipeDrawableRenderProvider(RecipeDrawableRenderProvider provider) {
@@ -288,7 +287,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<RecipeDrawableRenderProvider> recipeDrawableRenderProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(recipeDrawableRenderProviders));
+        return List.copyOf(recipeDrawableRenderProviders);
     }
 
     public synchronized void registerRecipeHandlerRenderProvider(RecipeHandlerRenderProvider provider) {
@@ -301,12 +300,12 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<RecipeHandlerRenderProvider> recipeHandlerRenderProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(recipeHandlerRenderProviders));
+        return List.copyOf(recipeHandlerRenderProviders);
     }
 
     public List<Object> queryRawCraftingHandlers(@Nullable ItemStack target) {
         if (target == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         for (RawRecipeHandlerProvider provider : rawRecipeHandlerProviders()) {
             List<Object> handlers = provider.queryRawCraftingHandlers(target);
@@ -314,12 +313,12 @@ public class GuideNhIntegrationRegistry {
                 return handlers;
             }
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     public List<Object> queryRawUsageHandlers(@Nullable ItemStack target) {
         if (target == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         for (RawRecipeHandlerProvider provider : rawRecipeHandlerProviders()) {
             List<Object> handlers = provider.queryRawUsageHandlers(target);
@@ -327,12 +326,12 @@ public class GuideNhIntegrationRegistry {
                 return handlers;
             }
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     public List<RecipeEntry> findCraftingRecipeEntries(@Nullable ItemStack target) {
         if (target == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         for (RecipeEntryProvider provider : recipeEntryProviders()) {
             List<RecipeEntry> entries = provider.findCraftingRecipeEntries(target);
@@ -340,7 +339,7 @@ public class GuideNhIntegrationRegistry {
                 return entries;
             }
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     public void appendRecipeItemTooltip(@Nullable Object handler, @Nullable ItemStack stack,
@@ -591,7 +590,7 @@ public class GuideNhIntegrationRegistry {
 
     public List<RecipeSlot> readRecipeIngredientSlots(@Nullable Object handler, int recipeIndex) {
         if (handler == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         for (RecipeHandlerSlotProvider provider : recipeHandlerSlotProviders()) {
             List<RecipeSlot> slots = provider.readIngredientSlots(handler, recipeIndex);
@@ -599,12 +598,12 @@ public class GuideNhIntegrationRegistry {
                 return slots;
             }
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     public List<RecipeSlot> readRecipeOtherSlots(@Nullable Object handler, int recipeIndex) {
         if (handler == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         for (RecipeHandlerSlotProvider provider : recipeHandlerSlotProviders()) {
             List<RecipeSlot> slots = provider.readOtherSlots(handler, recipeIndex);
@@ -612,7 +611,7 @@ public class GuideNhIntegrationRegistry {
                 return slots;
             }
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Nullable
@@ -639,7 +638,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<BlockStatsProvider> blockStatsProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(blockStatsProviders));
+        return List.copyOf(blockStatsProviders);
     }
 
     public synchronized void registerFakeWorldIntegration(GuidebookFakeWorldIntegration integration) {
@@ -652,7 +651,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public synchronized List<GuidebookFakeWorldIntegration> fakeWorldIntegrations() {
-        return Collections.unmodifiableList(new ArrayList<>(fakeWorldIntegrations));
+        return List.copyOf(fakeWorldIntegrations);
     }
 
     public void registerDummyWorldIntegrations(Class<?> worldClass) {
@@ -710,7 +709,7 @@ public class GuideNhIntegrationRegistry {
     public List<GuideBlockStatsStackResolver.ResolvedStack> resolveBlockStatsEntries(GuidebookLevel level, Block block,
         @Nullable TileEntity tileEntity, int x, int y, int z, @Nullable AxisAlignedBB fallbackBounds) {
         if (level == null || block == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<GuideBlockStatsStackResolver.ResolvedStack> entries = new ArrayList<>(4);
         for (BlockStatsProvider provider : blockStatsProviders()) {
@@ -719,7 +718,7 @@ public class GuideNhIntegrationRegistry {
                 return entries;
             }
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Nullable

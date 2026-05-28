@@ -6,7 +6,7 @@ import com.hfstudio.guidenh.config.ModConfig;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 
-public final class GuideNhStructureExportAccess {
+public class GuideNhStructureExportAccess {
 
     private GuideNhStructureExportAccess() {}
 

@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -828,12 +827,12 @@ public class LytGuidebookScene extends LytBlock {
 
     public List<SceneBlockStatsEntry> getBlockStatsEntriesForExport() {
         if (!blockStatsEnabled) {
-            return Collections.emptyList();
+            return List.of();
         }
         if (blockStatsDirty) {
             rebuildBlockStatsEntries();
         }
-        return Collections.unmodifiableList(new ArrayList<>(cachedBlockStatsEntries));
+        return List.copyOf(cachedBlockStatsEntries);
     }
 
     public boolean shouldExportBlockStats() {
@@ -1096,7 +1095,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public List<StructureLibSceneBinding> getStructureLibBindings() {
-        return Collections.unmodifiableList(new ArrayList<>(structureLibBindings.values()));
+        return List.copyOf(structureLibBindings.values());
     }
 
     public Map<String, StructureLibPreviewSelection> getStructureLibPreviewSelectionsByBinding() {
@@ -1441,7 +1440,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public List<SceneSoundCue> getSoundCues() {
-        return Collections.unmodifiableList(soundCues);
+        return List.copyOf(soundCues);
     }
 
     public void clearSoundCues() {
@@ -1607,7 +1606,7 @@ public class LytGuidebookScene extends LytBlock {
         List<GuidebookSceneWeatherEffect> resolved = GuidebookSceneWeatherSupport
             .resolveRenderableEffects(effects, bounds, activeTick, layerSelection, level);
         if (resolved.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         if (resolved == effects || resolved == staticWeatherEffects
             || resolved == ponderWeatherEffects
@@ -3070,8 +3069,7 @@ public class LytGuidebookScene extends LytBlock {
         }
         return new AppendedItemTooltip(
             stack,
-            Collections
-                .singletonList(GuidebookText.SceneBlockStatsTooltipCount.text(Integer.toString(entry.getCount()))));
+            List.of(GuidebookText.SceneBlockStatsTooltipCount.text(Integer.toString(entry.getCount()))));
     }
 
     @Nullable
@@ -4094,7 +4092,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public List<SceneAnnotation> getPonderActiveAnnotationsForTesting() {
-        return Collections.unmodifiableList(new ArrayList<>(ponderActiveAnnotations));
+        return List.copyOf(ponderActiveAnnotations);
     }
 
     private void appendStructureLibHatchOverlays(List<InWorldAnnotation> inWorld) {
@@ -4149,7 +4147,7 @@ public class LytGuidebookScene extends LytBlock {
 
     public List<PonderTimelineKeyframe> getPonderTimelineKeyframesForExport() {
         if (ponderSceneData == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<PonderTimelineKeyframe> keyframes = new ArrayList<>();
         for (PonderKeyframe keyframe : ponderSceneData.getKeyframes()) {
@@ -4157,7 +4155,7 @@ public class LytGuidebookScene extends LytBlock {
                 keyframes.add(new PonderTimelineKeyframe(keyframe.getTime(), keyframe.getLabel()));
             }
         }
-        return Collections.unmodifiableList(keyframes);
+        return List.copyOf(keyframes);
     }
 
     public boolean isPonderPlaying() {
@@ -4181,7 +4179,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private List<StructureLibSceneMetadata.ChannelData> getSelectableStructureLibChannels() {
-        return selectableStructureLibChannels.isEmpty() ? Collections.emptyList() : selectableStructureLibChannels;
+        return selectableStructureLibChannels.isEmpty() ? List.of() : selectableStructureLibChannels;
     }
 
     private boolean hasBottomControls() {
@@ -4193,11 +4191,11 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private List<StructureLibSceneMetadata.ChannelData> getBottomControlStructureLibChannels() {
-        return hasBottomControls() ? getSelectableStructureLibChannels() : Collections.emptyList();
+        return hasBottomControls() ? getSelectableStructureLibChannels() : List.of();
     }
 
     public void attachPonderData(PonderSceneData data, List<List<SceneAnnotation>> annotationsByKeyframe) {
-        attachPonderData(data, annotationsByKeyframe, Collections.emptyList());
+        attachPonderData(data, annotationsByKeyframe, List.of());
     }
 
     public void attachPonderData(PonderSceneData data, List<List<SceneAnnotation>> annotationsByKeyframe,
@@ -5634,7 +5632,7 @@ public class LytGuidebookScene extends LytBlock {
         List<GuidebookSceneWeatherArea> areas = GuidebookSceneWeatherSupport
             .resolveWeatherAreas(weatherBounds, particle.getWeatherXValues(), particle.getWeatherZValues());
         if (areas.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         int endTickExclusive = startTick + estimatePonderReplayLifetime(particle);
         List<GuidebookSceneWeatherArea> acceptedAreas = new ArrayList<>(areas.size());
@@ -5651,7 +5649,7 @@ public class LytGuidebookScene extends LytBlock {
     private List<GuidebookSceneWeatherArea> reserveWeatherAreaColumns(GuidebookSceneWeatherArea area, int startTick,
         int endTickExclusive) {
         if (area.getMinX() > area.getMaxX() || area.getMinZ() > area.getMaxZ()) {
-            return Collections.emptyList();
+            return List.of();
         }
         List<GuidebookSceneWeatherArea> acceptedAreas = new ArrayList<>();
         int minX = Integer.MAX_VALUE;
@@ -5759,7 +5757,7 @@ public class LytGuidebookScene extends LytBlock {
 
     private static Map<String, byte[]> readPreviewSupplements(@Nullable NBTTagCompound tag) {
         if (tag == null || !tag.hasKey(ServerPreviewSupplementNbt.TAG_ROOT, 10)) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         NBTTagCompound root = tag.getCompoundTag(ServerPreviewSupplementNbt.TAG_ROOT);
         Map<String, byte[]> result = new LinkedHashMap<>();
@@ -5769,7 +5767,7 @@ public class LytGuidebookScene extends LytBlock {
                 result.put(supplementId, payload);
             }
         }
-        return result.isEmpty() ? Collections.emptyMap() : result;
+        return result.isEmpty() ? Map.of() : result;
     }
 
     private Map<String, byte[]> completePonderPreviewSupplements(Map<String, byte[]> explicitSupplements, int x, int y,
@@ -5778,7 +5776,7 @@ public class LytGuidebookScene extends LytBlock {
             return explicitSupplements;
         }
         if (!Mods.AE2.isModLoaded()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         return Ae2Helpers.capturePonderPreviewSupplements(level, x, y, z, block, meta);
     }
@@ -5835,7 +5833,7 @@ public class LytGuidebookScene extends LytBlock {
 
     private static Map<String, byte[]> copyPreviewSupplements(Map<String, byte[]> source) {
         if (source == null || source.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         Map<String, byte[]> result = new LinkedHashMap<>();
         for (Map.Entry<String, byte[]> entry : source.entrySet()) {
@@ -5844,7 +5842,7 @@ public class LytGuidebookScene extends LytBlock {
                 result.put(entry.getKey(), payload.clone());
             }
         }
-        return result.isEmpty() ? Collections.emptyMap() : result;
+        return result.isEmpty() ? Map.of() : result;
     }
 
     private static class PonderEntityRuntime {

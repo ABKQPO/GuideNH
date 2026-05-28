@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +27,7 @@ public abstract class LytNode implements Styleable {
     public void removeChild(LytNode node) {}
 
     public List<? extends LytNode> getChildren() {
-        return Collections.emptyList();
+        return List.of();
     }
 
     /**

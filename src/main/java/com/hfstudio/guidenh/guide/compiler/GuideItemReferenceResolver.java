@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
-public final class GuideItemReferenceResolver {
+public class GuideItemReferenceResolver {
 
     private GuideItemReferenceResolver() {}
 

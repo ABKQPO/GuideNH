@@ -5,6 +5,8 @@ import java.util.Locale;
 
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
+
 public class MediaWikiPageIds {
 
     public static final String CATEGORY_TITLE_PREFIX = "Category:";
@@ -64,6 +66,26 @@ public class MediaWikiPageIds {
 
     public static String toSpecialTitle(String specialName) {
         return SPECIAL_TITLE_PREFIX + specialName;
+    }
+
+    public static @Nullable ResourceLocation tryResolveSyntheticTitle(String namespace, @Nullable String title) {
+        if (namespace == null || namespace.trim()
+            .isEmpty() || title == null) {
+            return null;
+        }
+        String trimmedTitle = title.trim();
+        if (trimmedTitle.startsWith(CATEGORY_TITLE_PREFIX)) {
+            String categoryName = trimmedTitle.substring(CATEGORY_TITLE_PREFIX.length())
+                .trim();
+            return categoryName.isEmpty() ? null : categoryPageId(namespace, categoryName);
+        }
+        if (trimmedTitle.startsWith(SPECIAL_TITLE_PREFIX)) {
+            String specialName = trimmedTitle.substring(SPECIAL_TITLE_PREFIX.length())
+                .trim();
+            MediaWikiSpecialDefinition definition = MediaWikiSpecialCatalog.findByName(specialName);
+            return definition != null ? specialPageId(namespace, definition.name()) : null;
+        }
+        return null;
     }
 
     private static String encodeName(String value) {

@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.bridge.preview;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class PreviewResolveResult {
@@ -30,8 +28,7 @@ public class PreviewResolveResult {
         this.meta = meta;
         this.count = count;
         this.nbt = nbt;
-        this.tooltipLines = tooltipLines == null ? Collections.emptyList()
-            : Collections.unmodifiableList(new ArrayList<>(tooltipLines));
+        this.tooltipLines = tooltipLines == null ? List.of() : List.copyOf(tooltipLines);
         this.iconPngBase64 = iconPngBase64 == null ? "" : iconPngBase64;
         this.pixelWidth = pixelWidth;
         this.pixelHeight = pixelHeight;

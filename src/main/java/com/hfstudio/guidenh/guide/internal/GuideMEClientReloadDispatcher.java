@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal;
 
-final class GuideMEClientReloadDispatcher {
+public class GuideMEClientReloadDispatcher {
 
     private GuideMEClientReloadDispatcher() {}
 

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -20,11 +19,11 @@ public class StructureLibPreviewSelection {
     private final Map<String, Boolean> integrationOptions;
 
     public StructureLibPreviewSelection() {
-        this(DEFAULT_MASTER_TIER, Collections.emptyMap(), Collections.emptyMap());
+        this(DEFAULT_MASTER_TIER, Map.of(), Map.of());
     }
 
     public StructureLibPreviewSelection(int masterTier, @Nullable Map<String, Integer> channelOverrides) {
-        this(masterTier, channelOverrides, Collections.emptyMap());
+        this(masterTier, channelOverrides, Map.of());
     }
 
     public StructureLibPreviewSelection(int masterTier, @Nullable Map<String, Integer> channelOverrides,
@@ -39,7 +38,7 @@ public class StructureLibPreviewSelection {
     }
 
     public static StructureLibPreviewSelection ofMasterTier(int masterTier) {
-        return new StructureLibPreviewSelection(masterTier, Collections.emptyMap());
+        return new StructureLibPreviewSelection(masterTier, Map.of());
     }
 
     public int getMasterTier() {
@@ -107,10 +106,10 @@ public class StructureLibPreviewSelection {
 
     public static Map<String, Integer> immutableChannelOverrides(@Nullable Map<String, Integer> source) {
         if (source == null || source.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
-        LinkedHashMap<String, Integer> normalized = new LinkedHashMap<>(source.size());
-        for (Map.Entry<String, Integer> entry : source.entrySet()) {
+        var normalized = new LinkedHashMap<String, Integer>(source.size());
+        for (var entry : source.entrySet()) {
             String channelId = normalizeChannelId(entry.getKey());
             Integer value = entry.getValue();
             if (channelId == null || value == null || value <= 0) {
@@ -118,21 +117,21 @@ public class StructureLibPreviewSelection {
             }
             normalized.put(channelId, value);
         }
-        return normalized.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(normalized);
+        return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
     }
 
     public static Map<String, Boolean> immutableIntegrationOptions(@Nullable Map<String, Boolean> source) {
         if (source == null || source.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
-        LinkedHashMap<String, Boolean> normalized = new LinkedHashMap<>(source.size());
-        for (Map.Entry<String, Boolean> entry : source.entrySet()) {
+        var normalized = new LinkedHashMap<String, Boolean>(source.size());
+        for (var entry : source.entrySet()) {
             String optionId = normalizeIntegrationOptionId(entry.getKey());
             if (optionId != null && Boolean.TRUE.equals(entry.getValue())) {
                 normalized.put(optionId, Boolean.TRUE);
             }
         }
-        return normalized.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(normalized);
+        return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
     }
 
     @Nullable

@@ -13,7 +13,7 @@ import net.minecraft.nbt.NBTTagLong;
 import net.minecraft.nbt.NBTTagShort;
 import net.minecraft.nbt.NBTTagString;
 
-public final class YamlNbtConverter {
+public class YamlNbtConverter {
 
     private YamlNbtConverter() {}
 
@@ -56,27 +56,20 @@ public final class YamlNbtConverter {
         NBTTagList nbtList = new NBTTagList();
 
         for (Object item : list) {
-            if (item == null) continue;
-
-            if (item instanceof Map<?, ?>map) {
-                nbtList.appendTag(toNbt(map));
-            } else if (item instanceof Boolean bool) {
-                nbtList.appendTag(new NBTTagByte((byte) (bool ? 1 : 0)));
-            } else if (item instanceof Byte b) {
-                nbtList.appendTag(new NBTTagByte(b));
-            } else if (item instanceof Short s) {
-                nbtList.appendTag(new NBTTagShort(s));
-            } else if (item instanceof Integer i) {
-                nbtList.appendTag(new NBTTagInt(i));
-            } else if (item instanceof Long l) {
-                nbtList.appendTag(new NBTTagLong(l));
-            } else if (item instanceof Float f) {
-                nbtList.appendTag(new NBTTagFloat(f));
-            } else if (item instanceof Double d) {
-                nbtList.appendTag(new NBTTagDouble(d));
-            } else if (item instanceof String str) {
-                nbtList.appendTag(new NBTTagString(str));
+            switch (item) {
+                case Map<?, ?> map -> nbtList.appendTag(toNbt(map));
+                case Boolean bool -> nbtList.appendTag(new NBTTagByte((byte) (bool ? 1 : 0)));
+                case Byte b -> nbtList.appendTag(new NBTTagByte(b));
+                case Short s -> nbtList.appendTag(new NBTTagShort(s));
+                case Integer i -> nbtList.appendTag(new NBTTagInt(i));
+                case Long l -> nbtList.appendTag(new NBTTagLong(l));
+                case Float f -> nbtList.appendTag(new NBTTagFloat(f));
+                case Double d -> nbtList.appendTag(new NBTTagDouble(d));
+                case String str -> nbtList.appendTag(new NBTTagString(str));
+                case null, default -> {
+                }
             }
+
         }
 
         return nbtList;

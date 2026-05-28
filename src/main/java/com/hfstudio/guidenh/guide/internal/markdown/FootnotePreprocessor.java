@@ -16,7 +16,7 @@ public class FootnotePreprocessor {
     protected FootnotePreprocessor() {}
 
     public static String preprocess(String markdown) {
-        if (markdown == null || markdown.indexOf("[^") < 0) {
+        if (markdown == null || !markdown.contains("[^")) {
             return markdown;
         }
 
@@ -40,7 +40,7 @@ public class FootnotePreprocessor {
             while (i + 1 < lines.size()) {
                 String next = lines.get(i + 1);
                 if (next.startsWith("    ") || next.startsWith("\t")) {
-                    if (definition.length() > 0) {
+                    if (!definition.isEmpty()) {
                         definition.append('\n');
                     }
                     definition.append(trimDefinitionIndent(next));
@@ -70,10 +70,10 @@ public class FootnotePreprocessor {
 
         StringBuilder result = new StringBuilder(transformedBody.length() + 64);
         result.append(transformedBody);
-        if (result.length() > 0 && result.charAt(result.length() - 1) != '\n') {
+        if (!result.isEmpty() && result.charAt(result.length() - 1) != '\n') {
             result.append('\n');
         }
-        if (result.length() > 0) {
+        if (!result.isEmpty()) {
             result.append('\n');
         }
         result.append("<FootnoteList width=\"220\">\n\n");
@@ -93,7 +93,7 @@ public class FootnotePreprocessor {
 
     private static String replaceReferences(String body, Map<String, String> definitions) {
         Matcher matcher = REFERENCE.matcher(body);
-        StringBuffer buffer = new StringBuffer(body.length());
+        StringBuilder buffer = new StringBuilder(body.length());
         int nextNumber = 1;
         Map<String, Integer> numbers = new LinkedHashMap<>();
         while (matcher.find()) {
@@ -121,14 +121,14 @@ public class FootnotePreprocessor {
         if (line.startsWith("\t")) {
             return line.substring(1);
         }
-        if (line.length() >= 4 && line.startsWith("    ")) {
+        if (line.startsWith("    ")) {
             return line.substring(4);
         }
         return line;
     }
 
     private static void appendLine(StringBuilder builder, String line) {
-        if (builder.length() > 0) {
+        if (!builder.isEmpty()) {
             builder.append('\n');
         }
         builder.append(line);

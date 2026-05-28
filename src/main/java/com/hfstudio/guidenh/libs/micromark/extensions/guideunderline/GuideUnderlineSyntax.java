@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark.extensions.guideunderline;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import com.hfstudio.guidenh.libs.micromark.Assert;
@@ -62,7 +61,7 @@ public class GuideUnderlineSyntax extends Extension {
         construct.resolveAll = (events,
             context) -> resolveAll(events, context, tempType, sequenceType, wrapperType, textType);
 
-        text.put(markerCode, Collections.singletonList(construct));
+        text.put(markerCode, List.of(construct));
         nullInsideSpan.add(construct.resolveAll);
         nullAttentionMarkers.add(markerCode);
     }

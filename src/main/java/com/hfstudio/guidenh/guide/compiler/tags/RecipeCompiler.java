@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -41,7 +39,7 @@ public class RecipeCompiler extends BlockTagCompiler {
 
     @Override
     public Set<String> getTagNames() {
-        return new HashSet<>(Arrays.asList("Recipe", "RecipeFor", "RecipeUsage", "RecipesFor"));
+        return new HashSet<>(Set.of("Recipe", "RecipeFor", "RecipeUsage", "RecipesFor"));
     }
 
     @Override
@@ -160,7 +158,7 @@ public class RecipeCompiler extends BlockTagCompiler {
                 Object handler = handlers.get(hi);
                 int num = GuideNhIntegrationRegistry.global()
                     .lookupRecipeHandlerRecipeCount(handler);
-                int recipeStart = exactRecipeIndex >= 0 ? exactRecipeIndex : 0;
+                int recipeStart = Math.max(exactRecipeIndex, 0);
                 int recipeEnd = exactRecipeIndex >= 0 ? Math.min(num, exactRecipeIndex + 1) : num;
                 for (int ri = recipeStart; ri < recipeEnd && boxes.size() < limit; ri++) {
                     if (hasRecipeFilter && !recipeMatches(handler, ri, inputExpr, outputExpr)) continue;
@@ -195,12 +193,12 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
 
         // Legacy fallback: raw slot data coming from NEI (no handler draw) or from vanilla crafting registry.
-        List<RecipeEntry> recipeEntries = usageQuery ? Collections.<RecipeEntry>emptyList()
+        List<RecipeEntry> recipeEntries = usageQuery ? List.of()
             : GuideNhIntegrationRegistry.global()
                 .findCraftingRecipeEntries(targetStack);
         if (!recipeEntries.isEmpty()) {
             List<LytStandardRecipeBox> boxes = new ArrayList<>();
-            int entryStart = exactRecipeIndex >= 0 ? exactRecipeIndex : 0;
+            int entryStart = Math.max(exactRecipeIndex, 0);
             int entryEnd = exactRecipeIndex >= 0 ? Math.min(recipeEntries.size(), exactRecipeIndex + 1)
                 : recipeEntries.size();
             for (int i = entryStart; i < entryEnd && boxes.size() < limit; i++) {
@@ -235,8 +233,7 @@ public class RecipeCompiler extends BlockTagCompiler {
             }
         }
 
-        List<RecipeLookup.Entry> entries = usageQuery ? Collections.<RecipeLookup.Entry>emptyList()
-            : RecipeLookup.findByOutput(item);
+        List<RecipeLookup.Entry> entries = usageQuery ? List.of() : RecipeLookup.findByOutput(item);
         if (entries.isEmpty()) {
             if (fallbackText != null) {
                 if (!fallbackText.isEmpty()) parent.append(LytParagraph.of(fallbackText));
@@ -250,7 +247,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
 
         List<LytStandardRecipeBox> boxes = new ArrayList<>();
-        int vanillaStart = exactRecipeIndex >= 0 ? exactRecipeIndex : 0;
+        int vanillaStart = Math.max(exactRecipeIndex, 0);
         int vanillaEnd = exactRecipeIndex >= 0 ? Math.min(entries.size(), exactRecipeIndex + 1) : entries.size();
         for (int i = vanillaStart; i < vanillaEnd && boxes.size() < limit; i++) {
             var e = entries.get(i);
@@ -375,7 +372,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      */
     public static class FilterExpr {
 
-        private static final FilterExpr EMPTY = new FilterExpr(Collections.<List<FilterTerm>>emptyList());
+        private static final FilterExpr EMPTY = new FilterExpr(List.of());
         private final List<List<FilterTerm>> orGroups;
 
         private FilterExpr(List<List<FilterTerm>> orGroups) {
@@ -469,13 +466,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     public static FilterExpr parseFilterExpr(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el,
         String attr, String defaultNs) {
         String raw = trimToNull(MdxAttrs.getString(compiler, parent, el, attr, null));
-        return parseFilterExpr(raw, attr, defaultNs, new Consumer<String>() {
-
-            @Override
-            public void accept(String message) {
-                parent.appendError(compiler, message, el);
-            }
-        });
+        return parseFilterExpr(raw, attr, defaultNs, message -> parent.appendError(compiler, message, el));
     }
 
     public static FilterExpr parseFilterExpr(@Nullable String raw, String defaultNs) {

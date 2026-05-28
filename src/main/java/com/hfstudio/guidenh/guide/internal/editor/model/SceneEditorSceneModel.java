@@ -119,7 +119,7 @@ public class SceneEditorSceneModel {
 
         SceneEditorSceneNodeModel node = new SceneEditorSceneNodeModel(SceneEditorSceneNodeType.IMPORT_STRUCTURE);
         node.setAttribute("src", structureSource);
-        sceneNodes.add(0, node);
+        sceneNodes.addFirst(node);
     }
 
     @Nullable

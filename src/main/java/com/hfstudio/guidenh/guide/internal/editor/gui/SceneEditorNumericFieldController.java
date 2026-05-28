@@ -153,10 +153,7 @@ public class SceneEditorNumericFieldController {
         if (nextValue < minValue) {
             return minValue;
         }
-        if (nextValue > maxValue) {
-            return maxValue;
-        }
-        return nextValue;
+        return Math.min(nextValue, maxValue);
     }
 
     private String formatValue(float nextValue) {

@@ -2,11 +2,12 @@ package com.hfstudio.guidenh.integration.ae2;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
@@ -52,15 +53,14 @@ public class Ae2CableStructureSupport {
         private final Map<String, byte[]> wireByKey;
 
         Ae2CableMpSnapshot(Map<String, byte[]> wireByKey) {
-            this.wireByKey = wireByKey != null ? wireByKey : Collections.emptyMap();
+            this.wireByKey = wireByKey != null ? wireByKey : Map.of();
         }
 
         public static Ae2CableMpSnapshot empty() {
-            return new Ae2CableMpSnapshot(Collections.emptyMap());
+            return new Ae2CableMpSnapshot(Map.of());
         }
 
-        @Nullable
-        public byte[] lookupWire(int dim, int x, int y, int z) {
+        public byte @Nullable [] lookupWire(int dim, int x, int y, int z) {
             return wireByKey.get(mpKey(dim, x, y, z));
         }
     }
@@ -71,7 +71,8 @@ public class Ae2CableStructureSupport {
         if (!Mods.AE2.isModLoaded() || exportWorld == null || !exportWorld.isRemote || lookup == null) {
             return Ae2CableMpSnapshot.empty();
         }
-        if (!isMultiplayerClientNoIntegratedServer()) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.theIntegratedServer != null) {
             return Ae2CableMpSnapshot.empty();
         }
         int dim = exportWorld.provider.dimensionId;
@@ -105,7 +106,7 @@ public class Ae2CableStructureSupport {
                 xyz[i * 3 + 1] = p[1];
                 xyz[i * 3 + 2] = p[2];
             }
-            long corr = java.util.concurrent.ThreadLocalRandom.current()
+            long corr = ThreadLocalRandom.current()
                 .nextLong();
             GuideNhAe2CableBatchAwait.register(corr);
             GuideNhNetwork.channel()
@@ -152,7 +153,7 @@ public class Ae2CableStructureSupport {
         }
     }
 
-    private static byte[] partPackedSafe(@Nullable byte[][] partPacked, int i) {
+    private static byte[] partPackedSafe(byte[] @Nullable [] partPacked, int i) {
         if (partPacked == null || i < 0 || i >= partPacked.length) {
             return new byte[0];
         }
@@ -163,47 +164,28 @@ public class Ae2CableStructureSupport {
         return dim + ":" + x + ":" + y + ":" + z;
     }
 
-    private static boolean isMultiplayerClientNoIntegratedServer() {
-        try {
-            Class<?> mcCls = Class.forName("net.minecraft.client.Minecraft");
-            Object mc = mcCls.getMethod("getMinecraft")
-                .invoke(null);
-            Object integrated = mcCls.getField("theIntegratedServer")
-                .get(mc);
-            return integrated == null;
-        } catch (Throwable ignored) {
-            return false;
-        }
-    }
-
-    /** For {@link Ae2BaseTileNetworkStructureSupport}: same heuristic as cable MP snapshot gating. */
-    static boolean isMultiplayerClientNoIntegratedServerPublic() {
-        return isMultiplayerClientNoIntegratedServer();
-    }
-
     @Nullable
-    static WorldServer tryIntegratedServerWorld(int dim) {
+    public static WorldServer tryIntegratedServerWorld(int dim) {
         try {
-            Class<?> mcCls = Class.forName("net.minecraft.client.Minecraft");
-            Object mc = mcCls.getMethod("getMinecraft")
-                .invoke(null);
-            Object integratedObj = mcCls.getField("theIntegratedServer")
-                .get(mc);
-            if (integratedObj instanceof MinecraftServer) {
-                MinecraftServer isrv = (MinecraftServer) integratedObj;
-                WorldServer sw = isrv.worldServerForDimension(dim);
-                if (sw != null) {
-                    return sw;
-                }
-                if (isrv.worldServers != null) {
-                    for (WorldServer w : isrv.worldServers) {
-                        if (w != null && w.provider.dimensionId == dim) {
-                            return w;
-                        }
+            Minecraft mc = Minecraft.getMinecraft();
+            MinecraftServer server = mc.theIntegratedServer;
+
+            if (server == null) return null;
+
+            WorldServer world = server.worldServerForDimension(dim);
+            if (world != null) {
+                return world;
+            }
+
+            if (server.worldServers != null) {
+                for (WorldServer w : server.worldServers) {
+                    if (w != null && w.provider.dimensionId == dim) {
+                        return w;
                     }
                 }
             }
         } catch (Throwable ignored) {}
+
         return null;
     }
 

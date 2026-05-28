@@ -116,7 +116,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
     public LytMermaidMindmapCanvas(MermaidMindmapDocument mindmap, Map<String, LytBlock> nodeContentBlocks) {
         this.mindmap = mindmap;
-        this.nodeContentBlocks = nodeContentBlocks == null ? Collections.<String, LytBlock>emptyMap()
+        this.nodeContentBlocks = nodeContentBlocks == null ? Collections.emptyMap()
             : new LinkedHashMap<>(nodeContentBlocks);
         for (LytBlock block : this.nodeContentBlocks.values()) {
             block.parent = this;
@@ -369,7 +369,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             Math.max(1, contentBounds.width()),
             Math.max(1, contentBounds.height()),
             contentBounds,
-            collectContentNodes(root, new ArrayList<NodeLayout>()));
+            collectContentNodes(root, new ArrayList<>()));
     }
 
     private LytRect collectContentBounds(NodeLayout node) {
@@ -844,7 +844,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
             StringBuilder line = new StringBuilder();
             scanWords(paragraph, word -> appendWrappedWord(result, line, context, style, word, maxWidth));
-            if (line.length() > 0) {
+            if (!line.isEmpty()) {
                 result.add(line.toString());
             }
             return true;
@@ -854,7 +854,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
     private boolean appendWrappedWord(List<String> result, StringBuilder line, LayoutContext context,
         ResolvedTextStyle style, String word, int maxWidth) {
-        if (line.length() == 0) {
+        if (line.isEmpty()) {
             if (measureText(context, style, word) <= maxWidth) {
                 line.append(word);
             } else {
@@ -903,14 +903,14 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         for (int offset = 0; offset < word.length();) {
             int codePoint = word.codePointAt(offset);
             String next = fragment + new String(Character.toChars(codePoint));
-            if (fragment.length() > 0 && measureText(context, style, next) > maxWidth) {
+            if (!fragment.isEmpty() && measureText(context, style, next) > maxWidth) {
                 result.add(fragment.toString());
                 fragment.setLength(0);
             }
             fragment.appendCodePoint(codePoint);
             offset += Character.charCount(codePoint);
         }
-        if (fragment.length() > 0) {
+        if (!fragment.isEmpty()) {
             line.append(fragment);
         }
     }

@@ -102,8 +102,7 @@ public class SceneEditorOpenService {
             .setCenterZ(structureCenter[2]);
     }
 
-    @Nullable
-    private float[] extractStructureCenter(String structureSnbt) {
+    private float @Nullable [] extractStructureCenter(String structureSnbt) {
         try {
             NBTBase parsed = JsonToNBT.func_150315_a(structureSnbt);
             if (!(parsed instanceof NBTTagCompound root)) {

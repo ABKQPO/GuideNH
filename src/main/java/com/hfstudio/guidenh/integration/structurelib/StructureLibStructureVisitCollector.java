@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -34,9 +33,9 @@ public class StructureLibStructureVisitCollector {
 
     public Map<Long, IStructureElement<?>> snapshot() {
         if (visitedElementsByPos.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
-        return Collections.unmodifiableMap(new LinkedHashMap<>(visitedElementsByPos));
+        return Map.copyOf(new LinkedHashMap<>(visitedElementsByPos));
     }
 
     public static long pack(int x, int y, int z) {

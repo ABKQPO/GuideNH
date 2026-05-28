@@ -4,7 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public final class GuideNhAe2BaseTileNetworkBatchAwait {
+public class GuideNhAe2BaseTileNetworkBatchAwait {
 
     private static final ConcurrentHashMap<Long, Holder> PENDING = new ConcurrentHashMap<>();
 

@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -51,7 +50,7 @@ public class GuidePageLanguageIndex {
     public static Map<String, String> readPageKeys(InputStream input) throws IOException {
         Map<String, String> source = StringTranslate.parseLangFile(input);
         if (source.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
 
         Map<String, String> filtered = new LinkedHashMap<>();
@@ -61,7 +60,7 @@ public class GuidePageLanguageIndex {
                 filtered.put(key, entry.getValue());
             }
         }
-        return filtered.isEmpty() ? Collections.emptyMap() : filtered;
+        return filtered.isEmpty() ? Map.of() : filtered;
     }
 
     private static Map<String, String> loadLanguage(String normalizedLanguage) {
@@ -81,7 +80,7 @@ public class GuidePageLanguageIndex {
                     activeResourcePacks.size(),
                     totalNs);
         }
-        return merged.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(merged);
+        return merged.isEmpty() ? Map.of() : Map.copyOf(merged);
     }
 
     private static void loadResourcePackLanguage(IResourcePack resourcePack, String normalizedLanguage,

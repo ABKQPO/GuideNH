@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal;
 
-import java.util.Collections;
+import java.util.AbstractSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -19,7 +20,24 @@ public class GuideBookmarkState {
 
     private final GuideBookmarkStore store;
     private final Set<ResourceLocation> bookmarks = new LinkedHashSet<ResourceLocation>();
-    private final Set<ResourceLocation> bookmarkView = Collections.unmodifiableSet(bookmarks);
+    private final Set<ResourceLocation> bookmarkView = new AbstractSet<ResourceLocation>() {
+
+        @Override
+        public Iterator<ResourceLocation> iterator() {
+            return Set.copyOf(bookmarks)
+                .iterator();
+        }
+
+        @Override
+        public int size() {
+            return bookmarks.size();
+        }
+
+        @Override
+        public boolean contains(Object object) {
+            return bookmarks.contains(object);
+        }
+    };
     private boolean loaded;
     private int version;
 
@@ -34,7 +52,7 @@ public class GuideBookmarkState {
 
     public Set<ResourceLocation> getBookmarks() {
         ensureLoaded();
-        return Collections.unmodifiableSet(new LinkedHashSet<ResourceLocation>(bookmarks));
+        return Set.copyOf(bookmarks);
     }
 
     public Set<ResourceLocation> getBookmarksView() {

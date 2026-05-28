@@ -2,9 +2,9 @@ package com.hfstudio.guidenh.guide.internal;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,7 +28,7 @@ public class GuideRegistry {
     public static final Map<ResourceLocation, MutableGuide> dataDrivenGuides = new HashMap<>();
 
     // Merged between data-driven and in-code guides
-    public static volatile Map<ResourceLocation, MutableGuide> mergedGuides = Collections.emptyMap();
+    public static volatile Map<ResourceLocation, MutableGuide> mergedGuides = Map.of();
     private static volatile NavigationTree mergedNavigationTree = new NavigationTree();
     private static volatile long navigationRevision = 1L;
     private static volatile long cachedNavigationRevision = Long.MIN_VALUE;
@@ -41,7 +41,7 @@ public class GuideRegistry {
      * Return guides registered through code.
      */
     public static Collection<MutableGuide> getStaticGuides() {
-        return Collections.unmodifiableList(new ArrayList<>(guides.values()));
+        return List.copyOf(new ArrayList<>(guides.values()));
     }
 
     public static @Nullable MutableGuide getById(ResourceLocation id) {
@@ -147,7 +147,7 @@ public class GuideRegistry {
         }
 
         if (!overridden.isEmpty()) {
-            Collections.sort(overridden, Comparator.comparing(ResourceLocation::toString));
+            overridden.sort(Comparator.comparing(ResourceLocation::toString));
             if (ModConfig.debug.enableDebugMode) {
                 FMLLog.getLogger()
                     .info(
@@ -156,7 +156,7 @@ public class GuideRegistry {
             }
         }
 
-        GuideRegistry.mergedGuides = Collections.unmodifiableMap(merged);
+        GuideRegistry.mergedGuides = Map.copyOf(merged);
         invalidateMergedNavigationTree();
     }
 }

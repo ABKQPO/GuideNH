@@ -59,7 +59,7 @@ public class LytListItem extends LytVBox {
 
     private LytRect getMarkerLineBounds(RenderContext context) {
         if (!children.isEmpty()) {
-            LytBlock firstChild = children.get(0);
+            LytBlock firstChild = children.getFirst();
             if (firstChild instanceof LytParagraph paragraph) {
                 LytRect firstTextRun = paragraph.getFirstTextRunBounds();
                 if (firstTextRun != null) {

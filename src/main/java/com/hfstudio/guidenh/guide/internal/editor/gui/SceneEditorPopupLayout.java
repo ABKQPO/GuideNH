@@ -29,6 +29,6 @@ public class SceneEditorPopupLayout {
         if (value < minValue) {
             return minValue;
         }
-        return value > maxValue ? maxValue : value;
+        return Math.min(value, maxValue);
     }
 }

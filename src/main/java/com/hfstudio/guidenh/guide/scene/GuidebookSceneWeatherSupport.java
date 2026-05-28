@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -138,16 +137,16 @@ public class GuidebookSceneWeatherSupport {
     public static List<GuidebookSceneWeatherEffect> resolveRenderableEffects(List<GuidebookSceneWeatherEffect> effects,
         int[] bounds, @Nullable Integer activeTick) {
         if (effects == null || effects.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         if (effects.size() == 1) {
             GuidebookSceneWeatherEffect singleEffect = effects.get(0);
             if (singleEffect == null || activeTick != null && !singleEffect.isActiveAt(activeTick)) {
-                return Collections.emptyList();
+                return List.of();
             }
             List<GuidebookSceneWeatherArea> singleAreas = singleEffect.resolveAreas(bounds);
             if (singleAreas.size() <= 1 || singleEffect.hasExplicitAreas()) {
-                return Collections.singletonList(singleEffect);
+                return List.of(singleEffect);
             }
         }
         Set<Long> occupiedColumns = new HashSet<>();
@@ -183,7 +182,7 @@ public class GuidebookSceneWeatherSupport {
             }
         }
         if (visibleEffects.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         return visibleEffects;
     }
@@ -235,7 +234,7 @@ public class GuidebookSceneWeatherSupport {
     private static List<GuidebookSceneWeatherArea> trimWeatherAreas(List<GuidebookSceneWeatherArea> areas,
         Set<Long> occupiedColumns) {
         if (areas == null || areas.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         List<GuidebookSceneWeatherArea> trimmed = new ArrayList<>();
         for (GuidebookSceneWeatherArea area : areas) {
@@ -276,7 +275,7 @@ public class GuidebookSceneWeatherSupport {
     }
 
     private static List<GuidebookSceneWeatherArea> buildFallbackWeatherAreas(int[] bounds) {
-        return Collections.singletonList(new GuidebookSceneWeatherArea(bounds[0], bounds[2], bounds[3], bounds[5]));
+        return List.of(new GuidebookSceneWeatherArea(bounds[0], bounds[2], bounds[3], bounds[5]));
     }
 
     @Nullable

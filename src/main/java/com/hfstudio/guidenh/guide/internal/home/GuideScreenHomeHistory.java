@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.home;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -15,7 +13,7 @@ public class GuideScreenHomeHistory {
         return SHARED;
     }
 
-    private final LinkedList<Entry> entries = new LinkedList<Entry>();
+    private final LinkedList<Entry> entries = new LinkedList<>();
     private int version;
 
     public void record(ResourceLocation guideId, ResourceLocation pageId) {
@@ -32,7 +30,7 @@ public class GuideScreenHomeHistory {
     }
 
     public List<Entry> snapshot() {
-        return Collections.unmodifiableList(new ArrayList<Entry>(entries));
+        return List.copyOf(entries);
     }
 
     public int version() {

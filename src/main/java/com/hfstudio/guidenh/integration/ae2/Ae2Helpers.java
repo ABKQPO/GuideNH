@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.integration.ae2;
 
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,7 +52,7 @@ import io.netty.buffer.Unpooled;
  * ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID} cable bus; {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID}
  * other {@link AEBaseTile}), merged with locally inferred cable facings where applicable.
  */
-public final class Ae2Helpers {
+public class Ae2Helpers {
 
     /** Low six bits of PartCable stream {@code cs}: {@link ForgeDirection#VALID_DIRECTIONS} only. */
     private static final int CS_DIRECTION_MASK = 0x3F;
@@ -85,11 +84,11 @@ public final class Ae2Helpers {
     public static Map<String, byte[]> capturePonderPreviewSupplements(GuidebookLevel level, int x, int y, int z,
         @Nullable Block block, int meta) {
         if (level == null || block == null || block == Blocks.air) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         TileEntity tileEntity = level.getTileEntity(x, y, z);
         if (!(tileEntity instanceof TileCableBus)) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         NBTTagCompound structureBlockTag = new NBTTagCompound();
         structureBlockTag.setIntArray("pos", new int[] { x, y, z });
@@ -107,7 +106,7 @@ public final class Ae2Helpers {
 
     private static Map<String, byte[]> readPreviewSupplements(@Nullable NBTTagCompound tag) {
         if (tag == null || !tag.hasKey(ServerPreviewSupplementNbt.TAG_ROOT, 10)) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         NBTTagCompound root = tag.getCompoundTag(ServerPreviewSupplementNbt.TAG_ROOT);
         Map<String, byte[]> result = new LinkedHashMap<>();
@@ -117,7 +116,7 @@ public final class Ae2Helpers {
                 result.put(supplementId, payload);
             }
         }
-        return result.isEmpty() ? Collections.emptyMap() : result;
+        return result.isEmpty() ? Map.of() : result;
     }
 
     @Optional.Method(modid = "appliedenergistics2")

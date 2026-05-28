@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,10 +14,7 @@ import com.google.gson.JsonObject;
 public record GuideItemSettings(Optional<String> displayName, List<String> tooltipLines,
     Optional<ResourceLocation> itemModel) {
 
-    public static GuideItemSettings DEFAULT = new GuideItemSettings(
-        Optional.empty(),
-        Collections.emptyList(),
-        Optional.empty());
+    public static GuideItemSettings DEFAULT = new GuideItemSettings(Optional.empty(), List.of(), Optional.empty());
 
     public static GuideItemSettings fromJson(JsonObject json) {
         Optional<String> displayName = Optional.empty();

@@ -2,14 +2,13 @@ package com.hfstudio.guidenh.guide.internal.markdown;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class MarkdownLiteralAutolink {
+public class MarkdownLiteralAutolink {
 
     private static final Pattern LITERAL_LINK = Pattern.compile(
         "(?i)(?:(?:https://|http://)[^\\s<>()]+|(?:www\\.)[^\\s<>()]+|(?:[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}))");
@@ -25,7 +24,7 @@ public final class MarkdownLiteralAutolink {
 
     public static List<Segment> split(@Nullable String text) {
         if (text == null || text.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         Matcher matcher = LITERAL_LINK.matcher(text);

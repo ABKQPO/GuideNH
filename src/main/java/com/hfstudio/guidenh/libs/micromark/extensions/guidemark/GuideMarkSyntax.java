@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark.extensions.guidemark;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import com.hfstudio.guidenh.libs.micromark.Assert;
@@ -30,7 +29,7 @@ public class GuideMarkSyntax extends Extension {
         construct.name = "guideMark";
         construct.tokenize = GuideMarkSyntax::tokenize;
         construct.resolveAll = GuideMarkSyntax::resolveAll;
-        text.put(Codes.equalsTo, Collections.singletonList(construct));
+        text.put(Codes.equalsTo, List.of(construct));
         nullInsideSpan.add(construct.resolveAll);
         nullAttentionMarkers.add(Codes.equalsTo);
     }

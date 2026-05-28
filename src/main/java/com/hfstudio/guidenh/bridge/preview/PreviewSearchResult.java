@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.bridge.preview;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class PreviewSearchResult {
@@ -14,14 +12,13 @@ public class PreviewSearchResult {
     public PreviewSearchResult(String capability, int version, List<PreviewSearchEntry> entries, String nextCursor) {
         this.capability = capability == null ? "" : capability;
         this.version = version;
-        this.entries = entries == null ? Collections.emptyList()
-            : Collections.unmodifiableList(new ArrayList<>(entries));
+        this.entries = entries == null ? List.of() : List.copyOf(entries);
         this.nextCursor = nextCursor;
     }
 
     public static PreviewSearchResult page(String capability, List<PreviewSearchEntry> entries, String cursor,
         int limit) {
-        List<PreviewSearchEntry> safeEntries = entries == null ? Collections.emptyList() : entries;
+        List<PreviewSearchEntry> safeEntries = entries == null ? List.of() : entries;
         int start = parseCursor(cursor, safeEntries.size());
         int safeLimit = limit > 0 ? limit : safeEntries.size();
         int end = Math.min(safeEntries.size(), start + safeLimit);
@@ -29,7 +26,7 @@ public class PreviewSearchResult {
         return new PreviewSearchResult(
             capability,
             computeVersion(safeEntries),
-            new ArrayList<>(safeEntries.subList(start, end)),
+            List.copyOf(safeEntries.subList(start, end)),
             nextCursor);
     }
 

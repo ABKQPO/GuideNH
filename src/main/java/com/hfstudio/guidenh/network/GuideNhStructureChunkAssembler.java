@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class GuideNhStructureChunkAssembler {
+public class GuideNhStructureChunkAssembler {
 
     private final byte[][] chunks;
     private int received;

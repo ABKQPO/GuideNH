@@ -5,7 +5,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -929,7 +928,7 @@ public class ForgeMultipartHelpers {
                     }
                 } catch (Throwable ignored) {}
             }
-            UNLOCALIZED_BLOCK_CACHE = Collections.unmodifiableMap(cache);
+            UNLOCALIZED_BLOCK_CACHE = Map.copyOf(cache);
             return UNLOCALIZED_BLOCK_CACHE;
         }
     }

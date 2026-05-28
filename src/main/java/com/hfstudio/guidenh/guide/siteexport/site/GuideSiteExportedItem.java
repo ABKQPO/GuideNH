@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-public final class GuideSiteExportedItem {
+public class GuideSiteExportedItem {
 
     private final String itemId;
     private final String displayName;

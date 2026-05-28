@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.guide;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -16,7 +15,7 @@ import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 
-public final class GuideScreenEditorContextMenu {
+public class GuideScreenEditorContextMenu {
 
     public static final int ITEM_HEIGHT = 14;
     private static final int PADDING_X = 6;
@@ -55,16 +54,16 @@ public final class GuideScreenEditorContextMenu {
         }
 
         public static Entry action(GuideScreenEditorAction action) {
-            return new Entry(action.getTooltip(), action, Collections.<Entry>emptyList(), false);
+            return new Entry(action.getTooltip(), action, List.of(), false);
         }
 
         public static Entry submenu(String label, List<Entry> children) {
-            List<Entry> safeChildren = children != null ? new ArrayList<>(children) : new ArrayList<Entry>();
-            return new Entry(label, null, Collections.unmodifiableList(safeChildren), false);
+            List<Entry> safeChildren = children != null ? new ArrayList<>(children) : new ArrayList<>();
+            return new Entry(label, null, List.copyOf(safeChildren), false);
         }
 
         public static Entry separator() {
-            return new Entry("", null, Collections.<Entry>emptyList(), true);
+            return new Entry("", null, List.of(), true);
         }
 
         public String getLabel() {
@@ -101,8 +100,7 @@ public final class GuideScreenEditorContextMenu {
     private int activePaneIndex = -1;
 
     public GuideScreenEditorContextMenu(List<Entry> entries) {
-        this.entries = entries != null ? Collections.unmodifiableList(new ArrayList<>(entries))
-            : Collections.<Entry>emptyList();
+        this.entries = entries != null ? List.copyOf(new ArrayList<>(entries)) : List.of();
     }
 
     public boolean isOpen() {
@@ -125,7 +123,7 @@ public final class GuideScreenEditorContextMenu {
         if (!open || panes.isEmpty()) {
             return;
         }
-        MenuPane rootPane = panes.get(0);
+        MenuPane rootPane = panes.getFirst();
         rootPane.width = computeMenuWidth(entries, fontRenderer);
         rootPane.height = clampMenuHeight(computeMenuContentHeight(entries), viewportHeight);
         rootPane.scrollY = clampScroll(rootPane.scrollY, rootPane.entries, rootPane.height);
@@ -212,7 +210,7 @@ public final class GuideScreenEditorContextMenu {
         int paneIndex = findDeepestPaneIndex(mouseX, mouseY);
         if (paneIndex < 0) {
             activePaneIndex = -1;
-            panes.get(0).hoveredIndex = -1;
+            panes.getFirst().hoveredIndex = -1;
             trimPanesAfter(0);
             return;
         }
@@ -300,7 +298,7 @@ public final class GuideScreenEditorContextMenu {
 
     private void trimPanesAfter(int paneIndex) {
         while (panes.size() > paneIndex + 1) {
-            panes.remove(panes.size() - 1);
+            panes.removeLast();
         }
     }
 

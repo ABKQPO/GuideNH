@@ -15,15 +15,11 @@ public enum GuideSoundTrigger {
         }
         String normalized = value.trim()
             .toLowerCase(Locale.ROOT);
-        switch (normalized) {
-            case "click":
-                return CLICK;
-            case "hover":
-                return HOVER;
-            case "enter":
-                return ENTER;
-            default:
-                return defaultValue;
-        }
+        return switch (normalized) {
+            case "click" -> CLICK;
+            case "hover" -> HOVER;
+            case "enter" -> ENTER;
+            default -> defaultValue;
+        };
     }
 }

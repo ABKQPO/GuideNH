@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.extensions;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -77,7 +76,7 @@ import com.hfstudio.guidenh.integration.api.TagCompilerProvider;
 
 public class DefaultExtensions {
 
-    public static final List<Registration<?>> EXTENSIONS = Arrays.asList(
+    public static final List<Registration<?>> EXTENSIONS = List.of(
         new Registration<>(TagCompiler.EXTENSION_POINT, DefaultExtensions::tagCompilers),
         new Registration<>(SceneElementTagCompiler.EXTENSION_POINT, DefaultExtensions::sceneElementCompilers));
 
@@ -102,7 +101,7 @@ public class DefaultExtensions {
 
     public static List<TagCompiler> tagCompilers() {
         var compilers = new ArrayList<>(
-            Arrays.asList(
+            List.of(
                 new DivTagCompiler(),
                 new ATagCompiler(),
                 new KbdTagCompiler(),
@@ -151,7 +150,7 @@ public class DefaultExtensions {
     }
 
     public static List<SceneElementTagCompiler> sceneElementCompilers() {
-        return Arrays.asList(
+        return List.of(
             new EntityElementCompiler(),
             new BlockElementCompiler(),
             new ImportStructureElementCompiler(),

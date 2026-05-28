@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.integration.api.client;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,7 +46,7 @@ public class GuideNhClientIntegrationRegistry {
     }
 
     public synchronized List<PreviewPlayerSlimArmProvider> previewPlayerSlimArmProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(previewPlayerSlimArmProviders));
+        return List.copyOf(previewPlayerSlimArmProviders);
     }
 
     public synchronized void registerPreviewPlayerModelProvider(PreviewPlayerModelProvider provider) {
@@ -60,7 +59,7 @@ public class GuideNhClientIntegrationRegistry {
     }
 
     public synchronized List<PreviewPlayerModelProvider> previewPlayerModelProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(previewPlayerModelProviders));
+        return List.copyOf(previewPlayerModelProviders);
     }
 
     public synchronized void registerPreviewPlayerElytraProvider(PreviewPlayerElytraProvider provider) {
@@ -73,7 +72,7 @@ public class GuideNhClientIntegrationRegistry {
     }
 
     public synchronized List<PreviewPlayerElytraProvider> previewPlayerElytraProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(previewPlayerElytraProviders));
+        return List.copyOf(previewPlayerElytraProviders);
     }
 
     public synchronized void registerPreviewBlockRenderProvider(PreviewBlockRenderProvider provider) {
@@ -86,7 +85,7 @@ public class GuideNhClientIntegrationRegistry {
     }
 
     public synchronized List<PreviewBlockRenderProvider> previewBlockRenderProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(previewBlockRenderProviders));
+        return List.copyOf(previewBlockRenderProviders);
     }
 
     public synchronized void registerQuestHoverProvider(QuestHoverProvider provider) {
@@ -99,7 +98,7 @@ public class GuideNhClientIntegrationRegistry {
     }
 
     public synchronized List<QuestHoverProvider> questHoverProviders() {
-        return Collections.unmodifiableList(new ArrayList<>(questHoverProviders));
+        return List.copyOf(questHoverProviders);
     }
 
     @Nullable

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.libs.micromark.commonmark;
 
-import java.util.Arrays;
 import java.util.List;
 
 import com.hfstudio.guidenh.libs.micromark.Assert;
@@ -72,7 +71,7 @@ public class HeadingAtx {
                 events,
                 contentStart,
                 contentEnd - contentStart + 1,
-                Arrays.asList(
+                List.of(
                     Tokenizer.Event.enter(content, context),
                     Tokenizer.Event.enter(text, context),
                     Tokenizer.Event.exit(text, context),

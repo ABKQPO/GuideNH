@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -179,7 +178,7 @@ public class GuideSiteLocalServer {
     }
 
     private void handleSiteExchange(HttpExchange exchange) throws IOException {
-        try {
+        try (exchange) {
             String method = exchange.getRequestMethod();
             if (!"GET".equalsIgnoreCase(method) && !"HEAD".equalsIgnoreCase(method)) {
                 exchange.getResponseHeaders()
@@ -214,33 +213,27 @@ public class GuideSiteLocalServer {
             try (OutputStream body = exchange.getResponseBody()) {
                 Files.copy(target, body);
             }
-        } finally {
-            exchange.close();
         }
     }
 
     private void handleStatusExchange(HttpExchange exchange) throws IOException {
-        try {
+        try (exchange) {
             if (!isAuthorized(exchange)) {
                 sendText(exchange, 403, "Forbidden");
                 return;
             }
             sendText(exchange, 200, "OK");
-        } finally {
-            exchange.close();
         }
     }
 
     private void handleStopExchange(HttpExchange exchange) throws IOException {
-        try {
+        try (exchange) {
             if (!isAuthorized(exchange)) {
                 sendText(exchange, 403, "Forbidden");
                 return;
             }
             sendText(exchange, 200, "Stopping");
             new Thread(this::stopServer, "GuideNH-SiteServer-Stop").start();
-        } finally {
-            exchange.close();
         }
     }
 
@@ -342,7 +335,7 @@ public class GuideSiteLocalServer {
 
     private static Map<String, String> readStateFile(Path stateFile) throws IOException {
         if (!Files.exists(stateFile) || !Files.isRegularFile(stateFile)) {
-            return Collections.emptyMap();
+            return Map.of();
         }
 
         List<String> lines = Files.readAllLines(stateFile, UTF_8);
@@ -536,7 +529,7 @@ public class GuideSiteLocalServer {
             while ((read = in.read(buffer)) >= 0) {
                 out.write(buffer, 0, read);
             }
-            return new String(out.toByteArray(), UTF_8);
+            return out.toString(UTF_8);
         }
     }
 
@@ -548,7 +541,7 @@ public class GuideSiteLocalServer {
 
     private static Map<String, String> parseQuery(String rawQuery) {
         if (rawQuery == null || rawQuery.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
 
         Map<String, String> query = new LinkedHashMap<>();
@@ -575,19 +568,11 @@ public class GuideSiteLocalServer {
     }
 
     private static String urlDecode(String value) {
-        try {
-            return URLDecoder.decode(value, UTF_8.name());
-        } catch (IOException e) {
-            throw new IllegalStateException("UTF-8 is not available", e);
-        }
+        return URLDecoder.decode(value, UTF_8);
     }
 
     private static String urlEncode(String value) {
-        try {
-            return URLEncoder.encode(value, UTF_8.name());
-        } catch (IOException e) {
-            throw new IllegalStateException("UTF-8 is not available", e);
-        }
+        return URLEncoder.encode(value, UTF_8);
     }
 
     private static int parsePort(String value) {

@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -24,7 +23,7 @@ public class CsvTableCompiler extends BlockTagCompiler {
 
     @Override
     public Set<String> getTagNames() {
-        return Collections.singleton("CsvTable");
+        return Set.of("CsvTable");
     }
 
     @Override
@@ -126,7 +125,7 @@ public class CsvTableCompiler extends BlockTagCompiler {
     public static List<Integer> parseWidthHints(String rawWidths) {
         if (rawWidths == null || rawWidths.trim()
             .isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<Integer> result = new ArrayList<>();

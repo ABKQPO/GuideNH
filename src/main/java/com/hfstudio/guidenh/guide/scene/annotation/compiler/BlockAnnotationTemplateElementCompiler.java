@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.annotation.compiler;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +29,7 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
 
     @Override
     public Set<String> getTagNames() {
-        return Collections.singleton("BlockAnnotationTemplate");
+        return Set.of("BlockAnnotationTemplate");
     }
 
     @Override
@@ -168,7 +167,7 @@ public class BlockAnnotationTemplateElementCompiler implements SceneElementTagCo
         registerTemplateCompiler(compilers, new BoxAnnotationElementCompiler());
         registerTemplateCompiler(compilers, new LineAnnotationElementCompiler());
         registerTemplateCompiler(compilers, new DiamondAnnotationElementCompiler());
-        return Collections.unmodifiableMap(compilers);
+        return Map.copyOf(compilers);
     }
 
     public static void registerTemplateCompiler(Map<String, AnnotationTagCompiler> compilers,

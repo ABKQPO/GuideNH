@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -37,11 +36,11 @@ public class LytSlot extends LytBlock implements InteractiveElement {
     private int cachedStackIdx = 0;
 
     public LytSlot(ItemStack stack) {
-        this.stacks = stack == null ? Collections.emptyList() : Collections.singletonList(stack);
+        this.stacks = stack == null ? List.of() : List.of(stack);
     }
 
     public LytSlot(List<ItemStack> stacks) {
-        this.stacks = stacks != null ? stacks : Collections.emptyList();
+        this.stacks = stacks != null ? stacks : List.of();
     }
 
     public boolean isLargeSlot() {

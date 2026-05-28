@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark.html;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -62,7 +61,7 @@ public class HtmlCompiler {
      * that by tracking a stack of buffers, that can be opened (with `buffer`) and closed (with `resume`) to access
      * them.
      */
-    private final List<List<String>> buffers = new ArrayList<>(Collections.singletonList(new ArrayList<>()));
+    private final List<List<String>> buffers = new ArrayList<>(List.of(new ArrayList<>()));
 
     /**
      * As we can have links in images and the other way around, where the deepest ones are closed first, we need to

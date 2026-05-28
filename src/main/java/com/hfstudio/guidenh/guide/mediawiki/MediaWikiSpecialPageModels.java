@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.mediawiki;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.util.ResourceLocation;
@@ -16,13 +15,7 @@ public class MediaWikiSpecialPageModels {
     private MediaWikiSpecialPageModels() {}
 
     public static MediaWikiSpecialPageResult empty(MediaWikiSpecialDefinition definition) {
-        return new MediaWikiSpecialPageResult(
-            definition,
-            definition.kind(),
-            Collections.<MediaWikiSpecialListEntry>emptyList(),
-            Collections.<MediaWikiSpecialGroupedEntry>emptyList(),
-            false,
-            true);
+        return new MediaWikiSpecialPageResult(definition, definition.kind(), List.of(), List.of(), false, true);
     }
 
     public static MediaWikiSpecialPageResult grid(MediaWikiSpecialDefinition definition,
@@ -33,7 +26,7 @@ public class MediaWikiSpecialPageModels {
             definition,
             MediaWikiSpecialPageKind.GRID,
             MediaWikiSpecialSearchSupport.limit(filtered, query.visibleCount()),
-            Collections.<MediaWikiSpecialGroupedEntry>emptyList(),
+            List.of(),
             MediaWikiSpecialSearchSupport.hasMore(filtered, query.visibleCount()),
             true);
     }
@@ -46,7 +39,7 @@ public class MediaWikiSpecialPageModels {
             definition,
             MediaWikiSpecialPageKind.FLAT,
             MediaWikiSpecialSearchSupport.limit(filtered, query.visibleCount()),
-            Collections.<MediaWikiSpecialGroupedEntry>emptyList(),
+            List.of(),
             MediaWikiSpecialSearchSupport.hasMore(filtered, query.visibleCount()),
             true);
     }
@@ -58,7 +51,7 @@ public class MediaWikiSpecialPageModels {
         return new MediaWikiSpecialPageResult(
             definition,
             MediaWikiSpecialPageKind.GROUPED,
-            Collections.<MediaWikiSpecialListEntry>emptyList(),
+            List.of(),
             MediaWikiSpecialSearchSupport.limit(filtered, query.visibleCount()),
             MediaWikiSpecialSearchSupport.hasMore(filtered, query.visibleCount()),
             true);
@@ -68,8 +61,8 @@ public class MediaWikiSpecialPageModels {
         return new MediaWikiSpecialPageResult(
             definition,
             definition.kind(),
-            Collections.singletonList(new MediaWikiSpecialListEntry(message, "", message, null, null)),
-            Collections.<MediaWikiSpecialGroupedEntry>emptyList(),
+            List.of(new MediaWikiSpecialListEntry(message, "", message, null, null)),
+            List.of(),
             false,
             false);
     }
@@ -79,7 +72,7 @@ public class MediaWikiSpecialPageModels {
         return new MediaWikiSpecialPageResult(
             definition,
             MediaWikiSpecialPageKind.GROUP_INDEX,
-            Collections.<MediaWikiSpecialListEntry>emptyList(),
+            List.of(),
             groupedEntries,
             false,
             true);

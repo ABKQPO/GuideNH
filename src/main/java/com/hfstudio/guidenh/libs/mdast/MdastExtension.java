@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.mdast;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,10 +32,10 @@ public class MdastExtension {
 
     public MdastExtension(List<String> canContainEols, List<Transform> transforms, Map<String, Handler> enter,
         Map<String, Handler> exit) {
-        this.canContainEols = Collections.unmodifiableList(new ArrayList<>(canContainEols));
-        this.transforms = Collections.unmodifiableList(new ArrayList<>(transforms));
-        this.enter = Collections.unmodifiableMap(new HashMap<>(enter));
-        this.exit = Collections.unmodifiableMap(new HashMap<>(exit));
+        this.canContainEols = List.copyOf(new ArrayList<>(canContainEols));
+        this.transforms = List.copyOf(new ArrayList<>(transforms));
+        this.enter = Map.copyOf(new HashMap<>(enter));
+        this.exit = Map.copyOf(new HashMap<>(exit));
     }
 
     public static Builder builder() {
@@ -73,7 +72,7 @@ public class MdastExtension {
         }
 
         public Builder canContainEol(String... types) {
-            Collections.addAll(canContainEols, types);
+            canContainEols.addAll(List.of(types));
             return this;
         }
 

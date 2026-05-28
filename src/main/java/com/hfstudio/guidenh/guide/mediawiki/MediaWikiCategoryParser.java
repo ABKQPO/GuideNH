@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.mediawiki;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -22,13 +21,13 @@ public class MediaWikiCategoryParser {
             .additionalProperties()
             .get(FRONTMATTER_KEY);
         if (categoriesNode == null) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<?> categoryList = normalizeEntries(page, categoriesNode);
         if (categoryList == null) {
             warnMalformedCategories(page, "contains malformed categories frontmatter");
-            return Collections.emptyList();
+            return List.of();
         }
 
         Map<String, MediaWikiCategoryReference> categories = new LinkedHashMap<>(categoryList.size());
@@ -49,9 +48,9 @@ public class MediaWikiCategoryParser {
             String trimmed = categoryEntry.trim();
             if (trimmed.isEmpty()) {
                 warnMalformedCategories(page, "contains an empty categories frontmatter entry");
-                return Collections.emptyList();
+                return List.of();
             }
-            return Collections.singletonList(trimmed);
+            return List.of(trimmed);
         }
         return null;
     }

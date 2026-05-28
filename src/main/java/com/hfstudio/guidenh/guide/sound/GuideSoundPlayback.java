@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.sound;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,8 +19,7 @@ public class GuideSoundPlayback {
 
     private static final Map<String, Long> LAST_PLAYED_AT = new ConcurrentHashMap<>();
     private static final Map<String, Long> LAST_WARNED_AT = new ConcurrentHashMap<>();
-    private static final Set<ISound> ACTIVE_SOUNDS = Collections
-        .newSetFromMap(new ConcurrentHashMap<ISound, Boolean>());
+    private static final Set<ISound> ACTIVE_SOUNDS = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final long WARN_INTERVAL_MILLIS = 30000L;
 
     private GuideSoundPlayback() {}
@@ -100,13 +98,7 @@ public class GuideSoundPlayback {
     }
 
     private static void pruneInactive(SoundHandler soundHandler) {
-        Iterator<ISound> iterator = ACTIVE_SOUNDS.iterator();
-        while (iterator.hasNext()) {
-            ISound sound = iterator.next();
-            if (!soundHandler.isSoundPlaying(sound)) {
-                iterator.remove();
-            }
-        }
+        ACTIVE_SOUNDS.removeIf(sound -> !soundHandler.isSoundPlaying(sound));
     }
 
     private static String cooldownKey(GuideSoundSpec sound) {

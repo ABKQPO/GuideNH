@@ -1,6 +1,5 @@
 package com.hfstudio.structurelibexport;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.lwjgl.opengl.GL11;
@@ -15,7 +14,7 @@ public class StructureLibExportOverlayRenderer {
 
     public void render(CameraSettings camera, List<OverlayAnnotation> overlays, int panelX, int panelY, int panelWidth,
         int panelHeight, int tileWidth, int tileHeight) {
-        List<OverlayAnnotation> effectiveOverlays = overlays != null ? overlays : Collections.emptyList();
+        List<OverlayAnnotation> effectiveOverlays = overlays != null ? overlays : List.of();
         if (effectiveOverlays.isEmpty()) {
             return;
         }

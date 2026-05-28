@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.home;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class HomePageSection {
@@ -21,7 +19,7 @@ public class HomePageSection {
         this.kind = kind;
         this.title = title;
         this.emptyText = emptyText;
-        this.entries = Collections.unmodifiableList(new ArrayList<HomePageEntry>(entries));
+        this.entries = List.copyOf(entries);
     }
 
     public Kind kind() {

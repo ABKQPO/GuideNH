@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.mediawiki;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,10 +27,7 @@ public class MediaWikiTranslationStats {
 
     public static TranslationSnapshot scan(Guide guide) {
         if (guide == null) {
-            return new TranslationSnapshot(
-                Collections.<String>emptyList(),
-                Collections.<String, Set<String>>emptyMap(),
-                0);
+            return new TranslationSnapshot(List.of(), Map.of(), 0);
         }
         String cacheKey = cacheKey(guide);
         long currentRevision = computeRevision();
@@ -97,7 +93,7 @@ public class MediaWikiTranslationStats {
         if (guide instanceof MediaWikiGuideAggregator aggregator) {
             return new ArrayList<Guide>(aggregator.getComponentGuides());
         }
-        return Collections.singletonList(guide);
+        return List.of(guide);
     }
 
     private static String cacheKey(Guide guide) {
@@ -185,7 +181,7 @@ public class MediaWikiTranslationStats {
 
         public Set<String> pagePathsForLanguage(String language) {
             Set<String> pages = pagePathsByLanguage != null ? pagePathsByLanguage.get(language) : null;
-            return pages != null ? pages : Collections.<String>emptySet();
+            return pages != null ? pages : Set.of();
         }
 
         public int translatedSourcePageCount() {
@@ -236,7 +232,7 @@ public class MediaWikiTranslationStats {
             if (pagePath == null || pagePath.isEmpty()
                 || pagePathsByLanguage == null
                 || pagePathsByLanguage.isEmpty()) {
-                return Collections.emptyList();
+                return List.of();
             }
             ArrayList<String> matchingLanguages = new ArrayList<>();
             for (Map.Entry<String, Set<String>> entry : pagePathsByLanguage.entrySet()) {
@@ -251,7 +247,7 @@ public class MediaWikiTranslationStats {
 
         public Set<String> allPagePaths() {
             if (pagePathsByLanguage == null || pagePathsByLanguage.isEmpty()) {
-                return Collections.emptySet();
+                return Set.of();
             }
             LinkedHashSet<String> pagePaths = new LinkedHashSet<>();
             for (Set<String> pages : pagePathsByLanguage.values()) {

@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -31,7 +30,7 @@ public class FileTreeParser {
 
     public static FileTreeModel parse(String source) {
         if (source == null || source.isEmpty()) {
-            return new FileTreeModel(Collections.emptyList());
+            return new FileTreeModel(List.of());
         }
         List<FileTreeEntry> entries = new ArrayList<>();
         GuideStringLines.visitLines(source, (rawLine, lineIndex) -> {
@@ -45,7 +44,7 @@ public class FileTreeParser {
             }
             return true;
         });
-        return new FileTreeModel(Collections.unmodifiableList(entries));
+        return new FileTreeModel(List.copyOf(entries));
     }
 
     @Nullable
@@ -77,8 +76,8 @@ public class FileTreeParser {
             return null;
         }
 
-        boolean isLastSibling = !slots.isEmpty() && slots.get(slots.size() - 1) == SlotKind.LAST_BRANCH;
-        return new FileTreeEntry(Collections.unmodifiableList(slots), isLastSibling, payload, extraction.icon());
+        boolean isLastSibling = !slots.isEmpty() && slots.getLast() == SlotKind.LAST_BRANCH;
+        return new FileTreeEntry(List.copyOf(slots), isLastSibling, payload, extraction.icon());
     }
 
     @Nullable

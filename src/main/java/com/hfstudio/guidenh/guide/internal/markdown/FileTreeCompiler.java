@@ -20,7 +20,7 @@ import cpw.mods.fml.common.FMLLog;
  * as {@code <ItemImage/>}, {@code <a/>} or {@code <Color>} on individual rows. Optional per-row
  * icon directives are resolved here as well.
  */
-public final class FileTreeCompiler {
+public class FileTreeCompiler {
 
     private FileTreeCompiler() {}
 

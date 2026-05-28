@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.screen;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -145,7 +144,7 @@ public class GuideNavProjection {
     public ProjectionResult project(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState,
         Set<ResourceLocation> expandedTreePageIds, boolean bookmarkGroupExpanded) {
         if (tree == null) {
-            return new ProjectionResult(Collections.<ProjectedRow>emptyList());
+            return new ProjectionResult(List.of());
         }
 
         var rows = new ArrayList<ProjectedRow>();
@@ -201,7 +200,7 @@ public class GuideNavProjection {
 
     private List<DisplayRow> buildBookmarkRows(NavigationTree tree, GuideBookmarkState bookmarkState) {
         if (bookmarkState.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         var rows = new ArrayList<DisplayRow>();
         for (ResourceLocation bookmarkId : bookmarkState.getBookmarksView()) {

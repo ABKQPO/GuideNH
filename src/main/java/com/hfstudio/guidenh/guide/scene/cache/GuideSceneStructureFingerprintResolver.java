@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +36,7 @@ public class GuideSceneStructureFingerprintResolver {
         @Nullable Map<String, StructureLibPreviewSelection> structureLibSelections) {
         GuideSceneStructureFingerprintBuilder builder = new GuideSceneStructureFingerprintBuilder();
         Map<String, StructureLibPreviewSelection> selections = structureLibSelections != null ? structureLibSelections
-            : Collections.emptyMap();
+            : Map.of();
         int structuralIndex = 0;
         int structureLibIndex = 0;
         for (MdAstAnyContent child : children) {

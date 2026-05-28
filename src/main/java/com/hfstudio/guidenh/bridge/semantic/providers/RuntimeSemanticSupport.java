@@ -160,7 +160,7 @@ public class RuntimeSemanticSupport {
         Map<String, String> firstPageByCategory = new LinkedHashMap<>();
         for (ParsedGuidePage page : getAllParsedPages()) {
             for (String category : readStringList(page, "categories")) {
-                counts.put(category, counts.getOrDefault(category, Integer.valueOf(0)) + 1);
+                counts.put(category, counts.getOrDefault(category, 0) + 1);
                 firstPageByCategory.putIfAbsent(
                     category,
                     page.getId()
@@ -355,7 +355,7 @@ public class RuntimeSemanticSupport {
             .additionalProperties()
             .get(key);
         if (!(value instanceof List<?>values)) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<String> strings = new ArrayList<>();
@@ -511,24 +511,26 @@ public class RuntimeSemanticSupport {
             return;
         }
 
-        if (value instanceof ResourceLocation resourceLocation) {
-            soundIds.add(resourceLocation.toString());
-            return;
-        }
-
-        if (value instanceof Map<?, ?>map) {
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                collectSoundIdsFromValue(entry.getKey(), soundIds, depth - 1);
-                collectSoundIdsFromValue(entry.getValue(), soundIds, depth - 1);
+        switch (value) {
+            case ResourceLocation resourceLocation -> {
+                soundIds.add(resourceLocation.toString());
+                return;
             }
-            return;
-        }
-
-        if (value instanceof Iterable<?>iterable) {
-            for (Object element : iterable) {
-                collectSoundIdsFromValue(element, soundIds, depth - 1);
+            case Map<?, ?> map -> {
+                for (Map.Entry<?, ?> entry : map.entrySet()) {
+                    collectSoundIdsFromValue(entry.getKey(), soundIds, depth - 1);
+                    collectSoundIdsFromValue(entry.getValue(), soundIds, depth - 1);
+                }
+                return;
             }
-            return;
+            case Iterable<?> iterable -> {
+                for (Object element : iterable) {
+                    collectSoundIdsFromValue(element, soundIds, depth - 1);
+                }
+                return;
+            }
+            default -> {
+            }
         }
 
         Class<?> type = value.getClass();
@@ -659,15 +661,12 @@ public class RuntimeSemanticSupport {
                     "/" + commandName,
                     resolveCommandEntryLabel(command, commandName, "Builtin server command"),
                     "Builtin server command"));
-            List aliases = command.getCommandAliases();
+            List<String> aliases = command.getCommandAliases();
             if (aliases == null) {
                 continue;
             }
-            for (Object rawAlias : aliases) {
-                if (!(rawAlias instanceof String)) {
-                    continue;
-                }
-                String alias = trimToNull((String) rawAlias);
+            for (String rawAlias : aliases) {
+                String alias = trimToNull(rawAlias);
                 if (alias == null) {
                     continue;
                 }
@@ -738,8 +737,7 @@ public class RuntimeSemanticSupport {
         if (minecraft != null && minecraft.thePlayer != null) {
             return minecraft.thePlayer;
         }
-        MinecraftServer minecraftServer = MinecraftServer.getServer();
-        return minecraftServer != null ? minecraftServer : null;
+        return MinecraftServer.getServer();
     }
 
     private static String resolveCommandEntryLabel(ICommand command, String commandName, String sourceLabel) {

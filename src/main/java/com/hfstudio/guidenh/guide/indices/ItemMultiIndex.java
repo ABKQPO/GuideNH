@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.indices;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.Item;
@@ -31,9 +30,9 @@ public class ItemMultiIndex extends MultiValuedIndex<ItemId, PageAnchor> {
      * wildcard-meta entries. Returns an empty list if the stack is null or has no item.
      */
     public List<PageAnchor> findAllByStack(ItemStack stack) {
-        if (stack == null) return Collections.emptyList();
+        if (stack == null) return List.of();
         Item item = stack.getItem();
-        if (item == null) return Collections.emptyList();
+        if (item == null) return List.of();
         return findAllByItem(item, stack.getItemDamage());
     }
 
@@ -42,7 +41,7 @@ public class ItemMultiIndex extends MultiValuedIndex<ItemId, PageAnchor> {
      * followed by wildcard-meta entries.
      */
     public List<PageAnchor> findAllByItem(Item item, int meta) {
-        if (item == null) return Collections.emptyList();
+        if (item == null) return List.of();
         if (meta == OreDictionary.WILDCARD_VALUE) {
             return get(ItemId.createNoCopy(item, OreDictionary.WILDCARD_VALUE, null));
         }

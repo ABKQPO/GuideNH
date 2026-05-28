@@ -324,7 +324,7 @@ public class MermaidMindmapParser {
                 previousDash = true;
             }
         }
-        if (builder.length() > 0 && builder.charAt(builder.length() - 1) == '-') {
+        if (!builder.isEmpty() && builder.charAt(builder.length() - 1) == '-') {
             builder.setLength(builder.length() - 1);
         }
         return builder.toString();

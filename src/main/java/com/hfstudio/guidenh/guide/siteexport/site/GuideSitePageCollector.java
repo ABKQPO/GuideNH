@@ -66,7 +66,7 @@ public class GuideSitePageCollector {
         if (languages.isEmpty()) {
             languages.add(guide.getDefaultLanguage());
         } else if (!languages.contains(guide.getDefaultLanguage())) {
-            languages.add(0, guide.getDefaultLanguage());
+            languages.addFirst(guide.getDefaultLanguage());
         }
 
         LinkedHashSet<ResourceLocation> pageIdSet;
@@ -102,7 +102,7 @@ public class GuideSitePageCollector {
                 }
 
                 Optional<LoadedPage> loadedPage = loadPageCached(pageCacheByLanguage, language, pageId);
-                if (!loadedPage.isPresent()) {
+                if (loadedPage.isEmpty()) {
                     continue;
                 }
 
@@ -133,8 +133,7 @@ public class GuideSitePageCollector {
                     localizedPages,
                     categoryIndex,
                     syntheticSourceCache,
-                    (pageId, sourcePack, sourceLanguage, source) -> GuideSitePageCollector
-                        .parseSyntheticPage(pageId, sourcePack, sourceLanguage, source))
+                    GuideSitePageCollector::parseSyntheticPage)
                 .values()) {
                 variants.add(
                     new GuideSitePageVariant(
@@ -172,7 +171,7 @@ public class GuideSitePageCollector {
         for (String language : languages) {
             for (ResourceLocation pageId : pageIds) {
                 Optional<LoadedPage> loadedPage = loadPageCached(pageCacheByLanguage, language, pageId);
-                if (!loadedPage.isPresent()) {
+                if (loadedPage.isEmpty()) {
                     continue;
                 }
                 LoadedPage localized = loadedPage.get();

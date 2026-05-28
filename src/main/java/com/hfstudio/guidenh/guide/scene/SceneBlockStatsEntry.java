@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -79,7 +78,7 @@ public class SceneBlockStatsEntry {
     }
 
     public List<BlockStatsPlacement> getPlacements() {
-        return Collections.unmodifiableList(placements);
+        return List.copyOf(placements);
     }
 
     public int getPlacementCount() {

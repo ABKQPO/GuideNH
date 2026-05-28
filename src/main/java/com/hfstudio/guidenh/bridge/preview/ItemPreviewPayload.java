@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.bridge.preview;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class ItemPreviewPayload {
@@ -27,8 +25,7 @@ public class ItemPreviewPayload {
         this.meta = meta;
         this.count = count;
         this.nbt = nbt == null ? "" : nbt;
-        this.tooltipLines = tooltipLines == null ? Collections.emptyList()
-            : Collections.unmodifiableList(new ArrayList<>(tooltipLines));
+        this.tooltipLines = tooltipLines == null ? List.of() : List.copyOf(tooltipLines);
         this.iconPngBase64 = iconPngBase64 == null ? "" : iconPngBase64;
         this.pixelWidth = pixelWidth;
         this.pixelHeight = pixelHeight;
@@ -41,8 +38,8 @@ public class ItemPreviewPayload {
             id,
             displayName,
             detail,
-            Integer.valueOf(meta),
-            Integer.valueOf(count),
+            meta,
+            count,
             nbt,
             tooltipLines,
             iconPngBase64,

@@ -25,7 +25,7 @@ import cpw.mods.fml.common.Optional;
  * uses multipart streams 鈥?guide export uses cable-bus supplement ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID})
  * instead of this blob.
  */
-public final class Ae2BaseTileNetworkStreamPreview {
+public class Ae2BaseTileNetworkStreamPreview {
 
     /** Stored under {@link ServerPreviewSupplementNbt#TAG_ROOT}. */
     public static final String SUPPLEMENT_ID = "guidenh.ae2.ae_base_tile_network";
@@ -51,9 +51,8 @@ public final class Ae2BaseTileNetworkStreamPreview {
      * TE
      * or handler-side world TE).
      */
-    @Nullable
     @Optional.Method(modid = "appliedenergistics2")
-    public static byte[] captureAuthoritativeXPayload(@Nullable AEBaseTile tile) {
+    public static byte @Nullable [] captureAuthoritativeXPayload(@Nullable AEBaseTile tile) {
         if (tile == null) {
             return null;
         }
@@ -79,7 +78,7 @@ public final class Ae2BaseTileNetworkStreamPreview {
 
     /** Applies authoritative {@code X} to a preview-place {@link AEBaseTile}, or {@code false} when no-op / failure. */
     @Optional.Method(modid = "appliedenergistics2")
-    public static boolean applyAuthorityToPreviewTile(AEBaseTile previewTile, @Nullable byte[] xPayload) {
+    public static boolean applyAuthorityToPreviewTile(AEBaseTile previewTile, byte @Nullable [] xPayload) {
         if (xPayload == null || xPayload.length == 0) {
             return false;
         }

@@ -28,7 +28,7 @@ public class IdUtils {
     // which would otherwise allow downstream mutation to corrupt the cached entry.
     private static final int PARSE_CACHE_MAX = 1024;
     private static final Map<String, ParsedItemRef> PARSE_CACHE = Collections
-        .synchronizedMap(new LinkedHashMap<String, ParsedItemRef>(256, 0.75f, true) {
+        .synchronizedMap(new LinkedHashMap<>(256, 0.75f, true) {
 
             @Override
             protected boolean removeEldestEntry(Map.Entry<String, ParsedItemRef> eldest) {

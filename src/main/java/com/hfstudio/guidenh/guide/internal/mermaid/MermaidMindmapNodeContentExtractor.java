@@ -258,7 +258,7 @@ public class MermaidMindmapNodeContentExtractor {
             result.append(removeLeadingWhitespace(lines.get(index), minIndent));
         }
 
-        while (result.length() > 0 && result.charAt(result.length() - 1) == '\n') {
+        while (!result.isEmpty() && result.charAt(result.length() - 1) == '\n') {
             result.setLength(result.length() - 1);
         }
         return result.toString();

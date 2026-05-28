@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.bridge.preview;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -50,9 +49,9 @@ public class PreviewRequestSupport {
         if (payload == null || !payload.has(name)
             || !payload.get(name)
                 .isJsonObject()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
-        Map<String, String> values = new LinkedHashMap<>();
+        var values = new LinkedHashMap<String, String>();
         JsonObject object = payload.getAsJsonObject(name);
         for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
             JsonElement value = entry.getValue();
@@ -60,6 +59,6 @@ public class PreviewRequestSupport {
                 values.put(entry.getKey(), value.getAsString());
             }
         }
-        return values;
+        return values.isEmpty() ? Map.of() : Map.copyOf(values);
     }
 }

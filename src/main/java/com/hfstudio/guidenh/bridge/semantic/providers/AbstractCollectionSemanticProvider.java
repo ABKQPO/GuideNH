@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.bridge.semantic.providers;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -146,6 +145,6 @@ public abstract class AbstractCollectionSemanticProvider implements SemanticProv
     }
 
     protected List<Map<String, String>> emptyEntries() {
-        return Collections.emptyList();
+        return List.of();
     }
 }

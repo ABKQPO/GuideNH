@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
  * inside a percentage-based canvas so handlers with irregular grids (e.g. loot tables) match NEI
  * spacing more closely than the legacy 3脳3 + vertical {@code others} column.
  */
-public final class PositionedNeiSiteRecipeLayoutStrategy implements SiteRecipeLayoutStrategy {
+public class PositionedNeiSiteRecipeLayoutStrategy implements SiteRecipeLayoutStrategy {
 
     @Override
     public boolean supports(SiteRecipeLayoutContext ctx) {

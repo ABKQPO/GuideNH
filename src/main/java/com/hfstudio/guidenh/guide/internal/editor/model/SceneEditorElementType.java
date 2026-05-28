@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.model;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -161,7 +159,7 @@ public class SceneEditorElementType {
     }
 
     public static List<SceneEditorElementType> values() {
-        return Collections.unmodifiableList(new ArrayList<>(TYPES_BY_ID.values()));
+        return List.copyOf(TYPES_BY_ID.values());
     }
 
     @Nullable

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.integration.api;
 
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -14,7 +13,7 @@ public class RecipeSlot {
     public RecipeSlot(int x, int y, List<ItemStack> stacks) {
         this.x = x;
         this.y = y;
-        this.stacks = stacks == null ? Collections.emptyList() : Collections.unmodifiableList(stacks);
+        this.stacks = stacks == null ? List.of() : List.copyOf(stacks);
     }
 
     public int x() {

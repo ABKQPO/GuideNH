@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.libs.micromark;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +31,7 @@ public class DefaultExtension {
     private DefaultExtension() {}
 
     public static List<Construct> l(Construct... constructs) {
-        return Arrays.asList(constructs);
+        return List.of(constructs);
     }
 
     public static Extension create() {
@@ -95,11 +93,11 @@ public class DefaultExtension {
         extension.text.put(Codes.underscore, l(Attention.attention));
         extension.text.put(Codes.graveAccent, l(CodeText.codeText));
 
-        extension.nullInsideSpan = Arrays.asList(Attention.attention.resolveAll, InitializeText.resolver);
+        extension.nullInsideSpan = List.of(Attention.attention.resolveAll, InitializeText.resolver);
 
-        extension.nullAttentionMarkers = Arrays.asList(Codes.asterisk, Codes.underscore);
+        extension.nullAttentionMarkers = List.of(Codes.asterisk, Codes.underscore);
 
-        extension.nullDisable = Collections.emptyList();
+        extension.nullDisable = List.of();
 
         return extension;
     }

@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.scene;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +41,7 @@ public class GuidebookSceneWeatherEffect {
         this.weatherType = weatherType != null ? weatherType : GuidebookSceneWeatherType.RAIN;
         this.xValues = xValues != null ? Arrays.copyOf(xValues, xValues.length) : null;
         this.zValues = zValues != null ? Arrays.copyOf(zValues, zValues.length) : null;
-        this.areas = areas != null ? Collections.unmodifiableList(new ArrayList<>(areas)) : null;
+        this.areas = areas != null ? List.copyOf(areas) : null;
         this.startTick = Math.max(0, startTick);
         this.durationTicks = durationTicks == INFINITE_DURATION ? INFINITE_DURATION : Math.max(1, durationTicks);
         this.density = Math.max(1, density);

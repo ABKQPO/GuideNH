@@ -25,12 +25,12 @@ public class GuideScreenEditorUndoHistory {
             return;
         }
         while (states.size() > index + 1) {
-            states.remove(states.size() - 1);
+            states.removeLast();
         }
         states.add(entry);
         index = states.size() - 1;
         while (states.size() > limit) {
-            states.remove(0);
+            states.removeFirst();
             index--;
         }
         if (index < 0 && !states.isEmpty()) {
@@ -101,10 +101,9 @@ public class GuideScreenEditorUndoHistory {
             if (this == obj) {
                 return true;
             }
-            if (!(obj instanceof Entry)) {
+            if (!(obj instanceof Entry other)) {
                 return false;
             }
-            Entry other = (Entry) obj;
             return selectionStart == other.selectionStart && selectionEnd == other.selectionEnd
                 && text.equals(other.text);
         }

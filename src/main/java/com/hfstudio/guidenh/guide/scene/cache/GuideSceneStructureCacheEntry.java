@@ -255,10 +255,10 @@ public class GuideSceneStructureCacheEntry implements Serializable {
         public BlockTooltipDataEntry(@Nullable String structureLibDescription, List<String> blockCandidates,
             List<HatchDescriptionLineEntry> hatchDescriptionLines, List<String> hatchCandidates) {
             this.structureLibDescription = structureLibDescription;
-            this.blockCandidates = blockCandidates != null ? new ArrayList<>(blockCandidates) : Collections.emptyList();
+            this.blockCandidates = blockCandidates != null ? new ArrayList<>(blockCandidates) : List.of();
             this.hatchDescriptionLines = hatchDescriptionLines != null ? new ArrayList<>(hatchDescriptionLines)
-                : Collections.emptyList();
-            this.hatchCandidates = hatchCandidates != null ? new ArrayList<>(hatchCandidates) : Collections.emptyList();
+                : List.of();
+            this.hatchCandidates = hatchCandidates != null ? new ArrayList<>(hatchCandidates) : List.of();
         }
 
         public static BlockTooltipDataEntry capture(StructureLibSceneMetadata.BlockTooltipData data) {

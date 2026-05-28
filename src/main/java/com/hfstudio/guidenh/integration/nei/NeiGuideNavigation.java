@@ -24,22 +24,10 @@ public class NeiGuideNavigation {
             return false;
         }
         if (NEIClientConfig.isKeyHashDown("gui.recipe")) {
-            return withTemporaryScreenChange(editorAccess, new ScreenAction() {
-
-                @Override
-                public boolean run() {
-                    return GuiCraftingRecipe.openRecipeGui("item", stack.copy());
-                }
-            });
+            return withTemporaryScreenChange(editorAccess, () -> GuiCraftingRecipe.openRecipeGui("item", stack.copy()));
         }
         if (NEIClientConfig.isKeyHashDown("gui.usage")) {
-            return withTemporaryScreenChange(editorAccess, new ScreenAction() {
-
-                @Override
-                public boolean run() {
-                    return GuiUsageRecipe.openRecipeGui("item", stack.copy());
-                }
-            });
+            return withTemporaryScreenChange(editorAccess, () -> GuiUsageRecipe.openRecipeGui("item", stack.copy()));
         }
         return false;
     }
@@ -54,13 +42,9 @@ public class NeiGuideNavigation {
             return false;
         }
         RecipeId recipeId = RecipeId.of(recipeHandler, recipeIndex);
-        return withTemporaryScreenChange(editorAccess, new ScreenAction() {
-
-            @Override
-            public boolean run() {
-                return GuiCraftingRecipe.createRecipeGui("recipeId", true, recipeAnchor, recipeId) != null;
-            }
-        });
+        return withTemporaryScreenChange(
+            editorAccess,
+            () -> GuiCraftingRecipe.createRecipeGui("recipeId", true, recipeAnchor, recipeId) != null);
     }
 
     private static @Nullable ItemStack resolveRecipeAnchorStack(Object handler, int recipeIndex,
@@ -76,8 +60,7 @@ public class NeiGuideNavigation {
             }
         }
         List<Object> ingredients = NeiDirectCalls.ingredientStacks(handler, recipeIndex);
-        for (int i = 0, count = ingredients.size(); i < count; i++) {
-            Object ingredient = ingredients.get(i);
+        for (Object ingredient : ingredients) {
             if (ingredient instanceof PositionedStack positionedStack) {
                 ItemStack resolved = copyVisibleStack(positionedStack);
                 if (resolved != null) {

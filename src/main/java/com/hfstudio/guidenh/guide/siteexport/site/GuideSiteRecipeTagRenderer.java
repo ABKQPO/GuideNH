@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 
@@ -39,7 +38,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         List<NeiRecipeLookup.CraftingRecipeRef> findCraftingRecipeRefs(ItemStack targetStack);
 
         default List<NeiRecipeLookup.Entry> findUsages(ItemStack targetStack) {
-            return Collections.emptyList();
+            return List.of();
         }
     }
 
@@ -80,7 +79,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         @Nullable GuideSiteNeiPhase1BackgroundExporter neiPhase1BackgroundExporter) {
         this(new GuideSiteRecipeExporter(), itemIconResolver, IdUtils::resolveItemStack, targetStack -> {
             if (targetStack == null || targetStack.getItem() == null) {
-                return Collections.emptyList();
+                return List.of();
             }
             return RecipeLookup.findByOutput(targetStack.getItem());
         }, new NeiRecipeFinder() {
@@ -88,7 +87,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             @Override
             public List<NeiRecipeLookup.Entry> findCraftingRecipes(ItemStack targetStack) {
                 if (targetStack == null) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
                 return NeiRecipeLookup.findCraftingRecipes(targetStack);
             }
@@ -96,7 +95,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             @Override
             public List<NeiRecipeLookup.CraftingRecipeRef> findCraftingRecipeRefs(ItemStack targetStack) {
                 if (targetStack == null) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
                 return NeiRecipeLookup.findCraftingRecipeRefs(targetStack);
             }
@@ -104,7 +103,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             @Override
             public List<NeiRecipeLookup.Entry> findUsages(ItemStack targetStack) {
                 if (targetStack == null) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
                 return NeiRecipeLookup.findUsages(targetStack);
             }
@@ -113,7 +112,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             @Override
             public List<Object> findCraftingHandlers(ItemStack targetStack) {
                 if (targetStack == null) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
                 return RecipeCache.getCraftingHandlers(targetStack);
             }
@@ -121,7 +120,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             @Override
             public List<Object> findUsageHandlers(ItemStack targetStack) {
                 if (targetStack == null) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
                 return RecipeCache.getUsageHandlers(targetStack);
             }
@@ -177,12 +176,12 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
                 @Override
                 public List<Object> findCraftingHandlers(ItemStack targetStack) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
 
                 @Override
                 public List<Object> findUsageHandlers(ItemStack targetStack) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
             },
             new HandlerRuntime() {
@@ -209,7 +208,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
                 @Override
                 public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
 
                 @Override
@@ -219,7 +218,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
                 @Override
                 public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
             },
             null);
@@ -308,7 +307,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
                 @Override
                 public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
 
                 @Override
@@ -318,7 +317,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
                 @Override
                 public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
             },
             null);
@@ -424,7 +423,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             return exporter.renderRecipeCollection(renderedRecipes, request.multi);
         }
 
-        renderedRecipes = request.usageQuery ? Collections.<String>emptyList()
+        renderedRecipes = request.usageQuery ? List.of()
             : renderFromVanillaEntries(request, targetStack, hasRecipeFilter);
         if (!renderedRecipes.isEmpty()) {
             return exporter.renderRecipeCollection(renderedRecipes, request.multi);
@@ -450,14 +449,14 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             request.handlerOrder,
             handlerRuntime);
         if (handlers.isEmpty()) {
-            return new RawHandlerRenderResult(Collections.emptyList(), false);
+            return new RawHandlerRenderResult(List.of(), false);
         }
 
         List<String> renderedRecipes = new ArrayList<>();
         for (int hi = 0; hi < handlers.size() && renderedRecipes.size() < request.limit; hi++) {
             Object handler = handlers.get(hi);
             int recipeCount = handlerRuntime.recipeCount(handler);
-            int recipeStart = request.recipeIndex >= 0 ? request.recipeIndex : 0;
+            int recipeStart = Math.max(request.recipeIndex, 0);
             int recipeEnd = request.recipeIndex >= 0 ? Math.min(recipeCount, request.recipeIndex + 1) : recipeCount;
             for (int recipeIndex = recipeStart; recipeIndex < recipeEnd
                 && renderedRecipes.size() < request.limit; recipeIndex++) {
@@ -481,7 +480,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         }
         List<NeiRecipeLookup.CraftingRecipeRef> refs = neiRecipeFinder.findCraftingRecipeRefs(targetStack);
         if (refs.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<String> renderedRecipes = new ArrayList<>();
@@ -521,11 +520,11 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     private List<String> renderFromUsageEntries(RenderRequest request, ItemStack targetStack, boolean hasRecipeFilter) {
         List<NeiRecipeLookup.Entry> entries = neiRecipeFinder.findUsages(targetStack);
         if (entries.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<String> renderedRecipes = new ArrayList<>();
-        int entryStart = request.recipeIndex >= 0 ? request.recipeIndex : 0;
+        int entryStart = Math.max(request.recipeIndex, 0);
         int entryEnd = request.recipeIndex >= 0 ? Math.min(entries.size(), request.recipeIndex + 1) : entries.size();
         for (int i = entryStart; i < entryEnd && renderedRecipes.size() < request.limit; i++) {
             NeiRecipeLookup.Entry entry = entries.get(i);
@@ -550,11 +549,11 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         boolean hasRecipeFilter) {
         List<RecipeLookup.Entry> vanillaEntries = vanillaRecipeFinder.findByOutput(targetStack);
         if (vanillaEntries.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<String> renderedRecipes = new ArrayList<>();
-        int entryStart = request.recipeIndex >= 0 ? request.recipeIndex : 0;
+        int entryStart = Math.max(request.recipeIndex, 0);
         int entryEnd = request.recipeIndex >= 0 ? Math.min(vanillaEntries.size(), request.recipeIndex + 1)
             : vanillaEntries.size();
         for (int i = entryStart; i < entryEnd && renderedRecipes.size() < request.limit; i++) {
@@ -641,7 +640,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
     private List<Object> mergeHandlers(List<Object> craftingHandlers, List<Object> usageHandlers) {
         if (craftingHandlers == null || craftingHandlers.isEmpty()) {
-            return usageHandlers != null ? usageHandlers : Collections.emptyList();
+            return usageHandlers != null ? usageHandlers : List.of();
         }
         if (usageHandlers == null || usageHandlers.isEmpty()) {
             return craftingHandlers;
@@ -662,7 +661,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     }
 
     private List<Object> safeHandlers(List<Object> handlers) {
-        return handlers != null ? handlers : Collections.emptyList();
+        return handlers != null ? handlers : List.of();
     }
 
     @Nullable

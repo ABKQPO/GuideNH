@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.bridge.preview;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -17,8 +16,7 @@ public class PreviewSearchQuery {
         this.cursor = cursor == null ? "" : cursor;
         this.limit = limit;
         this.prefix = prefix == null ? "" : prefix;
-        this.filters = filters == null ? Collections.emptyMap()
-            : Collections.unmodifiableMap(new LinkedHashMap<>(filters));
+        this.filters = filters == null || filters.isEmpty() ? Map.of() : Map.copyOf(new LinkedHashMap<>(filters));
     }
 
     public String getCapability() {
