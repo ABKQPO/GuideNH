@@ -85,6 +85,9 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteI
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiListContext;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiListContextProvider;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
@@ -1764,10 +1767,19 @@ public class PageCompiler {
         ResourceLocation pageId) {
         PageCollection pages = compiler.getPageCollection();
         if (guideId.equals(pages.getId())) {
-            return pages.pageExists(pageId);
+            return pages.pageExists(pageId) || syntheticPageExists(pages, pageId);
         }
         var guide = GuideRegistry.getById(guideId);
-        return guide != null && guide.pageExists(pageId);
+        return guide != null && (guide.pageExists(pageId) || syntheticPageExists(guide, pageId));
+    }
+
+    private static boolean syntheticPageExists(Object pageContainer, ResourceLocation pageId) {
+        if (!MediaWikiPageIds.isSyntheticPage(pageId)
+            || !(pageContainer instanceof MediaWikiListContextProvider provider)) {
+            return false;
+        }
+        MediaWikiListContext context = provider.getMediaWikiListContext();
+        return context != null && context.getParsedPage(pageId) != null;
     }
 
     public interface PageLinkResolver {
