@@ -46,6 +46,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
@@ -4006,7 +4007,7 @@ public class GuideScreen extends GuiContainer
                 if (tooltip != null) {
                     renderGuideTooltip(tooltip, mouseX, mouseY, interaction);
                     if (ModConfig.debug.enableDebugMode) {
-                        drawDebugBlockCoordTooltip(hb, mouseX, mouseY);
+                        drawDebugBlockCoordTooltip(tooltip, hb, mouseX, mouseY, interaction);
                     }
                     return;
                 }
@@ -4194,25 +4195,25 @@ public class GuideScreen extends GuiContainer
      * Uses magnetic snapping: if there is not enough space above the cursor, the tooltip
      * moves to below the cursor area instead.
      */
-    private void drawDebugBlockCoordTooltip(int[] pos, int mouseX, int mouseY) {
-        FontRenderer fr = mc.fontRenderer;
-        String coordText = pos[0] + ", " + pos[1] + ", " + pos[2];
+    private void drawDebugBlockCoordTooltip(GuideTooltip tooltip, int[] pos, int mouseX, int mouseY,
+        @Nullable DocumentInteractionState interaction) {
+        if (!(tooltip instanceof ItemTooltip itemTooltip)) {
+            return;
+        }
+        ItemStack stack = itemTooltip.getStack();
+        if (stack == null) {
+            return;
+        }
+        List<String> itemLines = GuideItemTooltipLines.build(itemTooltip, mc);
+        FontRenderer itemFont = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
+        LytRect bounds = resolveTooltipBounds(interaction);
+        TooltipLayout itemLayout = computeHoveringTextLayout(itemLines, mouseX, mouseY, itemFont, bounds);
+        String coordText = "\u00a76" + pos[0] + ", " + pos[1] + ", " + pos[2];
         // §6 = gold color; the coordinate tooltip renders above the main block tooltip.
         // drawHoveringText(list, x, y, font) draws starting at (x+12, y-12).
         // We want the debug tooltip to appear above the default position (mouseY - 12).
         // Targeting 26px above the cursor leaves room above the typical single-line tooltip.
-        int debugY = mouseY - 26;
-        // Snap to below cursor when the tooltip would be cut off at the top of the screen.
-        // The tooltip box top is at debugY - 12 - 4 = debugY - 16.
-        if (debugY - 16 < 0) {
-            debugY = mouseY + 26;
-        }
-        // Clamp bottom edge as well.
-        int lineH = fr.FONT_HEIGHT + 8;
-        if (debugY + lineH > this.height) {
-            debugY = this.height - lineH;
-        }
-        drawHoveringText(List.of("\u00a76" + coordText), mouseX, debugY, fr);
+        drawTooltipTextAnchored(List.of(coordText), mc.fontRenderer, itemLayout, bounds);
     }
 
     private void drawTooltipText(String text, int mouseX, int mouseY) {
@@ -4257,32 +4258,102 @@ public class GuideScreen extends GuiContainer
         if (lines == null || lines.isEmpty()) {
             return;
         }
+        TooltipLayout layout = computeHoveringTextLayout(lines, mouseX, mouseY, font, bounds);
+        drawHoveringText(lines, layout.mouseAnchorX(), layout.mouseAnchorY(), font);
+    }
+
+    private void drawTooltipTextAnchored(List<String> lines, FontRenderer font, TooltipLayout anchorLayout,
+        LytRect bounds) {
+        if (lines == null || lines.isEmpty()) {
+            return;
+        }
+
         int tooltipWidth = 0;
         for (String line : lines) {
             tooltipWidth = Math.max(tooltipWidth, font.getStringWidth(line));
         }
-        int tooltipHeight = lines.size() == 1 ? 8 : 8 + (lines.size() - 1) * 10;
-        int adjustedX = mouseX;
-        int drawLeft = adjustedX + 12;
-        int drawRight = drawLeft + tooltipWidth;
-        if (drawRight + 4 > bounds.right()) {
-            adjustedX = mouseX - tooltipWidth - 24;
-            drawLeft = adjustedX + 12;
+
+        int tooltipHeight = computeTooltipHeight(lines.size());
+        int margin = 4;
+        int gap = 0;
+        int boxWidth = tooltipWidth + 6;
+        int boxHeight = tooltipHeight + 8;
+        int boxLeft = anchorLayout.placedRightOfCursor() ? anchorLayout.boxLeft() : anchorLayout.boxRight() - boxWidth;
+        int boxTop = anchorLayout.boxTop() - gap - boxHeight;
+        if (boxTop < bounds.y() + margin) {
+            boxTop = anchorLayout.boxBottom() + gap;
         }
-        if (drawLeft < bounds.x() + 4) {
-            adjustedX = bounds.x() + 4 - 12;
+        int maxBoxLeft = Math.max(bounds.x() + margin, bounds.right() - margin - boxWidth);
+        boxLeft = Math.max(bounds.x() + margin, Math.min(boxLeft, maxBoxLeft));
+        int maxBoxTop = Math.max(bounds.y() + margin, bounds.bottom() - margin - boxHeight);
+        boxTop = Math.max(bounds.y() + margin, Math.min(boxTop, maxBoxTop));
+
+        int textX = boxLeft + 3;
+        int textY = boxTop + 4;
+        drawHoveringText(lines, textX - 12, textY + 12, font);
+    }
+
+    private TooltipLayout computeHoveringTextLayout(List<String> lines, int mouseX, int mouseY, FontRenderer font,
+        LytRect bounds) {
+        int tooltipWidth = 0;
+        for (String line : lines) {
+            tooltipWidth = Math.max(tooltipWidth, font.getStringWidth(line));
+        }
+        int tooltipHeight = computeTooltipHeight(lines.size());
+        int margin = 4;
+
+        int adjustedX = mouseX;
+        boolean placedRightOfCursor = true;
+        int textX = adjustedX + 12;
+        if (textX + tooltipWidth + margin > bounds.right()) {
+            adjustedX = mouseX - tooltipWidth - 24;
+            textX = adjustedX + 12;
+            placedRightOfCursor = false;
+        }
+        if (textX < bounds.x() + margin) {
+            adjustedX = bounds.x() + margin - 12;
+            textX = adjustedX + 12;
+            placedRightOfCursor = textX >= mouseX;
         }
 
         int adjustedY = mouseY;
-        int drawTop = adjustedY - 12;
-        int drawBottom = drawTop + tooltipHeight + 8;
-        if (drawBottom > bounds.bottom()) {
+        int textY = adjustedY - 12;
+        int tooltipBottom = textY + tooltipHeight + 8;
+        if (tooltipBottom > bounds.bottom()) {
             adjustedY = bounds.bottom() - tooltipHeight - 8 + 12;
+            textY = adjustedY - 12;
         }
-        if (adjustedY - 16 < bounds.y() + 4) {
+        if (adjustedY - 16 < bounds.y() + margin) {
             adjustedY = bounds.y() + 20;
+            textY = adjustedY - 12;
         }
-        drawHoveringText(lines, adjustedX, adjustedY, font);
+
+        return new TooltipLayout(adjustedX, adjustedY, textX, textY, tooltipWidth, tooltipHeight, placedRightOfCursor);
+    }
+
+    private int computeTooltipHeight(int lineCount) {
+        return lineCount == 1 ? 8 : 8 + (lineCount - 1) * 10;
+    }
+
+    @Desugar
+    private record TooltipLayout(int mouseAnchorX, int mouseAnchorY, int textX, int top, int width, int height,
+        boolean placedRightOfCursor) {
+
+        private int boxLeft() {
+            return textX - 3;
+        }
+
+        private int boxRight() {
+            return textX + width + 3;
+        }
+
+        private int boxTop() {
+            return top - 4;
+        }
+
+        private int boxBottom() {
+            return top + height + 4;
+        }
     }
 
     private LytRect resolveTooltipBounds(@Nullable DocumentInteractionState interaction) {
