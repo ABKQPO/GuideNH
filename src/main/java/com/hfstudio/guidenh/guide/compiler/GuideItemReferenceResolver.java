@@ -107,7 +107,7 @@ public class GuideItemReferenceResolver {
             return null;
         }
 
-        ItemStack firstMatch = oreStacks.getFirst();
+        ItemStack firstMatch = oreStacks.get(0);
         if (firstMatch == null || firstMatch.getItem() == null) {
             return null;
         }

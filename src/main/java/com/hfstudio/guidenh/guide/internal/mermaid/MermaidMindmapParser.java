@@ -33,7 +33,7 @@ public class MermaidMindmapParser {
         int index = 0;
 
         if (!lines.isEmpty() && "---".equals(
-            lines.getFirst()
+            lines.get(0)
                 .trim())) {
             int end = findFrontmatterEnd(lines);
             if (end > 0) {

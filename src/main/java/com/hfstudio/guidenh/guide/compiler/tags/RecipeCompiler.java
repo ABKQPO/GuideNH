@@ -215,7 +215,7 @@ public class RecipeCompiler extends BlockTagCompiler {
                         .isEmpty()) flat.set(
                             idx,
                             slot.stacks()
-                                .getFirst());
+                                .get(0));
                     idx++;
                 }
                 ItemStack resultStack = e.result()
@@ -224,7 +224,7 @@ public class RecipeCompiler extends BlockTagCompiler {
                         .stacks()
                         .isEmpty() ? e.result()
                             .stacks()
-                            .getFirst() : null;
+                            .get(0) : null;
                 if (resultStack != null) boxes.add(LytStandardRecipeBox.shapeless(flat, resultStack));
             }
             if (!boxes.isEmpty()) {

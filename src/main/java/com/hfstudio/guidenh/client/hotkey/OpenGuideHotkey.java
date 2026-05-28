@@ -109,7 +109,7 @@ public class OpenGuideHotkey {
             return;
         }
 
-        var found = guidebookPages.getFirst();
+        var found = guidebookPages.get(0);
 
         var current = GuideScreen.current();
         if (current != null && found.page.pageId()
@@ -138,7 +138,7 @@ public class OpenGuideHotkey {
             return false;
         }
 
-        var found = pages.getFirst();
+        var found = pages.get(0);
         var current = GuideScreen.current();
         if (current != null && found.page.pageId()
             .equals(current.getCurrentPageId())) {
@@ -222,7 +222,7 @@ public class OpenGuideHotkey {
         if (holding) {
             if (ticksKeyHeld < TICKS_TO_OPEN && ++ticksKeyHeld == TICKS_TO_OPEN) {
                 if (!guidebookPages.isEmpty()) {
-                    var found = guidebookPages.getFirst();
+                    var found = guidebookPages.get(0);
                     List<PageAnchor> allPages = found.guide.getIndex(ItemMultiIndex.class)
                         .findAllByStack(stack);
                     PageAnchor target = allPages.size() > 1 ? GuideItemLinksPage.anchorForStack(stack) : found.page;
@@ -298,7 +298,7 @@ public class OpenGuideHotkey {
         boolean held = isKeyHeld();
         if (held) {
             if (questTicksKeyHeld < TICKS_TO_OPEN && ++questTicksKeyHeld == TICKS_TO_OPEN) {
-                var found = questGuidebookPages.getFirst();
+                var found = questGuidebookPages.get(0);
                 var mc = Minecraft.getMinecraft();
                 if (mc.currentScreen instanceof GuideUiHost) {
                     ((GuideUiHost) mc.currentScreen).navigateTo(found.guide.getId(), found.page);

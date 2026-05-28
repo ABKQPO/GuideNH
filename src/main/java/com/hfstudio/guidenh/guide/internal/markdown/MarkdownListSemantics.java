@@ -18,7 +18,7 @@ public class MarkdownListSemantics {
     private MarkdownListSemantics() {}
 
     public static @Nullable TaskMarker extractTaskMarker(List<? extends MdAstAnyContent> children) {
-        if (children.size() != 1 || !(children.getFirst() instanceof MdAstParagraph paragraph)) {
+        if (children.size() != 1 || !(children.get(0) instanceof MdAstParagraph paragraph)) {
             return null;
         }
         if (paragraph.children()
@@ -26,7 +26,7 @@ public class MarkdownListSemantics {
             return null;
         }
         if (!(paragraph.children()
-            .getFirst() instanceof MdAstText text)) {
+            .get(0) instanceof MdAstText text)) {
             return null;
         }
 
