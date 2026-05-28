@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.cache;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,10 +22,11 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 
 public class GuideSceneStructureCacheEntry implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
     private static final int MAX_DECODED_ITEM_STACK_CACHE_SIZE = 512;
     private static final Map<String, ItemStack> DECODED_ITEM_STACK_CACHE = Collections
-        .synchronizedMap(new LinkedHashMap<String, ItemStack>(256, 0.75f, true) {
+        .synchronizedMap(new LinkedHashMap<>(256, 0.75f, true) {
 
             @Override
             protected boolean removeEldestEntry(Map.Entry<String, ItemStack> eldest) {
@@ -68,6 +70,7 @@ public class GuideSceneStructureCacheEntry implements Serializable {
 
     public static class StructureLibBindingEntry implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = 1L;
 
         @Nullable
@@ -91,6 +94,7 @@ public class GuideSceneStructureCacheEntry implements Serializable {
 
     public static class StructureLibMetadataEntry implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = 1L;
 
         private final String controller;
@@ -194,6 +198,7 @@ public class GuideSceneStructureCacheEntry implements Serializable {
 
     public static class TierDataEntry implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = 1L;
 
         private final int minValue;
@@ -219,6 +224,7 @@ public class GuideSceneStructureCacheEntry implements Serializable {
 
     public static class ChannelDataEntry implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = 1L;
 
         private final String channelId;
@@ -244,6 +250,7 @@ public class GuideSceneStructureCacheEntry implements Serializable {
 
     public static class BlockTooltipDataEntry implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = 1L;
 
         @Nullable
@@ -316,6 +323,7 @@ public class GuideSceneStructureCacheEntry implements Serializable {
 
     public static class HatchDescriptionLineEntry implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = 1L;
 
         private final String kindId;

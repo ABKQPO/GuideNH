@@ -171,7 +171,7 @@ public class StructureLibExportRunner {
     }
 
     private List<StructureLibExportTaskSpec> planController(StructureLibControllerSpec controller,
-        StructureLibExportOptions options) throws Exception {
+        StructureLibExportOptions options) {
         try {
             return planner.plan(List.of(controller), options);
         } catch (Exception e) {

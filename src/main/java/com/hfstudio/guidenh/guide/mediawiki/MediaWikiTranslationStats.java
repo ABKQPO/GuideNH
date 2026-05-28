@@ -77,9 +77,8 @@ public class MediaWikiTranslationStats {
         LinkedHashSet<String> languages = new LinkedHashSet<>(sortedLanguages);
         LinkedHashMap<String, Set<String>> resolvedPagePathsByLanguage = new LinkedHashMap<>();
         for (String language : languages) {
-            resolvedPagePathsByLanguage.put(
-                language,
-                new LinkedHashSet<String>(pagePathsByLanguage.getOrDefault(language, new LinkedHashSet<String>())));
+            resolvedPagePathsByLanguage
+                .put(language, new LinkedHashSet<>(pagePathsByLanguage.getOrDefault(language, new LinkedHashSet<>())));
         }
 
         LinkedHashSet<String> allSourcePages = new LinkedHashSet<>();
@@ -91,7 +90,7 @@ public class MediaWikiTranslationStats {
 
     private static Iterable<Guide> resolveGuides(Guide guide) {
         if (guide instanceof MediaWikiGuideAggregator aggregator) {
-            return new ArrayList<Guide>(aggregator.getComponentGuides());
+            return new ArrayList<>(aggregator.getComponentGuides());
         }
         return List.of(guide);
     }
@@ -136,7 +135,7 @@ public class MediaWikiTranslationStats {
             String language = folder.substring(1);
             discoveredLanguages.add(language);
             LinkedHashSet<String> pagePaths = pagePathsByLanguage
-                .computeIfAbsent(language, ignored -> new LinkedHashSet<String>());
+                .computeIfAbsent(language, ignored -> new LinkedHashSet<>());
             DataDrivenGuideLoader.collectMarkdownPaths(languageDir, "", pagePaths);
         }
     }
@@ -168,7 +167,7 @@ public class MediaWikiTranslationStats {
                 discoveredLanguages.add(language);
                 String pagePath = relative.substring(slashIndex + 1);
                 if (!pagePath.isEmpty()) {
-                    pagePathsByLanguage.computeIfAbsent(language, ignored -> new LinkedHashSet<String>())
+                    pagePathsByLanguage.computeIfAbsent(language, ignored -> new LinkedHashSet<>())
                         .add(pagePath);
                 }
             }

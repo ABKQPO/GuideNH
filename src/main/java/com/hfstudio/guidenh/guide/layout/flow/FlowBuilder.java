@@ -65,7 +65,7 @@ public class FlowBuilder {
 
     @Nullable
     public LytRect getFirstLineBounds() {
-        return lines.isEmpty() ? null : lines.get(0).bounds;
+        return lines.isEmpty() ? null : lines.getFirst().bounds;
     }
 
     @Nullable
@@ -73,7 +73,7 @@ public class FlowBuilder {
         if (lines.isEmpty()) {
             return null;
         }
-        for (var el = lines.get(0).firstElement; el != null; el = el.next) {
+        for (var el = lines.getFirst().firstElement; el != null; el = el.next) {
             if (el instanceof LineTextRun textRun && !textRun.text.isEmpty()) {
                 return textRun.bounds;
             }

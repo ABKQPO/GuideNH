@@ -35,8 +35,7 @@ public class GuidePageTexture {
     private final ResourceLocation sourceId;
     private final int width;
     private final int height;
-    @Nullable
-    private byte[] imageData;
+    private byte @Nullable [] imageData;
     @Nullable
     private ResourceLocation texture;
 
@@ -44,7 +43,7 @@ public class GuidePageTexture {
         this(texture, width, height, null);
     }
 
-    private GuidePageTexture(@Nullable ResourceLocation sourceId, int width, int height, @Nullable byte[] imageData) {
+    private GuidePageTexture(@Nullable ResourceLocation sourceId, int width, int height, byte @Nullable [] imageData) {
         this.sourceId = sourceId;
         this.width = width;
         this.height = height;
@@ -150,7 +149,6 @@ public class GuidePageTexture {
     }
 
     @Nullable
-    @SuppressWarnings("unchecked")
     private static ITextureObject removeTextureObject(TextureManager textureManager, ResourceLocation location) {
         try {
             Map<ResourceLocation, ITextureObject> textureObjects = ReflectionHelper.getPrivateValue(

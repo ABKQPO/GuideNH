@@ -207,7 +207,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
                     float zX = spanX > 0.5f ? (float) w / spanX : Float.MAX_VALUE;
                     float zY = spanY > 0.5f ? (float) h / spanY : Float.MAX_VALUE;
                     autoZoom = Math.min(zX, zY) * 0.85f;
-                    autoZoom = Math.max(LytGuidebookScene.MIN_ZOOM, Math.min(LytGuidebookScene.MAX_ZOOM, autoZoom));
+                    autoZoom = Math.clamp(autoZoom, LytGuidebookScene.MIN_ZOOM, LytGuidebookScene.MAX_ZOOM);
                 }
                 cam.setZoom(autoZoom);
                 // Restore any explicit offsets that were zeroed for the measurement pass.

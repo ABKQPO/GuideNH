@@ -936,8 +936,7 @@ public class GuidebookLevelRenderer {
         if (coverage >= 0.999f) {
             return true;
         }
-        int threshold = Math
-            .max(1, Math.min(WEATHER_COVERAGE_RESOLUTION, Math.round(coverage * WEATHER_COVERAGE_RESOLUTION)));
+        int threshold = Math.clamp(Math.round(coverage * WEATHER_COVERAGE_RESOLUTION), 1, WEATHER_COVERAGE_RESOLUTION);
         return Math.floorMod(resolveWeatherCoverageSeed(x, z), WEATHER_COVERAGE_RESOLUTION) < threshold;
     }
 
@@ -951,7 +950,7 @@ public class GuidebookLevelRenderer {
         float dz = column.centerZ() - centerZ;
         float radiusSquared = (dx * dx + dz * dz) / (WEATHER_RENDER_RADIUS * WEATHER_RENDER_RADIUS);
         float radialAlpha = (1.0f - radiusSquared) * alphaRadiusScale + 0.5f;
-        radialAlpha = Math.max(0.0f, Math.min(1.0f, radialAlpha));
+        radialAlpha = Math.clamp(radialAlpha, 0.0f, 1.0f);
         return column.baseAlpha() * radialAlpha;
     }
 

@@ -164,7 +164,7 @@ public class GuidebookSceneParticleFactory {
         int resolvedCount = Math.max(1, particleCount);
         appendVanillaExplosionFlash(out, resolvedAllocator, rng, x, y, z, resolvedPower, resolvedDuration);
 
-        int effectCount = Math.min(MAX_EXPLOSION_PARTICLE_COUNT, Math.max(12, resolvedCount));
+        int effectCount = Math.clamp(resolvedCount, 12, MAX_EXPLOSION_PARTICLE_COUNT);
         for (int i = 0; i < effectCount; i++) {
             double directionX;
             double directionY;
@@ -218,7 +218,7 @@ public class GuidebookSceneParticleFactory {
     }
 
     public static int defaultExplosionParticleCount(float power) {
-        return Math.min(MAX_EXPLOSION_PARTICLE_COUNT, Math.max(16, Math.round(Math.max(0.1f, power) * 32f)));
+        return Math.clamp(Math.round(Math.max(0.1f, power) * 32f), 16, MAX_EXPLOSION_PARTICLE_COUNT);
     }
 
     private static GuidebookSceneParticle createSmokeParticle(GuidebookSceneParticle particle, float x, float y,

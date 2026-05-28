@@ -245,12 +245,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {
-        for (int index = 0; index < rowLayouts.size(); index++) {
-            rowLayouts.set(
-                index,
-                rowLayouts.get(index)
-                    .move(deltaX, deltaY));
-        }
+        rowLayouts.replaceAll(rowLayout -> rowLayout.move(deltaX, deltaY));
     }
 
     @Override
@@ -551,7 +546,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     private List<List<GroupLayout>> layoutFlatColumns(MediaWikiSpecialPageResult visibleResult, int columnCount) {
         ArrayList<List<GroupLayout>> columns = new ArrayList<>(columnCount);
         for (int index = 0; index < columnCount; index++) {
-            columns.add(new ArrayList<GroupLayout>());
+            columns.add(new ArrayList<>());
         }
         List<MediaWikiSpecialListEntry> entries = visibleResult.flatEntries() != null ? visibleResult.flatEntries()
             : List.of();
@@ -816,19 +811,19 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             if (word == null || word.isEmpty()) {
                 continue;
             }
-            String candidate = current.length() == 0 ? word : current + " " + word;
+            String candidate = current.isEmpty() ? word : current + " " + word;
             if (measureTextWidth(context, style, candidate) <= maxWidth) {
                 current.setLength(0);
                 current.append(candidate);
                 continue;
             }
-            if (current.length() > 0) {
+            if (!current.isEmpty()) {
                 output.add(current.toString());
                 current.setLength(0);
             }
             appendBrokenWord(context, word, maxWidth, style, output);
         }
-        if (current.length() > 0) {
+        if (!current.isEmpty()) {
             output.add(current.toString());
         }
     }
@@ -849,19 +844,19 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             if (word == null || word.isEmpty()) {
                 continue;
             }
-            String candidate = current.length() == 0 ? word : current + " " + word;
+            String candidate = current.isEmpty() ? word : current + " " + word;
             if (context.getStringWidth(candidate, style) <= maxWidth) {
                 current.setLength(0);
                 current.append(candidate);
                 continue;
             }
-            if (current.length() > 0) {
+            if (!current.isEmpty()) {
                 output.add(current.toString());
                 current.setLength(0);
             }
             appendBrokenWord(context, word, maxWidth, style, output);
         }
-        if (current.length() > 0) {
+        if (!current.isEmpty()) {
             output.add(current.toString());
         }
     }

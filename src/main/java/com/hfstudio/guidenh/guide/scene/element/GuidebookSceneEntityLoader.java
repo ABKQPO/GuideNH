@@ -601,7 +601,7 @@ public class GuidebookSceneEntityLoader {
     }
 
     private static Map<String, GameProfile> createPreviewPlayerProfileCache() {
-        return new LinkedHashMap<String, GameProfile>(16, 0.75f, true) {
+        return new LinkedHashMap<>(16, 0.75f, true) {
 
             @Override
             protected boolean removeEldestEntry(Entry<String, GameProfile> eldest) {

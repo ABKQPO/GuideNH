@@ -82,7 +82,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
             MdxAttrs.getString(compiler, errorSink, el, "facing", null),
             MdxAttrs.getString(compiler, errorSink, el, "rotation", null),
             MdxAttrs.getString(compiler, errorSink, el, "flip", null),
-            requestedChannel == Integer.MIN_VALUE ? null : Integer.valueOf(requestedChannel),
+            requestedChannel == Integer.MIN_VALUE ? null : requestedChannel,
             selectionOverride != null ? selectionOverride
                 : requestedChannel == Integer.MIN_VALUE ? StructureLibPreviewSelection.defaultSelection()
                     : StructureLibPreviewSelection.ofMasterTier(requestedChannel));
@@ -142,7 +142,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
 
     public static String resolveFailureMessage(List<String> errors, String controller) {
         if (errors != null && !errors.isEmpty()) {
-            String firstError = errors.get(0);
+            String firstError = errors.getFirst();
             if (firstError != null && !firstError.trim()
                 .isEmpty()) {
                 return firstError;

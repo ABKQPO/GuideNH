@@ -44,6 +44,6 @@ public class GuideNhStructureChunkAssembler {
             }
             out.write(chunk, 0, chunk.length);
         }
-        return new String(out.toByteArray(), StandardCharsets.UTF_8);
+        return out.toString(StandardCharsets.UTF_8);
     }
 }

@@ -79,7 +79,7 @@ public class StructureLibSceneImageExporter {
 
     private BufferedImage render(GuidebookLevel level, CameraSettings camera, GuidebookSceneLayerSelection layers,
         List<InWorldAnnotation> annotations, List<OverlayAnnotation> overlays, StructureLibExportBackground background,
-        int width, int height) throws Exception {
+        int width, int height) {
         int maxFboSize = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
         if (maxFboSize <= 0) {
             maxFboSize = 8192;

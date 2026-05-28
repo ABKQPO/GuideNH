@@ -93,7 +93,7 @@ public class MutableGuide
     private volatile long requestedMediaWikiWarmupRevision = Long.MIN_VALUE;
     private final MediaWikiSpecialPageRefreshController mediaWikiRefreshController = new MediaWikiSpecialPageRefreshController();
     private final Map<ParsedGuidePage, GuidePage> compiledPagesWeak = Collections.synchronizedMap(new WeakHashMap<>());
-    private final LinkedHashMap<ResourceLocation, GuidePage> compiledPagesStrong = new LinkedHashMap<ResourceLocation, GuidePage>(
+    private final LinkedHashMap<ResourceLocation, GuidePage> compiledPagesStrong = new LinkedHashMap<>(
         64,
         0.75f,
         true) {
@@ -457,7 +457,7 @@ public class MutableGuide
             if (change == null || !seenPageIds.add(change.pageId())) {
                 continue;
             }
-            deduplicatedChanges.add(0, change);
+            deduplicatedChanges.addFirst(change);
         }
 
         // Enrich each change with the previous page data while we process them

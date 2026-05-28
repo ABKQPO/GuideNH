@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.cache;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -331,7 +330,7 @@ public class GuideSceneStructureFingerprintResolver {
             if (path == null || !Files.exists(path)) {
                 return null;
             }
-            return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+            return Files.readString(path);
         } catch (Exception ignored) {
             return null;
         }

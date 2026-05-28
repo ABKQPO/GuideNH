@@ -12,16 +12,12 @@ public class GuidebookPreviewAuthorityStore {
 
     private final HashMap<Long, HashMap<String, byte[]>> byPos = new HashMap<>();
 
-    public void put(long packedPos, String supplementId, @Nullable byte[] payload) {
+    public void put(long packedPos, String supplementId, byte @Nullable [] payload) {
         if (payload == null || payload.length == 0) {
             remove(packedPos, supplementId);
             return;
         }
-        HashMap<String, byte[]> slot = byPos.get(packedPos);
-        if (slot == null) {
-            slot = new HashMap<>();
-            byPos.put(packedPos, slot);
-        }
+        HashMap<String, byte[]> slot = byPos.computeIfAbsent(packedPos, k -> new HashMap<>());
         slot.put(supplementId, payload.clone());
     }
 
@@ -66,8 +62,7 @@ public class GuidebookPreviewAuthorityStore {
         byPos.put(packedPos, restored);
     }
 
-    @Nullable
-    public byte[] get(long packedPos, String supplementId) {
+    public byte @Nullable [] get(long packedPos, String supplementId) {
         HashMap<String, byte[]> slot = byPos.get(packedPos);
         if (slot == null) {
             return null;
@@ -98,7 +93,7 @@ public class GuidebookPreviewAuthorityStore {
         }
         HashMap<Long, Map<String, byte[]>> snapshot = new HashMap<>();
         for (Long packedPos : byPos.keySet()) {
-            snapshot.put(packedPos, snapshotAt(packedPos.longValue()));
+            snapshot.put(packedPos, snapshotAt(packedPos));
         }
         return snapshot.isEmpty() ? Map.of() : snapshot;
     }
@@ -110,10 +105,7 @@ public class GuidebookPreviewAuthorityStore {
         }
         for (Map.Entry<Long, Map<String, byte[]>> entry : snapshot.entrySet()) {
             if (entry.getKey() != null) {
-                restoreAt(
-                    entry.getKey()
-                        .longValue(),
-                    entry.getValue());
+                restoreAt(entry.getKey(), entry.getValue());
             }
         }
     }

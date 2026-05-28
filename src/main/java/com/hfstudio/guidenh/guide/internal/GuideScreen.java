@@ -892,7 +892,7 @@ public class GuideScreen extends GuiContainer
         if (contentWidth <= 20 || sideMarginRatio <= NARROW_READING_DISABLED_RATIO) {
             return 0;
         }
-        float clampedRatio = Math.max(NARROW_READING_DISABLED_RATIO, Math.min(0.45f, sideMarginRatio));
+        float clampedRatio = Math.clamp(sideMarginRatio, NARROW_READING_DISABLED_RATIO, 0.45f);
         int requestedInset = Math.round(contentWidth * clampedRatio);
         int maxInset = Math.max(0, (contentWidth - 20) / 2);
         return Math.min(requestedInset, maxInset);
@@ -2548,7 +2548,7 @@ public class GuideScreen extends GuiContainer
         if (referenceWidth <= 0 || actualWidth >= referenceWidth) {
             return 1.0f;
         }
-        return Math.max(0.35f, Math.min(1.0f, actualWidth / (float) referenceWidth));
+        return Math.clamp(actualWidth / (float) referenceWidth, 0.35f, 1.0f);
     }
 
     private int getVisualReferenceContentWidth() {
@@ -2556,7 +2556,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private int visualScalePermille(float visualScale) {
-        return Math.round(Math.max(0.1f, Math.min(1.0f, visualScale)) * 1000.0f);
+        return Math.round(Math.clamp(visualScale, 0.1f, 1.0f) * 1000.0f);
     }
 
     private LayoutContext createLayoutContext(int actualWidth, int referenceWidth) {
@@ -3023,7 +3023,7 @@ public class GuideScreen extends GuiContainer
         int divider = guideEditorDividerPercent;
         int leftPaneWidth = Math.round(editorAreaWidth * (divider / 100.0f));
         int maxLeft = Math.max(GUIDE_EDITOR_MIN_SPLIT_PANE_W, editorAreaWidth - GUIDE_EDITOR_MIN_SPLIT_PANE_W - 1);
-        return Math.max(GUIDE_EDITOR_MIN_SPLIT_PANE_W, Math.min(maxLeft, leftPaneWidth));
+        return Math.clamp(leftPaneWidth, GUIDE_EDITOR_MIN_SPLIT_PANE_W, maxLeft);
     }
 
     private void renderGuideEditorPreview(int x, int y, int width, int height) {
@@ -3371,7 +3371,7 @@ public class GuideScreen extends GuiContainer
         int dividerX = mouseX - contentX - guideEditorDividerGrabOffset;
         int minLeft = GUIDE_EDITOR_MIN_SPLIT_PANE_W;
         int maxLeft = Math.max(minLeft, editorWidth - GUIDE_EDITOR_MIN_SPLIT_PANE_W - 1);
-        int leftWidth = Math.max(minLeft, Math.min(maxLeft, dividerX));
+        int leftWidth = Math.clamp(dividerX, minLeft, maxLeft);
         guideEditorDividerPercent = Math.round(leftWidth * 100.0f / editorWidth);
     }
 
@@ -3478,7 +3478,7 @@ public class GuideScreen extends GuiContainer
             return;
         }
         float fraction = guideEditorTextArea.getVerticalScrollFraction();
-        guideEditorPreviewScrollY = Math.max(0, Math.min(maxScroll, Math.round(maxScroll * fraction)));
+        guideEditorPreviewScrollY = Math.clamp(Math.round(maxScroll * fraction), 0, maxScroll);
     }
 
     private void syncGuideEditorEditorScrollFromPreview() {
@@ -3623,7 +3623,7 @@ public class GuideScreen extends GuiContainer
         if (reservedSideWidth <= 0) {
             return panelW;
         }
-        int actualSideWidth = Math.max(0, Math.min(panelX, this.width - panelX - panelW));
+        int actualSideWidth = Math.clamp(this.width - panelX - panelW, 0, panelX);
         if (actualSideWidth >= reservedSideWidth) {
             return panelW;
         }
@@ -4495,7 +4495,7 @@ public class GuideScreen extends GuiContainer
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glColor4f(1f, 1f, 1f, Math.max(0f, Math.min(1f, BACKGROUND_ALPHA)));
+        GL11.glColor4f(1f, 1f, 1f, Math.clamp(BACKGROUND_ALPHA, 0f, 1f));
         final float tile = 16f;
         float uMax = this.width / tile;
         float vMax = this.height / tile;

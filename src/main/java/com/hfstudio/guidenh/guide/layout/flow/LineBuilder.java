@@ -201,7 +201,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         }
 
         iterateRuns(text, style, lastChar, (run, width, endLine) -> {
-            if (run.length() != 0) {
+            if (!run.isEmpty()) {
                 var el = new LineTextRun(run.toString(), style, hoverStyle);
                 el.flowContent = flowContent;
                 int w = Math.round(width);
@@ -308,7 +308,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                         .visitRun(lineBuffer.subSequence(0, precedingBreakOpportunity), widthAtBreakOpportunity, true);
                     curLineWidth -= widthAtBreakOpportunity;
                     lineBuffer.delete(0, precedingBreakOpportunity);
-                    if (lineBuffer.length() != 0 && Character.isWhitespace(lineBuffer.charAt(0))) {
+                    if (!lineBuffer.isEmpty() && Character.isWhitespace(lineBuffer.charAt(0))) {
                         var firstChar = lineBuffer.charAt(0);
                         lineBuffer.deleteCharAt(0);
                         curLineWidth -= context.getAdvance(firstChar, style);
@@ -331,7 +331,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
             lineBuffer.appendCodePoint(codePoint);
         }
 
-        if (lineBuffer.length() != 0) {
+        if (!lineBuffer.isEmpty()) {
             consumer.visitRun(lineBuffer, curLineWidth, false);
         }
     }

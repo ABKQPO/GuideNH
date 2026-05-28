@@ -102,7 +102,7 @@ public class MediaWikiPageIds {
                 previousDash = true;
             }
         }
-        if (builder.length() == 0) {
+        if (builder.isEmpty()) {
             builder.append("category");
         }
         builder.append("--")

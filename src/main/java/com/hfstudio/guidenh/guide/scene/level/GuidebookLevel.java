@@ -410,7 +410,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         int removedCount = 0;
         Integer[] snapshot = entityIds.toArray(new Integer[0]);
         for (Integer entityId : snapshot) {
-            if (entityId != null && removeEntityInternal(entityId.intValue(), true)) {
+            if (entityId != null && removeEntityInternal(entityId, true)) {
                 removedCount++;
             }
         }
@@ -446,7 +446,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         List<Entity> resolved = new ArrayList<>(entityIds.size());
         for (Integer entityId : entityIds) {
-            Entity entity = entityId != null ? entities.get(entityId.intValue()) : null;
+            Entity entity = entityId != null ? entities.get(entityId) : null;
             if (entity != null && !entity.isDead) {
                 resolved.add(entity);
             }
@@ -462,7 +462,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         Integer cachedEntityId = firstLiveSceneEntityIds.get(normalizedSceneEntityId);
         if (cachedEntityId != null) {
-            Entity cached = entities.get(cachedEntityId.intValue());
+            Entity cached = entities.get(cachedEntityId);
             if (cached != null && !cached.isDead) {
                 return cached;
             }
@@ -473,9 +473,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             return null;
         }
         for (Integer entityId : entityIds) {
-            Entity entity = entityId != null ? entities.get(entityId.intValue()) : null;
+            Entity entity = entityId != null ? entities.get(entityId) : null;
             if (entity != null && !entity.isDead) {
-                firstLiveSceneEntityIds.put(normalizedSceneEntityId, Integer.valueOf(entity.getEntityId()));
+                firstLiveSceneEntityIds.put(normalizedSceneEntityId, entity.getEntityId());
                 return entity;
             }
         }
@@ -831,7 +831,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         sceneEntityIds.computeIfAbsent(normalizedSceneEntityId, ignored -> new LinkedHashSet<>())
             .add(entityId);
         entitySceneIds.put(entityId, normalizedSceneEntityId);
-        firstLiveSceneEntityIds.putIfAbsent(normalizedSceneEntityId, Integer.valueOf(entityId));
+        firstLiveSceneEntityIds.putIfAbsent(normalizedSceneEntityId, entityId);
         applySceneEntityMount(normalizedSceneEntityId);
         LinkedHashSet<String> childIds = sceneEntityMountChildren.get(normalizedSceneEntityId);
         if (childIds != null && !childIds.isEmpty()) {
@@ -848,7 +848,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         entityIds.remove(entityId);
         Integer cachedEntityId = firstLiveSceneEntityIds.get(sceneEntityId);
-        if (cachedEntityId != null && cachedEntityId.intValue() == entityId) {
+        if (cachedEntityId != null && cachedEntityId == entityId) {
             firstLiveSceneEntityIds.remove(sceneEntityId);
         }
         if (entityIds.isEmpty()) {

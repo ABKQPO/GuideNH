@@ -262,10 +262,7 @@ public class GuidebookSceneParticle {
         if (progress <= 0f) {
             return 0f;
         }
-        if (progress >= 1f) {
-            return 1f;
-        }
-        return progress;
+        return Math.min(progress, 1f);
     }
 
     private void updateAnimatedTextureFrame(int currentAge) {
@@ -305,9 +302,6 @@ public class GuidebookSceneParticle {
         if (partialTicks <= 0f) {
             return 0f;
         }
-        if (partialTicks >= 1f) {
-            return 1f;
-        }
-        return partialTicks;
+        return Math.min(partialTicks, 1f);
     }
 }

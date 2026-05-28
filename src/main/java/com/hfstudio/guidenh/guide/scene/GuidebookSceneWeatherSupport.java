@@ -39,7 +39,7 @@ public class GuidebookSceneWeatherSupport {
     }
 
     public static int resolveTransitionTicks(int durationTicks) {
-        return Math.max(4, Math.min(durationTicks / 4, MIN_TRANSITION_TICKS));
+        return Math.clamp(durationTicks / 4, 4, MIN_TRANSITION_TICKS);
     }
 
     public static float resolveHalfWidth(GuidebookSceneWeatherType weatherType) {
@@ -74,8 +74,7 @@ public class GuidebookSceneWeatherSupport {
         return weatherType == GuidebookSceneWeatherType.SNOW ? SNOW_ALPHA_RADIUS_SCALE : RAIN_ALPHA_RADIUS_SCALE;
     }
 
-    @Nullable
-    public static int[] parseAxisValues(@Nullable String raw) {
+    public static int @Nullable [] parseAxisValues(@Nullable String raw) {
         if (raw == null) {
             return null;
         }
@@ -105,8 +104,8 @@ public class GuidebookSceneWeatherSupport {
         return trimmedValues;
     }
 
-    public static List<GuidebookSceneWeatherArea> resolveWeatherAreas(int[] bounds, @Nullable int[] xValues,
-        @Nullable int[] zValues) {
+    public static List<GuidebookSceneWeatherArea> resolveWeatherAreas(int[] bounds, int @Nullable [] xValues,
+        int @Nullable [] zValues) {
         int[] resolvedBounds = bounds != null && bounds.length >= 6 ? bounds : EMPTY_BOUNDS;
         if ((xValues == null || xValues.length <= 0) && (zValues == null || zValues.length <= 0)) {
             return buildFallbackWeatherAreas(resolvedBounds);
@@ -140,7 +139,7 @@ public class GuidebookSceneWeatherSupport {
             return List.of();
         }
         if (effects.size() == 1) {
-            GuidebookSceneWeatherEffect singleEffect = effects.get(0);
+            GuidebookSceneWeatherEffect singleEffect = effects.getFirst();
             if (singleEffect == null || activeTick != null && !singleEffect.isActiveAt(activeTick)) {
                 return List.of();
             }
@@ -278,8 +277,7 @@ public class GuidebookSceneWeatherSupport {
         return List.of(new GuidebookSceneWeatherArea(bounds[0], bounds[2], bounds[3], bounds[5]));
     }
 
-    @Nullable
-    private static int[] normalizeWeatherAxisValues(@Nullable int[] values, int minBound, int maxBound) {
+    private static int @Nullable [] normalizeWeatherAxisValues(int @Nullable [] values, int minBound, int maxBound) {
         if (values == null || values.length <= 0) {
             return null;
         }
@@ -290,7 +288,7 @@ public class GuidebookSceneWeatherSupport {
         return normalized;
     }
 
-    private static int resolveWeatherAxisPairCount(@Nullable int[] values) {
+    private static int resolveWeatherAxisPairCount(int @Nullable [] values) {
         if (values == null || values.length <= 0) {
             return 0;
         }
@@ -300,7 +298,7 @@ public class GuidebookSceneWeatherSupport {
         return values.length / 2;
     }
 
-    private static int resolveWeatherAreaPairCount(@Nullable int[] xValues, @Nullable int[] zValues) {
+    private static int resolveWeatherAreaPairCount(int @Nullable [] xValues, int @Nullable [] zValues) {
         int xPairs = resolveWeatherAxisPairCount(xValues);
         int zPairs = resolveWeatherAxisPairCount(zValues);
         boolean xBroadcast = xValues == null || xValues.length <= 1;
@@ -317,7 +315,7 @@ public class GuidebookSceneWeatherSupport {
         return Math.min(xPairs, zPairs);
     }
 
-    private static int resolveWeatherAxisEndpoint(@Nullable int[] values, int pairIndex, boolean first, int minBound,
+    private static int resolveWeatherAxisEndpoint(int @Nullable [] values, int pairIndex, boolean first, int minBound,
         int maxBound) {
         if (values == null || values.length <= 0) {
             return first ? minBound : maxBound;

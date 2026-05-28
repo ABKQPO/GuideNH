@@ -31,7 +31,7 @@ public class GuideTitleHeadings {
                 }
             };
             new PageIndexer(guide, guide.getExtensions(), page.getId()).indexContent(heading.children(), sink);
-            if (title.length() > 0) {
+            if (!title.isEmpty()) {
                 return title.toString();
             }
         }
