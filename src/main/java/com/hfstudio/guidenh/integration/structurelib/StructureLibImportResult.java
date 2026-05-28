@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -34,22 +32,17 @@ public class StructureLibImportResult {
 
     public static StructureLibImportResult success(List<PlacedBlock> blocks, List<String> warnings,
         @Nullable StructureLibSceneMetadata metadata) {
-        return new StructureLibImportResult(true, blocks, warnings, Collections.emptyList(), metadata);
+        return new StructureLibImportResult(true, blocks, warnings, List.of(), metadata);
     }
 
     public static StructureLibImportResult failure(String error) {
-        return failure(error, Collections.emptyList(), null);
+        return failure(error, List.of(), null);
     }
 
     public static StructureLibImportResult failure(String error, List<String> warnings,
         @Nullable StructureLibSceneMetadata metadata) {
         String normalized = normalizeMessage(error);
-        return new StructureLibImportResult(
-            false,
-            Collections.emptyList(),
-            warnings,
-            Collections.singletonList(normalized),
-            metadata);
+        return new StructureLibImportResult(false, List.of(), warnings, List.of(normalized), metadata);
     }
 
     public boolean isSuccess() {
@@ -79,9 +72,9 @@ public class StructureLibImportResult {
 
     public static <T> List<T> immutableCopy(@Nullable List<T> source) {
         if (source == null || source.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
-        return Collections.unmodifiableList(new ArrayList<>(source));
+        return List.copyOf(source);
     }
 
     public static String normalizeMessage(@Nullable String message) {

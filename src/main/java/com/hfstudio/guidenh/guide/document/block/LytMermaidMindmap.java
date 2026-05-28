@@ -19,15 +19,13 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
     private final LytMermaidMindmapCanvas canvas;
 
     public LytMermaidMindmap(MermaidMindmapDocument mindmap, String sourceText) {
-        this(mindmap, sourceText, Collections.<String, LytBlock>emptyMap());
+        this(mindmap, sourceText, Collections.emptyMap());
     }
 
     public LytMermaidMindmap(MermaidMindmapDocument mindmap, String sourceText, Map<String, LytBlock> nodeContent) {
         this.mindmap = mindmap;
         this.sourceText = sourceText != null ? sourceText : "";
-        this.canvas = new LytMermaidMindmapCanvas(
-            mindmap,
-            nodeContent != null ? nodeContent : Collections.<String, LytBlock>emptyMap());
+        this.canvas = new LytMermaidMindmapCanvas(mindmap, nodeContent != null ? nodeContent : Collections.emptyMap());
 
         setPadding(6);
         setGap(4);

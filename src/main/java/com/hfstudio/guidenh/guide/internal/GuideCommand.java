@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.command.CommandBase;
@@ -27,7 +26,7 @@ public class GuideCommand extends CommandBase {
 
     @Override
     public List<String> getCommandAliases() {
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override
@@ -117,7 +116,7 @@ public class GuideCommand extends CommandBase {
             }
             return getListOfStringsMatchingLastWord(args, ids.toArray(new String[0]));
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override

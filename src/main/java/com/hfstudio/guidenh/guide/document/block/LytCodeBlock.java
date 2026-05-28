@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -655,7 +654,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     private static Set<String> kwSet(String... words) {
-        return new HashSet<>(Arrays.asList(words));
+        return new HashSet<>(List.of(words));
     }
 
     private static String[] buildAsciiStrings() {

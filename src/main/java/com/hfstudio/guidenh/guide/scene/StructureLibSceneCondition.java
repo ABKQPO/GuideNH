@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +78,7 @@ public class StructureLibSceneCondition {
     private static Map<String, StructureLibValueCondition> parseChannelConditions(@Nullable String expression) {
         if (expression == null || expression.trim()
             .isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         LinkedHashMap<String, List<String>> clausesByChannel = new LinkedHashMap<>();
         String currentChannel = null;
@@ -113,7 +112,7 @@ public class StructureLibSceneCondition {
         }
 
         if (clausesByChannel.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
 
         LinkedHashMap<String, StructureLibValueCondition> parsed = new LinkedHashMap<>(clausesByChannel.size());
@@ -123,7 +122,7 @@ public class StructureLibSceneCondition {
                 parsed.put(entry.getKey(), condition);
             }
         }
-        return parsed.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(parsed);
+        return parsed.isEmpty() ? Map.of() : Map.copyOf(parsed);
     }
 
     @Nullable
@@ -138,7 +137,7 @@ public class StructureLibSceneCondition {
     private static Map<String, StructureLibValueCondition> immutableChannelConditions(
         @Nullable Map<String, StructureLibValueCondition> channelConditions) {
         if (channelConditions == null || channelConditions.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         LinkedHashMap<String, StructureLibValueCondition> copied = new LinkedHashMap<>(channelConditions.size());
         for (Map.Entry<String, StructureLibValueCondition> entry : channelConditions.entrySet()) {
@@ -148,6 +147,6 @@ public class StructureLibSceneCondition {
                 copied.put(channelId, condition);
             }
         }
-        return copied.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(copied);
+        return copied.isEmpty() ? Map.of() : Map.copyOf(copied);
     }
 }

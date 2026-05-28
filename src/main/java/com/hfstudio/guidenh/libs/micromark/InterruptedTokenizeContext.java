@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * A context object that helps w/ tokenizing markdown constructs.
  */
-class InterruptedTokenizeContext implements TokenizeContext {
+public class InterruptedTokenizeContext implements TokenizeContext {
 
     private final TokenizeContext parent;
 

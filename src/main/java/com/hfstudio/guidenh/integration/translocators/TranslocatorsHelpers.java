@@ -8,7 +8,7 @@ import codechicken.translocator.TileTranslocator;
 import codechicken.translocator.TileTranslocator.Attachment;
 import cpw.mods.fml.common.Optional;
 
-public final class TranslocatorsHelpers {
+public class TranslocatorsHelpers {
 
     @Optional.Method(modid = "Translocator")
     public static void prepare(GuidebookLevel level) {

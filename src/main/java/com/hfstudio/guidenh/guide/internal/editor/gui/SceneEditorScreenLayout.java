@@ -58,22 +58,22 @@ public class SceneEditorScreenLayout {
         LytRect previewRender = new LytRect(0, 0, safeWidth, safeHeight);
         LytRect previewInteraction = new LytRect(
             leftPanel.right(),
-            Math.min(safeHeight, TOOLBAR_SAFE_BOTTOM),
+            TOOLBAR_SAFE_BOTTOM,
             Math.max(0, rightPanel.x() - leftPanel.right()),
-            Math.max(0, safeHeight - Math.min(safeHeight, TOOLBAR_SAFE_BOTTOM)));
+            Math.max(0, safeHeight - TOOLBAR_SAFE_BOTTOM));
 
         int toggleY = Math.max(0, safeHeight / 2 - MARKDOWN_TOGGLE_HEIGHT / 2);
         LytRect markdownToggle = new LytRect(
             Math.max(0, leftPanel.right() - 1),
             toggleY,
             MARKDOWN_TOGGLE_WIDTH,
-            Math.min(MARKDOWN_TOGGLE_HEIGHT, safeHeight));
+            MARKDOWN_TOGGLE_HEIGHT);
 
         LytRect rightToggle = new LytRect(
             Math.max(0, rightPanel.x() - MARKDOWN_TOGGLE_WIDTH + 1),
             toggleY,
             MARKDOWN_TOGGLE_WIDTH,
-            Math.min(MARKDOWN_TOGGLE_HEIGHT, safeHeight));
+            MARKDOWN_TOGGLE_HEIGHT);
 
         LytRect markdownFooter = markdownExpanded
             ? new LytRect(
@@ -94,9 +94,9 @@ public class SceneEditorScreenLayout {
         LytRect markdownResizeHandle = markdownExpanded
             ? new LytRect(
                 Math.max(0, leftPanel.right() - MARKDOWN_RESIZE_HANDLE_WIDTH / 2),
-                Math.min(safeHeight, TOOLBAR_SAFE_BOTTOM),
+                TOOLBAR_SAFE_BOTTOM,
                 MARKDOWN_RESIZE_HANDLE_WIDTH,
-                Math.max(0, safeHeight - Math.min(safeHeight, TOOLBAR_SAFE_BOTTOM)))
+                Math.max(0, safeHeight - TOOLBAR_SAFE_BOTTOM))
             : LytRect.empty();
 
         LytRect rightContent = new LytRect(
@@ -122,7 +122,7 @@ public class SceneEditorScreenLayout {
         if (value < minValue) {
             return minValue;
         }
-        return value > maxValue ? maxValue : value;
+        return Math.min(value, maxValue);
     }
 
     @Desugar

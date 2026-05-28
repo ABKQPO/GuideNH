@@ -232,7 +232,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         }
         if (exportedScene.gridButtonEnabled()) {
             html.append(" data-scene-grid-toggle=\"true\" data-scene-grid-visible=\"")
-                .append(Boolean.toString(exportedScene.gridVisible()))
+                .append(exportedScene.gridVisible())
                 .append("\"");
             if (exportedScene.gridAnnotationJson() != null && !exportedScene.gridAnnotationJson()
                 .isEmpty()) {
@@ -243,7 +243,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         }
         if (exportedScene.blockStatsButtonEnabled()) {
             html.append(" data-scene-block-stats-toggle=\"true\" data-scene-block-stats-visible=\"")
-                .append(Boolean.toString(exportedScene.blockStatsVisible()))
+                .append(exportedScene.blockStatsVisible())
                 .append("\"");
         }
     }
@@ -322,7 +322,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             .append("\" data-scene-height=\"")
             .append(normalizedHeight)
             .append("\" data-scene-interactive=\"")
-            .append(Boolean.toString(interactive))
+            .append(interactive)
             .append("\" data-scene-default-namespace=\"")
             .append(escapeAttributeStatic(defaultNamespace != null ? defaultNamespace : "guidenh"))
             .append("\" data-scene-display-scale=\"")
@@ -461,8 +461,8 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
 
             if ("LineAnnotation".equals(name)) {
                 List<float[]> points = parseLinePoints(flowElement);
-                float[] from = points.get(0);
-                float[] to = points.get(points.size() - 1);
+                float[] from = points.getFirst();
+                float[] to = points.getLast();
                 inWorld.add(
                     buildInWorldAnnotation(
                         "line",
@@ -475,7 +475,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                         createTemplateId(flowElement, defaultNamespace, currentPageId, templates),
                         readBooleanValue(flowElement, "alwaysOnTop", false),
                         parseStructureLibCondition(flowElement)));
-                Map<String, Object> data = inWorld.get(inWorld.size() - 1);
+                Map<String, Object> data = inWorld.getLast();
                 data.put("points", points);
                 String arrow = readOptional(flowElement, "arrow");
                 if (arrow != null && !arrow.isEmpty()) {
@@ -625,7 +625,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         StringBuilder builder = new StringBuilder();
         for (MdAstAnyContent child : flowElement.children()) {
             if (child instanceof MdAstNode node) {
-                if (builder.length() > 0) {
+                if (!builder.isEmpty()) {
                     builder.append('\n');
                 }
                 builder.append(node.toText());

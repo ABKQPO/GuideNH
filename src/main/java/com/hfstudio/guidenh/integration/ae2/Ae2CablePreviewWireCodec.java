@@ -6,7 +6,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 /** Binary wire for {@link Ae2CablePreviewSnapshot} (shared by SNBT Base64, MP batch side-car, and preview store). */
-public final class Ae2CablePreviewWireCodec {
+public class Ae2CablePreviewWireCodec {
 
     public static final int WIRE_V1 = 1;
 
@@ -29,7 +29,7 @@ public final class Ae2CablePreviewWireCodec {
         return out;
     }
 
-    public static Ae2CablePreviewSnapshot decode(@Nullable byte[] payload) {
+    public static Ae2CablePreviewSnapshot decode(byte @Nullable [] payload) {
         if (payload == null || payload.length == 0) {
             return Ae2CablePreviewSnapshot.EMPTY;
         }

@@ -11,14 +11,14 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
-public final class MarkdownListSemantics {
+public class MarkdownListSemantics {
 
     private static final Pattern TASK_PATTERN = Pattern.compile("^\\[( |x|X)]\\s+(.*)$");
 
     private MarkdownListSemantics() {}
 
     public static @Nullable TaskMarker extractTaskMarker(List<? extends MdAstAnyContent> children) {
-        if (children.size() != 1 || !(children.get(0) instanceof MdAstParagraph paragraph)) {
+        if (children.size() != 1 || !(children.getFirst() instanceof MdAstParagraph paragraph)) {
             return null;
         }
         if (paragraph.children()
@@ -26,7 +26,7 @@ public final class MarkdownListSemantics {
             return null;
         }
         if (!(paragraph.children()
-            .get(0) instanceof MdAstText text)) {
+            .getFirst() instanceof MdAstText text)) {
             return null;
         }
 

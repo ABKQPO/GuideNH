@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
@@ -50,11 +51,10 @@ public class GuideSiteSoundExport {
             return "";
         }
         ResourceLocation assetId = resolveSoundAsset(sound, attributes, currentPageId);
-        return assetId != null ? assetExporter.exportSound(assetId) : "";
+        return assetExporter.exportSound(assetId);
     }
 
-    @Nullable
-    public static ResourceLocation resolveSoundAsset(GuideSoundSpec sound, MdxSoundAttributes attributes,
+    public static @NotNull ResourceLocation resolveSoundAsset(GuideSoundSpec sound, MdxSoundAttributes attributes,
         @Nullable ResourceLocation currentPageId) {
         String rawSource = attributes.source();
         if (hasText(rawSource) && currentPageId != null) {

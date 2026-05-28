@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -59,7 +58,7 @@ public class GuideResourceLanguageIndex {
                     activeResourcePacks.size(),
                     totalNs);
         }
-        return merged.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(merged);
+        return merged.isEmpty() ? Map.of() : Map.copyOf(merged);
     }
 
     private static void loadResourcePackLanguage(IResourcePack resourcePack, String normalizedLanguage,

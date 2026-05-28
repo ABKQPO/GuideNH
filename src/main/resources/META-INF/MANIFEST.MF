@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+FMLCorePluginContainsFMLMod: true
+FMLAT: guidenh_at.cfg
+FMLCorePlugin: com.hfstudio.guidenh.coremod.GuideNHCoreMod

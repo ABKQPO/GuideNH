@@ -62,10 +62,9 @@ public class ItemPreviewCacheKey {
         if (this == other) {
             return true;
         }
-        if (!(other instanceof ItemPreviewCacheKey)) {
+        if (!(other instanceof ItemPreviewCacheKey that)) {
             return false;
         }
-        ItemPreviewCacheKey that = (ItemPreviewCacheKey) other;
         return meta == that.meta && count == that.count
             && Objects.equals(capability, that.capability)
             && Objects.equals(id, that.id)

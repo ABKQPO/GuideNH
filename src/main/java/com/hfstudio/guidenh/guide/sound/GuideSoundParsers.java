@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.guide.sound;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -227,10 +227,6 @@ public class GuideSoundParsers {
     }
 
     private static String decode(String value) {
-        try {
-            return URLDecoder.decode(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            return value;
-        }
+        return URLDecoder.decode(value, StandardCharsets.UTF_8);
     }
 }

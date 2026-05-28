@@ -14,7 +14,7 @@ import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 
-public final class GuidePage {
+public class GuidePage {
 
     private final String sourcePack;
     private final ResourceLocation id;

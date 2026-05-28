@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.integration.nei;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -76,7 +74,7 @@ public class NeiRecipeLookup {
     }
 
     /** NEI crafting recipe tied to {@code handler} index for Phase1/OpenGL snapshots; mirrors {@link #Entry}. */
-    public static final class CraftingRecipeRef {
+    public static class CraftingRecipeRef {
 
         public final Object handler;
         public final int recipeIndex;
@@ -90,7 +88,7 @@ public class NeiRecipeLookup {
     }
 
     public static List<CraftingRecipeRef> findCraftingRecipeRefs(ItemStack target) {
-        if (!AVAILABLE || target == null) return Collections.emptyList();
+        if (!AVAILABLE || target == null) return List.of();
         try {
             List<Object> handlers = NeiDirectCalls.getCraftingHandlers(target);
             List<CraftingRecipeRef> out = new ArrayList<>();
@@ -98,14 +96,14 @@ public class NeiRecipeLookup {
                 if (handler == null) continue;
                 CraftingRecipeRef[] refs = readHandlerCraftingRecipeRefs(handler);
                 if (refs != null && refs.length > 0) {
-                    out.addAll(Arrays.asList(refs));
+                    out.addAll(List.of(refs));
                 }
             }
             return out;
         } catch (Throwable t) {
             FMLLog.getLogger()
                 .warn("[GuideNH] [NeiRecipeLookup] NEI crafting refs query failed", t);
-            return Collections.emptyList();
+            return List.of();
         }
     }
 
@@ -119,13 +117,13 @@ public class NeiRecipeLookup {
     }
 
     public static List<Entry> findUsages(ItemStack target) {
-        if (!AVAILABLE || target == null) return Collections.emptyList();
+        if (!AVAILABLE || target == null) return List.of();
         try {
             return processHandlers(NeiDirectCalls.getUsageHandlers(target));
         } catch (Throwable t) {
             FMLLog.getLogger()
                 .warn("[GuideNH] [NeiRecipeLookup] NEI usage query failed", t);
-            return Collections.emptyList();
+            return List.of();
         }
     }
 
@@ -134,13 +132,13 @@ public class NeiRecipeLookup {
      * {@link #lookupNumRecipes(Object)} before iterating recipe indices.
      */
     public static List<Object> queryRawCraftingHandlers(ItemStack target) {
-        if (!AVAILABLE || target == null) return Collections.emptyList();
+        if (!AVAILABLE || target == null) return List.of();
         try {
             return NeiDirectCalls.getCraftingHandlers(target);
         } catch (Throwable t) {
             FMLLog.getLogger()
                 .warn("[GuideNH] [NeiRecipeLookup] queryRawCraftingHandlers failed", t);
-            return Collections.emptyList();
+            return List.of();
         }
     }
 
@@ -149,13 +147,13 @@ public class NeiRecipeLookup {
      * that consume {@code target} as an input (anvil / fuel / brewing ingredient).
      */
     public static List<Object> queryRawUsageHandlers(ItemStack target) {
-        if (!AVAILABLE || target == null) return Collections.emptyList();
+        if (!AVAILABLE || target == null) return List.of();
         try {
             return NeiDirectCalls.getUsageHandlers(target);
         } catch (Throwable t) {
             FMLLog.getLogger()
                 .warn("[GuideNH] [NeiRecipeLookup] queryRawUsageHandlers failed", t);
-            return Collections.emptyList();
+            return List.of();
         }
     }
 
@@ -243,20 +241,20 @@ public class NeiRecipeLookup {
     }
 
     public static List<Slot> readIngredientSlots(Object handler, int recipeIndex) {
-        if (!AVAILABLE || handler == null) return Collections.emptyList();
+        if (!AVAILABLE || handler == null) return List.of();
         try {
             return readSlotList(NeiDirectCalls.ingredientStacks(handler, recipeIndex));
         } catch (Throwable t) {
-            return Collections.emptyList();
+            return List.of();
         }
     }
 
     public static List<Slot> readOtherSlots(Object handler, int recipeIndex) {
-        if (!AVAILABLE || handler == null) return Collections.emptyList();
+        if (!AVAILABLE || handler == null) return List.of();
         try {
             return readSlotList(NeiDirectCalls.otherStacks(handler, recipeIndex));
         } catch (Throwable t) {
-            return Collections.emptyList();
+            return List.of();
         }
     }
 
@@ -400,7 +398,7 @@ public class NeiRecipeLookup {
     }
 
     public static List<Slot> readSlotList(Object obj) {
-        if (!(obj instanceof List)) return Collections.emptyList();
+        if (!(obj instanceof List)) return List.of();
         List<Slot> out = new ArrayList<>();
         for (Object ps : (List<?>) obj) {
             Slot s = readSlot(ps);
@@ -441,7 +439,7 @@ public class NeiRecipeLookup {
         for (Object handler : handlers) {
             if (handler == null) continue;
             Entry[] entries = readHandler(handler);
-            if (entries != null) out.addAll(Arrays.asList(entries));
+            if (entries != null) out.addAll(List.of(entries));
         }
         return out;
     }

@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.Item;
@@ -32,7 +30,7 @@ public class RecipeLookup {
     }
 
     public static List<Entry> findByOutput(Item target) {
-        if (target == null) return Collections.emptyList();
+        if (target == null) return List.of();
         List<Entry> out = new ArrayList<>();
         List<IRecipe> list = CraftingManager.getInstance()
             .getRecipeList();
@@ -143,6 +141,6 @@ public class RecipeLookup {
     }
 
     public static List<ItemStack> asList(Entry e) {
-        return Arrays.asList(e.input3x3);
+        return List.of(e.input3x3);
     }
 }

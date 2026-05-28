@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.indices;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +40,7 @@ public class OreIndex extends UniqueIndex<String, PageAnchor> {
      * for stacks registered with wildcard meta, matching the two-step lookup used by
      * {@link ItemIndex#findByItem}.
      */
-    private Map<ItemId, PageAnchor> itemCache = Collections.emptyMap();
+    private Map<ItemId, PageAnchor> itemCache = Map.of();
 
     public OreIndex() {
         super(
@@ -113,13 +112,13 @@ public class OreIndex extends UniqueIndex<String, PageAnchor> {
             .additionalProperties()
             .get("ore_ids");
         if (oreIdsNode == null) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         if (!(oreIdsNode instanceof List<?>oreIdList)) {
             FMLLog.getLogger()
                 .warn("[GuideNH] [OreIndex] Page {} contains malformed ore_ids frontmatter", page.getId());
-            return Collections.emptyList();
+            return List.of();
         }
 
         var oreAnchors = new ArrayList<Pair<String, PageAnchor>>(oreIdList.size());

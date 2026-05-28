@@ -239,8 +239,7 @@ public class DataDrivenGuideLoader {
     }
 
     public static List<IResourcePack> getActiveResourcePacks() {
-        var resourcePacks = new LinkedHashSet<IResourcePack>();
-        resourcePacks.addAll(GuideDevelopmentResourcePacks.getConfiguredPacks());
+        var resourcePacks = new LinkedHashSet<IResourcePack>(GuideDevelopmentResourcePacks.getConfiguredPacks());
 
         try {
             var accessor = (AccessorFMLClientHandler) FMLClientHandler.instance();
@@ -500,13 +499,12 @@ public class DataDrivenGuideLoader {
         }
 
         for (var child : children) {
+            String childPath = relativePath.isEmpty() ? child.getName() : relativePath + "/" + child.getName();
             if (child.isDirectory()) {
-                var childRelative = relativePath.isEmpty() ? child.getName() : relativePath + "/" + child.getName();
-                collectMarkdownPaths(child, childRelative, pagePaths);
+                collectMarkdownPaths(child, childPath, pagePaths);
             } else if (child.isFile() && child.getName()
                 .endsWith(".md")) {
-                    var pagePath = relativePath.isEmpty() ? child.getName() : relativePath + "/" + child.getName();
-                    pagePaths.add(pagePath);
+                    pagePaths.add(childPath);
                 }
         }
     }

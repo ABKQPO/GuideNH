@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -55,7 +54,7 @@ public class StructureLibHatchDescriptionLine {
     }
 
     public static synchronized Map<String, Kind> kinds() {
-        return Collections.unmodifiableMap(new LinkedHashMap<>(KINDS));
+        return Map.copyOf(new LinkedHashMap<>(KINDS));
     }
 
     public Kind getKind() {

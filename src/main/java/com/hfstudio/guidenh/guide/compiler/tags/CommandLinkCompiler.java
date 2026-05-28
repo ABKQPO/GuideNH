@@ -35,8 +35,6 @@ public class CommandLinkCompiler extends FlowTagCompiler {
             parent.appendError(compiler, "command must start with /", el);
             return;
         }
-        var sendCommand = command;
-        var closeGuide = MdxAttrs.getBoolean(compiler, parent, el, "close", false);
         var title = el.getAttributeString("title", "");
         var link = new LytFlowLink();
         link.setTooltip(buildTooltip(title, command));
@@ -47,9 +45,9 @@ public class CommandLinkCompiler extends FlowTagCompiler {
             if (mc.thePlayer != null) {
                 if (ModConfig.debug.enableDebugMode) {
                     FMLLog.getLogger()
-                        .info("[GuideNH] [CommandLinkCompiler] Sending command from page {}: {}", pageId, sendCommand);
+                        .info("[GuideNH] [CommandLinkCompiler] Sending command from page {}: {}", pageId, command);
                 }
-                mc.thePlayer.sendChatMessage(sendCommand);
+                mc.thePlayer.sendChatMessage(command);
             }
         });
 

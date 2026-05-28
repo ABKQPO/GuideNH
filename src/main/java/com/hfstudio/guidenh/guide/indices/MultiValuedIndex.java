@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.indices;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,7 +50,7 @@ public class MultiValuedIndex<K, V> implements PageIndex {
             }
             return result;
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override

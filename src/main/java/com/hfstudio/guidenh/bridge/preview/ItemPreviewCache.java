@@ -10,7 +10,7 @@ public class ItemPreviewCache {
 
     public ItemPreviewCache(int maxEntries) {
         this.maxEntries = Math.max(1, maxEntries);
-        this.cache = new LinkedHashMap<ItemPreviewCacheKey, ItemPreviewPayload>(16, 0.75f, true) {
+        this.cache = new LinkedHashMap<>(16, 0.75f, true) {
 
             @Override
             protected boolean removeEldestEntry(Map.Entry<ItemPreviewCacheKey, ItemPreviewPayload> eldest) {

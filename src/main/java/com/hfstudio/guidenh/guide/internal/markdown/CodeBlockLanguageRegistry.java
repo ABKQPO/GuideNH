@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -38,11 +36,12 @@ public class CodeBlockLanguageRegistry {
         register(result, new CodeBlockLanguage("markdown", "Markdown"), "markdown", "md");
         register(result, new CodeBlockLanguage("csv", "CSV"), "csv");
         register(result, new CodeBlockLanguage("mermaid", "Mermaid"), "mermaid");
-        return Collections.unmodifiableMap(result);
+        return Map.copyOf(result);
     }
 
     private static void register(Map<String, CodeBlockLanguage> result, CodeBlockLanguage language, String... aliases) {
-        Arrays.stream(aliases)
-            .forEach(alias -> result.put(alias, language));
+        for (String alias : aliases) {
+            result.put(alias, language);
+        }
     }
 }

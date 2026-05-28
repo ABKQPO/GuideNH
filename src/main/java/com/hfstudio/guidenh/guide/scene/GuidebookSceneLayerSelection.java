@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.scene;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -26,7 +25,7 @@ public class GuidebookSceneLayerSelection {
     }
 
     public static GuidebookSceneLayerSelection all() {
-        return new GuidebookSceneLayerSelection(Mode.ALL, Collections.emptySet(), null);
+        return new GuidebookSceneLayerSelection(Mode.ALL, Set.of(), null);
     }
 
     public static GuidebookSceneLayerSelection filtered(Set<Integer> visibleLayers) {
@@ -34,7 +33,7 @@ public class GuidebookSceneLayerSelection {
     }
 
     public static GuidebookSceneLayerSelection eachLayer(int layer) {
-        return new GuidebookSceneLayerSelection(Mode.EACH, Collections.singleton(layer), layer);
+        return new GuidebookSceneLayerSelection(Mode.EACH, Set.of(layer), layer);
     }
 
     public static GuidebookSceneLayerSelection fromVisibleLayer(@Nullable Integer visibleLayerY) {
@@ -64,8 +63,8 @@ public class GuidebookSceneLayerSelection {
 
     private static Set<Integer> immutableCopy(Set<Integer> source) {
         if (source == null || source.isEmpty()) {
-            return Collections.emptySet();
+            return Set.of();
         }
-        return Collections.unmodifiableSet(new LinkedHashSet<>(source));
+        return Set.copyOf(new LinkedHashSet<>(source));
     }
 }

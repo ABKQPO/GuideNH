@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.command.ICommandSender;
@@ -174,12 +173,12 @@ public class StructureLibExportRunner {
     private List<StructureLibExportTaskSpec> planController(StructureLibControllerSpec controller,
         StructureLibExportOptions options) throws Exception {
         try {
-            return planner.plan(Collections.singletonList(controller), options);
+            return planner.plan(List.of(controller), options);
         } catch (Exception e) {
             if (options.getController() != null) {
                 throw e;
             }
-            return Collections.emptyList();
+            return List.of();
         }
     }
 

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.ponder;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -20,7 +19,7 @@ public class PonderSceneData {
     }
 
     public List<PonderKeyframe> getKeyframes() {
-        return keyframes != null ? keyframes : Collections.emptyList();
+        return keyframes != null ? keyframes : List.of();
     }
 
     public int getKeyframeCount() {

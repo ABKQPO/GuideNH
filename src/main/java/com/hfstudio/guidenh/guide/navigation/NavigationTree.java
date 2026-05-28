@@ -40,9 +40,9 @@ public class NavigationTree {
     }
 
     public NavigationTree() {
-        this.nodeIndex = Collections.emptyMap();
-        this.parentIndex = Collections.emptyMap();
-        this.rootNodes = Collections.emptyList();
+        this.nodeIndex = Map.of();
+        this.parentIndex = Map.of();
+        this.rootNodes = List.of();
     }
 
     public List<NavigationNode> getRootNodes() {
@@ -134,10 +134,7 @@ public class NavigationTree {
         // Sort root nodes
         rootNodes.sort(NODE_COMPARATOR);
 
-        return new NavigationTree(
-            Collections.unmodifiableMap(new HashMap<>(nodeIndex)),
-            Collections.unmodifiableMap(new HashMap<>(parentIndex)),
-            Collections.unmodifiableList(new ArrayList<>(rootNodes)));
+        return new NavigationTree(Map.copyOf(nodeIndex), Map.copyOf(parentIndex), List.copyOf(rootNodes));
     }
 
     public static NavigationTree buildMerged(Collection<MutableGuide> guides) {
@@ -196,10 +193,7 @@ public class NavigationTree {
         }
 
         rootNodes.sort(NODE_COMPARATOR);
-        return new NavigationTree(
-            Collections.unmodifiableMap(new HashMap<>(nodeIndex)),
-            Collections.unmodifiableMap(new HashMap<>(parentIndex)),
-            Collections.unmodifiableList(new ArrayList<>(rootNodes)));
+        return new NavigationTree(Map.copyOf(nodeIndex), Map.copyOf(parentIndex), List.copyOf(rootNodes));
     }
 
     public static NavigationTree buildMergedPages(
@@ -258,10 +252,7 @@ public class NavigationTree {
         }
 
         rootNodes.sort(NODE_COMPARATOR);
-        return new NavigationTree(
-            Collections.unmodifiableMap(new HashMap<>(nodeIndex)),
-            Collections.unmodifiableMap(new HashMap<>(parentIndex)),
-            Collections.unmodifiableList(new ArrayList<>(rootNodes)));
+        return new NavigationTree(Map.copyOf(nodeIndex), Map.copyOf(parentIndex), List.copyOf(rootNodes));
     }
 
     @Nullable

@@ -4,12 +4,11 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.util.ResourceLocation;
 
-public final class GuideDevelopmentResourcePacks {
+public class GuideDevelopmentResourcePacks {
 
     private static final List<GuideDevelopmentResourcePack> CONFIGURED_PACKS = loadConfiguredPacks();
 
@@ -44,7 +43,7 @@ public final class GuideDevelopmentResourcePacks {
                 packs.add(new GuideDevelopmentResourcePack(root));
             }
         }
-        return Collections.unmodifiableList(packs);
+        return List.copyOf(packs);
     }
 
     private static List<Path> parseConfiguredRoots() {

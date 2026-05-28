@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.integration.structurelib;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -33,7 +32,7 @@ public class StructureLibElementTooltipResolver {
     public static final int MAX_TIER_SCAN = 50;
     public static final int MAX_CANDIDATE_CACHE_ENTRIES = 512;
     public static final String LAZY_ELEMENT_CLASS_NAME = "com.gtnewhorizon.structurelib.structure.LazyStructureElement";
-    public static final IItemSource EMPTY_ITEM_SOURCE = (predicate, simulate, count) -> Collections.emptyMap();
+    public static final IItemSource EMPTY_ITEM_SOURCE = (predicate, simulate, count) -> Map.of();
     public static final Map<Class<?>, List<Field>> CAPTURED_ELEMENT_FIELDS_CACHE = new ConcurrentHashMap<>();
     public static final StructureLibBoundedCache<CandidateCacheKey, List<ItemStack>> BLOCK_CANDIDATE_CACHE = new StructureLibBoundedCache<>(
         MAX_CANDIDATE_CACHE_ENTRIES);
@@ -97,13 +96,13 @@ public class StructureLibElementTooltipResolver {
                 trigger,
                 actor,
                 contextFingerprint)
-            : Collections.emptyList();
+            : List.of();
         if (hatchLeafMatch != null && !blockCandidates.isEmpty()) {
             blockCandidates = filterOutHatchCandidates(blockCandidates);
         }
         List<StructureLibHatchDescriptionLine> hatchDescriptionLines = hatchLeafMatch != null
             ? buildHatchDescriptionLines(hatchLeafMatch.details)
-            : Collections.emptyList();
+            : List.of();
         return new TooltipDetails(blockCandidates, hatchDescriptionLines, hatchCandidates);
     }
 
@@ -311,7 +310,7 @@ public class StructureLibElementTooltipResolver {
 
     private List<ItemStack> filterOutHatchCandidates(List<ItemStack> candidates) {
         if (candidates.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         List<ItemStack> filtered = new ArrayList<>(candidates.size());
         for (ItemStack candidate : candidates) {
@@ -319,7 +318,7 @@ public class StructureLibElementTooltipResolver {
                 filtered.add(candidate.copy());
             }
         }
-        return filtered.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(filtered);
+        return filtered.isEmpty() ? List.of() : List.copyOf(filtered);
     }
 
     private List<StructureLibHatchDescriptionLine> buildHatchDescriptionLines(HatchDetails details) {
@@ -332,7 +331,7 @@ public class StructureLibElementTooltipResolver {
             .isEmpty()) {
             lines.add(StructureLibHatchDescriptionLine.validHatches(normalizeHatchHintText(details.getHintText())));
         }
-        return lines.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(lines);
+        return lines.isEmpty() ? List.of() : List.copyOf(lines);
     }
 
     public static String normalizeHatchHintText(String hintText) {
@@ -354,7 +353,7 @@ public class StructureLibElementTooltipResolver {
 
     public static List<ItemStack> normalizeStacks(Iterable<ItemStack> stacks) {
         if (stacks == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         List<ItemStack> normalized = new ArrayList<>();
         for (ItemStack stack : stacks) {
@@ -401,14 +400,14 @@ public class StructureLibElementTooltipResolver {
             fields.add(field);
         }
         fields.sort(Comparator.comparing(Field::getName));
-        return fields.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(fields);
+        return fields.isEmpty() ? List.of() : List.copyOf(fields);
     }
 
     public static List<ItemStack> immutableStacks(Map<String, ItemStack> candidatesByKey) {
         if (candidatesByKey.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
-        return Collections.unmodifiableList(new ArrayList<>(candidatesByKey.values()));
+        return List.copyOf(candidatesByKey.values());
     }
 
     @SuppressWarnings("unchecked")
@@ -451,10 +450,7 @@ public class StructureLibElementTooltipResolver {
 
     public static class TooltipDetails {
 
-        public static final TooltipDetails EMPTY = new TooltipDetails(
-            Collections.emptyList(),
-            Collections.emptyList(),
-            Collections.emptyList());
+        public static final TooltipDetails EMPTY = new TooltipDetails(List.of(), List.of(), List.of());
 
         private final List<ItemStack> blockCandidates;
         private final List<StructureLibHatchDescriptionLine> hatchDescriptionLines;
@@ -583,7 +579,7 @@ public class StructureLibElementTooltipResolver {
             @Override
             public List<ItemStack> enumerateHatchCandidates(Object constructable, IStructureElement<Object> element,
                 World world, int x, int y, int z, ItemStack trigger, AutoPlaceEnvironment environment) {
-                return Collections.emptyList();
+                return List.of();
             }
 
             @Override
@@ -614,19 +610,19 @@ public class StructureLibElementTooltipResolver {
             IStructureElement.BlocksToPlace blocksToPlace = element
                 .getBlocksToPlace(constructable, world, x, y, z, trigger, environment);
             if (blocksToPlace == null) {
-                return Collections.emptyList();
+                return List.of();
             }
             Predicate<ItemStack> predicate = blocksToPlace.getPredicate();
             if (predicate == null) {
-                return Collections.emptyList();
+                return List.of();
             }
             Object[] metaTileArray = GregTechHelpers.getMetaTileEntities();
             if (metaTileArray == null) {
-                return Collections.emptyList();
+                return List.of();
             }
             Block blockMachines = GregTechHelpers.getBlockMachines();
             if (blockMachines == null) {
-                return Collections.emptyList();
+                return List.of();
             }
             List<ItemStack> candidates = new ArrayList<>();
             for (int meta = 1; meta < metaTileArray.length; meta++) {

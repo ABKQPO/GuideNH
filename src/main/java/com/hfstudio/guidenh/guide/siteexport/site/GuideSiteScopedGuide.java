@@ -28,16 +28,15 @@ public class GuideSiteScopedGuide implements Guide, MediaWikiListContextProvider
     private final Map<Class<?>, PageIndex> indexOverrides;
     @Nullable
     private final MediaWikiListContext mediaWikiListContext;
-    private final Map<ParsedGuidePage, GuidePage> compiledPages = Collections
-        .synchronizedMap(new IdentityHashMap<ParsedGuidePage, GuidePage>());
+    private final Map<ParsedGuidePage, GuidePage> compiledPages = Collections.synchronizedMap(new IdentityHashMap<>());
 
     public GuideSiteScopedGuide(Guide delegate, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         NavigationTree navigationTree, Map<Class<?>, PageIndex> indexOverrides,
         @Nullable MediaWikiListContext mediaWikiListContext) {
         this.delegate = delegate;
-        this.parsedPagesById = Collections.unmodifiableMap(new LinkedHashMap<>(parsedPagesById));
+        this.parsedPagesById = Map.copyOf(new LinkedHashMap<>(parsedPagesById));
         this.navigationTree = navigationTree != null ? navigationTree : new NavigationTree();
-        this.indexOverrides = indexOverrides != null ? new LinkedHashMap<>(indexOverrides) : Collections.emptyMap();
+        this.indexOverrides = indexOverrides != null ? Map.copyOf(new LinkedHashMap<>(indexOverrides)) : Map.of();
         this.mediaWikiListContext = mediaWikiListContext;
     }
 

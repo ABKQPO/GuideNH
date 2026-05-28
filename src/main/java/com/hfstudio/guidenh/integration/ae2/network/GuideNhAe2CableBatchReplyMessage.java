@@ -153,7 +153,7 @@ public class GuideNhAe2CableBatchReplyMessage implements IMessage {
         n = Math.min(n, cs != null ? cs.length : 0);
         n = Math.min(n, sideOut != null ? sideOut.length : 0);
         n = Math.min(n, partPacked != null ? partPacked.length : 0);
-        return Math.max(0, Math.min(n, GuideNhAe2CableBatchRequestMessage.MAX_POSITIONS));
+        return Math.min(n, GuideNhAe2CableBatchRequestMessage.MAX_POSITIONS);
     }
 
     private static byte[] copyBytes(byte[] source, int n) {

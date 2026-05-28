@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.scene.cache;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -171,7 +170,7 @@ public class GuideSceneStructureSnapshot implements Serializable {
 
     private Map<Long, String> indexExplicitBlockIds() {
         if (explicitBlockIds.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         HashMap<Long, String> indexed = new HashMap<>(explicitBlockIds.size());
         for (ExplicitBlockIdEntry entry : explicitBlockIds) {
@@ -493,12 +492,12 @@ public class GuideSceneStructureSnapshot implements Serializable {
                     }
                 }
             }
-            this.payloads = copied.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(copied);
+            this.payloads = copied.isEmpty() ? Map.of() : Map.copyOf(copied);
         }
 
         public Map<String, byte[]> payloads() {
             if (payloads.isEmpty()) {
-                return Collections.emptyMap();
+                return Map.of();
             }
             LinkedHashMap<String, byte[]> copied = new LinkedHashMap<>();
             for (Map.Entry<String, byte[]> entry : payloads.entrySet()) {

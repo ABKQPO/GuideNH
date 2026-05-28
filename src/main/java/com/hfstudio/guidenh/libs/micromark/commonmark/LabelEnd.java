@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark.commonmark;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -146,7 +144,7 @@ public class LabelEnd {
         media = ListUtils.push(media, events.subList(open + 1, open + offset + 3));
 
         // Text open.
-        media = ListUtils.push(media, Collections.singletonList(Tokenizer.Event.enter(text, context)));
+        media = ListUtils.push(media, List.of(Tokenizer.Event.enter(text, context)));
 
         // Between.
         media = ListUtils.push(
@@ -159,7 +157,7 @@ public class LabelEnd {
         // Text close, marker close, label close.
         media = ListUtils.push(
             media,
-            Arrays.asList(
+            List.of(
                 Tokenizer.Event.exit(text, context),
                 events.get(close - 2),
                 events.get(close - 1),
@@ -169,7 +167,7 @@ public class LabelEnd {
         media = ListUtils.push(media, events.subList(close + 1, events.size()));
 
         // Media close.
-        media = ListUtils.push(media, Collections.singletonList(Tokenizer.Event.exit(group, context)));
+        media = ListUtils.push(media, List.of(Tokenizer.Event.exit(group, context)));
 
         ListUtils.splice(events, open, events.size(), media);
 

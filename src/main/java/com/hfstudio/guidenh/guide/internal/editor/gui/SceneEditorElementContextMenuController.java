@@ -74,7 +74,7 @@ public class SceneEditorElementContextMenuController {
         SceneEditorElementModel pasted = clipboardElement.duplicate();
         session.getSceneModel()
             .getElements()
-            .add(0, pasted);
+            .addFirst(pasted);
         session.getSelectionState()
             .setSelectedElementId(pasted.getId());
         syncText();

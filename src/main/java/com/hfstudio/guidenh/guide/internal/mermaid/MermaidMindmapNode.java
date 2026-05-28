@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.mermaid;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -27,8 +26,7 @@ public class MermaidMindmapNode {
         this.labelSource = labelSource != null ? labelSource : "";
         this.text = text != null ? text : "";
         this.shape = shape != null ? shape : MermaidMindmapNodeShape.DEFAULT;
-        this.classes = Collections
-            .unmodifiableList(new ArrayList<>(classes != null ? classes : Collections.emptyList()));
+        this.classes = List.copyOf(new ArrayList<>(classes != null ? classes : List.of()));
         this.icon = icon != null && !icon.trim()
             .isEmpty() ? icon.trim() : null;
         this.x = x;
@@ -68,7 +66,7 @@ public class MermaidMindmapNode {
     }
 
     public List<MermaidMindmapNode> getChildren() {
-        return Collections.unmodifiableList(children);
+        return List.copyOf(children);
     }
 
     public void addChild(MermaidMindmapNode child) {

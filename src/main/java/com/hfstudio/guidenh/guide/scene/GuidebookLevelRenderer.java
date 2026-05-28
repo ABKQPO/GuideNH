@@ -13,7 +13,6 @@ import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -88,7 +87,7 @@ public class GuidebookLevelRenderer {
             panelWidth,
             panelHeight,
             partialTicks,
-            Collections.emptyList(),
+            List.of(),
             LightDarkMode.LIGHT_MODE,
             null);
     }
@@ -150,7 +149,7 @@ public class GuidebookLevelRenderer {
             annotations,
             lightDarkMode,
             visibleLayerY,
-            Collections.emptyList());
+            List.of());
     }
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
@@ -173,7 +172,7 @@ public class GuidebookLevelRenderer {
             lightDarkMode,
             GuidebookSceneLayerSelection.fromVisibleLayer(visibleLayerY),
             particles,
-            Collections.emptyList(),
+            List.of(),
             0.0f);
     }
 
@@ -197,7 +196,7 @@ public class GuidebookLevelRenderer {
             lightDarkMode,
             layerSelection,
             particles,
-            Collections.emptyList(),
+            List.of(),
             0.0f);
     }
 

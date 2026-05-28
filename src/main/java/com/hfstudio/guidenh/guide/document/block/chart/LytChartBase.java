@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -244,7 +243,7 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     protected abstract List<ChartLegendRenderer.LegendEntry> collectLegendEntries();
 
     protected List<CornerLegendEntry> collectCornerLegendEntries() {
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override
@@ -268,12 +267,12 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
             sb.append(text);
         }
         if (extra != null && !extra.isEmpty()) {
-            if (sb.length() > 0) {
+            if (!sb.isEmpty()) {
                 sb.append('\n');
             }
             sb.append(extra);
         }
-        if (sb.length() == 0) {
+        if (sb.isEmpty()) {
             return Optional.empty();
         }
         return Optional.of(new TextTooltip(sb.toString()));

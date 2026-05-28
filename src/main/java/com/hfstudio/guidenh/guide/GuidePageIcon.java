@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -34,7 +32,7 @@ public record GuidePageIcon(@Nullable ItemStack itemStack, @Nullable ResourceLoc
             throw new IllegalArgumentException("cycle item icon list must not be empty");
         }
         var copiedStacks = copy(itemStacks);
-        return new GuidePageIcon(copiedStacks.get(0), null, null, copiedStacks, null, null);
+        return new GuidePageIcon(copiedStacks.getFirst(), null, null, copiedStacks, null, null);
     }
 
     public static GuidePageIcon cycleTextureIds(List<ResourceLocation> textureIds) {
@@ -42,7 +40,7 @@ public record GuidePageIcon(@Nullable ItemStack itemStack, @Nullable ResourceLoc
             throw new IllegalArgumentException("cycle texture icon list must not be empty");
         }
         var copiedTextureIds = copy(textureIds);
-        return new GuidePageIcon(null, copiedTextureIds.get(0), null, null, null, copiedTextureIds);
+        return new GuidePageIcon(null, copiedTextureIds.getFirst(), null, null, null, copiedTextureIds);
     }
 
     public static GuidePageIcon cycleTextures(List<ResourceLocation> textureIds, List<GuidePageTexture> textures) {
@@ -53,15 +51,15 @@ public record GuidePageIcon(@Nullable ItemStack itemStack, @Nullable ResourceLoc
         var copiedTextures = textures.isEmpty() ? null : copy(textures);
         return new GuidePageIcon(
             null,
-            copiedTextureIds.get(0),
-            copiedTextures == null ? null : copiedTextures.get(0),
+            copiedTextureIds.getFirst(),
+            copiedTextures == null ? null : copiedTextures.getFirst(),
             null,
             copiedTextures,
             copiedTextureIds);
     }
 
     private static <T> List<T> copy(List<T> values) {
-        return Collections.unmodifiableList(new ArrayList<>(values));
+        return List.copyOf(values);
     }
 
     public boolean isItemIcon() {
@@ -75,7 +73,7 @@ public record GuidePageIcon(@Nullable ItemStack itemStack, @Nullable ResourceLoc
     @Nullable
     public ItemStack resolveCurrentItemStack() {
         if (cycleItemStacks != null && !cycleItemStacks.isEmpty()) {
-            if (cycleItemStacks.size() == 1) return cycleItemStacks.get(0);
+            if (cycleItemStacks.size() == 1) return cycleItemStacks.getFirst();
             int idx = (int) ((System.currentTimeMillis() / 1000L) % cycleItemStacks.size());
             return cycleItemStacks.get(idx);
         }
@@ -85,7 +83,7 @@ public record GuidePageIcon(@Nullable ItemStack itemStack, @Nullable ResourceLoc
     @Nullable
     public GuidePageTexture resolveCurrentTexture() {
         if (cycleTextures != null && !cycleTextures.isEmpty()) {
-            if (cycleTextures.size() == 1) return cycleTextures.get(0);
+            if (cycleTextures.size() == 1) return cycleTextures.getFirst();
             int idx = (int) ((System.currentTimeMillis() / 1000L) % cycleTextures.size());
             return cycleTextures.get(idx);
         }
@@ -95,7 +93,7 @@ public record GuidePageIcon(@Nullable ItemStack itemStack, @Nullable ResourceLoc
     @Nullable
     public ResourceLocation resolveCurrentTextureId() {
         if (cycleTextureIds != null && !cycleTextureIds.isEmpty()) {
-            if (cycleTextureIds.size() == 1) return cycleTextureIds.get(0);
+            if (cycleTextureIds.size() == 1) return cycleTextureIds.getFirst();
             int idx = (int) ((System.currentTimeMillis() / 1000L) % cycleTextureIds.size());
             return cycleTextureIds.get(idx);
         }

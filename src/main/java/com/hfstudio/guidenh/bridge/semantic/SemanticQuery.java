@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.bridge.semantic;
 
-import java.util.Collections;
 import java.util.Map;
 
 public class SemanticQuery {
@@ -14,7 +13,7 @@ public class SemanticQuery {
         this.cursor = cursor == null ? "" : cursor;
         this.limit = limit;
         this.prefix = prefix == null ? "" : prefix;
-        this.filters = filters == null ? Collections.emptyMap() : filters;
+        this.filters = filters == null || filters.isEmpty() ? Map.of() : Map.copyOf(filters);
     }
 
     public String getCursor() {

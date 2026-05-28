@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +29,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
  * (after trimming whitespace), the formula is rendered as a centred display block. Otherwise
  * each {@code $$formula$$} fragment is rendered as an inline block inside the surrounding text.
  */
-public final class MarkdownLatexShorthand {
+public class MarkdownLatexShorthand {
 
     private static final String PLACEHOLDER_PREFIX = "\uE000GUIDENH_LATEX_";
     private static final String PLACEHOLDER_SUFFIX = "_\uE001";
@@ -45,13 +44,13 @@ public final class MarkdownLatexShorthand {
 
     public static MaskResult mask(String source) {
         if (source == null) {
-            return new MaskResult("", Collections.emptyMap());
+            return new MaskResult("", Map.of());
         }
         if (!mayContain(source)) {
-            return new MaskResult(source, Collections.emptyMap());
+            return new MaskResult(source, Map.of());
         }
         Matcher matcher = DOLLAR_PATTERN.matcher(source);
-        StringBuffer masked = new StringBuffer(source.length());
+        StringBuilder masked = new StringBuilder(source.length());
         Map<String, String> formulas = new HashMap<>();
         int index = 0;
         while (matcher.find()) {
@@ -109,7 +108,7 @@ public final class MarkdownLatexShorthand {
      */
     public static List<Segment> split(String text) {
         if (text == null || text.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         List<Segment> result = new ArrayList<>();
         Matcher m = DOLLAR_PATTERN.matcher(text);
@@ -180,7 +179,7 @@ public final class MarkdownLatexShorthand {
     public record MaskResult(String source, Map<String, String> formulas) {
 
         public MaskResult {
-            formulas = formulas == null ? Collections.emptyMap() : Collections.unmodifiableMap(new HashMap<>(formulas));
+            formulas = formulas == null ? Map.of() : Map.copyOf(new HashMap<>(formulas));
         }
 
         public boolean isEmpty() {

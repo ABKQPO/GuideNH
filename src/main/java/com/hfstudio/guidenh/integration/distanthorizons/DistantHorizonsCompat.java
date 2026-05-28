@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.integration.distanthorizons;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -32,7 +31,7 @@ public class DistantHorizonsCompat {
     private static final SuppressionToken NOOP_TOKEN = () -> {};
 
     private static int suppressionDepth;
-    private static List<SuspendedTarget> suspendedTargets = Collections.emptyList();
+    private static List<SuspendedTarget> suspendedTargets = List.of();
 
     @Nullable
     private static volatile Field listenersField;
@@ -76,7 +75,7 @@ public class DistantHorizonsCompat {
     private static List<SuspendedTarget> suspendTargets(EventBus eventBus) {
         Map<Object, ?> listeners = getListenersMap(eventBus);
         if (listeners == null || listeners.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         Map<Object, ModContainer> listenerOwners = getListenerOwnersMap(eventBus);
@@ -228,7 +227,7 @@ public class DistantHorizonsCompat {
             suppressionDepth--;
             if (suppressionDepth == 0) {
                 restoreTargets(eventBus, suspendedTargets);
-                suspendedTargets = Collections.emptyList();
+                suspendedTargets = List.of();
             }
         }
     }

@@ -61,7 +61,7 @@ public class WebSocketHandshake {
             previousSecond = previous;
             previous = current;
         }
-        return new String(output.toByteArray(), StandardCharsets.UTF_8);
+        return output.toString(StandardCharsets.UTF_8);
     }
 
     private Map<String, String> readHeaders(String[] lines) {
@@ -87,8 +87,7 @@ public class WebSocketHandshake {
     private boolean isUpgrade(Map<String, String> headers) {
         String upgrade = headers.get("upgrade");
         String connection = headers.get("connection");
-        return upgrade != null && "websocket".equalsIgnoreCase(upgrade)
-            && connection != null
+        return "websocket".equalsIgnoreCase(upgrade) && connection != null
             && connection.toLowerCase(Locale.ROOT)
                 .contains("upgrade");
     }

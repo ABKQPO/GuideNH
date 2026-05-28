@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.scene.level;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -575,7 +575,8 @@ public class GuidebookPreviewBlockPlacer {
         keys.add("eyeOfHarmonyOutputoutputEU_BigInt");
         keys.add("eyeOfHarmonyOutputusedEU");
         keys.add("powerTally");
-        return Collections.unmodifiableSet(keys);
+        return Set.copyOf(
+            List.of("mRedstoneSided", "eyeOfHarmonyOutputoutputEU_BigInt", "eyeOfHarmonyOutputusedEU", "powerTally"));
     }
 
     @Nullable

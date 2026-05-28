@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -185,17 +184,17 @@ public class TextAnnotation extends OverlayAnnotation {
             return resolvedLines;
         }
         if (text == null || text.isEmpty()) {
-            resolvedLines = Collections.emptyList();
+            resolvedLines = List.of();
             resolvedWrapWidth = contentWidth;
             return resolvedLines;
         }
         if (contentWidth <= 0) {
-            resolvedLines = Collections.singletonList(text);
+            resolvedLines = List.of(text);
             resolvedWrapWidth = contentWidth;
             return resolvedLines;
         }
         List<String> wrapped = fr.listFormattedStringToWidth(text, contentWidth);
-        resolvedLines = wrapped.isEmpty() ? Collections.singletonList(text) : wrapped;
+        resolvedLines = wrapped.isEmpty() ? List.of(text) : wrapped;
         resolvedWrapWidth = contentWidth;
         return resolvedLines;
     }
@@ -349,7 +348,7 @@ public class TextAnnotation extends OverlayAnnotation {
             cachedMeasure = new LayoutMeasure(
                 contentBounds.width() + PADDING_X * 2,
                 contentBounds.height() + PADDING_Y * 2,
-                Collections.emptyList(),
+                List.of(),
                 availableWidth);
             cachedMeasureWrapWidth = wrapWidth;
             return cachedMeasure;

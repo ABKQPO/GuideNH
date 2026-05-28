@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
-public final class GuideItemReferenceResolver {
+public class GuideItemReferenceResolver {
 
     private GuideItemReferenceResolver() {}
 
@@ -107,7 +107,7 @@ public final class GuideItemReferenceResolver {
             return null;
         }
 
-        ItemStack firstMatch = oreStacks.get(0);
+        ItemStack firstMatch = oreStacks.getFirst();
         if (firstMatch == null || firstMatch.getItem() == null) {
             return null;
         }

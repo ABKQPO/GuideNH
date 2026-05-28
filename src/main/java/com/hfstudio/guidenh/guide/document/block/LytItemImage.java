@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -230,7 +229,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     }
 
     public List<ItemStack> getStacks() {
-        return stack == null ? Collections.emptyList() : Collections.singletonList(stack);
+        return stack == null ? List.of() : List.of(stack);
     }
 
     /** Resolves the final label text based on the current stack and format pattern. */

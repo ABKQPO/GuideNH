@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.network;
 
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 
-public final class GuideNhStructureRequestSender {
+public class GuideNhStructureRequestSender {
 
     private GuideNhStructureRequestSender() {}
 

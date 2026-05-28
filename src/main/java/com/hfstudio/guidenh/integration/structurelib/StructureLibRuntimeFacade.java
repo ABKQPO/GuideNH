@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -173,7 +172,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             }
         } catch (Throwable t) {
             GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib control analysis", t);
-            return new ControlAnalysis(MIN_TIER, Collections.emptyMap());
+            return new ControlAnalysis(MIN_TIER, Map.of());
         }
     }
 
@@ -327,7 +326,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         StructureLibPreviewSelection selection) {
         if ((base == null || base.isEmpty()) && (selection == null || selection.getChannelOverrides()
             .isEmpty())) {
-            return Collections.emptyMap();
+            return Map.of();
         }
         LinkedHashMap<String, Integer> merged = new LinkedHashMap<>();
         if (base != null && !base.isEmpty()) {
@@ -341,11 +340,12 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 if (channelId == null || selectedValue == null || selectedValue <= 0) {
                     continue;
                 }
-                Integer knownMax = merged.get(channelId);
-                merged.put(channelId, knownMax != null ? Math.max(knownMax, selectedValue) : selectedValue);
+                merged.compute(
+                    channelId,
+                    (k, knownMax) -> knownMax != null ? Math.max(knownMax, selectedValue) : selectedValue);
             }
         }
-        return merged.isEmpty() ? Collections.emptyMap() : merged;
+        return merged.isEmpty() ? Map.of() : merged;
     }
 
     public static void collectChannelIds(BuildSnapshot snapshot, Set<String> discoveredChannels) {
@@ -471,7 +471,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
 
         ItemStack triggerStack = createTriggerStack(selection);
-        Map<Long, IStructureElement<?>> visitedElementsByPos = Collections.emptyMap();
+        Map<Long, IStructureElement<?>> visitedElementsByPos = Map.of();
         Object instrumentId = new Object();
         StructureLibStructureVisitCollector visitCollector = new StructureLibStructureVisitCollector(
             instrumentId,
@@ -838,7 +838,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     public static List<String> mergeWarnings(List<String> leadingWarnings, List<String> cachedWarnings) {
         if ((leadingWarnings == null || leadingWarnings.isEmpty())
             && (cachedWarnings == null || cachedWarnings.isEmpty())) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<String> merged = new ArrayList<>();
         if (leadingWarnings != null) {
@@ -1037,7 +1037,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
         public static Map<String, Integer> immutableChannelMaxTierMap(@Nullable Map<String, Integer> source) {
             if (source == null || source.isEmpty()) {
-                return Collections.emptyMap();
+                return Map.of();
             }
             LinkedHashMap<String, Integer> normalized = new LinkedHashMap<>(source.size());
             for (Map.Entry<String, Integer> entry : source.entrySet()) {
@@ -1048,7 +1048,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 }
                 normalized.put(channelId, value);
             }
-            return normalized.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(normalized);
+            return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
         }
     }
 
@@ -1107,8 +1107,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         public AnalysisSnapshot(boolean success, Set<String> channelIds, String fingerprint,
             @Nullable String errorMessage) {
             this.success = success;
-            this.channelIds = channelIds != null ? Collections.unmodifiableSet(new LinkedHashSet<>(channelIds))
-                : Collections.emptySet();
+            this.channelIds = channelIds != null ? Set.copyOf(new LinkedHashSet<>(channelIds)) : Set.of();
             this.fingerprint = fingerprint != null ? fingerprint : "";
             this.errorMessage = errorMessage;
         }
@@ -1261,7 +1260,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 new ItemStack(StructureLibAPI.getDefaultHologramItem(), MIN_TIER),
                 null,
                 null,
-                Collections.emptyMap(),
+                Map.of(),
                 sanitizeMessage(errorMessage));
         }
     }
@@ -1293,8 +1292,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             this.blocks = blocks;
             this.absoluteBlocks = absoluteBlocks;
             this.visitedElementsByPos = visitedElementsByPos;
-            this.channelIds = channelIds != null ? Collections.unmodifiableSet(new LinkedHashSet<>(channelIds))
-                : Collections.emptySet();
+            this.channelIds = channelIds != null ? Set.copyOf(new LinkedHashSet<>(channelIds)) : Set.of();
             this.fingerprint = fingerprint;
             this.world = world;
             this.triggerStack = triggerStack;
@@ -1311,7 +1309,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 blocks,
                 absoluteBlocks,
                 visitedElementsByPos,
-                Collections.emptySet(),
+                Set.of(),
                 fingerprint,
                 world,
                 triggerStack,
@@ -1340,9 +1338,9 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         public static BuildSnapshot analysis(String fingerprint, Set<String> channelIds) {
             return new BuildSnapshot(
                 true,
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyMap(),
+                List.of(),
+                List.of(),
+                Map.of(),
                 channelIds,
                 fingerprint,
                 null,
@@ -1355,10 +1353,10 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         public static BuildSnapshot failure(String errorMessage) {
             return new BuildSnapshot(
                 false,
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyMap(),
-                Collections.emptySet(),
+                List.of(),
+                List.of(),
+                Map.of(),
+                Set.of(),
                 "",
                 null,
                 new ItemStack(StructureLibAPI.getDefaultHologramItem(), MIN_TIER),
@@ -1389,9 +1387,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     public static class SnapshotBlocksResult {
 
-        public static final SnapshotBlocksResult EMPTY = new SnapshotBlocksResult(
-            Collections.emptyList(),
-            Collections.emptyList());
+        public static final SnapshotBlocksResult EMPTY = new SnapshotBlocksResult(List.of(), List.of());
 
         private final List<StructureLibImportResult.PlacedBlock> blocks;
         private final List<StructureLibPreviewMetadataFactory.AbsolutePreviewBlock> absoluteBlocks;

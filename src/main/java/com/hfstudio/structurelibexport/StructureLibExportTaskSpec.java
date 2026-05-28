@@ -1,8 +1,6 @@
 package com.hfstudio.structurelibexport;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,8 +65,7 @@ public class StructureLibExportTaskSpec {
         this.scale = scale > 0f ? scale : 1f;
         this.gtActiveController = gtActiveController;
         this.gtPlaceHatches = gtPlaceHatches;
-        this.warnings = warnings != null ? Collections.unmodifiableList(new ArrayList<>(warnings))
-            : Collections.emptyList();
+        this.warnings = warnings != null ? List.copyOf(warnings) : List.of();
     }
 
     public StructureLibControllerSpec getController() {
@@ -157,8 +154,8 @@ public class StructureLibExportTaskSpec {
 
     private static Map<String, Integer> immutableChannels(Map<String, Integer> source) {
         if (source == null || source.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
-        return Collections.unmodifiableMap(new LinkedHashMap<>(source));
+        return Map.copyOf(new LinkedHashMap<>(source));
     }
 }

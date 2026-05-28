@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.tooltip;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -16,9 +15,9 @@ public class AppendedItemTooltip extends ItemTooltip implements ItemTooltipAppen
     public AppendedItemTooltip(ItemStack stack, List<String> extraLines) {
         super(stack);
         if (extraLines == null || extraLines.isEmpty()) {
-            this.extraLines = Collections.emptyList();
+            this.extraLines = List.of();
         } else {
-            this.extraLines = Collections.unmodifiableList(new ArrayList<>(extraLines));
+            this.extraLines = List.copyOf(new ArrayList<>(extraLines));
         }
     }
 

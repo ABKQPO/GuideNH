@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.extensions;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +10,7 @@ import java.util.Map;
  */
 public class ExtensionCollection {
 
-    public static final ExtensionCollection EMPTY = new ExtensionCollection(Collections.emptyMap());
+    public static final ExtensionCollection EMPTY = new ExtensionCollection(Map.of());
 
     private final List<ExtensionPoint<?>> extensionPoints;
     private final Map<ExtensionPoint<?>, List<Object>> extensions;
@@ -24,11 +23,11 @@ public class ExtensionCollection {
     }
 
     private ExtensionCollection(Map<ExtensionPoint<?>, List<Object>> extensions) {
-        extensionPoints = Collections.unmodifiableList(new ArrayList<>(extensions.keySet()));
+        extensionPoints = List.copyOf(new ArrayList<>(extensions.keySet()));
         var checkedCollection = new IdentityHashMap<>(extensions);
         for (var entry : checkedCollection.entrySet()) {
             var extensionPoint = entry.getKey();
-            entry.setValue(Collections.unmodifiableList(new ArrayList<>(entry.getValue())));
+            entry.setValue(List.copyOf(entry.getValue()));
             for (Object o : entry.getValue()) {
                 if (!extensionPoint.extensionPointClass()
                     .isInstance(o)) {
@@ -47,7 +46,7 @@ public class ExtensionCollection {
     public <T extends Extension> List<T> get(ExtensionPoint<T> extensionPoint) {
         var extensions = this.extensions.get(extensionPoint);
         if (extensions == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         return (List<T>) (Object) extensions;
     }

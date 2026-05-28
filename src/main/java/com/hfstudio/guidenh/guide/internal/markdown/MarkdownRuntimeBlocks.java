@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -15,7 +14,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstInlineCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
-public final class MarkdownRuntimeBlocks {
+public class MarkdownRuntimeBlocks {
 
     private MarkdownRuntimeBlocks() {}
 
@@ -142,7 +141,7 @@ public final class MarkdownRuntimeBlocks {
 
     private static List<String> splitTokens(String expression) {
         if (expression == null || expression.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         List<String> tokens = new ArrayList<>();
         StringBuilder current = new StringBuilder();
@@ -162,7 +161,7 @@ public final class MarkdownRuntimeBlocks {
                 continue;
             }
             if (Character.isWhitespace(ch) && !inQuotes) {
-                if (current.length() > 0) {
+                if (!current.isEmpty()) {
                     tokens.add(current.toString());
                     current.setLength(0);
                 }
@@ -170,7 +169,7 @@ public final class MarkdownRuntimeBlocks {
             }
             current.append(ch);
         }
-        if (current.length() > 0) {
+        if (!current.isEmpty()) {
             tokens.add(current.toString());
         }
         return tokens;
@@ -189,7 +188,7 @@ public final class MarkdownRuntimeBlocks {
 
     private static @Nullable ColorValue parseColor(String value) {
         String normalized = value != null ? value.trim() : "";
-        if (normalized.isEmpty() || !normalized.startsWith("#")) {
+        if (!normalized.startsWith("#")) {
             return null;
         }
         try {

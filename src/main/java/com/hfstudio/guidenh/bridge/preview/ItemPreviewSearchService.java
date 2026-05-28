@@ -151,52 +151,32 @@ public class ItemPreviewSearchService {
     }
 
     private boolean isShortPrefix(String prefix) {
-        return prefix.indexOf(':') < 0 && prefix.length() > 0 && prefix.length() <= 4;
+        return prefix.indexOf(':') < 0 && !prefix.isEmpty() && prefix.length() <= 4;
     }
 
     private String describeMatchKind(int score) {
-        switch (score) {
-            case 0:
-                return "label-exact";
-            case 1:
-                return "id-exact";
-            case 2:
-                return "namespace-prefix";
-            case 3:
-                return "label-prefix";
-            case 4:
-                return "label-token";
-            case 5:
-                return "id-prefix";
-            case 6:
-                return "path-prefix";
-            case 7:
-                return "path-token";
-            case 8:
-                return "detail-prefix";
-            case 9:
-                return "path-structured";
-            case 10:
-                return "path-acronym";
-            case 11:
-                return "id-compact";
-            case 12:
-                return "path-compact";
-            case 13:
-                return "label-acronym";
-            case 14:
-                return "label-compact";
-            case 15:
-                return "detail-compact";
-            case 16:
-                return "id-contains";
-            case 17:
-                return "label-contains";
-            case 18:
-                return "detail-contains";
-            default:
-                return "runtime";
-        }
+        return switch (score) {
+            case 0 -> "label-exact";
+            case 1 -> "id-exact";
+            case 2 -> "namespace-prefix";
+            case 3 -> "label-prefix";
+            case 4 -> "label-token";
+            case 5 -> "id-prefix";
+            case 6 -> "path-prefix";
+            case 7 -> "path-token";
+            case 8 -> "detail-prefix";
+            case 9 -> "path-structured";
+            case 10 -> "path-acronym";
+            case 11 -> "id-compact";
+            case 12 -> "path-compact";
+            case 13 -> "label-acronym";
+            case 14 -> "label-compact";
+            case 15 -> "detail-compact";
+            case 16 -> "id-contains";
+            case 17 -> "label-contains";
+            case 18 -> "detail-contains";
+            default -> "runtime";
+        };
     }
 
     private String buildPreviewKey(String id) {
@@ -268,7 +248,7 @@ public class ItemPreviewSearchService {
         if (nonEmptyTokens.size() < 2) {
             return false;
         }
-        String firstToken = nonEmptyTokens.get(0);
+        String firstToken = nonEmptyTokens.getFirst();
         if (!compactPrefix.startsWith(firstToken) || compactPrefix.length() <= firstToken.length()) {
             return false;
         }
@@ -371,7 +351,7 @@ public class ItemPreviewSearchService {
         if (nonEmptyTokens.size() < 2) {
             return 0;
         }
-        String firstToken = nonEmptyTokens.get(0);
+        String firstToken = nonEmptyTokens.getFirst();
         if (!compactPrefix.startsWith(firstToken) || compactPrefix.length() <= firstToken.length()) {
             return 0;
         }
@@ -397,14 +377,14 @@ public class ItemPreviewSearchService {
                 continue;
             }
             String familyKey = toFamilyKey(id);
-            familySizes.put(familyKey, familySizes.getOrDefault(familyKey, Integer.valueOf(0)) + 1);
+            familySizes.put(familyKey, familySizes.getOrDefault(familyKey, 0) + 1);
         }
         return familySizes;
     }
 
     private int resolveFamilySize(Map<String, Integer> familySizes, String id) {
         Integer value = familySizes.get(toFamilyKey(id));
-        return value == null ? 0 : value.intValue();
+        return value == null ? 0 : value;
     }
 
     private String toFamilyKey(String id) {

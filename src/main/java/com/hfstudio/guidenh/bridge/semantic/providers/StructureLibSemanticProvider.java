@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.bridge.semantic.providers;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -76,7 +75,7 @@ public class StructureLibSemanticProvider implements SemanticProvider {
     private List<Map<String, String>> loadChannelEntries(Map<String, String> filters) {
         String controller = normalizeValue(filters.get("controller"));
         if (controller == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         try {
             StructureLibImportRequest request = new StructureLibImportRequest(controller, null, null, null, null, null);
@@ -86,7 +85,7 @@ public class StructureLibSemanticProvider implements SemanticProvider {
                 .analyzeControls(request, resolvedController);
             int maxTier = analysis.getMaxTotalTier();
             if (maxTier <= 0) {
-                return Collections.emptyList();
+                return List.of();
             }
 
             List<Map<String, String>> entries = new ArrayList<>();
@@ -95,43 +94,39 @@ public class StructureLibSemanticProvider implements SemanticProvider {
                 entries.add(createEntry(Integer.toString(value), "StructureLib preview tier", detail));
             }
             return normalizeEntries(entries);
-        } catch (IllegalArgumentException ignored) {
-            return Collections.emptyList();
         } catch (Throwable ignored) {
-            return Collections.emptyList();
+            return List.of();
         }
     }
 
     private List<Map<String, String>> loadPieceEntries(Map<String, String> filters) {
         String controller = normalizeValue(filters.get("controller"));
         if (controller == null) {
-            return Collections.emptyList();
+            return List.of();
         }
-        return Collections.singletonList(createEntry("main", "Main structure", controller + " default constructable"));
+        return List.of(createEntry("main", "Main structure", controller + " default constructable"));
     }
 
     private List<Map<String, String>> loadOrientationEntries(Map<String, String> filters, String attribute) {
         String controller = normalizeValue(filters.get("controller"));
         if (controller == null || attribute == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         try {
             StructureLibControllerSpec controllerSpec = StructureLibControllerSpec.parse(controller);
             List<ExtendedFacing> allowedFacings = findAllowedFacings(controllerSpec);
             if (allowedFacings.isEmpty()) {
-                return Collections.emptyList();
+                return List.of();
             }
             List<Map<String, String>> entries = switch (attribute) {
                 case "facing" -> createFacingEntries(controllerSpec, allowedFacings, filters);
                 case "rotation" -> createRotationEntries(controllerSpec, allowedFacings, filters);
                 case "flip" -> createFlipEntries(controllerSpec, allowedFacings, filters);
-                default -> Collections.emptyList();
+                default -> List.of();
             };
             return normalizeEntries(entries);
-        } catch (IllegalArgumentException ignored) {
-            return Collections.emptyList();
         } catch (Throwable ignored) {
-            return Collections.emptyList();
+            return List.of();
         }
     }
 
@@ -192,11 +187,11 @@ public class StructureLibSemanticProvider implements SemanticProvider {
             TileEntity tile = StructureLibRuntimeFacade
                 .placeControllerDirectly(context.getLevel(), context.getWorld(), resolvedController, new ArrayList<>());
             if (tile == null) {
-                return Collections.emptyList();
+                return List.of();
             }
             IAlignment alignment = StructureLibRuntimeFacade.resolveAlignment(tile);
             if (alignment == null) {
-                return Collections.emptyList();
+                return List.of();
             }
             for (ExtendedFacing facing : ExtendedFacing.VALUES) {
                 if (alignment.getAlignmentLimits() != null ? alignment.getAlignmentLimits()
@@ -206,7 +201,7 @@ public class StructureLibSemanticProvider implements SemanticProvider {
             }
             return allowedFacings;
         } catch (Throwable ignored) {
-            return Collections.emptyList();
+            return List.of();
         } finally {
             context.clear();
         }

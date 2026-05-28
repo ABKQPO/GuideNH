@@ -84,19 +84,10 @@ public class LytPieChart extends LytChartBase {
             // Label.
             ChartLabelPosition pos = getLabelPosition();
             if (pos != ChartLabelPosition.NONE) {
-                String text;
-                switch (pos) {
-                    case OUTSIDE:
-                    case ABOVE:
-                    case BELOW:
-                        text = slice.getLabel() + " " + formatPercent(slice.getValue() / total);
-                        break;
-                    case INSIDE:
-                    case CENTER:
-                    default:
-                        text = formatPercent(slice.getValue() / total);
-                        break;
-                }
+                String text = switch (pos) {
+                    case OUTSIDE, ABOVE, BELOW -> slice.getLabel() + " " + formatPercent(slice.getValue() / total);
+                    default -> formatPercent(slice.getValue() / total);
+                };
                 int tw = context.getStringWidth(text, labelStyle);
                 float labelR = pos == ChartLabelPosition.OUTSIDE || pos == ChartLabelPosition.ABOVE
                     || pos == ChartLabelPosition.BELOW ? drawRadius + 4f : drawRadius * 0.6f;

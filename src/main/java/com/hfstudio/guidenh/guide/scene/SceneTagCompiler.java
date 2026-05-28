@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.scene;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -48,7 +47,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "Block", "Entity" };
     private static final int SCENE_HEAVY_ELEMENT_THRESHOLD = 8;
 
-    private Map<String, SceneElementTagCompiler> elementCompilers = Collections.emptyMap();
+    private Map<String, SceneElementTagCompiler> elementCompilers = Map.of();
     private final GuideSceneStructureFingerprintResolver structureFingerprintResolver = new GuideSceneStructureFingerprintResolver();
 
     public static boolean likelyHasHeavySceneWork(@Nullable ParsedGuidePage parsedPage) {
@@ -306,12 +305,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             boolean[] result = new boolean[1];
             compiler.withBlockTagChildrenSourceContext(
                 flow,
-                () -> result[0] = compileSceneChildrenWithCache(
-                    scene,
-                    compiler,
-                    errorSink,
-                    children,
-                    Collections.emptyMap()));
+                () -> result[0] = compileSceneChildrenWithCache(scene, compiler, errorSink, children, Map.of()));
             return result[0];
         });
     }
@@ -459,7 +453,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         scene.setBlockStatsDock(BlockStatsDock.INSIDE);
         scene.setBlockStatsShowNames(false);
         scene.setBlockStatsFilterMode(BlockStatsFilterMode.BLACKLIST);
-        scene.setBlockStatsFilterKeys(Collections.emptySet());
+        scene.setBlockStatsFilterKeys(Set.of());
     }
 
     private static Set<String> parseBlockStatsFilter(String raw) {

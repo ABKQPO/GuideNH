@@ -11,6 +11,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -840,7 +841,7 @@ public class GuideScreen extends GuiContainer
         int requestedWidth = Math
             .max(GuideNavBar.MIN_DYNAMIC_OPEN_WIDTH, this.width * GuideNavBar.OPEN_WIDTH_SCREEN_PERCENT / 100);
         int maxWidth = Math.max(GuideNavBar.WIDTH_CLOSED, panelW - PANEL_PADDING * 2 - 40);
-        return Math.max(GuideNavBar.WIDTH_CLOSED, Math.min(requestedWidth, maxWidth));
+        return Math.min(requestedWidth, maxWidth);
     }
 
     private int getNavigationReservedWidth() {
@@ -1051,12 +1052,10 @@ public class GuideScreen extends GuiContainer
         }
         List<MutableGuide> guides = new ArrayList<>(GuideRegistry.getAll());
         guides.sort(
-            (left, right) -> left.getId()
-                .toString()
-                .compareTo(
-                    right.getId()
-                        .toString()));
-        return guides.isEmpty() ? null : guides.get(0);
+            Comparator.comparing(
+                left -> left.getId()
+                    .toString()));
+        return guides.isEmpty() ? null : guides.getFirst();
     }
 
     private void createGuideEditorPageAtPath(MutableGuide activeGuide, ParsedGuidePage currentParsedPage,
@@ -1397,8 +1396,7 @@ public class GuideScreen extends GuiContainer
         CategoryIndex categoryIndex = new CategoryIndex();
         categoryIndex.rebuild(indexedPages);
 
-        Map<Class<?>, PageIndex> indexOverrides = Collections
-            .<Class<?>, PageIndex>singletonMap(CategoryIndex.class, categoryIndex);
+        Map<Class<?>, PageIndex> indexOverrides = Map.of(CategoryIndex.class, categoryIndex);
         return GuideScopedView.create(guide, scopedPages, indexOverrides);
     }
 
@@ -2011,7 +2009,7 @@ public class GuideScreen extends GuiContainer
 
     private void rebuildToolbar() {
         this.buttonList.clear();
-        int btnY = getToolbarButtonY();
+        int btnY = panelY;
         int leftX = panelX + PANEL_PADDING;
         int leftSecondaryX = leftX + GuideIconButton.WIDTH + TOOLBAR_GAP;
         int rightToolbarLeft = getRightToolbarButtonsLeft();
@@ -2059,10 +2057,6 @@ public class GuideScreen extends GuiContainer
         this.buttonList.add(btnFullWidth);
         this.buttonList.add(btnClose);
         updateToolbarButtonState();
-    }
-
-    private int getToolbarButtonY() {
-        return panelY + Math.max(0, (TOOLBAR_H - GuideIconButton.HEIGHT) / 2);
     }
 
     private GuideIconButton reuseToolbarButton(@Nullable GuideIconButton button, int id, int x, int y,
@@ -3737,7 +3731,7 @@ public class GuideScreen extends GuiContainer
         int maxW = (int) (this.width * 0.8);
 
         String sourceDisplay = getSourceDisplayName(currentPage.sourcePack());
-        List<String> authors = meta != null ? meta.authors() : Collections.emptyList();
+        List<String> authors = meta != null ? meta.authors() : List.of();
         String dateVal = meta != null ? meta.date() : null;
         String updatedVal = meta != null ? meta.updated() : null;
         String authorsStr = buildAuthorsString(authors);
@@ -3769,7 +3763,7 @@ public class GuideScreen extends GuiContainer
         }
 
         if (!authors.isEmpty()) {
-            String firstAuthor = authors.get(0);
+            String firstAuthor = authors.getFirst();
             int authorPrefixW = fr.getStringWidth(GuidebookText.PageMetaAuthor.text(""));
             int availableForAuthor = maxW - prefixW
                 - ellipsisW
@@ -4138,10 +4132,7 @@ public class GuideScreen extends GuiContainer
             return new ItemTooltip(stack);
         }
 
-        if (structureLibTooltip != null) {
-            return structureLibTooltip;
-        }
-        return new TextTooltip(name);
+        return Objects.requireNonNullElseGet(structureLibTooltip, () -> new TextTooltip(name));
     }
 
     private void drawContentTooltip(ContentTooltip ct, int mouseX, int mouseY,
@@ -4221,7 +4212,7 @@ public class GuideScreen extends GuiContainer
         if (debugY + lineH > this.height) {
             debugY = this.height - lineH;
         }
-        drawHoveringText(Collections.singletonList("\u00a76" + coordText), mouseX, debugY, fr);
+        drawHoveringText(List.of("\u00a76" + coordText), mouseX, debugY, fr);
     }
 
     private void drawTooltipText(String text, int mouseX, int mouseY) {
@@ -6174,7 +6165,7 @@ public class GuideScreen extends GuiContainer
     private int getSpecialSearchFieldWidth() {
         int preferredWidth = Math.max(140, Math.round(contentW * (SPECIAL_SEARCH_WIDTH_PERCENT / 100.0f)));
         int maxWidth = Math.max(140, contentW - PANEL_PADDING * 2 - SPECIAL_SEARCH_BACKGROUND_PADDING_X * 2);
-        return Math.max(140, Math.min(preferredWidth, maxWidth));
+        return Math.min(preferredWidth, maxWidth);
     }
 
     private int getSearchButtonX() {
@@ -6283,7 +6274,7 @@ public class GuideScreen extends GuiContainer
             return;
         }
         if (targets.size() == 1) {
-            var target = targets.get(0);
+            var target = targets.getFirst();
             navigateTo(target.guideId(), target.page());
         } else {
             navigateTo(GuideItemLinksPage.anchorForStack(stack));
@@ -6360,7 +6351,7 @@ public class GuideScreen extends GuiContainer
 
     private List<GuideAnchor> findItemLinkTargets(@Nullable ItemStack stack) {
         if (stack == null || stack.getItem() == null) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         var uniqueTargets = new LinkedHashMap<String, GuideAnchor>();
@@ -6440,12 +6431,12 @@ public class GuideScreen extends GuiContainer
                     .isEmpty()) {
                     continue;
                 }
-                if (breadcrumb.length() > 0) {
+                if (!breadcrumb.isEmpty()) {
                     breadcrumb.append(" / ");
                 }
                 breadcrumb.append(node.title());
             }
-            if (breadcrumb.length() > 0) {
+            if (!breadcrumb.isEmpty()) {
                 return breadcrumb.toString();
             }
         }

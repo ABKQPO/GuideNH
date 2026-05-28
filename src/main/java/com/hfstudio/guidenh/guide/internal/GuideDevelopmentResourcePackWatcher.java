@@ -21,7 +21,7 @@ import io.methvin.watcher.DirectoryChangeEvent;
 import io.methvin.watcher.DirectoryChangeListener;
 import io.methvin.watcher.DirectoryWatcher;
 
-public final class GuideDevelopmentResourcePackWatcher implements AutoCloseable {
+public class GuideDevelopmentResourcePackWatcher implements AutoCloseable {
 
     private final List<DirectoryWatcher> watchers = new ArrayList<>();
     private final ExecutorService watchExecutor;

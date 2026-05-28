@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 import org.jetbrains.annotations.Nullable;
 
-public final class GuideSiteItemHtml {
+public class GuideSiteItemHtml {
 
     /** Default rendered icon size in pixels at scale=1.0 (matches the in-game 32px nav icon). */
     public static final int BASE_ICON_PX = 32;

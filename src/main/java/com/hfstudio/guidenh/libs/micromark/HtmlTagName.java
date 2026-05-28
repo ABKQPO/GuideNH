@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.libs.micromark;
 
-import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class HtmlTagName {
@@ -16,7 +16,7 @@ public class HtmlTagName {
      * This is copied from: <https://spec.commonmark.org/0.30/#html-blocks>.
      */
     public static final Set<String> htmlBlockNames = new HashSet<>(
-        Arrays.asList(
+        List.of(
             "address",
             "article",
             "aside",
@@ -85,6 +85,6 @@ public class HtmlTagName {
      * This module is copied from: <https://spec.commonmark.org/0.30/#html-blocks>.
      * Note that `textarea` was added in `CommonMark@0.30`.
      */
-    public static final Set<String> htmlRawNames = new HashSet<>(Arrays.asList("pre", "script", "style", "textarea"));
+    public static final Set<String> htmlRawNames = new HashSet<>(List.of("pre", "script", "style", "textarea"));
 
 }

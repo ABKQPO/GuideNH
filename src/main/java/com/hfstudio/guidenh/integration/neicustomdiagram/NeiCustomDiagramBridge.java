@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.integration.neicustomdiagram;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -280,7 +279,7 @@ public class NeiCustomDiagramBridge {
     private NeiCustomDiagramBridge() {}
 
     public static boolean isDiagramGroupHandler(Object handler) {
-        return AVAILABLE && handler != null && CLASS_DIAGRAM_GROUP.isInstance(handler);
+        return AVAILABLE && CLASS_DIAGRAM_GROUP.isInstance(handler);
     }
 
     /**
@@ -312,7 +311,7 @@ public class NeiCustomDiagramBridge {
         int gw = guiScissorAbsW;
         int gh = guiScissorAbsH;
         int maxGw = Math.max(1, scaledW - guiScissorAbsX);
-        gw = Math.min(maxGw, Math.max(gw, gw + 400));
+        gw = Math.clamp(gw, gw + 400, maxGw);
         int maxGh = Math.max(1, scaledH - guiScissorAbsY);
         gh = Math.min(maxGh, gh + 32);
 
@@ -409,7 +408,7 @@ public class NeiCustomDiagramBridge {
     private static void renderCustomInteractable(Object interactable, Object diagramState, int clipX, int clipY,
         int clipWidth, int clipHeight) throws Exception {
         Object drawable = METHOD_CUSTOM_INTERACTABLE_DRAWABLE.invoke(interactable);
-        if (drawable != null && CLASS_COMPONENT_LABEL.isInstance(drawable)) {
+        if (CLASS_COMPONENT_LABEL.isInstance(drawable)) {
             Object position = METHOD_INTERACTABLE_POSITION.invoke(interactable);
             runPointConsumer(FIELD_CUSTOM_INTERACTABLE_DRAW_BACKGROUND.get(interactable), position);
             Object component = METHOD_COMPONENT_LABEL_COMPONENT.invoke(drawable);
@@ -554,17 +553,17 @@ public class NeiCustomDiagramBridge {
     }
 
     private static List<String> flattenTooltip(Object tooltip) {
-        if (tooltip == null || !CLASS_TOOLTIP.isInstance(tooltip)) {
-            return Collections.emptyList();
+        if (!CLASS_TOOLTIP.isInstance(tooltip)) {
+            return List.of();
         }
         try {
             Object rawLines = METHOD_TOOLTIP_LINES.invoke(tooltip);
             if (!(rawLines instanceof Iterable<?>iterable)) {
-                return Collections.emptyList();
+                return List.of();
             }
             List<String> lines = new ArrayList<>();
             for (Object line : iterable) {
-                if (line == null || !CLASS_TOOLTIP_LINE.isInstance(line)) {
+                if (!CLASS_TOOLTIP_LINE.isInstance(line)) {
                     continue;
                 }
                 String flattened = flattenTooltipLine(line);
@@ -574,7 +573,7 @@ public class NeiCustomDiagramBridge {
             }
             return lines;
         } catch (Throwable t) {
-            return Collections.emptyList();
+            return List.of();
         }
     }
 
@@ -585,7 +584,7 @@ public class NeiCustomDiagramBridge {
         }
         StringBuilder builder = new StringBuilder();
         for (Object element : iterable) {
-            if (element == null || !CLASS_TOOLTIP_ELEMENT.isInstance(element)) {
+            if (!CLASS_TOOLTIP_ELEMENT.isInstance(element)) {
                 continue;
             }
             Object type = METHOD_TOOLTIP_ELEMENT_TYPE.invoke(element);
@@ -596,7 +595,7 @@ public class NeiCustomDiagramBridge {
                 Object component = METHOD_TOOLTIP_ELEMENT_COMPONENT_DESCRIPTION.invoke(element);
                 Object description = component != null ? METHOD_COMPONENT_DESCRIPTION.invoke(component) : null;
                 appendToken(builder, description != null ? description.toString() : "");
-            } else if ("SPACING".equals(name) && builder.length() > 0 && builder.charAt(builder.length() - 1) != ' ') {
+            } else if ("SPACING".equals(name) && !builder.isEmpty() && builder.charAt(builder.length() - 1) != ' ') {
                 builder.append(' ');
             }
         }
@@ -612,7 +611,7 @@ public class NeiCustomDiagramBridge {
         if (trimmed.isEmpty()) {
             return;
         }
-        if (builder.length() > 0 && builder.charAt(builder.length() - 1) != ' ') {
+        if (!builder.isEmpty() && builder.charAt(builder.length() - 1) != ' ') {
             builder.append(' ');
         }
         builder.append(trimmed);
@@ -623,7 +622,7 @@ public class NeiCustomDiagramBridge {
             Object value = FIELD_DIAGRAMS.get(handler);
             if (value instanceof List<?>diagrams && recipeIndex >= 0 && recipeIndex < diagrams.size()) {
                 Object diagram = diagrams.get(recipeIndex);
-                return diagram != null && CLASS_DIAGRAM.isInstance(diagram) ? diagram : null;
+                return CLASS_DIAGRAM.isInstance(diagram) ? diagram : null;
             }
         } catch (Throwable ignored) {}
         return null;
@@ -632,7 +631,7 @@ public class NeiCustomDiagramBridge {
     private static Object diagramState(Object handler) {
         try {
             Object state = FIELD_DIAGRAM_STATE.get(handler);
-            return state != null && CLASS_DIAGRAM_STATE.isInstance(state) ? state : null;
+            return CLASS_DIAGRAM_STATE.isInstance(state) ? state : null;
         } catch (Throwable ignored) {
             return null;
         }

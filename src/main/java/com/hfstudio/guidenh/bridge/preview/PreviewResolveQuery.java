@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.bridge.preview;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -20,8 +19,7 @@ public class PreviewResolveQuery {
         this.count = count;
         this.nbt = nbt == null ? "" : nbt;
         this.renderVariant = renderVariant == null ? "default" : renderVariant;
-        this.filters = filters == null ? Collections.emptyMap()
-            : Collections.unmodifiableMap(new LinkedHashMap<>(filters));
+        this.filters = filters == null || filters.isEmpty() ? Map.of() : Map.copyOf(new LinkedHashMap<>(filters));
     }
 
     public String getCapability() {

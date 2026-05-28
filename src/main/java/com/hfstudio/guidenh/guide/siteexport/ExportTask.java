@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.siteexport;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -100,10 +99,7 @@ public class ExportTask {
                 .toString());
         index.put("pages", pageIds);
         index.put("assetsCopied", assetsCopied);
-        Files.write(
-            outDir.resolve("index.json"),
-            GSON.toJson(index)
-                .getBytes(StandardCharsets.UTF_8));
+        Files.writeString(outDir.resolve("index.json"), GSON.toJson(index));
 
         return new Result(ok, failed, assetsCopied, outDir);
     }

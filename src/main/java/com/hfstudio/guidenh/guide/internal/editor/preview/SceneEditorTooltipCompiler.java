@@ -2,7 +2,8 @@ package com.hfstudio.guidenh.guide.internal.editor.preview;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -23,7 +24,7 @@ import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.extensions.DefaultExtensions;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 
-final class SceneEditorTooltipCompiler {
+public class SceneEditorTooltipCompiler {
 
     public static final String PREVIEW_SOURCE_PACK = "guidenh-scene-editor";
     public static final ResourceLocation PREVIEW_PAGE_ID = new ResourceLocation(
@@ -66,7 +67,7 @@ final class SceneEditorTooltipCompiler {
 
     public static ExtensionCollection buildExtensions() {
         ExtensionCollection.Builder builder = ExtensionCollection.builder();
-        DefaultExtensions.addAll(builder, Collections.emptySet());
+        DefaultExtensions.addAll(builder, Set.of());
         return builder.build();
     }
 
@@ -86,7 +87,7 @@ final class SceneEditorTooltipCompiler {
         public Collection<ParsedGuidePage> getPages() {
             Collection<MutableGuide> guides = GuideRegistry.getAll();
             if (guides.isEmpty()) {
-                return Collections.emptyList();
+                return List.of();
             }
             ArrayList<ParsedGuidePage> pages = new ArrayList<>();
             for (MutableGuide guide : guides) {
@@ -125,8 +126,7 @@ final class SceneEditorTooltipCompiler {
         }
 
         @Override
-        @Nullable
-        public byte[] loadAsset(ResourceLocation id) {
+        public byte @Nullable [] loadAsset(ResourceLocation id) {
             return null;
         }
 

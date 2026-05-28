@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Per-facing {@link appeng.api.parts.IPart#writeToStream} payloads for a cable bus (ordinals 0鈥?).
  */
-public final class Ae2CableBusSideStreams {
+public class Ae2CableBusSideStreams {
 
     public static final Ae2CableBusSideStreams EMPTY = new Ae2CableBusSideStreams(new byte[6][]);
 
@@ -17,13 +17,11 @@ public final class Ae2CableBusSideStreams {
         this.bySideOrdinal = bySideOrdinal != null ? bySideOrdinal : new byte[6][];
     }
 
-    @Nullable
-    public byte[] bytesForSideOrdinal(int sideOrdinal) {
+    public byte @Nullable [] bytesForSideOrdinal(int sideOrdinal) {
         return getSlot(sideOrdinal);
     }
 
-    @Nullable
-    public byte[] getSlot(int sideOrdinal) {
+    public byte @Nullable [] getSlot(int sideOrdinal) {
         if (sideOrdinal < 0 || sideOrdinal >= 6) {
             return null;
         }

@@ -26,8 +26,7 @@ public interface PageCollection {
     @Nullable
     GuidePage getPage(ResourceLocation id);
 
-    @Nullable
-    byte[] loadAsset(ResourceLocation id);
+    byte @Nullable [] loadAsset(ResourceLocation id);
 
     NavigationTree getNavigationTree();
 

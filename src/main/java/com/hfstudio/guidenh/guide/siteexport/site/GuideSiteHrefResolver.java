@@ -5,7 +5,6 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -247,9 +246,9 @@ public class GuideSiteHrefResolver {
             this.guidePath = guidePath;
             this.language = language;
             if (guideIdsByPageId == null || guideIdsByPageId.isEmpty()) {
-                this.guideIdsByPageId = Collections.emptyMap();
+                this.guideIdsByPageId = Map.of();
             } else {
-                this.guideIdsByPageId = Collections.unmodifiableMap(new LinkedHashMap<>(guideIdsByPageId));
+                this.guideIdsByPageId = Map.copyOf(new LinkedHashMap<>(guideIdsByPageId));
             }
         }
 

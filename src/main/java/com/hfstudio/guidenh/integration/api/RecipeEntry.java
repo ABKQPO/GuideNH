@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.integration.api;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -17,9 +16,8 @@ public class RecipeEntry {
         List<RecipeSlot> supportingSlots, @Nullable RecipeSlot result) {
         this.handlerName = handlerName;
         this.recipeName = recipeName;
-        this.ingredients = ingredients == null ? Collections.emptyList() : Collections.unmodifiableList(ingredients);
-        this.supportingSlots = supportingSlots == null ? Collections.emptyList()
-            : Collections.unmodifiableList(supportingSlots);
+        this.ingredients = ingredients == null ? List.of() : List.copyOf(ingredients);
+        this.supportingSlots = supportingSlots == null ? List.of() : List.copyOf(supportingSlots);
         this.result = result;
     }
 

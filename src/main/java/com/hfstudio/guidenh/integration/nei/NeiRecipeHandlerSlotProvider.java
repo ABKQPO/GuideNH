@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.integration.nei;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +27,7 @@ public class NeiRecipeHandlerSlotProvider implements RecipeHandlerSlotProvider {
 
     public static List<RecipeSlot> convertSlots(List<NeiRecipeLookup.Slot> slots) {
         if (slots == null || slots.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<RecipeSlot> converted = new ArrayList<>(slots.size());
         for (NeiRecipeLookup.Slot slot : slots) {

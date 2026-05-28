@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.indices;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.Item;
@@ -70,14 +69,14 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
             .additionalProperties()
             .get("item_ids");
         if (itemIdsNode == null) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<?> itemIdList = normalizeItemIdEntries(page, itemIdsNode);
         if (itemIdList == null) {
             FMLLog.getLogger()
                 .warn("[GuideNH] [ItemIndex] Page {} contains malformed item_ids frontmatter", page.getId());
-            return Collections.emptyList();
+            return List.of();
         }
 
         var itemAnchors = new ArrayList<Pair<ItemId, PageAnchor>>(itemIdList.size());
@@ -139,9 +138,9 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
             if (trimmed.isEmpty()) {
                 FMLLog.getLogger()
                     .warn("[GuideNH] [ItemIndex] Page {} contains an empty item_ids frontmatter entry", page.getId());
-                return Collections.emptyList();
+                return List.of();
             }
-            return Collections.singletonList(trimmed);
+            return List.of(trimmed);
         }
         return null;
     }

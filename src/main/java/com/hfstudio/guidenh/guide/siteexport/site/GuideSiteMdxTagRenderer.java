@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -433,7 +432,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         int offsetX = (width - contentWidth) / 2 - sxMin;
         int offsetY = (height - contentHeight) / 2 - syMin;
 
-        Collections.sort(blocks, STRUCTURE_DRAW_ORDER);
+        blocks.sort(STRUCTURE_DRAW_ORDER);
         LinkedHashMap<String, StructureLegendEntry> legendEntries = new LinkedHashMap<>();
 
         for (StructureBlockView block : blocks) {
@@ -609,7 +608,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 .append(escapeAttribute(templateId))
                 .append("\"");
         }
-        if (style.length() > 0) {
+        if (!style.isEmpty()) {
             html.append(" style=\"")
                 .append(escapeAttribute(style.toString()))
                 .append("\"");
@@ -1031,7 +1030,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         html.append(">");
         List<? extends MdAstAnyContent> children = element.children();
         int bodyStart = 0;
-        if (!children.isEmpty() && children.get(0) instanceof MdxJsxElementFields summaryEl
+        if (!children.isEmpty() && children.getFirst() instanceof MdxJsxElementFields summaryEl
             && "summary".equals(summaryEl.name())) {
             String summaryBody = compiler
                 .compileFragment(summaryEl.children(), templates, defaultNamespace, sceneResolver, currentPageId);
@@ -1966,8 +1965,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 break;
             case INFO:
             case ACTION:
-                html.append(renderSpecialInfo(result.flatEntries()));
-                break;
             default:
                 html.append(renderSpecialInfo(result.flatEntries()));
                 break;
@@ -2624,7 +2621,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                     break;
                 }
             }
-            if (initials.length() > 0) {
+            if (!initials.isEmpty()) {
                 return initials.toString();
             }
 
@@ -2713,7 +2710,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 .append(escapeAttribute(templateId))
                 .append("\"");
         }
-        if (style.length() > 0) {
+        if (!style.isEmpty()) {
             html.append(" style=\"")
                 .append(escapeAttribute(style.toString()))
                 .append("\"");

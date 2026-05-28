@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.mediawiki;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -723,7 +722,7 @@ public class MediaWikiSpecialPageResolver {
         MediaWikiSpecialPageQuery query) {
         String pageSelector = firstNonBlank(query.parameter(MediaWikiSpecialPageQuery.PARAM_PAGE), query.searchText());
         if (pageSelector == null) {
-            return Collections.emptyList();
+            return List.of();
         }
         String normalizedSelector = MediaWikiSpecialSearchSupport.normalize(pageSelector);
         MediaWikiTranslationStats.TranslationSnapshot snapshot = MediaWikiTranslationStats.scan(context.guide());
@@ -846,12 +845,7 @@ public class MediaWikiSpecialPageResolver {
                     entries));
         }
         if (groups.isEmpty()) {
-            groups.add(
-                new MediaWikiSpecialGroupedEntry(
-                    GuidebookText.MediaWikiNoPages.text(),
-                    "",
-                    "",
-                    Collections.<MediaWikiSpecialListEntry>emptyList()));
+            groups.add(new MediaWikiSpecialGroupedEntry(GuidebookText.MediaWikiNoPages.text(), "", "", List.of()));
         }
         return groups;
     }
@@ -1169,7 +1163,7 @@ public class MediaWikiSpecialPageResolver {
         LinkedHashMap<String, MediaWikiSpecialListEntry> entriesByLanguage = new LinkedHashMap<>();
         for (ResourceLocation variantId : context.specialDataIndex()
             .translationsBySourcePage()
-            .getOrDefault(sourcePageId, Collections.emptyList())) {
+            .getOrDefault(sourcePageId, List.of())) {
             ParsedGuidePage variant = context.specialDataIndex()
                 .normalPagesById()
                 .get(variantId);
@@ -1208,7 +1202,7 @@ public class MediaWikiSpecialPageResolver {
         LinkedHashMap<String, ParsedGuidePage> pagesByLanguage = new LinkedHashMap<>();
         for (ResourceLocation variantId : context.specialDataIndex()
             .translationsBySourcePage()
-            .getOrDefault(sourcePageId, Collections.emptyList())) {
+            .getOrDefault(sourcePageId, List.of())) {
             ParsedGuidePage variant = context.specialDataIndex()
                 .normalPagesById()
                 .get(variantId);

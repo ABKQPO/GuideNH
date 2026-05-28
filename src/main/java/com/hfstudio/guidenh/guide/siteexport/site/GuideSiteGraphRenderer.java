@@ -30,7 +30,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
  * Generates static HTML and SVG markup for chart, function-graph, file-tree,
  * mermaid-mindmap, and CSV table elements used in the static site export.
  */
-public final class GuideSiteGraphRenderer {
+public class GuideSiteGraphRenderer {
 
     // Monotonically increasing counter used to generate unique clip-path IDs so that
     // multiple function-graph SVGs embedded in the same HTML page do not share the

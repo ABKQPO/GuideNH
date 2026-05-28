@@ -73,8 +73,6 @@ public class GuideNhClientBridgeController {
     }
 
     public Path exportStructureToFile(String prefix, String structureText) throws Exception {
-        var entry = GuideNhStructureRuntime.getClientMemoryStore()
-            .remember(prefix, structureText);
         return structureFileStore.saveExport(prefix, structureText);
     }
 
@@ -314,7 +312,7 @@ public class GuideNhClientBridgeController {
                 }
                 out.write(chunk, 0, chunk.length);
             }
-            return new String(out.toByteArray(), StandardCharsets.UTF_8);
+            return out.toString(StandardCharsets.UTF_8);
         }
     }
 }

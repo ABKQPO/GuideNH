@@ -1,7 +1,5 @@
 package com.hfstudio.structurelibexport;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -29,7 +27,7 @@ public class StructureLibSceneBuildResult {
 
     public static StructureLibSceneBuildResult success(GuidebookLevel level, List<String> warnings,
         @Nullable StructureLibSceneMetadata metadata) {
-        return new StructureLibSceneBuildResult(true, level, warnings, Collections.emptyList(), metadata);
+        return new StructureLibSceneBuildResult(true, level, warnings, List.of(), metadata);
     }
 
     public static StructureLibSceneBuildResult failure(List<String> warnings, List<String> errors) {
@@ -59,8 +57,8 @@ public class StructureLibSceneBuildResult {
 
     private static List<String> immutableCopy(List<String> source) {
         if (source == null || source.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
-        return Collections.unmodifiableList(new ArrayList<>(source));
+        return List.copyOf(source);
     }
 }

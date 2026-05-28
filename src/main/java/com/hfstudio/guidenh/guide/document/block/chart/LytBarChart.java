@@ -182,14 +182,13 @@ public class LytBarChart extends LytChartBase {
         context.drawLine(inner.x(), inner.bottom(), inner.right(), inner.bottom(), 1f, xAxis.getAxisColor());
 
         int seriesCount = series.size();
-        float categoryHeightForCluster = categoryHeight;
         float baselineX = CartesianChartRenderer.mapX(0d, xRange, inner);
         ResolvedTextStyle valueStyle = textStyle(getLabelColor());
         if (seriesCount > 0) {
-            float clusterHeight = categoryHeightForCluster * barWidthRatio;
+            float clusterHeight = categoryHeight * barWidthRatio;
             float barHeight = clusterHeight / seriesCount;
             for (int ci = 0; ci < categoryCount; ci++) {
-                float clusterCenter = inner.y() + categoryHeightForCluster * (ci + 0.5f);
+                float clusterCenter = inner.y() + categoryHeight * (ci + 0.5f);
                 float clusterTop = clusterCenter - clusterHeight / 2f;
                 for (int si = 0; si < seriesCount; si++) {
                     ChartSeries s = series.get(si);
@@ -232,7 +231,7 @@ public class LytBarChart extends LytChartBase {
                 float[] py = new float[n];
                 for (int i = 0; i < n; i++) {
                     px[i] = CartesianChartRenderer.mapX(s.getYs()[i], xRange, inner);
-                    py[i] = inner.y() + categoryHeightForCluster * (i + 0.5f);
+                    py[i] = inner.y() + categoryHeight * (i + 0.5f);
                 }
                 for (int i = 0; i + 1 < n; i++) {
                     float thick = LINE_THICKNESS + 1f;
@@ -266,18 +265,19 @@ public class LytBarChart extends LytChartBase {
         int lh = context.getLineHeight(style);
         int textX;
         int textY = bar.y() + (bar.height() - lh) / 2;
+        int textX1 = bar.x() + (bar.width() - tw) / 2;
         switch (getLabelPosition()) {
             case ABOVE:
-                textX = bar.x() + (bar.width() - tw) / 2;
+                textX = textX1;
                 textY = bar.y() - lh - 1;
                 break;
             case BELOW:
-                textX = bar.x() + (bar.width() - tw) / 2;
+                textX = textX1;
                 textY = bar.bottom() + 1;
                 break;
             case CENTER:
             case INSIDE:
-                textX = bar.x() + (bar.width() - tw) / 2;
+                textX = textX1;
                 break;
             case OUTSIDE:
                 textX = value >= 0 ? (int) endX + 3 : (int) endX - tw - 3;
@@ -325,8 +325,7 @@ public class LytBarChart extends LytChartBase {
         float categoryHeight = (float) plotCache.height() / categoryCount;
         // Test line overlay points first so they take priority over bars beneath.
         if (!lineOverlays.isEmpty()) {
-            float threshold = (LINE_POINT_RADIUS + 3f) * (LINE_POINT_RADIUS + 3f);
-            float bestDist = threshold;
+            float bestDist = (LINE_POINT_RADIUS + 3f) * (LINE_POINT_RADIUS + 3f);
             int bestKey = -1;
             for (int li = 0; li < lineOverlays.size(); li++) {
                 ChartSeries s = lineOverlays.get(li);

@@ -79,7 +79,7 @@ public class MutableGuide
      * These are only loaded for the current language and optionally supplemented by language-neutral pages.
      */
     private Map<ResourceLocation, ParsedGuidePage> pages;
-    private Map<ResourceLocation, ParsedGuidePage> syntheticPages = Collections.emptyMap();
+    private Map<ResourceLocation, ParsedGuidePage> syntheticPages = Map.of();
     private final Map<ResourceLocation, SyntheticSourceSnapshot> syntheticSourceCache = new HashMap<>();
     @Nullable
     private MediaWikiListContext mediaWikiListContext;
@@ -318,7 +318,7 @@ public class MutableGuide
                 entry.getKey(),
                 new GuidePageFailureView(failure.headingText, failure.errorText, failure.parseFailure));
         }
-        return Collections.unmodifiableMap(snapshot);
+        return Map.copyOf(snapshot);
     }
 
     /**
@@ -388,7 +388,7 @@ public class MutableGuide
         mediaWikiRefreshController.close();
         developmentPages.clear();
         pageFailures.clear();
-        syntheticPages = Collections.emptyMap();
+        syntheticPages = Map.of();
         syntheticSourceCache.clear();
         mediaWikiListContext = null;
         fallbackMediaWikiListContext = null;
@@ -552,8 +552,8 @@ public class MutableGuide
     }
 
     public void setPages(Map<ResourceLocation, ParsedGuidePage> pages, boolean invalidateMergedNavigationTree) {
-        this.pages = Collections.unmodifiableMap(new HashMap<>(pages));
-        this.syntheticPages = Collections.emptyMap();
+        this.pages = Map.copyOf(new HashMap<>(pages));
+        this.syntheticPages = Map.of();
         invalidateMediaWikiDerivedCaches();
         synchronized (compiledPagesWeak) {
             compiledPagesWeak.clear();
@@ -1055,7 +1055,7 @@ public class MutableGuide
 
     private void rebuildSyntheticPages() {
         if (pages == null) {
-            syntheticPages = Collections.emptyMap();
+            syntheticPages = Map.of();
             syntheticSourceCache.clear();
             invalidateMediaWikiDerivedCaches();
             return;
@@ -1070,7 +1070,7 @@ public class MutableGuide
             categoryIndex,
             syntheticSourceCache,
             this::parseSyntheticPage);
-        syntheticPages = Collections.unmodifiableMap(rebuiltPages);
+        syntheticPages = Map.copyOf(rebuiltPages);
         previousSyntheticIds.addAll(syntheticPages.keySet());
         for (ResourceLocation syntheticPageId : previousSyntheticIds) {
             removeCompiledPage(syntheticPageId);

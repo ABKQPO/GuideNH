@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
 
-class GuideMEClientProxy extends GuideMEServerProxy {
+public class GuideMEClientProxy extends GuideMEServerProxy {
 
     @Override
     public boolean openGuide(EntityPlayer player, ResourceLocation guideId, @Nullable PageAnchor anchor) {

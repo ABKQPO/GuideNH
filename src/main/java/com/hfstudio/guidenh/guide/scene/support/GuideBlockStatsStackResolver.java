@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.support;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -20,7 +19,7 @@ public class GuideBlockStatsStackResolver {
     public static List<ItemStack> resolveStacks(GuidebookLevel level, int x, int y, int z) {
         List<ResolvedStack> entries = resolveEntries(level, x, y, z);
         if (entries.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<ItemStack> stacks = new ArrayList<>(entries.size());
         for (ResolvedStack entry : entries) {

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal;
 
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.command.CommandBase;
@@ -50,7 +49,7 @@ public class GuideNhBridgeCommand extends CommandBase {
         if (args.length == 1) {
             return getListOfStringsMatchingLastWord(args, ROOT_SUB_COMMANDS);
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override

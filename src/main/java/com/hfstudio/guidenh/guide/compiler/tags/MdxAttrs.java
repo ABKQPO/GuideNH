@@ -384,8 +384,7 @@ public class MdxAttrs {
         return new Vector3f(parts[0], parts[1], parts[2]);
     }
 
-    @Nullable
-    public static float[] parseVector3Parts(String raw) {
+    public static float @Nullable [] parseVector3Parts(String raw) {
         float[] values = new float[3];
         int length = raw.length();
         int index = 0;

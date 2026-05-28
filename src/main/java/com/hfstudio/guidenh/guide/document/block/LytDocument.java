@@ -149,7 +149,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         }
     }
 
-    public HitTestResult getHoveredElement() {
+    public @Nullable HitTestResult getHoveredElement() {
         return hoveredElement;
     }
 

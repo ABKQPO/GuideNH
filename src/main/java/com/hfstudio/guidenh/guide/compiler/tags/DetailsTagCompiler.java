@@ -31,7 +31,7 @@ public class DetailsTagCompiler extends BlockTagCompiler {
         List<? extends MdAstAnyContent> children = detailsBodySource != null ? compiler.reparseBlockTagChildren(el)
             : el.children();
         int bodyStart = 0;
-        if (!children.isEmpty() && children.get(0) instanceof MdxJsxFlowElement summaryElement
+        if (!children.isEmpty() && children.getFirst() instanceof MdxJsxFlowElement summaryElement
             && "summary".equals(summaryElement.name())) {
             details.getSummaryBox()
                 .clearContent();

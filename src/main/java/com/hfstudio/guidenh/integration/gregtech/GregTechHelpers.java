@@ -263,7 +263,7 @@ public class GregTechHelpers {
     }
 
     public static boolean isMachineItem(@Nullable Item item) {
-        return item != null && Mods.GregTech.isModLoaded() && isMachineItemImpl(item);
+        return Mods.GregTech.isModLoaded() && isMachineItemImpl(item);
     }
 
     @Optional.Method(modid = "gregtech")
@@ -642,7 +642,7 @@ public class GregTechHelpers {
     }
 
     public static boolean isMTEHatch(@Nullable Object metaTileEntity) {
-        return metaTileEntity != null && Mods.GregTech.isModLoaded() && isMTEHatchImpl(metaTileEntity);
+        return Mods.GregTech.isModLoaded() && isMTEHatchImpl(metaTileEntity);
     }
 
     @Optional.Method(modid = "gregtech")
@@ -727,7 +727,7 @@ public class GregTechHelpers {
         appendTagValue(builder, tileTag, "mID");
         appendTagValue(builder, tileTag, "mFacing");
         appendTagValue(builder, tileTag, "m");
-        if (builder.length() == 0) {
+        if (builder.isEmpty()) {
             builder.append("empty-tag");
         }
         return builder.toString();
@@ -787,7 +787,7 @@ public class GregTechHelpers {
         if (!tileTag.hasKey(key)) {
             return;
         }
-        if (builder.length() > 0) {
+        if (!builder.isEmpty()) {
             builder.append(", ");
         }
         builder.append(key)

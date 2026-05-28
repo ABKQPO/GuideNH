@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.guide;
 
-public final class GuideScreenEditorMerge {
+public class GuideScreenEditorMerge {
 
     private GuideScreenEditorMerge() {}
 

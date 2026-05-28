@@ -14,6 +14,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.jetbrains.annotations.NotNull;
+
 import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.bridge.preview.ItemPreviewCache;
 import com.hfstudio.guidenh.bridge.preview.ItemPreviewSearchService;
@@ -158,7 +160,7 @@ public class GuideNhRuntimeBridgeServer {
         private int nextThreadId;
 
         @Override
-        public Thread newThread(Runnable runnable) {
+        public Thread newThread(@NotNull Runnable runnable) {
             Thread thread = new Thread(runnable, "GuideNH-RuntimeBridge-" + nextThreadId++);
             thread.setDaemon(true);
             return thread;

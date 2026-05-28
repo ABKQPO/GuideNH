@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.libs.micromark.extensions.gfmstrikethrough;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import com.github.bsideup.jabel.Desugar;
@@ -42,7 +41,7 @@ public class GfmStrikethroughSyntax extends Extension {
         tokenizer.resolveAll = this::resolveAllStrikethrough;
 
         // Set up the extension configuration
-        text.put(Codes.tilde, Collections.singletonList(tokenizer));
+        text.put(Codes.tilde, List.of(tokenizer));
         nullInsideSpan.add(tokenizer.resolveAll);
         nullAttentionMarkers.add(Codes.tilde);
     }

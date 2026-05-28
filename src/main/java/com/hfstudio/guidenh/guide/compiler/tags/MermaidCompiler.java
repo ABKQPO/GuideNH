@@ -206,8 +206,8 @@ public class MermaidCompiler extends BlockTagCompiler {
             MermaidMindmapNode node = pending.removeFirst();
             nodesById.putIfAbsent(node.getId(), node);
             List<MermaidMindmapNode> children = node.getChildren();
-            for (int index = 0; index < children.size(); index++) {
-                pending.addLast(children.get(index));
+            for (MermaidMindmapNode child : children) {
+                pending.addLast(child);
             }
         }
         return nodesById;

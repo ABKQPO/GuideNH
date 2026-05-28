@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.bridge.semantic;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.google.gson.JsonElement;
@@ -34,10 +33,10 @@ public class SemanticQueryFactory {
         if (payload == null || !payload.has("filters")
             || !payload.get("filters")
                 .isJsonObject()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
 
-        Map<String, String> filters = new HashMap<>();
+        var filters = new LinkedHashMap<String, String>();
         for (Map.Entry<String, JsonElement> entry : payload.getAsJsonObject("filters")
             .entrySet()) {
             JsonElement value = entry.getValue();
@@ -45,7 +44,7 @@ public class SemanticQueryFactory {
                 filters.put(entry.getKey(), value.getAsString());
             }
         }
-        return filters;
+        return filters.isEmpty() ? Map.of() : Map.copyOf(filters);
     }
 
     private String readString(JsonObject payload, String name, String defaultValue) {

@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.joml.Vector3f;
@@ -41,6 +40,6 @@ public class LineAnnotationPointParser {
         if (points.size() < 2) {
             throw new IllegalArgumentException("points expects at least two semicolon-separated points.");
         }
-        return Collections.unmodifiableList(points);
+        return List.copyOf(points);
     }
 }

@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -86,17 +85,17 @@ public class MediaWikiSpecialDataIndexer {
         long metadataElapsedNanos = System.nanoTime() - metadataStartNanos;
 
         MediaWikiSpecialDataIndex dataIndex = new MediaWikiSpecialDataIndex(
-            Collections.unmodifiableMap(normalPages),
-            Collections.unmodifiableMap(translations),
-            Collections.unmodifiableMap(pageProperties),
-            Collections.unmodifiableMap(externalLinks),
-            Collections.unmodifiableMap(pageSizes),
-            Collections.unmodifiableMap(assetSizesById),
-            Collections.unmodifiableMap(fileUsageByPath),
-            Collections.unmodifiableMap(lintIssues),
-            Collections.unmodifiableMap(ambiguousBindings),
-            Collections.unmodifiableMap(overrides),
-            Collections.unmodifiableSet(unusedFiles));
+            Map.copyOf(normalPages),
+            Map.copyOf(translations),
+            Map.copyOf(pageProperties),
+            Map.copyOf(externalLinks),
+            Map.copyOf(pageSizes),
+            Map.copyOf(assetSizesById),
+            Map.copyOf(fileUsageByPath),
+            Map.copyOf(lintIssues),
+            Map.copyOf(ambiguousBindings),
+            Map.copyOf(overrides),
+            Set.copyOf(unusedFiles));
         long totalElapsedNanos = System.nanoTime() - totalStartNanos;
         FMLLog.getLogger()
             .info(
@@ -290,7 +289,7 @@ public class MediaWikiSpecialDataIndexer {
             if (page != null && page.hasParseFailure()) {
                 issues.put(
                     page.getId(),
-                    Collections.singletonList(
+                    List.of(
                         new MediaWikiSpecialLintIssue(
                             page.getParseFailureMessage(),
                             resolveLineNumber(page.getParseFailureFrom()))));
@@ -409,7 +408,7 @@ public class MediaWikiSpecialDataIndexer {
         if (guide instanceof MediaWikiGuideAggregator aggregator) {
             return new ArrayList<Guide>(aggregator.getComponentGuides());
         }
-        return Collections.singletonList(guide);
+        return List.of(guide);
     }
 
     private Guide resolveOwnerGuide(Guide guide, ParsedGuidePage page) {
@@ -533,7 +532,7 @@ public class MediaWikiSpecialDataIndexer {
 
     private List<String> readStringValues(ParsedGuidePage page, String... keys) {
         if (page.getFrontmatter() == null || keys == null || keys.length == 0) {
-            return Collections.emptyList();
+            return List.of();
         }
         LinkedHashSet<String> result = new LinkedHashSet<>();
         for (String key : keys) {
@@ -558,7 +557,7 @@ public class MediaWikiSpecialDataIndexer {
                 result.add(text.trim());
             }
         }
-        return result.isEmpty() ? Collections.<String>emptyList() : new ArrayList<>(result);
+        return result.isEmpty() ? List.of() : new ArrayList<>(result);
     }
 
     private @Nullable ResourceLocation tryResolveAssetId(ParsedGuidePage page, String rawPath) {
@@ -624,17 +623,17 @@ public class MediaWikiSpecialDataIndexer {
     private Set<ResourceLocation> resolveAssetTargets(@Nullable ResourceLocation referenceAssetId,
         Map<ResourceLocation, Set<ResourceLocation>> assetVariantsByReference) {
         if (referenceAssetId == null || assetVariantsByReference == null) {
-            return Collections.emptySet();
+            return Set.of();
         }
         Set<ResourceLocation> matches = assetVariantsByReference.get(referenceAssetId);
-        return matches != null ? matches : Collections.emptySet();
+        return matches != null ? matches : Set.of();
     }
 
     private List<AssetReference> collectAssetReferences(ParsedGuidePage page) {
         if (page == null || page.getSource() == null
             || page.getSource()
                 .isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
         ArrayList<AssetReference> references = new ArrayList<>();
         LinkedHashSet<String> seen = new LinkedHashSet<>();
