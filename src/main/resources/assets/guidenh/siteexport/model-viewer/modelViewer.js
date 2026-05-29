@@ -939,11 +939,21 @@ function createPonderControl(documentRef, control, currentTick, onChange) {
       ? control.keyframes.map((keyframe) => Math.max(0, Number(keyframe?.time) || 0))
       : [];
   const uniqueTicks = [...new Set([0, ...ticks, Math.max(0, Number(control.totalTime) || 0)])].sort((a, b) => a - b);
+  const keyframeByTick = new Map();
+  const visibleKeyframeTicks = [];
+  if (Array.isArray(control.keyframes)) {
+    for (const keyframe of control.keyframes) {
+      const tick = Math.max(0, Number(keyframe?.time) || 0);
+      if (!keyframeByTick.has(tick)) {
+        keyframeByTick.set(tick, keyframe);
+        visibleKeyframeTicks.push(tick);
+      }
+    }
+    visibleKeyframeTicks.sort((a, b) => a - b);
+  }
 
   const describeTick = (tick) => {
-    const keyframe = Array.isArray(control.keyframes)
-      ? control.keyframes.find((candidate) => Math.max(0, Number(candidate?.time) || 0) === tick)
-      : null;
+    const keyframe = keyframeByTick.get(tick) ?? null;
     const label = typeof keyframe?.label === "string" && keyframe.label.length > 0 ? keyframe.label : "";
     const tickLabel = `${control.timeLabel || "Tick"} ${tick}`;
     return label ? `${label} - ${tickLabel}` : tickLabel;
@@ -974,7 +984,7 @@ function createPonderControl(documentRef, control, currentTick, onChange) {
   previousButton.addEventListener("click", () => {
     const current = Number(range.value) || 0;
     let previous = 0;
-    for (const tick of uniqueTicks) {
+    for (const tick of visibleKeyframeTicks) {
       if (tick < current) {
         previous = tick;
       } else {

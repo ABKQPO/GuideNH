@@ -65,6 +65,7 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 | `totalTime` | int | 动画总时长（游戏刻，20 刻 = 1 秒） |
 | `keyframes` | array | 按时间排序的关键帧列表 |
 | `time` | int | 该关键帧激活的游戏刻 |
+| `hidden` | bool? | 为 `true` 时，该关键帧仍会正常执行，但不会渲染可见进度条节点，基于可见节点的导航也会跳过它 |
 | `label` | string? | 鼠标悬停关键帧节点时显示的标签 |
 | `labelKey` | string? | 关键帧标签的翻译键。解析成功时会覆盖 `label` |
 | `camera` | object? | 摄像机部分覆盖（仅指定的字段生效） |
@@ -76,6 +77,10 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 | `setEntityNBT` / `mergeEntityNBT` / `modifyEntityNBT` / `removeEntityNBT` | array? | 对引用实体执行支持定位重放的更新；除了 NBT，也可顺便修改位置、稳定骑乘关系与预览玩家外观状态 |
 | `removeEntities` | array? | 通过稳定场景实体注册表，按 `ref` 删除思索时间轴实体 |
 | `animateEntities` | array? | 对引用的思索实体应用支持重放和拖动时间轴的运行时预设动画 |
+
+可用 `hidden: true` 表示“有中间状态，但不新增可见节点”。这对两个主要可见关键帧之间插入额外的
+`modifyTileNBT` 步骤尤其有用。
+随包提供的 `/assets/ponder_demo.json` 现在也包含了一个隐藏的中间方块 NBT 更新示例。
 
 ---
 

@@ -485,11 +485,14 @@ public class LytGuidebookScene extends LytBlock {
 
         @Getter
         private final int time;
+        @Getter
+        private final boolean hidden;
         @Nullable
         private final String label;
 
-        public PonderTimelineKeyframe(int time, @Nullable String label) {
+        public PonderTimelineKeyframe(int time, boolean hidden, @Nullable String label) {
             this.time = Math.max(0, time);
+            this.hidden = hidden;
             this.label = label;
         }
 
@@ -4148,10 +4151,11 @@ public class LytGuidebookScene extends LytBlock {
         if (ponderSceneData == null) {
             return List.of();
         }
-        ArrayList<PonderTimelineKeyframe> keyframes = new ArrayList<>();
-        for (PonderKeyframe keyframe : ponderSceneData.getKeyframes()) {
+        List<PonderKeyframe> sourceKeyframes = ponderSceneData.getKeyframes();
+        ArrayList<PonderTimelineKeyframe> keyframes = new ArrayList<>(sourceKeyframes.size());
+        for (PonderKeyframe keyframe : sourceKeyframes) {
             if (keyframe != null) {
-                keyframes.add(new PonderTimelineKeyframe(keyframe.getTime(), keyframe.getLabel()));
+                keyframes.add(new PonderTimelineKeyframe(keyframe.getTime(), keyframe.isHidden(), keyframe.getLabel()));
             }
         }
         return List.copyOf(keyframes);
@@ -4385,6 +4389,9 @@ public class LytGuidebookScene extends LytBlock {
         if (ponderSceneData == null) return;
         int targetTick = 0;
         for (PonderKeyframe kf : ponderSceneData.getKeyframes()) {
+            if (kf.isHidden()) {
+                continue;
+            }
             if (kf.getTime() < ponderCurrentTick) {
                 targetTick = kf.getTime();
             }
@@ -5999,6 +6006,9 @@ public class LytGuidebookScene extends LytBlock {
         int hitPad = GuideSliderRenderer.HIT_PADDING_Y;
 
         for (PonderKeyframe kf : ponderSceneData.getKeyframes()) {
+            if (kf.isHidden()) {
+                continue;
+            }
             float frac = totalTime > 0 ? kf.getTime() / (float) totalTime : 0f;
             int renderNx = renderBarLeft + Math.round(frac * (renderBarW - nodeW));
             int absNx = absBarLeft + Math.round(frac * (absBarW - nodeW));

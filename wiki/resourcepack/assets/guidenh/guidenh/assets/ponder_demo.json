@@ -217,7 +217,37 @@
           "y": 1,
           "z": 1,
           "path": "Items[0].Count",
+          "value": "2b"
+        }
+      ]
+    },
+    {
+      "time": 346,
+      "hidden": true,
+      "modifyTileNBT": [
+        {
+          "x": 2,
+          "y": 1,
+          "z": 1,
+          "path": "Items[0].Count",
           "value": "3b"
+        }
+      ]
+    },
+    {
+      "time": 352,
+      "label": "Done",
+      "camera": {
+        "rotY": 210.0,
+        "zoom": 1.8
+      },
+      "modifyTileNBT": [
+        {
+          "x": 2,
+          "y": 1,
+          "z": 1,
+          "path": "Items[0].Count",
+          "value": "4b"
         }
       ],
       "createEntities": [
@@ -304,7 +334,7 @@
       ]
     },
     {
-      "time": 352,
+      "time": 364,
       "label": "Entity presets",
       "camera": {
         "rotY": 214.0,
@@ -342,7 +372,7 @@
       ]
     },
     {
-      "time": 372,
+      "time": 384,
       "label": "Jump and crouch",
       "camera": {
         "rotY": 220.0,
@@ -377,7 +407,7 @@
       ]
     },
     {
-      "time": 392,
+      "time": 404,
       "label": "Unsneak",
       "animateEntities": [
         {
@@ -396,7 +426,7 @@
       ]
     },
     {
-      "time": 402,
+      "time": 414,
       "label": "Remove mounted entity",
       "removeEntities": [
         {
@@ -415,7 +445,7 @@
       ]
     },
     {
-      "time": 410,
+      "time": 422,
       "label": "Explosion preset",
       "particles": [
         {
@@ -439,7 +469,7 @@
       ]
     },
     {
-      "time": 435,
+      "time": 447,
       "label": "Weather preset",
       "particles": [
         {

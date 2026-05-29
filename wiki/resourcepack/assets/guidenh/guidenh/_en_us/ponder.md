@@ -55,6 +55,7 @@ Press ▶ to play, or drag the timeline. The keyframe nodes snap the timeline to
 | `totalTime` | int | Total animation length in game ticks (20 ticks = 1 second) |
 | `keyframes` | array | Ordered list of keyframe objects |
 | `time` | int | Tick at which this keyframe becomes active |
+| `hidden` | bool? | When `true`, this keyframe still runs normally but does not render a visible progress-bar node, and visible-node navigation skips it |
 | `label` | string? | Optional fallback label shown when hovering the keyframe node |
 | `labelKey` | string? | Translation key for the keyframe label. When resolved, it overrides `label` |
 | `camera` | object? | Partial camera override (only specified fields are applied) |
@@ -68,6 +69,10 @@ Press ▶ to play, or drag the timeline. The keyframe nodes snap the timeline to
 | `setEntityNBT` / `mergeEntityNBT` / `modifyEntityNBT` / `removeEntityNBT` | array? | Seek-safe entity updates; besides NBT, these actions can also adjust transform, stable mount state, and preview-player visual state |
 | `removeEntities` | array? | Remove Ponder-owned entities by `ref` through the stable scene-entity registry |
 | `animateEntities` | array? | Replay-safe timed animation presets applied to referenced Ponder entities |
+
+Use `hidden: true` for intermediate timeline states that should not create a new visible progress-bar node. This is
+especially useful for extra `modifyTileNBT` steps between two major visible beats.
+The bundled `/assets/ponder_demo.json` now includes a hidden intermediate tile-NBT update between visible milestones.
 
 ---
 
