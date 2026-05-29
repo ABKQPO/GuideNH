@@ -4893,7 +4893,7 @@ public class GuideScreen extends GuiContainer
             if (hit != null) {
                 boolean handled = false;
                 var fc = hit.content();
-                while (fc != null && !handled) {
+                while (fc != null) {
                     if (fc instanceof InteractiveElement ie) {
                         handled = ie.mouseClicked(this, docX, docY, button, false);
                         if (handled) break;
@@ -5481,7 +5481,7 @@ public class GuideScreen extends GuiContainer
         }
         boolean handled = false;
         var fc = hit.content();
-        while (fc != null && !handled) {
+        while (fc != null) {
             if (fc instanceof InteractiveElement ie) {
                 handled = ie.mouseClicked(this, interaction.docX, interaction.docY, button, false);
                 if (handled) break;
