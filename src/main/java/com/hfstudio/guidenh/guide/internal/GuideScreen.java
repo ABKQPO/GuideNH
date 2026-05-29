@@ -626,7 +626,7 @@ public class GuideScreen extends GuiContainer
 
     @Override
     public void initGui() {
-        super.initGui();
+        GuideScreenNeiBridge.ensureManagerInitialized(this);
         Keyboard.enableRepeatEvents(true);
         syncGuideEditorStateFromConfig();
         if (document == null) {
@@ -715,6 +715,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private void rememberNavigationState() {
+        if (guide == null) return;
         ClientProxy.getLytHost().getNavigation().rememberNavBarState(guide.getId(), navBar.captureState());
     }
 
@@ -763,6 +764,14 @@ public class GuideScreen extends GuiContainer
     @Override
     public void updateScreen() {
         if (mc == null) return;
+        try {
+            tickScreen();
+        } catch (NullPointerException ignored) {
+            // NEI Mixin may leave GuiContainer.manager uninitialized for GuideScreen
+        }
+    }
+
+    private void tickScreen() {
         completePendingContentPageLoadIfNeeded();
         processPendingSceneRegistrations();
         GuideScreenNeiBridge.tick(this);

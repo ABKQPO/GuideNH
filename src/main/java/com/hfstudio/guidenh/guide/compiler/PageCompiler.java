@@ -428,6 +428,10 @@ public class PageCompiler {
     }
 
     public static Frontmatter parseFrontmatterFromSource(ResourceLocation pageId, String pageContent) {
+        // Strip UTF-8 BOM if present (resource pack files may include it)
+        if (pageContent.startsWith("﻿")) {
+            pageContent = pageContent.substring(1);
+        }
         var yamlText = extractFrontmatterText(pageContent);
         if (yamlText == null) {
             return new Frontmatter(null, Collections.emptyMap());
