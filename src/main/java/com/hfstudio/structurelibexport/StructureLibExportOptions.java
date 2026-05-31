@@ -8,6 +8,9 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
+@Getter
 public class StructureLibExportOptions {
 
     @Nullable
@@ -83,84 +86,6 @@ public class StructureLibExportOptions {
         this.gtPlaceHatches = gtPlaceHatches;
         this.force = force;
         this.dryRun = dryRun;
-    }
-
-    @Nullable
-    public String getController() {
-        return controller;
-    }
-
-    @Nullable
-    public Path getOutDir() {
-        return outDir;
-    }
-
-    public int getPixelsPerBlock() {
-        return pixelsPerBlock;
-    }
-
-    public float getScale() {
-        return scale;
-    }
-
-    public List<Integer> getTiers() {
-        return tiers;
-    }
-
-    public Map<String, List<Integer>> getChannels() {
-        return channels;
-    }
-
-    public boolean isTierExplicit() {
-        return tierExplicit;
-    }
-
-    public boolean isChannelsExplicit() {
-        return channelsExplicit;
-    }
-
-    public String getLayerExpression() {
-        return layerExpression;
-    }
-
-    public boolean isLayersEach() {
-        return layersEach;
-    }
-
-    public List<StructureLibOrientationSpec> getOrientations() {
-        return orientations;
-    }
-
-    public StructureLibExportView getView() {
-        return view;
-    }
-
-    public StructureLibExportBackground getBackground() {
-        return background;
-    }
-
-    public long getMaxPixels() {
-        return maxPixels;
-    }
-
-    public int getBatchSize() {
-        return batchSize;
-    }
-
-    public boolean isGtActiveController() {
-        return gtActiveController;
-    }
-
-    public boolean isGtPlaceHatches() {
-        return gtPlaceHatches;
-    }
-
-    public boolean isForce() {
-        return force;
-    }
-
-    public boolean isDryRun() {
-        return dryRun;
     }
 
     @Nullable

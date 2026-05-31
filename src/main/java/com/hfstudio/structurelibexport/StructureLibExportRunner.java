@@ -105,8 +105,8 @@ public class StructureLibExportRunner {
                                             true,
                                             renderTask,
                                             target.toString(),
-                                            fittedCamera.getWidth(),
-                                            fittedCamera.getHeight(),
+                                            fittedCamera.width(),
+                                            fittedCamera.height(),
                                             buildResult.getWarnings(),
                                             new ArrayList<>()));
                                     checkpointManifest(sender, outputDirectory, manifest, options, buildContext);
@@ -114,22 +114,22 @@ public class StructureLibExportRunner {
                                 }
                                 StructureLibSceneImageExporter.ExportedImage image = imageExporter.export(
                                     buildResult.getLevel(),
-                                    fittedCamera.getCamera(),
+                                    fittedCamera.camera(),
                                     layers,
                                     renderTask.getBackground(),
                                     target,
-                                    fittedCamera.getWidth(),
-                                    fittedCamera.getHeight(),
+                                    fittedCamera.width(),
+                                    fittedCamera.height(),
                                     options.getMaxPixels());
                                 successCount++;
                                 manifest.add(
                                     new StructureLibExportManifest.Entry(
                                         true,
                                         renderTask,
-                                        image.getPath()
+                                        image.path()
                                             .toString(),
-                                        image.getWidth(),
-                                        image.getHeight(),
+                                        image.width(),
+                                        image.height(),
                                         buildResult.getWarnings(),
                                         new ArrayList<>()));
                                 checkpointManifest(sender, outputDirectory, manifest, options, buildContext);

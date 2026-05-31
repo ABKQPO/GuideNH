@@ -4,6 +4,9 @@ import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
+@Getter
 public class StructureLibOrientationSpec {
 
     public static final StructureLibOrientationSpec DEFAULT = new StructureLibOrientationSpec(null, null, null, true);
@@ -27,25 +30,6 @@ public class StructureLibOrientationSpec {
     public static StructureLibOrientationSpec of(@Nullable String facing, @Nullable String rotation,
         @Nullable String flip) {
         return new StructureLibOrientationSpec(facing, rotation, flip, false);
-    }
-
-    @Nullable
-    public String getFacing() {
-        return facing;
-    }
-
-    @Nullable
-    public String getRotation() {
-        return rotation;
-    }
-
-    @Nullable
-    public String getFlip() {
-        return flip;
-    }
-
-    public boolean isDefaultOrientation() {
-        return defaultOrientation;
     }
 
     public String asSuffix() {

@@ -4,6 +4,9 @@ import java.nio.file.Path;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
+@Getter
 public class GameSceneExportOptions {
 
     @Nullable
@@ -37,59 +40,6 @@ public class GameSceneExportOptions {
         this.showGrid = showGrid;
         this.force = force;
         this.dryRun = dryRun;
-    }
-
-    @Nullable
-    public Path getOutDir() {
-        return outDir;
-    }
-
-    public int getPixelsPerBlock() {
-        return pixelsPerBlock;
-    }
-
-    public float getScale() {
-        return scale;
-    }
-
-    public String getLayerExpression() {
-        return layerExpression;
-    }
-
-    public boolean isLayersEach() {
-        return layersEach;
-    }
-
-    public StructureLibExportView getView() {
-        return view;
-    }
-
-    public StructureLibExportBackground getBackground() {
-        return background;
-    }
-
-    public long getMaxPixels() {
-        return maxPixels;
-    }
-
-    public int getBatchSize() {
-        return batchSize;
-    }
-
-    public boolean isShowAnnotations() {
-        return showAnnotations;
-    }
-
-    public boolean isShowGrid() {
-        return showGrid;
-    }
-
-    public boolean isForce() {
-        return force;
-    }
-
-    public boolean isDryRun() {
-        return dryRun;
     }
 
     @Nullable

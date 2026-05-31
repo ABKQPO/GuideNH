@@ -4,6 +4,9 @@ import java.util.Locale;
 
 import net.minecraft.command.CommandException;
 
+import lombok.Getter;
+
+@Getter
 public class StructureLibExportBackground {
 
     public static final int DARK_ARGB = 0xFF121216;
@@ -45,10 +48,6 @@ public class StructureLibExportBackground {
             }
         }
         throw new CommandException("Invalid background. Use transparent, dark, #RRGGBB, or #AARRGGBB.");
-    }
-
-    public int getArgb() {
-        return argb;
     }
 
     public boolean isTransparent() {

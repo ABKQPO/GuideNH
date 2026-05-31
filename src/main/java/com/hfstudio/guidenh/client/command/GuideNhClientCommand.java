@@ -221,10 +221,10 @@ public class GuideNhClientCommand extends CommandBase {
             send(
                 sender,
                 GuidebookText.CommandExportSuccess,
-                result.pagesExported,
-                result.pagesFailed,
-                result.assetsCopied,
-                result.outDir);
+                result.pagesExported(),
+                result.pagesFailed(),
+                result.assetsCopied(),
+                result.outDir());
         } catch (Throwable t) {
             send(sender, GuidebookText.CommandExportFailure, getErrorMessage(t));
         }

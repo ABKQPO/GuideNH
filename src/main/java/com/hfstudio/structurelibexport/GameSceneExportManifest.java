@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class GameSceneExportManifest {
 
     private final List<Entry> entries = new ArrayList<>();
@@ -19,6 +21,7 @@ public class GameSceneExportManifest {
         return List.copyOf(entries);
     }
 
+    @Getter
     public static class Entry {
 
         private final boolean success;

@@ -7,6 +7,9 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 
+import lombok.Getter;
+
+@Getter
 public class StructureLibSceneBuildResult {
 
     private final boolean success;
@@ -32,27 +35,6 @@ public class StructureLibSceneBuildResult {
 
     public static StructureLibSceneBuildResult failure(List<String> warnings, List<String> errors) {
         return new StructureLibSceneBuildResult(false, new GuidebookLevel(), warnings, errors, null);
-    }
-
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public GuidebookLevel getLevel() {
-        return level;
-    }
-
-    public List<String> getWarnings() {
-        return warnings;
-    }
-
-    public List<String> getErrors() {
-        return errors;
-    }
-
-    @Nullable
-    public StructureLibSceneMetadata getMetadata() {
-        return metadata;
     }
 
     private static List<String> immutableCopy(List<String> source) {

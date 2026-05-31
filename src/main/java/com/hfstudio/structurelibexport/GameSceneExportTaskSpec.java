@@ -8,6 +8,10 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
 public class GameSceneExportTaskSpec {
 
     private final ResourceLocation guideId;
@@ -26,6 +30,7 @@ public class GameSceneExportTaskSpec {
     private final boolean showAnnotations;
     private final boolean showGrid;
     @Nullable
+    @Setter
     private Path outputPath;
 
     public GameSceneExportTaskSpec(ResourceLocation guideId, ResourceLocation pageId, String sourcePack, int sceneIndex,
@@ -69,39 +74,6 @@ public class GameSceneExportTaskSpec {
         this.showGrid = showGrid;
     }
 
-    public ResourceLocation getGuideId() {
-        return guideId;
-    }
-
-    public ResourceLocation getPageId() {
-        return pageId;
-    }
-
-    public String getSourcePack() {
-        return sourcePack;
-    }
-
-    public int getSceneIndex() {
-        return sceneIndex;
-    }
-
-    public LytGuidebookScene getScene() {
-        return scene;
-    }
-
-    public String getLayerExpression() {
-        return layerExpression;
-    }
-
-    public boolean isEachLayer() {
-        return eachLayer;
-    }
-
-    @Nullable
-    public Integer getExplicitLayer() {
-        return explicitLayer;
-    }
-
     public GameSceneExportTaskSpec forExplicitLayer(int layer) {
         return new GameSceneExportTaskSpec(
             guideId,
@@ -120,36 +92,4 @@ public class GameSceneExportTaskSpec {
             showGrid);
     }
 
-    public StructureLibExportView getView() {
-        return view;
-    }
-
-    public StructureLibExportBackground getBackground() {
-        return background;
-    }
-
-    public int getPixelsPerBlock() {
-        return pixelsPerBlock;
-    }
-
-    public float getScale() {
-        return scale;
-    }
-
-    public boolean isShowAnnotations() {
-        return showAnnotations;
-    }
-
-    public boolean isShowGrid() {
-        return showGrid;
-    }
-
-    @Nullable
-    public Path getOutputPath() {
-        return outputPath;
-    }
-
-    public void setOutputPath(Path outputPath) {
-        this.outputPath = outputPath;
-    }
 }
