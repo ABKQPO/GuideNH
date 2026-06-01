@@ -134,6 +134,11 @@ class ScriptContextImpl implements ScriptContext {
         host.submitTask(task);
     }
 
+    @Override
+    public void dispatchSubtree(LytNode root) {
+        host.dispatchToSubtree(root);
+    }
+
     private void recordResult(Object result) {
         String uid = null;
         if (node instanceof LytNode ln) uid = ln.getNodeUid();

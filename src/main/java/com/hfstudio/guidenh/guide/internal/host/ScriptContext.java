@@ -26,4 +26,7 @@ public interface ScriptContext {
     PageCollection getPageCollection();
 
     void submitTask(DeferredTask task);
+
+    /** Recursively dispatch MOUNT events into a detached subtree */
+    void dispatchSubtree(LytNode root);
 }

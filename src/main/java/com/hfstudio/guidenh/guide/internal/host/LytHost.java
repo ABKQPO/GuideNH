@@ -359,6 +359,12 @@ public class LytHost {
         taskQueue.addLast(task);
     }
 
+    /** Recursively dispatch MOUNT events into a detached subtree. */
+    void dispatchToSubtree(LytNode root) {
+        allocateNodeUids(root);
+        dispatchMountEvents(root);
+    }
+
     public boolean hasWork() {
         return !taskQueue.isEmpty();
     }
