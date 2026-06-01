@@ -63,6 +63,9 @@ public class NeiHandlerRenderer {
         // drawForeground and drawExtras are skipped when getOtherStacks is broken, because
         // GTNH-NEI calls getOtherStacks inside its own safe-wrapper from those methods, which
         // would log errors on every render frame.
+        GL11.glPushAttrib(
+            GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT | GL11.GL_DEPTH_BUFFER_BIT
+                | GL11.GL_LIGHTING_BIT | GL11.GL_SCISSOR_BIT | GL11.GL_TRANSFORM_BIT | GL11.GL_VIEWPORT_BIT);
         GL11.glPushMatrix();
         try {
             GL11.glTranslatef(screenX, screenY, 0f);
@@ -70,6 +73,12 @@ public class NeiHandlerRenderer {
             registry.renderRecipeHandler(handler, recipeIndex, skipForeground);
         } catch (Throwable ignored) {} finally {
             GL11.glPopMatrix();
+            GL11.glPopAttrib();
+            GL11.glColor4f(1f, 1f, 1f, 1f);
+            GL11.glDisable(GL11.GL_LIGHTING);
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         }
 
         // Phase 2: draw every positioned stack on top.

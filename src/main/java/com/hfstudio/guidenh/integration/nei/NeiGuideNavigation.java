@@ -41,10 +41,21 @@ public class NeiGuideNavigation {
         if (recipeAnchor == null) {
             return false;
         }
-        RecipeId recipeId = RecipeId.of(recipeHandler, recipeIndex);
+        RecipeId recipeId = resolveRecipeId(recipeHandler, recipeIndex, recipeAnchor);
+        if (recipeId == null) {
+            return false;
+        }
         return withTemporaryScreenChange(
             editorAccess,
             () -> GuiCraftingRecipe.createRecipeGui("recipeId", true, recipeAnchor, recipeId) != null);
+    }
+
+    private static @Nullable RecipeId resolveRecipeId(IRecipeHandler recipeHandler, int recipeIndex, ItemStack recipeAnchor) {
+        RecipeId directId = RecipeId.of(recipeHandler, recipeIndex);
+        if (directId != null) {
+            return directId;
+        }
+        return RecipeId.of(recipeAnchor, recipeHandler.getHandlerId(), recipeHandler.getIngredientStacks(recipeIndex));
     }
 
     private static @Nullable ItemStack resolveRecipeAnchorStack(Object handler, int recipeIndex,
