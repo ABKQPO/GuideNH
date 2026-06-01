@@ -64,8 +64,13 @@ public class NeiHandlerRenderer {
         // GTNH-NEI calls getOtherStacks inside its own safe-wrapper from those methods, which
         // would log errors on every render frame.
         GL11.glPushAttrib(
-            GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT | GL11.GL_DEPTH_BUFFER_BIT
-                | GL11.GL_LIGHTING_BIT | GL11.GL_SCISSOR_BIT | GL11.GL_TRANSFORM_BIT | GL11.GL_VIEWPORT_BIT);
+            GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT
+                | GL11.GL_CURRENT_BIT
+                | GL11.GL_DEPTH_BUFFER_BIT
+                | GL11.GL_LIGHTING_BIT
+                | GL11.GL_SCISSOR_BIT
+                | GL11.GL_TRANSFORM_BIT
+                | GL11.GL_VIEWPORT_BIT);
         GL11.glPushMatrix();
         try {
             GL11.glTranslatef(screenX, screenY, 0f);
