@@ -35,7 +35,11 @@ public class SubPagesScript implements LytScript {
             NavigationTree tree = GuideRegistry.getMergedNavigationTree();
 
             List<NavigationNode> subNodes;
-            if (ph.pageIdStr == null || ph.pageIdStr.isEmpty()) {
+            if (ph.pageIdStr == null) {
+                ResourceLocation currentPageId = new ResourceLocation(ph.currentPageId);
+                NavigationNode current = tree.getNodeById(currentPageId);
+                subNodes = current != null ? new ArrayList<>(current.children()) : tree.getRootNodes();
+            } else if (ph.pageIdStr.isEmpty()) {
                 subNodes = tree.getRootNodes();
             } else {
                 ResourceLocation pageId = new ResourceLocation(ph.pageIdStr);

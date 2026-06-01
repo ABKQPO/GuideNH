@@ -28,9 +28,8 @@ public class CommandLinkScript implements LytScript {
             Boolean close = (Boolean) link.getData("close");
             if (command == null) return;
             link.setClickCallback(screen -> {
-                if (Minecraft.getMinecraft().thePlayer != null) {
-                    Minecraft.getMinecraft().thePlayer.sendChatMessage(command);
-                }
+                if (Minecraft.getMinecraft().thePlayer == null) return;
+                Minecraft.getMinecraft().thePlayer.sendChatMessage(command);
                 if (Boolean.TRUE.equals(close)) {
                     Minecraft.getMinecraft().displayGuiScreen(null);
                 }

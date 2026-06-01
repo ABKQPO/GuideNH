@@ -26,6 +26,7 @@ public class StructureScript implements LytScript {
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() == EventType.MOUNT && node instanceof StructurePlaceholder ph) {
             LytStructureView view = new LytStructureView();
+            view.setViewSize(ph.width, ph.height);
             int resolved = 0;
             for (StructureEntry entry : ph.entries) {
                 ItemStack stack = resolveEntry(entry.idSpec);

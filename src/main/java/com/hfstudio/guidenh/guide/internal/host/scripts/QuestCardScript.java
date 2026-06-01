@@ -5,11 +5,14 @@ import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.StatCollector;
 
+import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.integration.betterquesting.BqHelpers;
+import com.hfstudio.guidenh.integration.betterquesting.QuestIndex;
 import com.hfstudio.guidenh.integration.betterquesting.QuestDisplay;
 import com.hfstudio.guidenh.integration.betterquesting.QuestState;
 import com.hfstudio.guidenh.integration.betterquesting.compiler.QuestCardCompiler.QuestCardPlaceholder;
@@ -57,7 +60,13 @@ public class QuestCardScript implements LytScript {
 
         String name = resolveTitleText(display, ph.questId);
         if (QuestTagSupport.isNavigable(state)) {
-            title.append(QuestTagSupport.createQuestGuiLink(ph.questId, display, name, ph.showTooltip));
+            LytFlowLink link = QuestTagSupport.createQuestGuiLink(ph.questId, display, name, ph.showTooltip);
+            QuestIndex questIndex = ctx.getIndex(QuestIndex.class);
+            PageAnchor guideAnchor = questIndex != null ? questIndex.findByUuid(ph.questId) : null;
+            if (guideAnchor != null) {
+                link.setPageLink(guideAnchor);
+            }
+            title.append(link);
         } else {
             var span = new LytFlowSpan();
             span.modifyStyle(style -> style.color(pickPlaceholderColor(state)).italic(true));

@@ -47,6 +47,10 @@ public class MermaidScript implements LytScript {
             }
         }
 
+        if (sourceText != null) {
+            sourceText = MermaidMindmapParser.normalize(sourceText);
+        }
+
         if (sourceText == null || sourceText.trim().isEmpty()) {
             replaceWithError(ctx, "Source not found or empty");
             return;
