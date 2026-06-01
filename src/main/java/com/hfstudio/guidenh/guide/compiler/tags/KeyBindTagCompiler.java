@@ -10,6 +10,7 @@ import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
@@ -30,6 +31,8 @@ public class KeyBindTagCompiler extends FlowTagCompiler {
 
         var placeholder = parent.appendText("");
         placeholder.setStyleClass("KeyBind");
+        placeholder.setStyle(LytParagraph.PLACEHOLDER_STYLE);
+        placeholder.setText("[KeyBind]");
         placeholder.setData("bindId", id);
     }
 

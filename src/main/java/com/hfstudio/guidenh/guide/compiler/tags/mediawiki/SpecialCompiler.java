@@ -75,6 +75,8 @@ public class SpecialCompiler extends BlockTagCompiler {
             this.language = language;
             this.query = query;
             setStyleClass("Special");
+            setStyle(LytParagraph.PLACEHOLDER_STYLE);
+            appendText("[Special]");
         }
     }
 }

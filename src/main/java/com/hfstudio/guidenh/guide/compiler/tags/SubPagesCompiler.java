@@ -18,6 +18,9 @@ public class SubPagesCompiler extends BlockTagCompiler {
     @Override
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         var pageIdStr = el.getAttributeString("id", null);
+        if (pageIdStr != null) {
+            pageIdStr = compiler.resolveId(pageIdStr).toString();
+        }
         var alphabetical = MdxAttrs.getBoolean(compiler, parent, el, "alphabetical", false);
         var currentPageId = compiler.getPageId().toString();
 
@@ -35,6 +38,8 @@ public class SubPagesCompiler extends BlockTagCompiler {
             this.alphabetical = alphabetical;
             this.currentPageId = currentPageId;
             setStyleClass("SubPages");
+            setStyle(LytParagraph.PLACEHOLDER_STYLE);
+            appendText("[SubPages]");
         }
     }
 }

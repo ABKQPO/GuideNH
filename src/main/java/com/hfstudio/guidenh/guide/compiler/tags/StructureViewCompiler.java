@@ -155,6 +155,8 @@ public class StructureViewCompiler extends BlockTagCompiler {
             this.height = height;
             this.entries = entries;
             setStyleClass("Structure");
+            setStyle(LytParagraph.PLACEHOLDER_STYLE);
+            appendText("[Structure]");
         }
     }
 }

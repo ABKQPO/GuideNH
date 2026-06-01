@@ -48,6 +48,8 @@ public class ItemGridCompiler extends BlockTagCompiler {
         public ItemGridPlaceholder(List<String> itemIds) {
             this.itemIds = itemIds;
             setStyleClass("ItemGrid");
+            setStyle(LytParagraph.PLACEHOLDER_STYLE);
+            appendText("[ItemGrid]");
         }
     }
 }

@@ -62,6 +62,8 @@ public class CategoryCompiler extends BlockTagCompiler {
             this.rows = rows;
             this.guideId = guideId;
             setStyleClass("Category");
+            setStyle(LytParagraph.PLACEHOLDER_STYLE);
+            appendText("[Category]");
         }
     }
 }

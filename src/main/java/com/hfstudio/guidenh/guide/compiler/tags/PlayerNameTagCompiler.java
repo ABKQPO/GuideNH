@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
@@ -21,5 +22,7 @@ public class PlayerNameTagCompiler extends FlowTagCompiler {
     protected void compile(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
         var placeholder = parent.appendText("");
         placeholder.setStyleClass("PlayerName");
+        placeholder.setStyle(LytParagraph.PLACEHOLDER_STYLE);
+        placeholder.setText("[PlayerName]");
     }
 }

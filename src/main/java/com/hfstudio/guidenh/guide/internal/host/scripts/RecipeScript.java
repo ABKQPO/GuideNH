@@ -140,11 +140,15 @@ public class RecipeScript implements LytScript {
                 return;
             }
         } else if (hasHandlerFilter) {
-            String handlerPart = "";
-            if (ph.handlerName != null || ph.handlerId != null) {
-                handlerPart = " with handler " + (ph.handlerName != null ? ph.handlerName : ph.handlerId);
+            if (ph.fallbackText != null && !ph.fallbackText.isEmpty()) {
+                String handlerPart = "";
+                if (ph.handlerName != null || ph.handlerId != null) {
+                    handlerPart = " with handler " + (ph.handlerName != null ? ph.handlerName : ph.handlerId);
+                }
+                showFallback(ctx, ph, "No recipe found for " + ph.idStr + handlerPart);
+            } else if (FMLLog.getLogger().isDebugEnabled()) {
+                FMLLog.getLogger().debug("Recipe handler filter eliminated all candidates for {}", ph.idStr);
             }
-            showFallback(ctx, ph,"No recipe found for " + ph.idStr + handlerPart);
             return;
         }
 
@@ -223,9 +227,7 @@ public class RecipeScript implements LytScript {
     private void showFallback(ScriptContext ctx, RecipePlaceholder ph, String autoMessage) {
         String text = (ph.fallbackText != null && !ph.fallbackText.isEmpty())
             ? ph.fallbackText : autoMessage;
-        var p = new LytParagraph();
-        p.appendText(text);
-        ctx.replace(p);
+        ctx.replace(LytParagraph.error(text));
     }
 
 }
