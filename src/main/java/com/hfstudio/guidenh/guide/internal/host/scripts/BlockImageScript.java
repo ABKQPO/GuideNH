@@ -116,6 +116,11 @@ public class BlockImageScript implements LytScript {
         scene.setSceneButtonsVisible(false);
         scene.setBottomControlsVisible(false);
         scene.setReserveBottomControlArea(false);
+        scene.setVisibleLayerSliderEnabled(false);
+        scene.setGridButtonEnabled(false);
+        scene.setGridVisible(false);
+        scene.setAnnotationsVisible(false);
+        scene.setShowBackground(false);
         camera.setViewportSize(width, height);
         scene.snapshotInitialCamera();
 
