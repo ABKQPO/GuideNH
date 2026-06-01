@@ -179,7 +179,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         if (node instanceof LytParagraph paragraph) {
             FlowInteractionPath hoverPath = snapshot != null ? snapshot.flowPath() : EMPTY_FLOW_PATH;
             FlowInteractionPath revealPath = snapshot != null && snapshot.activeSpoiler() != null
-                ? new FlowInteractionPath(snapshot.activeSpoiler(), snapshot.revealTargets())
+                ? new FlowInteractionPath(snapshot.activeSpoiler(), snapshot.revealTargets(), snapshot.activeSpoiler())
                 : EMPTY_FLOW_PATH;
             paragraph.setInteractionPaths(hoverPath, revealPath);
         }

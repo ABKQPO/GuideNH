@@ -22,7 +22,12 @@ public class LineTextRun extends LineElement {
     public void render(RenderContext context) {
         var style = containsMouse ? hoverStyle : revealedBySpoiler ? revealStyle : this.style;
         if (style.backgroundColor() != null && bounds.width() > 0 && bounds.height() > 0) {
-            context.fillRect(bounds.expand(1, 1, 1, 0), style.backgroundColor());
+            context.fillRect(
+                bounds.x() - 1,
+                bounds.y() - 1,
+                bounds.width() + 2,
+                bounds.height() + 1,
+                style.backgroundColor());
         }
         context.drawText(text, bounds.x(), bounds.y(), style);
     }

@@ -1,10 +1,8 @@
 package com.hfstudio.guidenh.guide.document.interaction;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -14,31 +12,30 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytSpoilerSpan;
 
 @Desugar
-public record FlowInteractionPath(@Nullable LytFlowContent primary, List<LytFlowContent> targets) {
+public record FlowInteractionPath(@Nullable LytFlowContent primary, List<LytFlowContent> targets,
+    @Nullable LytSpoilerSpan activeSpoiler) {
 
-    private static final FlowInteractionPath EMPTY = new FlowInteractionPath(null, List.of());
+    private static final FlowInteractionPath EMPTY = new FlowInteractionPath(null, List.of(), null);
 
     public FlowInteractionPath {
-        Set<LytFlowContent> deduplicatedTargets = new LinkedHashSet<>();
-        if (targets != null) {
-            for (var target : targets) {
-                if (target != null) {
-                    deduplicatedTargets.add(target);
-                }
-            }
-        }
-        if (primary != null) {
-            deduplicatedTargets.remove(primary);
-        }
         List<LytFlowContent> normalizedTargets = new ArrayList<>(
-            deduplicatedTargets.size() + (primary != null ? 1 : 0));
+            targets != null ? targets.size() + (primary != null ? 1 : 0) : primary != null ? 1 : 0);
         if (primary != null) {
             normalizedTargets.add(primary);
         }
-        normalizedTargets.addAll(deduplicatedTargets);
+        if (targets != null) {
+            for (var target : targets) {
+                if (target != null && target != primary && !normalizedTargets.contains(target)) {
+                    normalizedTargets.add(target);
+                }
+            }
+        }
         targets = List.copyOf(normalizedTargets);
         if (primary == null && !targets.isEmpty()) {
             primary = targets.getFirst();
+        }
+        if (activeSpoiler == null) {
+            activeSpoiler = findFirstSpoiler(targets);
         }
     }
 
@@ -71,6 +68,10 @@ public record FlowInteractionPath(@Nullable LytFlowContent primary, List<LytFlow
     }
 
     public @Nullable LytSpoilerSpan firstSpoiler() {
+        return activeSpoiler;
+    }
+
+    private static @Nullable LytSpoilerSpan findFirstSpoiler(List<LytFlowContent> targets) {
         for (var target : targets) {
             var spoiler = target.findAncestor(LytSpoilerSpan.class);
             if (spoiler != null) {
@@ -88,7 +89,7 @@ public record FlowInteractionPath(@Nullable LytFlowContent primary, List<LytFlow
         for (var current = content; current != null; current = current.getFlowParent()) {
             targets.add(current);
         }
-        return new FlowInteractionPath(resolvePreferredPrimary(targets, content), targets);
+        return new FlowInteractionPath(resolvePreferredPrimary(targets, content), targets, findFirstSpoiler(targets));
     }
 
     private static LytFlowContent resolvePreferredPrimary(List<LytFlowContent> targets, LytFlowContent fallback) {
@@ -103,11 +104,12 @@ public record FlowInteractionPath(@Nullable LytFlowContent primary, List<LytFlow
     @Override
     public boolean equals(Object other) {
         return other instanceof FlowInteractionPath path && Objects.equals(primary, path.primary)
-            && Objects.equals(targets, path.targets);
+            && Objects.equals(targets, path.targets)
+            && Objects.equals(activeSpoiler, path.activeSpoiler);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(primary, targets);
+        return Objects.hash(primary, targets, activeSpoiler);
     }
 }

@@ -183,13 +183,14 @@ public class VanillaRenderContext implements RenderContext {
             fontRenderer.drawString(drawn, x, y, color);
         }
 
+        int decoratedWidth = -1;
         if (style.underlined()) {
-            int w = Math.round(fontRenderer.getStringWidth(drawn) * scale);
+            decoratedWidth = Math.round(fontRenderer.getStringWidth(drawn) * scale);
             int uy = y + Math.round((fontRenderer.FONT_HEIGHT) * scale) - 1;
-            Gui.drawRect(x, uy, x + w, uy + 1, color);
+            Gui.drawRect(x, uy, x + decoratedWidth, uy + 1, color);
         }
         if (style.wavyUnderline()) {
-            int w = Math.round(fontRenderer.getStringWidth(drawn) * scale);
+            int w = decoratedWidth >= 0 ? decoratedWidth : Math.round(fontRenderer.getStringWidth(drawn) * scale);
             int baseY = y + Math.round((fontRenderer.FONT_HEIGHT) * scale) - 1;
             // Draw a 2px-tall sine-like zig-zag using 1x1 rects: pattern of 4 px period.
             for (int i = 0; i < w; i++) {
@@ -199,7 +200,6 @@ public class VanillaRenderContext implements RenderContext {
             }
         }
         if (style.dottedUnderline()) {
-            int w = Math.round(fontRenderer.getStringWidth(drawn) * scale);
             int dy = y + Math.round((fontRenderer.FONT_HEIGHT) * scale) - 1;
             // Center a single 2x2 dot under each rendered character cell.
             int cursor = 0;

@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.document.interaction;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -48,7 +49,7 @@ public record DocumentInteractionSnapshot(@Nullable LytNode node, FlowInteractio
     }
 
     public boolean containsHover(LytFlowContent content) {
-        return flowPath.containsOrAncestors(content);
+        return flowPath.containsPrimaryOrDescendant(content);
     }
 
     public boolean containsReveal(LytFlowContent content) {
@@ -67,7 +68,7 @@ public record DocumentInteractionSnapshot(@Nullable LytNode node, FlowInteractio
         if (flowPath.isEmpty()) {
             return List.of();
         }
-        List<LytFlowContent> interactiveTargets = new java.util.ArrayList<>(
+        List<LytFlowContent> interactiveTargets = new ArrayList<>(
             flowPath.targets()
                 .size());
         for (var target : flowPath.targets()) {

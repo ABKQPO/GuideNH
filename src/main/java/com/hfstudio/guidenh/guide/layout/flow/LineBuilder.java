@@ -32,6 +32,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     private static final ThreadLocal<BreakIterator> LINE_BREAK_ITERATOR = ThreadLocal
         .withInitial(BreakIterator::getLineInstance);
+    private static final ConstantColor SPOILER_MASK_COLOR = new ConstantColor(0xFF000000);
 
     private final LayoutContext context;
     private final List<Line> lines;
@@ -236,8 +237,8 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     private ResolvedTextStyle applySpoilerHiddenStyle(ResolvedTextStyle style) {
         return TextStyle.builder()
-            .backgroundColor(new ConstantColor(0xFF000000))
-            .color(new ConstantColor(0xFF000000))
+            .backgroundColor(SPOILER_MASK_COLOR)
+            .color(SPOILER_MASK_COLOR)
             .underlined(false)
             .wavyUnderline(false)
             .dottedUnderline(false)
@@ -248,7 +249,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     private ResolvedTextStyle applySpoilerRevealStyle(ResolvedTextStyle style) {
         return TextStyle.builder()
-            .backgroundColor(new ConstantColor(0xFF000000))
+            .backgroundColor(SPOILER_MASK_COLOR)
             .build()
             .mergeWith(style);
     }
