@@ -55,17 +55,17 @@ public class FloatingImageScript implements LytScript {
         }
 
         byte[] imageData = ctx.loadAsset(imageId);
-        if (imageData == null) {
-            replaceFlowError(ctx, isWrapped, "[FloatingImage] Image not found: " + src);
-            return;
-        }
         LytImage image = new LytImage();
-        image.setImage(imageId, imageData);
+        image.setImage(imageId, imageData); // null imageData → GuidePageTexture.missing()
 
         String alt = placeholder.getAlt();
         if (alt != null && !alt.isEmpty()) image.setAlt(alt);
         String title = placeholder.getTitle();
-        if (title != null && !title.isEmpty()) image.setTitle(title);
+        if (title != null && !title.isEmpty()) {
+            image.setTitle(title);
+        } else if (imageData == null) {
+            image.setTitle("Missing image: " + src);
+        }
         image.setExplicitWidth(placeholder.getExplicitWidth());
         image.setExplicitHeight(placeholder.getExplicitHeight());
         image.setMarginTop(placeholder.getMarginTop());
