@@ -91,6 +91,7 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.SoundLinkScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.SpecialScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.StructureScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.SubPagesScript;
+import com.hfstudio.guidenh.guide.internal.host.scripts.TooltipScript;
 
 import cpw.mods.fml.relauncher.Side;
 
@@ -176,6 +177,7 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("SoundLink", new SoundLinkScript());
         lytHost.registerScript("Structure", new StructureScript());
         lytHost.registerScript("SubPages", new SubPagesScript());
+        lytHost.registerScript("Tooltip", new TooltipScript());
         lytHost.registerScript("ItemGrid", new ItemGridScript());
         lytHost.registerScript("ItemImage", new ItemImageScript());
         lytHost.registerScript("ItemLink", new ItemLinkScript());
