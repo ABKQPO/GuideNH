@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedHashMap;
@@ -90,6 +89,7 @@ import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlayRenderer;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorActionRegistry;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorConflictPrompt;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorContextMenu;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorFileStore;
@@ -141,15 +141,6 @@ import cpw.mods.fml.common.Loader;
 
 public class GuideScreen extends GuiContainer
     implements GuideUiHost, GuiYesNoCallback, GuideScreenNeiBridge.EditorAccess {
-
-    private static final GuideScreenEditorAction[] GUIDE_EDITOR_BASE_ACTIONS = new GuideScreenEditorAction[] {
-        GuideScreenEditorAction.HEADING_1, GuideScreenEditorAction.HEADING_2, GuideScreenEditorAction.HEADING_3,
-        GuideScreenEditorAction.BOLD, GuideScreenEditorAction.ITALIC, GuideScreenEditorAction.KBD,
-        GuideScreenEditorAction.SUBSCRIPT, GuideScreenEditorAction.SUPERSCRIPT, GuideScreenEditorAction.FOOTNOTE,
-        GuideScreenEditorAction.LATEX, GuideScreenEditorAction.COLOR, GuideScreenEditorAction.LINK,
-        GuideScreenEditorAction.INLINE_CODE, GuideScreenEditorAction.CODE_BLOCK, GuideScreenEditorAction.BLOCKQUOTE,
-        GuideScreenEditorAction.UNORDERED_LIST, GuideScreenEditorAction.ORDERED_LIST, GuideScreenEditorAction.TASK_LIST,
-        GuideScreenEditorAction.TABLE, GuideScreenEditorAction.THEMATIC_BREAK };
 
     public static final int PANEL_MARGIN = 20;
     public static final int PANEL_PADDING = 8;
@@ -1868,150 +1859,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorContextMenuEntries() {
-        List<GuideScreenEditorContextMenu.Entry> editEntries = new ArrayList<>();
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.UNDO));
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REDO));
-        editEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CUT));
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COPY));
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PASTE));
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SELECT_ALL));
-
-        List<GuideScreenEditorContextMenu.Entry> insertEntries = new ArrayList<>();
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_1));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_2));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_3));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_4));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_5));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_6));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BOLD));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITALIC));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.STRIKETHROUGH));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.UNDERLINE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        List<GuideScreenEditorContextMenu.Entry> inlineEntries = new ArrayList<>();
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.KBD));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SUBSCRIPT));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SUPERSCRIPT));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FOOTNOTE));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LATEX));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LATEX_SHORTHAND));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.KEY_BIND));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PLAYER_NAME));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COLOR));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BREAK));
-        insertEntries.add(
-            GuideScreenEditorContextMenu.Entry
-                .submenu(GuidebookText.GuideEditorContextMenuInline.text(), inlineEntries));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LINK));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REFERENCE_LINK));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMAGE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REFERENCE_IMAGE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.INLINE_CODE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CODE_BLOCK));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCKQUOTE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.UNORDERED_LIST));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ORDERED_LIST));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TASK_LIST));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TABLE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        List<GuideScreenEditorContextMenu.Entry> blockEntries = new ArrayList<>();
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_NOTE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_TIP));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_IMPORTANT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_WARNING));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_CAUTION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.DETAILS));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_CALLOUT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_ICON_TEXT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_ICON_ITEM));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_ICON_PNG));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CSV_TABLE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.MERMAID));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FILE_TREE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SUB_PAGES));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CATEGORY));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FOOTNOTE_LIST));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ROW));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COLUMN));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.DIV));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITEM_GRID));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CSV_TABLE_IMPORT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ANCHOR));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COLUMN_CHART));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BAR_CHART));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LINE_CHART));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PIE_CHART));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SCATTER_CHART));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_SERIES));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_LINE_SERIES));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_SLICE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_PIE_INSET));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_GRAPH));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_PLOT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_POINT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_GRAPH_FENCE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.STRUCTURE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.GAME_SCENE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SCENE_BLOCK));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SCENE_ENTITY));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ISOMETRIC_CAMERA));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BOX_ANNOTATION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCK_ANNOTATION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LINE_ANNOTATION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.DIAMOND_ANNOTATION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TEXT_ANNOTATION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCK_ANNOTATION_TEMPLATE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMPORT_STRUCTURE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMPORT_STRUCTURE_LIB));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMPORT_PONDER));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PLACE_BLOCK));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REPLACE_BLOCK));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REMOVE_BLOCKS));
-        insertEntries.add(
-            GuideScreenEditorContextMenu.Entry
-                .submenu(GuidebookText.GuideEditorContextMenuBlocks.text(), blockEntries));
-        List<GuideScreenEditorContextMenu.Entry> embedEntries = new ArrayList<>();
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TOOLTIP));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITEM_IMAGE));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCK_IMAGE));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITEM_LINK));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COMMAND_LINK));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.RECIPE));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.RECIPE_FOR));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.RECIPES_FOR));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FLOATING_IMAGE));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUEST_LINK));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUEST_CARD));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUEST_IDS));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_POSITION));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICON));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICON_TEXTURE));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICONS));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICON_TEXTURES));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_REQUIRED_MODS));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_CATEGORIES));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_ITEM_IDS));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_ORE_IDS));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_METADATA));
-        insertEntries.add(
-            GuideScreenEditorContextMenu.Entry
-                .submenu(GuidebookText.GuideEditorContextMenuEmbeds.text(), embedEntries));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.THEMATIC_BREAK));
-
-        List<GuideScreenEditorContextMenu.Entry> entries = new ArrayList<>();
-        entries.add(
-            GuideScreenEditorContextMenu.Entry.submenu(GuidebookText.GuideEditorContextMenuEdit.text(), editEntries));
-        entries.add(
-            GuideScreenEditorContextMenu.Entry
-                .submenu(GuidebookText.GuideEditorContextMenuInsert.text(), insertEntries));
-        return entries;
+        return GuideScreenEditorActionRegistry.contextMenuEntries();
     }
 
     private int getGuideEditorPreviewLayoutWidth() {
@@ -2199,104 +2047,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private List<GuideScreenEditorAction> getGuideEditorActionOrder() {
-        List<GuideScreenEditorAction> actions = new ArrayList<>();
-        Collections.addAll(actions, GUIDE_EDITOR_BASE_ACTIONS);
-        if (guideEditorAdvancedToolbarVisible) {
-            actions.add(GuideScreenEditorAction.HEADING_4);
-            actions.add(GuideScreenEditorAction.HEADING_5);
-            actions.add(GuideScreenEditorAction.HEADING_6);
-            actions.add(GuideScreenEditorAction.STRIKETHROUGH);
-            actions.add(GuideScreenEditorAction.UNDERLINE);
-            actions.add(GuideScreenEditorAction.IMAGE);
-            actions.add(GuideScreenEditorAction.REFERENCE_LINK);
-            actions.add(GuideScreenEditorAction.REFERENCE_IMAGE);
-            actions.add(GuideScreenEditorAction.ALERT_NOTE);
-            actions.add(GuideScreenEditorAction.ALERT_TIP);
-            actions.add(GuideScreenEditorAction.ALERT_IMPORTANT);
-            actions.add(GuideScreenEditorAction.ALERT_WARNING);
-            actions.add(GuideScreenEditorAction.ALERT_CAUTION);
-            actions.add(GuideScreenEditorAction.DETAILS);
-            actions.add(GuideScreenEditorAction.QUOTE_CALLOUT);
-            actions.add(GuideScreenEditorAction.QUOTE_ICON_TEXT);
-            actions.add(GuideScreenEditorAction.QUOTE_ICON_ITEM);
-            actions.add(GuideScreenEditorAction.QUOTE_ICON_PNG);
-            actions.add(GuideScreenEditorAction.KEY_BIND);
-            actions.add(GuideScreenEditorAction.PLAYER_NAME);
-            actions.add(GuideScreenEditorAction.BREAK);
-            actions.add(GuideScreenEditorAction.TOOLTIP);
-            actions.add(GuideScreenEditorAction.ITEM_IMAGE);
-            actions.add(GuideScreenEditorAction.BLOCK_IMAGE);
-            actions.add(GuideScreenEditorAction.ITEM_LINK);
-            actions.add(GuideScreenEditorAction.CSV_TABLE);
-            actions.add(GuideScreenEditorAction.COMMAND_LINK);
-            actions.add(GuideScreenEditorAction.RECIPE);
-            actions.add(GuideScreenEditorAction.RECIPE_FOR);
-            actions.add(GuideScreenEditorAction.RECIPES_FOR);
-            actions.add(GuideScreenEditorAction.FLOATING_IMAGE);
-            actions.add(GuideScreenEditorAction.MERMAID);
-            actions.add(GuideScreenEditorAction.FILE_TREE);
-            actions.add(GuideScreenEditorAction.SUB_PAGES);
-            actions.add(GuideScreenEditorAction.CATEGORY);
-            actions.add(GuideScreenEditorAction.FOOTNOTE_LIST);
-            actions.add(GuideScreenEditorAction.ROW);
-            actions.add(GuideScreenEditorAction.COLUMN);
-            actions.add(GuideScreenEditorAction.DIV);
-            actions.add(GuideScreenEditorAction.ITEM_GRID);
-            actions.add(GuideScreenEditorAction.CSV_TABLE_IMPORT);
-            actions.add(GuideScreenEditorAction.ANCHOR);
-            actions.add(GuideScreenEditorAction.COLUMN_CHART);
-            actions.add(GuideScreenEditorAction.BAR_CHART);
-            actions.add(GuideScreenEditorAction.LINE_CHART);
-            actions.add(GuideScreenEditorAction.PIE_CHART);
-            actions.add(GuideScreenEditorAction.SCATTER_CHART);
-            actions.add(GuideScreenEditorAction.CHART_SERIES);
-            actions.add(GuideScreenEditorAction.CHART_LINE_SERIES);
-            actions.add(GuideScreenEditorAction.CHART_SLICE);
-            actions.add(GuideScreenEditorAction.CHART_PIE_INSET);
-            actions.add(GuideScreenEditorAction.FUNCTION_GRAPH);
-            actions.add(GuideScreenEditorAction.FUNCTION);
-            actions.add(GuideScreenEditorAction.FUNCTION_PLOT);
-            actions.add(GuideScreenEditorAction.FUNCTION_POINT);
-            actions.add(GuideScreenEditorAction.FUNCTION_GRAPH_FENCE);
-            actions.add(GuideScreenEditorAction.STRUCTURE);
-            actions.add(GuideScreenEditorAction.GAME_SCENE);
-            actions.add(GuideScreenEditorAction.SCENE_BLOCK);
-            actions.add(GuideScreenEditorAction.SCENE_ENTITY);
-            actions.add(GuideScreenEditorAction.ISOMETRIC_CAMERA);
-            actions.add(GuideScreenEditorAction.BOX_ANNOTATION);
-            actions.add(GuideScreenEditorAction.BLOCK_ANNOTATION);
-            actions.add(GuideScreenEditorAction.LINE_ANNOTATION);
-            actions.add(GuideScreenEditorAction.DIAMOND_ANNOTATION);
-            actions.add(GuideScreenEditorAction.TEXT_ANNOTATION);
-            actions.add(GuideScreenEditorAction.BLOCK_ANNOTATION_TEMPLATE);
-            actions.add(GuideScreenEditorAction.IMPORT_STRUCTURE);
-            actions.add(GuideScreenEditorAction.IMPORT_STRUCTURE_LIB);
-            actions.add(GuideScreenEditorAction.IMPORT_PONDER);
-            actions.add(GuideScreenEditorAction.PLACE_BLOCK);
-            actions.add(GuideScreenEditorAction.REPLACE_BLOCK);
-            actions.add(GuideScreenEditorAction.REMOVE_BLOCKS);
-            actions.add(GuideScreenEditorAction.QUEST_LINK);
-            actions.add(GuideScreenEditorAction.QUEST_CARD);
-            actions.add(GuideScreenEditorAction.QUEST_IDS);
-            actions.add(GuideScreenEditorAction.NAV_POSITION);
-            actions.add(GuideScreenEditorAction.NAV_ICON);
-            actions.add(GuideScreenEditorAction.NAV_ICON_TEXTURE);
-            actions.add(GuideScreenEditorAction.NAV_ICONS);
-            actions.add(GuideScreenEditorAction.NAV_ICON_TEXTURES);
-            actions.add(GuideScreenEditorAction.NAV_REQUIRED_MODS);
-            actions.add(GuideScreenEditorAction.PAGE_CATEGORIES);
-            actions.add(GuideScreenEditorAction.PAGE_ITEM_IDS);
-            actions.add(GuideScreenEditorAction.PAGE_ORE_IDS);
-            actions.add(GuideScreenEditorAction.PAGE_METADATA);
-            actions.add(GuideScreenEditorAction.LATEX_SHORTHAND);
-            actions.add(GuideScreenEditorAction.UNDO);
-            actions.add(GuideScreenEditorAction.REDO);
-            actions.add(GuideScreenEditorAction.CUT);
-            actions.add(GuideScreenEditorAction.COPY);
-            actions.add(GuideScreenEditorAction.PASTE);
-            actions.add(GuideScreenEditorAction.SELECT_ALL);
-        }
-        return actions;
+        return GuideScreenEditorActionRegistry.toolbarActions(guideEditorAdvancedToolbarVisible);
     }
 
     @Override
