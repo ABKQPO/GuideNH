@@ -7,17 +7,20 @@ public class LineTextRun extends LineElement {
 
     public final String text;
     public final ResolvedTextStyle style;
+    public final ResolvedTextStyle revealStyle;
     public final ResolvedTextStyle hoverStyle;
 
-    public LineTextRun(String text, ResolvedTextStyle style, ResolvedTextStyle hoverStyle) {
+    public LineTextRun(String text, ResolvedTextStyle style, ResolvedTextStyle revealStyle,
+        ResolvedTextStyle hoverStyle) {
         this.text = text;
         this.style = style;
+        this.revealStyle = revealStyle;
         this.hoverStyle = hoverStyle;
     }
 
     @Override
     public void render(RenderContext context) {
-        var style = containsMouse ? this.hoverStyle : this.style;
+        var style = containsMouse ? hoverStyle : revealedBySpoiler ? revealStyle : this.style;
         if (style.backgroundColor() != null && bounds.width() > 0 && bounds.height() > 0) {
             context.fillRect(bounds.expand(1, 1, 1, 0), style.backgroundColor());
         }

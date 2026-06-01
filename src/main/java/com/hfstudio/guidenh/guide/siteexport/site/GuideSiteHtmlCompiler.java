@@ -374,6 +374,10 @@ public class GuideSiteHtmlCompiler {
             return "<p>" + compileTooltip(flowElement, templates, defaultNamespace, currentPageId, sceneResolver)
                 + "</p>";
         }
+        if (node instanceof MdxJsxFlowElement flowElement && isSpoilerElement(flowElement)) {
+            return "<p>" + compileSpoiler(flowElement, templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</p>";
+        }
         if (node instanceof MdxJsxFlowElement flowElement && isRecipeElement(flowElement)) {
             return compileRecipe(flowElement, defaultNamespace);
         }
@@ -401,6 +405,9 @@ public class GuideSiteHtmlCompiler {
         }
         if (node instanceof MdxJsxTextElement textElement && isTooltipElement(textElement)) {
             return compileTooltip(textElement, templates, defaultNamespace, currentPageId, sceneResolver);
+        }
+        if (node instanceof MdxJsxTextElement textElement && isSpoilerElement(textElement)) {
+            return compileSpoiler(textElement, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if (node instanceof MdxJsxTextElement textElement && isRecipeElement(textElement)) {
             return compileRecipe(textElement, defaultNamespace);
@@ -532,6 +539,10 @@ public class GuideSiteHtmlCompiler {
         return "Tooltip".equals(element.name());
     }
 
+    private boolean isSpoilerElement(MdxJsxElementFields element) {
+        return "Spoiler".equals(element.name());
+    }
+
     private boolean isRecipeElement(MdxJsxElementFields element) {
         return "Recipe".equals(element.name()) || "RecipeFor".equals(element.name())
             || "RecipeUsage".equals(element.name())
@@ -552,6 +563,12 @@ public class GuideSiteHtmlCompiler {
 
     private String compileRecipe(MdxJsxElementFields element, String defaultNamespace) {
         return recipeTagRenderer.render(element, defaultNamespace);
+    }
+
+    private String compileSpoiler(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        String body = compileChildren(element.children(), templates, defaultNamespace, currentPageId, sceneResolver);
+        return "<span class=\"guide-spoiler\" tabindex=\"0\">" + body + "</span>";
     }
 
     private String compileScene(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,

@@ -24,6 +24,7 @@
 | `<sub>` | 较小的下标风格行内文本 | 无 |
 | `<sup>` | 较小的上标风格行内文本 | 无 |
 | `<Color>` | 彩色行内文本 | `id` 或 `color` |
+| `<Spoiler>` | 悬停后显示的行内黑幕文本 | 无 |
 | `<Tooltip>` | 带 Markdown/标签子内容的富悬浮提示 | `label` |
 | `<SoundLink>` | 可点击的富文本音效触发器 | `sound` 或 `src`，`volume`，`pitch`，`cooldown` |
 | `<mark>` | 行内高亮文本；等价于 `==text==`，并可自定义颜色 | `color` |
@@ -176,6 +177,17 @@ world
 ````md
 <Color id="RED">Symbolic red</Color>
 <Color color="#FF00D2FC">ARGB or RGB color</Color>
+
+### `<Spoiler>`
+
+`<Spoiler>` 用于行内隐藏文本。其内容仍然保留富文本能力，因此内部嵌套的 Markdown 和 `<Color>`
+这类运行时行内标签会在显示后正常渲染。
+
+```mdx
+<Spoiler>隐藏的 **加粗** 文本，以及 <Color color="#55ccff">染色</Color> 内容。</Spoiler>
+<Spoiler>[锚点链接](#标题) 在黑幕里显示后，依然会像普通链接一样正常悬停和显示下划线。</Spoiler>
+```
+
 ````
 
 规则：

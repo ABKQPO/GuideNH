@@ -10,14 +10,16 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
+import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 
 public class FlowBuilder {
 
-    /** Sentinel used to force containsMouse recalculation after a layout rebuild. */
-    private static final LytFlowContent LAYOUT_DIRTY = new LytFlowContent();
+    /** Sentinel used to force hover-state recalculation after a layout rebuild. */
+    private static final FlowInteractionPath HOVER_STATE_DIRTY = FlowInteractionPath.fromPrimary(new LytFlowContent());
+    private static final FlowInteractionPath EMPTY_PATH = FlowInteractionPath.empty();
 
     private final List<Line> lines = new ArrayList<>();
 
@@ -26,8 +28,10 @@ public class FlowBuilder {
     // Bounding rectangles for any floats in this flow
     private final List<LineBlock> floats = new ArrayList<>();
 
-    /** Tracks the last hovered content so containsMouse is only recalculated on changes. */
-    private LytFlowContent lastHoveredForContainsMouse = LAYOUT_DIRTY;
+    /** Tracks the last hovered content so element hover flags are only recalculated on changes. */
+    private FlowInteractionPath lastHoverPath = HOVER_STATE_DIRTY;
+    /** Tracks the last revealed content so spoiler reveal flags are only recalculated on changes. */
+    private FlowInteractionPath lastRevealPath = HOVER_STATE_DIRTY;
 
     public void append(LytFlowContent content) {
         this.rootContent.add(content);
@@ -36,7 +40,8 @@ public class FlowBuilder {
     public LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth, TextAlignment alignment) {
         lines.clear();
         floats.clear();
-        lastHoveredForContainsMouse = LAYOUT_DIRTY;
+        lastHoverPath = HOVER_STATE_DIRTY;
+        lastRevealPath = HOVER_STATE_DIRTY;
         var lineBuilder = new LineBuilder(context, x, y, availableWidth, lines, floats, alignment);
         for (var content : rootContent) {
             visitInDocumentOrder(content, lineBuilder);
@@ -47,8 +52,9 @@ public class FlowBuilder {
         return lineBuilder.getBounds();
     }
 
-    public void render(RenderContext context, @Nullable LytFlowContent hoveredContent) {
-        updateContainsMouse(hoveredContent);
+    public void render(RenderContext context, @Nullable FlowInteractionPath hoverPath,
+        @Nullable FlowInteractionPath revealPath) {
+        updateHoverState(hoverPath, revealPath);
         for (var line : lines) {
             for (var el = line.firstElement; el != null; el = el.next) {
                 el.render(context);
@@ -56,8 +62,9 @@ public class FlowBuilder {
         }
     }
 
-    public void renderFloats(RenderContext context, @Nullable LytFlowContent hoveredContent) {
-        updateContainsMouse(hoveredContent);
+    public void renderFloats(RenderContext context, @Nullable FlowInteractionPath hoverPath,
+        @Nullable FlowInteractionPath revealPath) {
+        updateHoverState(hoverPath, revealPath);
         for (var el : floats) {
             el.render(context);
         }
@@ -81,19 +88,35 @@ public class FlowBuilder {
         return null;
     }
 
-    private void updateContainsMouse(@Nullable LytFlowContent hoveredContent) {
-        if (lastHoveredForContainsMouse == hoveredContent) {
+    private void updateHoverState(@Nullable FlowInteractionPath hoverPath, @Nullable FlowInteractionPath revealPath) {
+        FlowInteractionPath resolvedHoverPath = hoverPath != null ? hoverPath : EMPTY_PATH;
+        FlowInteractionPath resolvedRevealPath = revealPath != null ? revealPath : EMPTY_PATH;
+        if (lastHoverPath.equals(resolvedHoverPath) && lastRevealPath.equals(resolvedRevealPath)) {
             return;
         }
-        lastHoveredForContainsMouse = hoveredContent;
+        lastHoverPath = resolvedHoverPath;
+        lastRevealPath = resolvedRevealPath;
         for (var line : lines) {
             for (var el = line.firstElement; el != null; el = el.next) {
-                el.containsMouse = hoveredContent != null && hoveredContent.isInclusiveAncestor(el.getFlowContent());
+                applyHoverState(el, resolvedHoverPath, resolvedRevealPath);
             }
         }
         for (var el : floats) {
-            el.containsMouse = hoveredContent != null && hoveredContent.isInclusiveAncestor(el.getFlowContent());
+            applyHoverState(el, resolvedHoverPath, resolvedRevealPath);
         }
+    }
+
+    private void applyHoverState(LineElement element, FlowInteractionPath hoverPath, FlowInteractionPath revealPath) {
+        var flowContent = element.getFlowContent();
+        if (flowContent == null) {
+            element.containsMouse = false;
+            element.revealedBySpoiler = false;
+            return;
+        }
+        boolean containsMouse = hoverPath.containsPrimaryOrDescendant(flowContent);
+        boolean revealedBySpoiler = !containsMouse && revealPath.containsOrAncestors(flowContent);
+        element.containsMouse = containsMouse;
+        element.revealedBySpoiler = revealedBySpoiler;
     }
 
     private void visitInDocumentOrder(LytFlowContent content, Consumer<LytFlowContent> visitor) {
@@ -143,6 +166,14 @@ public class FlowBuilder {
             }
         }
         return builder.build();
+    }
+
+    public @Nullable FlowInteractionPath pickPath(int x, int y) {
+        var lineElement = pick(x, y);
+        if (lineElement == null) {
+            return null;
+        }
+        return FlowInteractionPath.fromPrimary(lineElement.getFlowContent());
     }
 
     @Nullable

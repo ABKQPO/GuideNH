@@ -62,6 +62,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
+import com.hfstudio.guidenh.guide.document.flow.LytSpoilerSpan;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
@@ -1027,12 +1028,19 @@ public class PageCompiler {
         } else if (content instanceof MdAstHTML astHtml) {
             layoutChild = compileHtmlInline(astHtml.value);
         } else if (content instanceof MdxJsxTextElement el) {
-            var compiler = tagCompilers.get(el.name());
-            if (compiler == null) {
-                layoutChild = createErrorFlowContent("Unhandled MDX element in flow context", content);
+            if ("Spoiler".equals(el.name())) {
+                var span = new LytSpoilerSpan();
+                span.modifyStyle(style -> style.backgroundColor(new ConstantColor(0xFF000000)));
+                compileFlowContext(el, span);
+                layoutChild = span;
             } else {
-                layoutChild = null;
-                compiler.compileFlowContext(this, layoutParent, el);
+                var compiler = tagCompilers.get(el.name());
+                if (compiler == null) {
+                    layoutChild = createErrorFlowContent("Unhandled MDX element in flow context", content);
+                } else {
+                    layoutChild = null;
+                    compiler.compileFlowContext(this, layoutParent, el);
+                }
             }
         } else {
             layoutChild = createErrorFlowContent("Unhandled Markdown node in flow context", content);

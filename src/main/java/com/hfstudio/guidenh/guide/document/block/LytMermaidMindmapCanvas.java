@@ -18,8 +18,9 @@ import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
+import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
+import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
@@ -244,12 +245,14 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             return false;
         }
         boolean handled = false;
-        LytFlowContent content = hit.content();
-        while (content != null && !handled) {
+        for (var content : hit.flowPath()
+            .targets()) {
+            if (handled) {
+                break;
+            }
             if (content instanceof InteractiveElement interactiveElement) {
                 handled = interactiveElement.mouseClicked(screen, hit.localX(), hit.localY(), button, doubleClick);
             }
-            content = handled ? null : content.getFlowParent();
         }
         if (!handled) {
             for (LytNode current = hit.node(); current != null && !handled; current = current.getParent()) {
@@ -270,15 +273,14 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         if (hit == null) {
             return Optional.empty();
         }
-        LytFlowContent content = hit.content();
-        while (content != null) {
+        for (var content : hit.flowPath()
+            .targets()) {
             if (content instanceof InteractiveElement interactiveElement) {
                 Optional<GuideTooltip> tooltip = interactiveElement.getTooltip(hit.localX(), hit.localY());
                 if (tooltip.isPresent()) {
                     return tooltip;
                 }
             }
-            content = content.getFlowParent();
         }
         for (LytNode current = hit.node(); current != null; current = current.getParent()) {
             if (current instanceof InteractiveElement interactiveElement) {
@@ -690,9 +692,9 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             }
             int localX = unscaleCoordinate(documentX - contentScreenRect.x());
             int localY = unscaleCoordinate(documentY - contentScreenRect.y());
-            LytDocument.HitTestResult hit = LytDocument.pick(node.contentLayout.block(), localX, localY);
+            DocumentInteractionSnapshot hit = LytDocument.pick(node.contentLayout.block(), localX, localY);
             if (hit != null) {
-                return new NodeHit(hit.node(), hit.content(), localX, localY);
+                return new NodeHit(hit.node(), hit.flowPath(), localX, localY);
             }
         }
         return null;
@@ -1053,14 +1055,13 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     public static class NodeHit {
 
         private final LytNode node;
-        @Nullable
-        private final LytFlowContent content;
+        private final FlowInteractionPath flowPath;
         private final int localX;
         private final int localY;
 
-        public NodeHit(LytNode node, @Nullable LytFlowContent content, int localX, int localY) {
+        public NodeHit(LytNode node, @Nullable FlowInteractionPath flowPath, int localX, int localY) {
             this.node = node;
-            this.content = content;
+            this.flowPath = flowPath != null ? flowPath : FlowInteractionPath.empty();
             this.localX = localX;
             this.localY = localY;
         }
@@ -1069,8 +1070,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             return node;
         }
 
-        public @Nullable LytFlowContent content() {
-            return content;
+        public FlowInteractionPath flowPath() {
+            return flowPath;
         }
 
         public int localX() {

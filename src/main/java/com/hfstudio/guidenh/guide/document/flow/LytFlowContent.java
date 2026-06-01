@@ -38,6 +38,16 @@ public class LytFlowContent implements Styleable {
         return false;
     }
 
+    @Nullable
+    public <T extends LytFlowContent> T findAncestor(Class<T> type) {
+        for (var content = this; content != null; content = content.getFlowParent()) {
+            if (type.isInstance(content)) {
+                return type.cast(content);
+            }
+        }
+        return null;
+    }
+
     @Override
     public TextStyle getStyle() {
         return style;

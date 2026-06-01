@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContainer;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.flow.FlowBuilder;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -21,7 +22,9 @@ public class LytParagraph extends LytBlock implements LytFlowContainer {
     protected int paddingBottom;
 
     @Nullable
-    protected LytFlowContent hoveredContent;
+    protected FlowInteractionPath hoveredPath = FlowInteractionPath.empty();
+    @Nullable
+    protected FlowInteractionPath revealedPath = FlowInteractionPath.empty();
 
     @Override
     public void append(LytFlowContent child) {
@@ -64,13 +67,20 @@ public class LytParagraph extends LytBlock implements LytFlowContainer {
     @Override
     public void onMouseEnter(@Nullable LytFlowContent hoveredContent) {
         super.onMouseEnter(hoveredContent);
-        this.hoveredContent = hoveredContent;
+        this.hoveredPath = FlowInteractionPath.fromPrimary(hoveredContent);
+    }
+
+    public void setInteractionPaths(@Nullable FlowInteractionPath hoveredPath,
+        @Nullable FlowInteractionPath revealedPath) {
+        this.hoveredPath = hoveredPath != null ? hoveredPath : FlowInteractionPath.empty();
+        this.revealedPath = revealedPath != null ? revealedPath : FlowInteractionPath.empty();
     }
 
     @Override
     public void onMouseLeave() {
         super.onMouseLeave();
-        this.hoveredContent = null;
+        this.hoveredPath = FlowInteractionPath.empty();
+        this.revealedPath = FlowInteractionPath.empty();
     }
 
     @Override
@@ -88,16 +98,15 @@ public class LytParagraph extends LytBlock implements LytFlowContainer {
     public void render(RenderContext context) {
         // Since we overwrite isCulled, we render even if our actual line content is culled, for floats
         if (context.intersectsViewport(bounds)) {
-            content.render(context, hoveredContent);
+            content.render(context, hoveredPath, revealedPath);
         }
 
-        content.renderFloats(context, hoveredContent);
+        content.renderFloats(context, hoveredPath, revealedPath);
     }
 
     @Override
-    public @Nullable LytFlowContent pickContent(int x, int y) {
-        var lineEl = content.pick(x, y);
-        return lineEl != null ? lineEl.getFlowContent() : null;
+    public @Nullable FlowInteractionPath pickContent(int x, int y) {
+        return content.pickPath(x, y);
     }
 
     public @Nullable LytRect getFirstLineBounds() {

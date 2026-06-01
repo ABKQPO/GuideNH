@@ -5,6 +5,7 @@ import java.util.stream.Stream;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 
 public interface LytFlowContainer extends LytFlowParent {
 
@@ -15,5 +16,5 @@ public interface LytFlowContainer extends LytFlowParent {
     Stream<LytRect> enumerateContentBounds(LytFlowContent content);
 
     @Nullable
-    LytFlowContent pickContent(int x, int y);
+    FlowInteractionPath pickContent(int x, int y);
 }

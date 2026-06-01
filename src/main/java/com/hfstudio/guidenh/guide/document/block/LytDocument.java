@@ -11,6 +11,8 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContainer;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
+import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
+import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.Layouts;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -21,13 +23,15 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
  */
 public class LytDocument extends LytNode implements LytBlockContainer {
 
+    private static final FlowInteractionPath EMPTY_FLOW_PATH = FlowInteractionPath.empty();
+
     private final List<LytBlock> blocks = new ArrayList<>();
 
     @Nullable
     private Layout layout;
 
     @Nullable
-    private HitTestResult hoveredElement;
+    private DocumentInteractionSnapshot hoveredElement;
 
     // Cached list of blocks intersecting the last rendered viewport. Invalidated whenever the
     // block list mutates or the layout is rebuilt; kept across frames otherwise so scrolling at
@@ -149,39 +153,68 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         }
     }
 
-    public @Nullable HitTestResult getHoveredElement() {
+    public @Nullable DocumentInteractionSnapshot getHoveredElement() {
         return hoveredElement;
     }
 
-    public void setHoveredElement(HitTestResult hoveredElement) {
+    public void setHoveredElement(@Nullable DocumentInteractionSnapshot hoveredElement) {
         if (!Objects.equals(hoveredElement, this.hoveredElement)) {
             if (this.hoveredElement != null) {
-                this.hoveredElement.node.onMouseLeave();
+                if (this.hoveredElement.node() != null) {
+                    applyInteractionSnapshot(this.hoveredElement.node(), null);
+                    this.hoveredElement.node()
+                        .onMouseLeave();
+                }
             }
             this.hoveredElement = hoveredElement;
-            if (this.hoveredElement != null) {
-                this.hoveredElement.node.onMouseEnter(hoveredElement.content());
+            if (this.hoveredElement != null && this.hoveredElement.node() != null) {
+                applyInteractionSnapshot(this.hoveredElement.node(), this.hoveredElement);
+                this.hoveredElement.node()
+                    .onMouseEnter(hoveredElement.primaryHoverTarget());
             }
         }
     }
 
-    public HitTestResult pick(int x, int y) {
+    private void applyInteractionSnapshot(LytNode node, @Nullable DocumentInteractionSnapshot snapshot) {
+        if (node instanceof LytParagraph paragraph) {
+            FlowInteractionPath hoverPath = snapshot != null ? snapshot.flowPath() : EMPTY_FLOW_PATH;
+            FlowInteractionPath revealPath = snapshot != null && snapshot.activeSpoiler() != null
+                ? new FlowInteractionPath(snapshot.activeSpoiler(), snapshot.revealTargets())
+                : EMPTY_FLOW_PATH;
+            paragraph.setInteractionPaths(hoverPath, revealPath);
+        }
+    }
+
+    public @Nullable DocumentInteractionSnapshot pick(int x, int y) {
         return pick(this, x, y);
     }
 
-    public static HitTestResult pick(LytNode root, int x, int y) {
+    public static @Nullable DocumentInteractionSnapshot pick(LytNode root, int x, int y) {
         var node = root.pickNode(x, y);
         if (node != null) {
-            LytFlowContent content = null;
+            FlowInteractionPath flowPath = EMPTY_FLOW_PATH;
             if (node instanceof LytFlowContainer container) {
-                content = container.pickContent(x, y);
+                flowPath = container.pickContent(x, y);
 
                 // If the content is an inline-block, we descend into it! (This can go on and on and on...)
-                if (content instanceof LytFlowInlineBlock inlineBlock && inlineBlock.getBlock() != null) {
+                if (flowPath != null && flowPath.primary() instanceof LytFlowInlineBlock inlineBlock
+                    && inlineBlock.getBlock() != null) {
                     return pick(inlineBlock.getBlock(), x, y);
                 }
             }
-            return new HitTestResult(node, content);
+            if (flowPath == null) {
+                flowPath = EMPTY_FLOW_PATH;
+            }
+            var spoiler = flowPath.firstSpoiler();
+            List<LytFlowContent> revealTargets = spoiler != null ? List.of(spoiler) : List.of();
+            return new DocumentInteractionSnapshot(
+                node,
+                flowPath,
+                flowPath.primary(),
+                flowPath.primary(),
+                flowPath.targets(),
+                revealTargets,
+                spoiler);
         }
 
         return null;
@@ -193,6 +226,4 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     @Desugar
     public record Layout(int availableWidth, int contentHeight, LytRect bounds) {}
 
-    @Desugar
-    public record HitTestResult(LytNode node, @Nullable LytFlowContent content) {}
 }

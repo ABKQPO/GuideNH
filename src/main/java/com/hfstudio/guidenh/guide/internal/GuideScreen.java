@@ -77,6 +77,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
+import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
@@ -435,7 +436,7 @@ public class GuideScreen extends GuiContainer
         final int docX;
         final int docY;
         @Nullable
-        final LytDocument.HitTestResult hit;
+        final DocumentInteractionSnapshot hit;
         @Nullable
         final LytGuidebookScene scene;
         @Nullable
@@ -443,7 +444,7 @@ public class GuideScreen extends GuiContainer
 
         private DocumentInteractionState(LytDocument document, int mouseX, int mouseY, int contentX, int contentY,
             int contentW, int contentH, int scrollY, int tooltipX, int tooltipY, int tooltipW, int tooltipH, int docX,
-            int docY, @Nullable LytDocument.HitTestResult hit, @Nullable LytGuidebookScene scene,
+            int docY, @Nullable DocumentInteractionSnapshot hit, @Nullable LytGuidebookScene scene,
             @Nullable SceneButtonHit sceneButtonHit) {
             this.document = document;
             this.mouseX = mouseX;
@@ -474,6 +475,15 @@ public class GuideScreen extends GuiContainer
                 && this.contentH == contentH
                 && this.scrollY == scrollY;
         }
+    }
+
+    private Iterable<LytFlowContent> flowTargets(@Nullable DocumentInteractionSnapshot hit) {
+        return hit != null ? hit.flowPath()
+            .targets() : List.of();
+    }
+
+    private Iterable<LytFlowContent> interactiveFlowTargets(@Nullable DocumentInteractionSnapshot hit) {
+        return hit != null ? hit.interactiveFlowTargets() : List.of();
     }
 
     private GuideScreen(GuideScreenRoute route, @Nullable GuideScreenViewState restoreViewState,
@@ -4014,14 +4024,12 @@ public class GuideScreen extends GuiContainer
             }
         }
 
-        var fc = hit.content();
-        while (fc != null) {
+        for (var fc : interactiveFlowTargets(hit)) {
             var tip = tryGetTooltip(fc, interaction.docX, interaction.docY);
             if (tip.isPresent()) {
                 renderGuideTooltip(tip.get(), mouseX, mouseY, interaction);
                 return;
             }
-            fc = fc.getFlowParent();
         }
         if (hit.node() != null) {
             for (LytNode current = hit.node(); current != null; current = current.getParent()) {
@@ -4076,13 +4084,11 @@ public class GuideScreen extends GuiContainer
     }
 
     private @Nullable ItemStack resolveGuideItemStack(DocumentInteractionState interaction) {
-        var flowContent = interaction.hit.content();
-        while (flowContent != null) {
+        for (var flowContent : flowTargets(interaction.hit)) {
             ItemStack stack = resolveGuideItemStack(flowContent, interaction.docX, interaction.docY);
             if (stack != null) {
                 return stack;
             }
-            flowContent = flowContent.getFlowParent();
         }
         for (LytNode current = interaction.hit.node(); current != null; current = current.getParent()) {
             ItemStack stack = resolveGuideItemStack(current, interaction.docX, interaction.docY);
@@ -4892,13 +4898,13 @@ public class GuideScreen extends GuiContainer
             var hit = interaction != null ? interaction.hit : activeDocument.pick(docX, docY);
             if (hit != null) {
                 boolean handled = false;
-                var fc = hit.content();
-                while (fc != null) {
+                for (var fc : interactiveFlowTargets(hit)) {
                     if (fc instanceof InteractiveElement ie) {
                         handled = ie.mouseClicked(this, docX, docY, button, false);
-                        if (handled) break;
+                        if (handled) {
+                            break;
+                        }
                     }
-                    fc = fc.getFlowParent();
                 }
                 if (!handled) {
                     for (LytNode current = hit.node(); current != null && !handled; current = current.getParent()) {
@@ -5463,13 +5469,11 @@ public class GuideScreen extends GuiContainer
         }
     }
 
-    private boolean consumeCustomClickSound(LytDocument.HitTestResult hit) {
-        var fc = hit.content();
-        while (fc != null) {
+    private boolean consumeCustomClickSound(DocumentInteractionSnapshot hit) {
+        for (var fc : interactiveFlowTargets(hit)) {
             if (fc instanceof LytFlowLink link && link.consumePlayedCustomClickSound()) {
                 return true;
             }
-            fc = fc.getFlowParent();
         }
         return false;
     }
@@ -5480,13 +5484,13 @@ public class GuideScreen extends GuiContainer
             return false;
         }
         boolean handled = false;
-        var fc = hit.content();
-        while (fc != null) {
+        for (var fc : interactiveFlowTargets(hit)) {
             if (fc instanceof InteractiveElement ie) {
                 handled = ie.mouseClicked(this, interaction.docX, interaction.docY, button, false);
-                if (handled) break;
+                if (handled) {
+                    break;
+                }
             }
-            fc = fc.getFlowParent();
         }
         if (!handled) {
             for (LytNode current = hit.node(); current != null && !handled; current = current.getParent()) {
@@ -5508,7 +5512,7 @@ public class GuideScreen extends GuiContainer
             button);
     }
 
-    private boolean startDocumentInteractionDrag(DocumentInteractionState interaction, LytDocument.HitTestResult hit,
+    private boolean startDocumentInteractionDrag(DocumentInteractionState interaction, DocumentInteractionSnapshot hit,
         int docX, int docY, int mouseX, int mouseY, int button) {
         if (button != 0 && button != 1) {
             return false;

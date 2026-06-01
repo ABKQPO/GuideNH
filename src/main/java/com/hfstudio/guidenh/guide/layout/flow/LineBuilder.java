@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
@@ -16,9 +17,11 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
+import com.hfstudio.guidenh.guide.document.flow.LytSpoilerSpan;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
+import com.hfstudio.guidenh.guide.style.TextStyle;
 
 /**
  * Does inline-flow layout similar to how it is described here:
@@ -75,24 +78,26 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     @Override
     public void accept(LytFlowContent content) {
-        if (content instanceof LytFlowText text) {
-            appendText(text.getText(), content);
-        } else if (content instanceof LytFlowBreak) {
-            appendBreak(content);
-        } else if (content instanceof LytFlowInlineBlock inlineBlock) {
-            appendInlineBlock(inlineBlock);
-        } else if (content instanceof LytFlowAnchor anchor) {
-            // Simply set the current layout position for the anchor
-            anchor.setLayoutY(lineBoxY);
-        } else {
-            throw new IllegalArgumentException("Don't know how to layout flow content: " + content);
+        switch (content) {
+            case LytFlowText text -> appendText(text.getText(), content);
+            case LytFlowBreak lytFlowBreak -> appendBreak(content);
+            case LytFlowInlineBlock inlineBlock -> appendInlineBlock(inlineBlock);
+            case LytFlowAnchor anchor ->
+                // Simply set the current layout position for the anchor
+                    anchor.setLayoutY(lineBoxY);
+            case null, default ->
+                    throw new IllegalArgumentException("Don't know how to layout flow content: " + content);
         }
     }
 
     private void appendBreak(@Nullable LytFlowContent flowContent) {
         // Append an empty line with the default style
         if (openLineElement == null) {
-            openLineElement = new LineTextRun("", DefaultStyles.BASE_STYLE, DefaultStyles.BASE_STYLE);
+            openLineElement = new LineTextRun(
+                "",
+                DefaultStyles.BASE_STYLE,
+                DefaultStyles.BASE_STYLE,
+                DefaultStyles.BASE_STYLE);
             openLineElement.flowContent = flowContent;
             openLineTail = openLineElement;
         }
@@ -188,8 +193,20 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     }
 
     private void appendText(String text, LytFlowContent flowContent) {
-        var style = flowContent.resolveStyle();
-        var hoverStyle = flowContent.resolveHoverStyle(style);
+        var resolvedStyle = flowContent.resolveStyle();
+        var resolvedHoverStyle = flowContent.resolveHoverStyle(resolvedStyle);
+        var spoiler = flowContent.findAncestor(LytSpoilerSpan.class);
+        ResolvedTextStyle style = resolvedStyle;
+        ResolvedTextStyle revealStyle = resolvedStyle;
+        ResolvedTextStyle hoverStyle = resolvedHoverStyle;
+        if (spoiler != null) {
+            style = applySpoilerHiddenStyle(resolvedStyle);
+            revealStyle = applySpoilerRevealStyle(resolvedStyle);
+            hoverStyle = applySpoilerRevealStyle(resolvedHoverStyle);
+        }
+        final var finalStyle = style;
+        final var finalRevealStyle = revealStyle;
+        final var finalHoverStyle = hoverStyle;
 
         char lastChar = '\0';
         var endOfOpenLine = getEndOfOpenLine();
@@ -200,12 +217,12 @@ public class LineBuilder implements Consumer<LytFlowContent> {
             lastChar = '\n';
         }
 
-        iterateRuns(text, style, lastChar, (run, width, endLine) -> {
+        iterateRuns(text, finalStyle, lastChar, (run, width, endLine) -> {
             if (!run.isEmpty()) {
-                var el = new LineTextRun(run.toString(), style, hoverStyle);
+                var el = new LineTextRun(run.toString(), finalStyle, finalRevealStyle, finalHoverStyle);
                 el.flowContent = flowContent;
                 int w = Math.round(width);
-                int h = context.getLineHeight(style);
+                int h = context.getLineHeight(finalStyle);
                 el.bounds = new LytRect(innerX, 0, w, h);
                 appendToOpenLine(el);
                 innerX += w;
@@ -215,6 +232,25 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 endLine();
             }
         });
+    }
+
+    private ResolvedTextStyle applySpoilerHiddenStyle(ResolvedTextStyle style) {
+        return TextStyle.builder()
+            .backgroundColor(new ConstantColor(0xFF000000))
+            .color(new ConstantColor(0xFF000000))
+            .underlined(false)
+            .wavyUnderline(false)
+            .dottedUnderline(false)
+            .strikethrough(false)
+            .build()
+            .mergeWith(style);
+    }
+
+    private ResolvedTextStyle applySpoilerRevealStyle(ResolvedTextStyle style) {
+        return TextStyle.builder()
+            .backgroundColor(new ConstantColor(0xFF000000))
+            .build()
+            .mergeWith(style);
     }
 
     private void iterateRuns(CharSequence text, ResolvedTextStyle style, char lastChar, LineConsumer consumer) {

@@ -22,6 +22,7 @@ This page lists the built-in runtime tags registered by `DefaultExtensions`.
 | `<sub>` | smaller inline subscript-style text | none |
 | `<sup>` | smaller inline superscript-style text | none |
 | `<Color>` | colored inline text | `id` or `color` |
+| `<Spoiler>` | hidden inline text revealed on hover | none |
 | `<Tooltip>` | rich hover tooltip with markdown/tag children | `label` |
 | `<SoundLink>` | clickable rich-text sound trigger | `sound` or `src`, `volume`, `pitch`, `cooldown` |
 | `<mark>` | inline highlighted text; equivalent to `==text==` with optional color control | `color` |
@@ -202,6 +203,17 @@ Use either a symbolic color id or an explicit hex value:
 ````md
 <Color id="RED">Symbolic red</Color>
 <Color color="#FF00D2FC">ARGB or RGB color</Color>
+
+### `<Spoiler>`
+
+Use `<Spoiler>` for inline hidden text. The content stays rich-text aware, so nested markdown and runtime inline tags
+such as `<Color>` still render correctly after reveal.
+
+```mdx
+<Spoiler>Hidden **bold** text with <Color color="#55ccff">tint</Color>.</Spoiler>
+<Spoiler>[Anchor Link](#headings) still behaves like a normal hoverable link when revealed.</Spoiler>
+```
+
 ````
 
 Rules:
