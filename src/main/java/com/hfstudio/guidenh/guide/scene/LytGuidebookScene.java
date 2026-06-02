@@ -106,6 +106,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 import lombok.Getter;
+import cpw.mods.fml.common.FMLLog;
 
 public class LytGuidebookScene extends LytBlock {
 
@@ -3870,9 +3871,9 @@ public class LytGuidebookScene extends LytBlock {
                 }
             }
             case RESET_VIEW -> resetViewToInitialCamera();
-            case PONDER_PREV_KEYFRAME -> ponderPrevKeyframe();
-            case PONDER_PLAY_PAUSE -> ponderTogglePlay();
-            case PONDER_RESTART -> ponderRestart();
+            case PONDER_PREV_KEYFRAME -> { FMLLog.getLogger().info("[PonderDebug] activateSceneButton: PONDER_PREV_KEYFRAME"); ponderPrevKeyframe(); }
+            case PONDER_PLAY_PAUSE -> { FMLLog.getLogger().info("[PonderDebug] activateSceneButton: PONDER_PLAY_PAUSE"); ponderTogglePlay(); }
+            case PONDER_RESTART -> { FMLLog.getLogger().info("[PonderDebug] activateSceneButton: PONDER_RESTART"); ponderRestart(); }
             default -> {}
         }
     }
@@ -4405,8 +4406,17 @@ public class LytGuidebookScene extends LytBlock {
 
     public void ponderTick() {
         sceneAnimationTick++;
-        if (ponderSceneData == null || ponderPaused || ponderFinished) return;
+        if (ponderSceneData == null || ponderPaused || ponderFinished) {
+            if (sceneAnimationTick % 100 == 1) {
+                FMLLog.getLogger().info("[PonderDebug] ponderTick blocked: data={} paused={} finished={} tick={}",
+                    ponderSceneData != null, ponderPaused, ponderFinished, ponderCurrentTick);
+            }
+            return;
+        }
         ponderCurrentTick++;
+        if (ponderCurrentTick % 20 == 0) {
+            FMLLog.getLogger().info("[PonderDebug] ponderTick advancing: tick={}/{}", ponderCurrentTick, ponderSceneData.getTotalTime());
+        }
         if (ponderCurrentTick >= ponderSceneData.getTotalTime()) {
             ponderCurrentTick = ponderSceneData.getTotalTime();
             ponderFinished = true;
@@ -4431,7 +4441,11 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void ponderTogglePlay() {
-        if (ponderSceneData == null) return;
+        if (ponderSceneData == null) {
+            FMLLog.getLogger().info("[PonderDebug] ponderTogglePlay blocked: no ponderSceneData");
+            return;
+        }
+        FMLLog.getLogger().info("[PonderDebug] ponderTogglePlay: paused={} finished={} tick={}", ponderPaused, ponderFinished, ponderCurrentTick);
         if (ponderFinished) {
             ponderCurrentTick = 0;
             ponderFinished = false;

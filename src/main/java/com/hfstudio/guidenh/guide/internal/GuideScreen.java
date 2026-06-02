@@ -2504,9 +2504,15 @@ public class GuideScreen extends GuiContainer
     }
 
     private void tickCurrentPageScenes() {
-        if (currentPage == null || !pendingSceneRegistrations.isEmpty()) {
+        if (currentPage == null) {
             return;
         }
+        if (!pendingSceneRegistrations.isEmpty()) {
+            return;
+        }
+        // Phase 3: Scenes created asynchronously (MaterializeTask) appear in the document
+        // tree after mountDocument returns. Scan for new scenes each tick.
+        registerRuntimeScenes(currentPage);
         for (LytGuidebookScene scene : currentPage.scenes()) {
             scene.ponderTick();
         }
@@ -2568,6 +2574,30 @@ public class GuideScreen extends GuiContainer
         pageLoadInProgress = false;
         refreshCurrentPageTitle();
         updateToolbarButtonState();
+    }
+
+    /** Register scenes created at MOUNT time into GuidePage.scenes() for tick dispatch. */
+    private static void registerRuntimeScenes(GuidePage page) {
+        LytDocument doc = page.document();
+        if (doc == null) return;
+        java.util.List<LytGuidebookScene> list = page.scenes();
+        java.util.ArrayDeque<LytNode> pending = new java.util.ArrayDeque<>();
+        pending.add(doc);
+        int found = 0;
+        while (!pending.isEmpty()) {
+            LytNode node = pending.removeLast();
+            if (node instanceof LytGuidebookScene scene && !list.contains(scene)) {
+                list.add(scene);
+                found++;
+            }
+            var children = node.getChildren();
+            for (int i = children.size() - 1; i >= 0; i--) {
+                pending.addLast(children.get(i));
+            }
+        }
+        if (found > 0) {
+            FMLLog.getLogger().info("[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}", found, list.size());
+        }
     }
 
     private void tickGuideEditorPreviewScenes() {
