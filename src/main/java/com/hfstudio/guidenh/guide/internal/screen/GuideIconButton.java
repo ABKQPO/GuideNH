@@ -143,7 +143,7 @@ public class GuideIconButton extends GuiButton {
         PONDER_RESTART(GuidebookText.PonderRestart, 0, 32),
         TOGGLE_GRID(GuidebookText.ToggleGrid, 16, 64),
         TOGGLE_BLOCK_STATS(GuidebookText.ToggleBlockStats, 0, 0),
-        NAVIGATION_PIN(GuidebookText.NavigationPin, 0, 0),
+        NAVIGATION_PIN(GuidebookText.NavigationPin, 0, 80),
         GUIDE_EDITOR_TOGGLE(GuidebookText.GuideEditorToggle, 0, 0),
         GUIDE_EDITOR_NEW_PAGE(GuidebookText.GuideEditorNewPage, 0, 0),
         GUIDE_EDITOR_AUTOSAVE(GuidebookText.GuideEditorAutosave, 0, 0),
