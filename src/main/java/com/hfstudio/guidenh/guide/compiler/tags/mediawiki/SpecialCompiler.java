@@ -48,6 +48,10 @@ public class SpecialCompiler extends BlockTagCompiler {
 
     @Override
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
+        // NB: Phase 2 indexed special page result entries resolved by
+        // MediaWikiSpecialPageResolver.resolve(). Phase 3 defers resolution to
+        // SpecialScript (MOUNT time), so index() only indexes the special page name string.
+        // Full indexing requires a post-mount indexing pass (TBD).
         String specialName = el.getAttributeString("name", null);
         if (specialName != null && !specialName.trim()
             .isEmpty()) {

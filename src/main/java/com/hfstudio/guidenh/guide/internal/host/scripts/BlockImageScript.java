@@ -7,6 +7,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
+import com.hfstudio.guidenh.guide.compiler.IdUtils.ParsedItemRef;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler.BlockImagePlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -42,19 +44,12 @@ public class BlockImageScript implements LytScript {
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
 
-        BlockImagePlaceholder ph;
-        boolean isWrapped = node instanceof LytFlowInlineBlock w
-            && w.getBlock() instanceof BlockImagePlaceholder p;
-        if (isWrapped) {
-            ph = (BlockImagePlaceholder) ((LytFlowInlineBlock) node).getBlock();
-        } else if (node instanceof BlockImagePlaceholder p) {
-            ph = p;
-        } else {
-            return;
-        }
+        BlockImagePlaceholder ph = LytFlowInlineBlock.unwrapPlaceholder(node, BlockImagePlaceholder.class);
+        if (ph == null) return;
 
         Block block = null;
         int meta = ph.meta;
+        NBTTagCompound tileTag = null;
 
         if (ph.ore != null && !ph.ore.isEmpty()) {
             ItemStack oreStack = GuideItemReferenceResolver.resolveOreDictionaryStack(ph.ore);
@@ -63,12 +58,12 @@ public class BlockImageScript implements LytScript {
                 meta = oreStack.getItemDamage();
             }
         } else if (ph.id != null) {
-            Item item = (Item) Item.itemRegistry.getObject(ph.id.contains(":") ? ph.id : "minecraft:" + ph.id);
-            if (item != null) {
-                block = Block.getBlockFromItem(item);
-            }
-            if (block == null) {
-                block = (Block) Block.blockRegistry.getObject(ph.id.contains(":") ? ph.id : "minecraft:" + ph.id);
+            // Handle inline NBT: id="minecraft:stone{BlockEntityTag:{...}}"
+            ParsedItemRef ref = IdUtils.parseItemRef(ph.id.contains(":") ? ph.id : "minecraft:" + ph.id, "minecraft");
+            Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
+            if (item != null) block = Block.getBlockFromItem(item);
+            if (ref.nbt() != null && tileTag == null) {
+                tileTag = (NBTTagCompound) ref.nbt().copy();
             }
         }
 
@@ -78,10 +73,16 @@ public class BlockImageScript implements LytScript {
             return;
         }
 
-        NBTTagCompound tileTag = null;
         if (ph.nbt != null && !ph.nbt.trim().isEmpty()) {
             try {
-                tileTag = GuideTextNbtCodec.readTextSafeCompound(ph.nbt.trim());
+                NBTTagCompound explicitTag = GuideTextNbtCodec.readTextSafeCompound(ph.nbt.trim());
+                if (tileTag != null) {
+                    for (Object key : explicitTag.func_150296_c()) {
+                        tileTag.setTag((String) key, explicitTag.getTag((String) key));
+                    }
+                } else {
+                    tileTag = explicitTag;
+                }
             } catch (Exception ignored) {}
         }
 
@@ -92,7 +93,8 @@ public class BlockImageScript implements LytScript {
 
         int defaultMeta = meta == Integer.MIN_VALUE ? BlockElementCompiler.defaultMetaFor(block, null) : meta;
         GuidebookLevel level = new GuidebookLevel();
-        GuidebookPreviewBlockPlacer.place(level, 0, 0, 0, block, defaultMeta, tileTag);
+        String registryId = ph.id != null ? (ph.id.contains(":") ? ph.id : "minecraft:" + ph.id) : "";
+        GuidebookPreviewBlockPlacer.place(level, 0, 0, 0, block, defaultMeta, tileTag, registryId);
 
         if (level.isEmpty()) {
             ctx.replace(

@@ -16,11 +16,11 @@ import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
-import com.hfstudio.guidenh.guide.internal.extensions.DefaultExtensions;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
+import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
@@ -43,16 +43,7 @@ import cpw.mods.fml.common.FMLLog;
 
 public class SceneScript implements LytScript {
 
-    private final Map<String, SceneElementTagCompiler> elementCompilers;
-
     public SceneScript() {
-        Map<String, SceneElementTagCompiler> map = new HashMap<>();
-        for (var ext : DefaultExtensions.sceneElementCompilers()) {
-            for (String name : ext.getTagNames()) {
-                map.put(name, ext);
-            }
-        }
-        this.elementCompilers = map;
     }
 
     @Override
@@ -97,38 +88,35 @@ public class SceneScript implements LytScript {
         int height = ph.height > 0 ? ph.height : 180;
         camera.setViewportSize(width, height);
 
-        // Parse children source and compile scene elements
+        // Parse children source
         ExceptionCollector errorSink = new ExceptionCollector();
         PageCollection pc = ctx.getPageCollection();
         PageCompiler runtimeCompiler = new PageCompiler(pc != null ? pc : new StubPageCollection(),
             ExtensionCollection.EMPTY, "", new ResourceLocation(ph.pageDomain, "scene"), "");
+        MdAstRoot ast;
         try {
-            MdAstRoot ast = ph.childrenAst != null ? ph.childrenAst
+            ast = ph.childrenAst != null ? ph.childrenAst
                 : MdAst.fromMarkdown(ph.childrenSource, GuideMarkdownOptions.runtime());
             if (ph.childrenAst == null && ast != null) {
                 MdAstToMdxConverter.convert(ast, Collections.emptyMap());
             }
-            GuideSceneStructureCompileScope.run(true, () -> {
-                for (UnistNode child : ast.children()) {
-                    MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
-                    if (el == null) continue;
-                    SceneElementTagCompiler ec = elementCompilers.get(el.name());
-                    if (ec != null) {
-                        ec.compile(level, camera, runtimeCompiler, errorSink, el);
-                    }
-                }
-            });
         } catch (Exception e) {
             FMLLog.getLogger().warn("[GuideNH] [SceneScript] Failed to re-parse scene children", e);
             ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
             return;
         }
 
-        if (level.isEmpty()) {
-            ctx.replace(LytParagraph.error("[Scene] Scene has no supported elements"));
-            return;
+        // Build element compiler map from placeholder (set at compile time by SceneTagCompiler)
+        Map<String, SceneElementTagCompiler> elementCompilers = new HashMap<>();
+        if (ph.sceneElementCompilers != null) {
+            for (var ec : ph.sceneElementCompilers) {
+                for (String name : ec.getTagNames()) {
+                    elementCompilers.put(name, ec);
+                }
+            }
         }
 
+        // Create the scene EARLY so element compilers can access it via CURRENT_SCENE.
         LytGuidebookScene scene = new LytGuidebookScene();
         scene.setLevel(level);
         scene.setCamera(camera);
@@ -139,20 +127,91 @@ public class SceneScript implements LytScript {
         scene.setGridButtonEnabled(ph.gridButtonEnabled);
         scene.setGridVisible(ph.showGrid);
 
-        if (!level.isEmpty()) {
-            float[] center = level.getCenter();
-            if (!ph.explicitCenter) {
-                camera.setRotationCenter(center[0], center[1], center[2]);
+        // Compile scene elements with CURRENT_SCENE set so that element compilers
+        // (ImportPonderElementCompiler, ImportStructureLibElementCompiler, annotations, etc.)
+        // can call scene.attachPonderData(), scene.addAnnotation(), etc.
+        var prevScene = AnnotationTagCompiler.CURRENT_SCENE.get();
+        AnnotationTagCompiler.CURRENT_SCENE.set(scene);
+        try {
+            GuideSceneStructureCompileScope.run(true, () -> {
+                for (UnistNode child : ast.children()) {
+                    MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
+                    if (el == null) continue;
+                    SceneElementTagCompiler ec = elementCompilers.get(el.name());
+                    if (ec != null) {
+                        ec.compile(level, camera, runtimeCompiler, errorSink, el);
+                    }
+                }
+            });
+        } finally {
+            if (prevScene != null) {
+                AnnotationTagCompiler.CURRENT_SCENE.set(prevScene);
+            } else {
+                AnnotationTagCompiler.CURRENT_SCENE.remove();
             }
-            // Auto-center the scene in the viewport using the same approach as BlockImageScript
-            // NB: auto-size and auto-zoom restoration pending via SceneViewportMetrics.measure().
-            // Phase 2 reference: SceneTagCompiler lines 195-252 (commit 475353f^).
+        }
+
+        if (level.isEmpty()) {
+            ctx.replace(LytParagraph.error("[Scene] Scene has no supported elements"));
+            return;
+        }
+
+        // Finalize scene setup: auto-center, ponder baseline, interactive state capture
+        float[] center = level.getCenter();
+        if (!ph.explicitCenter) {
+            camera.setRotationCenter(center[0], center[1], center[2]);
+        }
+        // Auto-center the scene in the viewport
+        if (!ph.explicitCenter && Float.isNaN(ph.offsetX) && Float.isNaN(ph.offsetY)) {
             camera.setOffsetX(0f);
             camera.setOffsetY(0f);
             var sc = camera.worldToScreen(center[0], center[1], center[2]);
-            camera.setOffsetX(-sc.x + (Float.isNaN(ph.offsetX) ? 0 : ph.offsetX));
-            camera.setOffsetY(sc.y + (Float.isNaN(ph.offsetY) ? 0 : ph.offsetY));
+            camera.setOffsetX(-sc.x);
+            camera.setOffsetY(sc.y);
+        } else if (!Float.isNaN(ph.offsetX) || !Float.isNaN(ph.offsetY)) {
+            if (!Float.isNaN(ph.offsetX)) camera.setOffsetX(ph.offsetX);
+            if (!Float.isNaN(ph.offsetY)) camera.setOffsetY(ph.offsetY);
         }
+
+        // Auto-zoom: when zoom is not explicitly set, fit scene to viewport at 85% fill
+        if (Float.isNaN(ph.zoom)) {
+            camera.setZoom(1f);
+            camera.setOffsetX(0f);
+            camera.setOffsetY(0f);
+            if (!level.isEmpty()) {
+                int[] bounds = level.getBounds();
+                SceneViewportMetrics metrics = SceneViewportMetrics.measure(camera, bounds);
+                float spanX = metrics.spanX();
+                float spanY = metrics.spanY();
+                if (spanX > 0.5f || spanY > 0.5f) {
+                    float zX = spanX > 0.5f ? (float) width / spanX : Float.MAX_VALUE;
+                    float zY = spanY > 0.5f ? (float) height / spanY : Float.MAX_VALUE;
+                    float autoZoom = Math.min(zX, zY) * 0.85f;
+                    autoZoom = Math.max(LytGuidebookScene.MIN_ZOOM, Math.min(LytGuidebookScene.MAX_ZOOM, autoZoom));
+                    camera.setZoom(autoZoom);
+                }
+            }
+        }
+        // Auto-size: when width/height not explicitly set, measure and compute viewport
+        if (!ph.explicitWidth || !ph.explicitHeight) {
+            camera.setOffsetX(0f);
+            camera.setOffsetY(0f);
+            if (!level.isEmpty()) {
+                int[] bounds = level.getBounds();
+                SceneViewportMetrics metrics = SceneViewportMetrics.measure(camera, bounds);
+                if (!ph.explicitWidth && metrics.spanX() > 0.5f) {
+                    width = SceneViewportMetrics.clampDimension(metrics.spanX());
+                }
+                if (!ph.explicitHeight && metrics.spanY() > 0.5f) {
+                    height = SceneViewportMetrics.clampDimension(metrics.spanY());
+                }
+                scene.setSceneSize(width, height);
+                camera.setViewportSize(width, height);
+            }
+        }
+
+        scene.initializePonderTimelineBaseline();
+        scene.captureInitialInteractiveState();
         scene.snapshotInitialCamera();
         ctx.replace(scene);
     }

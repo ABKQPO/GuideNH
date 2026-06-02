@@ -213,39 +213,63 @@ public class LytHost {
         }
     }
 
+    /**
+     * Two-phase MOUNT dispatch:
+     * <p>
+     * <strong>Phase 1 (sync):</strong> walk the entire tree and execute
+     * every synchronous script immediately.  This guarantees that all
+     * setup and initialization work (e.g. establishing CURRENT_SCENE,
+     * compiling child elements) is finished before any asynchronous
+     * work begins.
+     * <p>
+     * <strong>Phase 2 (async):</strong> walk the tree a second time and
+     * queue every asynchronous script as a {@link MaterializeTask} for
+     * execution on subsequent ticks (see {@link #step}).
+     * <p>
+     * Within each phase the original document order (parent before children)
+     * is preserved.  The node-level result cache is consulted: if a node
+     * already has a cached result from a previous mount, the cached content
+     * is restored directly and the script is skipped in <em>both</em>
+     * phases.
+     */
     private void dispatchMountEvents(LytNode node) {
+        dispatchPhase(node, false); // Phase 1: sync scripts only
+        dispatchPhase(node, true);  // Phase 2: queue async scripts only
+    }
+
+    private void dispatchPhase(LytNode node, boolean asyncPhase) {
         String cls = node.getStyleClass();
         if (cls != null) {
             LytScript script = scripts.get(cls);
             if (script != null) {
-                dispatchScript(script, node);
+                dispatchScriptInPhase(script, node, asyncPhase);
             }
         }
         for (var child : node.getChildren()) {
-            dispatchMountEvents(child);
+            dispatchPhase(child, asyncPhase);
         }
-        dispatchMountEventsFlow(node);
+        dispatchPhaseFlow(node, asyncPhase);
     }
 
-    private void dispatchMountEventsFlow(LytNode node) {
+    private void dispatchPhaseFlow(LytNode node, boolean asyncPhase) {
         if (node instanceof LytParagraph para) {
             for (var fcChild : para.getContent()) {
-                dispatchMountEventsFlowRecursive(fcChild);
+                dispatchPhaseFlowRecursive(fcChild, asyncPhase);
             }
         }
     }
 
-    private void dispatchMountEventsFlowRecursive(LytFlowContent fc) {
+    private void dispatchPhaseFlowRecursive(LytFlowContent fc, boolean asyncPhase) {
         String cls = fc.getStyleClass();
         if (cls != null) {
             LytScript script = scripts.get(cls);
             if (script != null) {
-                dispatchScript(script, fc);
+                dispatchScriptInPhase(script, fc, asyncPhase);
             }
         }
         if (fc instanceof LytFlowSpan span) {
             for (var child : span.getChildren()) {
-                dispatchMountEventsFlowRecursive(child);
+                dispatchPhaseFlowRecursive(child, asyncPhase);
             }
         } else if (fc instanceof LytFlowInlineBlock inlineBlock && inlineBlock.getBlock() != null) {
             LytBlock inner = inlineBlock.getBlock();
@@ -253,13 +277,25 @@ public class LytHost {
             if (innerCls != null) {
                 LytScript script = scripts.get(innerCls);
                 if (script != null) {
-                    dispatchScript(script, inlineBlock);
+                    dispatchScriptInPhase(script, inlineBlock, asyncPhase);
                 }
             }
         }
     }
 
-    private void dispatchScript(LytScript script, Object node) {
+    /**
+     * Dispatch a single script in the given phase.
+     * <ul>
+     *   <li>If the node has a cached result from a previous mount, the
+     *       cached content is restored directly and the script is skipped
+     *       entirely (both phases).
+     *   <li>In the <em>sync</em> phase ({@code asyncPhase == false}), only
+     *       non-async scripts are executed synchronously.
+     *   <li>In the <em>async</em> phase ({@code asyncPhase == true}), only
+     *       async scripts are enqueued as {@link MaterializeTask}s.
+     * </ul>
+     */
+    private void dispatchScriptInPhase(LytScript script, Object node, boolean asyncPhase) {
         String nodeUid = nodeUidOf(node);
         if (nodeUid != null) {
             Object cached = getNodeResult(currentPageId, nodeUid);
@@ -268,14 +304,18 @@ public class LytHost {
                 return;
             }
         }
-        if (script.isAsync()) {
-            taskQueue.addLast(new MaterializeTask(script, node, new ScriptContextImpl(node, this, document)));
+        if (asyncPhase) {
+            if (script.isAsync()) {
+                taskQueue.addLast(new MaterializeTask(script, node, new ScriptContextImpl(node, this, document)));
+            }
         } else {
-            try {
-                ScriptContextImpl ctx = new ScriptContextImpl(node, this, document);
-                script.onEvent(node, new LytEvent(EventType.MOUNT, node), ctx);
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (!script.isAsync()) {
+                try {
+                    ScriptContextImpl ctx = new ScriptContextImpl(node, this, document);
+                    script.onEvent(node, new LytEvent(EventType.MOUNT, node), ctx);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

@@ -19,7 +19,12 @@ public class SubPagesCompiler extends BlockTagCompiler {
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         var pageIdStr = el.getAttributeString("id", null);
         if (pageIdStr != null) {
-            pageIdStr = compiler.resolveId(pageIdStr).toString();
+            try {
+                pageIdStr = compiler.resolveId(pageIdStr).toString();
+            } catch (Exception e) {
+                parent.appendError(compiler, "Invalid id: " + pageIdStr, el);
+                return;
+            }
         }
         var alphabetical = MdxAttrs.getBoolean(compiler, parent, el, "alphabetical", false);
         var currentPageId = compiler.getPageId().toString();

@@ -53,6 +53,11 @@ public class ItemGridScript implements LytScript {
             com.hfstudio.guidenh.guide.compiler.IdUtils.parseItemRef(itemId, ns);
         if (ref == null) return null;
         Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
-        return item != null ? new ItemStack(item, 1, ref.concreteMeta()) : null;
+        if (item == null) return null;
+        ItemStack stack = new ItemStack(item, 1, ref.concreteMeta());
+        if (ref.nbt() != null) {
+            stack.stackTagCompound = (net.minecraft.nbt.NBTTagCompound) ref.nbt().copy();
+        }
+        return stack;
     }
 }

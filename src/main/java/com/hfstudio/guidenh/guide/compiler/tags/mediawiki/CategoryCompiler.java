@@ -44,6 +44,10 @@ public class CategoryCompiler extends BlockTagCompiler {
 
     @Override
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
+        // NB: Phase 2 indexed category member titles resolved by
+        // MediaWikiPageListBuilder.buildCategoryMembers(). Phase 3 defers member resolution to
+        // CategoryScript (MOUNT time), so index() only indexes the category name string.
+        // Full indexing requires a post-mount indexing pass (TBD).
         String categoryName = el.getAttributeString("name", null);
         if (categoryName != null && !categoryName.trim()
             .isEmpty()) {

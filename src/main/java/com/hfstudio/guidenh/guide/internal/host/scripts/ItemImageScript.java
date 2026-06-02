@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.internal.host.scripts;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.oredict.OreDictionary;
 
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler.ItemImagePlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
@@ -26,20 +27,23 @@ public class ItemImageScript implements LytScript {
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
 
-        ItemImagePlaceholder ph;
-        boolean isWrapped = node instanceof LytFlowInlineBlock w && w.getBlock() instanceof ItemImagePlaceholder p;
-        if (isWrapped) {
-            ph = (ItemImagePlaceholder) ((LytFlowInlineBlock) node).getBlock();
-        } else if (node instanceof ItemImagePlaceholder p) {
-            ph = p;
-        } else {
-            return;
-        }
+        ItemImagePlaceholder ph = LytFlowInlineBlock.unwrapPlaceholder(node, ItemImagePlaceholder.class);
+        if (ph == null) return;
+        boolean isWrapped = node instanceof LytFlowInlineBlock;
 
         ItemStack stack = resolveItemId(ph.itemId);
         if (stack == null) {
-            replaceFlowError(ctx, isWrapped, "[ItemImage] Item not found: " + ph.itemId);
-            return;
+            // Fallback to ore dictionary if direct item lookup fails
+            if (ph.ore != null) {
+                java.util.List<ItemStack> oreStacks = OreDictionary.getOres(ph.ore);
+                if (oreStacks != null && !oreStacks.isEmpty()) {
+                    stack = oreStacks.get(0).copy();
+                }
+            }
+            if (stack == null) {
+                replaceFlowError(ctx, isWrapped, "[ItemImage] Item not found: " + ph.itemId);
+                return;
+            }
         }
 
         LytItemImage image = new LytItemImage(stack);
@@ -85,6 +89,11 @@ public class ItemImageScript implements LytScript {
             com.hfstudio.guidenh.guide.compiler.IdUtils.parseItemRef(itemId, ns);
         if (ref == null) return null;
         Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
-        return item != null ? new ItemStack(item, 1, ref.concreteMeta()) : null;
+        if (item == null) return null;
+        ItemStack stack = new ItemStack(item, 1, ref.concreteMeta());
+        if (ref.nbt() != null) {
+            stack.stackTagCompound = (net.minecraft.nbt.NBTTagCompound) ref.nbt().copy();
+        }
+        return stack;
     }
 }

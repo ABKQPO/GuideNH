@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.util.StatCollector;
 
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
@@ -40,8 +41,14 @@ public class QuestLinkScript implements LytScript {
         Boolean showTooltip = (Boolean) placeholder.getData("showTooltip");
         String overrideText = (String) placeholder.getData("overrideText");
 
-        QuestDisplay display = BqHelpers.resolveDisplay(questId, Minecraft.getMinecraft().thePlayer,
-            Boolean.TRUE.equals(showTooltip));
+        QuestDisplay display;
+        try {
+            display = BqHelpers.resolveDisplay(questId, Minecraft.getMinecraft().thePlayer,
+                Boolean.TRUE.equals(showTooltip));
+        } catch (Throwable t) {
+            ctx.replace(LytParagraph.error("[QuestLink] BetterQuesting integration not available"));
+            return;
+        }
         if (display == null) {
             LytFlowSpan errorSpan = new LytFlowSpan();
             errorSpan.modifyStyle(style -> style.color(SymbolicColor.ERROR_TEXT));

@@ -4700,6 +4700,7 @@ public class GuideScreen extends GuiContainer
 
     @Override
     public void handleKeyboardInput() {
+        if (mc == null) return;
         if (Keyboard.getEventKeyState() || isCommittedCharacterEventForFocusedTextInput()) {
             keyTyped(Keyboard.getEventCharacter(), Keyboard.getEventKey());
         }

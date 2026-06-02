@@ -52,16 +52,8 @@ public class RecipeScript implements LytScript {
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
 
-        RecipePlaceholder ph;
-        boolean isWrapped = node instanceof LytFlowInlineBlock w
-            && w.getBlock() instanceof RecipePlaceholder p;
-        if (isWrapped) {
-            ph = (RecipePlaceholder) ((LytFlowInlineBlock) node).getBlock();
-        } else if (node instanceof RecipePlaceholder p) {
-            ph = p;
-        } else {
-            return;
-        }
+        RecipePlaceholder ph = LytFlowInlineBlock.unwrapPlaceholder(node, RecipePlaceholder.class);
+        if (ph == null) return;
 
         Item item = (Item) Item.itemRegistry.getObject(ph.ref.rawKey());
         if (item == null) {

@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.SubPagesCompiler.SubPagesPlaceho
 import com.hfstudio.guidenh.guide.document.block.LytList;
 import com.hfstudio.guidenh.guide.document.block.LytListItem;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
@@ -31,50 +32,52 @@ public class SubPagesScript implements LytScript {
 
     @Override
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
-        if (event.type() == EventType.MOUNT && node instanceof SubPagesPlaceholder ph) {
-            NavigationTree tree = GuideRegistry.getMergedNavigationTree();
+        if (event.type() != EventType.MOUNT) return;
+        SubPagesPlaceholder ph = LytFlowInlineBlock.unwrapPlaceholder(node, SubPagesPlaceholder.class);
+        if (ph == null) return;
 
-            List<NavigationNode> subNodes;
-            if (ph.pageIdStr == null) {
-                ResourceLocation currentPageId = new ResourceLocation(ph.currentPageId);
-                NavigationNode current = tree.getNodeById(currentPageId);
-                subNodes = current != null ? new ArrayList<>(current.children()) : tree.getRootNodes();
-            } else if (ph.pageIdStr.isEmpty()) {
-                subNodes = tree.getRootNodes();
-            } else {
-                ResourceLocation pageId = new ResourceLocation(ph.pageIdStr);
-                NavigationNode navNode = tree.getNodeById(pageId);
-                if (navNode == null) {
-                    ctx.replace(LytParagraph.error("[SubPages] Page not found in navigation: " + ph.pageIdStr));
-                    return;
-                }
-                subNodes = navNode.children();
-            }
+        NavigationTree tree = GuideRegistry.getMergedNavigationTree();
 
-            if (ph.alphabetical) {
-                subNodes = new ArrayList<>(subNodes);
-                subNodes.sort(Comparator.comparing(NavigationNode::title));
-            }
-
-            if (subNodes.isEmpty()) {
-                ctx.replace(LytParagraph.error("[SubPages] No sub-pages found"));
+        List<NavigationNode> subNodes;
+        if (ph.pageIdStr == null) {
+            ResourceLocation currentPageId = new ResourceLocation(ph.currentPageId);
+            NavigationNode current = tree.getNodeById(currentPageId);
+            subNodes = current != null ? new ArrayList<>(current.children()) : tree.getRootNodes();
+        } else if (ph.pageIdStr.isEmpty()) {
+            subNodes = tree.getRootNodes();
+        } else {
+            ResourceLocation pageId = new ResourceLocation(ph.pageIdStr);
+            NavigationNode navNode = tree.getNodeById(pageId);
+            if (navNode == null) {
+                ctx.replace(LytParagraph.error("[SubPages] Page not found in navigation: " + ph.pageIdStr));
                 return;
             }
-
-            LytList list = new LytList(false, 0);
-            for (NavigationNode childNode : subNodes) {
-                if (!childNode.hasPage()) continue;
-
-                LytListItem listItem = new LytListItem();
-                LytParagraph listItemPar = new LytParagraph();
-                LytFlowLink link = new LytFlowLink();
-                link.setGuideLink(childNode.guideId(), PageAnchor.page(childNode.pageId()));
-                link.appendText(childNode.title());
-                listItemPar.append(link);
-                listItem.append(listItemPar);
-                list.append(listItem);
-            }
-            ctx.replace(list);
+            subNodes = navNode.children();
         }
+
+        if (ph.alphabetical) {
+            subNodes = new ArrayList<>(subNodes);
+            subNodes.sort(Comparator.comparing(NavigationNode::title));
+        }
+
+        if (subNodes.isEmpty()) {
+            ctx.replace(LytParagraph.error("[SubPages] No sub-pages found"));
+            return;
+        }
+
+        LytList list = new LytList(false, 0);
+        for (NavigationNode childNode : subNodes) {
+            if (!childNode.hasPage()) continue;
+
+            LytListItem listItem = new LytListItem();
+            LytParagraph listItemPar = new LytParagraph();
+            LytFlowLink link = new LytFlowLink();
+            link.setGuideLink(childNode.guideId(), PageAnchor.page(childNode.pageId()));
+            link.appendText(childNode.title());
+            listItemPar.append(link);
+            listItem.append(listItemPar);
+            list.append(listItem);
+        }
+        ctx.replace(list);
     }
 }

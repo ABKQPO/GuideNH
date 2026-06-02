@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
+import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
@@ -50,6 +51,13 @@ public class StructureScript implements LytScript {
             com.hfstudio.guidenh.guide.compiler.IdUtils.parseItemRef(idSpec, "minecraft");
         if (ref == null) return null;
         Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
-        return item != null ? new ItemStack(item, 1, ref.concreteMeta()) : null;
+        if (item != null) {
+            return new ItemStack(item, 1, ref.concreteMeta());
+        }
+        Block block = (Block) Block.blockRegistry.getObject(ref.rawKey());
+        if (block != null) {
+            return new ItemStack(block, 1, ref.concreteMeta());
+        }
+        return null;
     }
 }
