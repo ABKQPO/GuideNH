@@ -26,11 +26,15 @@ class ScriptContextImpl implements ScriptContext {
     private final Object node;
     private final LytHost host;
     private final LytDocument document;
+    private long yieldDeadlineNs;
+    private boolean isComplete;
+    private boolean yieldRequested;
 
     ScriptContextImpl(Object node, LytHost host, LytDocument document) {
         this.node = node;
         this.host = host;
         this.document = document;
+        this.yieldDeadlineNs = System.nanoTime() + 50_000_000L; // 50ms default
     }
 
     @Override
@@ -137,6 +141,34 @@ class ScriptContextImpl implements ScriptContext {
     @Override
     public void dispatchSubtree(LytNode root) {
         host.dispatchToSubtree(root);
+    }
+
+    void setYieldDeadline(long deadlineNs) {
+        this.yieldDeadlineNs = deadlineNs;
+    }
+
+    @Override
+    public boolean timeToYield() {
+        boolean exceeded = System.nanoTime() >= yieldDeadlineNs;
+        if (exceeded) yieldRequested = true;
+        return exceeded;
+    }
+
+    @Override
+    public void markComplete() {
+        this.isComplete = true;
+    }
+
+    void resetYieldState() {
+        this.yieldRequested = false;
+    }
+
+    boolean isYieldRequested() {
+        return yieldRequested;
+    }
+
+    boolean isComplete() {
+        return isComplete;
     }
 
     private void recordResult(Object result) {

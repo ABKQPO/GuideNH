@@ -20,6 +20,7 @@ import com.hfstudio.guidenh.guide.internal.extensions.DefaultExtensions;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
+import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
@@ -102,8 +103,11 @@ public class SceneScript implements LytScript {
         PageCompiler runtimeCompiler = new PageCompiler(pc != null ? pc : new StubPageCollection(),
             ExtensionCollection.EMPTY, "", new ResourceLocation(ph.pageDomain, "scene"), "");
         try {
-            MdAstRoot ast = MdAst.fromMarkdown(ph.childrenSource, GuideMarkdownOptions.runtime());
-            MdAstToMdxConverter.convert(ast, Collections.emptyMap());
+            MdAstRoot ast = ph.childrenAst != null ? ph.childrenAst
+                : MdAst.fromMarkdown(ph.childrenSource, GuideMarkdownOptions.runtime());
+            if (ph.childrenAst == null && ast != null) {
+                MdAstToMdxConverter.convert(ast, Collections.emptyMap());
+            }
             GuideSceneStructureCompileScope.run(true, () -> {
                 for (UnistNode child : ast.children()) {
                     MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
@@ -141,6 +145,8 @@ public class SceneScript implements LytScript {
                 camera.setRotationCenter(center[0], center[1], center[2]);
             }
             // Auto-center the scene in the viewport using the same approach as BlockImageScript
+            // NB: auto-size and auto-zoom restoration pending via SceneViewportMetrics.measure().
+            // Phase 2 reference: SceneTagCompiler lines 195-252 (commit 475353f^).
             camera.setOffsetX(0f);
             camera.setOffsetY(0f);
             var sc = camera.worldToScreen(center[0], center[1], center[2]);

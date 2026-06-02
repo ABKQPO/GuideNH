@@ -18,10 +18,16 @@ import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureFingerprintResolver;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
+import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
+import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistParent;
+
+import cpw.mods.fml.common.FMLLog;
 
 public class SceneTagCompiler extends BlockTagCompiler {
 
@@ -120,6 +126,18 @@ public class SceneTagCompiler extends BlockTagCompiler {
         // Raw source text of children (preserves BlockStats and all scene element markup)
         String childrenSource = compiler.getBlockTagChildrenSource(el);
 
+        // Pre-parse children source at compile time (pure function -- no I/O, no registry).
+        // SceneScript uses the pre-parsed AST instead of re-running MdAst.fromMarkdown().
+        MdAstRoot preParsedAst = null;
+        if (childrenSource != null && !childrenSource.isEmpty()) {
+            try {
+                preParsedAst = MdAst.fromMarkdown(childrenSource, GuideMarkdownOptions.runtime());
+                MdAstToMdxConverter.convert(preParsedAst, Collections.emptyMap());
+            } catch (RuntimeException e) {
+                FMLLog.getLogger().warn("[GuideNH] [SceneTagCompiler] Failed to pre-parse scene children", e);
+            }
+        }
+
         // Create placeholder block that carries all scene config to SceneScript
         String styleClass = "GameScene".equals(el.name()) ? "GameScene" : "Scene";
         ScenePlaceholder placeholder = new ScenePlaceholder(
@@ -132,7 +150,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
             interactive, showBackground,
             allowLayerSlider, gridButtonEnabled, showGrid,
             childrenSource,
-            compiler.getPageId().getResourceDomain()
+            compiler.getPageId().getResourceDomain(),
+            preParsedAst   // NEW: pre-parsed AST for SceneScript
         );
         placeholder.setStyleClass(styleClass);
         placeholder.setStyle(LytParagraph.PLACEHOLDER_STYLE);
@@ -178,6 +197,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         public final boolean showGrid;
         @Nullable public final String childrenSource;
         public final String pageDomain;
+        @Nullable public final MdAstRoot childrenAst;
 
         public ScenePlaceholder(
             int width, int height,
@@ -193,7 +213,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
             boolean allowLayerSlider, boolean gridButtonEnabled,
             boolean showGrid,
             @Nullable String childrenSource,
-            String pageDomain) {
+            String pageDomain,
+            @Nullable MdAstRoot childrenAst) {
             this.width = width;
             this.height = height;
             this.explicitWidth = explicitWidth;
@@ -219,6 +240,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             this.showGrid = showGrid;
             this.childrenSource = childrenSource;
             this.pageDomain = pageDomain;
+            this.childrenAst = childrenAst;
         }
     }
 

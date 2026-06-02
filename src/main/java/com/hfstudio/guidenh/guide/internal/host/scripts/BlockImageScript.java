@@ -23,6 +23,7 @@ import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
 import com.hfstudio.guidenh.guide.scene.element.BlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderNbtPath;
 
 public class BlockImageScript implements LytScript {
@@ -128,28 +129,9 @@ public class BlockImageScript implements LytScript {
         camera.setRotationCenter(center[0], center[1], center[2]);
 
         int[] bounds = level.getBounds();
-        float minX = bounds[0];
-        float minY = bounds[1];
-        float minZ = bounds[2];
-        float maxX = bounds[3] + 1f;
-        float maxY = bounds[4] + 1f;
-        float maxZ = bounds[5] + 1f;
-
-        float minScreenX = Float.MAX_VALUE, maxScreenX = -Float.MAX_VALUE;
-        float minScreenY = Float.MAX_VALUE, maxScreenY = -Float.MAX_VALUE;
-        for (int corner = 0; corner < 8; corner++) {
-            float wx = (corner & 1) == 0 ? minX : maxX;
-            float wy = (corner & 2) == 0 ? minY : maxY;
-            float wz = (corner & 4) == 0 ? minZ : maxZ;
-            var sp = camera.worldToScreen(wx, wy, wz);
-            if (sp.x < minScreenX) minScreenX = sp.x;
-            if (sp.x > maxScreenX) maxScreenX = sp.x;
-            if (sp.y < minScreenY) minScreenY = sp.y;
-            if (sp.y > maxScreenY) maxScreenY = sp.y;
-        }
-
-        int autoW = clampDim((int) Math.ceil(maxScreenX - minScreenX) + 16);
-        int autoH = clampDim((int) Math.ceil(maxScreenY - minScreenY) + 16);
+        SceneViewportMetrics metrics = SceneViewportMetrics.measure(camera, bounds);
+        int autoW = SceneViewportMetrics.clampDimension(metrics.spanX());
+        int autoH = SceneViewportMetrics.clampDimension(metrics.spanY());
         scene.setSceneSize(autoW, autoH);
         camera.setViewportSize(autoW, autoH);
 
@@ -163,10 +145,6 @@ public class BlockImageScript implements LytScript {
 
     private static float clampZoom(float zoom) {
         return Math.max(LytGuidebookScene.MIN_ZOOM, Math.min(LytGuidebookScene.MAX_ZOOM, zoom <= 0 ? 1f : zoom));
-    }
-
-    private static int clampDim(int d) {
-        return Math.max(64, Math.min(256, d));
     }
 
 }

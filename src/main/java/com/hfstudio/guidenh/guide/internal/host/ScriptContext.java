@@ -27,6 +27,12 @@ public interface ScriptContext {
 
     void submitTask(DeferredTask task);
 
+    /** Whether the current MOUNT handler should yield for this tick to stay within budget. */
+    boolean timeToYield();
+
+    /** Mark the async MOUNT handler as complete (no more onEvent calls needed). */
+    void markComplete();
+
     /** Recursively dispatch MOUNT events into a detached subtree */
     void dispatchSubtree(LytNode root);
 }

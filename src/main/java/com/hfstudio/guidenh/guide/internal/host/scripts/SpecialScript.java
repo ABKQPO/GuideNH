@@ -24,6 +24,9 @@ public class SpecialScript implements LytScript {
     public String styleClass() { return "Special"; }
 
     @Override
+    public boolean isAsync() { return true; }
+
+    @Override
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
         if (!(node instanceof SpecialPlaceholder ph)) return;
@@ -56,5 +59,6 @@ public class SpecialScript implements LytScript {
         var block = MediaWikiTagCompilerSupport.createSpecialBlock(
             result, ph.rows, context, query, resolver);
         ctx.replace(block);
+        ctx.markComplete();
     }
 }

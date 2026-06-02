@@ -288,15 +288,17 @@ public class LytHost {
     }
 
     private static class MaterializeTask implements DeferredTask {
-        private boolean done;
         private final LytScript script;
         private final Object node;
         private final ScriptContextImpl ctx;
+        private final LytEvent event;
+        private boolean firstCall = true;
 
         MaterializeTask(LytScript script, Object node, ScriptContextImpl ctx) {
             this.script = script;
             this.node = node;
             this.ctx = ctx;
+            this.event = new LytEvent(EventType.MOUNT, node);
         }
 
         @Override
@@ -304,18 +306,30 @@ public class LytHost {
 
         @Override
         public TaskResult step(long deadlineNs) {
-            if (done) return TaskResult.DONE;
+            ctx.setYieldDeadline(deadlineNs);
+            ctx.resetYieldState();
             try {
-                script.onEvent(node, new LytEvent(EventType.MOUNT, node), ctx);
+                script.onEvent(node, event, ctx);
             } catch (Exception e) {
                 e.printStackTrace();
+                ctx.markComplete(); // don't retry on error
             }
-            done = true;
+            if (ctx.isComplete()) return TaskResult.DONE;
+            if (firstCall) {
+                firstCall = false;
+                // Script that yielded (called timeToYield which returned true): YIELD.
+                // Script that finished without yielding: auto-complete.
+                if (ctx.isYieldRequested()) return TaskResult.YIELD;
+                ctx.markComplete();
+                return TaskResult.DONE;
+            }
+            // Re-entry after yield — auto-complete on second call.
+            ctx.markComplete();
             return TaskResult.DONE;
         }
 
         @Override
-        public boolean isDone() { return done; }
+        public boolean isDone() { return ctx.isComplete(); }
     }
 
     // ===== Sync events =====
