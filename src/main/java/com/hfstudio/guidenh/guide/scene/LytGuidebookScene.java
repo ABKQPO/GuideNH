@@ -3255,8 +3255,8 @@ public class LytGuidebookScene extends LytBlock {
         float texSize = GuideIconButton.TEXTURE_SIZE;
         float u0 = role.iconSrcX() / texSize;
         float v0 = role.iconSrcY() / texSize;
-        float u1 = (role.iconSrcX() + 16) / texSize;
-        float v1 = (role.iconSrcY() + 16) / texSize;
+        float u1 = (role.iconSrcX() + role.iconSrcWidth()) / texSize;
+        float v1 = (role.iconSrcY() + role.iconSrcHeight()) / texSize;
         var tess = Tessellator.instance;
         tess.startDrawingQuads();
         tess.addVertexWithUV(x, y + BTN_SIZE, 0, u0, v1);
