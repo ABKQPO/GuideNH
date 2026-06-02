@@ -86,6 +86,10 @@ public class ItemLinkScript implements LytScript {
                 if (Boolean.TRUE.equals(showTooltip)) {
                     span.setTooltip(new ItemTooltip(stack));
                 }
+                // If the span has no children text (self-closing tag), fall back to item display name
+                if (span.getChildren().isEmpty()) {
+                    span.appendText(stack.getDisplayName());
+                }
                 span.modifyStyle(style -> style.italic(true));
                 ctx.replace(span);
                 return;
@@ -115,6 +119,11 @@ public class ItemLinkScript implements LytScript {
                         link.append(wrapper);
                     }
                 }
+            }
+
+            // If the link has no children text (self-closing tag), fall back to item display name
+            if (link.getChildren().isEmpty()) {
+                link.appendText(stack.getDisplayName());
             }
         }
     }

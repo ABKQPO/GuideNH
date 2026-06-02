@@ -5,6 +5,8 @@ import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.MediaWikiTagCompilerSupport;
 import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.SpecialCompiler.SpecialPlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
+import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
@@ -29,11 +31,12 @@ public class SpecialScript implements LytScript {
     @Override
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
-        if (!(node instanceof SpecialPlaceholder ph)) return;
+        SpecialPlaceholder ph = LytFlowInlineBlock.unwrapPlaceholder(node, SpecialPlaceholder.class);
+        if (ph == null) return;
 
         PageCollection pc = ctx.getPageCollection();
         if (!(pc instanceof Guide guide)) {
-            ctx.replace(LytParagraph.error("[Special] Special page not available: collection is not a guide"));
+            ctx.replace(LytParagraph.error(GuidebookText.MediaWikiNoDataAvailable.text()));
             return;
         }
 

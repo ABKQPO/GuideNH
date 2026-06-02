@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -10,6 +11,7 @@ import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.internal.csv.CsvTableParser;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
@@ -51,16 +53,35 @@ public class CsvTableCompiler extends BlockTagCompiler {
 
     @Override
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
+        // Load CSV asset content and index cell values for search.
+        // CSV data is available at compile time (src is a file path), unlike Category/Special
+        // whose data is resolved at MOUNT time by scripts.
         String src;
         try {
             src = MdxAttrs.getString(el, "src", null);
         } catch (MdxAttrs.AttributeException e) {
             return;
         }
-        if (src != null && !src.trim()
-            .isEmpty()) {
-            sink.appendText(el, src);
-            sink.appendBreak();
+        if (src != null && !src.trim().isEmpty()) {
+            try {
+                ResourceLocation csvId = IdUtils.resolveLink(src.trim(), indexer.getPageId());
+                byte[] data = indexer.loadAsset(csvId);
+                if (data != null) {
+                    List<List<String>> rows = CsvTableParser.parse(new String(data, StandardCharsets.UTF_8));
+                    for (List<String> row : rows) {
+                        for (String cell : row) {
+                            if (!cell.isEmpty()) {
+                                sink.appendText(el, cell);
+                            }
+                        }
+                        sink.appendBreak();
+                    }
+                }
+            } catch (Exception ignored) {
+                // Fallback: index the src path string if asset loading fails
+                sink.appendText(el, src);
+                sink.appendBreak();
+            }
         }
     }
 

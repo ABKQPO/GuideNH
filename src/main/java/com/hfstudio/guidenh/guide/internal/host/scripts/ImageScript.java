@@ -28,15 +28,9 @@ public class ImageScript implements LytScript {
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
 
-        LytImageBlock placeholder;
-        boolean isWrapped = node instanceof LytFlowInlineBlock w && w.getBlock() instanceof LytImageBlock p;
-        if (isWrapped) {
-            placeholder = (LytImageBlock) ((LytFlowInlineBlock) node).getBlock();
-        } else if (node instanceof LytImageBlock p) {
-            placeholder = p;
-        } else {
-            return;
-        }
+        LytImageBlock placeholder = LytFlowInlineBlock.unwrapPlaceholder(node, LytImageBlock.class);
+        if (placeholder == null) return;
+        boolean isWrapped = node instanceof LytFlowInlineBlock;
 
         String src = placeholder.getSrc();
         if (src == null || src.isEmpty()) {

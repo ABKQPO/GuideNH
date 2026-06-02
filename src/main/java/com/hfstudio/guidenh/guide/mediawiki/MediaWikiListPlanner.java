@@ -61,67 +61,27 @@ public class MediaWikiListPlanner {
         int columnCount = Math.max(1, sanitizeRows(rows));
         var columns = new ArrayList<MediaWikiListColumn>(columnCount);
         if (entries.isEmpty()) {
-            for (int index = 0; index < columnCount; index++) {
+            for (int i = 0; i < columnCount; i++) {
                 columns.add(new MediaWikiListColumn(Collections.<MediaWikiListSection>emptyList()));
             }
             return columns;
         }
 
-        List<MediaWikiListGroup> groups = buildGroups(entries);
-        int[] targetSizes = buildTargetSizes(entries.size(), columnCount);
-        int groupIndex = 0;
-        int entryOffset = 0;
-
-        for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            var sections = new ArrayList<MediaWikiListSection>();
-
-            if (columnIndex == columnCount - 1) {
-                while (groupIndex < groups.size()) {
-                    MediaWikiListGroup group = groups.get(groupIndex);
-                    sections.add(
-                        createSection(
-                            group,
-                            entryOffset,
-                            group.entries()
-                                .size()));
-                    groupIndex++;
-                    entryOffset = 0;
-                }
-                columns.add(new MediaWikiListColumn(sections));
+        int perColumn = (int) Math.ceil((double) entries.size() / columnCount);
+        for (int col = 0; col < columnCount; col++) {
+            int start = col * perColumn;
+            int end = Math.min(start + perColumn, entries.size());
+            if (start >= entries.size()) {
+                columns.add(new MediaWikiListColumn(Collections.<MediaWikiListSection>emptyList()));
                 continue;
             }
-
-            int targetSize = targetSizes[columnIndex];
-            int currentSize = 0;
-            while (groupIndex < groups.size() && currentSize < targetSize) {
-                MediaWikiListGroup group = groups.get(groupIndex);
-                int remainingCount = group.entries()
-                    .size() - entryOffset;
-                int remainingCapacity = targetSize - currentSize;
-                if (remainingCount <= remainingCapacity) {
-                    sections.add(
-                        createSection(
-                            group,
-                            entryOffset,
-                            group.entries()
-                                .size()));
-                    currentSize += remainingCount;
-                    groupIndex++;
-                    entryOffset = 0;
-                    continue;
-                }
-                if (currentSize == 0 && remainingCapacity > 0) {
-                    int endExclusive = entryOffset + remainingCapacity;
-                    sections.add(createSection(group, entryOffset, endExclusive));
-                    entryOffset = endExclusive;
-                    currentSize += remainingCapacity;
-                }
-                break;
+            List<MediaWikiListEntry> slice = entries.subList(start, end);
+            var sections = new ArrayList<MediaWikiListSection>();
+            for (MediaWikiListGroup group : buildGroups(slice)) {
+                sections.add(new MediaWikiListSection(group.key(), new ArrayList<>(group.entries())));
             }
-
             columns.add(new MediaWikiListColumn(sections));
         }
-
         return columns;
     }
 
@@ -135,24 +95,6 @@ public class MediaWikiListPlanner {
             columns.add(flattened);
         }
         return columns;
-    }
-
-    private static int[] buildTargetSizes(int entryCount, int columnCount) {
-        int[] targetSizes = new int[columnCount];
-        int baseSize = entryCount / columnCount;
-        int remainder = entryCount % columnCount;
-        for (int index = 0; index < columnCount; index++) {
-            targetSizes[index] = baseSize + (index < remainder ? 1 : 0);
-        }
-        return targetSizes;
-    }
-
-    private static MediaWikiListSection createSection(MediaWikiListGroup group, int startInclusive, int endExclusive) {
-        return new MediaWikiListSection(
-            group.key(),
-            new ArrayList<>(
-                group.entries()
-                    .subList(startInclusive, endExclusive)));
     }
 
     public static String resolveGroupKey(MediaWikiListEntry entry) {

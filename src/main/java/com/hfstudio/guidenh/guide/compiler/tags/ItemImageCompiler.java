@@ -22,6 +22,7 @@ public class ItemImageCompiler extends FlowTagCompiler {
     @Override
     protected void compile(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
         String itemId = MdxAttrs.getString(compiler, parent, el, "id", null);
+        String ore = MdxAttrs.getString(compiler, parent, el, "ore", null);
         if (itemId == null) return;
         itemId = itemId.trim();
 
@@ -73,7 +74,7 @@ public class ItemImageCompiler extends FlowTagCompiler {
         labelFormat = (formatRaw != null && !formatRaw.isEmpty()) ? formatRaw : null;
 
         ItemImagePlaceholder placeholder = new ItemImagePlaceholder(
-            itemId, scale, yOffset, labelYOffset, showTooltip, showIcon, labelPosition, labelFormat);
+            itemId, scale, yOffset, labelYOffset, showTooltip, showIcon, labelPosition, labelFormat, ore);
 
         var inline = new LytFlowInlineBlock();
         inline.setBlock(placeholder);
@@ -109,10 +110,13 @@ public class ItemImageCompiler extends FlowTagCompiler {
         public final String labelPosition;
         @Nullable
         public final String labelFormat;
+        @Nullable
+        public final String ore;
 
         public ItemImagePlaceholder(String itemId, float scale, @Nullable Integer yOffset,
             @Nullable Integer labelYOffset, boolean showTooltip, @Nullable Boolean showIcon,
-            @Nullable String labelPosition, @Nullable String labelFormat) {
+            @Nullable String labelPosition, @Nullable String labelFormat,
+            @Nullable String ore) {
             this.itemId = itemId;
             this.scale = scale;
             this.yOffset = yOffset;
@@ -121,6 +125,7 @@ public class ItemImageCompiler extends FlowTagCompiler {
             this.showIcon = showIcon;
             this.labelPosition = labelPosition;
             this.labelFormat = labelFormat;
+            this.ore = ore;
             setStyleClass("ItemImage");
         }
     }

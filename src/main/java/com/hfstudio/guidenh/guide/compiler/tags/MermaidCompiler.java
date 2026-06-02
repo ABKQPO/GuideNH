@@ -77,6 +77,10 @@ public class MermaidCompiler extends BlockTagCompiler {
 
     @Override
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
+        // NB: Phase 2 loaded src-based Mermaid content and indexed the actual diagram source.
+        // Phase 3 src-based content is resolved at MOUNT time by MermaidScript, so index() only
+        // indexes the src path string. Inline content (no src attribute) is still indexed here.
+        // Full indexing for src-based mermaid requires a post-mount indexing pass (TBD).
         String src;
         try {
             src = MdxAttrs.getString(el, "src", null);
@@ -100,6 +104,11 @@ public class MermaidCompiler extends BlockTagCompiler {
 
     private Map<String, LytBlock> compileNodeContentBlocks(PageCompiler compiler, LytBlockContainer parent,
         MdxJsxElementFields mermaidElement) {
+        // NB: Phase 2 cross-referenced NodeContent IDs against the parsed MermaidMindmapNode tree
+        // (via indexNodesById), validated unknown IDs, and provided inline-markdown fallback for
+        // nodes without explicit NodeContent. Phase 3 defers tree construction to MermaidScript
+        // (MOUNT time), so cross-validation must happen at runtime. See MermaidScript for the
+        // runtime counterpart.
         Map<String, LytBlock> result = new LinkedHashMap<>();
         for (MdxJsxFlowElement child : MermaidMindmapNodeContentExtractor
             .collectNodeContentElements(mermaidElement.children())) {

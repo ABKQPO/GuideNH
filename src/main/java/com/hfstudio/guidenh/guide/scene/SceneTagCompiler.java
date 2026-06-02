@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.scene;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -138,6 +139,9 @@ public class SceneTagCompiler extends BlockTagCompiler {
             }
         }
 
+        // Store element compilers from ExtensionCollection in placeholder
+        var sceneElementCompilers = compiler.getExtensions().get(SceneElementTagCompiler.EXTENSION_POINT);
+
         // Create placeholder block that carries all scene config to SceneScript
         String styleClass = "GameScene".equals(el.name()) ? "GameScene" : "Scene";
         ScenePlaceholder placeholder = new ScenePlaceholder(
@@ -151,7 +155,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
             allowLayerSlider, gridButtonEnabled, showGrid,
             childrenSource,
             compiler.getPageId().getResourceDomain(),
-            preParsedAst   // NEW: pre-parsed AST for SceneScript
+            preParsedAst,   // NEW: pre-parsed AST for SceneScript
+            sceneElementCompilers
         );
         placeholder.setStyleClass(styleClass);
         placeholder.setStyle(LytParagraph.PLACEHOLDER_STYLE);
@@ -198,6 +203,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
         @Nullable public final String childrenSource;
         public final String pageDomain;
         @Nullable public final MdAstRoot childrenAst;
+        @Nullable
+        public final List<SceneElementTagCompiler> sceneElementCompilers;
 
         public ScenePlaceholder(
             int width, int height,
@@ -214,7 +221,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
             boolean showGrid,
             @Nullable String childrenSource,
             String pageDomain,
-            @Nullable MdAstRoot childrenAst) {
+            @Nullable MdAstRoot childrenAst,
+            @Nullable List<SceneElementTagCompiler> sceneElementCompilers) {
             this.width = width;
             this.height = height;
             this.explicitWidth = explicitWidth;
@@ -241,6 +249,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             this.childrenSource = childrenSource;
             this.pageDomain = pageDomain;
             this.childrenAst = childrenAst;
+            this.sceneElementCompilers = sceneElementCompilers;
         }
     }
 
