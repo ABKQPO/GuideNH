@@ -83,7 +83,7 @@ public class GuidebookSceneEntityImportSupport {
         }
 
         float px = entry.getFloat("px") + offsetX;
-        float py = Math.max(minY, Math.min(entry.getFloat("py") + offsetY, maxY));
+        float py = Math.clamp(entry.getFloat("py") + offsetY, minY, maxY);
         float pz = entry.getFloat("pz") + offsetZ;
         String playerName = entry.hasKey("name", 8) ? entry.getString("name") : null;
         NBTTagCompound entityNbt = entry.hasKey("nbt", 10) ? (NBTTagCompound) entry.getCompoundTag("nbt")

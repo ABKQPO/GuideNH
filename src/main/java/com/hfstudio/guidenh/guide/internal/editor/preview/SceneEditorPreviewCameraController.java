@@ -130,7 +130,7 @@ public class SceneEditorPreviewCameraController {
             float zoomX = spanX > 0.5f ? (float) width / spanX : Float.MAX_VALUE;
             float zoomY = spanY > 0.5f ? (float) height / spanY : Float.MAX_VALUE;
             float zoom = Math.min(zoomX, zoomY) * 0.85f;
-            return Math.max(LytGuidebookScene.MIN_ZOOM, Math.min(LytGuidebookScene.MAX_ZOOM, zoom));
+            return Math.clamp(zoom, LytGuidebookScene.MIN_ZOOM, LytGuidebookScene.MAX_ZOOM);
         }
         return 1f;
     }

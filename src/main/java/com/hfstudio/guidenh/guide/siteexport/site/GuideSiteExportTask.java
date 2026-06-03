@@ -1095,7 +1095,10 @@ public class GuideSiteExportTask {
         }
 
         List<Integer> visibleLayers = buildVisibleLayerStates(scene);
-        List<Integer> ponderTicks = buildPonderTickStates(scene);
+        List<PonderTimelineKeyframe> ponderKeyframes = scene.hasPonderData()
+            ? scene.getPonderTimelineKeyframesForExport()
+            : List.of();
+        List<Integer> ponderTicks = buildPonderTickStates(scene, ponderKeyframes);
         List<StructureStatePlan> structurePlans = buildStructureStatePlans(scene);
 
         long variantCount = (long) visibleLayers.size() * (long) ponderTicks.size();
@@ -1132,7 +1135,10 @@ public class GuideSiteExportTask {
             ponderControl.put("totalTime", scene.getPonderTotalTimeForExport());
             ponderControl.put("ticks", new ArrayList<>(ponderTicks));
             ArrayList<Map<String, Object>> keyframes = new ArrayList<>();
-            for (PonderTimelineKeyframe keyframe : scene.getPonderTimelineKeyframesForExport()) {
+            for (PonderTimelineKeyframe keyframe : ponderKeyframes) {
+                if (keyframe.isHidden()) {
+                    continue;
+                }
                 LinkedHashMap<String, Object> serializedKeyframe = new LinkedHashMap<>();
                 serializedKeyframe.put("time", keyframe.getTime());
                 serializedKeyframe.put("label", keyframe.getLabel());
@@ -1252,21 +1258,24 @@ public class GuideSiteExportTask {
         return layers;
     }
 
-    private List<Integer> buildPonderTickStates(LytGuidebookScene scene) {
+    private List<Integer> buildPonderTickStates(LytGuidebookScene scene, List<PonderTimelineKeyframe> ponderKeyframes) {
         if (scene == null || !scene.hasPonderData()) {
             return List.of(0);
         }
-        ArrayList<Integer> states = new ArrayList<>();
         if (options.exportPonderEveryTick()) {
             int totalTime = Math.max(0, scene.getPonderTotalTimeForExport());
+            ArrayList<Integer> states = new ArrayList<>(totalTime + 1);
             for (int tick = 0; tick <= totalTime; tick++) {
                 states.add(tick);
             }
             return states.isEmpty() ? List.of(0) : states;
         }
+        ArrayList<Integer> states = new ArrayList<>(ponderKeyframes.size() + 2);
         addUniquePonderTickState(states, scene.getPonderCurrentTickForExport());
-        for (PonderTimelineKeyframe keyframe : scene.getPonderTimelineKeyframesForExport()) {
-            addUniquePonderTickState(states, keyframe.getTime());
+        for (PonderTimelineKeyframe keyframe : ponderKeyframes) {
+            if (!keyframe.isHidden()) {
+                addUniquePonderTickState(states, keyframe.getTime());
+            }
         }
         addUniquePonderTickState(states, scene.getPonderTotalTimeForExport());
         return states.isEmpty() ? List.of(0) : states;

@@ -76,17 +76,17 @@ public class MutableColor implements ColorValue {
     }
 
     public MutableColor setRed(float r) {
-        this.r = Math.max(0f, Math.min(1f, r));
+        this.r = Math.clamp(r, 0f, 1f);
         return this;
     }
 
     public MutableColor setGreen(float g) {
-        this.g = Math.max(0f, Math.min(1f, g));
+        this.g = Math.clamp(g, 0f, 1f);
         return this;
     }
 
     public MutableColor setBlue(float b) {
-        this.b = Math.max(0f, Math.min(1f, b));
+        this.b = Math.clamp(b, 0f, 1f);
         return this;
     }
 
@@ -132,11 +132,11 @@ public class MutableColor implements ColorValue {
     }
 
     public static int toByte(float v) {
-        return Math.max(0, Math.min(255, Math.round(v * 255)));
+        return Math.clamp(Math.round(v * 255), 0, 255);
     }
 
     public static float fromByte(int v) {
-        return Math.max(0f, Math.min(1f, v / 255f));
+        return Math.clamp(v / 255f, 0f, 1f);
     }
 
     public MutableColor lighter(float percentage) {
@@ -151,7 +151,7 @@ public class MutableColor implements ColorValue {
 
     private void addLuminance(float offset) {
         var lab = toOklab();
-        lab[0] = Math.max(0.0f, Math.min(1.0f, lab[0] * (100 + offset) / 100.0f));
+        lab[0] = Math.clamp(lab[0] * (100 + offset) / 100.0f, 0.0f, 1.0f);
         fromOklab(lab);
     }
 

@@ -108,7 +108,7 @@ public class InWorldAnnotationRenderer {
         if (line.arrow() == InWorldLineAnnotation.Arrow.START) {
             drawArrowHead(points.get(0), points.get(1), color, line.thickness());
         } else if (line.arrow() == InWorldLineAnnotation.Arrow.END) {
-            drawArrowHead(points.get(points.size() - 1), points.get(points.size() - 2), color, line.thickness());
+            drawArrowHead(points.getLast(), points.get(points.size() - 2), color, line.thickness());
         }
         drawLinePoints(line, mode, occluded);
     }

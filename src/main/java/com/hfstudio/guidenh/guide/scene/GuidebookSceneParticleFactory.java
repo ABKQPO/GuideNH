@@ -6,6 +6,8 @@ import java.util.Random;
 
 import net.minecraft.util.ResourceLocation;
 
+import com.hfstudio.guidenh.guide.color.ARGB;
+
 /**
  * Factory helpers for guidebook scene particles and reusable particle presets.
  */
@@ -18,6 +20,9 @@ public class GuidebookSceneParticleFactory {
 
     public static final String DEFAULT_PARTICLE_NAME = "billboard";
     public static final int MAX_EXPLOSION_PARTICLE_COUNT = 256;
+    public static final int DEFAULT_INDICATOR_PARTICLE_AMOUNT = 10;
+    public static final int DEFAULT_INDICATOR_LIFETIME_TICKS = 16;
+    public static final int MAX_INDICATOR_TOTAL_PARTICLES = 2048;
     private static final int HUGE_EXPLOSION_FLASH_TICKS = 8;
     public static final ResourceLocation PARTICLE_SHEET_TEXTURE = new ResourceLocation(
         "textures/particle/particles.png");
@@ -149,23 +154,23 @@ public class GuidebookSceneParticleFactory {
     }
 
     public static void appendExplosionPreset(List<GuidebookSceneParticle> out, Random rng, float x, float y, float z,
-        int durationTicks, float power, int particleCount) {
-        appendExplosionPreset(out, rng, x, y, z, durationTicks, power, particleCount, GuidebookSceneParticle::new);
+        int durationTicks, float power, int particleAmount) {
+        appendExplosionPreset(out, rng, x, y, z, durationTicks, power, particleAmount, GuidebookSceneParticle::new);
     }
 
     public static void appendExplosionPreset(List<GuidebookSceneParticle> out, Random rng, float x, float y, float z,
-        int durationTicks, float power, int particleCount, ParticleAllocator allocator) {
+        int durationTicks, float power, int particleAmount, ParticleAllocator allocator) {
         if (out == null || rng == null) {
             return;
         }
         ParticleAllocator resolvedAllocator = allocator != null ? allocator : GuidebookSceneParticle::new;
         int resolvedDuration = Math.max(1, durationTicks);
         float resolvedPower = Math.max(0.1f, power);
-        int resolvedCount = Math.max(1, particleCount);
+        int resolvedAmount = Math.max(1, particleAmount);
         appendVanillaExplosionFlash(out, resolvedAllocator, rng, x, y, z, resolvedPower, resolvedDuration);
 
-        int effectCount = Math.min(MAX_EXPLOSION_PARTICLE_COUNT, Math.max(12, resolvedCount));
-        for (int i = 0; i < effectCount; i++) {
+        int effectAmount = Math.clamp(resolvedAmount, 12, MAX_EXPLOSION_PARTICLE_COUNT);
+        for (int i = 0; i < effectAmount; i++) {
             double directionX;
             double directionY;
             double directionZ;
@@ -217,8 +222,81 @@ public class GuidebookSceneParticleFactory {
         }
     }
 
-    public static int defaultExplosionParticleCount(float power) {
-        return Math.min(MAX_EXPLOSION_PARTICLE_COUNT, Math.max(16, Math.round(Math.max(0.1f, power) * 32f)));
+    public static int defaultExplosionParticleAmount(float power) {
+        return Math.clamp(Math.round(Math.max(0.1f, power) * 32f), 16, MAX_EXPLOSION_PARTICLE_COUNT);
+    }
+
+    public static int estimateIndicatorParticleAmount(int[] xValues, int[] yValues, int[] zValues,
+        int requestedAmountPerBlock) {
+        if (xValues == null || yValues == null
+            || zValues == null
+            || xValues.length <= 0
+            || yValues.length <= 0
+            || zValues.length <= 0) {
+            return 0;
+        }
+        long targetBlockCount = (long) xValues.length * (long) yValues.length * (long) zValues.length;
+        if (targetBlockCount <= 0L) {
+            return 0;
+        }
+        int resolvedAmountPerBlock = Math.max(1, requestedAmountPerBlock);
+        int maxAmountPerBlockFromBudget = Math.max(1, (int) (MAX_INDICATOR_TOTAL_PARTICLES / targetBlockCount));
+        resolvedAmountPerBlock = Math.min(resolvedAmountPerBlock, maxAmountPerBlockFromBudget);
+        long total = targetBlockCount * resolvedAmountPerBlock;
+        return (int) Math.min(MAX_INDICATOR_TOTAL_PARTICLES, Math.max(1L, total));
+    }
+
+    public static void appendIndicatorPreset(List<GuidebookSceneParticle> out, Random rng, int[] xValues, int[] yValues,
+        int[] zValues, int color, int durationTicks, int amountPerBlock, float size, float vx, float vy, float vz,
+        ParticleAllocator allocator) {
+        if (out == null || rng == null
+            || xValues == null
+            || xValues.length <= 0
+            || yValues == null
+            || yValues.length <= 0
+            || zValues == null
+            || zValues.length <= 0) {
+            return;
+        }
+        ParticleAllocator resolvedAllocator = allocator != null ? allocator : GuidebookSceneParticle::new;
+        int resolvedDuration = Math.max(1, durationTicks);
+        int resolvedAmountPerBlock = Math.max(1, amountPerBlock);
+        float resolvedSize = Math.max(0.01f, size);
+        long targetBlockCount = (long) xValues.length * (long) yValues.length * (long) zValues.length;
+        if (targetBlockCount <= 0L) {
+            return;
+        }
+        int maxAmountPerBlockFromBudget = Math.max(1, (int) (MAX_INDICATOR_TOTAL_PARTICLES / targetBlockCount));
+        resolvedAmountPerBlock = Math.min(resolvedAmountPerBlock, maxAmountPerBlockFromBudget);
+        float red = ARGB.red(color) / 255f;
+        float green = ARGB.green(color) / 255f;
+        float blue = ARGB.blue(color) / 255f;
+        for (int blockX : xValues) {
+            for (int blockY : yValues) {
+                for (int blockZ : zValues) {
+                    for (int i = 0; i < resolvedAmountPerBlock; i++) {
+                        float sampleX = blockX + rng.nextFloat();
+                        float sampleY = blockY + rng.nextFloat();
+                        float sampleZ = blockZ + rng.nextFloat();
+                        out.add(
+                            createIndicatorParticle(
+                                resolvedAllocator.acquire(),
+                                sampleX,
+                                sampleY,
+                                sampleZ,
+                                vx,
+                                vy,
+                                vz,
+                                resolvedDuration,
+                                resolvedSize,
+                                red,
+                                green,
+                                blue,
+                                rng));
+                    }
+                }
+            }
+        }
     }
 
     private static GuidebookSceneParticle createSmokeParticle(GuidebookSceneParticle particle, float x, float y,
@@ -276,6 +354,42 @@ public class GuidebookSceneParticleFactory {
             .withSizeRange(size * 0.35f, size)
             .withAlphaRange(1f, 0.15f)
             .withPhysics(-0.004f, 0.9f)
+            .withAnimatedTexture(16, 16, 7, 8, -1, false)
+            .withBrightness(240);
+    }
+
+    private static GuidebookSceneParticle createIndicatorParticle(GuidebookSceneParticle particle, float x, float y,
+        float z, float vx, float vy, float vz, int lifetimeTicks, float size, float red, float green, float blue,
+        Random rng) {
+        float jitterX = (rng.nextFloat() * 2f - 1f) * 0.02f;
+        float jitterY = (rng.nextFloat() * 2f - 1f) * 0.02f;
+        float jitterZ = (rng.nextFloat() * 2f - 1f) * 0.02f;
+        float velocityJitterX = (rng.nextFloat() * 2f - 1f) * 0.01f;
+        float velocityJitterY = (rng.nextFloat() * 2f - 1f) * 0.01f;
+        float velocityJitterZ = (rng.nextFloat() * 2f - 1f) * 0.01f;
+        float startSize = Math.max(0.01f, size * (0.85f + rng.nextFloat() * 0.3f));
+        float endSize = startSize * (0.55f + rng.nextFloat() * 0.15f);
+        return particle
+            .reset(
+                x + jitterX,
+                y + jitterY,
+                z + jitterZ,
+                vx + velocityJitterX,
+                vy + velocityJitterY,
+                vz + velocityJitterZ,
+                0f,
+                0f,
+                0f,
+                0f,
+                red,
+                green,
+                blue,
+                Math.max(1, lifetimeTicks),
+                startSize)
+            .withTexture(PARTICLE_SHEET_TEXTURE)
+            .withSizeRange(startSize, Math.max(startSize * 0.82f, endSize))
+            .withAlphaRange(0.98f, 0.18f)
+            .withPhysics(0f, 0.96f)
             .withAnimatedTexture(16, 16, 7, 8, -1, false)
             .withBrightness(240);
     }

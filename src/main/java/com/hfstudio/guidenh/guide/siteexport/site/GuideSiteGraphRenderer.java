@@ -799,7 +799,7 @@ public class GuideSiteGraphRenderer {
         // X grid + labels at bottom
         double xStepG = niceStep((xMax - xMin) / 5.0);
         int nGridX = (int) Math.round((xMax - xMin) / xStepG);
-        nGridX = Math.max(1, Math.min(nGridX, 10));
+        nGridX = Math.clamp(nGridX, 1, 10);
         for (int gi = 0; gi <= nGridX; gi++) {
             double xv = xMin + gi * (xMax - xMin) / nGridX;
             int gx = left + (int) Math.round((xv - xMin) / (xMax - xMin) * plotW);
@@ -1667,7 +1667,7 @@ public class GuideSiteGraphRenderer {
                         int py = bottom - (int) Math.round((pyVal - yMin) / (yMax - yMin) * plotH);
                         int pColor = pt.getColor();
                         if (pt.isColorInherit() && !plots.isEmpty()) {
-                            int idx = Math.max(0, Math.min(pt.getPlotIndex(), plots.size() - 1));
+                            int idx = Math.clamp(pt.getPlotIndex(), 0, plots.size() - 1);
                             pColor = plots.get(idx)
                                 .getColor();
                         }
@@ -2318,7 +2318,7 @@ public class GuideSiteGraphRenderer {
     }
 
     private static void renderLegend(StringBuilder svg, List<SeriesData> series, int x, int y, int availW) {
-        int itemW = Math.max(60, Math.min(100, availW / Math.max(1, series.size())));
+        int itemW = Math.clamp(availW / Math.max(1, series.size()), 60, 100);
         int maxCols = Math.max(1, availW / itemW);
         int col = 0;
         int curX = x;
@@ -2363,7 +2363,7 @@ public class GuideSiteGraphRenderer {
         if (!showLegend || series == null || series.isEmpty()) {
             return 0;
         }
-        int itemW = Math.max(60, Math.min(100, (w - 2 * PADDING) / series.size()));
+        int itemW = Math.clamp((w - 2 * PADDING) / series.size(), 60, 100);
         int cols = Math.max(1, (w - 2 * PADDING) / itemW);
         return (int) Math.ceil((double) series.size() / cols) * (LEGEND_ROW_H + 2) + LEGEND_GAP;
     }
@@ -2382,7 +2382,7 @@ public class GuideSiteGraphRenderer {
     }
 
     private static int clamp(int value, int min, int max) {
-        return Math.max(min, Math.min(max, value));
+        return Math.clamp(value, min, max);
     }
 
     // Number and coordinate formatters.

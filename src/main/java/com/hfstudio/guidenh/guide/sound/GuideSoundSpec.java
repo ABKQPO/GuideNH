@@ -37,7 +37,7 @@ public class GuideSoundSpec {
         this.pitch = Math.max(0.01f, pitch);
         this.cooldownMillis = Math.max(0, cooldownMillis);
         this.radius = radius;
-        this.minVolume = Math.max(0.0f, Math.min(1.0f, minVolume));
+        this.minVolume = Math.clamp(minVolume, 0.0f, 1.0f);
         this.x = x;
         this.y = y;
         this.z = z;

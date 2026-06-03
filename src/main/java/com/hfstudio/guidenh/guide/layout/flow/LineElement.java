@@ -23,6 +23,7 @@ public abstract class LineElement {
     public LytFlowContent flowContent;
 
     public boolean containsMouse;
+    public boolean revealedBySpoiler;
 
     public boolean floating;
 

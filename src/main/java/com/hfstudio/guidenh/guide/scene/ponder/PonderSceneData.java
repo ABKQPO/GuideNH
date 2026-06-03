@@ -64,6 +64,6 @@ public class PonderSceneData {
         if (total <= 0) {
             return 1f;
         }
-        return Math.max(0f, Math.min(1f, tick / (float) total));
+        return Math.clamp(tick / (float) total, 0f, 1f);
     }
 }

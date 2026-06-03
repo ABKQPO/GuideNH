@@ -319,7 +319,7 @@ public class PonderKeyframeAnnotation {
 
     /** Background alpha for {@code text} annotation bubbles, clamped to {@code 0..255}. */
     public int getBackgroundAlpha(int def) {
-        return backgroundAlpha != null ? Math.max(0, Math.min(255, backgroundAlpha)) : def;
+        return backgroundAlpha != null ? Math.clamp(backgroundAlpha, 0, 255) : def;
     }
 
     public TextAnnotation.ConnectorSide getConnectorSide(TextAnnotation.ConnectorSide def) {

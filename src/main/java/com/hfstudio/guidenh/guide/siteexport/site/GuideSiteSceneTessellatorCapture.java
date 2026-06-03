@@ -589,7 +589,7 @@ public class GuideSiteSceneTessellatorCapture {
     }
 
     private static byte packNormalComponent(float value) {
-        int packed = Math.round(Math.max(-1.0f, Math.min(1.0f, value)) * 127.0f);
+        int packed = Math.round(Math.clamp(value, -1.0f, 1.0f) * 127.0f);
         if (packed < -128) {
             packed = -128;
         } else if (packed > 127) {

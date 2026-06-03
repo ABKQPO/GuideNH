@@ -17,10 +17,7 @@ public class GuideLatexTextureCache {
     private static final int MAX_SIZE_ENTRIES = 512;
 
     /** Maps cacheKey -> [textureId, widthPx, heightPx]. Evicts LRU entries when full. */
-    private final Map<String, int[]> textureCache = new LinkedHashMap<String, int[]>(
-        MAX_TEXTURE_ENTRIES + 1,
-        0.75f,
-        true) {
+    private final Map<String, int[]> textureCache = new LinkedHashMap<>(MAX_TEXTURE_ENTRIES + 1, 0.75f, true) {
 
         @Override
         protected boolean removeEldestEntry(Entry<String, int[]> eldest) {
@@ -34,7 +31,7 @@ public class GuideLatexTextureCache {
 
     /** Maps formula string -> error message from parse/render failure. */
     private final Map<String, String> failureCache = Collections
-        .synchronizedMap(new LinkedHashMap<String, String>(MAX_FAILURE_ENTRIES + 1, 0.75f, true) {
+        .synchronizedMap(new LinkedHashMap<>(MAX_FAILURE_ENTRIES + 1, 0.75f, true) {
 
             @Override
             protected boolean removeEldestEntry(Entry<String, String> eldest) {
@@ -161,9 +158,7 @@ public class GuideLatexTextureCache {
             return hex;
         }
         StringBuilder padded = new StringBuilder(8);
-        for (int i = hex.length(); i < 8; i++) {
-            padded.append('0');
-        }
+        padded.repeat("0", 8 - hex.length());
         return padded.append(hex)
             .toString();
     }

@@ -42,7 +42,7 @@ public class PreviewRequestSupport {
                 }
             }
         }
-        return Math.max(minValue, Math.min(value, maxValue));
+        return Math.clamp(value, minValue, maxValue);
     }
 
     public static Map<String, String> readStringMap(JsonObject payload, String name) {

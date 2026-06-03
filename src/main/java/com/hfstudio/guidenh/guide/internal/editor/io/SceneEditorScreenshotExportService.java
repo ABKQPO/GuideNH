@@ -120,8 +120,8 @@ public class SceneEditorScreenshotExportService {
     }
 
     private BufferedImage cropCentered(BufferedImage source, int width, int height) {
-        int cropWidth = Math.max(1, Math.min(width, source.getWidth()));
-        int cropHeight = Math.max(1, Math.min(height, source.getHeight()));
+        int cropWidth = Math.clamp(width, 1, source.getWidth());
+        int cropHeight = Math.clamp(height, 1, source.getHeight());
         if (cropWidth == source.getWidth() && cropHeight == source.getHeight()) {
             return source;
         }

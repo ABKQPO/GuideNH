@@ -69,7 +69,7 @@ public class GuideScreenMemory {
             return false;
         }
         PageAnchor anchor = route.anchor();
-        return anchor != null && isSupportedContentAnchor(anchor) && isValidContentRoute(route);
+        return isSupportedContentAnchor(anchor) && isValidContentRoute(route);
     }
 
     public static boolean isSupportedContentAnchor(@Nullable PageAnchor anchor) {

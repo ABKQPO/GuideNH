@@ -19,13 +19,17 @@ public enum GuideScreenEditorAction {
     SUBSCRIPT(GuidebookText.GuideEditorSubscript),
     SUPERSCRIPT(GuidebookText.GuideEditorSuperscript),
     FOOTNOTE(GuidebookText.GuideEditorFootnote),
+    SPOILER(GuidebookText.GuideEditorSpoiler),
     TOOLTIP(GuidebookText.GuideEditorTooltip),
+    MARK(GuidebookText.GuideEditorMark),
+    COMMENT(GuidebookText.GuideEditorComment),
     ITEM_IMAGE(GuidebookText.GuideEditorItemImage),
     BLOCK_IMAGE(GuidebookText.GuideEditorBlockImage),
     ITEM_LINK(GuidebookText.GuideEditorItemLink),
     LATEX(GuidebookText.GuideEditorLatex),
     CSV_TABLE(GuidebookText.GuideEditorCsvTable),
     COMMAND_LINK(GuidebookText.GuideEditorCommandLink),
+    SOUND_LINK(GuidebookText.GuideEditorSoundLink),
     RECIPE(GuidebookText.GuideEditorRecipe),
     RECIPE_FOR(GuidebookText.GuideEditorRecipeFor),
     RECIPES_FOR(GuidebookText.GuideEditorRecipesFor),
@@ -34,6 +38,7 @@ public enum GuideScreenEditorAction {
     FILE_TREE(GuidebookText.GuideEditorFileTree),
     SUB_PAGES(GuidebookText.GuideEditorSubPages),
     CATEGORY(GuidebookText.GuideEditorCategory),
+    SPECIAL(GuidebookText.GuideEditorSpecial),
     FOOTNOTE_LIST(GuidebookText.GuideEditorFootnoteList),
     ROW(GuidebookText.GuideEditorRow),
     COLUMN(GuidebookText.GuideEditorColumn),
@@ -59,6 +64,10 @@ public enum GuideScreenEditorAction {
     GAME_SCENE(GuidebookText.GuideEditorGameScene),
     SCENE_BLOCK(GuidebookText.GuideEditorSceneBlock),
     SCENE_ENTITY(GuidebookText.GuideEditorSceneEntity),
+    SCENE_PARTICLE(GuidebookText.GuideEditorSceneParticle),
+    SCENE_WEATHER(GuidebookText.GuideEditorSceneWeather),
+    SCENE_PLAY_SOUND(GuidebookText.GuideEditorScenePlaySound),
+    SCENE_REMOVE_ENTITY(GuidebookText.GuideEditorSceneRemoveEntity),
     ISOMETRIC_CAMERA(GuidebookText.GuideEditorIsometricCamera),
     BOX_ANNOTATION(GuidebookText.GuideEditorBoxAnnotation),
     BLOCK_ANNOTATION(GuidebookText.GuideEditorBlockAnnotation),
@@ -147,13 +156,17 @@ public enum GuideScreenEditorAction {
             case SUBSCRIPT -> GuideIconButton.Role.GUIDE_EDITOR_SUBSCRIPT;
             case SUPERSCRIPT -> GuideIconButton.Role.GUIDE_EDITOR_SUPERSCRIPT;
             case FOOTNOTE -> GuideIconButton.Role.GUIDE_EDITOR_FOOTNOTE;
+            case SPOILER -> GuideIconButton.Role.GUIDE_EDITOR_SPOILER;
             case TOOLTIP -> GuideIconButton.Role.GUIDE_EDITOR_TOOLTIP;
+            case MARK -> GuideIconButton.Role.GUIDE_EDITOR_MARK;
+            case COMMENT -> GuideIconButton.Role.GUIDE_EDITOR_COMMENT;
             case ITEM_IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_ITEM_IMAGE;
             case BLOCK_IMAGE -> GuideIconButton.Role.GUIDE_EDITOR_BLOCK_IMAGE;
             case ITEM_LINK -> GuideIconButton.Role.GUIDE_EDITOR_ITEM_LINK;
             case LATEX -> GuideIconButton.Role.GUIDE_EDITOR_LATEX;
             case CSV_TABLE -> GuideIconButton.Role.GUIDE_EDITOR_CSV_TABLE;
             case COMMAND_LINK -> GuideIconButton.Role.GUIDE_EDITOR_COMMAND_LINK;
+            case SOUND_LINK -> GuideIconButton.Role.GUIDE_EDITOR_SOUND_LINK;
             case RECIPE -> GuideIconButton.Role.GUIDE_EDITOR_RECIPE;
             case RECIPE_FOR -> GuideIconButton.Role.GUIDE_EDITOR_RECIPE_FOR;
             case RECIPES_FOR -> GuideIconButton.Role.GUIDE_EDITOR_RECIPES_FOR;
@@ -162,6 +175,7 @@ public enum GuideScreenEditorAction {
             case FILE_TREE -> GuideIconButton.Role.GUIDE_EDITOR_FILE_TREE;
             case SUB_PAGES -> GuideIconButton.Role.GUIDE_EDITOR_SUB_PAGES;
             case CATEGORY -> GuideIconButton.Role.GUIDE_EDITOR_CATEGORY;
+            case SPECIAL -> GuideIconButton.Role.GUIDE_EDITOR_SPECIAL;
             case FOOTNOTE_LIST -> GuideIconButton.Role.GUIDE_EDITOR_FOOTNOTE_LIST;
             case ROW -> GuideIconButton.Role.GUIDE_EDITOR_ROW;
             case COLUMN -> GuideIconButton.Role.GUIDE_EDITOR_COLUMN;
@@ -187,6 +201,10 @@ public enum GuideScreenEditorAction {
             case GAME_SCENE -> GuideIconButton.Role.GUIDE_EDITOR_GAME_SCENE;
             case SCENE_BLOCK -> GuideIconButton.Role.GUIDE_EDITOR_SCENE_BLOCK;
             case SCENE_ENTITY -> GuideIconButton.Role.GUIDE_EDITOR_SCENE_ENTITY;
+            case SCENE_PARTICLE -> GuideIconButton.Role.GUIDE_EDITOR_SCENE_PARTICLE;
+            case SCENE_WEATHER -> GuideIconButton.Role.GUIDE_EDITOR_SCENE_WEATHER;
+            case SCENE_PLAY_SOUND -> GuideIconButton.Role.GUIDE_EDITOR_SCENE_PLAY_SOUND;
+            case SCENE_REMOVE_ENTITY -> GuideIconButton.Role.GUIDE_EDITOR_SCENE_REMOVE_ENTITY;
             case ISOMETRIC_CAMERA -> GuideIconButton.Role.GUIDE_EDITOR_ISOMETRIC_CAMERA;
             case BOX_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_BOX_ANNOTATION;
             case BLOCK_ANNOTATION -> GuideIconButton.Role.GUIDE_EDITOR_BLOCK_ANNOTATION;

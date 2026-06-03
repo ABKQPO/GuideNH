@@ -80,7 +80,7 @@ public class GuideSoundPlayback {
             return sound.volume();
         }
         float factor = 1.0f - Math.max(0.0f, distance) / radius;
-        factor = Math.max(sound.minVolume(), Math.min(1.0f, factor));
+        factor = Math.clamp(factor, sound.minVolume(), 1.0f);
         return sound.volume() * factor;
     }
 

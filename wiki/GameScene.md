@@ -546,9 +546,9 @@ bounding box.
 | `x` | no | bounding box start X; if any of `x/y/z/dx/dy/dz` is present, the box mode is activated |
 | `y` | no | bounding box start Y |
 | `z` | no | bounding box start Z |
-| `dx` | no | bounding box width (default `1`) |
-| `dy` | no | bounding box height (default `1`) |
-| `dz` | no | bounding box depth (default `1`) |
+| `dx` | no | bounding box length on the X axis (default `1`) |
+| `dy` | no | bounding box height on the Y axis (default `1`) |
+| `dz` | no | bounding box width/depth on the Z axis (default `1`) |
 | `formed` | no | whether replacement result controllers should be treated as formed during preview sync; default `false` |
 
 Notes:
@@ -572,7 +572,7 @@ Example:
 
 Fills an axis-aligned box with a single block type, overwriting whatever was there before.
 Unlike `<Block>` (which targets a single position), `<PlaceBlock>` supports multi-block regions via
-`dx`/`dy`/`dz`.
+`dx`/`dy`/`dz`, ordered as length, height, and width/depth on the X/Y/Z axes.
 
 | Attribute | Required | Meaning |
 | --- | --- | --- |
@@ -581,9 +581,9 @@ Unlike `<Block>` (which targets a single position), `<PlaceBlock>` supports mult
 | `x` | no | region start X, default `0` |
 | `y` | no | region start Y, default `0` |
 | `z` | no | region start Z, default `0` |
-| `dx` | no | region width, default `1` |
-| `dy` | no | region height, default `1` |
-| `dz` | no | region depth, default `1` |
+| `dx` | no | region length on the X axis, default `1` |
+| `dy` | no | region height on the Y axis, default `1` |
+| `dz` | no | region width/depth on the Z axis, default `1` |
 | `formed` | no | whether placed controllers should be treated as formed during preview sync; default `false` |
 
 Notes:

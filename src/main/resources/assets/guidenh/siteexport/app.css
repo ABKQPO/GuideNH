@@ -295,6 +295,65 @@ blockquote {
     color: inherit;
 }
 
+.guide-spoiler {
+    background: #000000;
+    color: #000000;
+    border-radius: 2px;
+    padding: 0 0.2em;
+    transition: color 120ms ease, background-color 120ms ease;
+}
+
+.guide-spoiler,
+.guide-spoiler *,
+.guide-spoiler .guide-mark {
+    color: #000000 !important;
+    text-decoration: none !important;
+    text-emphasis: none !important;
+    -webkit-text-emphasis: none !important;
+    border-bottom-color: transparent !important;
+}
+
+.guide-spoiler .guide-mark {
+    background-color: #000000 !important;
+}
+
+.guide-spoiler .guide-tooltip,
+.guide-spoiler .guide-link,
+.guide-spoiler a,
+.guide-spoiler .guide-item-link,
+.guide-spoiler .guide-command-link {
+    text-decoration: none !important;
+    border-bottom-color: transparent !important;
+}
+
+.guide-spoiler:hover,
+.guide-spoiler:focus {
+    color: inherit;
+}
+
+.guide-spoiler:hover *,
+.guide-spoiler:focus * {
+    color: unset !important;
+}
+
+.guide-spoiler:hover .guide-mark,
+.guide-spoiler:focus .guide-mark {
+    background-color: #8A6A00 !important;
+}
+
+.guide-spoiler:hover,
+.guide-spoiler:focus,
+.guide-spoiler:hover *,
+.guide-spoiler:focus * {
+    text-emphasis: unset !important;
+    -webkit-text-emphasis: unset !important;
+}
+
+.guide-spoiler:hover .guide-tooltip,
+.guide-spoiler:focus .guide-tooltip {
+    border-bottom-color: currentColor !important;
+}
+
 p {
     margin: 0 0 0.8em;
 }

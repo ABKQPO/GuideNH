@@ -78,8 +78,8 @@ public class GuideScreenEditorUndoHistory {
         private Entry(String text, int selectionStart, int selectionEnd) {
             String safeText = text != null ? text : "";
             this.text = safeText;
-            int safeSelectionStart = Math.max(0, Math.min(selectionStart, safeText.length()));
-            int safeSelectionEnd = Math.max(safeSelectionStart, Math.min(selectionEnd, safeText.length()));
+            int safeSelectionStart = Math.clamp(selectionStart, 0, safeText.length());
+            int safeSelectionEnd = Math.clamp(selectionEnd, safeSelectionStart, safeText.length());
             this.selectionStart = safeSelectionStart;
             this.selectionEnd = safeSelectionEnd;
         }

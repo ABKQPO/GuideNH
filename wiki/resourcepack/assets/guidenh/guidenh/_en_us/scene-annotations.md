@@ -221,11 +221,11 @@ Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
 
 | Control | Action |
 |---------|--------|
-| **◀ (Prev keyframe)** | Jump to the start of the previous keyframe segment. |
+| **◀ (Prev keyframe)** | Jump to the start of the previous visible keyframe segment. Hidden keyframes are skipped. |
 | **▶ / ⏸ (Play/Pause)** | Toggle playback; restarts from the beginning if already finished. |
 | **↻ (Restart)** | Return to tick 0, reset state, and begin playing. |
 | Progress bar | Click or drag to seek to any position. Seeking always pauses playback. |
-| Keyframe nodes | Small tick marks on the bar; hover to see the label and direction arrow. |
+| Keyframe nodes | Small tick marks on the bar for visible keyframes; hover to see the label and direction arrow. |
 
 ### Initial state
 
@@ -247,6 +247,7 @@ While playback is **paused** or **finished**:
 When you hover over a keyframe node on the progress bar:
 - The node grows slightly to indicate it is hovered.
 - If the keyframe has a `label`, it is displayed beside the node.
+- Hidden keyframes do not create hoverable nodes, but they still apply their timeline state when playback or seeking reaches them.
 
 ### Layer control during playback
 

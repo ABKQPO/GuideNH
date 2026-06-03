@@ -19,7 +19,7 @@ public abstract class OverlayAnnotation extends SceneAnnotation {
      * Clamped to {@code [0, 1]}.
      */
     public void setFade(float fade) {
-        this.fade = Math.max(0f, Math.min(1f, fade));
+        this.fade = Math.clamp(fade, 0f, 1f);
     }
 
     /**

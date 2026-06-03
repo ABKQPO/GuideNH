@@ -57,13 +57,17 @@ public class GuideScreenEditorTextActions {
             case SUBSCRIPT -> wrap(source, start, end, "<sub>", "</sub>", "1", "");
             case SUPERSCRIPT -> wrap(source, start, end, "<sup>", "</sup>", "2", "");
             case FOOTNOTE -> applyFootnote(source, start, end);
+            case SPOILER -> wrap(source, start, end, "<Spoiler>", "</Spoiler>", "hidden text", "");
             case TOOLTIP -> applyTooltip(source, start, end);
+            case MARK -> applyMark(source, start, end);
+            case COMMENT -> applyComment(source, start, end);
             case ITEM_IMAGE -> applyItemTag(source, start, end, "ItemImage");
             case BLOCK_IMAGE -> applyItemTag(source, start, end, "BlockImage");
             case ITEM_LINK -> applyItemTag(source, start, end, "ItemLink");
             case LATEX -> applyAttributeTag(source, start, end, "Latex", "formula", "E=mc^2", true);
             case CSV_TABLE -> applyCsvTable(source, start, end);
             case COMMAND_LINK -> applyCommandLink(source, start, end);
+            case SOUND_LINK -> applySoundLink(source, start, end);
             case RECIPE -> applyRecipeTag(source, start, end, "Recipe", " fallbackText=\"Recipe unavailable.\"");
             case RECIPE_FOR -> applyRecipeTag(source, start, end, "RecipeFor", "");
             case RECIPES_FOR -> applyRecipeTag(source, start, end, "RecipesFor", " limit=\"3\"");
@@ -84,6 +88,7 @@ public class GuideScreenEditorTextActions {
                 "project\n  src\n  docs");
             case SUB_PAGES -> applyAttributeTag(source, start, end, "SubPages", "id", "", true);
             case CATEGORY -> applyNamedTag(source, start, end, "Category", "name", "general", " rows=\"3\"", true);
+            case SPECIAL -> applyNamedTag(source, start, end, "Special", "name", "AllPages", " rows=\"6\"", true);
             case FOOTNOTE_LIST -> applyNamedBlock(
                 source,
                 start,
@@ -189,6 +194,10 @@ public class GuideScreenEditorTextActions {
                 "  <Block id=\"minecraft:stone\" />");
             case SCENE_BLOCK -> applySceneBlock(source, start, end);
             case SCENE_ENTITY -> applySceneEntity(source, start, end);
+            case SCENE_PARTICLE -> applySceneParticle(source, start, end);
+            case SCENE_WEATHER -> applySceneWeather(source, start, end);
+            case SCENE_PLAY_SOUND -> applyScenePlaySound(source, start, end);
+            case SCENE_REMOVE_ENTITY -> applySceneRemoveEntity(source, start, end);
             case ISOMETRIC_CAMERA -> applyIsometricCamera(source, start, end);
             case BOX_ANNOTATION -> applyNamedBlock(
                 source,
@@ -410,6 +419,50 @@ public class GuideScreenEditorTextActions {
             source.substring(0, start) + replacement + source.substring(end),
             caretStart,
             caretStart + entityId.length());
+    }
+
+    private static Result applySceneParticle(String source, int start, int end) {
+        String selected = start < end ? sanitizeAttributeValue(source.substring(start, end)) : "";
+        String particleName = selected.isEmpty() ? "flame" : selected;
+        String replacement = "<Particle name=\"" + particleName + "\" x=\"0.5\" y=\"1.2\" z=\"0.5\" size=\"0.18\" />";
+        int caretStart = start + replacement.indexOf(particleName);
+        return new Result(
+            source.substring(0, start) + replacement + source.substring(end),
+            caretStart,
+            caretStart + particleName.length());
+    }
+
+    private static Result applySceneWeather(String source, int start, int end) {
+        String selected = start < end ? sanitizeAttributeValue(source.substring(start, end)) : "";
+        String weather = selected.isEmpty() ? "rain" : selected;
+        String replacement = "<Weather type=\"" + weather + "\" x=\"0..4\" z=\"0..4\" density=\"24\" />";
+        int caretStart = start + replacement.indexOf(weather);
+        return new Result(
+            source.substring(0, start) + replacement + source.substring(end),
+            caretStart,
+            caretStart + weather.length());
+    }
+
+    private static Result applyScenePlaySound(String source, int start, int end) {
+        String selected = start < end ? sanitizeAttributeValue(source.substring(start, end)) : "";
+        String soundId = selected.isEmpty() ? "minecraft:random.click" : selected;
+        String replacement = "<PlaySound sound=\"" + soundId + "\" trigger=\"click\" />";
+        int caretStart = start + replacement.indexOf(soundId);
+        return new Result(
+            source.substring(0, start) + replacement + source.substring(end),
+            caretStart,
+            caretStart + soundId.length());
+    }
+
+    private static Result applySceneRemoveEntity(String source, int start, int end) {
+        String selected = start < end ? sanitizeAttributeValue(source.substring(start, end)) : "";
+        String sceneEntityId = selected.isEmpty() ? "entity_1" : selected;
+        String replacement = "<RemoveEntity sceneEntityId=\"" + sceneEntityId + "\" unmount={true} />";
+        int caretStart = start + replacement.indexOf(sceneEntityId);
+        return new Result(
+            source.substring(0, start) + replacement + source.substring(end),
+            caretStart,
+            caretStart + sceneEntityId.length());
     }
 
     private static Result applyIsometricCamera(String source, int start, int end) {
@@ -815,7 +868,7 @@ public class GuideScreenEditorTextActions {
 
     private static int countLeadingIndent(String text, int lineStart) {
         int count = 0;
-        int index = Math.max(0, Math.min(lineStart, text.length()));
+        int index = Math.clamp(lineStart, 0, text.length());
         while (index < text.length()) {
             char c = text.charAt(index);
             if (c == ' ') {
@@ -1162,6 +1215,41 @@ public class GuideScreenEditorTextActions {
             caretStart + "/say hello".length());
     }
 
+    private static Result applySoundLink(String source, int start, int end) {
+        String selected = start < end ? sanitizeInline(source.substring(start, end)) : "";
+        String label = selected.isEmpty() ? "Play sound" : selected;
+        String soundId = "minecraft:random.click";
+        String replacement = "<SoundLink sound=\"" + soundId + "\">" + label + "</SoundLink>";
+        int caretStart = start + replacement.indexOf(soundId);
+        return new Result(
+            source.substring(0, start) + replacement + source.substring(end),
+            caretStart,
+            caretStart + soundId.length());
+    }
+
+    private static Result applyMark(String source, int start, int end) {
+        String selected = start < end ? source.substring(start, end) : "";
+        String body = selected.isEmpty() ? "marked text" : selected;
+        String replacement = "<mark color=\"#FFF176\">" + body + "</mark>";
+        int caretStart = start + replacement.indexOf(body);
+        return new Result(
+            source.substring(0, start) + replacement + source.substring(end),
+            caretStart,
+            caretStart + body.length());
+    }
+
+    private static Result applyComment(String source, int start, int end) {
+        String selected = start < end ? source.substring(start, end)
+            .trim() : "";
+        String body = selected.isEmpty() ? "Comment text" : selected;
+        String replacement = "<Comment>\n" + body + "\n</Comment>";
+        int caretStart = start + replacement.indexOf(body);
+        return new Result(
+            source.substring(0, start) + replacement + source.substring(end),
+            caretStart,
+            caretStart + body.length());
+    }
+
     private static Result applyOrderedList(String source, int start, int end) {
         return applyLinePrefix(source, start, end, "1. ", 0, 0);
     }
@@ -1278,7 +1366,7 @@ public class GuideScreenEditorTextActions {
     }
 
     private static int findLineStart(String text, int index) {
-        int pos = Math.max(0, Math.min(index, text.length()));
+        int pos = Math.clamp(index, 0, text.length());
         while (pos > 0 && text.charAt(pos - 1) != '\n') {
             pos--;
         }
@@ -1286,7 +1374,7 @@ public class GuideScreenEditorTextActions {
     }
 
     private static int findLineEnd(String text, int index) {
-        int pos = Math.max(0, Math.min(index, text.length()));
+        int pos = Math.clamp(index, 0, text.length());
         while (pos < text.length() && text.charAt(pos) != '\n') {
             pos++;
         }

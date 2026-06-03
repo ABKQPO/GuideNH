@@ -91,10 +91,10 @@ public class GuideIconButton extends GuiButton {
             GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
 
             float texSize = GuideIconButton.TEXTURE_SIZE;
-            float u0 = role.iconSrcX / texSize;
-            float v0 = role.iconSrcY / texSize;
-            float u1 = (role.iconSrcX + 16) / texSize;
-            float v1 = (role.iconSrcY + 16) / texSize;
+            float u0 = role.iconSrcX() / texSize;
+            float v0 = role.iconSrcY() / texSize;
+            float u1 = (role.iconSrcX() + role.iconSrcWidth()) / texSize;
+            float v1 = (role.iconSrcY() + role.iconSrcHeight()) / texSize;
 
             var tess = Tessellator.instance;
             tess.startDrawingQuads();
@@ -113,37 +113,37 @@ public class GuideIconButton extends GuiButton {
 
         BACK(GuidebookText.HistoryGoBack, 0, 0),
         OPEN_NEI_RECIPE(GuidebookText.OpenRecipeInNei, 0, 0),
-        FORWARD(GuidebookText.HistoryGoForward, 16, 0),
-        CLOSE(GuidebookText.Close, 32, 0),
-        SCENE_EDITOR_CLOSE(GuidebookText.SceneEditorClose, 32, 0),
-        SEARCH(GuidebookText.Search, 48, 0),
-        HOMEPAGE(GuidebookText.HomePage, 0, 32),
-        BOOKMARK(GuidebookText.Bookmark, 128, 0),
-        BOOKMARKED(GuidebookText.Bookmarked, 144, 0),
-        SCENE_EDITOR_AUTO_PICK(GuidebookText.SceneEditorAutoPick, 48, 0),
-        HIDE_ANNOTATIONS(GuidebookText.HideAnnotations, 0, 16),
-        SHOW_ANNOTATIONS(GuidebookText.ShowAnnotations, 16, 16),
-        HIGHLIGHT_STRUCTURELIB_HATCHES(GuidebookText.HighlightStructureLibHatches, 32, 48),
-        SCENE_EDITOR_HIDE_ELEMENT(GuidebookText.SceneEditorHideElement, 0, 16),
-        SCENE_EDITOR_SHOW_ELEMENT(GuidebookText.SceneEditorShowElement, 16, 16),
-        ZOOM_OUT(GuidebookText.ZoomOut, 32, 16),
-        ZOOM_IN(GuidebookText.ZoomIn, 48, 16),
-        SCENE_EDITOR_ADD_ELEMENT(GuidebookText.SceneEditorAddElement, 48, 16),
-        RESET_VIEW(GuidebookText.ResetView, 0, 32),
-        SCENE_EDITOR_RESET_PREVIEW(GuidebookText.SceneEditorResetPreview, 0, 32),
-        OPEN_FULL_WIDTH_VIEW(GuidebookText.FullWidthView, 16, 32),
-        SCENE_EDITOR_EXPORT(GuidebookText.SceneEditorExport, 0, 48),
-        SCENE_EDITOR_IMPORT_STRUCTURE(GuidebookText.SceneEditorImportStructure, 16, 48),
-        SCENE_EDITOR_SCREENSHOT(GuidebookText.SceneEditorScreenshot, 32, 48),
-        CLOSE_FULL_WIDTH_VIEW(GuidebookText.CloseFullWidthView, 32, 32),
-        SCENE_EDITOR_SNAP(GuidebookText.SceneEditorSnap, 48, 48),
-        SCENE_EDITOR_DELETE_ELEMENT(GuidebookText.SceneEditorDeleteElement, 32, 0),
+        FORWARD(GuidebookText.HistoryGoForward, 1, 0),
+        CLOSE(GuidebookText.Close, 2, 0),
+        SCENE_EDITOR_CLOSE(GuidebookText.SceneEditorClose, 2, 0),
+        SEARCH(GuidebookText.Search, 3, 0),
+        HOMEPAGE(GuidebookText.HomePage, 1, 5),
+        BOOKMARK(GuidebookText.Bookmark, 8, 0),
+        BOOKMARKED(GuidebookText.Bookmarked, 9, 0),
+        SCENE_EDITOR_AUTO_PICK(GuidebookText.SceneEditorAutoPick, 3, 0),
+        HIDE_ANNOTATIONS(GuidebookText.HideAnnotations, 0, 1),
+        SHOW_ANNOTATIONS(GuidebookText.ShowAnnotations, 1, 1),
+        HIGHLIGHT_STRUCTURELIB_HATCHES(GuidebookText.HighlightStructureLibHatches, 2, 3),
+        SCENE_EDITOR_HIDE_ELEMENT(GuidebookText.SceneEditorHideElement, 0, 1),
+        SCENE_EDITOR_SHOW_ELEMENT(GuidebookText.SceneEditorShowElement, 1, 1),
+        ZOOM_OUT(GuidebookText.ZoomOut, 2, 1),
+        ZOOM_IN(GuidebookText.ZoomIn, 3, 1),
+        SCENE_EDITOR_ADD_ELEMENT(GuidebookText.SceneEditorAddElement, 3, 1),
+        RESET_VIEW(GuidebookText.ResetView, 0, 2),
+        SCENE_EDITOR_RESET_PREVIEW(GuidebookText.SceneEditorResetPreview, 0, 2),
+        OPEN_FULL_WIDTH_VIEW(GuidebookText.FullWidthView, 1, 2),
+        SCENE_EDITOR_EXPORT(GuidebookText.SceneEditorExport, 0, 3),
+        SCENE_EDITOR_IMPORT_STRUCTURE(GuidebookText.SceneEditorImportStructure, 1, 3),
+        SCENE_EDITOR_SCREENSHOT(GuidebookText.SceneEditorScreenshot, 2, 3),
+        CLOSE_FULL_WIDTH_VIEW(GuidebookText.CloseFullWidthView, 2, 2),
+        SCENE_EDITOR_SNAP(GuidebookText.SceneEditorSnap, 3, 3),
+        SCENE_EDITOR_DELETE_ELEMENT(GuidebookText.SceneEditorDeleteElement, 2, 0),
         PONDER_PREV_KEYFRAME(GuidebookText.PonderPrevKeyframe, 0, 0),
-        PONDER_PLAY_PAUSE(GuidebookText.PonderPlayPause, 0, 64),
-        PONDER_RESTART(GuidebookText.PonderRestart, 0, 32),
-        TOGGLE_GRID(GuidebookText.ToggleGrid, 16, 64),
+        PONDER_PLAY_PAUSE(GuidebookText.PonderPlayPause, 0, 4),
+        PONDER_RESTART(GuidebookText.PonderRestart, 0, 2),
+        TOGGLE_GRID(GuidebookText.ToggleGrid, 1, 4),
         TOGGLE_BLOCK_STATS(GuidebookText.ToggleBlockStats, 0, 0),
-        NAVIGATION_PIN(GuidebookText.NavigationPin, 0, 0),
+        NAVIGATION_PIN(GuidebookText.NavigationPin, 0, 5),
         GUIDE_EDITOR_TOGGLE(GuidebookText.GuideEditorToggle, 0, 0),
         GUIDE_EDITOR_NEW_PAGE(GuidebookText.GuideEditorNewPage, 0, 0),
         GUIDE_EDITOR_AUTOSAVE(GuidebookText.GuideEditorAutosave, 0, 0),
@@ -152,67 +152,76 @@ public class GuideIconButton extends GuiButton {
         GUIDE_EDITOR_LAYOUT_EDITOR_ONLY(GuidebookText.GuideEditorLayoutEditorOnly, 0, 0),
         GUIDE_EDITOR_LAYOUT_PREVIEW_ONLY(GuidebookText.GuideEditorLayoutPreviewOnly, 0, 0),
         GUIDE_EDITOR_ADVANCED_TOGGLE(GuidebookText.GuideEditorAdvancedToggle, 0, 0),
-        GUIDE_EDITOR_HEADING_1(GuidebookText.GuideEditorHeading1, 0, 0),
-        GUIDE_EDITOR_HEADING_2(GuidebookText.GuideEditorHeading2, 0, 0),
-        GUIDE_EDITOR_HEADING_3(GuidebookText.GuideEditorHeading3, 0, 0),
-        GUIDE_EDITOR_HEADING_4(GuidebookText.GuideEditorHeading4, 0, 0),
-        GUIDE_EDITOR_HEADING_5(GuidebookText.GuideEditorHeading5, 0, 0),
-        GUIDE_EDITOR_HEADING_6(GuidebookText.GuideEditorHeading6, 0, 0),
-        GUIDE_EDITOR_BOLD(GuidebookText.GuideEditorBold, 112, 0),
+        GUIDE_EDITOR_HEADING_1(GuidebookText.GuideEditorHeading1, 10, 2),
+        GUIDE_EDITOR_HEADING_2(GuidebookText.GuideEditorHeading2, 11, 2),
+        GUIDE_EDITOR_HEADING_3(GuidebookText.GuideEditorHeading3, 12, 2),
+        GUIDE_EDITOR_HEADING_4(GuidebookText.GuideEditorHeading4, 13, 2),
+        GUIDE_EDITOR_HEADING_5(GuidebookText.GuideEditorHeading5, 14, 2),
+        GUIDE_EDITOR_HEADING_6(GuidebookText.GuideEditorHeading6, 15, 2),
+        GUIDE_EDITOR_BOLD(GuidebookText.GuideEditorBold, 7, 0),
         GUIDE_EDITOR_ITALIC(GuidebookText.GuideEditorItalic, 0, 0),
         GUIDE_EDITOR_STRIKETHROUGH(GuidebookText.GuideEditorStrikethrough, 0, 0),
         GUIDE_EDITOR_UNDERLINE(GuidebookText.GuideEditorUnderline, 0, 0),
         GUIDE_EDITOR_KEYBOARD(GuidebookText.GuideEditorKeyboard, 0, 0),
         GUIDE_EDITOR_SUBSCRIPT(GuidebookText.GuideEditorSubscript, 0, 0),
         GUIDE_EDITOR_SUPERSCRIPT(GuidebookText.GuideEditorSuperscript, 0, 0),
-        GUIDE_EDITOR_FOOTNOTE(GuidebookText.GuideEditorFootnote, 0, 0),
+        GUIDE_EDITOR_FOOTNOTE(GuidebookText.GuideEditorFootnote, 11, 1),
+        GUIDE_EDITOR_SPOILER(GuidebookText.GuideEditorSpoiler, 0, 0),
         GUIDE_EDITOR_TOOLTIP(GuidebookText.GuideEditorTooltip, 0, 0),
+        GUIDE_EDITOR_MARK(GuidebookText.GuideEditorMark, 0, 0),
+        GUIDE_EDITOR_COMMENT(GuidebookText.GuideEditorComment, 0, 0),
         GUIDE_EDITOR_ITEM_IMAGE(GuidebookText.GuideEditorItemImage, 0, 0),
-        GUIDE_EDITOR_BLOCK_IMAGE(GuidebookText.GuideEditorBlockImage, 96, 0),
+        GUIDE_EDITOR_BLOCK_IMAGE(GuidebookText.GuideEditorBlockImage, 6, 0),
         GUIDE_EDITOR_ITEM_LINK(GuidebookText.GuideEditorItemLink, 0, 0),
         GUIDE_EDITOR_LATEX(GuidebookText.GuideEditorLatex, 0, 0),
-        GUIDE_EDITOR_CSV_TABLE(GuidebookText.GuideEditorCsvTable, 80, 16),
+        GUIDE_EDITOR_CSV_TABLE(GuidebookText.GuideEditorCsvTable, 5, 1),
         GUIDE_EDITOR_COMMAND_LINK(GuidebookText.GuideEditorCommandLink, 0, 0),
+        GUIDE_EDITOR_SOUND_LINK(GuidebookText.GuideEditorSoundLink, 0, 0),
         GUIDE_EDITOR_RECIPE(GuidebookText.GuideEditorRecipe, 0, 0),
         GUIDE_EDITOR_RECIPE_FOR(GuidebookText.GuideEditorRecipeFor, 0, 0),
         GUIDE_EDITOR_RECIPES_FOR(GuidebookText.GuideEditorRecipesFor, 0, 0),
-        GUIDE_EDITOR_FLOATING_IMAGE(GuidebookText.GuideEditorFloatingImage, 0, 0),
+        GUIDE_EDITOR_FLOATING_IMAGE(GuidebookText.GuideEditorFloatingImage, 10, 1),
         GUIDE_EDITOR_MERMAID(GuidebookText.GuideEditorMermaid, 0, 0),
-        GUIDE_EDITOR_FILE_TREE(GuidebookText.GuideEditorFileTree, 144, 16),
+        GUIDE_EDITOR_FILE_TREE(GuidebookText.GuideEditorFileTree, 9, 1),
         GUIDE_EDITOR_SUB_PAGES(GuidebookText.GuideEditorSubPages, 0, 0),
         GUIDE_EDITOR_CATEGORY(GuidebookText.GuideEditorCategory, 0, 0),
-        GUIDE_EDITOR_FOOTNOTE_LIST(GuidebookText.GuideEditorFootnoteList, 0, 0),
+        GUIDE_EDITOR_SPECIAL(GuidebookText.GuideEditorSpecial, 0, 0),
+        GUIDE_EDITOR_FOOTNOTE_LIST(GuidebookText.GuideEditorFootnoteList, 12, 1),
         GUIDE_EDITOR_ROW(GuidebookText.GuideEditorRow, 0, 0),
         GUIDE_EDITOR_COLUMN(GuidebookText.GuideEditorColumn, 0, 0),
-        GUIDE_EDITOR_DIV(GuidebookText.GuideEditorDiv, 128, 16),
+        GUIDE_EDITOR_DIV(GuidebookText.GuideEditorDiv, 8, 1),
         GUIDE_EDITOR_ITEM_GRID(GuidebookText.GuideEditorItemGrid, 0, 0),
-        GUIDE_EDITOR_CSV_TABLE_IMPORT(GuidebookText.GuideEditorCsvTableImport, 96, 16),
-        GUIDE_EDITOR_ANCHOR(GuidebookText.GuideEditorAnchor, 32, 64),
+        GUIDE_EDITOR_CSV_TABLE_IMPORT(GuidebookText.GuideEditorCsvTableImport, 6, 1),
+        GUIDE_EDITOR_ANCHOR(GuidebookText.GuideEditorAnchor, 2, 4),
         GUIDE_EDITOR_COLUMN_CHART(GuidebookText.GuideEditorColumnChart, 0, 0),
-        GUIDE_EDITOR_BAR_CHART(GuidebookText.GuideEditorBarChart, 48, 64),
-        GUIDE_EDITOR_LINE_CHART(GuidebookText.GuideEditorLineChart, 176, 0),
-        GUIDE_EDITOR_PIE_CHART(GuidebookText.GuideEditorPieChart, 192, 0),
+        GUIDE_EDITOR_BAR_CHART(GuidebookText.GuideEditorBarChart, 3, 4),
+        GUIDE_EDITOR_LINE_CHART(GuidebookText.GuideEditorLineChart, 11, 0),
+        GUIDE_EDITOR_PIE_CHART(GuidebookText.GuideEditorPieChart, 12, 0),
         GUIDE_EDITOR_SCATTER_CHART(GuidebookText.GuideEditorScatterChart, 0, 0),
         GUIDE_EDITOR_CHART_SERIES(GuidebookText.GuideEditorChartSeries, 0, 0),
         GUIDE_EDITOR_CHART_LINE_SERIES(GuidebookText.GuideEditorChartLineSeries, 0, 0),
         GUIDE_EDITOR_CHART_SLICE(GuidebookText.GuideEditorChartSlice, 0, 0),
         GUIDE_EDITOR_CHART_PIE_INSET(GuidebookText.GuideEditorChartPieInset, 0, 0),
-        GUIDE_EDITOR_FUNCTION_GRAPH(GuidebookText.GuideEditorFunctionGraph, 0, 0),
-        GUIDE_EDITOR_FUNCTION(GuidebookText.GuideEditorFunction, 0, 0),
-        GUIDE_EDITOR_FUNCTION_PLOT(GuidebookText.GuideEditorFunctionPlot, 0, 0),
-        GUIDE_EDITOR_FUNCTION_POINT(GuidebookText.GuideEditorFunctionPoint, 0, 0),
-        GUIDE_EDITOR_FUNCTION_GRAPH_FENCE(GuidebookText.GuideEditorFunctionGraphFence, 0, 0),
+        GUIDE_EDITOR_FUNCTION_GRAPH(GuidebookText.GuideEditorFunctionGraph, 5, 2),
+        GUIDE_EDITOR_FUNCTION(GuidebookText.GuideEditorFunction, 4, 2),
+        GUIDE_EDITOR_FUNCTION_PLOT(GuidebookText.GuideEditorFunctionPlot, 7, 2),
+        GUIDE_EDITOR_FUNCTION_POINT(GuidebookText.GuideEditorFunctionPoint, 8, 2),
+        GUIDE_EDITOR_FUNCTION_GRAPH_FENCE(GuidebookText.GuideEditorFunctionGraphFence, 6, 2),
         GUIDE_EDITOR_STRUCTURE(GuidebookText.GuideEditorStructure, 0, 0),
-        GUIDE_EDITOR_GAME_SCENE(GuidebookText.GuideEditorGameScene, 0, 0),
+        GUIDE_EDITOR_GAME_SCENE(GuidebookText.GuideEditorGameScene, 9, 2),
         GUIDE_EDITOR_SCENE_BLOCK(GuidebookText.GuideEditorSceneBlock, 0, 0),
         GUIDE_EDITOR_SCENE_ENTITY(GuidebookText.GuideEditorSceneEntity, 0, 0),
+        GUIDE_EDITOR_SCENE_PARTICLE(GuidebookText.GuideEditorSceneParticle, 0, 0),
+        GUIDE_EDITOR_SCENE_WEATHER(GuidebookText.GuideEditorSceneWeather, 0, 0),
+        GUIDE_EDITOR_SCENE_PLAY_SOUND(GuidebookText.GuideEditorScenePlaySound, 0, 0),
+        GUIDE_EDITOR_SCENE_REMOVE_ENTITY(GuidebookText.GuideEditorSceneRemoveEntity, 0, 0),
         GUIDE_EDITOR_ISOMETRIC_CAMERA(GuidebookText.GuideEditorIsometricCamera, 0, 0),
         GUIDE_EDITOR_BOX_ANNOTATION(GuidebookText.GuideEditorBoxAnnotation, 0, 0),
-        GUIDE_EDITOR_BLOCK_ANNOTATION(GuidebookText.GuideEditorBlockAnnotation, 64, 0),
+        GUIDE_EDITOR_BLOCK_ANNOTATION(GuidebookText.GuideEditorBlockAnnotation, 4, 0),
         GUIDE_EDITOR_LINE_ANNOTATION(GuidebookText.GuideEditorLineAnnotation, 0, 0),
-        GUIDE_EDITOR_DIAMOND_ANNOTATION(GuidebookText.GuideEditorDiamondAnnotation, 240, 0),
+        GUIDE_EDITOR_DIAMOND_ANNOTATION(GuidebookText.GuideEditorDiamondAnnotation, 15, 0),
         GUIDE_EDITOR_TEXT_ANNOTATION(GuidebookText.GuideEditorTextAnnotation, 0, 0),
-        GUIDE_EDITOR_BLOCK_ANNOTATION_TEMPLATE(GuidebookText.GuideEditorBlockAnnotationTemplate, 80, 0),
+        GUIDE_EDITOR_BLOCK_ANNOTATION_TEMPLATE(GuidebookText.GuideEditorBlockAnnotationTemplate, 5, 0),
         GUIDE_EDITOR_IMPORT_STRUCTURE(GuidebookText.GuideEditorImportStructure, 0, 0),
         GUIDE_EDITOR_IMPORT_STRUCTURE_LIB(GuidebookText.GuideEditorImportStructureLib, 0, 0),
         GUIDE_EDITOR_IMPORT_PONDER(GuidebookText.GuideEditorImportPonder, 0, 0),
@@ -240,9 +249,9 @@ public class GuideIconButton extends GuiButton {
         GUIDE_EDITOR_LINK(GuidebookText.GuideEditorLink, 0, 0),
         GUIDE_EDITOR_IMAGE(GuidebookText.GuideEditorImage, 0, 0),
         GUIDE_EDITOR_INLINE_CODE(GuidebookText.GuideEditorInlineCode, 0, 0),
-        GUIDE_EDITOR_CODE_BLOCK(GuidebookText.GuideEditorCodeBlock, 208, 0),
+        GUIDE_EDITOR_CODE_BLOCK(GuidebookText.GuideEditorCodeBlock, 13, 0),
         GUIDE_EDITOR_QUOTE(GuidebookText.GuideEditorQuote, 0, 0),
-        GUIDE_EDITOR_BULLET_LIST(GuidebookText.GuideEditorBulletList, 224, 0),
+        GUIDE_EDITOR_BULLET_LIST(GuidebookText.GuideEditorBulletList, 14, 0),
         GUIDE_EDITOR_NUMBERED_LIST(GuidebookText.GuideEditorNumberedList, 0, 0),
         GUIDE_EDITOR_TASK_LIST(GuidebookText.GuideEditorTaskList, 0, 0),
         GUIDE_EDITOR_TABLE(GuidebookText.GuideEditorTable, 0, 0),
@@ -251,29 +260,37 @@ public class GuideIconButton extends GuiButton {
         GUIDE_EDITOR_ALERT_IMPORTANT(GuidebookText.GuideEditorAlertImportant, 0, 0),
         GUIDE_EDITOR_ALERT_WARNING(GuidebookText.GuideEditorAlertWarning, 0, 0),
         GUIDE_EDITOR_ALERT_CAUTION(GuidebookText.GuideEditorAlertCaution, 0, 0),
-        GUIDE_EDITOR_DETAILS(GuidebookText.GuideEditorDetails, 112, 16),
+        GUIDE_EDITOR_DETAILS(GuidebookText.GuideEditorDetails, 7, 1),
         GUIDE_EDITOR_KEY_BIND(GuidebookText.GuideEditorKeyBind, 0, 0),
         GUIDE_EDITOR_PLAYER_NAME(GuidebookText.GuideEditorPlayerName, 0, 0),
         GUIDE_EDITOR_COLOR(GuidebookText.GuideEditorColor, 0, 0),
-        GUIDE_EDITOR_BREAK(GuidebookText.GuideEditorBreak, 160, 0),
+        GUIDE_EDITOR_BREAK(GuidebookText.GuideEditorBreak, 10, 0),
         GUIDE_EDITOR_REFERENCE_LINK(GuidebookText.GuideEditorReferenceLink, 0, 0),
         GUIDE_EDITOR_REFERENCE_IMAGE(GuidebookText.GuideEditorReferenceImage, 0, 0),
         GUIDE_EDITOR_RULE(GuidebookText.GuideEditorRule, 0, 0),
         GUIDE_EDITOR_UNDO(GuidebookText.GuideEditorUndo, 0, 0),
         GUIDE_EDITOR_REDO(GuidebookText.GuideEditorRedo, 0, 0),
-        GUIDE_EDITOR_CUT(GuidebookText.GuideEditorCut, 0, 0),
-        GUIDE_EDITOR_COPY(GuidebookText.GuideEditorCopy, 64, 16),
+        GUIDE_EDITOR_CUT(GuidebookText.GuideEditorCut, 2, 5),
+        GUIDE_EDITOR_COPY(GuidebookText.GuideEditorCopy, 4, 1),
         GUIDE_EDITOR_PASTE(GuidebookText.GuideEditorPaste, 0, 0),
         GUIDE_EDITOR_SELECT_ALL(GuidebookText.GuideEditorSelectAll, 0, 0);
 
         private final GuidebookText textKey;
-        final int iconSrcX;
-        final int iconSrcY;
+        private final int iconSrcX;
+        private final int iconSrcY;
+        private final int iconSrcWidth;
+        private final int iconSrcHeight;
 
-        Role(GuidebookText textKey, int iconSrcX, int iconSrcY) {
+        Role(GuidebookText textKey, int iconSrcPointX, int iconSrcPointY) {
+            this(textKey, iconSrcPointX * WIDTH, iconSrcPointY * HEIGHT, WIDTH, HEIGHT);
+        }
+
+        Role(GuidebookText textKey, int iconSrcX, int iconSrcY, int iconSrcWidth, int iconSrcHeight) {
             this.textKey = textKey;
             this.iconSrcX = iconSrcX;
             this.iconSrcY = iconSrcY;
+            this.iconSrcWidth = iconSrcWidth;
+            this.iconSrcHeight = iconSrcHeight;
         }
 
         public String tooltip() {
@@ -286,6 +303,14 @@ public class GuideIconButton extends GuiButton {
 
         public int iconSrcY() {
             return iconSrcY;
+        }
+
+        public int iconSrcWidth() {
+            return iconSrcWidth;
+        }
+
+        public int iconSrcHeight() {
+            return iconSrcHeight;
         }
     }
 }

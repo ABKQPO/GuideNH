@@ -815,6 +815,10 @@ public class GuideSiteHtmlCompiler {
         return "Tooltip".equals(element.name());
     }
 
+    private boolean isSpoilerElement(MdxJsxElementFields element) {
+        return "Spoiler".equals(element.name());
+    }
+
     private boolean isRecipeElement(MdxJsxElementFields element) {
         return "Recipe".equals(element.name()) || "RecipeFor".equals(element.name())
             || "RecipeUsage".equals(element.name())
@@ -835,6 +839,12 @@ public class GuideSiteHtmlCompiler {
 
     private String compileRecipe(MdxJsxElementFields element, String defaultNamespace) {
         return recipeTagRenderer.render(element, defaultNamespace);
+    }
+
+    private String compileSpoiler(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        String body = compileChildren(element.children(), templates, defaultNamespace, currentPageId, sceneResolver);
+        return "<span class=\"guide-spoiler\" tabindex=\"0\">" + body + "</span>";
     }
 
     private String compileScene(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,

@@ -7,6 +7,10 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
 public class StructureLibExportTaskSpec {
 
     private final StructureLibControllerSpec controller;
@@ -25,6 +29,7 @@ public class StructureLibExportTaskSpec {
     private final boolean gtPlaceHatches;
     private final List<String> warnings;
     @Nullable
+    @Setter
     private Path outputPath;
 
     public StructureLibExportTaskSpec(StructureLibControllerSpec controller, StructureLibOrientationSpec orientation,
@@ -68,35 +73,6 @@ public class StructureLibExportTaskSpec {
         this.warnings = warnings != null ? List.copyOf(warnings) : List.of();
     }
 
-    public StructureLibControllerSpec getController() {
-        return controller;
-    }
-
-    public StructureLibOrientationSpec getOrientation() {
-        return orientation;
-    }
-
-    public int getTier() {
-        return tier;
-    }
-
-    public Map<String, Integer> getChannels() {
-        return channels;
-    }
-
-    public String getLayerExpression() {
-        return layerExpression;
-    }
-
-    public boolean isEachLayer() {
-        return eachLayer;
-    }
-
-    @Nullable
-    public Integer getExplicitLayer() {
-        return explicitLayer;
-    }
-
     public StructureLibExportTaskSpec forExplicitLayer(int layer) {
         return new StructureLibExportTaskSpec(
             controller,
@@ -113,43 +89,6 @@ public class StructureLibExportTaskSpec {
             gtActiveController,
             gtPlaceHatches,
             warnings);
-    }
-
-    public StructureLibExportView getView() {
-        return view;
-    }
-
-    public StructureLibExportBackground getBackground() {
-        return background;
-    }
-
-    public int getPixelsPerBlock() {
-        return pixelsPerBlock;
-    }
-
-    public float getScale() {
-        return scale;
-    }
-
-    public boolean isGtActiveController() {
-        return gtActiveController;
-    }
-
-    public boolean isGtPlaceHatches() {
-        return gtPlaceHatches;
-    }
-
-    public List<String> getWarnings() {
-        return warnings;
-    }
-
-    @Nullable
-    public Path getOutputPath() {
-        return outputPath;
-    }
-
-    public void setOutputPath(Path outputPath) {
-        this.outputPath = outputPath;
     }
 
     private static Map<String, Integer> immutableChannels(Map<String, Integer> source) {

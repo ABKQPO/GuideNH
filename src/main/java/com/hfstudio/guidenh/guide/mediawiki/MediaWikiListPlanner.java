@@ -65,8 +65,8 @@ public class MediaWikiListPlanner {
         int columnCount = Math.max(1, sanitizeRows(rows));
         var columns = new ArrayList<MediaWikiListColumn>(columnCount);
         if (entries.isEmpty()) {
-            for (int i = 0; i < columnCount; i++) {
-                columns.add(new MediaWikiListColumn(Collections.<MediaWikiListSection>emptyList()));
+            for (int index = 0; index < columnCount; index++) {
+                columns.add(new MediaWikiListColumn(Collections.emptyList()));
             }
             return columns;
         }

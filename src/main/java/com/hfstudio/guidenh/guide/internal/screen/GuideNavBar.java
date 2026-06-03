@@ -287,8 +287,8 @@ public class GuideNavBar {
 
             renderTitle(mc, w, mouseX, mouseY, showNewPageButton);
 
-            int bodyY = y + TITLE_H;
-            int bodyHeight = Math.max(0, height - TITLE_H);
+            int bodyY = getBodyY();
+            int bodyHeight = getBodyHeight();
             if (bodyHeight <= 0) {
                 resetTitleScroll();
                 return;
@@ -296,7 +296,7 @@ public class GuideNavBar {
 
             int scaleFactor = DisplayScale.scaleFactor();
             GL11.glEnable(GL11.GL_SCISSOR_TEST);
-            setScissor(mc, x, bodyY, w, bodyHeight, scaleFactor);
+            setBodyScissor(mc, scaleFactor);
 
             FontRenderer fontRenderer = mc.fontRenderer;
             StickyStack stickyRows = computeStickyStack(bodyY);
@@ -307,7 +307,7 @@ public class GuideNavBar {
             for (int rowIndex = firstVisibleRow; rowIndex < rows.size(); rowIndex++) {
                 Row row = rows.get(rowIndex);
                 int rowY = getRowY(rowIndex);
-                if (rowY >= y + height) {
+                if (rowY >= getBodyBottom()) {
                     break;
                 }
                 if (rowIndex == nextStickyRowIndex) {
@@ -530,11 +530,20 @@ public class GuideNavBar {
         }
         long elapsed = Math.max(0L, now - hoveredScrollingStartedAtMillis);
         int offset = (int) ((elapsed / TITLE_SCROLL_INTERVAL_MILLIS) % cycleWidth);
-        setScissor(mc, textX, rowY, maxTw, ROW_H, scaleFactor);
+        int clipLeft = Math.max(textX, x);
+        int clipRight = Math.min(textX + maxTw, x + currentWidth());
+        int clipTop = Math.max(rowY, getBodyY());
+        int clipBottom = Math.min(rowY + ROW_H, getBodyBottom());
+        int clipWidth = clipRight - clipLeft;
+        int clipHeight = clipBottom - clipTop;
+        if (clipWidth <= 0 || clipHeight <= 0) {
+            return false;
+        }
+        setScissor(mc, clipLeft, clipTop, clipWidth, clipHeight, scaleFactor);
         try {
             fr.drawString(row.getScrollingTitle(), textX - offset, rowY + 2, color, false);
         } finally {
-            setScissor(mc, x, y + TITLE_H, currentWidth(), Math.max(0, height - TITLE_H), scaleFactor);
+            setBodyScissor(mc, scaleFactor);
         }
         return true;
     }
@@ -725,7 +734,7 @@ public class GuideNavBar {
 
     private int getFirstVisibleRowIndex() {
         int firstVisibleRow = Math.floorDiv(scrollY - CONTENT_PADDING - 1, ROW_H);
-        return Math.max(0, Math.min(firstVisibleRow, rows.size()));
+        return Math.clamp(firstVisibleRow, 0, rows.size());
     }
 
     @Nullable
@@ -767,11 +776,27 @@ public class GuideNavBar {
         return getPinButtonX() - GuideIconButton.WIDTH - TITLE_BUTTON_GAP;
     }
 
+    private int getBodyY() {
+        return y + TITLE_H;
+    }
+
+    private int getBodyHeight() {
+        return Math.max(0, height - TITLE_H);
+    }
+
+    private int getBodyBottom() {
+        return getBodyY() + getBodyHeight();
+    }
+
     private boolean isInsideTitleButton(int mouseX, int mouseY, int buttonX) {
         int buttonY = getTitleButtonY();
         return mouseX >= buttonX && mouseX < buttonX + GuideIconButton.WIDTH
             && mouseY >= buttonY
             && mouseY < buttonY + GuideIconButton.HEIGHT;
+    }
+
+    private void setBodyScissor(Minecraft mc, int scaleFactor) {
+        setScissor(mc, x, getBodyY(), currentWidth(), getBodyHeight(), scaleFactor);
     }
 
     private static void setScissor(Minecraft mc, int x, int y, int w, int h, int scaleFactor) {

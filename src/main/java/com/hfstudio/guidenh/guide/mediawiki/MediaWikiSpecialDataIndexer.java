@@ -406,7 +406,7 @@ public class MediaWikiSpecialDataIndexer {
 
     private List<Guide> resolveGuides(Guide guide) {
         if (guide instanceof MediaWikiGuideAggregator aggregator) {
-            return new ArrayList<Guide>(aggregator.getComponentGuides());
+            return new ArrayList<>(aggregator.getComponentGuides());
         }
         return List.of(guide);
     }

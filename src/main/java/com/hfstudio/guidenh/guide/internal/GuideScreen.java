@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedHashMap;
@@ -47,6 +46,7 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.ClientProxy;
+import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
@@ -77,6 +77,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
+import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
@@ -89,6 +90,7 @@ import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlayRenderer;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorActionRegistry;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorConflictPrompt;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorContextMenu;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorFileStore;
@@ -142,15 +144,6 @@ import cpw.mods.fml.common.Loader;
 
 public class GuideScreen extends GuiContainer
     implements GuideUiHost, GuiYesNoCallback, GuideScreenNeiBridge.EditorAccess {
-
-    private static final GuideScreenEditorAction[] GUIDE_EDITOR_BASE_ACTIONS = new GuideScreenEditorAction[] {
-        GuideScreenEditorAction.HEADING_1, GuideScreenEditorAction.HEADING_2, GuideScreenEditorAction.HEADING_3,
-        GuideScreenEditorAction.BOLD, GuideScreenEditorAction.ITALIC, GuideScreenEditorAction.KBD,
-        GuideScreenEditorAction.SUBSCRIPT, GuideScreenEditorAction.SUPERSCRIPT, GuideScreenEditorAction.FOOTNOTE,
-        GuideScreenEditorAction.LATEX, GuideScreenEditorAction.COLOR, GuideScreenEditorAction.LINK,
-        GuideScreenEditorAction.INLINE_CODE, GuideScreenEditorAction.CODE_BLOCK, GuideScreenEditorAction.BLOCKQUOTE,
-        GuideScreenEditorAction.UNORDERED_LIST, GuideScreenEditorAction.ORDERED_LIST, GuideScreenEditorAction.TASK_LIST,
-        GuideScreenEditorAction.TABLE, GuideScreenEditorAction.THEMATIC_BREAK };
 
     public static final int PANEL_MARGIN = 20;
     public static final int PANEL_PADDING = 8;
@@ -437,7 +430,7 @@ public class GuideScreen extends GuiContainer
         final int docX;
         final int docY;
         @Nullable
-        final LytDocument.HitTestResult hit;
+        final DocumentInteractionSnapshot hit;
         @Nullable
         final LytGuidebookScene scene;
         @Nullable
@@ -445,7 +438,7 @@ public class GuideScreen extends GuiContainer
 
         private DocumentInteractionState(LytDocument document, int mouseX, int mouseY, int contentX, int contentY,
             int contentW, int contentH, int scrollY, int tooltipX, int tooltipY, int tooltipW, int tooltipH, int docX,
-            int docY, @Nullable LytDocument.HitTestResult hit, @Nullable LytGuidebookScene scene,
+            int docY, @Nullable DocumentInteractionSnapshot hit, @Nullable LytGuidebookScene scene,
             @Nullable SceneButtonHit sceneButtonHit) {
             this.document = document;
             this.mouseX = mouseX;
@@ -476,6 +469,15 @@ public class GuideScreen extends GuiContainer
                 && this.contentH == contentH
                 && this.scrollY == scrollY;
         }
+    }
+
+    private Iterable<LytFlowContent> flowTargets(@Nullable DocumentInteractionSnapshot hit) {
+        return hit != null ? hit.flowPath()
+            .targets() : List.of();
+    }
+
+    private Iterable<LytFlowContent> interactiveFlowTargets(@Nullable DocumentInteractionSnapshot hit) {
+        return hit != null ? hit.interactiveFlowTargets() : List.of();
     }
 
     private GuideScreen(GuideScreenRoute route, @Nullable GuideScreenViewState restoreViewState,
@@ -526,6 +528,10 @@ public class GuideScreen extends GuiContainer
             .getNavigation()
             .consumeValidLastContentState();
         open(remembered != null ? remembered : GuideScreenViewState.home(), false);
+    }
+
+    public static void openHomePage() {
+        open(GuideScreenViewState.home(), false);
     }
 
     private static void open(GuideScreenViewState initialState, boolean openedFromGuideHotkey) {
@@ -933,7 +939,7 @@ public class GuideScreen extends GuiContainer
         if (contentWidth <= 20 || sideMarginRatio <= NARROW_READING_DISABLED_RATIO) {
             return 0;
         }
-        float clampedRatio = Math.max(NARROW_READING_DISABLED_RATIO, Math.min(0.45f, sideMarginRatio));
+        float clampedRatio = Math.clamp(sideMarginRatio, NARROW_READING_DISABLED_RATIO, 0.45f);
         int requestedInset = Math.round(contentWidth * clampedRatio);
         int maxInset = Math.max(0, (contentWidth - 20) / 2);
         return Math.min(requestedInset, maxInset);
@@ -1902,150 +1908,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorContextMenuEntries() {
-        List<GuideScreenEditorContextMenu.Entry> editEntries = new ArrayList<>();
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.UNDO));
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REDO));
-        editEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CUT));
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COPY));
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PASTE));
-        editEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SELECT_ALL));
-
-        List<GuideScreenEditorContextMenu.Entry> insertEntries = new ArrayList<>();
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_1));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_2));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_3));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_4));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_5));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.HEADING_6));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BOLD));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITALIC));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.STRIKETHROUGH));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.UNDERLINE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        List<GuideScreenEditorContextMenu.Entry> inlineEntries = new ArrayList<>();
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.KBD));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SUBSCRIPT));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SUPERSCRIPT));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FOOTNOTE));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LATEX));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LATEX_SHORTHAND));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.KEY_BIND));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PLAYER_NAME));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COLOR));
-        inlineEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BREAK));
-        insertEntries.add(
-            GuideScreenEditorContextMenu.Entry
-                .submenu(GuidebookText.GuideEditorContextMenuInline.text(), inlineEntries));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LINK));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REFERENCE_LINK));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMAGE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REFERENCE_IMAGE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.INLINE_CODE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CODE_BLOCK));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCKQUOTE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.UNORDERED_LIST));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ORDERED_LIST));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TASK_LIST));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TABLE));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        List<GuideScreenEditorContextMenu.Entry> blockEntries = new ArrayList<>();
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_NOTE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_TIP));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_IMPORTANT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_WARNING));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ALERT_CAUTION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.DETAILS));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_CALLOUT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_ICON_TEXT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_ICON_ITEM));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUOTE_ICON_PNG));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CSV_TABLE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.MERMAID));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FILE_TREE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SUB_PAGES));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CATEGORY));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FOOTNOTE_LIST));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ROW));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COLUMN));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.DIV));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITEM_GRID));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CSV_TABLE_IMPORT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ANCHOR));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COLUMN_CHART));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BAR_CHART));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LINE_CHART));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PIE_CHART));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SCATTER_CHART));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_SERIES));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_LINE_SERIES));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_SLICE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.CHART_PIE_INSET));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_GRAPH));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_PLOT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_POINT));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FUNCTION_GRAPH_FENCE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.STRUCTURE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.GAME_SCENE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SCENE_BLOCK));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.SCENE_ENTITY));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ISOMETRIC_CAMERA));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BOX_ANNOTATION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCK_ANNOTATION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.LINE_ANNOTATION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.DIAMOND_ANNOTATION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TEXT_ANNOTATION));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCK_ANNOTATION_TEMPLATE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.separator());
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMPORT_STRUCTURE));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMPORT_STRUCTURE_LIB));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.IMPORT_PONDER));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PLACE_BLOCK));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REPLACE_BLOCK));
-        blockEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.REMOVE_BLOCKS));
-        insertEntries.add(
-            GuideScreenEditorContextMenu.Entry
-                .submenu(GuidebookText.GuideEditorContextMenuBlocks.text(), blockEntries));
-        List<GuideScreenEditorContextMenu.Entry> embedEntries = new ArrayList<>();
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TOOLTIP));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITEM_IMAGE));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.BLOCK_IMAGE));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.ITEM_LINK));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.COMMAND_LINK));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.RECIPE));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.RECIPE_FOR));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.RECIPES_FOR));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.FLOATING_IMAGE));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUEST_LINK));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUEST_CARD));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.QUEST_IDS));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_POSITION));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICON));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICON_TEXTURE));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICONS));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_ICON_TEXTURES));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.NAV_REQUIRED_MODS));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_CATEGORIES));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_ITEM_IDS));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_ORE_IDS));
-        embedEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.PAGE_METADATA));
-        insertEntries.add(
-            GuideScreenEditorContextMenu.Entry
-                .submenu(GuidebookText.GuideEditorContextMenuEmbeds.text(), embedEntries));
-        insertEntries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.THEMATIC_BREAK));
-
-        List<GuideScreenEditorContextMenu.Entry> entries = new ArrayList<>();
-        entries.add(
-            GuideScreenEditorContextMenu.Entry.submenu(GuidebookText.GuideEditorContextMenuEdit.text(), editEntries));
-        entries.add(
-            GuideScreenEditorContextMenu.Entry
-                .submenu(GuidebookText.GuideEditorContextMenuInsert.text(), insertEntries));
-        return entries;
+        return GuideScreenEditorActionRegistry.contextMenuEntries();
     }
 
     private int getGuideEditorPreviewLayoutWidth() {
@@ -2233,104 +2096,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private List<GuideScreenEditorAction> getGuideEditorActionOrder() {
-        List<GuideScreenEditorAction> actions = new ArrayList<>();
-        Collections.addAll(actions, GUIDE_EDITOR_BASE_ACTIONS);
-        if (guideEditorAdvancedToolbarVisible) {
-            actions.add(GuideScreenEditorAction.HEADING_4);
-            actions.add(GuideScreenEditorAction.HEADING_5);
-            actions.add(GuideScreenEditorAction.HEADING_6);
-            actions.add(GuideScreenEditorAction.STRIKETHROUGH);
-            actions.add(GuideScreenEditorAction.UNDERLINE);
-            actions.add(GuideScreenEditorAction.IMAGE);
-            actions.add(GuideScreenEditorAction.REFERENCE_LINK);
-            actions.add(GuideScreenEditorAction.REFERENCE_IMAGE);
-            actions.add(GuideScreenEditorAction.ALERT_NOTE);
-            actions.add(GuideScreenEditorAction.ALERT_TIP);
-            actions.add(GuideScreenEditorAction.ALERT_IMPORTANT);
-            actions.add(GuideScreenEditorAction.ALERT_WARNING);
-            actions.add(GuideScreenEditorAction.ALERT_CAUTION);
-            actions.add(GuideScreenEditorAction.DETAILS);
-            actions.add(GuideScreenEditorAction.QUOTE_CALLOUT);
-            actions.add(GuideScreenEditorAction.QUOTE_ICON_TEXT);
-            actions.add(GuideScreenEditorAction.QUOTE_ICON_ITEM);
-            actions.add(GuideScreenEditorAction.QUOTE_ICON_PNG);
-            actions.add(GuideScreenEditorAction.KEY_BIND);
-            actions.add(GuideScreenEditorAction.PLAYER_NAME);
-            actions.add(GuideScreenEditorAction.BREAK);
-            actions.add(GuideScreenEditorAction.TOOLTIP);
-            actions.add(GuideScreenEditorAction.ITEM_IMAGE);
-            actions.add(GuideScreenEditorAction.BLOCK_IMAGE);
-            actions.add(GuideScreenEditorAction.ITEM_LINK);
-            actions.add(GuideScreenEditorAction.CSV_TABLE);
-            actions.add(GuideScreenEditorAction.COMMAND_LINK);
-            actions.add(GuideScreenEditorAction.RECIPE);
-            actions.add(GuideScreenEditorAction.RECIPE_FOR);
-            actions.add(GuideScreenEditorAction.RECIPES_FOR);
-            actions.add(GuideScreenEditorAction.FLOATING_IMAGE);
-            actions.add(GuideScreenEditorAction.MERMAID);
-            actions.add(GuideScreenEditorAction.FILE_TREE);
-            actions.add(GuideScreenEditorAction.SUB_PAGES);
-            actions.add(GuideScreenEditorAction.CATEGORY);
-            actions.add(GuideScreenEditorAction.FOOTNOTE_LIST);
-            actions.add(GuideScreenEditorAction.ROW);
-            actions.add(GuideScreenEditorAction.COLUMN);
-            actions.add(GuideScreenEditorAction.DIV);
-            actions.add(GuideScreenEditorAction.ITEM_GRID);
-            actions.add(GuideScreenEditorAction.CSV_TABLE_IMPORT);
-            actions.add(GuideScreenEditorAction.ANCHOR);
-            actions.add(GuideScreenEditorAction.COLUMN_CHART);
-            actions.add(GuideScreenEditorAction.BAR_CHART);
-            actions.add(GuideScreenEditorAction.LINE_CHART);
-            actions.add(GuideScreenEditorAction.PIE_CHART);
-            actions.add(GuideScreenEditorAction.SCATTER_CHART);
-            actions.add(GuideScreenEditorAction.CHART_SERIES);
-            actions.add(GuideScreenEditorAction.CHART_LINE_SERIES);
-            actions.add(GuideScreenEditorAction.CHART_SLICE);
-            actions.add(GuideScreenEditorAction.CHART_PIE_INSET);
-            actions.add(GuideScreenEditorAction.FUNCTION_GRAPH);
-            actions.add(GuideScreenEditorAction.FUNCTION);
-            actions.add(GuideScreenEditorAction.FUNCTION_PLOT);
-            actions.add(GuideScreenEditorAction.FUNCTION_POINT);
-            actions.add(GuideScreenEditorAction.FUNCTION_GRAPH_FENCE);
-            actions.add(GuideScreenEditorAction.STRUCTURE);
-            actions.add(GuideScreenEditorAction.GAME_SCENE);
-            actions.add(GuideScreenEditorAction.SCENE_BLOCK);
-            actions.add(GuideScreenEditorAction.SCENE_ENTITY);
-            actions.add(GuideScreenEditorAction.ISOMETRIC_CAMERA);
-            actions.add(GuideScreenEditorAction.BOX_ANNOTATION);
-            actions.add(GuideScreenEditorAction.BLOCK_ANNOTATION);
-            actions.add(GuideScreenEditorAction.LINE_ANNOTATION);
-            actions.add(GuideScreenEditorAction.DIAMOND_ANNOTATION);
-            actions.add(GuideScreenEditorAction.TEXT_ANNOTATION);
-            actions.add(GuideScreenEditorAction.BLOCK_ANNOTATION_TEMPLATE);
-            actions.add(GuideScreenEditorAction.IMPORT_STRUCTURE);
-            actions.add(GuideScreenEditorAction.IMPORT_STRUCTURE_LIB);
-            actions.add(GuideScreenEditorAction.IMPORT_PONDER);
-            actions.add(GuideScreenEditorAction.PLACE_BLOCK);
-            actions.add(GuideScreenEditorAction.REPLACE_BLOCK);
-            actions.add(GuideScreenEditorAction.REMOVE_BLOCKS);
-            actions.add(GuideScreenEditorAction.QUEST_LINK);
-            actions.add(GuideScreenEditorAction.QUEST_CARD);
-            actions.add(GuideScreenEditorAction.QUEST_IDS);
-            actions.add(GuideScreenEditorAction.NAV_POSITION);
-            actions.add(GuideScreenEditorAction.NAV_ICON);
-            actions.add(GuideScreenEditorAction.NAV_ICON_TEXTURE);
-            actions.add(GuideScreenEditorAction.NAV_ICONS);
-            actions.add(GuideScreenEditorAction.NAV_ICON_TEXTURES);
-            actions.add(GuideScreenEditorAction.NAV_REQUIRED_MODS);
-            actions.add(GuideScreenEditorAction.PAGE_CATEGORIES);
-            actions.add(GuideScreenEditorAction.PAGE_ITEM_IDS);
-            actions.add(GuideScreenEditorAction.PAGE_ORE_IDS);
-            actions.add(GuideScreenEditorAction.PAGE_METADATA);
-            actions.add(GuideScreenEditorAction.LATEX_SHORTHAND);
-            actions.add(GuideScreenEditorAction.UNDO);
-            actions.add(GuideScreenEditorAction.REDO);
-            actions.add(GuideScreenEditorAction.CUT);
-            actions.add(GuideScreenEditorAction.COPY);
-            actions.add(GuideScreenEditorAction.PASTE);
-            actions.add(GuideScreenEditorAction.SELECT_ALL);
-        }
-        return actions;
+        return GuideScreenEditorActionRegistry.toolbarActions(guideEditorAdvancedToolbarVisible);
     }
 
     @Override
@@ -2642,7 +2408,7 @@ public class GuideScreen extends GuiContainer
         if (referenceWidth <= 0 || actualWidth >= referenceWidth) {
             return 1.0f;
         }
-        return Math.max(0.35f, Math.min(1.0f, actualWidth / (float) referenceWidth));
+        return Math.clamp(actualWidth / (float) referenceWidth, 0.35f, 1.0f);
     }
 
     private int getVisualReferenceContentWidth() {
@@ -2650,7 +2416,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private int visualScalePermille(float visualScale) {
-        return Math.round(Math.max(0.1f, Math.min(1.0f, visualScale)) * 1000.0f);
+        return Math.round(Math.clamp(visualScale, 0.1f, 1.0f) * 1000.0f);
     }
 
     private LayoutContext createLayoutContext(int actualWidth, int referenceWidth) {
@@ -3123,7 +2889,7 @@ public class GuideScreen extends GuiContainer
         int divider = guideEditorDividerPercent;
         int leftPaneWidth = Math.round(editorAreaWidth * (divider / 100.0f));
         int maxLeft = Math.max(GUIDE_EDITOR_MIN_SPLIT_PANE_W, editorAreaWidth - GUIDE_EDITOR_MIN_SPLIT_PANE_W - 1);
-        return Math.max(GUIDE_EDITOR_MIN_SPLIT_PANE_W, Math.min(maxLeft, leftPaneWidth));
+        return Math.clamp(leftPaneWidth, GUIDE_EDITOR_MIN_SPLIT_PANE_W, maxLeft);
     }
 
     private void renderGuideEditorPreview(int x, int y, int width, int height) {
@@ -3471,7 +3237,7 @@ public class GuideScreen extends GuiContainer
         int dividerX = mouseX - contentX - guideEditorDividerGrabOffset;
         int minLeft = GUIDE_EDITOR_MIN_SPLIT_PANE_W;
         int maxLeft = Math.max(minLeft, editorWidth - GUIDE_EDITOR_MIN_SPLIT_PANE_W - 1);
-        int leftWidth = Math.max(minLeft, Math.min(maxLeft, dividerX));
+        int leftWidth = Math.clamp(dividerX, minLeft, maxLeft);
         guideEditorDividerPercent = Math.round(leftWidth * 100.0f / editorWidth);
     }
 
@@ -3578,7 +3344,7 @@ public class GuideScreen extends GuiContainer
             return;
         }
         float fraction = guideEditorTextArea.getVerticalScrollFraction();
-        guideEditorPreviewScrollY = Math.max(0, Math.min(maxScroll, Math.round(maxScroll * fraction)));
+        guideEditorPreviewScrollY = Math.clamp(Math.round(maxScroll * fraction), 0, maxScroll);
     }
 
     private void syncGuideEditorEditorScrollFromPreview() {
@@ -3723,7 +3489,7 @@ public class GuideScreen extends GuiContainer
         if (reservedSideWidth <= 0) {
             return panelW;
         }
-        int actualSideWidth = Math.max(0, Math.min(panelX, this.width - panelX - panelW));
+        int actualSideWidth = Math.clamp(this.width - panelX - panelW, 0, panelX);
         if (actualSideWidth >= reservedSideWidth) {
             return panelW;
         }
@@ -4106,21 +3872,19 @@ public class GuideScreen extends GuiContainer
                 if (tooltip != null) {
                     renderGuideTooltip(tooltip, mouseX, mouseY, interaction);
                     if (ModConfig.debug.enableDebugMode) {
-                        drawDebugBlockCoordTooltip(hb, mouseX, mouseY);
+                        drawDebugBlockCoordTooltip(tooltip, hb, mouseX, mouseY, interaction);
                     }
                     return;
                 }
             }
         }
 
-        var fc = hit.content();
-        while (fc != null) {
+        for (var fc : interactiveFlowTargets(hit)) {
             var tip = tryGetTooltip(fc, interaction.docX, interaction.docY);
             if (tip.isPresent()) {
                 renderGuideTooltip(tip.get(), mouseX, mouseY, interaction);
                 return;
             }
-            fc = fc.getFlowParent();
         }
         if (hit.node() != null) {
             for (LytNode current = hit.node(); current != null; current = current.getParent()) {
@@ -4175,13 +3939,11 @@ public class GuideScreen extends GuiContainer
     }
 
     private @Nullable ItemStack resolveGuideItemStack(DocumentInteractionState interaction) {
-        var flowContent = interaction.hit.content();
-        while (flowContent != null) {
+        for (var flowContent : flowTargets(interaction.hit)) {
             ItemStack stack = resolveGuideItemStack(flowContent, interaction.docX, interaction.docY);
             if (stack != null) {
                 return stack;
             }
-            flowContent = flowContent.getFlowParent();
         }
         for (LytNode current = interaction.hit.node(); current != null; current = current.getParent()) {
             ItemStack stack = resolveGuideItemStack(current, interaction.docX, interaction.docY);
@@ -4294,25 +4056,25 @@ public class GuideScreen extends GuiContainer
      * Uses magnetic snapping: if there is not enough space above the cursor, the tooltip
      * moves to below the cursor area instead.
      */
-    private void drawDebugBlockCoordTooltip(int[] pos, int mouseX, int mouseY) {
-        FontRenderer fr = mc.fontRenderer;
-        String coordText = pos[0] + ", " + pos[1] + ", " + pos[2];
+    private void drawDebugBlockCoordTooltip(GuideTooltip tooltip, int[] pos, int mouseX, int mouseY,
+        @Nullable DocumentInteractionState interaction) {
+        if (!(tooltip instanceof ItemTooltip itemTooltip)) {
+            return;
+        }
+        ItemStack stack = itemTooltip.getStack();
+        if (stack == null) {
+            return;
+        }
+        List<String> itemLines = GuideItemTooltipLines.build(itemTooltip, mc);
+        FontRenderer itemFont = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
+        LytRect bounds = resolveTooltipBounds(interaction);
+        TooltipLayout itemLayout = computeHoveringTextLayout(itemLines, mouseX, mouseY, itemFont, bounds);
+        String coordText = "\u00a76" + pos[0] + ", " + pos[1] + ", " + pos[2];
         // §6 = gold color; the coordinate tooltip renders above the main block tooltip.
         // drawHoveringText(list, x, y, font) draws starting at (x+12, y-12).
         // We want the debug tooltip to appear above the default position (mouseY - 12).
         // Targeting 26px above the cursor leaves room above the typical single-line tooltip.
-        int debugY = mouseY - 26;
-        // Snap to below cursor when the tooltip would be cut off at the top of the screen.
-        // The tooltip box top is at debugY - 12 - 4 = debugY - 16.
-        if (debugY - 16 < 0) {
-            debugY = mouseY + 26;
-        }
-        // Clamp bottom edge as well.
-        int lineH = fr.FONT_HEIGHT + 8;
-        if (debugY + lineH > this.height) {
-            debugY = this.height - lineH;
-        }
-        drawHoveringText(List.of("\u00a76" + coordText), mouseX, debugY, fr);
+        drawTooltipTextAnchored(List.of(coordText), mc.fontRenderer, itemLayout, bounds);
     }
 
     private void drawTooltipText(String text, int mouseX, int mouseY) {
@@ -4357,32 +4119,102 @@ public class GuideScreen extends GuiContainer
         if (lines == null || lines.isEmpty()) {
             return;
         }
+        TooltipLayout layout = computeHoveringTextLayout(lines, mouseX, mouseY, font, bounds);
+        drawHoveringText(lines, layout.mouseAnchorX(), layout.mouseAnchorY(), font);
+    }
+
+    private void drawTooltipTextAnchored(List<String> lines, FontRenderer font, TooltipLayout anchorLayout,
+        LytRect bounds) {
+        if (lines == null || lines.isEmpty()) {
+            return;
+        }
+
         int tooltipWidth = 0;
         for (String line : lines) {
             tooltipWidth = Math.max(tooltipWidth, font.getStringWidth(line));
         }
-        int tooltipHeight = lines.size() == 1 ? 8 : 8 + (lines.size() - 1) * 10;
-        int adjustedX = mouseX;
-        int drawLeft = adjustedX + 12;
-        int drawRight = drawLeft + tooltipWidth;
-        if (drawRight + 4 > bounds.right()) {
-            adjustedX = mouseX - tooltipWidth - 24;
-            drawLeft = adjustedX + 12;
+
+        int tooltipHeight = computeTooltipHeight(lines.size());
+        int margin = 4;
+        int gap = 0;
+        int boxWidth = tooltipWidth + 6;
+        int boxHeight = tooltipHeight + 8;
+        int boxLeft = anchorLayout.placedRightOfCursor() ? anchorLayout.boxLeft() : anchorLayout.boxRight() - boxWidth;
+        int boxTop = anchorLayout.boxTop() - gap - boxHeight;
+        if (boxTop < bounds.y() + margin) {
+            boxTop = anchorLayout.boxBottom() + gap;
         }
-        if (drawLeft < bounds.x() + 4) {
-            adjustedX = bounds.x() + 4 - 12;
+        int maxBoxLeft = Math.max(bounds.x() + margin, bounds.right() - margin - boxWidth);
+        boxLeft = Math.max(bounds.x() + margin, Math.min(boxLeft, maxBoxLeft));
+        int maxBoxTop = Math.max(bounds.y() + margin, bounds.bottom() - margin - boxHeight);
+        boxTop = Math.max(bounds.y() + margin, Math.min(boxTop, maxBoxTop));
+
+        int textX = boxLeft + 3;
+        int textY = boxTop + 4;
+        drawHoveringText(lines, textX - 12, textY + 12, font);
+    }
+
+    private TooltipLayout computeHoveringTextLayout(List<String> lines, int mouseX, int mouseY, FontRenderer font,
+        LytRect bounds) {
+        int tooltipWidth = 0;
+        for (String line : lines) {
+            tooltipWidth = Math.max(tooltipWidth, font.getStringWidth(line));
+        }
+        int tooltipHeight = computeTooltipHeight(lines.size());
+        int margin = 4;
+
+        int adjustedX = mouseX;
+        boolean placedRightOfCursor = true;
+        int textX = adjustedX + 12;
+        if (textX + tooltipWidth + margin > bounds.right()) {
+            adjustedX = mouseX - tooltipWidth - 24;
+            textX = adjustedX + 12;
+            placedRightOfCursor = false;
+        }
+        if (textX < bounds.x() + margin) {
+            adjustedX = bounds.x() + margin - 12;
+            textX = adjustedX + 12;
+            placedRightOfCursor = textX >= mouseX;
         }
 
         int adjustedY = mouseY;
-        int drawTop = adjustedY - 12;
-        int drawBottom = drawTop + tooltipHeight + 8;
-        if (drawBottom > bounds.bottom()) {
+        int textY = adjustedY - 12;
+        int tooltipBottom = textY + tooltipHeight + 8;
+        if (tooltipBottom > bounds.bottom()) {
             adjustedY = bounds.bottom() - tooltipHeight - 8 + 12;
+            textY = adjustedY - 12;
         }
-        if (adjustedY - 16 < bounds.y() + 4) {
+        if (adjustedY - 16 < bounds.y() + margin) {
             adjustedY = bounds.y() + 20;
+            textY = adjustedY - 12;
         }
-        drawHoveringText(lines, adjustedX, adjustedY, font);
+
+        return new TooltipLayout(adjustedX, adjustedY, textX, textY, tooltipWidth, tooltipHeight, placedRightOfCursor);
+    }
+
+    private int computeTooltipHeight(int lineCount) {
+        return lineCount == 1 ? 8 : 8 + (lineCount - 1) * 10;
+    }
+
+    @Desugar
+    private record TooltipLayout(int mouseAnchorX, int mouseAnchorY, int textX, int top, int width, int height,
+        boolean placedRightOfCursor) {
+
+        private int boxLeft() {
+            return textX - 3;
+        }
+
+        private int boxRight() {
+            return textX + width + 3;
+        }
+
+        private int boxTop() {
+            return top - 4;
+        }
+
+        private int boxBottom() {
+            return top + height + 4;
+        }
     }
 
     private LytRect resolveTooltipBounds(@Nullable DocumentInteractionState interaction) {
@@ -4601,7 +4433,7 @@ public class GuideScreen extends GuiContainer
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glColor4f(1f, 1f, 1f, Math.max(0f, Math.min(1f, BACKGROUND_ALPHA)));
+        GL11.glColor4f(1f, 1f, 1f, Math.clamp(BACKGROUND_ALPHA, 0f, 1f));
         final float tile = 16f;
         float uMax = this.width / tile;
         float vMax = this.height / tile;
@@ -4931,13 +4763,13 @@ public class GuideScreen extends GuiContainer
             var hit = interaction != null ? interaction.hit : activeDocument.pick(docX, docY);
             if (hit != null) {
                 boolean handled = false;
-                var fc = hit.content();
-                while (fc != null && !handled) {
+                for (var fc : interactiveFlowTargets(hit)) {
                     if (fc instanceof InteractiveElement ie) {
                         handled = ie.mouseClicked(this, docX, docY, button, false);
-                        if (handled) break;
+                        if (handled) {
+                            break;
+                        }
                     }
-                    fc = fc.getFlowParent();
                 }
                 if (!handled) {
                     for (LytNode current = hit.node(); current != null && !handled; current = current.getParent()) {
@@ -5502,13 +5334,11 @@ public class GuideScreen extends GuiContainer
         }
     }
 
-    private boolean consumeCustomClickSound(LytDocument.HitTestResult hit) {
-        var fc = hit.content();
-        while (fc != null) {
+    private boolean consumeCustomClickSound(DocumentInteractionSnapshot hit) {
+        for (var fc : interactiveFlowTargets(hit)) {
             if (fc instanceof LytFlowLink link && link.consumePlayedCustomClickSound()) {
                 return true;
             }
-            fc = fc.getFlowParent();
         }
         return false;
     }
@@ -5519,13 +5349,13 @@ public class GuideScreen extends GuiContainer
             return false;
         }
         boolean handled = false;
-        var fc = hit.content();
-        while (fc != null && !handled) {
+        for (var fc : interactiveFlowTargets(hit)) {
             if (fc instanceof InteractiveElement ie) {
                 handled = ie.mouseClicked(this, interaction.docX, interaction.docY, button, false);
-                if (handled) break;
+                if (handled) {
+                    break;
+                }
             }
-            fc = fc.getFlowParent();
         }
         if (!handled) {
             for (LytNode current = hit.node(); current != null && !handled; current = current.getParent()) {
@@ -5547,7 +5377,7 @@ public class GuideScreen extends GuiContainer
             button);
     }
 
-    private boolean startDocumentInteractionDrag(DocumentInteractionState interaction, LytDocument.HitTestResult hit,
+    private boolean startDocumentInteractionDrag(DocumentInteractionState interaction, DocumentInteractionSnapshot hit,
         int docX, int docY, int mouseX, int mouseY, int button) {
         if (button != 0 && button != 1) {
             return false;

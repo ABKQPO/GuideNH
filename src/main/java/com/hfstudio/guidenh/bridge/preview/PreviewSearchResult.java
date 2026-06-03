@@ -51,7 +51,7 @@ public class PreviewSearchResult {
             return 0;
         }
         try {
-            return Math.max(0, Math.min(Integer.parseInt(cursor), size));
+            return Math.clamp(Integer.parseInt(cursor), 0, size);
         } catch (NumberFormatException ignored) {
             return 0;
         }

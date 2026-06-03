@@ -25,7 +25,7 @@ public class StructureLibExportImageLimits {
 
     public int resolveMaxTileEdge(int maxFboSize) {
         int edge = (int) Math.floor(Math.sqrt(MAX_TILE_PIXELS));
-        return Math.max(1, Math.min(maxFboSize, edge));
+        return Math.clamp(edge, 1, maxFboSize);
     }
 
     private static long pixelCount(int width, int height) {

@@ -425,7 +425,7 @@ public class SceneEditorElementType {
         }
 
         public Builder defaultBackgroundAlpha(int defaultBackgroundAlpha) {
-            this.defaultBackgroundAlpha = Math.max(0, Math.min(255, defaultBackgroundAlpha));
+            this.defaultBackgroundAlpha = Math.clamp(defaultBackgroundAlpha, 0, 255);
             return this;
         }
 

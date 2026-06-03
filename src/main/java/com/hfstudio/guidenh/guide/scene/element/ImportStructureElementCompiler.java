@@ -131,7 +131,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             int[] pos = b.getIntArray("pos");
             if (pos.length < 3) continue;
             int px = offsetX + pos[0];
-            int py = Math.max(0, Math.min(offsetY + pos[1], level.getHeight() - 1));
+            int py = Math.clamp(offsetY + pos[1], 0, level.getHeight() - 1);
             int pz = offsetZ + pos[2];
 
             int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;

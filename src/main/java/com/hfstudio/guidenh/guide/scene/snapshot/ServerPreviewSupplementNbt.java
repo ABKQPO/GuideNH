@@ -56,8 +56,7 @@ public class ServerPreviewSupplementNbt {
         }
     }
 
-    @Nullable
-    public static byte[] readSupplement(@Nullable NBTTagCompound structureBlock, String supplementId) {
+    public static byte @Nullable [] readSupplement(@Nullable NBTTagCompound structureBlock, String supplementId) {
         if (structureBlock == null || !structureBlock.hasKey(TAG_ROOT, 10)) {
             return null;
         }

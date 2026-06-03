@@ -1196,7 +1196,7 @@ public class SceneEditorMarkdownCodec {
     }
 
     private int parseAlphaAttribute(MdxJsxElementFields element, String name, int defaultValue) {
-        return Math.max(0, Math.min(255, parseIntAttribute(element, name, defaultValue)));
+        return Math.clamp(parseIntAttribute(element, name, defaultValue), 0, 255);
     }
 
     private void copyOptionalIntegerAttribute(MdxJsxElementFields element, SceneEditorSceneNodeModel node,

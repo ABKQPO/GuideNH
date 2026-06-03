@@ -43,6 +43,8 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
+import com.hfstudio.guidenh.guide.document.flow.LytSpoilerSpan;
+import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
@@ -767,8 +769,13 @@ public class PageCompiler {
                 layoutChild = text;
             }
         } else if (content instanceof MdxJsxTextElement el) {
-            // "span" wraps residual inline HTML — pass through children
-            if ("span".equals(el.name())) {
+            if ("Spoiler".equals(el.name())) {
+                var span = new LytSpoilerSpan();
+                span.modifyStyle(style -> style.backgroundColor(new ConstantColor(0xFF000000)));
+                compileFlowContext(el, span);
+                layoutChild = span;
+            } else if ("span".equals(el.name())) {
+                // Residual inline HTML span wrapper; preserve its children.
                 compileFlowContext(el, layoutParent);
                 layoutChild = null;
             } else {
