@@ -7,6 +7,8 @@ import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
+import com.hfstudio.guidenh.guide.indices.CategoryIndex;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResolver;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
@@ -48,16 +50,27 @@ public class SpecialCompiler extends BlockTagCompiler {
 
     @Override
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
-        // NB: Phase 2 indexed special page result entries resolved by
-        // MediaWikiSpecialPageResolver.resolve(). Phase 3 defers resolution to
-        // SpecialScript (MOUNT time), so index() only indexes the special page name string.
-        // Full indexing requires a post-mount indexing pass (TBD).
         String specialName = el.getAttributeString("name", null);
-        if (specialName != null && !specialName.trim()
-            .isEmpty()) {
-            sink.appendText(el, specialName.trim());
-            sink.appendBreak();
+        if (specialName == null || specialName.trim().isEmpty()) return;
+
+        // Restore Phase 2: index resolved special page result entries for full-text search
+        var guide = MediaWikiTagCompilerSupport.resolveGuide(indexer);
+        if (guide != null) {
+            CategoryIndex catIndex = indexer.getIndex(CategoryIndex.class);
+            if (catIndex != null) {
+                var context = MediaWikiTagCompilerSupport.createListContext(guide, catIndex);
+                var query = MediaWikiTagCompilerSupport.readSpecialQuery(el);
+                var resolver = new MediaWikiSpecialPageResolver();
+                var result = resolver.resolve(context, specialName.trim(), query);
+                sink.appendText(el, specialName.trim());
+                sink.appendBreak();
+                MediaWikiTagCompilerSupport.indexSpecialResult(sink, el, result);
+                return;
+            }
         }
+        // Fallback: index only the special page name
+        sink.appendText(el, specialName.trim());
+        sink.appendBreak();
     }
 
     public static class SpecialPlaceholder extends LytParagraph {
