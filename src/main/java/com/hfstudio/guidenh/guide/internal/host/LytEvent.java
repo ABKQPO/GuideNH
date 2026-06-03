@@ -20,18 +20,34 @@ public class LytEvent {
         this.type = type;
         this.target = target;
         this.currentTarget = target;
-        this.data = data != null
-            ? Collections.unmodifiableMap(new LinkedHashMap<>(data))
-            : Collections.emptyMap();
+        this.data = data != null ? Collections.unmodifiableMap(new LinkedHashMap<>(data)) : Collections.emptyMap();
     }
 
-    public EventType type() { return type; }
-    public Object target() { return target; }
-    public Object currentTarget() { return currentTarget; }
-    public Map<String, Object> data() { return data; }
+    public EventType type() {
+        return type;
+    }
 
-    public void stopPropagation() { propagationStopped = true; }
-    public boolean isPropagationStopped() { return propagationStopped; }
+    public Object target() {
+        return target;
+    }
 
-    void setCurrentTarget(Object node) { this.currentTarget = node; }
+    public Object currentTarget() {
+        return currentTarget;
+    }
+
+    public Map<String, Object> data() {
+        return data;
+    }
+
+    public void stopPropagation() {
+        propagationStopped = true;
+    }
+
+    public boolean isPropagationStopped() {
+        return propagationStopped;
+    }
+
+    void setCurrentTarget(Object node) {
+        this.currentTarget = node;
+    }
 }

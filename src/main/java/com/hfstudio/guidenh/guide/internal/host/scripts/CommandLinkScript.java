@@ -2,14 +2,14 @@ package com.hfstudio.guidenh.guide.internal.host.scripts;
 
 import net.minecraft.client.Minecraft;
 
-import cpw.mods.fml.common.FMLLog;
-
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+
+import cpw.mods.fml.common.FMLLog;
 
 public class CommandLinkScript implements LytScript {
 
@@ -31,10 +31,12 @@ public class CommandLinkScript implements LytScript {
             if (command == null) return;
             link.setClickCallback(screen -> {
                 if (Minecraft.getMinecraft().thePlayer == null) return;
-                FMLLog.getLogger().info("[GuideNH] [CommandLink] Sending command: {}", command);
+                FMLLog.getLogger()
+                    .info("[GuideNH] [CommandLink] Sending command: {}", command);
                 Minecraft.getMinecraft().thePlayer.sendChatMessage(command);
                 if (Boolean.TRUE.equals(close)) {
-                    Minecraft.getMinecraft().displayGuiScreen(null);
+                    Minecraft.getMinecraft()
+                        .displayGuiScreen(null);
                 }
             });
         }

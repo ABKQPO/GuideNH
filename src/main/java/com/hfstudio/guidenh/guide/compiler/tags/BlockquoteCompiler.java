@@ -3,22 +3,22 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Collections;
 import java.util.Set;
 
+import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytAlertBox;
-import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
-import org.jetbrains.annotations.Nullable;
 
 public class BlockquoteCompiler extends BlockTagCompiler {
 
@@ -33,7 +33,8 @@ public class BlockquoteCompiler extends BlockTagCompiler {
         if (directive != null && directive.alertType() != null) {
             LytAlertBox alertBox = new LytAlertBox();
             alertBox.setTitle(
-                directive.alertType().displayText(),
+                directive.alertType()
+                    .displayText(),
                 directive.alertType());
             alertBox.setMarginTop(PageCompiler.DEFAULT_ELEMENT_SPACING);
             alertBox.setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
@@ -69,20 +70,26 @@ public class BlockquoteCompiler extends BlockTagCompiler {
         parent.append(PageCompiler.wrapFloatAwareIfNeeded(blockquote));
     }
 
-    private void compileDirectiveBody(PageCompiler compiler, BlockquoteDirective directive,
-            LytBlockContainer parent) {
+    private void compileDirectiveBody(PageCompiler compiler, BlockquoteDirective directive, LytBlockContainer parent) {
         // When there's a remainingText override and the first paragraph is still present
         // at the head of the children list, replace its leading text.
         // Otherwise — just compile children normally.
-        if (!directive.children().isEmpty() && directive.firstParagraph() != null
-                && directive.children().get(0) == directive.firstParagraph()
-                && directive.remainingText() != null && !directive.remainingText().isEmpty()) {
+        if (!directive.children()
+            .isEmpty() && directive.firstParagraph() != null
+            && directive.children()
+                .get(0) == directive.firstParagraph()
+            && directive.remainingText() != null
+            && !directive.remainingText()
+                .isEmpty()) {
             // Clone the first paragraph with the remaining text overriding the leading text
-            compiler.compileBlockContext(
-                Collections.singletonList(directive.firstParagraph()), parent);
-            for (int i = 1; i < directive.children().size(); i++) {
+            compiler.compileBlockContext(Collections.singletonList(directive.firstParagraph()), parent);
+            for (int i = 1; i < directive.children()
+                .size(); i++) {
                 compiler.compileBlockContext(
-                    Collections.singletonList(directive.children().get(i)), parent);
+                    Collections.singletonList(
+                        directive.children()
+                            .get(i)),
+                    parent);
             }
         } else {
             compiler.compileBlockContext(directive.children(), parent);
@@ -110,8 +117,7 @@ public class BlockquoteCompiler extends BlockTagCompiler {
     }
 
     @Nullable
-    private LytFlowContent buildQuoteIcon(
-            @Nullable QuoteIconSpec icon) {
+    private LytFlowContent buildQuoteIcon(@Nullable QuoteIconSpec icon) {
         // The original buildQuoteIcon resolved item stacks from icon specs.
         // For now return null — icon rendering will be added in a later phase.
         return null;

@@ -11,25 +11,29 @@ import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
-import com.hfstudio.guidenh.integration.betterquesting.BqHelpers;
-import com.hfstudio.guidenh.integration.betterquesting.QuestIndex;
-import com.hfstudio.guidenh.integration.betterquesting.QuestDisplay;
-import com.hfstudio.guidenh.integration.betterquesting.QuestState;
-import com.hfstudio.guidenh.integration.betterquesting.compiler.QuestCardCompiler.QuestCardPlaceholder;
-import com.hfstudio.guidenh.integration.betterquesting.compiler.QuestTagSupport;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.integration.betterquesting.BqHelpers;
+import com.hfstudio.guidenh.integration.betterquesting.QuestDisplay;
+import com.hfstudio.guidenh.integration.betterquesting.QuestIndex;
+import com.hfstudio.guidenh.integration.betterquesting.QuestState;
+import com.hfstudio.guidenh.integration.betterquesting.compiler.QuestCardCompiler.QuestCardPlaceholder;
+import com.hfstudio.guidenh.integration.betterquesting.compiler.QuestTagSupport;
 
 public class QuestCardScript implements LytScript {
 
     @Override
-    public ScriptType type() { return ScriptType.JAVA; }
+    public ScriptType type() {
+        return ScriptType.JAVA;
+    }
 
     @Override
-    public String styleClass() { return "QuestCard"; }
+    public String styleClass() {
+        return "QuestCard";
+    }
 
     @Override
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
@@ -38,8 +42,8 @@ public class QuestCardScript implements LytScript {
 
         QuestDisplay display;
         try {
-            display = BqHelpers.resolveDisplay(ph.questId, Minecraft.getMinecraft().thePlayer,
-                ph.showTooltip || ph.showDesc);
+            display = BqHelpers
+                .resolveDisplay(ph.questId, Minecraft.getMinecraft().thePlayer, ph.showTooltip || ph.showDesc);
         } catch (Throwable t) {
             ctx.replace(LytParagraph.error("[QuestCard] BetterQuesting integration not available"));
             return;
@@ -69,7 +73,9 @@ public class QuestCardScript implements LytScript {
             title.append(link);
         } else {
             var span = new LytFlowSpan();
-            span.modifyStyle(style -> style.color(pickPlaceholderColor(state)).italic(true));
+            span.modifyStyle(
+                style -> style.color(pickPlaceholderColor(state))
+                    .italic(true));
             span.appendText(name);
             title.append(span);
         }

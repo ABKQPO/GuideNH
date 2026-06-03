@@ -4,15 +4,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.PageCollection;
-import com.hfstudio.guidenh.guide.document.block.LytAlignedBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
-import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -22,6 +20,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
 
 class ScriptContextImpl implements ScriptContext {
+
     private final Map<String, Object> data = new HashMap<>();
     private final Object node;
     private final LytHost host;
@@ -38,7 +37,9 @@ class ScriptContextImpl implements ScriptContext {
     }
 
     @Override
-    public Map<String, Object> data() { return data; }
+    public Map<String, Object> data() {
+        return data;
+    }
 
     @Override
     @SuppressWarnings("unchecked")
@@ -48,7 +49,7 @@ class ScriptContextImpl implements ScriptContext {
         //
         // When a block-level tag (e.g. <BlockImage>, <Recipe>) appears inside
         // a paragraph or list item, the PageCompiler wraps it in LytFlowInlineBlock
-        // so the block can participate in inline flow layout.  At MOUNT time the
+        // so the block can participate in inline flow layout. At MOUNT time the
         // dispatch passes the wrapper as "this.node", not the inner placeholder.
         //
         // The wrapper IS the correct replacement target — swapping its inner block
@@ -111,7 +112,9 @@ class ScriptContextImpl implements ScriptContext {
     }
 
     @Override
-    public LytDocument document() { return document; }
+    public LytDocument document() {
+        return document;
+    }
 
     @Override
     @Nullable

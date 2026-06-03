@@ -7,13 +7,13 @@ import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
-import com.hfstudio.guidenh.guide.indices.CategoryIndex;
-import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResolver;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResolver;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class SpecialCompiler extends BlockTagCompiler {
@@ -51,7 +51,8 @@ public class SpecialCompiler extends BlockTagCompiler {
     @Override
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
         String specialName = el.getAttributeString("name", null);
-        if (specialName == null || specialName.trim().isEmpty()) return;
+        if (specialName == null || specialName.trim()
+            .isEmpty()) return;
 
         // Restore Phase 2: index resolved special page result entries for full-text search
         var guide = MediaWikiTagCompilerSupport.resolveGuide(indexer);
@@ -74,6 +75,7 @@ public class SpecialCompiler extends BlockTagCompiler {
     }
 
     public static class SpecialPlaceholder extends LytParagraph {
+
         public final String name;
         public final int rows;
         public final ResourceLocation guideId;
@@ -82,8 +84,8 @@ public class SpecialCompiler extends BlockTagCompiler {
         public final String language;
         public final String query;
 
-        SpecialPlaceholder(String name, int rows, ResourceLocation guideId, String page, String prefix,
-            String language, String query) {
+        SpecialPlaceholder(String name, int rows, ResourceLocation guideId, String page, String prefix, String language,
+            String query) {
             this.name = name;
             this.rows = rows;
             this.guideId = guideId;

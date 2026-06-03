@@ -24,6 +24,7 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.document.block.LatexRenderOptions;
 import com.hfstudio.guidenh.guide.document.block.LatexVerticalAlign;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -35,7 +36,6 @@ import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
 import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
-import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
@@ -51,12 +51,11 @@ import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.markdown.FootnotePreprocessor;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownHtmlRuntimeNormalizer;
-import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLiteralAutolink;
+import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
-import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -69,19 +68,13 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstEmphasis;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstInlineCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstPhrasingContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstPosition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstStrong;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstThematicBreak;
 import com.hfstudio.guidenh.libs.mdx.MdxCommentMasker;
 import com.hfstudio.guidenh.libs.micromark.ParseException;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
@@ -277,8 +270,10 @@ public class PageCompiler {
      * deferring the full Micromark → mdast pipeline to first call of
      * {@link ParsedGuidePage#getAstRoot()}.
      *
-     * <p>F3+T reload uses this path so that index/navigation rebuilds —
-     * which only need frontmatter — complete without paying Micromark cost.</p>
+     * <p>
+     * F3+T reload uses this path so that index/navigation rebuilds —
+     * which only need frontmatter — complete without paying Micromark cost.
+     * </p>
      */
     public static ParsedGuidePage parseFrontmatterOnly(String sourcePack, String language, ResourceLocation id,
         String pageContent) {
@@ -290,10 +285,10 @@ public class PageCompiler {
             sourcePack,
             id,
             pageContent,
-            null,               // astRoot — triggers lazy parse on first getAstRoot()
+            null, // astRoot — triggers lazy parse on first getAstRoot()
             sourceFrontmatter,
             language,
-            null,               // no parse failure yet
+            null, // no parse failure yet
             null,
             null);
     }
@@ -545,7 +540,7 @@ public class PageCompiler {
                 for (var nestedChild : el.children()) {
                     compileFlowContent(layoutParent, nestedChild);
                 }
-            } else if (child instanceof MdAstParent<?> nestedParent) {
+            } else if (child instanceof MdAstParent<?>nestedParent) {
                 for (var nestedChild : nestedParent.children()) {
                     compileFlowContent(layoutParent, nestedChild);
                 }
@@ -590,12 +585,11 @@ public class PageCompiler {
                 } else {
                     var compiler = tagCompilers.get(el.name());
                     if (compiler == null) {
-                        layoutChild = createErrorBlock(
-                            "Unhandled MDX element in block context: " + el.name(), child);
+                        layoutChild = createErrorBlock("Unhandled MDX element in block context: " + el.name(), child);
                     } else {
-                    layoutChild = null;
-                    compiler.compileBlockContext(this, layoutParent, el);
-                }
+                        layoutChild = null;
+                        compiler.compileBlockContext(this, layoutParent, el);
+                    }
                 }
             } else if (child instanceof MdxJsxTextElement el) {
                 // Inline element at block level — merge into previous paragraph when possible
@@ -629,7 +623,9 @@ public class PageCompiler {
                 layoutChild = null; // handled via <definition> element
             } else {
                 layoutChild = createErrorBlock(
-                    "Unhandled node in block context: " + child.getClass().getSimpleName(), child);
+                    "Unhandled node in block context: " + child.getClass()
+                        .getSimpleName(),
+                    child);
             }
 
             if (layoutChild != null) {
@@ -779,15 +775,18 @@ public class PageCompiler {
                 var compiler = tagCompilers.get(el.name());
                 if (compiler == null) {
                     layoutChild = createErrorFlowContent(
-                        "Unhandled MDX element in flow context: " + el.name(), content);
+                        "Unhandled MDX element in flow context: " + el.name(),
+                        content);
                 } else {
-                layoutChild = null;
-                compiler.compileFlowContext(this, layoutParent, el);
+                    layoutChild = null;
+                    compiler.compileFlowContext(this, layoutParent, el);
                 }
             }
         } else {
             layoutChild = createErrorFlowContent(
-                "Unhandled node in flow context: " + content.getClass().getSimpleName(), content);
+                "Unhandled node in flow context: " + content.getClass()
+                    .getSimpleName(),
+                content);
         }
 
         if (layoutChild != null) {

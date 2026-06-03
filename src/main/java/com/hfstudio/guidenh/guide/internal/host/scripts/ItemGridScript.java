@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
@@ -16,10 +15,14 @@ import com.hfstudio.guidenh.guide.internal.host.ScriptType;
 public class ItemGridScript implements LytScript {
 
     @Override
-    public ScriptType type() { return ScriptType.JAVA; }
+    public ScriptType type() {
+        return ScriptType.JAVA;
+    }
 
     @Override
-    public String styleClass() { return "ItemGrid"; }
+    public String styleClass() {
+        return "ItemGrid";
+    }
 
     @Override
     @SuppressWarnings("deprecation")

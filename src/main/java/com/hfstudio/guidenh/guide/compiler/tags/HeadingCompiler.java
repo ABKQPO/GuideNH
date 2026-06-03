@@ -12,8 +12,8 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class HeadingCompiler extends BlockTagCompiler {
 
-    private static final Set<String> TAG_NAMES = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList("h1", "h2", "h3", "h4", "h5", "h6")));
+    private static final Set<String> TAG_NAMES = Collections
+        .unmodifiableSet(new HashSet<>(Arrays.asList("h1", "h2", "h3", "h4", "h5", "h6")));
 
     @Override
     public Set<String> getTagNames() {

@@ -7,6 +7,7 @@ import java.util.Map;
 
 import net.minecraft.util.ResourceLocation;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageCollection;
@@ -14,66 +15,70 @@ import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
-import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
-import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
-import com.hfstudio.guidenh.guide.navigation.NavigationTree;
-import com.hfstudio.guidenh.guide.scene.CameraSettings;
-import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
-import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
-import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
-import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
-import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
-import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
-import com.hfstudio.guidenh.guide.scene.SceneTagCompiler.ScenePlaceholder;
-import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
-import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.libs.mdast.MdAst;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
-import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
-import com.hfstudio.guidenh.libs.unist.UnistNode;
-
-import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
+import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.scene.CameraSettings;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
+import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
+import com.hfstudio.guidenh.guide.scene.SceneTagCompiler.ScenePlaceholder;
+import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
+import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
+import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.libs.mdast.MdAst;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
+import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 import cpw.mods.fml.common.FMLLog;
 
 public class SceneScript implements LytScript {
 
-    public SceneScript() {
+    public SceneScript() {}
+
+    @Override
+    public ScriptType type() {
+        return ScriptType.JAVA;
     }
 
     @Override
-    public ScriptType type() { return ScriptType.JAVA; }
+    public String styleClass() {
+        return "Scene";
+    }
 
     @Override
-    public String styleClass() { return "Scene"; }
-
-    @Override
-    public boolean isAsync() { return true; }
+    public boolean isAsync() {
+        return true;
+    }
 
     @Override
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
         if (!(node instanceof ScenePlaceholder ph)) return;
 
-        if (ph.childrenSource == null || ph.childrenSource.trim().isEmpty()) {
+        if (ph.childrenSource == null || ph.childrenSource.trim()
+            .isEmpty()) {
             ctx.replace(LytParagraph.error("[Scene] Empty scene: no scene elements"));
             return;
         }
 
         GuidebookLevel level = new GuidebookLevel();
         CameraSettings camera = new CameraSettings();
-        if (ph.perspective != null && !ph.perspective.trim().isEmpty()) {
-            camera.setPerspectivePreset(
-                PerspectivePreset.fromSerializedName(ph.perspective.trim()));
+        if (ph.perspective != null && !ph.perspective.trim()
+            .isEmpty()) {
+            camera.setPerspectivePreset(PerspectivePreset.fromSerializedName(ph.perspective.trim()));
         }
         if (!Float.isNaN(ph.zoom)) camera.setZoom(ph.zoom);
         if (!Float.isNaN(ph.rotateX)) camera.setRotationX(ph.rotateX);
@@ -95,10 +100,12 @@ public class SceneScript implements LytScript {
         // Parse children source
         ExceptionCollector errorSink = new ExceptionCollector();
         PageCollection pc = ctx.getPageCollection();
-        ExtensionCollection extensions = pc instanceof Guide guide
-            ? guide.getExtensions() : ExtensionCollection.EMPTY;
-        PageCompiler runtimeCompiler = new PageCompiler(pc != null ? pc : new StubPageCollection(),
-            extensions, ph.sourcePack, new ResourceLocation(ph.pageDomain, "scene"),
+        ExtensionCollection extensions = pc instanceof Guide guide ? guide.getExtensions() : ExtensionCollection.EMPTY;
+        PageCompiler runtimeCompiler = new PageCompiler(
+            pc != null ? pc : new StubPageCollection(),
+            extensions,
+            ph.sourcePack,
+            new ResourceLocation(ph.pageDomain, "scene"),
             ph.childrenSource != null ? ph.childrenSource : "");
         MdAstRoot ast;
         try {
@@ -108,7 +115,8 @@ public class SceneScript implements LytScript {
                 MdAstToMdxConverter.convert(ast, Collections.emptyMap());
             }
         } catch (Exception e) {
-            FMLLog.getLogger().warn("[GuideNH] [SceneScript] Failed to re-parse scene children", e);
+            FMLLog.getLogger()
+                .warn("[GuideNH] [SceneScript] Failed to re-parse scene children", e);
             ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
             return;
         }
@@ -146,7 +154,7 @@ public class SceneScript implements LytScript {
         // can call scene.attachPonderData(), scene.addAnnotation(), etc.
         var prevScene = AnnotationTagCompiler.CURRENT_SCENE.get();
         AnnotationTagCompiler.CURRENT_SCENE.set(scene);
-        final boolean[] blockStatsExplicitlySet = {false};
+        final boolean[] blockStatsExplicitlySet = { false };
         try {
             GuideSceneStructureCompileScope.run(true, () -> {
                 for (UnistNode child : ast.children()) {
@@ -195,24 +203,20 @@ public class SceneScript implements LytScript {
             scene.setBlockStatsButtonEnabled(ModConfig.ui.sceneBlockStatsButtonEnabled);
         }
 
-        // Finalize scene setup: auto-center, ponder baseline, interactive state capture
-        float[] center = level.getCenter();
+        // Determine rotation center; fall back to level center
+        float[] center;
         if (!ph.explicitCenter) {
+            center = level.getCenter();
             camera.setRotationCenter(center[0], center[1], center[2]);
-        }
-        // Auto-center the scene in the viewport
-        if (!ph.explicitCenter && Float.isNaN(ph.offsetX) && Float.isNaN(ph.offsetY)) {
-            camera.setOffsetX(0f);
-            camera.setOffsetY(0f);
-            var sc = camera.worldToScreen(center[0], center[1], center[2]);
-            camera.setOffsetX(-sc.x);
-            camera.setOffsetY(sc.y);
-        } else if (!Float.isNaN(ph.offsetX) || !Float.isNaN(ph.offsetY)) {
-            if (!Float.isNaN(ph.offsetX)) camera.setOffsetX(ph.offsetX);
-            if (!Float.isNaN(ph.offsetY)) camera.setOffsetY(ph.offsetY);
+        } else {
+            center = new float[] { Float.isNaN(ph.centerX) ? 0f : ph.centerX, Float.isNaN(ph.centerY) ? 0f : ph.centerY,
+                Float.isNaN(ph.centerZ) ? 0f : ph.centerZ };
         }
 
-        // Auto-zoom: when zoom is not explicitly set, fit scene to viewport at 85% fill
+        boolean explicitOffX = !Float.isNaN(ph.offsetX);
+        boolean explicitOffY = !Float.isNaN(ph.offsetY);
+
+        // Auto-zoom: measure at zoom=1/offset=0, then fit to viewport at 85% fill
         if (Float.isNaN(ph.zoom)) {
             camera.setZoom(1f);
             camera.setOffsetX(0f);
@@ -230,9 +234,15 @@ public class SceneScript implements LytScript {
                     camera.setZoom(autoZoom);
                 }
             }
+            // Restore explicit offsets zeroed for measurement
+            if (explicitOffX) camera.setOffsetX(ph.offsetX);
+            if (explicitOffY) camera.setOffsetY(ph.offsetY);
         }
-        // Auto-size: when width/height not explicitly set, measure and compute viewport
+
+        // Auto-size: save offsets, measure at offset=0, restore
         if (!ph.explicitWidth || !ph.explicitHeight) {
+            float savedOffX = camera.getOffsetX();
+            float savedOffY = camera.getOffsetY();
             camera.setOffsetX(0f);
             camera.setOffsetY(0f);
             if (!level.isEmpty()) {
@@ -247,6 +257,18 @@ public class SceneScript implements LytScript {
                 scene.setSceneSize(width, height);
                 camera.setViewportSize(width, height);
             }
+            camera.setOffsetX(savedOffX);
+            camera.setOffsetY(savedOffY);
+        }
+
+        // Auto-center: shift projected scene center to viewport origin.
+        // Applied only when neither rotation center nor screen offsets are author-specified.
+        if (!ph.explicitCenter && !explicitOffX && !explicitOffY) {
+            camera.setOffsetX(0f);
+            camera.setOffsetY(0f);
+            var sc = camera.worldToScreen(center[0], center[1], center[2]);
+            camera.setOffsetX(-sc.x);
+            camera.setOffsetY(sc.y);
         }
 
         scene.initializePonderTimelineBaseline();
@@ -276,23 +298,49 @@ public class SceneScript implements LytScript {
     }
 
     private static class ExceptionCollector implements LytErrorSink {
+
         @Override
         public void appendError(PageCompiler compiler, String text, UnistNode node) {
-            FMLLog.getLogger().warn("[GuideNH] [SceneScript] {}", text);
+            FMLLog.getLogger()
+                .warn("[GuideNH] [SceneScript] {}", text);
         }
     }
 
     private static class StubPageCollection implements PageCollection {
-        @Override public <T extends PageIndex> T getIndex(Class<T> c) { return null; }
-        @Override public Collection<ParsedGuidePage> getPages() {
+
+        @Override
+        public <T extends PageIndex> T getIndex(Class<T> c) {
+            return null;
+        }
+
+        @Override
+        public Collection<ParsedGuidePage> getPages() {
             return Collections.emptyList();
         }
-        @Override public ParsedGuidePage getParsedPage(ResourceLocation id) { return null; }
-        @Override public GuidePage getPage(ResourceLocation id) { return null; }
-        @Override public byte[] loadAsset(ResourceLocation id) { return null; }
-        @Override public NavigationTree getNavigationTree() {
+
+        @Override
+        public ParsedGuidePage getParsedPage(ResourceLocation id) {
+            return null;
+        }
+
+        @Override
+        public GuidePage getPage(ResourceLocation id) {
+            return null;
+        }
+
+        @Override
+        public byte[] loadAsset(ResourceLocation id) {
+            return null;
+        }
+
+        @Override
+        public NavigationTree getNavigationTree() {
             return new NavigationTree();
         }
-        @Override public boolean pageExists(ResourceLocation pageId) { return false; }
+
+        @Override
+        public boolean pageExists(ResourceLocation pageId) {
+            return false;
+        }
     }
 }

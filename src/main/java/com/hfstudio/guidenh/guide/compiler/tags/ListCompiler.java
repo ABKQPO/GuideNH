@@ -12,8 +12,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class ListCompiler extends BlockTagCompiler {
 
-    private static final Set<String> TAG_NAMES = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList("ul", "ol")));
+    private static final Set<String> TAG_NAMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("ul", "ol")));
 
     @Override
     public Set<String> getTagNames() {

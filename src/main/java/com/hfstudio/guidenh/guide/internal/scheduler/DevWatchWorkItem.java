@@ -3,7 +3,9 @@ package com.hfstudio.guidenh.guide.internal.scheduler;
 public class DevWatchWorkItem implements WorkItem {
 
     @Override
-    public Priority priority() { return Priority.LOW; }
+    public Priority priority() {
+        return Priority.LOW;
+    }
 
     @Override
     public boolean shouldRun() {
@@ -21,5 +23,7 @@ public class DevWatchWorkItem implements WorkItem {
     }
 
     @Override
-    public int hashCode() { return DevWatchWorkItem.class.hashCode(); }
+    public int hashCode() {
+        return DevWatchWorkItem.class.hashCode();
+    }
 }

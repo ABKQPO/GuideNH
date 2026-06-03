@@ -32,7 +32,8 @@ public class MarkdownRuntimeBlocks {
         }
 
         String firstText = firstParagraph.text();
-        if (firstText == null || firstText.trim().isEmpty()) {
+        if (firstText == null || firstText.trim()
+            .isEmpty()) {
             return null;
         }
 
@@ -55,7 +56,8 @@ public class MarkdownRuntimeBlocks {
             return null;
         }
 
-        String expression = trimmed.substring(2, directiveEnd).trim();
+        String expression = trimmed.substring(2, directiveEnd)
+            .trim();
         String title = null;
         ColorValue color = null;
         QuoteIconSpec icon = null;
@@ -64,8 +66,11 @@ public class MarkdownRuntimeBlocks {
             if (equalsIndex <= 0 || equalsIndex >= token.length() - 1) {
                 continue;
             }
-            String key = token.substring(0, equalsIndex).trim();
-            String value = stripOptionalQuotes(token.substring(equalsIndex + 1).trim());
+            String key = token.substring(0, equalsIndex)
+                .trim();
+            String value = stripOptionalQuotes(
+                token.substring(equalsIndex + 1)
+                    .trim());
             if (value.isEmpty()) {
                 continue;
             }
@@ -102,12 +107,14 @@ public class MarkdownRuntimeBlocks {
             if (child instanceof MdxJsxFlowElement && "p".equals(((MdxJsxFlowElement) child).name())) {
                 MdxJsxFlowElement p = (MdxJsxFlowElement) child;
                 String text = getLeadingParagraphText(p);
-                if (text != null && !text.trim().isEmpty()) {
+                if (text != null && !text.trim()
+                    .isEmpty()) {
                     return new FirstParagraphText(p, text);
                 }
             } else if (child instanceof MdAstText) {
                 MdAstText text = (MdAstText) child;
-                if (!text.value.trim().isEmpty()) {
+                if (!text.value.trim()
+                    .isEmpty()) {
                     return new FirstParagraphText(null, text.value);
                 }
             }
@@ -120,7 +127,8 @@ public class MarkdownRuntimeBlocks {
         for (Object child : paragraph.children()) {
             if (child instanceof MdAstText) {
                 MdAstText text = (MdAstText) child;
-                if (!text.value.trim().isEmpty()) {
+                if (!text.value.trim()
+                    .isEmpty()) {
                     return text.value;
                 }
             }

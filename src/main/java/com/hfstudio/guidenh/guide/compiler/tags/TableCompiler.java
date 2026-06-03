@@ -38,7 +38,8 @@ public class TableCompiler extends BlockTagCompiler {
                         .parseWidthHints(extractKramdownExpression(content));
                     var columns = table.getColumns();
                     for (int wi = 0; wi < widths.size() && wi < columns.size(); wi++) {
-                        columns.get(wi).setPreferredWidth(widths.get(wi));
+                        columns.get(wi)
+                            .setPreferredWidth(widths.get(wi));
                     }
                 }
                 continue;
@@ -80,7 +81,8 @@ public class TableCompiler extends BlockTagCompiler {
         int start = content.indexOf('{');
         int end = content.lastIndexOf('}');
         if (start >= 0 && end > start) {
-            return content.substring(start + 1, end).trim();
+            return content.substring(start + 1, end)
+                .trim();
         }
         return "";
     }

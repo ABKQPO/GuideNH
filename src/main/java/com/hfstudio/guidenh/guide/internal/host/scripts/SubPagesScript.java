@@ -25,10 +25,14 @@ import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 public class SubPagesScript implements LytScript {
 
     @Override
-    public ScriptType type() { return ScriptType.JAVA; }
+    public ScriptType type() {
+        return ScriptType.JAVA;
+    }
 
     @Override
-    public String styleClass() { return "SubPages"; }
+    public String styleClass() {
+        return "SubPages";
+    }
 
     @Override
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {

@@ -22,11 +22,16 @@ public class CodeCompiler extends FlowTagCompiler {
         var text = new LytFlowText();
         // Extract text from child — <code> has one MdAstText child from converter
         String value = "";
-        if (!el.children().isEmpty() && el.children().get(0) instanceof MdAstText t) {
+        if (!el.children()
+            .isEmpty()
+            && el.children()
+                .get(0) instanceof MdAstText t) {
             value = t.value;
         }
         text.setText(value);
-        text.modifyStyle(style -> style.italic(true).whiteSpace(WhiteSpaceMode.PRE));
+        text.modifyStyle(
+            style -> style.italic(true)
+                .whiteSpace(WhiteSpaceMode.PRE));
         parent.append(text);
     }
 }

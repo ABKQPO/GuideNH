@@ -8,7 +8,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -52,8 +51,7 @@ import cpw.mods.fml.common.FMLLog;
  * Encapsulates a Guide, which consists of a collection of Markdown pages and associated content, loaded from a
  * guide-specific subdirectory of resource packs.
  */
-public class MutableGuide
-    implements Guide, MediaWikiListContextProvider, AutoCloseable {
+public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCloseable {
 
     private final ResourceLocation id;
     private final String defaultNamespace;

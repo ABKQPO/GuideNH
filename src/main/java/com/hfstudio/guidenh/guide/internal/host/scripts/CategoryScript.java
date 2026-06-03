@@ -17,10 +17,14 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageListBuilder;
 public class CategoryScript implements LytScript {
 
     @Override
-    public ScriptType type() { return ScriptType.JAVA; }
+    public ScriptType type() {
+        return ScriptType.JAVA;
+    }
 
     @Override
-    public String styleClass() { return "Category"; }
+    public String styleClass() {
+        return "Category";
+    }
 
     @Override
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
@@ -42,8 +46,8 @@ public class CategoryScript implements LytScript {
 
         var context = MediaWikiTagCompilerSupport.createListContext(guide, index);
         var entries = MediaWikiPageListBuilder.buildCategoryMembers(context, ph.name);
-        var block = MediaWikiTagCompilerSupport.createBlock(
-            entries, ph.rows, GuidebookText.MediaWikiNoPagesInCategory.text());
+        var block = MediaWikiTagCompilerSupport
+            .createBlock(entries, ph.rows, GuidebookText.MediaWikiNoPagesInCategory.text());
         ctx.replace(block);
     }
 }

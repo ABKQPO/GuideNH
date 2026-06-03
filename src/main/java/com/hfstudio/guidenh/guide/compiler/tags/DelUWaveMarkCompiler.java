@@ -1,9 +1,8 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
-import java.util.Set;
 import java.util.LinkedHashSet;
+import java.util.Set;
 
-import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;

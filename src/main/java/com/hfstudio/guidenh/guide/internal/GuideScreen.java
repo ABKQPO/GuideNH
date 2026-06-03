@@ -46,6 +46,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
@@ -102,11 +103,10 @@ import com.hfstudio.guidenh.guide.internal.home.GuideScreenHomeHistory;
 import com.hfstudio.guidenh.guide.internal.home.HomePageController;
 import com.hfstudio.guidenh.guide.internal.home.HomePageDataBuilder;
 import com.hfstudio.guidenh.guide.internal.home.HomePageLayout;
-import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
-import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
-import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.NavigationState;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
+import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar.ContextTarget;
@@ -497,15 +497,20 @@ public class GuideScreen extends GuiContainer
         } catch (Throwable ignored) {
             navBar.setPinned(false);
         }
-        navBar.restoreState(ClientProxy.getLytHost().getNavigation().recallNavigationState(), bookmarkState);
-        ClientProxy.getLytHost().setPreheatCompiler(pageId -> {
-            if (guide == null) return null;
-            try {
-                return guide.getPage(new net.minecraft.util.ResourceLocation(pageId));
-            } catch (Exception e) {
-                return null;
-            }
-        });
+        navBar.restoreState(
+            ClientProxy.getLytHost()
+                .getNavigation()
+                .recallNavigationState(),
+            bookmarkState);
+        ClientProxy.getLytHost()
+            .setPreheatCompiler(pageId -> {
+                if (guide == null) return null;
+                try {
+                    return guide.getPage(new net.minecraft.util.ResourceLocation(pageId));
+                } catch (Exception e) {
+                    return null;
+                }
+            });
     }
 
     public static void open(ResourceLocation guideId, @Nullable PageAnchor anchor) {
@@ -517,7 +522,9 @@ public class GuideScreen extends GuiContainer
     }
 
     public static void openFromHomeHotkey() {
-        GuideScreenViewState remembered = ClientProxy.getLytHost().getNavigation().consumeValidLastContentState();
+        GuideScreenViewState remembered = ClientProxy.getLytHost()
+            .getNavigation()
+            .consumeValidLastContentState();
         open(remembered != null ? remembered : GuideScreenViewState.home(), false);
     }
 
@@ -550,7 +557,9 @@ public class GuideScreen extends GuiContainer
             return null;
         }
         if (anchor == null) {
-            GuideScreenViewState remembered = ClientProxy.getLytHost().getNavigation().consumeValidLastContentState();
+            GuideScreenViewState remembered = ClientProxy.getLytHost()
+                .getNavigation()
+                .consumeValidLastContentState();
             if (remembered != null && remembered.route() != null) {
                 return remembered.route();
             }
@@ -618,7 +627,10 @@ public class GuideScreen extends GuiContainer
         document = null;
         lastLayoutWidth = -1;
         if (currentAnchor != null) {
-            ClientProxy.getLytHost().invalidatePage(currentAnchor.pageId().toString());
+            ClientProxy.getLytHost()
+                .invalidatePage(
+                    currentAnchor.pageId()
+                        .toString());
         }
         loadCurrentPage();
         updateToolbarButtonState();
@@ -711,12 +723,16 @@ public class GuideScreen extends GuiContainer
     }
 
     private void rememberCurrentContentStateIfEligible() {
-        ClientProxy.getLytHost().getNavigation().rememberContentState(captureCurrentViewState());
+        ClientProxy.getLytHost()
+            .getNavigation()
+            .rememberContentState(captureCurrentViewState());
     }
 
     private void rememberNavigationState() {
         if (guide == null) return;
-        ClientProxy.getLytHost().getNavigation().rememberNavBarState(guide.getId(), navBar.captureState());
+        ClientProxy.getLytHost()
+            .getNavigation()
+            .rememberNavBarState(guide.getId(), navBar.captureState());
     }
 
     private boolean isNavigationNewPageButtonVisible() {
@@ -1064,7 +1080,9 @@ public class GuideScreen extends GuiContainer
         if (guide != null) {
             return guide;
         }
-        GuideScreenViewState remembered = ClientProxy.getLytHost().getNavigation().recallLastContentState();
+        GuideScreenViewState remembered = ClientProxy.getLytHost()
+            .getNavigation()
+            .recallLastContentState();
         if (remembered != null && remembered.route() != null) {
             ResourceLocation rememberedGuideId = remembered.route()
                 .guideId();
@@ -1385,6 +1403,8 @@ public class GuideScreen extends GuiContainer
                 .compile(buildGuideEditorPreviewGuide(parsedDraft), guide.getExtensions(), parsedDraft);
             int previewWidth = getGuideEditorPreviewLayoutWidth();
             if (guideEditorPreviewPage != null && guideEditorPreviewPage.document() != null) {
+                ClientProxy.getLytHost()
+                    .dispatchToSubtree(guideEditorPreviewPage.document());
                 guideEditorPreviewPage.document()
                     .updateLayout(
                         createLayoutContext(previewWidth, getVisualReferenceContentWidth()),
@@ -2536,7 +2556,8 @@ public class GuideScreen extends GuiContainer
             return;
         }
         int requestId = pendingPageLoadRequestId;
-        String pageIdStr = currentAnchor.pageId().toString();
+        String pageIdStr = currentAnchor.pageId()
+            .toString();
         LytHost lytHost = ClientProxy.getLytHost();
         GuidePage loadedPage;
 
@@ -2596,7 +2617,8 @@ public class GuideScreen extends GuiContainer
             }
         }
         if (found > 0) {
-            FMLLog.getLogger().info("[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}", found, list.size());
+            FMLLog.getLogger()
+                .info("[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}", found, list.size());
         }
     }
 
@@ -2760,8 +2782,12 @@ public class GuideScreen extends GuiContainer
         int max = getMaxScroll();
         if (scrollY < 0) scrollY = 0;
         if (scrollY > max) scrollY = max;
-        ClientProxy.getLytHost().getViewport().updateContent(contentW, contentH);
-        ClientProxy.getLytHost().getViewport().scrollTo(scrollY);
+        ClientProxy.getLytHost()
+            .getViewport()
+            .updateContent(contentW, contentH);
+        ClientProxy.getLytHost()
+            .getViewport()
+            .scrollTo(scrollY);
     }
 
     @Override
@@ -4565,10 +4591,12 @@ public class GuideScreen extends GuiContainer
     private void drawTiledBackground() {
         drawRect(0, 0, this.width, this.height, BACKGROUND_DIM_COLOR);
         if (mc == null || mc.getTextureManager() == null) {
-            FMLLog.getLogger().warn("[GuideNH] drawTiledBackground: mc or textureManager is null, skipping");
+            FMLLog.getLogger()
+                .warn("[GuideNH] drawTiledBackground: mc or textureManager is null, skipping");
             return;
         }
-        mc.getTextureManager().bindTexture(BG_TEXTURE);
+        mc.getTextureManager()
+            .bindTexture(BG_TEXTURE);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
         GL11.glEnable(GL11.GL_BLEND);
@@ -4808,7 +4836,9 @@ public class GuideScreen extends GuiContainer
                 return;
             }
             if (result != null && result.bookmarkTogglePageId() != null) {
-                ClientProxy.getLytHost().getNavigation().toggleBookmark(result.bookmarkTogglePageId());
+                ClientProxy.getLytHost()
+                    .getNavigation()
+                    .toggleBookmark(result.bookmarkTogglePageId());
                 bookmarkState.toggle(result.bookmarkTogglePageId());
                 mc.getSoundHandler()
                     .playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("gui.button.press"), 1.0F));
@@ -6754,7 +6784,9 @@ public class GuideScreen extends GuiContainer
             || !guide.pageExists(currentAnchor.pageId())) {
             return;
         }
-        ClientProxy.getLytHost().getNavigation().recordHomeHistory(guide.getId(), currentAnchor.pageId());
+        ClientProxy.getLytHost()
+            .getNavigation()
+            .recordHomeHistory(guide.getId(), currentAnchor.pageId());
         homeHistory.record(guide.getId(), currentAnchor.pageId());
     }
 

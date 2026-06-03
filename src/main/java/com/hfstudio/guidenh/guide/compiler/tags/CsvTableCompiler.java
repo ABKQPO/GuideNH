@@ -11,11 +11,11 @@ import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
-import com.hfstudio.guidenh.guide.internal.csv.CsvTableParser;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableCell;
+import com.hfstudio.guidenh.guide.internal.csv.CsvTableParser;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
@@ -62,7 +62,8 @@ public class CsvTableCompiler extends BlockTagCompiler {
         } catch (MdxAttrs.AttributeException e) {
             return;
         }
-        if (src != null && !src.trim().isEmpty()) {
+        if (src != null && !src.trim()
+            .isEmpty()) {
             try {
                 ResourceLocation csvId = IdUtils.resolveLink(src.trim(), indexer.getPageId());
                 byte[] data = indexer.loadAsset(csvId);
@@ -168,6 +169,7 @@ public class CsvTableCompiler extends BlockTagCompiler {
     }
 
     public static class CsvTablePlaceholder extends LytParagraph {
+
         public final String src;
         public final boolean header;
         public final List<Integer> widths;

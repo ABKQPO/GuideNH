@@ -86,18 +86,32 @@ public class LytFlowContent implements Styleable {
     protected void visitChildren(LytVisitor visitor) {}
 
     @Nullable
-    public String getStyleClass() { return styleClass; }
+    public String getStyleClass() {
+        return styleClass;
+    }
 
-    public void setStyleClass(@Nullable String styleClass) { this.styleClass = styleClass; }
+    public void setStyleClass(@Nullable String styleClass) {
+        this.styleClass = styleClass;
+    }
 
     @Nullable
-    public String getNodeUid() { return nodeUid; }
+    public String getNodeUid() {
+        return nodeUid;
+    }
 
-    public void setNodeUid(@Nullable String nodeUid) { this.nodeUid = nodeUid; }
+    public void setNodeUid(@Nullable String nodeUid) {
+        this.nodeUid = nodeUid;
+    }
 
-    public Object getData(String key) { return data.get(key); }
+    public Object getData(String key) {
+        return data.get(key);
+    }
 
-    public void setData(String key, Object value) { data.put(key, value); }
+    public void setData(String key, Object value) {
+        data.put(key, value);
+    }
 
-    public Map<String, Object> getData() { return data; }
+    public Map<String, Object> getData() {
+        return data;
+    }
 }

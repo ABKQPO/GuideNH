@@ -13,10 +13,14 @@ public class LytHostWorkItem implements WorkItem {
     }
 
     @Override
-    public Priority priority() { return Priority.HIGH; }
+    public Priority priority() {
+        return Priority.HIGH;
+    }
 
     @Override
-    public boolean shouldRun() { return host.hasWork(); }
+    public boolean shouldRun() {
+        return host.hasWork();
+    }
 
     @Override
     public WorkResult tick(long deadlineNs) {
@@ -30,5 +34,7 @@ public class LytHostWorkItem implements WorkItem {
     }
 
     @Override
-    public int hashCode() { return LytHostWorkItem.class.hashCode(); }
+    public int hashCode() {
+        return LytHostWorkItem.class.hashCode();
+    }
 }

@@ -10,6 +10,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
@@ -17,10 +18,9 @@ import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
+import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureFingerprintResolver;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
-import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
-import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
@@ -135,30 +135,47 @@ public class SceneTagCompiler extends BlockTagCompiler {
                 preParsedAst = MdAst.fromMarkdown(childrenSource, GuideMarkdownOptions.runtime());
                 MdAstToMdxConverter.convert(preParsedAst, Collections.emptyMap());
             } catch (RuntimeException e) {
-                FMLLog.getLogger().warn("[GuideNH] [SceneTagCompiler] Failed to pre-parse scene children", e);
+                FMLLog.getLogger()
+                    .warn("[GuideNH] [SceneTagCompiler] Failed to pre-parse scene children", e);
             }
         }
 
         // Store element compilers from ExtensionCollection in placeholder
-        var sceneElementCompilers = compiler.getExtensions().get(SceneElementTagCompiler.EXTENSION_POINT);
+        var sceneElementCompilers = compiler.getExtensions()
+            .get(SceneElementTagCompiler.EXTENSION_POINT);
 
         // Create placeholder block that carries all scene config to SceneScript
         String styleClass = "GameScene".equals(el.name()) ? "GameScene" : "Scene";
         ScenePlaceholder placeholder = new ScenePlaceholder(
-            w, h, explicitWidth, explicitHeight,
-            zoom, explicitZoom,
+            w,
+            h,
+            explicitWidth,
+            explicitHeight,
+            zoom,
+            explicitZoom,
             perspective,
-            rx, ry, rz,
-            offX, offY, explicitOffX, explicitOffY,
-            centerX, centerY, centerZ, explicitCenter,
-            interactive, showBackground,
-            allowLayerSlider, gridButtonEnabled, showGrid,
+            rx,
+            ry,
+            rz,
+            offX,
+            offY,
+            explicitOffX,
+            explicitOffY,
+            centerX,
+            centerY,
+            centerZ,
+            explicitCenter,
+            interactive,
+            showBackground,
+            allowLayerSlider,
+            gridButtonEnabled,
+            showGrid,
             childrenSource,
-            compiler.getPageId().getResourceDomain(),
+            compiler.getPageId()
+                .getResourceDomain(),
             compiler.getSourcePack(),
             preParsedAst,
-            sceneElementCompilers
-        );
+            sceneElementCompilers);
         placeholder.setStyleClass(styleClass);
         placeholder.setStyle(LytParagraph.PLACEHOLDER_STYLE);
         placeholder.appendText("[" + styleClass + "]");
@@ -184,7 +201,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
         public final boolean explicitHeight;
         public final float zoom;
         public final boolean explicitZoom;
-        @Nullable public final String perspective;
+        @Nullable
+        public final String perspective;
         public final float rotateX;
         public final float rotateY;
         public final float rotateZ;
@@ -201,30 +219,21 @@ public class SceneTagCompiler extends BlockTagCompiler {
         public final boolean allowLayerSlider;
         public final boolean gridButtonEnabled;
         public final boolean showGrid;
-        @Nullable public final String childrenSource;
+        @Nullable
+        public final String childrenSource;
         public final String pageDomain;
         public final String sourcePack;
-        @Nullable public final MdAstRoot childrenAst;
+        @Nullable
+        public final MdAstRoot childrenAst;
         @Nullable
         public final List<SceneElementTagCompiler> sceneElementCompilers;
 
-        public ScenePlaceholder(
-            int width, int height,
-            boolean explicitWidth, boolean explicitHeight,
-            float zoom, boolean explicitZoom,
-            @Nullable String perspective,
-            float rotateX, float rotateY, float rotateZ,
-            float offsetX, float offsetY,
-            boolean explicitOffsetX, boolean explicitOffsetY,
-            float centerX, float centerY, float centerZ,
-            boolean explicitCenter,
-            boolean interactive, boolean showBackground,
-            boolean allowLayerSlider, boolean gridButtonEnabled,
-            boolean showGrid,
-            @Nullable String childrenSource,
-            String pageDomain,
-            String sourcePack,
-            @Nullable MdAstRoot childrenAst,
+        public ScenePlaceholder(int width, int height, boolean explicitWidth, boolean explicitHeight, float zoom,
+            boolean explicitZoom, @Nullable String perspective, float rotateX, float rotateY, float rotateZ,
+            float offsetX, float offsetY, boolean explicitOffsetX, boolean explicitOffsetY, float centerX,
+            float centerY, float centerZ, boolean explicitCenter, boolean interactive, boolean showBackground,
+            boolean allowLayerSlider, boolean gridButtonEnabled, boolean showGrid, @Nullable String childrenSource,
+            String pageDomain, String sourcePack, @Nullable MdAstRoot childrenAst,
             @Nullable List<SceneElementTagCompiler> sceneElementCompilers) {
             this.width = width;
             this.height = height;

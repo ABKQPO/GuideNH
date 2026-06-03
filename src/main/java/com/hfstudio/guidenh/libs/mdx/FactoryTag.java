@@ -21,9 +21,11 @@ public class FactoryTag {
 
     private FactoryTag() {}
 
-    /** Marker set on a tag token when recovery happens at EOF (where a separate
+    /**
+     * Marker set on a tag token when recovery happens at EOF (where a separate
      * mdxJsxRecovery token cannot be emitted because consume(EOF) must be the
-     * last event). Read by {@code MdxMdastExtension.exitMdxJsxTag}. */
+     * last event). Read by {@code MdxMdastExtension.exitMdxJsxTag}.
+     */
     public static final TokenProperty<Boolean> RECOVERED_AT_EOF = new TokenProperty<>();
 
     public static final Construct lazyLineEnd;

@@ -52,8 +52,10 @@ public class HomePageSummaryExtractor {
     private static boolean isHeading(MdAstAnyContent block) {
         if (block instanceof MdxJsxElementFields el) {
             String name = el.name();
-            return name != null && name.length() == 2 && name.charAt(0) == 'h'
-                && name.charAt(1) >= '1' && name.charAt(1) <= '6';
+            return name != null && name.length() == 2
+                && name.charAt(0) == 'h'
+                && name.charAt(1) >= '1'
+                && name.charAt(1) <= '6';
         }
         return false;
     }
