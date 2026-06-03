@@ -7,6 +7,7 @@ import net.minecraftforge.oredict.OreDictionary;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler.ItemImagePlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
@@ -77,23 +78,7 @@ public class ItemImageScript implements LytScript {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private static ItemStack resolveItemId(String itemId) {
-        if (itemId == null || itemId.isEmpty()) return null;
-        String ns = "minecraft";
-        int idx = itemId.indexOf(':');
-        if (idx >= 0) {
-            ns = itemId.substring(0, idx);
-        }
-        com.hfstudio.guidenh.guide.compiler.IdUtils.ParsedItemRef ref =
-            com.hfstudio.guidenh.guide.compiler.IdUtils.parseItemRef(itemId, ns);
-        if (ref == null) return null;
-        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
-        if (item == null) return null;
-        ItemStack stack = new ItemStack(item, 1, ref.concreteMeta());
-        if (ref.nbt() != null) {
-            stack.stackTagCompound = (net.minecraft.nbt.NBTTagCompound) ref.nbt().copy();
-        }
-        return stack;
+        return IdUtils.resolveItemStack(itemId, "minecraft");
     }
 }

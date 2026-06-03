@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.host.scripts;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler.ItemGridPlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytItemGrid;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -41,23 +42,7 @@ public class ItemGridScript implements LytScript {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private static ItemStack resolveItemId(String itemId) {
-        if (itemId == null || itemId.isEmpty()) return null;
-        String ns = "minecraft";
-        int idx = itemId.indexOf(':');
-        if (idx >= 0) {
-            ns = itemId.substring(0, idx);
-        }
-        com.hfstudio.guidenh.guide.compiler.IdUtils.ParsedItemRef ref =
-            com.hfstudio.guidenh.guide.compiler.IdUtils.parseItemRef(itemId, ns);
-        if (ref == null) return null;
-        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
-        if (item == null) return null;
-        ItemStack stack = new ItemStack(item, 1, ref.concreteMeta());
-        if (ref.nbt() != null) {
-            stack.stackTagCompound = (net.minecraft.nbt.NBTTagCompound) ref.nbt().copy();
-        }
-        return stack;
+        return IdUtils.resolveItemStack(itemId, "minecraft");
     }
 }
