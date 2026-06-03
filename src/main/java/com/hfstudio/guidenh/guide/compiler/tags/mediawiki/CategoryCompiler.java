@@ -7,6 +7,8 @@ import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
+import com.hfstudio.guidenh.guide.indices.CategoryIndex;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageListBuilder;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
@@ -44,16 +46,30 @@ public class CategoryCompiler extends BlockTagCompiler {
 
     @Override
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
-        // NB: Phase 2 indexed category member titles resolved by
-        // MediaWikiPageListBuilder.buildCategoryMembers(). Phase 3 defers member resolution to
-        // CategoryScript (MOUNT time), so index() only indexes the category name string.
-        // Full indexing requires a post-mount indexing pass (TBD).
         String categoryName = el.getAttributeString("name", null);
-        if (categoryName != null && !categoryName.trim()
-            .isEmpty()) {
-            sink.appendText(el, categoryName.trim());
-            sink.appendBreak();
+        if (categoryName == null || categoryName.trim().isEmpty()) return;
+
+        // Restore Phase 2: index resolved category member titles for full-text search
+        var guide = MediaWikiTagCompilerSupport.resolveGuide(indexer);
+        if (guide != null) {
+            CategoryIndex catIndex = indexer.getIndex(CategoryIndex.class);
+            if (catIndex != null) {
+                var context = MediaWikiTagCompilerSupport.createListContext(guide, catIndex);
+                var entries = MediaWikiPageListBuilder.buildCategoryMembers(context, categoryName.trim());
+                sink.appendText(el, categoryName.trim());
+                sink.appendBreak();
+                for (var entry : entries) {
+                    if (entry.title() != null && !entry.title().isEmpty()) {
+                        sink.appendText(el, entry.title());
+                    }
+                    sink.appendBreak();
+                }
+                return;
+            }
         }
+        // Fallback: index only the category name
+        sink.appendText(el, categoryName.trim());
+        sink.appendBreak();
     }
 
     public static class CategoryPlaceholder extends LytParagraph {
