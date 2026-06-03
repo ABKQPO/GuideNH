@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -13,7 +12,6 @@ import java.util.function.Consumer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -23,11 +21,11 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
-import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.integration.api.RecipeEntry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class RecipeCompiler extends BlockTagCompiler {
 
@@ -109,9 +107,20 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
 
         // RecipePlaceholder -- recipe resolution deferred to RecipeScript
-        RecipePlaceholder ph = new RecipePlaceholder(tagName, idStr, ref, fallbackText,
-            handlerNameFilter, handlerIdFilter, handlerOrder, exactRecipeIndex,
-            inputExpr, outputExpr, limit, multi, usageQuery);
+        RecipePlaceholder ph = new RecipePlaceholder(
+            tagName,
+            idStr,
+            ref,
+            fallbackText,
+            handlerNameFilter,
+            handlerIdFilter,
+            handlerOrder,
+            exactRecipeIndex,
+            inputExpr,
+            outputExpr,
+            limit,
+            multi,
+            usageQuery);
         ph.setStyleClass(tagName);
         ph.setStyle(LytParagraph.PLACEHOLDER_STYLE);
         ph.appendText("[Recipe]");
@@ -274,9 +283,8 @@ public class RecipeCompiler extends BlockTagCompiler {
         public final boolean multi;
         public final boolean usageQuery;
 
-        public RecipePlaceholder(String tagName, String idStr, IdUtils.ParsedItemRef ref,
-            String fallbackText, String handlerName, String handlerId,
-            int handlerOrder, int recipeIndex, FilterExpr inputExpr,
+        public RecipePlaceholder(String tagName, String idStr, IdUtils.ParsedItemRef ref, String fallbackText,
+            String handlerName, String handlerId, int handlerOrder, int recipeIndex, FilterExpr inputExpr,
             FilterExpr outputExpr, int limit, boolean multi, boolean usageQuery) {
             this.tagName = tagName;
             this.idStr = idStr;

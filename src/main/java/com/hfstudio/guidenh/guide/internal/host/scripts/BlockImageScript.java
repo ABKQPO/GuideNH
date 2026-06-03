@@ -4,13 +4,11 @@ import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.oredict.OreDictionary;
 
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.IdUtils.ParsedItemRef;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler.BlockImagePlaceholder;
-import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
@@ -22,23 +20,29 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
+import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
 import com.hfstudio.guidenh.guide.scene.element.BlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
-import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
-import com.hfstudio.guidenh.guide.scene.ponder.PonderNbtPath;
+
 import cpw.mods.fml.common.FMLLog;
 
 public class BlockImageScript implements LytScript {
 
     @Override
-    public ScriptType type() { return ScriptType.JAVA; }
+    public ScriptType type() {
+        return ScriptType.JAVA;
+    }
 
     @Override
-    public String styleClass() { return "BlockImage"; }
+    public String styleClass() {
+        return "BlockImage";
+    }
 
     @Override
-    public boolean isAsync() { return true; }
+    public boolean isAsync() {
+        return true;
+    }
 
     @Override
     @SuppressWarnings("deprecation")
@@ -64,17 +68,18 @@ public class BlockImageScript implements LytScript {
             Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
             if (item != null) block = Block.getBlockFromItem(item);
             if (ref.nbt() != null && tileTag == null) {
-                tileTag = (NBTTagCompound) ref.nbt().copy();
+                tileTag = (NBTTagCompound) ref.nbt()
+                    .copy();
             }
         }
 
         if (block == null) {
-            ctx.replace(
-                LytParagraph.error("[BlockImage] Block not found: " + (ph.ore != null ? ph.ore : ph.id)));
+            ctx.replace(LytParagraph.error("[BlockImage] Block not found: " + (ph.ore != null ? ph.ore : ph.id)));
             return;
         }
 
-        if (ph.nbt != null && !ph.nbt.trim().isEmpty()) {
+        if (ph.nbt != null && !ph.nbt.trim()
+            .isEmpty()) {
             try {
                 NBTTagCompound explicitTag = GuideTextNbtCodec.readTextSafeCompound(ph.nbt.trim());
                 if (tileTag != null) {
@@ -85,12 +90,14 @@ public class BlockImageScript implements LytScript {
                     tileTag = explicitTag;
                 }
             } catch (Exception e) {
-                FMLLog.getLogger().warn("[BlockImageScript] Failed to parse NBT for block image", e);
+                FMLLog.getLogger()
+                    .warn("[BlockImageScript] Failed to parse NBT for block image", e);
             }
         }
 
         PerspectivePreset perspective = PerspectivePreset.ISOMETRIC_NORTH_EAST;
-        if (ph.perspective != null && !ph.perspective.trim().isEmpty()) {
+        if (ph.perspective != null && !ph.perspective.trim()
+            .isEmpty()) {
             perspective = PerspectivePreset.fromSerializedName(ph.perspective.trim());
         }
 
@@ -100,8 +107,7 @@ public class BlockImageScript implements LytScript {
         GuidebookPreviewBlockPlacer.place(level, 0, 0, 0, block, defaultMeta, tileTag, registryId);
 
         if (level.isEmpty()) {
-            ctx.replace(
-                LytParagraph.error("[BlockImage] Failed to create block preview"));
+            ctx.replace(LytParagraph.error("[BlockImage] Failed to create block preview"));
             return;
         }
 
