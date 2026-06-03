@@ -26,6 +26,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapLayoutMode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
+import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuiSprite;
@@ -698,10 +699,10 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
                     renderNodeContentBlock(childBlock, nodeContext, nativeContext, contentViewport);
                 }
             }
-        } else if (block instanceof LytLatexBlock || block instanceof LytLatexDisplayBlock) {
-            // LaTeX renders with raw GL, bypassing RenderContext coordinate mapping.
-            // Apply mindmap zoom via GL matrix and use nativeContext so that the
-            // document-level GL transform chain remains intact.
+        } else if (usesRawGl(block)) {
+            // This block renders with raw GL, bypassing RenderContext coordinate
+            // mapping. Apply mindmap zoom via GL matrix and use nativeContext so
+            // that the document-level GL transform chain remains intact.
             GL11.glPushMatrix();
             GL11.glTranslatef(contentViewport.x(), contentViewport.y(), 0f);
             GL11.glScalef(zoom, zoom, 1f);
@@ -713,6 +714,12 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         } else {
             block.render(nodeContext);
         }
+    }
+
+    private static boolean usesRawGl(LytBlock block) {
+        return block instanceof LytLatexBlock || block instanceof LytLatexDisplayBlock
+            || block instanceof LytItemImage
+            || block instanceof LytNeiRecipeBox;
     }
 
     private @Nullable NodeHit pickNodeHit(int documentX, int documentY) {
