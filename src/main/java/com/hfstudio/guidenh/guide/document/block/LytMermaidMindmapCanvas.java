@@ -28,6 +28,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuiSprite;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -697,6 +698,18 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
                     renderNodeContentBlock(childBlock, nodeContext, nativeContext, contentViewport);
                 }
             }
+        } else if (block instanceof LytLatexBlock || block instanceof LytLatexDisplayBlock) {
+            // LaTeX renders with raw GL, bypassing RenderContext coordinate mapping.
+            // Apply mindmap zoom via GL matrix and use nativeContext so that the
+            // document-level GL transform chain remains intact.
+            GL11.glPushMatrix();
+            GL11.glTranslatef(contentViewport.x(), contentViewport.y(), 0f);
+            GL11.glScalef(zoom, zoom, 1f);
+            try {
+                block.render(nativeContext);
+            } finally {
+                GL11.glPopMatrix();
+            }
         } else {
             block.render(nodeContext);
         }
@@ -1231,6 +1244,28 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
                 } else {
                     delegate.renderItemIcon(stack, 0, 0);
                 }
+            } finally {
+                GL11.glPopMatrix();
+            }
+        }
+
+        @Override
+        public void blitGuiSprite(LytRect rect, GuiSprite sprite) {
+            if (sprite == null) return;
+            int sx = scaleX(rect.x());
+            int sy = scaleY(rect.y());
+            GL11.glPushMatrix();
+            GL11.glTranslatef(sx, sy, 0f);
+            GL11.glScalef(scale, scale, 1f);
+            try {
+                delegate.blitTexture(
+                    sprite.getTexture(),
+                    0,
+                    0,
+                    sprite.getU(),
+                    sprite.getV(),
+                    sprite.getWidth(),
+                    sprite.getHeight());
             } finally {
                 GL11.glPopMatrix();
             }
