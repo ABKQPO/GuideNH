@@ -155,7 +155,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
             allowLayerSlider, gridButtonEnabled, showGrid,
             childrenSource,
             compiler.getPageId().getResourceDomain(),
-            preParsedAst,   // NEW: pre-parsed AST for SceneScript
+            compiler.getSourcePack(),
+            preParsedAst,
             sceneElementCompilers
         );
         placeholder.setStyleClass(styleClass);
@@ -202,6 +203,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         public final boolean showGrid;
         @Nullable public final String childrenSource;
         public final String pageDomain;
+        public final String sourcePack;
         @Nullable public final MdAstRoot childrenAst;
         @Nullable
         public final List<SceneElementTagCompiler> sceneElementCompilers;
@@ -221,6 +223,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             boolean showGrid,
             @Nullable String childrenSource,
             String pageDomain,
+            String sourcePack,
             @Nullable MdAstRoot childrenAst,
             @Nullable List<SceneElementTagCompiler> sceneElementCompilers) {
             this.width = width;
@@ -248,6 +251,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             this.showGrid = showGrid;
             this.childrenSource = childrenSource;
             this.pageDomain = pageDomain;
+            this.sourcePack = sourcePack;
             this.childrenAst = childrenAst;
             this.sceneElementCompilers = sceneElementCompilers;
         }
