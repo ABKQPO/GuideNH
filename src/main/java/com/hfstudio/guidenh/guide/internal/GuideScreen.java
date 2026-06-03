@@ -45,8 +45,8 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.ClientProxy;
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
