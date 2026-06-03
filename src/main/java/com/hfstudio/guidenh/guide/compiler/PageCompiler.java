@@ -1113,6 +1113,10 @@ public class PageCompiler {
         return language;
     }
 
+    public String getSourcePack() {
+        return sourcePack;
+    }
+
     public PageCollection getPageCollection() {
         return pages;
     }
