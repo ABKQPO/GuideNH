@@ -66,7 +66,9 @@ public class ChartIcon {
         }
         if (deferredImageId != null) {
             byte[] data = GuideResourceAccess.readBytes(
-                Minecraft.getMinecraft().getResourceManager(), deferredImageId);
+                Minecraft.getMinecraft()
+                    .getResourceManager(),
+                deferredImageId);
             if (data != null) {
                 imageId = deferredImageId;
                 texture = GuidePageTexture.load(imageId, data);

@@ -16,21 +16,25 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytTooltipSpan;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
+import com.hfstudio.guidenh.guide.indices.ItemIndex;
+import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
-import com.hfstudio.guidenh.guide.indices.ItemIndex;
-import com.hfstudio.guidenh.guide.indices.OreIndex;
 
 public class ItemLinkScript implements LytScript {
 
     @Override
-    public ScriptType type() { return ScriptType.JAVA; }
+    public ScriptType type() {
+        return ScriptType.JAVA;
+    }
 
     @Override
-    public String styleClass() { return "ItemLink"; }
+    public String styleClass() {
+        return "ItemLink";
+    }
 
     @Override
     @SuppressWarnings("deprecation")
@@ -74,11 +78,15 @@ public class ItemLinkScript implements LytScript {
             }
 
             // Same-page detection
-            if (anchor != null && currentPage != null && anchor.pageId().toString().equals(currentPage)) {
+            if (anchor != null && currentPage != null
+                && anchor.pageId()
+                    .toString()
+                    .equals(currentPage)) {
                 LytTooltipSpan span = new LytTooltipSpan();
                 span.setStyleClass("ItemLink");
                 java.util.List<LytFlowContent> linkChildren = new java.util.ArrayList<>(link.getChildren());
-                link.getChildren().clear();
+                link.getChildren()
+                    .clear();
                 for (LytFlowContent child : linkChildren) {
                     child.setParent(null);
                     span.append(child);
@@ -87,7 +95,8 @@ public class ItemLinkScript implements LytScript {
                     span.setTooltip(new ItemTooltip(stack));
                 }
                 // If the span has no children text (self-closing tag), fall back to item display name
-                if (span.getChildren().isEmpty()) {
+                if (span.getChildren()
+                    .isEmpty()) {
                     span.appendText(stack.getDisplayName());
                 }
                 span.modifyStyle(style -> style.italic(true));
@@ -113,7 +122,8 @@ public class ItemLinkScript implements LytScript {
                     var wrapper = new LytFlowInlineBlock();
                     wrapper.setBlock(img);
                     if ("left".equals(iconPosition)) {
-                        link.getChildren().add(0, wrapper);
+                        link.getChildren()
+                            .add(0, wrapper);
                         wrapper.setParent(link);
                     } else {
                         link.append(wrapper);
@@ -122,7 +132,8 @@ public class ItemLinkScript implements LytScript {
             }
 
             // If the link has no children text (self-closing tag), fall back to item display name
-            if (link.getChildren().isEmpty()) {
+            if (link.getChildren()
+                .isEmpty()) {
                 link.appendText(stack.getDisplayName());
             }
         }
