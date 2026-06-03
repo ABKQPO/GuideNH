@@ -512,6 +512,10 @@ public class GuideScreen extends GuiContainer
         open(remembered != null ? remembered : GuideScreenViewState.home(), false);
     }
 
+    public static void openHomePage() {
+        open(GuideScreenViewState.home(), false);
+    }
+
     private static void open(GuideScreenViewState initialState, boolean openedFromGuideHotkey) {
         if (initialState == null || initialState.route() == null) {
             initialState = GuideScreenViewState.home();
