@@ -29,6 +29,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -134,10 +135,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int preferredViewportWidth = preferredWidth > 0
-            ? ResponsiveVisualSizing.scaleWidth(preferredWidth, context.getVisualScale(), 1)
-            : 0;
-        int safeWidth = preferredViewportWidth > 0 ? Math.max(1, Math.min(preferredViewportWidth, availableWidth))
+        int safeWidth = preferredWidth > 0 ? Math.max(1, Math.min(preferredWidth, availableWidth))
             : Math.max(1, availableWidth);
         layout = buildLayout(context, safeWidth);
         int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
@@ -661,10 +659,46 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
                 contentViewport.x(),
                 contentViewport.y(),
                 zoom);
-            node.contentLayout.block()
-                .render(nodeContext);
+            renderNodeContentBlock(node.contentLayout.block(), nodeContext, context, contentViewport);
         } finally {
             context.popScissor();
+        }
+    }
+
+    private void renderNodeContentBlock(LytBlock block, NodeContentRenderContext nodeContext,
+        RenderContext nativeContext, LytRect contentViewport) {
+        if (block instanceof LytGuidebookScene scene) {
+            // The camera's orthographic projection uses its own viewport size
+            // while the GL viewport comes from bounds + layoutSceneWidth/Height.
+            // By scaling the scene viewport (GL) and locking the camera viewport
+            // to the original size, the 3D content fills more pixels while the
+            // world-to-NDC mapping stays tight — content follows mindmap zoom.
+            LytRect savedBounds = scene.getBounds();
+            int savedW = savedBounds.width();
+            int savedH = savedBounds.height();
+            int scaledW = Math.max(1, Math.round(savedW * zoom));
+            int scaledH = Math.max(1, Math.round(savedH * zoom));
+            scene.bounds = new LytRect(contentViewport.x(), contentViewport.y(), scaledW, scaledH);
+            scene.setSceneViewportOverride(scaledW, scaledH);
+            scene.setCameraViewportOverride(savedW, savedH);
+            try {
+                scene.render(nativeContext);
+            } finally {
+                scene.bounds = savedBounds;
+                scene.clearSceneViewportOverride();
+                scene.clearCameraViewportOverride();
+            }
+            return;
+        }
+        if (block instanceof LytNode container && !container.getChildren()
+            .isEmpty()) {
+            for (var child : new ArrayList<>(container.getChildren())) {
+                if (child instanceof LytBlock childBlock) {
+                    renderNodeContentBlock(childBlock, nodeContext, nativeContext, contentViewport);
+                }
+            }
+        } else {
+            block.render(nodeContext);
         }
     }
 
