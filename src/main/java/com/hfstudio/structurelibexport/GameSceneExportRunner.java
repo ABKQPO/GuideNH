@@ -106,10 +106,10 @@ public class GameSceneExportRunner {
                             new GameSceneExportManifest.Entry(
                                 true,
                                 renderTask,
-                                image.getPath()
+                                image.path()
                                     .toString(),
-                                image.getWidth(),
-                                image.getHeight(),
+                                image.width(),
+                                image.height(),
                                 List.of(),
                                 List.of()));
                         checkpointManifest(sender, outputDirectory, manifest, options);
@@ -192,9 +192,9 @@ public class GameSceneExportRunner {
         List<OverlayAnnotation> overlays = task.isShowAnnotations() ? scene.collectOverlayAnnotationsForExport(layers)
             : List.of();
         return new ExportRenderPlan(
-            fittedCamera.getCamera(),
-            fittedCamera.getWidth(),
-            fittedCamera.getHeight(),
+            fittedCamera.camera(),
+            fittedCamera.width(),
+            fittedCamera.height(),
             layers,
             annotations,
             overlays);
@@ -216,9 +216,9 @@ public class GameSceneExportRunner {
         }
         StructureLibSceneCameraFitter.FittedCamera fittedCamera = fitSceneCamera(scene, task);
         return new ExportRenderPlan(
-            fittedCamera.getCamera(),
-            fittedCamera.getWidth(),
-            fittedCamera.getHeight(),
+            fittedCamera.camera(),
+            fittedCamera.width(),
+            fittedCamera.height(),
             layers,
             annotations,
             overlays);

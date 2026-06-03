@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.hfstudio.guidenh.guide.color.Colors;
 
 /**
  * A particle effect entry triggered when a Ponder keyframe becomes active during forward playback.
@@ -18,6 +19,7 @@ public class PonderKeyframeParticle {
     public static final int MAX_WEATHER_DENSITY_PER_TICK = 64;
     public static final float MAX_POWER = 12f;
     public static final float MAX_SIZE = 4f;
+    public static final int DEFAULT_INDICATOR_COLOR = 0xFFFF0000;
 
     @Nullable
     private String preset;
@@ -28,7 +30,7 @@ public class PonderKeyframeParticle {
     @Nullable
     private String kind;
     @Nullable
-    private Integer count;
+    private Integer amount;
     @Nullable
     private Integer time;
     @Nullable
@@ -38,7 +40,7 @@ public class PonderKeyframeParticle {
     @Nullable
     private JsonElement x;
     @Nullable
-    private Float y;
+    private JsonElement y;
     @Nullable
     private JsonElement z;
     @Nullable
@@ -57,6 +59,8 @@ public class PonderKeyframeParticle {
     private Float size;
     @Nullable
     private String weather;
+    @Nullable
+    private String color;
 
     @Nullable
     public String getPreset() {
@@ -72,6 +76,11 @@ public class PonderKeyframeParticle {
         return "rain".equals(normalizedPreset) || "weather".equals(normalizedPreset);
     }
 
+    public boolean isIndicatorPreset() {
+        String normalizedPreset = normalize(preset);
+        return "indicator".equals(normalizedPreset) || "redstone".equals(normalizedPreset);
+    }
+
     @Nullable
     public String getParticleName() {
         String normalized = normalize(name);
@@ -85,8 +94,8 @@ public class PonderKeyframeParticle {
         return normalize(kind);
     }
 
-    public int getCount(int defaultValue) {
-        return clampInt(count != null ? count : defaultValue, 1, MAX_COUNT);
+    public int getAmount(int defaultValue) {
+        return clampInt(amount != null ? amount : defaultValue, 1, MAX_COUNT);
     }
 
     public int getLifetimeTicks(int defaultValue) {
@@ -109,7 +118,7 @@ public class PonderKeyframeParticle {
     }
 
     public int getWeatherDensityPerTick(int defaultValue) {
-        return clampInt(count != null ? count : defaultValue, 1, MAX_WEATHER_DENSITY_PER_TICK);
+        return clampInt(amount != null ? amount : defaultValue, 1, MAX_WEATHER_DENSITY_PER_TICK);
     }
 
     public String getWeatherType() {
@@ -121,7 +130,7 @@ public class PonderKeyframeParticle {
     }
 
     public float getY() {
-        return y != null ? y : 0f;
+        return getScalarCoordinate(y, 0f);
     }
 
     public float getZ() {
@@ -135,6 +144,21 @@ public class PonderKeyframeParticle {
 
     @Nullable
     public int[] getWeatherZValues() {
+        return getCoordinateValues(z);
+    }
+
+    @Nullable
+    public int[] getIndicatorXValues() {
+        return getCoordinateValues(x);
+    }
+
+    @Nullable
+    public int[] getIndicatorYValues() {
+        return getCoordinateValues(y);
+    }
+
+    @Nullable
+    public int[] getIndicatorZValues() {
         return getCoordinateValues(z);
     }
 
@@ -154,6 +178,21 @@ public class PonderKeyframeParticle {
         return clampFloat(size != null ? size : defaultValue, 0.01f, MAX_SIZE);
     }
 
+    public int getIndicatorColor() {
+        String rawColor = color;
+        if (rawColor == null) {
+            return DEFAULT_INDICATOR_COLOR;
+        }
+        String trimmed = rawColor.trim();
+        if (trimmed.isEmpty()) {
+            return DEFAULT_INDICATOR_COLOR;
+        }
+        if (trimmed.startsWith("0x") || trimmed.startsWith("0X")) {
+            trimmed = "#" + trimmed.substring(2);
+        }
+        return Colors.hexToRgb(trimmed);
+    }
+
     @Nullable
     private static String normalize(@Nullable String value) {
         if (value == null) {
@@ -165,11 +204,11 @@ public class PonderKeyframeParticle {
     }
 
     private static int clampInt(int value, int min, int max) {
-        return Math.max(min, Math.min(max, value));
+        return Math.clamp(value, min, max);
     }
 
     private static float clampFloat(float value, float min, float max) {
-        return Math.max(min, Math.min(max, value));
+        return Math.clamp(value, min, max);
     }
 
     private static float getScalarCoordinate(@Nullable JsonElement element, float defaultValue) {
@@ -202,6 +241,10 @@ public class PonderKeyframeParticle {
             int[] trimmed = new int[count];
             System.arraycopy(values, 0, trimmed, 0, count);
             return trimmed;
+        }
+        if (element.isJsonPrimitive() && element.getAsJsonPrimitive()
+            .isString()) {
+            return getCoordinateValuesFromString(element.getAsString());
         }
         Float parsed = parseCoordinateValue(element);
         if (parsed == null) {
@@ -244,5 +287,36 @@ public class PonderKeyframeParticle {
         } catch (RuntimeException ignored) {
             return null;
         }
+    }
+
+    @Nullable
+    private static int[] getCoordinateValuesFromString(String value) {
+        if (value == null) {
+            return null;
+        }
+        String[] parts = value.trim()
+            .split("[,\\s]+");
+        if (parts.length <= 0) {
+            return null;
+        }
+        int[] values = new int[parts.length];
+        int count = 0;
+        for (String part : parts) {
+            if (part == null || part.isEmpty()) {
+                continue;
+            }
+            try {
+                values[count++] = (int) Math.floor(Float.parseFloat(part));
+            } catch (RuntimeException ignored) {}
+        }
+        if (count <= 0) {
+            return null;
+        }
+        if (count == values.length) {
+            return values;
+        }
+        int[] trimmed = new int[count];
+        System.arraycopy(values, 0, trimmed, 0, count);
+        return trimmed;
     }
 }

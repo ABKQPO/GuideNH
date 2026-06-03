@@ -262,10 +262,7 @@ public class GuidebookSceneParticle {
         if (progress <= 0f) {
             return 0f;
         }
-        if (progress >= 1f) {
-            return 1f;
-        }
-        return progress;
+        return Math.min(progress, 1f);
     }
 
     private void updateAnimatedTextureFrame(int currentAge) {
@@ -286,8 +283,8 @@ public class GuidebookSceneParticle {
     private int resolveAnimationFrame(int currentAge) {
         int frameOffset;
         if (maxAge > 0) {
-            int clampedAge = Math.max(0, Math.min(maxAge - 1, currentAge));
-            frameOffset = Math.max(0, Math.min(animationFrameCount - 1, clampedAge * animationFrameCount / maxAge));
+            int clampedAge = Math.clamp(currentAge, 0, maxAge - 1);
+            frameOffset = Math.clamp(clampedAge * animationFrameCount / maxAge, 0, animationFrameCount - 1);
         } else if (animationLoop) {
             frameOffset = Math.floorMod(currentAge, animationFrameCount);
         } else {
@@ -305,9 +302,6 @@ public class GuidebookSceneParticle {
         if (partialTicks <= 0f) {
             return 0f;
         }
-        if (partialTicks >= 1f) {
-            return 1f;
-        }
-        return partialTicks;
+        return Math.min(partialTicks, 1f);
     }
 }

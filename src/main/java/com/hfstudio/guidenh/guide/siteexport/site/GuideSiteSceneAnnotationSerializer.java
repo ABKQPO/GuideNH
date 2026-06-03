@@ -43,6 +43,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
+import com.hfstudio.guidenh.guide.document.flow.LytSpoilerSpan;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
@@ -968,7 +969,11 @@ public class GuideSiteSceneAnnotationSerializer {
                     .append(escapeAttribute(href))
                     .append("\"");
             }
-            appendInlineStyleAttribute(html, span.resolveStyle());
+            boolean insideSpoiler = isInsideSpoiler(span);
+            if (span instanceof LytSpoilerSpan) {
+                html.append(" class=\"guide-spoiler\" tabindex=\"0\"");
+            }
+            appendInlineStyleAttribute(html, span.resolveStyle(), insideSpoiler);
             html.append(">");
             for (LytFlowContent child : span.getChildren()) {
                 appendFlowContent(
@@ -983,6 +988,10 @@ public class GuideSiteSceneAnnotationSerializer {
             html.append("</")
                 .append(tagName)
                 .append(">");
+        }
+
+        private static boolean isInsideSpoiler(LytFlowContent content) {
+            return content.findAncestor(LytSpoilerSpan.class) != null;
         }
 
         private static void appendImage(StringBuilder html, LytImage image,
@@ -1013,7 +1022,8 @@ public class GuideSiteSceneAnnotationSerializer {
             html.append(" loading=\"lazy\" decoding=\"async\">");
         }
 
-        private static void appendInlineStyleAttribute(StringBuilder html, ResolvedTextStyle style) {
+        private static void appendInlineStyleAttribute(StringBuilder html, ResolvedTextStyle style,
+            boolean insideSpoiler) {
             StringBuilder css = new StringBuilder();
             if (style.bold()) {
                 css.append("font-weight:700;");
@@ -1021,7 +1031,7 @@ public class GuideSiteSceneAnnotationSerializer {
             if (style.italic()) {
                 css.append("font-style:italic;");
             }
-            if (style.underlined() || style.strikethrough()) {
+            if (!insideSpoiler && (style.underlined() || style.strikethrough())) {
                 css.append("text-decoration:");
                 if (style.underlined()) {
                     css.append(" underline");
@@ -1031,7 +1041,7 @@ public class GuideSiteSceneAnnotationSerializer {
                 }
                 css.append(";");
             }
-            if (style.color() != null) {
+            if (!insideSpoiler && style.color() != null) {
                 css.append("color:")
                     .append(toCssColor(style.color()))
                     .append(";");

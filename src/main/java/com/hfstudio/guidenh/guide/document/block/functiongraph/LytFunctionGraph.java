@@ -279,7 +279,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int width = ResponsiveVisualSizing
             .scaleWidth(explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH, context.getVisualScale(), 72);
-        width = Math.max(1, Math.min(width, availableWidth));
+        width = Math.clamp(width, 1, availableWidth);
         int height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT;
         int plotWidth = Math.max(0, width - PADDING * 2 - AXIS_PAD_LEFT);
         int fixedChromeHeight = PADDING * 2 + AXIS_PAD_BOTTOM;
@@ -414,7 +414,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         FunctionPlot plot = plots.get(activePlotIndex);
         // Clamp the cursor x onto the plot rect so dragging out of the panel still tracks the
         // closest valid sample; vertical movement is intentionally ignored.
-        int clampedX = Math.max(plotRectCache.x(), Math.min(plotRectCache.right(), documentX));
+        int clampedX = Math.clamp(documentX, plotRectCache.x(), plotRectCache.right());
         activeDataX = unmapXToData(clampedX, plot.isInverse());
     }
 
@@ -533,7 +533,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (key == sampleCacheKey && sampleXs != null) {
             return;
         }
-        int sampleCount = Math.max(MIN_SAMPLES, Math.min(MAX_SAMPLES, plotRect.width() * 2));
+        int sampleCount = Math.clamp(plotRect.width() * 2, MIN_SAMPLES, MAX_SAMPLES);
         sampleXs = new float[plots.size()][];
         sampleYs = new float[plots.size()][];
         for (int i = 0; i < plots.size(); i++) {
@@ -639,7 +639,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                 String label = formatTick(v);
                 int sw = context.getStringWidth(label, AXIS_LABEL_STYLE);
                 int lx = (int) mapX(v) - sw / 2;
-                lx = Math.max(plotRect.x() - sw / 2, Math.min(plotRect.right() - sw / 2, lx));
+                lx = Math.clamp(lx, plotRect.x() - sw / 2, plotRect.right() - sw / 2);
                 context.drawText(label, lx, plotRect.bottom() + AXIS_LABEL_GAP, AXIS_LABEL_STYLE);
             }
         }
@@ -983,8 +983,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             boxY = (int) sy + TOOLTIP_GAP;
         }
         // Clamp horizontally to the block bounds so it never escapes the panel sideways.
-        boxX = Math.max(bounds.x() + 2, Math.min(bounds.right() - boxWidth - 2, boxX));
-        boxY = Math.max(bounds.y() + 2, Math.min(bounds.bottom() - boxHeight - 2, boxY));
+        boxX = Math.clamp(boxX, bounds.x() + 2, bounds.right() - boxWidth - 2);
+        boxY = Math.clamp(boxY, bounds.y() + 2, bounds.bottom() - boxHeight - 2);
 
         LytRect box = new LytRect(boxX, boxY, boxWidth, boxHeight);
         context.fillRect(box, 0xEE202428);

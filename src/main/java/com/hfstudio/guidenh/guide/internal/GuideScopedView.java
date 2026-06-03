@@ -36,8 +36,7 @@ public class GuideScopedView implements Guide, MediaWikiListContextProvider {
     private final Map<Class<?>, PageIndex> indexOverrides;
     @Nullable
     private volatile MediaWikiListContext mediaWikiListContext;
-    private final Map<ParsedGuidePage, GuidePage> compiledPages = Collections
-        .synchronizedMap(new IdentityHashMap<ParsedGuidePage, GuidePage>());
+    private final Map<ParsedGuidePage, GuidePage> compiledPages = Collections.synchronizedMap(new IdentityHashMap<>());
 
     public GuideScopedView(Guide delegate, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         NavigationTree navigationTree, Map<Class<?>, PageIndex> indexOverrides,

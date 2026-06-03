@@ -107,6 +107,14 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 自定义高亮颜色：<mark color="#8A6A00">暗金色高亮</mark>
 
+<Spoiler>把鼠标移上来后显示这段隐藏文字</Spoiler>
+
+<Spoiler>[锚点链接](#标题) 在黑幕显示后，依然会像普通链接一样正常悬停并显示下划线</Spoiler>
+
+<Spoiler>**加粗** *斜体* ==高亮== 和 <Color color="#55ccff">染色</Color> 在黑幕里依然正常生效</Spoiler>
+
+<Spoiler>隐藏文本同样可以使用 **Markdown** 和 <Color color="#ff8844">运行时标签</Color>。</Spoiler>
+
 Press <kbd>Shift</kbd> + <sub>1</sub>
 
 <a href="./index.md" title="Open index">打开首页</a><br clear="all" />

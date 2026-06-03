@@ -139,7 +139,7 @@ public class ItemPreviewService {
     private int resolveIconSize(String renderVariant) {
         int requestedSize = "picker".equalsIgnoreCase(renderVariant) ? LARGE_ICON_SIZE : DEFAULT_ICON_SIZE;
         int maxEdge = (int) Math.sqrt(Math.max(16, limits.getMaxPreviewIconPixels()));
-        return Math.max(16, Math.min(requestedSize, maxEdge));
+        return Math.clamp(requestedSize, 16, maxEdge);
     }
 
     private byte[] renderPng(ItemStack stack, int iconSize, Minecraft minecraft) {

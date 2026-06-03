@@ -114,7 +114,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
             if (block == null || block == Blocks.air) {
                 continue;
             }
-            int clampedY = Math.max(0, Math.min(placedBlock.getY() + offsetY, level.getHeight() - 1));
+            int clampedY = Math.clamp(placedBlock.getY() + offsetY, 0, level.getHeight() - 1);
 
             GuidebookPreviewBlockPlacer.place(
                 level,
@@ -156,7 +156,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
 
     public static String resolveFailureMessage(List<String> errors, String controller) {
         if (errors != null && !errors.isEmpty()) {
-            String firstError = errors.get(0);
+            String firstError = errors.getFirst();
             if (firstError != null && !firstError.trim()
                 .isEmpty()) {
                 return firstError;

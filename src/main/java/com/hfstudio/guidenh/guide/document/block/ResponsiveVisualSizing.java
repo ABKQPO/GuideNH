@@ -17,7 +17,7 @@ public class ResponsiveVisualSizing {
 
     public static int scaleWidth(int baseWidth, float visualScale, int minWidth) {
         int safeBaseWidth = Math.max(1, baseWidth);
-        float clampedScale = Math.max(0.1f, Math.min(1.0f, visualScale));
+        float clampedScale = Math.clamp(visualScale, 0.1f, 1.0f);
         if (clampedScale >= 0.999f) {
             return safeBaseWidth;
         }
@@ -27,7 +27,7 @@ public class ResponsiveVisualSizing {
     public static int scaleBodyHeightForWidth(int baseWidth, int totalHeight, int actualWidth, int fixedHeight,
         int minBodyHeight) {
         int safeTotalHeight = Math.max(1, totalHeight);
-        int safeFixedHeight = Math.max(0, Math.min(fixedHeight, safeTotalHeight - 1));
+        int safeFixedHeight = Math.clamp(fixedHeight, 0, safeTotalHeight - 1);
         int bodyHeight = Math.max(1, safeTotalHeight - safeFixedHeight);
         int scaledBodyHeight = scaleHeightForWidth(baseWidth, bodyHeight, actualWidth, minBodyHeight);
         return safeFixedHeight + scaledBodyHeight;

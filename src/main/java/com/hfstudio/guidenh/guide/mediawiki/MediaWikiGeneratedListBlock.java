@@ -120,10 +120,7 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {
-        for (int index = 0; index < rowLayouts.size(); index++) {
-            RowLayout rowLayout = rowLayouts.get(index);
-            rowLayouts.set(index, rowLayout.move(deltaX, deltaY));
-        }
+        rowLayouts.replaceAll(layout -> layout.move(deltaX, deltaY));
     }
 
     @Override

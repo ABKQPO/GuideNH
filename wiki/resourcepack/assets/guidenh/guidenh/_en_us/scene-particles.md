@@ -81,7 +81,7 @@ Generic particles:
     "vz": 0.0,
     "size": 0.18,
     "time": 16,
-    "count": 3
+    "amount": 3
   }
 ]
 ```
@@ -111,22 +111,46 @@ Weather preset:
     "x": [0, 2],
     "z": [0, 2],
     "time": 100,
-    "count": 8
+    "amount": 8
+  }
+]
+```
+
+Indicator preset:
+
+```json
+"particles": [
+  {
+    "preset": "indicator",
+    "color": "#6EDCFF",
+    "x": [1, 2],
+    "y": [1, 2],
+    "z": [0, 1],
+    "time": 16,
+    "amount": 6,
+    "size": 0.12
+  },
+  {
+    "preset": "redstone",
+    "x": 3,
+    "y": 1,
+    "z": 1
   }
 ]
 ```
 
 | Field | Description |
 | --- | --- |
-| `preset` | Special preset. `explosion` reproduces a vanilla-style flash, smoke, and outward burst. `rain` enables the shared weather preset. |
+| `preset` | Special preset. `explosion` reproduces a vanilla-style flash, smoke, and outward burst. `rain` enables the shared weather preset. `indicator` emits Create/Ponder-style block hint particles. `redstone` is a shortcut alias for `indicator` with the default red color. |
 | `weather` | Used by `preset: "rain"`. Supports `rain` and `snow`. |
+| `color` | Used by `preset: "indicator"` / `preset: "redstone"`. Accepts `#RRGGBB`, `#RRGGBBAA`, or `0xRRGGBB` / `0xRRGGBBAA`. Omitted color defaults to the Ponder-style red hint color. |
 | `name` | Generic particle appearance. Supported values: `billboard`, `smoke`, `largesmoke`, `explode`, `flash`, `largeexplode`, `hugeexplosion`. |
 | `particle` / `kind` | Compatibility aliases for `name`. |
-| `x`, `z` | Generic particle origin in world space, or weather coverage for `preset: "rain"`. Scalars target one column; arrays use endpoint pairs for rectangles. |
+| `x`, `y`, `z` | Generic particle origin in world space. For `preset: "rain"`, only `x/z` are used as weather coverage. For `preset: "indicator"` / `preset: "redstone"`, scalars target one block, while arrays or whitespace/comma-separated coordinate strings expand into block-coordinate sets on that axis. |
 | `vx`, `vy`, `vz` | Initial velocity. `motionX/Y/Z` are accepted aliases. |
 | `time` / `lifetime` | Particle lifetime in ticks. For `preset: "rain"` this is the full weather duration including the start/end transition. |
 | `size` | Particle half-size in block units. |
-| `count` | Generic particle count. When omitted for `explosion`, it scales from `power`. For `preset: "rain"` it controls average density per tick. |
+| `amount` | Generic particle count. When omitted for `explosion`, it scales from `power`. For `preset: "rain"` it controls average density per tick. For `preset: "indicator"` / `preset: "redstone"` it is the number of hint particles emitted inside each targeted block. Indicator and redstone presets still default to `10` when omitted. |
 | `power` | Explosion strength for the `explosion` preset. |
 
 Weather preset notes:
@@ -140,3 +164,10 @@ Weather preset notes:
 - The runtime automatically adds a short fade-in, steady middle section, and fade-out.
 - Rain adds quick drops and small ground splashes. Snow uses slower drifting flakes.
 - The same `x/z` column will not stack multiple weather types at the same time.
+
+Indicator preset notes:
+
+- `preset: "indicator"` emits a short colored hint burst inside each targeted block, similar to Create/Ponder redstone indicators.
+- `preset: "redstone"` is just `indicator` with the default red color, so it is useful as a concise shorthand.
+- For `indicator` and `redstone`, `x/y/z` all support scalar coordinates, arrays, or whitespace/comma-separated coordinate lists.
+- The runtime expands the three axes independently, then emits particles for every `x * y * z` block combination in the resulting volume/set.

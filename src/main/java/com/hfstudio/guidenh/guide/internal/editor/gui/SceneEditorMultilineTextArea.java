@@ -327,7 +327,7 @@ public class SceneEditorMultilineTextArea {
 
     public void setVerticalScrollFraction(float fraction) {
         int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
-        int offset = Math.round(Math.max(0f, Math.min(1f, fraction)) * maxOffset);
+        int offset = Math.round(Math.clamp(fraction, 0f, 1f) * maxOffset);
         scrollState.setOffsetPixels(offset);
         syncImeFocusProxy();
     }

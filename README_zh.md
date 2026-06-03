@@ -110,5 +110,7 @@ Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
 
 ## **致谢**
 
+感谢Persephone提供了图标纹理！
+
 GuideNH 借鉴了 [GuideME](https://github.com/AppliedEnergistics/GuideME) 的设计思路，GuideME 使用 LGPL-3.0 分发。
 本项目还使用了 SnakeYAML、Apache Lucene、Apache Commons Lang、FlatBuffers Java、JLaTeXMath 等开源库。

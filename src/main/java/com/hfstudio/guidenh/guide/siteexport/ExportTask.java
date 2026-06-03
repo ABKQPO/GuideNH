@@ -17,6 +17,7 @@ import net.minecraft.client.resources.IResource;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 
+import com.github.bsideup.jabel.Desugar;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.Guide;
@@ -108,20 +109,8 @@ public class ExportTask {
         return collector;
     }
 
-    public static class Result {
-
-        public final int pagesExported;
-        public final int pagesFailed;
-        public final int assetsCopied;
-        public final Path outDir;
-
-        Result(int pagesExported, int pagesFailed, int assetsCopied, Path outDir) {
-            this.pagesExported = pagesExported;
-            this.pagesFailed = pagesFailed;
-            this.assetsCopied = assetsCopied;
-            this.outDir = outDir;
-        }
-    }
+    @Desugar
+    public record Result(int pagesExported, int pagesFailed, int assetsCopied, Path outDir) {}
 
     public class Collector implements ResourceExporter {
 

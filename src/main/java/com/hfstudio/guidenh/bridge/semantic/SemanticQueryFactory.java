@@ -21,7 +21,7 @@ public class SemanticQueryFactory {
 
     public SemanticQuery fromPayload(JsonObject payload) {
         int requestedLimit = readInt(payload, "limit", limits.getMaxPageSize());
-        int limit = Math.max(0, Math.min(requestedLimit, limits.getMaxPageSize()));
+        int limit = Math.clamp(requestedLimit, 0, limits.getMaxPageSize());
         return new SemanticQuery(
             readString(payload, "cursor", ""),
             limit,

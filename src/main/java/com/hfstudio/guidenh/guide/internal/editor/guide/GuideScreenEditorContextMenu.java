@@ -451,7 +451,7 @@ public class GuideScreenEditorContextMenu {
 
     private int clampMenuHeight(int contentHeight, int viewportHeight) {
         int maxHeight = Math.max(ITEM_HEIGHT + PADDING_Y * 2, viewportHeight - 4);
-        return Math.max(ITEM_HEIGHT + PADDING_Y * 2, Math.min(contentHeight, maxHeight));
+        return Math.clamp(contentHeight, ITEM_HEIGHT + PADDING_Y * 2, maxHeight);
     }
 
     private int clampScroll(int scrollY, List<Entry> itemEntries, int height) {

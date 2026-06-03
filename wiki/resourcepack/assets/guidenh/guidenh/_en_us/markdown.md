@@ -108,6 +108,14 @@ Literal autolinks: visit https://example.com/docs, www.example.org, or guide@exa
 
 Custom mark color: <mark color="#8A6A00">dark golden highlight</mark>
 
+<Spoiler>hover to reveal this hidden sentence</Spoiler>
+
+<Spoiler>[Anchor Link](#Headings) still hovers and underlines like a normal link after reveal</Spoiler>
+
+<Spoiler>**Bold** *italic* ==mark== and <Color color="#55ccff">tint</Color> still render inside the hidden text</Spoiler>
+
+<Spoiler>Hidden text can also use **Markdown** and <Color color="#ff8844">runtime tags</Color>.</Spoiler>
+
 Press <kbd>Shift</kbd> + <sub>1</sub>
 
 <a href="./index.md" title="Open index">Back to index</a><br clear="all" />

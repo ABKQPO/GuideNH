@@ -15,8 +15,8 @@ public class SceneEditorPreviewFrameOverlayLayout {
             return new Layout(LytRect.empty(), 0, 0);
         }
 
-        int frameWidth = Math.min(Math.max(0, previewWidth), previewViewport.width());
-        int frameHeight = Math.min(Math.max(0, previewHeight), previewViewport.height());
+        int frameWidth = Math.clamp(previewWidth, 0, previewViewport.width());
+        int frameHeight = Math.clamp(previewHeight, 0, previewViewport.height());
         if (frameWidth <= 0 || frameHeight <= 0) {
             return new Layout(LytRect.empty(), 0, 0);
         }

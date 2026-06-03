@@ -271,7 +271,7 @@ public class SceneEditorSceneNodePreviewApplier {
             if (block == null || block == Blocks.air) {
                 continue;
             }
-            int clampedY = Math.max(0, Math.min(placedBlock.getY() + offsetY, level.getHeight() - 1));
+            int clampedY = Math.clamp(placedBlock.getY() + offsetY, 0, level.getHeight() - 1);
 
             GuidebookPreviewBlockPlacer.place(
                 level,
@@ -481,7 +481,7 @@ public class SceneEditorSceneNodePreviewApplier {
                 continue;
             }
             int px = pos[0] + offsetX;
-            int py = Math.max(0, Math.min(pos[1] + offsetY, level.getHeight() - 1));
+            int py = Math.clamp(pos[1] + offsetY, 0, level.getHeight() - 1);
             int pz = pos[2] + offsetZ;
             int meta = blockTag.hasKey("meta") ? blockTag.getInteger("meta") : 0;
             NBTTagCompound tileTag = blockTag.hasKey("nbt", 10) ? blockTag.getCompoundTag("nbt") : null;

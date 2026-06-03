@@ -60,7 +60,7 @@ public class LytStructureView extends LytBlock {
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int targetWidth = ResponsiveVisualSizing.scaleWidth(viewWidth, context.getVisualScale(), 32);
-        int width = Math.max(1, Math.min(targetWidth, availableWidth));
+        int width = Math.clamp(targetWidth, 1, availableWidth);
         int height = ResponsiveVisualSizing.scaleHeightForWidth(viewWidth, viewHeight, width, 32);
         return new LytRect(x, y, width, height);
     }

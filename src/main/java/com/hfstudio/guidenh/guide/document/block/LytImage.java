@@ -171,8 +171,8 @@ public class LytImage extends LytBlock implements InteractiveElement {
             } else {
                 // Clamp the annotation region to [0, natW] x [0, natH] so the border
                 // cannot extend beyond the displayed image area regardless of scaling.
-                int clampedX = Math.max(0, Math.min(ann.getImgX(), natW));
-                int clampedY = Math.max(0, Math.min(ann.getImgY(), natH));
+                int clampedX = Math.clamp(ann.getImgX(), 0, natW);
+                int clampedY = Math.clamp(ann.getImgY(), 0, natH);
                 int clampedW = Math.min(ann.getImgX() + ann.getImgW(), natW) - clampedX;
                 int clampedH = Math.min(ann.getImgY() + ann.getImgH(), natH) - clampedY;
                 if (clampedW <= 0 || clampedH <= 0) {

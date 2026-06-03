@@ -223,7 +223,7 @@ public class SceneEditorElementModel {
     }
 
     public void setBackgroundAlpha(int backgroundAlpha) {
-        this.backgroundAlpha = Math.max(0, Math.min(255, backgroundAlpha));
+        this.backgroundAlpha = Math.clamp(backgroundAlpha, 0, 255);
     }
 
     public Map<String, String> getExtraAttributes() {

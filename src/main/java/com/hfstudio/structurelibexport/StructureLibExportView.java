@@ -9,6 +9,9 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
 
+import lombok.Getter;
+
+@Getter
 public class StructureLibExportView {
 
     private final String name;
@@ -82,26 +85,6 @@ public class StructureLibExportView {
 
     public void apply(CameraSettings camera) {
         camera.setIsometricYawPitchRoll(yaw, pitch, roll);
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public float getYaw() {
-        return yaw;
-    }
-
-    public float getPitch() {
-        return pitch;
-    }
-
-    public float getRoll() {
-        return roll;
-    }
-
-    public boolean isExplicit() {
-        return explicit;
     }
 
     public PerspectivePreset asPerspectivePreset() {

@@ -110,5 +110,7 @@ Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
 
 ## **Credits**
 
+Thanks to persephone for providing the icon textures!
+
 GuideNH is based on ideas from [GuideME](https://github.com/AppliedEnergistics/GuideME), distributed under LGPL-3.0.
 It also uses open-source libraries including SnakeYAML, Apache Lucene, Apache Commons Lang, FlatBuffers Java, and JLaTeXMath.

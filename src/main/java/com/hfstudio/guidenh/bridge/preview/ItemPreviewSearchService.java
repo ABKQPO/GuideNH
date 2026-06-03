@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.bridge.preview;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -370,7 +371,7 @@ public class ItemPreviewSearchService {
     }
 
     private Map<String, Integer> buildFamilySizes(List<Map<String, String>> semanticEntries) {
-        Map<String, Integer> familySizes = new java.util.HashMap<>();
+        Map<String, Integer> familySizes = new HashMap<>();
         for (Map<String, String> semanticEntry : semanticEntries) {
             String id = trimToNull(semanticEntry.get("id"));
             if (id == null) {

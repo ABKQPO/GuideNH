@@ -196,6 +196,8 @@ scene contents. Manual mode shows author-provided rows, which is useful for plan
 | `maxWidth` | 25% scene width | Maximum overlay width before horizontal scrolling. |
 | `maxHeight` | 25% scene height | Maximum overlay height before vertical scrolling. |
 
+For 3D region parameters, GuideNH keeps the field names `dx`/`dy`/`dz`, but the intended axis order is X/Y/Z. In other words, read them as length, height, and width/depth for the region.
+
 `<BlockStat>` rows for manual mode:
 
 | Attribute | Required | Description |

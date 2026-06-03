@@ -538,7 +538,7 @@ public class MediaWikiSpecialPageResolver {
                     title,
                     children));
         }
-        groups.sort((left, right) -> compareOverrideGroups(left, right));
+        groups.sort(this::compareOverrideGroups);
         return groups;
     }
 
@@ -893,7 +893,7 @@ public class MediaWikiSpecialPageResolver {
     private String joinWrappedLanguagePages(List<String> pages, int maxPerLine) {
         StringBuilder builder = new StringBuilder();
         for (int index = 0; index < pages.size(); index += maxPerLine) {
-            if (builder.length() > 0) {
+            if (!builder.isEmpty()) {
                 builder.append("\n");
             }
             StringJoiner joiner = new StringJoiner(", ");
@@ -1336,7 +1336,7 @@ public class MediaWikiSpecialPageResolver {
         if (entries == null || entries.isEmpty()) {
             return 0;
         }
-        String text = entries.get(0)
+        String text = entries.getFirst()
             .title();
         if (text == null || text.isEmpty()) {
             return 0;

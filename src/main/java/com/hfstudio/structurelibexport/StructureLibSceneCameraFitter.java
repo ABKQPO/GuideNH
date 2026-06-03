@@ -2,6 +2,7 @@ package com.hfstudio.structurelibexport;
 
 import org.joml.Vector3f;
 
+import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
@@ -60,44 +61,11 @@ public class StructureLibSceneCameraFitter {
         return new ProjectionBounds(minX, maxX, minY, maxY);
     }
 
-    public static class FittedCamera {
+    @Desugar
+    public record FittedCamera(CameraSettings camera, int width, int height) {}
 
-        private final CameraSettings camera;
-        private final int width;
-        private final int height;
-
-        public FittedCamera(CameraSettings camera, int width, int height) {
-            this.camera = camera;
-            this.width = width;
-            this.height = height;
-        }
-
-        public CameraSettings getCamera() {
-            return camera;
-        }
-
-        public int getWidth() {
-            return width;
-        }
-
-        public int getHeight() {
-            return height;
-        }
-    }
-
-    public static class ProjectionBounds {
-
-        private final float minX;
-        private final float maxX;
-        private final float minY;
-        private final float maxY;
-
-        public ProjectionBounds(float minX, float maxX, float minY, float maxY) {
-            this.minX = minX;
-            this.maxX = maxX;
-            this.minY = minY;
-            this.maxY = maxY;
-        }
+    @Desugar
+    public record ProjectionBounds(float minX, float maxX, float minY, float maxY) {
 
         public float width() {
             return maxX - minX;

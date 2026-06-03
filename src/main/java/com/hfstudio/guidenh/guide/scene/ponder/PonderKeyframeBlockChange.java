@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.scene.ponder;
 
-import net.minecraft.tileentity.TileEntity;
-
 import org.jetbrains.annotations.Nullable;
+
+import lombok.Getter;
 
 /**
  * A single block replacement that is applied when a Ponder keyframe becomes active.
@@ -31,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
  * {@code nbt} is an optional SNBT string that, when present, is loaded into the placed
  * tile entity (e.g. to pre-fill a chest with items).
  */
+@Getter
 public class PonderKeyframeBlockChange {
 
     private int x;
@@ -42,28 +43,6 @@ public class PonderKeyframeBlockChange {
     private Boolean particles;
     @Nullable
     private String nbt;
-
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public int getZ() {
-        return z;
-    }
-
-    /** Registry name of the block to place, e.g. {@code "minecraft:furnace"}. May be null for air. */
-    public String getBlock() {
-        return block;
-    }
-
-    /** Block metadata / damage value. Defaults to {@code 0} when omitted from JSON. */
-    public int getMeta() {
-        return meta;
-    }
 
     /**
      * Whether a brief particle/highlight effect should play when this block change is applied
@@ -77,8 +56,4 @@ public class PonderKeyframeBlockChange {
      * Optional SNBT tile-entity tag to apply after placing the block.
      * When present the tag is parsed and loaded into the block's {@link TileEntity}.
      */
-    @Nullable
-    public String getNbt() {
-        return nbt;
-    }
 }

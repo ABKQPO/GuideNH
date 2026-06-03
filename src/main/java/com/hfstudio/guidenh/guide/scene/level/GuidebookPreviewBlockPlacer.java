@@ -182,7 +182,7 @@ public class GuidebookPreviewBlockPlacer {
         }
         Integer cached = GREGTECH_BASE_META_CACHE.get(metaTileId);
         if (cached != null) {
-            return cached.intValue() == MISSING_BASE_META ? null : cached;
+            return cached == MISSING_BASE_META ? null : cached;
         }
         Integer resolved = resolveGregTechBaseMetaUncached(metaTileId);
         GREGTECH_BASE_META_CACHE.put(metaTileId, resolved != null ? resolved : MISSING_BASE_META);
@@ -228,8 +228,7 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     public static void applyBartWorksGeneratedBlockMeta(@Nullable TileEntity tileEntity, Block block, int blockMeta) {
-        if (tileEntity == null || blockMeta <= 0
-            || !GuideBlockDisplayResolver.isBlockInstanceOf(block, BARTWORKS_META_GENERATED_BLOCKS_CLASS)
+        if (blockMeta <= 0 || !GuideBlockDisplayResolver.isBlockInstanceOf(block, BARTWORKS_META_GENERATED_BLOCKS_CLASS)
             || !isInstanceOf(tileEntity, BARTWORKS_META_GENERATED_TILE_CLASS)) {
             return;
         }
@@ -339,8 +338,7 @@ public class GuidebookPreviewBlockPlacer {
             .size() == 1 && compound.hasKey(BYTE_ARRAY_WRAPPER_TAG);
     }
 
-    @Nullable
-    public static byte[] decodeWrappedByteArray(NBTTagCompound compound) {
+    public static byte @Nullable [] decodeWrappedByteArray(NBTTagCompound compound) {
         if (!isEncodedByteArrayWrapper(compound)) {
             return null;
         }
@@ -355,8 +353,7 @@ public class GuidebookPreviewBlockPlacer {
         return bytes;
     }
 
-    @Nullable
-    public static byte[] tryDecodeLegacyByteArray(@Nullable NBTBase tag, boolean allowEmptyList) {
+    public static byte @Nullable [] tryDecodeLegacyByteArray(@Nullable NBTBase tag, boolean allowEmptyList) {
         if (tag instanceof NBTTagByteArray byteArray) {
             return byteArray.func_150292_c();
         }
@@ -386,8 +383,7 @@ public class GuidebookPreviewBlockPlacer {
         return null;
     }
 
-    @Nullable
-    public static byte[] tryDecodeNumericByteList(NBTTagList list, boolean allowEmptyList) {
+    public static byte @Nullable [] tryDecodeNumericByteList(NBTTagList list, boolean allowEmptyList) {
         if (list.tagCount() <= 0) {
             return allowEmptyList ? new byte[0] : null;
         }
@@ -403,8 +399,7 @@ public class GuidebookPreviewBlockPlacer {
         return decoded;
     }
 
-    @Nullable
-    public static byte[] parseByteArrayLiteral(@Nullable String value) {
+    public static byte @Nullable [] parseByteArrayLiteral(@Nullable String value) {
         if (value == null) {
             return null;
         }
@@ -533,8 +528,7 @@ public class GuidebookPreviewBlockPlacer {
         }
     }
 
-    @Nullable
-    public static byte[] decodeKnownGregTechByteArray(String key, NBTBase tag) {
+    public static byte @Nullable [] decodeKnownGregTechByteArray(String key, NBTBase tag) {
         if (!KNOWN_GREGTECH_BYTE_ARRAY_KEYS.contains(key)) {
             return null;
         }
@@ -556,7 +550,7 @@ public class GuidebookPreviewBlockPlacer {
             if (!tileTag.hasKey(key)) {
                 continue;
             }
-            if (builder.length() > 0) {
+            if (!builder.isEmpty()) {
                 builder.append(", ");
             }
             NBTBase value = tileTag.getTag(key);
@@ -566,7 +560,7 @@ public class GuidebookPreviewBlockPlacer {
                     value != null ? value.getClass()
                         .getSimpleName() : "null");
         }
-        return builder.length() > 0 ? builder.toString() : "no-known-byte-array-keys";
+        return !builder.isEmpty() ? builder.toString() : "no-known-byte-array-keys";
     }
 
     public static Set<String> createKnownGregTechByteArrayKeys() {

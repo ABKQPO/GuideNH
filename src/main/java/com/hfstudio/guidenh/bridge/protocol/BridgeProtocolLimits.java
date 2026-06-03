@@ -19,8 +19,8 @@ public class BridgeProtocolLimits {
         this.maxSubscriptions = maxSubscriptions;
         this.maxConnections = maxConnections;
         this.maxDeltaEntries = maxDeltaEntries;
-        this.maxPreviewSearchPageSize = Math.max(1, Math.min(maxPageSize, 80));
-        this.maxPreviewResolveBytes = Math.max(32768, Math.min(maxMessageBytes - 4096, 131072));
+        this.maxPreviewSearchPageSize = Math.clamp(maxPageSize, 1, 80);
+        this.maxPreviewResolveBytes = Math.clamp(maxMessageBytes - 4096, 32768, 131072);
         this.maxPreviewIconPixels = 128 * 128;
         this.maxPreviewTooltipLines = 24;
     }

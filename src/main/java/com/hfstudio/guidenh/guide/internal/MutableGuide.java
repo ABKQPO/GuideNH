@@ -8,6 +8,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -15,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.WeakHashMap;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
@@ -78,6 +80,18 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     private volatile long fallbackMediaWikiListContextRevision = Long.MIN_VALUE;
     private volatile long requestedMediaWikiWarmupRevision = Long.MIN_VALUE;
     private final MediaWikiSpecialPageRefreshController mediaWikiRefreshController = new MediaWikiSpecialPageRefreshController();
+    private static final int MAX_STRONG_RUNTIME_PAGES = 64;
+    private final Map<ParsedGuidePage, GuidePage> compiledPagesWeak = Collections.synchronizedMap(new WeakHashMap<>());
+    private final LinkedHashMap<ResourceLocation, GuidePage> compiledPagesStrong = new LinkedHashMap<>(
+        64,
+        0.75f,
+        true) {
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<ResourceLocation, GuidePage> eldest) {
+            return size() > MAX_STRONG_RUNTIME_PAGES;
+        }
+    };
     private final ExtensionCollection extensions;
     private final boolean availableToOpenHotkey;
     private final GuideItemSettings itemSettings;
@@ -366,7 +380,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             if (change == null || !seenPageIds.add(change.pageId())) {
                 continue;
             }
-            deduplicatedChanges.add(0, change);
+            deduplicatedChanges.addFirst(change);
         }
 
         // Enrich each change with the previous page data while we process them

@@ -1,5 +1,5 @@
 {
-  "totalTime": 470,
+  "totalTime": 610,
   "keyframes": [
     {
       "time": 0,
@@ -93,7 +93,7 @@
           "vz": 0.0,
           "size": 0.18,
           "time": 16,
-          "count": 3
+          "amount": 3
         }
       ],
       "blockChanges": [
@@ -217,7 +217,37 @@
           "y": 1,
           "z": 1,
           "path": "Items[0].Count",
+          "value": "2b"
+        }
+      ]
+    },
+    {
+      "time": 346,
+      "hidden": true,
+      "modifyTileNBT": [
+        {
+          "x": 2,
+          "y": 1,
+          "z": 1,
+          "path": "Items[0].Count",
           "value": "3b"
+        }
+      ]
+    },
+    {
+      "time": 370,
+      "label": "Done",
+      "camera": {
+        "rotY": 210.0,
+        "zoom": 1.8
+      },
+      "modifyTileNBT": [
+        {
+          "x": 2,
+          "y": 1,
+          "z": 1,
+          "path": "Items[0].Count",
+          "value": "4b"
         }
       ],
       "createEntities": [
@@ -304,7 +334,7 @@
       ]
     },
     {
-      "time": 352,
+      "time": 410,
       "label": "Entity presets",
       "camera": {
         "rotY": 214.0,
@@ -342,7 +372,7 @@
       ]
     },
     {
-      "time": 372,
+      "time": 455,
       "label": "Jump and crouch",
       "camera": {
         "rotY": 220.0,
@@ -377,7 +407,7 @@
       ]
     },
     {
-      "time": 392,
+      "time": 500,
       "label": "Unsneak",
       "animateEntities": [
         {
@@ -396,7 +426,7 @@
       ]
     },
     {
-      "time": 402,
+      "time": 530,
       "label": "Remove mounted entity",
       "removeEntities": [
         {
@@ -415,7 +445,7 @@
       ]
     },
     {
-      "time": 410,
+      "time": 555,
       "label": "Explosion preset",
       "particles": [
         {
@@ -439,7 +469,7 @@
       ]
     },
     {
-      "time": 435,
+      "time": 580,
       "label": "Weather preset",
       "particles": [
         {
@@ -448,7 +478,7 @@
           "x": [0, 1, 2, 2],
           "z": [0, 2, 0, 2],
           "time": 80,
-          "count": 7
+          "amount": 7
         }
       ],
       "annotations": [
@@ -463,7 +493,40 @@
       ]
     },
     {
-      "time": 470,
+      "time": 600,
+      "label": "Indicator presets",
+      "particles": [
+        {
+          "preset": "indicator",
+          "color": "#6EDCFF",
+          "x": [0, 1],
+          "y": [1, 2],
+          "z": [0, 1],
+          "time": 16,
+          "amount": 6,
+          "size": 0.12
+        },
+        {
+          "preset": "redstone",
+          "x": 3,
+          "y": 1,
+          "z": 1,
+          "time": 16
+        }
+      ],
+      "annotations": [
+        {
+          "type": "text",
+          "text": "Indicator preset supports custom colors and 3-axis block volumes. Redstone is the default-red shortcut.",
+          "independent": true,
+          "yOffset": 56,
+          "maxWidth": 228,
+          "color": "0xFF9DE7FF"
+        }
+      ]
+    },
+    {
+      "time": 610,
       "camera": {
         "rotY": 210.0
       }

@@ -37,8 +37,7 @@ public class MediaWikiGuideAggregator implements Guide {
     private final NavigationTree navigationTree;
     private final CategoryIndex categoryIndex;
     private final Map<Class<?>, PageIndex> indexOverrides;
-    private final Map<ParsedGuidePage, GuidePage> compiledPages = Collections
-        .synchronizedMap(new IdentityHashMap<ParsedGuidePage, GuidePage>());
+    private final Map<ParsedGuidePage, GuidePage> compiledPages = Collections.synchronizedMap(new IdentityHashMap<>());
 
     private MediaWikiGuideAggregator(Guide primaryGuide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         Map<ResourceLocation, MutableGuide> ownerGuidesByPageId, List<MutableGuide> componentGuides,

@@ -95,6 +95,7 @@ The `src` attribute accepts both relative and absolute IDs:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `time` | integer | Yes | Tick at which this keyframe occurs (0 <= time <= totalTime). |
+| `hidden` | boolean | No | When `true`, the keyframe still applies camera/NBT/entity/annotation state at its `time`, but no visible node is drawn for it on the progress bar and visible keyframe navigation skips it. |
 | `label` | string | No | Optional fallback label shown when hovering the keyframe node on the progress bar. |
 | `labelKey` | string | No | Translation key for the keyframe label. When resolved, it overrides `label`. |
 | `camera` | object | No | Camera state at this keyframe. Null fields inherit from the previous keyframe. |
@@ -113,6 +114,10 @@ The `src` attribute accepts both relative and absolute IDs:
 | `modifyEntityNBT` | array | No | Set one referenced entity NBT path to an SNBT value. |
 | `removeEntityNBT` | array | No | Remove one referenced entity NBT path. |
 | `removeEntities` | array | No | Remove one or more Ponder-owned entities by `ref` using the stable scene-entity registry. |
+
+Hidden keyframes are useful when you want additional intermediate state changes without adding a new visible node
+to the timeline. For example, you can split several `modifyTileNBT` updates across multiple ticks, mark the
+intermediate keyframes as hidden, and keep only the major beats visible on the progress bar.
 
 ### Camera fields
 
@@ -227,7 +232,7 @@ Generic particles:
       "vz": 0.0,
       "size": 0.18,
       "time": 16,
-      "count": 3
+      "amount": 3
     }
   ]
 }
@@ -263,7 +268,7 @@ Weather preset:
       "x": [0, 2],
       "z": [0, 2],
       "time": 100,
-      "count": 8
+      "amount": 8
     }
   ]
 }
@@ -281,7 +286,7 @@ Particle fields:
 | `vx`, `vy`, `vz` | float | `0.0` | Initial motion vector. `motionX/Y/Z` are accepted aliases. |
 | `time` / `lifetime` | integer | preset-specific | Particle lifetime in ticks. For `preset: "rain"` this is the total weather duration, including fade-in and fade-out. |
 | `size` | float | preset-specific | Generic particle half-size in block units. |
-| `count` | integer | preset-specific | Generic particle count. For `explosion`, omitted count scales from `power`. For `preset: "rain"`, this is the average per-tick weather density. |
+| `amount` | integer | preset-specific | Generic particle count. For `explosion`, omitted amount scales from `power`. For `preset: "rain"`, this is the average per-tick weather density. |
 | `power` | float | `2.0` | Explosion strength for the `explosion` preset. |
 
 Weather preset notes:
@@ -741,11 +746,11 @@ Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
 
 | Control | Action |
 |---------|--------|
-| **Prev keyframe** | Jump to the start of the previous keyframe segment. |
+| **Prev keyframe** | Jump to the start of the previous visible keyframe segment. Hidden keyframes are skipped. |
 | **Play/Pause** | Toggle playback; restarts from the beginning if already finished. |
 | **Restart** | Return to tick 0, reset state, and begin playing. |
 | Progress bar | Click or drag to seek to any position. Seeking always pauses playback. |
-| Keyframe nodes | Small tick marks on the bar; hover to see the label and direction arrow. |
+| Keyframe nodes | Small tick marks on the bar for visible keyframes; hover to see the label and direction arrow. |
 
 ### Initial state
 
@@ -767,6 +772,7 @@ While playback is **paused** or **finished**:
 When you hover over a keyframe node on the progress bar:
 - The node grows slightly to indicate it is hovered.
 - If the keyframe has a `label`, it is displayed beside the node.
+- Hidden keyframes do not create hoverable nodes, but they still apply their timeline state when playback or seeking reaches them.
 
 ### Layer control during playback
 

@@ -139,7 +139,7 @@ public class StructureLibExportPlanner {
         }
         LinkedHashMap<String, List<Integer>> channels = new LinkedHashMap<>();
         for (Map.Entry<String, Integer> entry : autoTierPlan.channelMaxTierMap.entrySet()) {
-            int value = Math.min(Math.max(1, tier), Math.max(1, entry.getValue()));
+            int value = Math.clamp(tier, 1, Math.max(1, entry.getValue()));
             ArrayList<Integer> values = new ArrayList<>();
             values.add(value);
             channels.put(entry.getKey(), values);

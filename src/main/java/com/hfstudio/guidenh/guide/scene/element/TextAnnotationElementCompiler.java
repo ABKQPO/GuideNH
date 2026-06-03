@@ -226,6 +226,6 @@ public class TextAnnotationElementCompiler implements SceneElementTagCompiler {
     }
 
     private static int clampAlpha(int value) {
-        return Math.max(0, Math.min(255, value));
+        return Math.clamp(value, 0, 255);
     }
 }

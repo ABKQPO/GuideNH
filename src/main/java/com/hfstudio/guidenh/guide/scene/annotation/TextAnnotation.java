@@ -374,7 +374,7 @@ public class TextAnnotation extends OverlayAnnotation {
     private int resolveContentWrapWidth(int viewportWidth) {
         int viewportContentWidth = Math.max(1, viewportWidth - PADDING_X * 2 - 2);
         if (maxWidth > 0) {
-            return Math.max(1, Math.min(maxWidth, viewportContentWidth));
+            return Math.min(maxWidth, viewportContentWidth);
         }
         return viewportContentWidth;
     }
@@ -419,12 +419,11 @@ public class TextAnnotation extends OverlayAnnotation {
             case LEFT -> drawFilledRect(anchorX, anchorY - 1, bubble.x(), anchorY + 1, argb);
             case RIGHT -> drawFilledRect(bubble.right(), anchorY - 1, anchorX, anchorY + 1, argb);
             case BOTTOM -> drawFilledRect(anchorX - 1, bubble.bottom(), anchorX + 1, anchorY, argb);
-            case NONE -> {}
         }
     }
 
     private static int clampAlpha(int value) {
-        return Math.max(0, Math.min(255, value));
+        return Math.clamp(value, 0, 255);
     }
 
     private static class LayoutMeasure {

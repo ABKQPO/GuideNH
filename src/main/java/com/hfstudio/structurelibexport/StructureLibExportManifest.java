@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class StructureLibExportManifest {
 
     private final List<Entry> entries = new ArrayList<>();
@@ -20,6 +22,7 @@ public class StructureLibExportManifest {
         return List.copyOf(entries);
     }
 
+    @Getter
     public static class Entry {
 
         private final boolean success;

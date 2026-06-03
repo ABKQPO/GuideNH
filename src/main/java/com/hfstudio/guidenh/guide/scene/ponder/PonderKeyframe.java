@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 public class PonderKeyframe {
 
     private int time;
+    private boolean hidden;
     @Nullable
     private String label;
     @Nullable
@@ -68,6 +69,10 @@ public class PonderKeyframe {
 
     public int getTime() {
         return time;
+    }
+
+    public boolean isHidden() {
+        return hidden;
     }
 
     @Nullable

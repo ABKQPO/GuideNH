@@ -901,7 +901,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
     }
 
     private int clampInt(int value, int min, int max) {
-        return Math.max(min, Math.min(max, value));
+        return Math.clamp(value, min, max);
     }
 
     private boolean readBooleanValue(MdxJsxElementFields element, String name, boolean fallback) {

@@ -147,7 +147,7 @@ public class LineAnnotationElementCompiler extends AnnotationTagCompiler {
             builder.append(childSource);
             first = false;
         }
-        return builder.length() > 0 ? builder.toString() : null;
+        return !builder.isEmpty() ? builder.toString() : null;
     }
 
     @Nullable

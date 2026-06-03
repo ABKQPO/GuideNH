@@ -193,13 +193,13 @@ public class GuideScreenContextMenu {
     private int clampX(int value, int menuWidth, int viewportWidth) {
         int min = 2;
         int max = Math.max(min, viewportWidth - menuWidth - 2);
-        return Math.max(min, Math.min(value, max));
+        return Math.clamp(value, min, max);
     }
 
     private int clampY(int value, int menuHeight, int viewportHeight) {
         int min = 2;
         int max = Math.max(min, viewportHeight - menuHeight - 2);
-        return Math.max(min, Math.min(value, max));
+        return Math.clamp(value, min, max);
     }
 
     private boolean contains(int mouseX, int mouseY) {

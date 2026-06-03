@@ -25,7 +25,7 @@ public class LayoutContext implements FontMetrics {
     }
 
     public LayoutContext withVisualScale(float visualScale) {
-        this.visualScale = Math.max(0.1f, Math.min(1.0f, visualScale));
+        this.visualScale = Math.clamp(visualScale, 0.1f, 1.0f);
         return this;
     }
 

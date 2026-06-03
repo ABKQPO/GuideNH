@@ -75,7 +75,6 @@ public class GuideNhRegionExportServerHandler implements IMessageHandler<GuideNh
             .text();
     }
 
-    @SuppressWarnings("unchecked")
     private List<Entity> collectEntities(EntityPlayer player, int minX, int minY, int minZ, int maxX, int maxY,
         int maxZ) {
         List<Entity> all = player.worldObj.getEntitiesWithinAABBExcludingEntity(

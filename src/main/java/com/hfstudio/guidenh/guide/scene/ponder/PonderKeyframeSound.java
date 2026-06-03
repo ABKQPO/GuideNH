@@ -4,6 +4,9 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 
+import lombok.Getter;
+
+@Getter
 public class PonderKeyframeSound {
 
     @Nullable
@@ -22,48 +25,4 @@ public class PonderKeyframeSound {
     @Nullable
     private Float z;
 
-    @Nullable
-    public String getSound() {
-        return sound;
-    }
-
-    @Nullable
-    public String getSrc() {
-        return src;
-    }
-
-    public float getVolume() {
-        return volume;
-    }
-
-    public float getPitch() {
-        return pitch;
-    }
-
-    public int getCooldown() {
-        return cooldown;
-    }
-
-    public float getRadius() {
-        return radius;
-    }
-
-    public float getMinVolume() {
-        return minVolume;
-    }
-
-    @Nullable
-    public Float getX() {
-        return x;
-    }
-
-    @Nullable
-    public Float getY() {
-        return y;
-    }
-
-    @Nullable
-    public Float getZ() {
-        return z;
-    }
 }

@@ -117,7 +117,7 @@ public class PonderNbtPath {
         if (list == null) {
             return false;
         }
-        int index = segment.indexes.get(segment.indexes.size() - 1);
+        int index = segment.indexes.getLast();
         if (index < 0 || index >= list.tagCount()) {
             return false;
         }
@@ -138,7 +138,7 @@ public class PonderNbtPath {
         if (list == null) {
             return false;
         }
-        int index = segment.indexes.get(segment.indexes.size() - 1);
+        int index = segment.indexes.getLast();
         if (index < 0 || index >= list.tagCount()) {
             return false;
         }
