@@ -79,7 +79,7 @@ public class CameraSettings {
     public void setZoom(float zoom) {
         if (this.zoom != zoom) {
             this.zoom = zoom;
-            markViewDirty();
+            markProjectionDirty();
         }
     }
 
