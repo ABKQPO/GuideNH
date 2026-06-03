@@ -27,6 +27,7 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderNbtPath;
+import cpw.mods.fml.common.FMLLog;
 
 public class BlockImageScript implements LytScript {
 
@@ -83,7 +84,9 @@ public class BlockImageScript implements LytScript {
                 } else {
                     tileTag = explicitTag;
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                FMLLog.getLogger().warn("[BlockImageScript] Failed to parse NBT for block image", e);
+            }
         }
 
         PerspectivePreset perspective = PerspectivePreset.ISOMETRIC_NORTH_EAST;
