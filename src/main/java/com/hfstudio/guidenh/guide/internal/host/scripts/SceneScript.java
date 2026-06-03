@@ -7,12 +7,15 @@ import java.util.Map;
 
 import net.minecraft.util.ResourceLocation;
 
+import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
+import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
+import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
@@ -33,6 +36,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
@@ -91,8 +95,11 @@ public class SceneScript implements LytScript {
         // Parse children source
         ExceptionCollector errorSink = new ExceptionCollector();
         PageCollection pc = ctx.getPageCollection();
+        ExtensionCollection extensions = pc instanceof Guide guide
+            ? guide.getExtensions() : ExtensionCollection.EMPTY;
         PageCompiler runtimeCompiler = new PageCompiler(pc != null ? pc : new StubPageCollection(),
-            ExtensionCollection.EMPTY, "", new ResourceLocation(ph.pageDomain, "scene"), "");
+            extensions, ph.sourcePack, new ResourceLocation(ph.pageDomain, "scene"),
+            ph.childrenSource != null ? ph.childrenSource : "");
         MdAstRoot ast;
         try {
             ast = ph.childrenAst != null ? ph.childrenAst
@@ -127,16 +134,30 @@ public class SceneScript implements LytScript {
         scene.setGridButtonEnabled(ph.gridButtonEnabled);
         scene.setGridVisible(ph.showGrid);
 
+        // NB: Phase 2 used GuideSceneStructureCache (fingerprint-based) to avoid
+        // recompiling complex scenes on every page visit. Phase 3 compiles from scratch
+        // each mount. The cache requires StructureFingerprintResolver + compile-time
+        // fingerprint computation, which is not practical to restore in a MOUNT-time script.
+        // Low priority — scene compilation is usually fast enough that recompilation
+        // per mount is acceptable.
+
         // Compile scene elements with CURRENT_SCENE set so that element compilers
         // (ImportPonderElementCompiler, ImportStructureLibElementCompiler, annotations, etc.)
         // can call scene.attachPonderData(), scene.addAnnotation(), etc.
         var prevScene = AnnotationTagCompiler.CURRENT_SCENE.get();
         AnnotationTagCompiler.CURRENT_SCENE.set(scene);
+        final boolean[] blockStatsExplicitlySet = {false};
         try {
             GuideSceneStructureCompileScope.run(true, () -> {
                 for (UnistNode child : ast.children()) {
                     MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
                     if (el == null) continue;
+                    // Handle BlockStats — not a SceneElementTagCompiler, special-cased in Phase 2
+                    if ("BlockStats".equals(el.name())) {
+                        applyBlockStatsConfig(scene, el);
+                        blockStatsExplicitlySet[0] = true;
+                        continue;
+                    }
                     SceneElementTagCompiler ec = elementCompilers.get(el.name());
                     if (ec != null) {
                         ec.compile(level, camera, runtimeCompiler, errorSink, el);
@@ -151,9 +172,27 @@ public class SceneScript implements LytScript {
             }
         }
 
+        // Dispatch MOUNT events into annotation tooltip subtrees (Recipe/Scene placeholders)
+        for (var annotation : scene.getAnnotations()) {
+            var tooltip = annotation.getTooltip();
+            if (tooltip instanceof ContentTooltip ct) {
+                var content = ct.getContent();
+                if (content instanceof LytNode root) {
+                    ctx.dispatchSubtree(root);
+                }
+            }
+        }
+
         if (level.isEmpty()) {
             ctx.replace(LytParagraph.error("[Scene] Scene has no supported elements"));
             return;
+        }
+
+        // Apply implicit block stats for non-empty scenes without explicit BlockStats
+        if (!blockStatsExplicitlySet[0]) {
+            scene.setBlockStatsEnabled(true);
+            scene.setBlockStatsVisible(ModConfig.ui.sceneBlockStatsVisible);
+            scene.setBlockStatsButtonEnabled(ModConfig.ui.sceneBlockStatsButtonEnabled);
         }
 
         // Finalize scene setup: auto-center, ponder baseline, interactive state capture
@@ -213,7 +252,27 @@ public class SceneScript implements LytScript {
         scene.initializePonderTimelineBaseline();
         scene.captureInitialInteractiveState();
         scene.snapshotInitialCamera();
+        // NB: Phase 2 called configureStructureLibSelectionListeners() which set up
+        // rebuildSceneForStructureLibSelection() callbacks for interactive StructureLib
+        // preview variant switching. Phase 3 defers this — scene rebuild would need to
+        // re-invoke the full element compilation loop, which is impractical in a script.
+        // The interactive variant UI will not respond to selection changes until the
+        // page is re-mounted (navigate away and back).
         ctx.replace(scene);
+    }
+
+    /**
+     * Applies BlockStats element attributes to the scene.
+     * <p>
+     * NB: Full BlockStats restoration (BlockStat sub-elements, filters, implicit enable)
+     * requires the Phase 2 compileBlockStatsElement() logic (~100 lines). This minimal
+     * restoration handles the most common attribute-only use case.
+     */
+    private static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {
+        String visibleStr = el.getAttributeString("visible", null);
+        if (visibleStr != null) scene.setBlockStatsVisible(Boolean.parseBoolean(visibleStr));
+        String enabledStr = el.getAttributeString("buttonEnabled", null);
+        if (enabledStr != null) scene.setBlockStatsButtonEnabled(Boolean.parseBoolean(enabledStr));
     }
 
     private static class ExceptionCollector implements LytErrorSink {
