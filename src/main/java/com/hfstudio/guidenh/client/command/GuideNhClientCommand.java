@@ -27,6 +27,8 @@ import com.hfstudio.guidenh.guide.internal.editor.SceneEditorScreen;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExportMode;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
+import com.hfstudio.guidenh.guide.internal.localization.GuidePageLangDumpOutputPaths;
+import com.hfstudio.guidenh.guide.internal.localization.GuidePageLangDumpTask;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureExportAccess;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureCoordinateParser;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
@@ -38,7 +40,7 @@ import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteOutputPaths;
 public class GuideNhClientCommand extends CommandBase {
 
     public static final String[] ROOT_SUB_COMMANDS = { "editor", "guideeditor", "guideedit", "list", "open", "reload",
-        "search", "export", "exportsite", "exportstructure", "pos1", "pos2", "clearselection" };
+        "search", "export", "exportsite", "exportstructure", "dumppagelang", "pos1", "pos2", "clearselection" };
     public static final String[] EXPORT_STRUCTURE_FLAGS = { "--mode", "snbt", "snbt_e", "blocks", "blocks_e" };
     public static final String[] EXPORT_SITE_FLAGS = { "--ponder-frames", "--ponder-every-tick" };
 
@@ -75,6 +77,7 @@ public class GuideNhClientCommand extends CommandBase {
                 if (!requireSceneExportEnabled(sender)) return;
                 exportStructure(sender, args);
             }
+            case "dumppagelang" -> dumpPageLang(sender, args);
             case "pos1" -> {
                 if (!requireSceneExportEnabled(sender)) return;
                 setSelectionPos(sender, args, 1);
@@ -324,6 +327,28 @@ public class GuideNhClientCommand extends CommandBase {
                         .getDisplayName(),
                     structureText);
             send(sender, GuidebookText.CommandStructureSaved, savedPath.toString());
+        } catch (Throwable t) {
+            send(sender, GuidebookText.CommandExportFailure, getErrorMessage(t));
+        }
+    }
+
+    private void dumpPageLang(ICommandSender sender, String[] args) {
+        String outDirArgument = args.length >= 2 ? args[1] : null;
+        Path outDir = GuidePageLangDumpOutputPaths
+            .resolveRequestedOrDefault(outDirArgument, Paths.get(""), LocalDateTime.now());
+        send(sender, GuidebookText.CommandDumpPageLangStart, outDir);
+        try {
+            GuidePageLangDumpTask.Result result = new GuidePageLangDumpTask(outDir).run();
+            send(
+                sender,
+                GuidebookText.CommandDumpPageLangSuccess,
+                result.exportedPageCount(),
+                result.writtenLanguageFileCount(),
+                result.languageCount(),
+                result.namespaceCount(),
+                result.resourcePackCount(),
+                result.durationMillis(),
+                result.outDir());
         } catch (Throwable t) {
             send(sender, GuidebookText.CommandExportFailure, getErrorMessage(t));
         }
