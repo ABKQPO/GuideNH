@@ -43,8 +43,8 @@ public class HomePageController {
     private DragState dragState;
 
     public void render(Minecraft mc, HomePageDataBuilder.HomePageSections sections, HomePageLayout.LayoutRects layout,
-        ResourceLocation logoTexture, int mouseX, int mouseY) {
-        drawLogo(mc, layout.logo(), logoTexture);
+        ResourceLocation logoTexture, int logoSourceWidth, int logoSourceHeight, int mouseX, int mouseY) {
+        drawLogo(mc, layout.logo(), logoTexture, logoSourceWidth, logoSourceHeight);
         drawSection(mc, layout.recommended(), sections.recommended(), mouseX, mouseY, layout.recommendedTitleSafeTop());
         drawSection(mc, layout.bookmarks(), sections.bookmarks(), mouseX, mouseY, 0);
         drawSection(mc, layout.history(), sections.history(), mouseX, mouseY, 0);
@@ -143,7 +143,14 @@ public class HomePageController {
         }
     }
 
-    private void drawLogo(Minecraft mc, HomePageLayout.Rect rect, ResourceLocation logoTexture) {
+    private void drawLogo(Minecraft mc, HomePageLayout.Rect rect, ResourceLocation logoTexture, int logoSourceWidth,
+        int logoSourceHeight) {
+        int safeSourceWidth = Math.max(1, logoSourceWidth);
+        int safeSourceHeight = Math.max(1, logoSourceHeight);
+        int drawWidth = Math.max(1, rect.width());
+        int drawHeight = Math.max(1, Math.round((float) drawWidth * safeSourceHeight / safeSourceWidth));
+        int drawY = rect.y() + (rect.height() - drawHeight) / 2;
+
         mc.getTextureManager()
             .bindTexture(logoTexture);
         GL11.glEnable(GL11.GL_BLEND);
@@ -151,10 +158,10 @@ public class HomePageController {
         GL11.glColor4f(1f, 1f, 1f, 1f);
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
-        tessellator.addVertexWithUV(rect.x(), rect.y() + rect.height(), 0, 0f, 1f);
-        tessellator.addVertexWithUV(rect.x() + rect.width(), rect.y() + rect.height(), 0, 1f, 1f);
-        tessellator.addVertexWithUV(rect.x() + rect.width(), rect.y(), 0, 1f, 0f);
-        tessellator.addVertexWithUV(rect.x(), rect.y(), 0, 0f, 0f);
+        tessellator.addVertexWithUV(rect.x(), drawY + drawHeight, 0, 0f, 1f);
+        tessellator.addVertexWithUV(rect.x() + drawWidth, drawY + drawHeight, 0, 1f, 1f);
+        tessellator.addVertexWithUV(rect.x() + drawWidth, drawY, 0, 1f, 0f);
+        tessellator.addVertexWithUV(rect.x(), drawY, 0, 0f, 0f);
         tessellator.draw();
     }
 

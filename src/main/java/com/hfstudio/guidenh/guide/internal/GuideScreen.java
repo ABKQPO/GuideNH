@@ -2697,7 +2697,7 @@ public class GuideScreen extends GuiContainer
         }
         var sections = homePageDataBuilder.build(bookmarkState, homeHistory);
         var layout = HomePageLayout.compute(contentX, contentY, contentW, contentH, homeLogoWidth, homeLogoHeight);
-        homePageController.render(mc, sections, layout, logoTexture, mouseX, mouseY);
+        homePageController.render(mc, sections, layout, logoTexture, homeLogoWidth, homeLogoHeight, mouseX, mouseY);
     }
 
     @Nullable
