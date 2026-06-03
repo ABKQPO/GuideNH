@@ -22,7 +22,10 @@ public class BlockImageCompiler extends BlockTagCompiler {
         String id = MdxAttrs.getString(compiler, parent, el, "id", null);
         String ore = MdxAttrs.getString(compiler, parent, el, "ore", null);
 
-        if ((id == null || id.trim().isEmpty()) && (ore == null || ore.trim().isEmpty())) {
+        if ((id == null || id.trim()
+            .isEmpty()) && (ore == null
+                || ore.trim()
+                    .isEmpty())) {
             parent.appendError(compiler, "Missing id attribute (or ore).", el);
             return;
         }
@@ -36,7 +39,14 @@ public class BlockImageCompiler extends BlockTagCompiler {
 
         // Create placeholder block that carries all extracted config to BlockImageScript
         BlockImagePlaceholder placeholder = new BlockImagePlaceholder(
-            id, ore, meta, nbt, scale, perspective, width, height);
+            id,
+            ore,
+            meta,
+            nbt,
+            scale,
+            perspective,
+            width,
+            height);
         placeholder.setStyleClass("BlockImage");
         placeholder.setStyle(LytParagraph.PLACEHOLDER_STYLE);
         placeholder.appendText("[BlockImage]");
@@ -48,17 +58,22 @@ public class BlockImageCompiler extends BlockTagCompiler {
      * creation by {@code BlockImageScript}.
      */
     public static class BlockImagePlaceholder extends LytParagraph {
-        @Nullable public final String id;
-        @Nullable public final String ore;
+
+        @Nullable
+        public final String id;
+        @Nullable
+        public final String ore;
         public final int meta;
-        @Nullable public final String nbt;
+        @Nullable
+        public final String nbt;
         public final float scale;
-        @Nullable public final String perspective;
+        @Nullable
+        public final String perspective;
         public final int width;
         public final int height;
 
         public BlockImagePlaceholder(@Nullable String id, @Nullable String ore, int meta, @Nullable String nbt,
-                                     float scale, @Nullable String perspective, int width, int height) {
+            float scale, @Nullable String perspective, int width, int height) {
             this.id = id;
             this.ore = ore;
             this.meta = meta;

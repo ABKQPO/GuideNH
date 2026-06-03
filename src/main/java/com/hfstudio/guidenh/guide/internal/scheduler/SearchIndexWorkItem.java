@@ -6,10 +6,14 @@ import com.hfstudio.guidenh.guide.internal.search.GuideSearch;
 public class SearchIndexWorkItem implements WorkItem {
 
     @Override
-    public Priority priority() { return Priority.LOW; }
+    public Priority priority() {
+        return Priority.LOW;
+    }
 
     @Override
-    public boolean shouldRun() { return true; }
+    public boolean shouldRun() {
+        return true;
+    }
 
     @Override
     public WorkResult tick(long deadlineNs) {
@@ -24,5 +28,7 @@ public class SearchIndexWorkItem implements WorkItem {
     }
 
     @Override
-    public int hashCode() { return SearchIndexWorkItem.class.hashCode(); }
+    public int hashCode() {
+        return SearchIndexWorkItem.class.hashCode();
+    }
 }

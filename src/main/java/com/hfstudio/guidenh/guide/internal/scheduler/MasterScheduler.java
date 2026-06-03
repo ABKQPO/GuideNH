@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.internal.scheduler;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -22,7 +21,9 @@ public class MasterScheduler {
 
     private static MasterScheduler instance;
 
-    public static MasterScheduler getInstance() { return instance; }
+    public static MasterScheduler getInstance() {
+        return instance;
+    }
 
     public static void init() {
         instance = new MasterScheduler();
@@ -62,9 +63,12 @@ public class MasterScheduler {
 
     private Map<WorkItem, WorkItem> queueFor(Priority p) {
         switch (p) {
-            case HIGH:   return high;
-            case MEDIUM: return medium;
-            default:     return low;
+            case HIGH:
+                return high;
+            case MEDIUM:
+                return medium;
+            default:
+                return low;
         }
     }
 

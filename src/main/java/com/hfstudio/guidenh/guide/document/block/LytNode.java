@@ -36,8 +36,7 @@ public abstract class LytNode implements Styleable {
     public void removeChild(LytNode node) {}
 
     public void replaceChild(LytNode oldChild, LytNode newChild) {
-        throw new UnsupportedOperationException(
-            getClass().getSimpleName() + " must override replaceChild");
+        throw new UnsupportedOperationException(getClass().getSimpleName() + " must override replaceChild");
     }
 
     protected void onAttach() {}
@@ -176,17 +175,29 @@ public abstract class LytNode implements Styleable {
     }
 
     @Nullable
-    public String getId() { return id; }
+    public String getId() {
+        return id;
+    }
 
-    public void setId(@Nullable String id) { this.id = id; }
+    public void setId(@Nullable String id) {
+        this.id = id;
+    }
 
     @Nullable
-    public String getNodeUid() { return nodeUid; }
+    public String getNodeUid() {
+        return nodeUid;
+    }
 
-    public void setNodeUid(@Nullable String nodeUid) { this.nodeUid = nodeUid; }
+    public void setNodeUid(@Nullable String nodeUid) {
+        this.nodeUid = nodeUid;
+    }
 
     @Nullable
-    public String getStyleClass() { return styleClass; }
+    public String getStyleClass() {
+        return styleClass;
+    }
 
-    public void setStyleClass(@Nullable String styleClass) { this.styleClass = styleClass; }
+    public void setStyleClass(@Nullable String styleClass) {
+        this.styleClass = styleClass;
+    }
 }

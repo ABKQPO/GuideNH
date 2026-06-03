@@ -76,7 +76,9 @@ public class MediaWikiListPlanner {
         int maxGroupHeight = 0;
         int totalHeight = 0;
         for (int i = 0; i < groups.size(); i++) {
-            groupHeights[i] = SECTION_HEADER_HEIGHT + groups.get(i).entries().size() * ROW_HEIGHT;
+            groupHeights[i] = SECTION_HEADER_HEIGHT + groups.get(i)
+                .entries()
+                .size() * ROW_HEIGHT;
             maxGroupHeight = Math.max(maxGroupHeight, groupHeights[i]);
             totalHeight += groupHeights[i];
         }

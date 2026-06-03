@@ -26,7 +26,9 @@ public class PlayerNameScript implements LytScript {
         if (event.type() == EventType.MOUNT && node instanceof LytFlowText placeholder) {
             String username;
             try {
-                username = Minecraft.getMinecraft().getSession().getUsername();
+                username = Minecraft.getMinecraft()
+                    .getSession()
+                    .getUsername();
             } catch (Exception e) {
                 username = "<?>";
             }

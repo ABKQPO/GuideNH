@@ -132,6 +132,7 @@ public class StructureViewCompiler extends BlockTagCompiler {
     }
 
     public static class StructureEntry {
+
         public final int x;
         public final int y;
         public final int z;
@@ -146,6 +147,7 @@ public class StructureViewCompiler extends BlockTagCompiler {
     }
 
     public static class StructurePlaceholder extends LytParagraph {
+
         public final int width;
         public final int height;
         public final List<StructureEntry> entries;

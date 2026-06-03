@@ -18,12 +18,29 @@ public class SceneViewportMetrics {
         this.maxScreenY = maxScreenY;
     }
 
-    public float minScreenX() { return minScreenX; }
-    public float maxScreenX() { return maxScreenX; }
-    public float minScreenY() { return minScreenY; }
-    public float maxScreenY() { return maxScreenY; }
-    public float spanX() { return maxScreenX - minScreenX; }
-    public float spanY() { return maxScreenY - minScreenY; }
+    public float minScreenX() {
+        return minScreenX;
+    }
+
+    public float maxScreenX() {
+        return maxScreenX;
+    }
+
+    public float minScreenY() {
+        return minScreenY;
+    }
+
+    public float maxScreenY() {
+        return maxScreenY;
+    }
+
+    public float spanX() {
+        return maxScreenX - minScreenX;
+    }
+
+    public float spanY() {
+        return maxScreenY - minScreenY;
+    }
 
     /**
      * Projects the 8 corners of the given axis-aligned bounding box through

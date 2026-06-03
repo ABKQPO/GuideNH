@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.compiler;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.unist.UnistPoint;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 public class MdxBlockTagSourceExtractor {
@@ -24,13 +25,7 @@ public class MdxBlockTagSourceExtractor {
             return null;
         }
 
-        int sourceStart = position.start()
-            .offset();
-        if (sourceStart < 0 || sourceStart >= sourceText.length()) {
-            return null;
-        }
-
-        int openingTagStart = findOpeningTagStart(sourceText, sourceStart, tagName);
+        int openingTagStart = findOpeningTagStart(sourceText, position, tagName);
         if (openingTagStart < 0) {
             return null;
         }
@@ -50,11 +45,80 @@ public class MdxBlockTagSourceExtractor {
         return sourceText.substring(openingTagEnd + 1, closingTagStart);
     }
 
-    private static int findOpeningTagStart(String sourceText, int sourceStart, String tagName) {
+    private static int findOpeningTagStart(String sourceText, UnistPosition position, String tagName) {
+        UnistPoint start = position.start();
+        if (start == null) {
+            return -1;
+        }
+
+        // Preprocessors can shift offsets while still keeping line and column stable.
+        int lineBasedStart = findOpeningTagStartOnDeclaredLine(sourceText, start, tagName);
+        if (lineBasedStart >= 0) {
+            return lineBasedStart;
+        }
+
+        int sourceStart = start.offset();
+        if (sourceStart < 0 || sourceStart >= sourceText.length()) {
+            return -1;
+        }
         if (matchesOpeningTagName(sourceText, sourceStart, tagName)) {
             return sourceStart;
         }
 
+        return findOpeningTagStartByOffset(sourceText, sourceStart, tagName);
+    }
+
+    private static int findOpeningTagStartOnDeclaredLine(String sourceText, UnistPoint start, String tagName) {
+        int lineStart = findLineStartOffset(sourceText, start.line());
+        if (lineStart < 0) {
+            return -1;
+        }
+
+        int lineEnd = sourceText.indexOf('\n', lineStart);
+        if (lineEnd < 0) {
+            lineEnd = sourceText.length();
+        }
+
+        int declaredOffset = lineStart + Math.max(0, start.column() - 1);
+        if (declaredOffset < lineEnd && matchesOpeningTagName(sourceText, declaredOffset, tagName)) {
+            return declaredOffset;
+        }
+
+        for (int index = Math.min(declaredOffset, lineEnd - 1); index < lineEnd; index++) {
+            if (sourceText.charAt(index) == '<' && matchesOpeningTagName(sourceText, index, tagName)) {
+                return index;
+            }
+        }
+
+        for (int searchStart = Math.min(declaredOffset - 1, lineEnd - 1); searchStart >= lineStart;) {
+            int candidate = sourceText.lastIndexOf('<', searchStart);
+            if (candidate < lineStart) {
+                break;
+            }
+            if (matchesOpeningTagName(sourceText, candidate, tagName)) {
+                return candidate;
+            }
+            searchStart = candidate - 1;
+        }
+        return -1;
+    }
+
+    private static int findLineStartOffset(String sourceText, int lineNumber) {
+        if (lineNumber <= 0) {
+            return -1;
+        }
+
+        int currentLine = 1;
+        int index = 0;
+        while (currentLine < lineNumber && index < sourceText.length()) {
+            if (sourceText.charAt(index++) == '\n') {
+                currentLine++;
+            }
+        }
+        return currentLine == lineNumber ? index : -1;
+    }
+
+    private static int findOpeningTagStartByOffset(String sourceText, int sourceStart, String tagName) {
         int searchStart = sourceStart;
         while (searchStart >= 0) {
             int candidate = sourceText.lastIndexOf('<', searchStart);

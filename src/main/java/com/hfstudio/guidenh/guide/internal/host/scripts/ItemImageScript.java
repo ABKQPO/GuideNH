@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.oredict.OreDictionary;
 
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler.ItemImagePlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
-import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
@@ -18,10 +17,14 @@ import com.hfstudio.guidenh.guide.internal.host.ScriptType;
 public class ItemImageScript implements LytScript {
 
     @Override
-    public ScriptType type() { return ScriptType.JAVA; }
+    public ScriptType type() {
+        return ScriptType.JAVA;
+    }
 
     @Override
-    public String styleClass() { return "ItemImage"; }
+    public String styleClass() {
+        return "ItemImage";
+    }
 
     @Override
     @SuppressWarnings("deprecation")
@@ -38,7 +41,8 @@ public class ItemImageScript implements LytScript {
             if (ph.ore != null) {
                 java.util.List<ItemStack> oreStacks = OreDictionary.getOres(ph.ore);
                 if (oreStacks != null && !oreStacks.isEmpty()) {
-                    stack = oreStacks.get(0).copy();
+                    stack = oreStacks.get(0)
+                        .copy();
                 }
             }
             if (stack == null) {

@@ -4,7 +4,6 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +13,6 @@ import com.hfstudio.guidenh.guide.color.ARGB;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
-import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -68,9 +66,6 @@ public class MdxAttrs {
             return null;
         }
     }
-
-
-
 
     @Nullable
     public static GuideItemReferenceResolver.ResolvedBlockReference getRequiredBlockReference(PageCompiler compiler,

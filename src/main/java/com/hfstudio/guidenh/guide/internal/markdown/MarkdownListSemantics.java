@@ -25,11 +25,14 @@ public class MarkdownListSemantics {
         // Post-conversion: <p> element wrapping the task text
         if (firstChild instanceof MdxJsxFlowElement && "p".equals(((MdxJsxFlowElement) firstChild).name())) {
             MdxJsxFlowElement p = (MdxJsxFlowElement) firstChild;
-            if (p.children().isEmpty()) {
+            if (p.children()
+                .isEmpty()) {
                 return null;
             }
-            if (p.children().get(0) instanceof MdAstText) {
-                MdAstText text = (MdAstText) p.children().get(0);
+            if (p.children()
+                .get(0) instanceof MdAstText) {
+                MdAstText text = (MdAstText) p.children()
+                    .get(0);
                 Matcher matcher = TASK_PATTERN.matcher(text.value);
                 if (matcher.matches()) {
                     return new TaskMarker(!" ".equals(matcher.group(1)), matcher.group(2));

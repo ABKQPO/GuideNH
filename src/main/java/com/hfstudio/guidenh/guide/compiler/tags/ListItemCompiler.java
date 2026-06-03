@@ -20,7 +20,7 @@ public class ListItemCompiler extends BlockTagCompiler {
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         LytListItem listItem;
         var taskMarker = MarkdownListSemantics.extractTaskMarker((List) el.children());

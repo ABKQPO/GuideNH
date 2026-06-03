@@ -18,9 +18,7 @@ import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePackWatcher;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
-import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
-import com.hfstudio.guidenh.guide.internal.GuideScreenMemory;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TagAttributeRegistry;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AnchorProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AttributeNameProvider;
@@ -45,32 +43,8 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.NumericV
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.OreDictProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.PageReferenceProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.TagNameProvider;
-import com.hfstudio.guidenh.guide.internal.home.GuideScreenHomeHistory;
-import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
-import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
-import com.hfstudio.guidenh.integration.Mods;
-import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
-import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
-import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
-import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
-import com.hfstudio.guidenh.network.GuideNhNetwork;
-import com.hfstudio.guidenh.network.GuideNhRegionExportClientHandler;
-import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
-import com.hfstudio.structurelibexport.StructureExportBootstrap;
-
-import cpw.mods.fml.common.event.FMLInitializationEvent;
-import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
-import cpw.mods.fml.common.event.FMLPostInitializationEvent;
-import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.network.FMLNetworkEvent;
-import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
-import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
-import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.LytHostWorkItem;
-import com.hfstudio.guidenh.guide.internal.scheduler.LytHostPreheatItem;
 import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CategoryScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.CommandLinkScript;
@@ -92,7 +66,29 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.SpecialScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.StructureScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.SubPagesScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.TooltipScript;
+import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
+import com.hfstudio.guidenh.guide.internal.scheduler.LytHostPreheatItem;
+import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
+import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
+import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
+import com.hfstudio.guidenh.network.GuideNhClientBridgeHandler;
+import com.hfstudio.guidenh.network.GuideNhClientBridgeMessage;
+import com.hfstudio.guidenh.network.GuideNhNetwork;
+import com.hfstudio.guidenh.network.GuideNhRegionExportClientHandler;
+import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
+import com.hfstudio.structurelibexport.StructureExportBootstrap;
 
+import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
+import cpw.mods.fml.common.event.FMLPostInitializationEvent;
+import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.network.FMLNetworkEvent;
 import cpw.mods.fml.relauncher.Side;
 
 public class ClientProxy extends CommonProxy {
@@ -164,9 +160,12 @@ public class ClientProxy extends CommonProxy {
         CycleRegionWandModeHotkey.init();
         MinecraftForge.EVENT_BUS.register(new RegionWandRenderer());
         MasterScheduler.init();
-        MasterScheduler.getInstance().submit(new LytHostWorkItem(lytHost));
-        MasterScheduler.getInstance().submit(new LytHostPreheatItem(lytHost));
-        MasterScheduler.getInstance().submit(new SearchIndexWorkItem());
+        MasterScheduler.getInstance()
+            .submit(new LytHostWorkItem(lytHost));
+        MasterScheduler.getInstance()
+            .submit(new LytHostPreheatItem(lytHost));
+        MasterScheduler.getInstance()
+            .submit(new SearchIndexWorkItem());
 
         // Phase 3: LytScript registrations
         lytHost.registerScript("CommandLink", new CommandLinkScript());
@@ -229,7 +228,8 @@ public class ClientProxy extends CommonProxy {
     public void completeInit(FMLLoadCompleteEvent event) {
         super.completeInit(event);
         GuideDevelopmentResourcePackWatcher.init();
-        MasterScheduler.getInstance().submit(new DevWatchWorkItem());
+        MasterScheduler.getInstance()
+            .submit(new DevWatchWorkItem());
         GuideOnStartup.init();
     }
 
@@ -238,6 +238,7 @@ public class ClientProxy extends CommonProxy {
         GuideNH.LOG.info("Minecraft client disconnected. Stopping GuideNH runtime bridge session state");
         runtimeBridge.stop();
         GuideME.closeSearch();
-        lytHost.getNavigation().clear();
+        lytHost.getNavigation()
+            .clear();
     }
 }

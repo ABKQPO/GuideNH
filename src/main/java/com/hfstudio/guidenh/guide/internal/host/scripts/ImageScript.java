@@ -16,13 +16,19 @@ import com.hfstudio.guidenh.guide.internal.host.ScriptType;
 public class ImageScript implements LytScript {
 
     @Override
-    public ScriptType type() { return ScriptType.JAVA; }
+    public ScriptType type() {
+        return ScriptType.JAVA;
+    }
 
     @Override
-    public String styleClass() { return "Img"; }
+    public String styleClass() {
+        return "Img";
+    }
 
     @Override
-    public boolean isAsync() { return true; }
+    public boolean isAsync() {
+        return true;
+    }
 
     @Override
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {

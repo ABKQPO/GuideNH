@@ -22,8 +22,10 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 
 public class LytHost {
 
-    @Nullable private LytDocument document;
-    @Nullable private PageCollection currentPageCollection;
+    @Nullable
+    private LytDocument document;
+    @Nullable
+    private PageCollection currentPageCollection;
     private final Map<String, LytScript> scripts = new HashMap<>();
     private final Map<String, PageCacheEntry> cachedDocuments = new LinkedHashMap<>();
     private final Map<String, AtomicInteger> pageNodeCounters = new HashMap<>();
@@ -32,9 +34,13 @@ public class LytHost {
     private static final int MAX_CACHED_PAGES = 32;
 
     static class PageCacheEntry {
+
         final GuidePage guidePage;
         final Map<String, Object> nodeResults = new HashMap<>();
-        PageCacheEntry(GuidePage guidePage) { this.guidePage = guidePage; }
+
+        PageCacheEntry(GuidePage guidePage) {
+            this.guidePage = guidePage;
+        }
     }
 
     private final ViewportState viewport = new ViewportState();
@@ -46,10 +52,13 @@ public class LytHost {
 
     @FunctionalInterface
     public interface PreheatCompiler {
-        @Nullable GuidePage compile(String pageId);
+
+        @Nullable
+        GuidePage compile(String pageId);
     }
 
-    @Nullable private PreheatCompiler preheatCompiler;
+    @Nullable
+    private PreheatCompiler preheatCompiler;
 
     public void setPreheatCompiler(@Nullable PreheatCompiler compiler) {
         this.preheatCompiler = compiler;
@@ -57,25 +66,36 @@ public class LytHost {
 
     // ===== Document =====
 
-    /** Full processing: UID allocation, onAttach, MOUNT dispatch. Resets the node counter so the
-     *  same page always gets the same UIDs across remounts (enabling node-level cache hits). */
+    /**
+     * Full processing: UID allocation, onAttach, MOUNT dispatch. Resets the node counter so the
+     * same page always gets the same UIDs across remounts (enabling node-level cache hits).
+     */
     public void mountDocument(@Nullable LytDocument newDoc) {
         if (this.document != null && this.document != newDoc) {
-            this.document.setLive(false);    // onDetach cascade on old doc
+            this.document.setLive(false); // onDetach cascade on old doc
         }
         this.document = newDoc;
         if (newDoc != null) {
-            pageNodeCounters.remove(currentPageId);  // reset for stable UIDs
+            pageNodeCounters.remove(currentPageId); // reset for stable UIDs
             allocateNodeUids(newDoc);
-            newDoc.setLive(true);            // onAttach cascade
-            dispatchMountEvents(newDoc);     // MOUNT events → scripts materialize placeholders
+            newDoc.setLive(true); // onAttach cascade
+            dispatchMountEvents(newDoc); // MOUNT events → scripts materialize placeholders
             viewport.updateContent(newDoc.getAvailableWidth(), newDoc.getContentHeight());
         }
     }
 
-    @Nullable public LytDocument getDocument() { return document; }
-    public ViewportState getViewport() { return viewport; }
-    public NavigationState getNavigation() { return nav; }
+    @Nullable
+    public LytDocument getDocument() {
+        return document;
+    }
+
+    public ViewportState getViewport() {
+        return viewport;
+    }
+
+    public NavigationState getNavigation() {
+        return nav;
+    }
 
     public void registerScript(String styleClass, LytScript script) {
         scripts.put(styleClass, script);
@@ -102,7 +122,9 @@ public class LytHost {
 
     public void cachePage(String pageId, GuidePage guidePage) {
         while (cachedDocuments.size() >= MAX_CACHED_PAGES) {
-            var oldest = cachedDocuments.keySet().iterator().next();
+            var oldest = cachedDocuments.keySet()
+                .iterator()
+                .next();
             cachedDocuments.remove(oldest);
             pageNodeCounters.remove(oldest);
             preheatScheduled.remove(oldest);
@@ -146,7 +168,9 @@ public class LytHost {
         if (node == null) return;
         for (var child : node.children()) {
             if (child.hasPage()) {
-                requestPreheat(child.pageId().toString());
+                requestPreheat(
+                    child.pageId()
+                        .toString());
             }
         }
     }
@@ -172,16 +196,17 @@ public class LytHost {
     }
 
     String allocateNodeUid(String pageId, String prefix) {
-        int seq = pageNodeCounters
-            .computeIfAbsent(pageId, k -> new AtomicInteger()).incrementAndGet();
+        int seq = pageNodeCounters.computeIfAbsent(pageId, k -> new AtomicInteger())
+            .incrementAndGet();
         return pageId + "::" + prefix + ":" + seq;
     }
 
     private void allocateNodeUids(LytNode node) {
         if (node.getStyleClass() != null && node.getNodeUid() == null) {
-            String prefix = node.getStyleClass().toLowerCase();
-            int seq = pageNodeCounters
-                .computeIfAbsent(currentPageId, k -> new AtomicInteger()).incrementAndGet();
+            String prefix = node.getStyleClass()
+                .toLowerCase();
+            int seq = pageNodeCounters.computeIfAbsent(currentPageId, k -> new AtomicInteger())
+                .incrementAndGet();
             node.setNodeUid(currentPageId + "::" + prefix + ":" + seq);
         }
         for (var child : node.getChildren()) {
@@ -201,9 +226,10 @@ public class LytHost {
 
     private void allocateFlowNodeUidsRecursive(LytFlowContent fc) {
         if (fc.getStyleClass() != null && fc.getNodeUid() == null) {
-            String prefix = fc.getStyleClass().toLowerCase();
-            int seq = pageNodeCounters
-                .computeIfAbsent(currentPageId, k -> new AtomicInteger()).incrementAndGet();
+            String prefix = fc.getStyleClass()
+                .toLowerCase();
+            int seq = pageNodeCounters.computeIfAbsent(currentPageId, k -> new AtomicInteger())
+                .incrementAndGet();
             fc.setNodeUid(currentPageId + "::" + prefix + ":" + seq);
         }
         if (fc instanceof LytFlowSpan span) {
@@ -217,7 +243,7 @@ public class LytHost {
      * Two-phase MOUNT dispatch:
      * <p>
      * <strong>Phase 1 (sync):</strong> walk the entire tree and execute
-     * every synchronous script immediately.  This guarantees that all
+     * every synchronous script immediately. This guarantees that all
      * setup and initialization work (e.g. establishing CURRENT_SCENE,
      * compiling child elements) is finished before any asynchronous
      * work begins.
@@ -227,14 +253,14 @@ public class LytHost {
      * execution on subsequent ticks (see {@link #step}).
      * <p>
      * Within each phase the original document order (parent before children)
-     * is preserved.  The node-level result cache is consulted: if a node
+     * is preserved. The node-level result cache is consulted: if a node
      * already has a cached result from a previous mount, the cached content
      * is restored directly and the script is skipped in <em>both</em>
      * phases.
      */
     private void dispatchMountEvents(LytNode node) {
         dispatchPhase(node, false); // Phase 1: sync scripts only
-        dispatchPhase(node, true);  // Phase 2: queue async scripts only
+        dispatchPhase(node, true); // Phase 2: queue async scripts only
     }
 
     private void dispatchPhase(LytNode node, boolean asyncPhase) {
@@ -286,13 +312,13 @@ public class LytHost {
     /**
      * Dispatch a single script in the given phase.
      * <ul>
-     *   <li>If the node has a cached result from a previous mount, the
-     *       cached content is restored directly and the script is skipped
-     *       entirely (both phases).
-     *   <li>In the <em>sync</em> phase ({@code asyncPhase == false}), only
-     *       non-async scripts are executed synchronously.
-     *   <li>In the <em>async</em> phase ({@code asyncPhase == true}), only
-     *       async scripts are enqueued as {@link MaterializeTask}s.
+     * <li>If the node has a cached result from a previous mount, the
+     * cached content is restored directly and the script is skipped
+     * entirely (both phases).
+     * <li>In the <em>sync</em> phase ({@code asyncPhase == false}), only
+     * non-async scripts are executed synchronously.
+     * <li>In the <em>async</em> phase ({@code asyncPhase == true}), only
+     * async scripts are enqueued as {@link MaterializeTask}s.
      * </ul>
      */
     private void dispatchScriptInPhase(LytScript script, Object node, boolean asyncPhase) {
@@ -328,6 +354,7 @@ public class LytHost {
     }
 
     private static class MaterializeTask implements DeferredTask {
+
         private final LytScript script;
         private final Object node;
         private final ScriptContextImpl ctx;
@@ -342,7 +369,9 @@ public class LytHost {
         }
 
         @Override
-        public Priority priority() { return Priority.HIGH; }
+        public Priority priority() {
+            return Priority.HIGH;
+        }
 
         @Override
         public TaskResult step(long deadlineNs) {
@@ -369,7 +398,9 @@ public class LytHost {
         }
 
         @Override
-        public boolean isDone() { return ctx.isComplete(); }
+        public boolean isDone() {
+            return ctx.isComplete();
+        }
     }
 
     // ===== Sync events =====
@@ -388,12 +419,21 @@ public class LytHost {
                 switch (event.type()) {
                     case CLICK:
                     case DOUBLE_CLICK:
-                        if (event.data().containsKey("x") && event.data().containsKey("y")) {
-                            interactive.mouseClicked(null,
-                                ((Number) event.data().get("x")).intValue(),
-                                ((Number) event.data().get("y")).intValue(),
-                                event.data().containsKey("button")
-                                    ? ((Number) event.data().get("button")).intValue() : 0,
+                        if (event.data()
+                            .containsKey("x")
+                            && event.data()
+                                .containsKey("y")) {
+                            interactive.mouseClicked(
+                                null,
+                                ((Number) event.data()
+                                    .get("x")).intValue(),
+                                ((Number) event.data()
+                                    .get("y")).intValue(),
+                                event.data()
+                                    .containsKey("button")
+                                        ? ((Number) event.data()
+                                            .get("button")).intValue()
+                                        : 0,
                                 event.type() == EventType.DOUBLE_CLICK);
                         }
                         break;
@@ -414,7 +454,7 @@ public class LytHost {
     }
 
     /** Recursively dispatch MOUNT events into a detached subtree. */
-    void dispatchToSubtree(LytNode root) {
+    public void dispatchToSubtree(LytNode root) {
         allocateNodeUids(root);
         dispatchMountEvents(root);
     }

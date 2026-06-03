@@ -98,8 +98,7 @@ public class LytFlowInlineBlock extends LytFlowContent implements InteractiveEle
         if (placeholderClass.isInstance(node)) {
             return placeholderClass.cast(node);
         }
-        if (node instanceof LytFlowInlineBlock wrapper
-            && placeholderClass.isInstance(wrapper.getBlock())) {
+        if (node instanceof LytFlowInlineBlock wrapper && placeholderClass.isInstance(wrapper.getBlock())) {
             return placeholderClass.cast(wrapper.getBlock());
         }
         return null;

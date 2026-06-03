@@ -22,7 +22,6 @@ import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
-import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
@@ -30,38 +29,14 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
-import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
-import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableCell;
-import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
-import com.hfstudio.guidenh.libs.mdast.gfmstrikethrough.MdAstDelete;
-import com.hfstudio.guidenh.libs.mdast.guidemark.MdAstMark;
-import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstDottedUnderline;
-import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstUnderline;
-import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstWavyUnderline;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstBlockquote;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstCode;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstEmphasis;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstHeading;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstImage;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstInlineCode;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstLink;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstListItem;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstPhrasingContent;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstStrong;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstThematicBreak;
-import com.hfstudio.guidenh.libs.micromark.extensions.gfm.Align;
 
 public class GuideSiteHtmlCompiler {
 
@@ -249,11 +224,21 @@ public class GuideSiteHtmlCompiler {
         StringBuilder html = new StringBuilder();
         for (MdAstAnyContent child : children) {
             if (child instanceof MdxJsxFlowElement && "p".equals(((MdxJsxFlowElement) child).name())) {
-                html.append(compileChildren(((MdxJsxFlowElement) child).children(),
-                    templates, defaultNamespace, currentPageId, sceneResolver));
+                html.append(
+                    compileChildren(
+                        ((MdxJsxFlowElement) child).children(),
+                        templates,
+                        defaultNamespace,
+                        currentPageId,
+                        sceneResolver));
             } else if (child instanceof MdxJsxFlowElement) {
-                html.append(compileChildren(((MdxJsxFlowElement) child).children(),
-                    templates, defaultNamespace, currentPageId, sceneResolver));
+                html.append(
+                    compileChildren(
+                        ((MdxJsxFlowElement) child).children(),
+                        templates,
+                        defaultNamespace,
+                        currentPageId,
+                        sceneResolver));
             } else {
                 html.append(compileNode(child, templates, defaultNamespace, currentPageId, sceneResolver));
             }
@@ -276,12 +261,20 @@ public class GuideSiteHtmlCompiler {
             return compileText(((MdAstText) node).value(), templates, defaultNamespace, currentPageId);
         }
         if (node instanceof MdxJsxElementFields) {
-            return compileMdxElement((MdxJsxElementFields) node, templates, defaultNamespace,
-                currentPageId, sceneResolver);
+            return compileMdxElement(
+                (MdxJsxElementFields) node,
+                templates,
+                defaultNamespace,
+                currentPageId,
+                sceneResolver);
         }
         if (node instanceof MdAstParent) {
-            return compileChildren(((MdAstParent<?>) node).children(), templates, defaultNamespace,
-                currentPageId, sceneResolver);
+            return compileChildren(
+                ((MdAstParent<?>) node).children(),
+                templates,
+                defaultNamespace,
+                currentPageId,
+                sceneResolver);
         }
         return "";
     }
@@ -322,32 +315,37 @@ public class GuideSiteHtmlCompiler {
         }
         // Inline elements
         if ("strong".equals(el.name())) {
-            return "<strong>" + compileChildren(el.children(), templates, defaultNamespace,
-                currentPageId, sceneResolver) + "</strong>";
+            return "<strong>"
+                + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</strong>";
         }
         if ("em".equals(el.name())) {
-            return "<em>" + compileChildren(el.children(), templates, defaultNamespace,
-                currentPageId, sceneResolver) + "</em>";
+            return "<em>" + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</em>";
         }
         if ("del".equals(el.name())) {
-            return "<del>" + compileChildren(el.children(), templates, defaultNamespace,
-                currentPageId, sceneResolver) + "</del>";
+            return "<del>" + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</del>";
         }
         if ("u".equals(el.name())) {
-            return "<span class=\"guide-underline\">" + compileChildren(el.children(), templates,
-                defaultNamespace, currentPageId, sceneResolver) + "</span>";
+            return "<span class=\"guide-underline\">"
+                + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</span>";
         }
         if ("wavy".equals(el.name())) {
-            return "<span class=\"guide-wavy-underline\">" + compileChildren(el.children(), templates,
-                defaultNamespace, currentPageId, sceneResolver) + "</span>";
+            return "<span class=\"guide-wavy-underline\">"
+                + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</span>";
         }
         if ("dotted".equals(el.name())) {
-            return "<span class=\"guide-emphasis-dot\">" + compileChildren(el.children(), templates,
-                defaultNamespace, currentPageId, sceneResolver) + "</span>";
+            return "<span class=\"guide-emphasis-dot\">"
+                + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</span>";
         }
         if ("mark".equals(el.name())) {
-            return "<mark class=\"guide-mark\">" + compileChildren(el.children(), templates,
-                defaultNamespace, currentPageId, sceneResolver) + "</mark>";
+            return "<mark class=\"guide-mark\">"
+                + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</mark>";
         }
         if ("code".equals(el.name())) {
             return "<code>" + escapeHtml(extractTextFromElement(el)) + "</code>";
@@ -366,19 +364,29 @@ public class GuideSiteHtmlCompiler {
         }
         // Custom MDX tags (existing handlers)
         if (el instanceof MdxJsxFlowElement) {
-            return compileCustomFlowElement((MdxJsxFlowElement) el, templates, defaultNamespace,
-                currentPageId, sceneResolver);
+            return compileCustomFlowElement(
+                (MdxJsxFlowElement) el,
+                templates,
+                defaultNamespace,
+                currentPageId,
+                sceneResolver);
         }
         if (el instanceof MdxJsxTextElement) {
-            return compileCustomTextElement((MdxJsxTextElement) el, templates, defaultNamespace,
-                currentPageId, sceneResolver);
+            return compileCustomTextElement(
+                (MdxJsxTextElement) el,
+                templates,
+                defaultNamespace,
+                currentPageId,
+                sceneResolver);
         }
         return compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver);
     }
 
     private boolean isHeadingName(@Nullable String name) {
-        return name != null && name.length() == 2 && name.charAt(0) == 'h'
-            && name.charAt(1) >= '1' && name.charAt(1) <= '6';
+        return name != null && name.length() == 2
+            && name.charAt(0) == 'h'
+            && name.charAt(1) >= '1'
+            && name.charAt(1) <= '6';
     }
 
     private String compileCustomFlowElement(MdxJsxFlowElement flowElement, GuideSiteTemplateRegistry templates,
@@ -454,16 +462,19 @@ public class GuideSiteHtmlCompiler {
         if (directive != null) {
             return compileQuoteBoxMdx(directive, templates, defaultNamespace, currentPageId, sceneResolver);
         }
-        return "<blockquote>" + compileChildren(el.children(), templates, defaultNamespace,
-            currentPageId, sceneResolver) + "</blockquote>";
+        return "<blockquote>"
+            + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+            + "</blockquote>";
     }
 
     private String compileAlertBoxMdx(BlockquoteDirective directive, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String body = compileChildren(directive.children(), templates, defaultNamespace, currentPageId, sceneResolver);
-        String typeName = directive.alertType().displayText();
-        return "<div class=\"alert alert-" + directive.alertType().name().toLowerCase(Locale.ROOT)
-            + "\"><strong>" + escapeHtml(typeName) + "</strong>" + body + "</div>";
+        String typeName = directive.alertType()
+            .displayText();
+        return "<div class=\"alert alert-" + directive.alertType()
+            .name()
+            .toLowerCase(Locale.ROOT) + "\"><strong>" + escapeHtml(typeName) + "</strong>" + body + "</div>";
     }
 
     private String compileQuoteBoxMdx(BlockquoteDirective directive, GuideSiteTemplateRegistry templates,
@@ -471,18 +482,23 @@ public class GuideSiteHtmlCompiler {
         String body = compileChildren(directive.children(), templates, defaultNamespace, currentPageId, sceneResolver);
         StringBuilder html = new StringBuilder("<blockquote class=\"guide-quote\"");
         if (directive.accentColor() != null) {
-            html.append(" style=\"border-color: ").append(toCssColor(directive.accentColor())).append("\"");
+            html.append(" style=\"border-color: ")
+                .append(toCssColor(directive.accentColor()))
+                .append("\"");
         }
         html.append(">");
         if (directive.title() != null) {
-            html.append("<strong>").append(escapeHtml(directive.title())).append("</strong><br>");
+            html.append("<strong>")
+                .append(escapeHtml(directive.title()))
+                .append("</strong><br>");
         }
-        html.append(body).append("</blockquote>");
+        html.append(body)
+            .append("</blockquote>");
         return html.toString();
     }
 
-    private String compileListMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
-        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+    private String compileListMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String tag = "ol".equals(el.name()) ? "ol" : "ul";
         String startAttr = "";
         if ("ol".equals(el.name())) {
@@ -491,9 +507,13 @@ public class GuideSiteHtmlCompiler {
                 startAttr = " start=\"" + escapeAttribute(startStr) + "\"";
             }
         }
-        return "<" + tag + startAttr + ">"
+        return "<" + tag
+            + startAttr
+            + ">"
             + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
-            + "</" + tag + ">";
+            + "</"
+            + tag
+            + ">";
     }
 
     private String compileListItemMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
@@ -531,7 +551,9 @@ public class GuideSiteHtmlCompiler {
                 return GuideSiteGraphRenderer.renderFunctionGraph(graph);
             } catch (RuntimeException ignored) {
                 return "<pre><code class=\"language-" + escapeAttribute(lang)
-                    + "\">" + escapeHtml(codeText) + "</code></pre>";
+                    + "\">"
+                    + escapeHtml(codeText)
+                    + "</code></pre>";
             }
         }
 
@@ -543,18 +565,26 @@ public class GuideSiteHtmlCompiler {
         if (width != null || height != null) {
             html.append(" class=\"guide-code-sized\" style=\"");
             if (width != null) {
-                html.append("width:").append(width).append("px;max-width:100%;");
+                html.append("width:")
+                    .append(width)
+                    .append("px;max-width:100%;");
             }
             if (height != null) {
-                html.append("height:").append(height).append("px;overflow:auto;");
+                html.append("height:")
+                    .append(height)
+                    .append("px;overflow:auto;");
             }
             html.append("\"");
         }
         html.append("><code");
         if (lang != null && !lang.isEmpty()) {
-            html.append(" class=\"language-").append(escapeAttribute(lang)).append("\"");
+            html.append(" class=\"language-")
+                .append(escapeAttribute(lang))
+                .append("\"");
         }
-        html.append(">").append(escapeHtml(codeText)).append("</code></pre>");
+        html.append(">")
+            .append(escapeHtml(codeText))
+            .append("</code></pre>");
         return html.toString();
     }
 
@@ -575,8 +605,8 @@ public class GuideSiteHtmlCompiler {
         return null;
     }
 
-    private String compileTableMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
-        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+    private String compileTableMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         StringBuilder html = new StringBuilder("<table>");
         String alignStr = el.getAttributeString("align", "");
         String[] aligns = alignStr.isEmpty() ? new String[0] : alignStr.split(",");
@@ -596,10 +626,20 @@ public class GuideSiteHtmlCompiler {
                                 align = " style=\"text-align:" + a + "\"";
                             }
                         }
-                        html.append("<").append(tag).append(align).append(">");
-                        html.append(compileChildren(((MdxJsxFlowElement) cellChild).children(), templates,
-                            defaultNamespace, currentPageId, sceneResolver));
-                        html.append("</").append(tag).append(">");
+                        html.append("<")
+                            .append(tag)
+                            .append(align)
+                            .append(">");
+                        html.append(
+                            compileChildren(
+                                ((MdxJsxFlowElement) cellChild).children(),
+                                templates,
+                                defaultNamespace,
+                                currentPageId,
+                                sceneResolver));
+                        html.append("</")
+                            .append(tag)
+                            .append(">");
                         cellIdx++;
                     }
                 }
@@ -626,7 +666,9 @@ public class GuideSiteHtmlCompiler {
         }
         if (!href.isEmpty()) {
             return "<a href=\"" + escapeAttribute(GuideSiteHrefResolver.resolveRawHref(currentPageId, href))
-                + "\">" + body + "</a>";
+                + "\">"
+                + body
+                + "</a>";
         }
         return body;
     }
@@ -637,9 +679,14 @@ public class GuideSiteHtmlCompiler {
         String title = el.getAttributeString("title", "");
         String resolvedSrc = GuideSiteHrefResolver.resolveRawHref(currentPageId, src);
         StringBuilder html = new StringBuilder("<img src=\"");
-        html.append(escapeAttribute(resolvedSrc)).append("\"");
-        if (!alt.isEmpty()) html.append(" alt=\"").append(escapeAttribute(alt)).append("\"");
-        if (!title.isEmpty()) html.append(" title=\"").append(escapeAttribute(title)).append("\"");
+        html.append(escapeAttribute(resolvedSrc))
+            .append("\"");
+        if (!alt.isEmpty()) html.append(" alt=\"")
+            .append(escapeAttribute(alt))
+            .append("\"");
+        if (!title.isEmpty()) html.append(" title=\"")
+            .append(escapeAttribute(title))
+            .append("\"");
         html.append(">");
         return html.toString();
     }
@@ -662,10 +709,15 @@ public class GuideSiteHtmlCompiler {
 
     @Nullable
     private String extractSoleDisplayLatexFromElement(MdxJsxElementFields el) {
-        if (el.children().size() != 1 || !(el.children().get(0) instanceof MdAstText)) {
+        if (el.children()
+            .size() != 1
+            || !(el.children()
+                .get(0) instanceof MdAstText)) {
             return null;
         }
-        return MarkdownLatexShorthand.extractSoleDisplayFormula(((MdAstText) el.children().get(0)).value);
+        return MarkdownLatexShorthand.extractSoleDisplayFormula(
+            ((MdAstText) el.children()
+                .get(0)).value);
     }
 
     private String compileTooltip(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,

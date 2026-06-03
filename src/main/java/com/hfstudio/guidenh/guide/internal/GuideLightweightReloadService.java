@@ -25,8 +25,12 @@ import com.hfstudio.guidenh.guide.internal.recipe.NeiAnimationTicker;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.latex.GuideLatexTextureCache;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiTranslationStats;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCache;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibElementTooltipResolver;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 
 import cpw.mods.fml.common.FMLLog;
 
@@ -54,6 +58,14 @@ public class GuideLightweightReloadService {
         GuidePageTexture.clear();
         GuidePageLanguageIndex.clear();
         GuideResourceLanguageIndex.clear();
+        GuideLatexTextureCache.INSTANCE.clearAll();
+        GuideSceneStructureCache.global()
+            .clear();
+        StructureLibRuntimeFacade.CONTROL_ANALYSIS_CACHE.clear();
+        StructureLibRuntimeFacade.ANALYSIS_SNAPSHOT_CACHE.clear();
+        StructureLibRuntimeFacade.IMPORT_RESULT_CACHE.clear();
+        StructureLibElementTooltipResolver.BLOCK_CANDIDATE_CACHE.clear();
+        StructureLibElementTooltipResolver.HATCH_CANDIDATE_CACHE.clear();
 
         long stageStartedAt = System.nanoTime();
         GuideRegistry.setDataDriven(DataDrivenGuideLoader.load());
@@ -282,7 +294,8 @@ public class GuideLightweightReloadService {
     private static ParsedGuidePage parsePageBytes(String sourcePack, String language, String contentRootFolder,
         ResourceLocation pageId, ResourceLocation sourceId, byte[] bytes) {
         try {
-            return GuideLocalizedPageSourceResolver.parseFrontmatterOnly(sourcePack, language, contentRootFolder, pageId, bytes);
+            return GuideLocalizedPageSourceResolver
+                .parseFrontmatterOnly(sourcePack, language, contentRootFolder, pageId, bytes);
         } catch (Exception ex) {
             FMLLog.getLogger()
                 .error("[GuideNH] [GuideLightweightReloadService] Error parsing page {} from {}", pageId, sourceId, ex);

@@ -21,9 +21,17 @@ public class ViewportState {
         this.contentHeight = height;
     }
 
-    public int scrollY() { return scrollY; }
-    public void scrollTo(int y) { this.scrollY = clampScroll(y); }
-    public void scrollBy(int delta) { scrollTo(scrollY + delta); }
+    public int scrollY() {
+        return scrollY;
+    }
+
+    public void scrollTo(int y) {
+        this.scrollY = clampScroll(y);
+    }
+
+    public void scrollBy(int delta) {
+        scrollTo(scrollY + delta);
+    }
 
     private int clampScroll(int y) {
         int max = getMaxScrollY();
@@ -44,11 +52,27 @@ public class ViewportState {
         return new LytRect(0, scrollY, viewportWidth, viewportHeight);
     }
 
-    public boolean isLayoutDirty() { return layoutDirty; }
-    public void setLayoutDirty(boolean dirty) { this.layoutDirty = dirty; }
+    public boolean isLayoutDirty() {
+        return layoutDirty;
+    }
 
-    public int viewportWidth() { return viewportWidth; }
-    public int viewportHeight() { return viewportHeight; }
-    public int contentWidth() { return contentWidth; }
-    public int contentHeight() { return contentHeight; }
+    public void setLayoutDirty(boolean dirty) {
+        this.layoutDirty = dirty;
+    }
+
+    public int viewportWidth() {
+        return viewportWidth;
+    }
+
+    public int viewportHeight() {
+        return viewportHeight;
+    }
+
+    public int contentWidth() {
+        return contentWidth;
+    }
+
+    public int contentHeight() {
+        return contentHeight;
+    }
 }

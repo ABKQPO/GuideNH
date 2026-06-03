@@ -10,8 +10,8 @@ import java.util.regex.Pattern;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
-
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytCodeBlock;
@@ -22,17 +22,15 @@ import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguageDetector;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeCompiler;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
-import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 import cpw.mods.fml.common.FMLLog;
 
 public class PreCompiler extends BlockTagCompiler {
 
-    private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile(
-        "(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
-    private static final Pattern CODEBLOCK_META_HEIGHT = Pattern.compile(
-        "(^|\\s)height=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
+    private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
+    private static final Pattern CODEBLOCK_META_HEIGHT = Pattern
+        .compile("(^|\\s)height=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
 
     @Override
     public Set<String> getTagNames() {
@@ -114,7 +112,8 @@ public class PreCompiler extends BlockTagCompiler {
     }
 
     private CsvFenceMeta parseCsvFenceMeta(@Nullable String meta) {
-        if (meta == null || meta.trim().isEmpty()) {
+        if (meta == null || meta.trim()
+            .isEmpty()) {
             return new CsvFenceMeta(true, Collections.emptyList());
         }
 
@@ -190,12 +189,9 @@ public class PreCompiler extends BlockTagCompiler {
     private @Nullable LytMermaidMindmap tryCompileMermaidMindmap(String source) {
         try {
             String normalized = MermaidMindmapParser.normalize(source);
-            LytMermaidMindmap block = new LytMermaidMindmap(
-                MermaidMindmapParser.parse(normalized), normalized);
+            LytMermaidMindmap block = new LytMermaidMindmap(MermaidMindmapParser.parse(normalized), normalized);
             FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [PreCompiler] Compiled fenced Mermaid runtime block ({} chars)",
-                    normalized.length());
+                .info("[GuideNH] [PreCompiler] Compiled fenced Mermaid runtime block ({} chars)", normalized.length());
             return block;
         } catch (IllegalArgumentException e) {
             FMLLog.getLogger()
@@ -227,7 +223,8 @@ public class PreCompiler extends BlockTagCompiler {
     }
 
     private static @Nullable Integer parseCodeBlockWidth(@Nullable String meta) {
-        if (meta == null || meta.trim().isEmpty()) {
+        if (meta == null || meta.trim()
+            .isEmpty()) {
             return null;
         }
         Matcher matcher = CODEBLOCK_META_WIDTH.matcher(meta);
@@ -236,7 +233,8 @@ public class PreCompiler extends BlockTagCompiler {
         }
         String value = matcher.group(3) != null ? matcher.group(3)
             : matcher.group(4) != null ? matcher.group(4) : matcher.group(5);
-        if (value == null || value.trim().isEmpty()) {
+        if (value == null || value.trim()
+            .isEmpty()) {
             return null;
         }
         try {
@@ -247,7 +245,8 @@ public class PreCompiler extends BlockTagCompiler {
     }
 
     private static @Nullable Integer parseCodeBlockHeight(@Nullable String meta) {
-        if (meta == null || meta.trim().isEmpty()) {
+        if (meta == null || meta.trim()
+            .isEmpty()) {
             return null;
         }
         Matcher matcher = CODEBLOCK_META_HEIGHT.matcher(meta);
@@ -256,7 +255,8 @@ public class PreCompiler extends BlockTagCompiler {
         }
         String value = matcher.group(3) != null ? matcher.group(3)
             : matcher.group(4) != null ? matcher.group(4) : matcher.group(5);
-        if (value == null || value.trim().isEmpty()) {
+        if (value == null || value.trim()
+            .isEmpty()) {
             return null;
         }
         try {

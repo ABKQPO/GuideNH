@@ -20,20 +20,23 @@ public class SubPagesCompiler extends BlockTagCompiler {
         var pageIdStr = el.getAttributeString("id", null);
         if (pageIdStr != null) {
             try {
-                pageIdStr = compiler.resolveId(pageIdStr).toString();
+                pageIdStr = compiler.resolveId(pageIdStr)
+                    .toString();
             } catch (Exception e) {
                 parent.appendError(compiler, "Invalid id: " + pageIdStr, el);
                 return;
             }
         }
         var alphabetical = MdxAttrs.getBoolean(compiler, parent, el, "alphabetical", false);
-        var currentPageId = compiler.getPageId().toString();
+        var currentPageId = compiler.getPageId()
+            .toString();
 
         SubPagesPlaceholder placeholder = new SubPagesPlaceholder(pageIdStr, alphabetical, currentPageId);
         parent.append(placeholder);
     }
 
     public static class SubPagesPlaceholder extends LytParagraph {
+
         public final String pageIdStr;
         public final boolean alphabetical;
         public final String currentPageId;

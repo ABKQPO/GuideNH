@@ -7,7 +7,6 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
-import com.hfstudio.guidenh.libs.micromark.extensions.gfm.Align;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableCell;
 import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
@@ -16,8 +15,6 @@ import com.hfstudio.guidenh.libs.mdast.guidemark.MdAstMark;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstDottedUnderline;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstUnderline;
 import com.hfstudio.guidenh.libs.mdast.guideunderline.MdAstWavyUnderline;
-import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
-import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxExpressionAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
@@ -26,7 +23,6 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstCode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstEmphasis;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstFlowContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstHTML;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstHeading;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstImage;
@@ -41,9 +37,10 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstPhrasingContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstStrong;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstThematicBreak;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstStrong;
+import com.hfstudio.guidenh.libs.micromark.extensions.gfm.Align;
 
 public final class MdAstToMdxConverter {
 
@@ -61,7 +58,7 @@ public final class MdAstToMdxConverter {
         // to safely handle concurrent modification.
         List<?> children = parent.children();
         for (Object child : new ArrayList<>(children)) {
-            if (child instanceof MdAstParent<?> childParent) {
+            if (child instanceof MdAstParent<?>childParent) {
                 convertParent(childParent, definitions);
             }
         }
@@ -84,19 +81,35 @@ public final class MdAstToMdxConverter {
             return name != null && PHRASING_CONTAINER_NAMES.contains(name);
         }
         String type = parent.type();
-        return "link".equals(type)
-            || "strong".equals(type)
+        return "link".equals(type) || "strong".equals(type)
             || "emphasis".equals(type)
             || "delete".equals(type)
             || "heading".equals(type);
     }
 
     // Containers whose children are inline/phrasing content only
-    private static final java.util.Set<String> PHRASING_CONTAINER_NAMES =
-        new java.util.HashSet<>(java.util.Arrays.asList(
-            "p", "h1", "h2", "h3", "h4", "h5", "h6",
-            "td", "th", "summary", "a",
-            "strong", "em", "del", "u", "wavy", "dotted", "mark", "code", "span"));
+    private static final java.util.Set<String> PHRASING_CONTAINER_NAMES = new java.util.HashSet<>(
+        java.util.Arrays.asList(
+            "p",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "td",
+            "th",
+            "summary",
+            "a",
+            "strong",
+            "em",
+            "del",
+            "u",
+            "wavy",
+            "dotted",
+            "mark",
+            "code",
+            "span"));
 
     @SuppressWarnings("unchecked")
     private static List<MdAstAnyContent> castAnyChildren(List<?> children) {
@@ -104,13 +117,12 @@ public final class MdAstToMdxConverter {
     }
 
     // -----------------------------------------------------------------------
-    //  Phrasing (inline) children conversion — also handles block nodes that
-    //  may appear inside phrasing containers (e.g. MdAstParagraph inside <td>).
+    // Phrasing (inline) children conversion — also handles block nodes that
+    // may appear inside phrasing containers (e.g. MdAstParagraph inside <td>).
     // -----------------------------------------------------------------------
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private static void convertPhrasingChildren(List<?> children,
-                                                 Map<String, MdAstDefinition> definitions) {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static void convertPhrasingChildren(List<?> children, Map<String, MdAstDefinition> definitions) {
         for (int i = 0; i < children.size(); i++) {
             Object child = children.get(i);
             Object replacement = null;
@@ -197,11 +209,10 @@ public final class MdAstToMdxConverter {
     }
 
     // -----------------------------------------------------------------------
-    //  Flow (block) children conversion
+    // Flow (block) children conversion
     // -----------------------------------------------------------------------
 
-    private static void convertFlowChildren(List<MdAstAnyContent> children,
-                                            Map<String, MdAstDefinition> definitions) {
+    private static void convertFlowChildren(List<MdAstAnyContent> children, Map<String, MdAstDefinition> definitions) {
         for (int i = 0; i < children.size(); i++) {
             MdAstAnyContent child = children.get(i);
             MdxJsxFlowElement replacement = null;
@@ -290,7 +301,7 @@ public final class MdAstToMdxConverter {
     }
 
     // -----------------------------------------------------------------------
-    //  Factory helpers
+    // Factory helpers
     // -----------------------------------------------------------------------
 
     /**
@@ -299,9 +310,12 @@ public final class MdAstToMdxConverter {
      * Uses raw-type list access to bypass the generic type check so that phrasing
      * content (e.g. {@link MdxJsxTextElement}, {@link MdAstText}) can be placed
      * inside flow elements where they are semantically valid (e.g. text inside
-     * {@code <p>}).
+     * {@code 
+     * 
+    <p>
+     * }).
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private static MdxJsxFlowElement createFlow(String name, List<? extends MdAstAnyContent> children) {
         MdxJsxFlowElement element = new MdxJsxFlowElement();
         element.setName(name);
@@ -315,7 +329,7 @@ public final class MdAstToMdxConverter {
     /**
      * Creates a text (inline) element with the given tag name and children.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private static MdxJsxTextElement createText(String name, List<? extends MdAstPhrasingContent> children) {
         MdxJsxTextElement element = new MdxJsxTextElement();
         element.setName(name);
@@ -328,29 +342,34 @@ public final class MdAstToMdxConverter {
 
     /**
      * Adds an {@link MdAstNode} to a flow element's children list via raw-type
-     * access, bypassing the generic type check.  This is needed when the child
+     * access, bypassing the generic type check. This is needed when the child
      * is phrasing content (text, inline elements) that are semantically valid
-     * inside the element (e.g. a {@link MdAstText} inside a {@code <pre>} tag).
+     * inside the element (e.g. a {@link MdAstText} inside a {@code 
+     * 
+     * 
+    
+    <pre>
+     * } tag).
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private static void addChildRaw(MdxJsxFlowElement element, MdAstNode node) {
         ((List) element.children()).add(node);
     }
 
     /**
      * Adds an {@link MdAstNode} to a text element's children list via raw-type
-     * access, bypassing the generic type check.  This is needed when the child
+     * access, bypassing the generic type check. This is needed when the child
      * is a non-phrasing node that is semantically valid inline (e.g. a
      * {@link MdAstText} inside {@code <code>}).
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private static void addChildRaw(MdxJsxTextElement element, MdAstNode node) {
         ((List) element.children()).add(node);
     }
 
     /**
      * Serializes the GfmTable align list to a comma-separated lowercase string,
-     * e.g. {@code "left,center,right"}.  Returns {@code null} when the list is
+     * e.g. {@code "left,center,right"}. Returns {@code null} when the list is
      * null or empty.
      */
     @Nullable
@@ -379,8 +398,10 @@ public final class MdAstToMdxConverter {
      */
     @Nullable
     private static String extractKramdownMeta(MdAstParagraph p) {
-        if (p.children().size() != 1) return null;
-        if (!(p.children().get(0) instanceof MdAstText t)) return null;
+        if (p.children()
+            .size() != 1) return null;
+        if (!(p.children()
+            .get(0) instanceof MdAstText t)) return null;
         String v = t.value.trim();
         if (v.startsWith("{:") && v.endsWith("}")) return v;
         return null;

@@ -26,9 +26,7 @@ public class KeyBindScript implements LytScript {
             String bindId = (String) placeholder.getData("bindId");
             if (bindId == null) return;
             var mapping = KeyBindTagCompiler.findMapping(bindId);
-            String display = mapping != null
-                ? KeyBindTagCompiler.describeMapping(mapping)
-                : "[" + bindId + "]";
+            String display = mapping != null ? KeyBindTagCompiler.describeMapping(mapping) : "[" + bindId + "]";
             placeholder.setText(display);
         }
     }

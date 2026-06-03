@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeContentExtractor;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 
@@ -50,10 +51,11 @@ public class MermaidCompiler extends BlockTagCompiler {
             }
             src = mermaidId.toString();
         } else {
-            String rawTagBodySource = compiler.getBlockTagChildrenSource(el);
-            if (rawTagBodySource != null && !rawTagBodySource.trim()
-                .isEmpty()) {
-                sourceText = MermaidMindmapNodeContentExtractor.stripExplicitNodeContentBlocks(rawTagBodySource);
+            // Prefer raw source text so Mermaid DSL syntax (brackets, links, etc.)
+            // is not consumed by markdown parsing. PR #24.
+            String rawSource = compiler.getBlockTagChildrenSource(el);
+            if (rawSource != null) {
+                sourceText = MermaidMindmapParser.normalize(stripNodeContentBlocks(rawSource));
             } else {
                 sourceText = MermaidMindmapNodeContentExtractor.extractDiagramSource(el.children());
             }
@@ -138,6 +140,7 @@ public class MermaidCompiler extends BlockTagCompiler {
     }
 
     public static class MermaidPlaceholder extends LytParagraph {
+
         public final String src;
         public final String sourceText;
         public final int width;
@@ -154,5 +157,38 @@ public class MermaidCompiler extends BlockTagCompiler {
             setStyleClass("Mermaid");
             setStyle(LytParagraph.PLACEHOLDER_STYLE);
         }
+    }
+
+    private static String stripNodeContentBlocks(String source) {
+        StringBuilder result = new StringBuilder(source.length());
+        int depth = 0;
+        for (int i = 0; i < source.length(); i++) {
+            char c = source.charAt(i);
+            if (depth == 0 && source.startsWith("<", i)) {
+                int tagEnd = source.indexOf('>', i);
+                if (tagEnd > i) {
+                    String tag = source.substring(i, tagEnd + 1);
+                    if (tag.startsWith("<NodeContent")) {
+                        depth = 1;
+                        i = tagEnd;
+                        continue;
+                    }
+                }
+            }
+            if (depth > 0) {
+                if (source.startsWith("</NodeContent>", i)) {
+                    depth--;
+                    if (depth == 0) {
+                        i += "</NodeContent>".length() - 1;
+                        continue;
+                    }
+                } else if (source.startsWith("<NodeContent", i)) {
+                    depth++;
+                }
+                continue;
+            }
+            result.append(c);
+        }
+        return result.toString();
     }
 }

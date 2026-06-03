@@ -50,6 +50,7 @@ public class QuestCardCompiler extends BlockTagCompiler {
     }
 
     public static class QuestCardPlaceholder extends LytParagraph {
+
         public final UUID questId;
         public final boolean showDesc;
         public final boolean showTooltip;

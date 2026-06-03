@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.scheduler;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 
 public class LytHostPreheatItem implements WorkItem {
+
     private final LytHost host;
 
     public LytHostPreheatItem(LytHost host) {
@@ -10,10 +11,14 @@ public class LytHostPreheatItem implements WorkItem {
     }
 
     @Override
-    public Priority priority() { return Priority.MEDIUM; }
+    public Priority priority() {
+        return Priority.MEDIUM;
+    }
 
     @Override
-    public boolean shouldRun() { return host.hasPreheatWork(); }
+    public boolean shouldRun() {
+        return host.hasPreheatWork();
+    }
 
     @Override
     public WorkResult tick(long deadlineNs) {

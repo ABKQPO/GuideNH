@@ -43,6 +43,7 @@ public class ItemGridCompiler extends BlockTagCompiler {
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {}
 
     public static class ItemGridPlaceholder extends LytParagraph {
+
         public final List<String> itemIds;
 
         public ItemGridPlaceholder(List<String> itemIds) {
