@@ -68,7 +68,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
-        null);
+        null,
+        false);
     private static final ResolvedTextStyle NODE_TEXT_STYLE = new ResolvedTextStyle(
         1f,
         false,
@@ -83,7 +84,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
-        null);
+        null,
+        false);
     private static final ResolvedTextStyle ICON_TEXT_STYLE = new ResolvedTextStyle(
         0.85f,
         false,
@@ -98,7 +100,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
-        null);
+        null,
+        false);
 
     private final MermaidMindmapDocument mindmap;
     private final Map<String, LytBlock> nodeContentBlocks;
@@ -1057,7 +1060,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             baseStyle.whiteSpace(),
             baseStyle.alignment(),
             baseStyle.dropShadow(),
-            baseStyle.backgroundColor());
+            baseStyle.backgroundColor(),
+            baseStyle.inlineCode());
     }
 
     private void ensureScaledStyles() {
@@ -1370,7 +1374,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
                     key.whiteSpace(),
                     key.alignment(),
                     key.dropShadow(),
-                    key.backgroundColor()));
+                    key.backgroundColor(),
+                    key.inlineCode()));
         }
 
         private LytRect scaleRect(LytRect rect) {

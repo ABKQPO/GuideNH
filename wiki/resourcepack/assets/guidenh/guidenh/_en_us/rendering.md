@@ -32,6 +32,12 @@ This page tests every block-level element supported by the Markdown rendering pi
 
 Plain text, **bold text**, *italic text*, ***bold-italic text***, ~~strikethrough~~, and `inline code`.
 
+Nested code styles: **`bold code`**, *`italic code`*, ~~`strike code`~~, and ***`bold italic code`***.
+
+Literal markers inside code: *is* ~~`aaa**`~~ and **`literal ~~ markers`**.
+
+Long wrapped code sample: `inline-code-with-a-long-name-that-should-wrap-cleanly-inside-the-line-layout`.
+
 ## Horizontal rule
 
 Above the rule.

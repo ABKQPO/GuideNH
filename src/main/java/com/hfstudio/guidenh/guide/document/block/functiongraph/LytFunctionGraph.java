@@ -1282,7 +1282,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             WhiteSpaceMode.NORMAL,
             TextAlignment.LEFT,
             false,
-            null);
+            null,
+            false);
     }
 
     @SuppressWarnings("unused")

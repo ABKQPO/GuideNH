@@ -330,7 +330,8 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
             WhiteSpaceMode.NORMAL,
             TextAlignment.LEFT,
             false,
-            null);
+            null,
+            false);
     }
 
     public static String formatPercent(double ratio) {

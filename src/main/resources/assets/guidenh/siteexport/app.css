@@ -191,8 +191,8 @@ td + td, th + th {
 code {
     font-family: 'Pixeloid Mono', monospace;
     font-size: 0.88em;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(124, 124, 124, 0.4);
+    color: inherit;
+    background: rgba(111, 182, 255, 0.12);
     padding: 1px 4px;
 }
 
@@ -206,7 +206,6 @@ pre {
 
 pre code {
     background: none;
-    border: none;
     padding: 0;
 }
 
