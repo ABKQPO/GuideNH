@@ -35,7 +35,7 @@ public class MarkdownListSemantics {
                     .get(0);
                 Matcher matcher = TASK_PATTERN.matcher(text.value);
                 if (matcher.matches()) {
-                    return new TaskMarker(!" ".equals(matcher.group(1)), matcher.group(2));
+                    return new TaskMarker(!" ".equals(matcher.group(1)), matcher.group(2), text);
                 }
             }
         }
@@ -43,5 +43,5 @@ public class MarkdownListSemantics {
     }
 
     @Desugar
-    public record TaskMarker(boolean checked, String remainingText) {}
+    public record TaskMarker(boolean checked, String remainingText, MdAstText textNode) {}
 }
