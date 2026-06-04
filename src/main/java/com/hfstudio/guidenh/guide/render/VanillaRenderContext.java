@@ -24,6 +24,10 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 public class VanillaRenderContext implements RenderContext {
 
     public static final RenderItem ITEM_RENDERER = new RenderItem();
+    private static final String FORMAT_BOLD = "\u00a7l";
+    private static final String FORMAT_ITALIC = "\u00a7o";
+    private static final String FORMAT_STRIKETHROUGH = "\u00a7m";
+    private static final String FORMAT_OBFUSCATED = "\u00a7k";
 
     private final FontRenderer fontRenderer;
     private int screenHeight;
@@ -157,10 +161,10 @@ public class VanillaRenderContext implements RenderContext {
         if (style.bold() || style.italic() || style.strikethrough() || style.obfuscated()) {
             sb = textStyleBuffer;
             sb.setLength(0);
-            if (style.bold()) sb.append("\u00a7l");
-            if (style.italic()) sb.append("\u00a7o");
-            if (style.strikethrough()) sb.append("\u00a7m");
-            if (style.obfuscated()) sb.append("\u00a7k");
+            if (style.bold()) sb.append(FORMAT_BOLD);
+            if (style.italic()) sb.append(FORMAT_ITALIC);
+            if (style.strikethrough()) sb.append(FORMAT_STRIKETHROUGH);
+            if (style.obfuscated()) sb.append(FORMAT_OBFUSCATED);
         }
         String drawn = sb != null ? sb.append(text)
             .toString() : text;
@@ -183,24 +187,30 @@ public class VanillaRenderContext implements RenderContext {
             fontRenderer.drawString(drawn, x, y, color);
         }
 
+        boolean hasUnderline = style.underlined();
+        boolean hasWavyUnderline = style.wavyUnderline();
+        boolean hasDottedUnderline = style.dottedUnderline();
+        if (!hasUnderline && !hasWavyUnderline && !hasDottedUnderline) {
+            return;
+        }
+
+        int scaledFontHeight = Math.round(fontRenderer.FONT_HEIGHT * scale);
+        int decorationY = y + scaledFontHeight - 1;
         int decoratedWidth = -1;
         if (style.underlined()) {
             decoratedWidth = Math.round(fontRenderer.getStringWidth(drawn) * scale);
-            int uy = y + Math.round((fontRenderer.FONT_HEIGHT) * scale) - 1;
-            Gui.drawRect(x, uy, x + decoratedWidth, uy + 1, color);
+            Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
         }
         if (style.wavyUnderline()) {
             int w = decoratedWidth >= 0 ? decoratedWidth : Math.round(fontRenderer.getStringWidth(drawn) * scale);
-            int baseY = y + Math.round((fontRenderer.FONT_HEIGHT) * scale) - 1;
             // Draw a 2px-tall sine-like zig-zag using 1x1 rects: pattern of 4 px period.
             for (int i = 0; i < w; i++) {
                 int phase = i & 3; // 0,1,2,3
                 int dy = (phase == 0 || phase == 2) ? 0 : (phase == 1 ? -1 : 1);
-                Gui.drawRect(x + i, baseY + dy, x + i + 1, baseY + dy + 1, color);
+                Gui.drawRect(x + i, decorationY + dy, x + i + 1, decorationY + dy + 1, color);
             }
         }
         if (style.dottedUnderline()) {
-            int dy = y + Math.round((fontRenderer.FONT_HEIGHT) * scale) - 1;
             // Center a single 2x2 dot under each rendered character cell.
             int cursor = 0;
             int len = drawn.length();
@@ -216,7 +226,7 @@ public class VanillaRenderContext implements RenderContext {
                     continue;
                 }
                 int dotX = x + cursor + Math.max(0, (cw - 2) / 2);
-                Gui.drawRect(dotX, dy, dotX + 2, dy + 2, color);
+                Gui.drawRect(dotX, decorationY, dotX + 2, decorationY + 2, color);
                 cursor += cw;
             }
         }
