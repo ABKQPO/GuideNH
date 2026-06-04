@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.layout.flow;
 
 import java.text.BreakIterator;
 import java.text.CharacterIterator;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -50,6 +51,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     private LineElement openLineTail;
     private final TextAlignment alignment;
     private final StringBuilder lineBuffer = new StringBuilder();
+    private float[] lineBufferPrefixWidths = new float[64];
 
     /** Reusable CharacterIterator wrapping {@link #lineBuffer} to avoid String allocation in BreakIterator. */
     private final StringBuilderCharIterator charIterator = new StringBuilderCharIterator();
@@ -208,6 +210,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         final var finalStyle = style;
         final var finalRevealStyle = revealStyle;
         final var finalHoverStyle = hoverStyle;
+        final boolean inlineCode = finalStyle.inlineCode();
 
         char lastChar = '\0';
         var endOfOpenLine = getEndOfOpenLine();
@@ -224,8 +227,8 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 el.flowContent = flowContent;
                 int w = Math.round(width);
                 int h = context.getLineHeight(finalStyle);
-                if (finalStyle.inlineCode()) {
-                    w += LineTextRun.INLINE_CODE_PAD_X * 2;
+                if (inlineCode) {
+                    w += LineTextRun.INLINE_CODE_EXTRA_WIDTH;
                 }
                 el.bounds = new LytRect(innerX, 0, w, h);
                 appendToOpenLine(el);
@@ -261,6 +264,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         float curLineWidth = 0;
 
         lineBuffer.setLength(0);
+        lineBufferPrefixWidths[0] = 0f;
 
         // Hoist whitespace mode flags out of the per-character loop to avoid repeated method calls.
         boolean collapseSegmentBreaks = style.whiteSpace()
@@ -292,6 +296,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 } else {
                     consumer.visitRun(lineBuffer, curLineWidth, true);
                     lineBuffer.setLength(0);
+                    lineBufferPrefixWidths[0] = 0f;
                     lastCharWasWhitespace = true;
                     remainingLineWidth = getAvailableHorizontalSpace();
                     continue;
@@ -332,32 +337,21 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 // current word does not offer us any opportunity to.
                 if (precedingBreakOpportunity > 0 || precedingBreakOpportunity == 0 && canBreakAtStart) {
                     // Determine width up until the break opportunity.
-                    // Short-circuit: when breaking at end-of-buffer (whitespace case), curLineWidth
-                    // already equals the total, so skip the O(N) recomputation loop.
-                    float widthAtBreakOpportunity;
-                    if (precedingBreakOpportunity == lineBuffer.length()) {
-                        widthAtBreakOpportunity = curLineWidth;
-                    } else {
-                        widthAtBreakOpportunity = 0f;
-                        for (var j = 0; j < precedingBreakOpportunity; j++) {
-                            widthAtBreakOpportunity += context.getAdvance(lineBuffer.charAt(j), style);
-                        }
-                    }
+                    float widthAtBreakOpportunity = lineBufferPrefixWidths[precedingBreakOpportunity];
 
                     consumer
                         .visitRun(lineBuffer.subSequence(0, precedingBreakOpportunity), widthAtBreakOpportunity, true);
                     curLineWidth -= widthAtBreakOpportunity;
-                    lineBuffer.delete(0, precedingBreakOpportunity);
+                    deleteLineBufferPrefix(precedingBreakOpportunity);
                     if (!lineBuffer.isEmpty() && Character.isWhitespace(lineBuffer.charAt(0))) {
-                        var firstChar = lineBuffer.charAt(0);
-                        lineBuffer.deleteCharAt(0);
-                        curLineWidth -= context.getAdvance(firstChar, style);
+                        curLineWidth -= deleteLineBufferPrefix(1);
                     }
                 } else {
                     // We exceeded the line length, but did not find a break opportunity
                     // this causes a forced break mid-word
                     consumer.visitRun(lineBuffer, curLineWidth, true);
                     lineBuffer.setLength(0);
+                    lineBufferPrefixWidths[0] = 0f;
                     curLineWidth = 0;
                 }
                 remainingLineWidth = getAvailableHorizontalSpace();
@@ -368,12 +362,51 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 }
             }
             curLineWidth += advance;
-            lineBuffer.appendCodePoint(codePoint);
+            appendCodePointToLineBuffer(codePoint, advance);
         }
 
         if (!lineBuffer.isEmpty()) {
             consumer.visitRun(lineBuffer, curLineWidth, false);
         }
+    }
+
+    private void appendCodePointToLineBuffer(int codePoint, float advance) {
+        int previousLength = lineBuffer.length();
+        float bufferWidth = lineBufferPrefixWidths[previousLength] + advance;
+        lineBuffer.appendCodePoint(codePoint);
+        int newLength = lineBuffer.length();
+        ensureLineBufferPrefixCapacity(newLength + 1);
+        for (int i = previousLength + 1; i <= newLength; i++) {
+            lineBufferPrefixWidths[i] = bufferWidth;
+        }
+    }
+
+    private float deleteLineBufferPrefix(int charCount) {
+        if (charCount <= 0) {
+            return 0f;
+        }
+        float removedWidth = lineBufferPrefixWidths[charCount];
+        int remainingChars = lineBuffer.length() - charCount;
+        if (remainingChars > 0) {
+            System.arraycopy(lineBufferPrefixWidths, charCount + 1, lineBufferPrefixWidths, 1, remainingChars);
+            for (int i = 1; i <= remainingChars; i++) {
+                lineBufferPrefixWidths[i] -= removedWidth;
+            }
+        }
+        lineBuffer.delete(0, charCount);
+        lineBufferPrefixWidths[0] = 0f;
+        return removedWidth;
+    }
+
+    private void ensureLineBufferPrefixCapacity(int requiredLength) {
+        if (requiredLength <= lineBufferPrefixWidths.length) {
+            return;
+        }
+        int newLength = lineBufferPrefixWidths.length;
+        while (newLength < requiredLength) {
+            newLength <<= 1;
+        }
+        lineBufferPrefixWidths = Arrays.copyOf(lineBufferPrefixWidths, newLength);
     }
 
     private void endLine() {
@@ -543,7 +576,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     }
 
     @FunctionalInterface
-    interface LineConsumer {
+    private interface LineConsumer {
 
         void visitRun(CharSequence run, float width, boolean end);
     }
@@ -552,7 +585,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
      * A {@link CharacterIterator} that wraps a {@link StringBuilder} without copying it to a {@link String}.
      * Reuse by calling {@link #reset} before each use.
      */
-    private static final class StringBuilderCharIterator implements CharacterIterator {
+    private static class StringBuilderCharIterator implements CharacterIterator {
 
         private StringBuilder sb;
         private int begin;
