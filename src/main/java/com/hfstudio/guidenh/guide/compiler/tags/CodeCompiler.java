@@ -30,8 +30,8 @@ public class CodeCompiler extends FlowTagCompiler {
         }
         text.setText(value);
         text.modifyStyle(
-            style -> style.italic(true)
-                .whiteSpace(WhiteSpaceMode.PRE));
+            style -> style.inlineCode(true)
+                .whiteSpace(WhiteSpaceMode.PRE_WRAP));
         parent.append(text);
     }
 }

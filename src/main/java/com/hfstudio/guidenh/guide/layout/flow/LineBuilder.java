@@ -224,6 +224,9 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 el.flowContent = flowContent;
                 int w = Math.round(width);
                 int h = context.getLineHeight(finalStyle);
+                if (finalStyle.inlineCode()) {
+                    w += LineTextRun.INLINE_CODE_PAD_X * 2;
+                }
                 el.bounds = new LytRect(innerX, 0, w, h);
                 appendToOpenLine(el);
                 innerX += w;
