@@ -225,6 +225,12 @@ public class LytGuidebookScene extends LytBlock {
     private int cachedPonderBtnAbsY;
 
     private boolean interactive = true;
+    float buttonZoom = 1f;
+
+    public void setButtonZoom(float buttonZoom) {
+        this.buttonZoom = Math.max(0.1f, buttonZoom);
+    }
+
     private boolean sceneButtonsVisible = true;
     private boolean bottomControlsVisible = true;
     private boolean reserveBottomControlArea = true;
@@ -3266,11 +3272,12 @@ public class LytGuidebookScene extends LytBlock {
 
         // GL drawing uses layout coords; convert screen pixels back to layout units for bx.
         int layoutW = Math.round(screenW / docZoom);
-        int bx = drawX + layoutW + BTN_OUTSIDE_GAP;
+        float bz = buttonZoom;
+        int bx = drawX + layoutW + Math.round(BTN_OUTSIDE_GAP * bz);
         int by = drawY;
-        int btnScreenSize = Math.round(BTN_SIZE * docZoom);
-        int btnScreenStep = Math.round((BTN_SIZE + BTN_GAP) * docZoom);
-        int absBx = absX + screenW + Math.round(BTN_OUTSIDE_GAP * docZoom);
+        int btnScreenSize = Math.round(BTN_SIZE * docZoom * bz);
+        int btnScreenStep = Math.round((BTN_SIZE + BTN_GAP) * docZoom * bz);
+        int absBx = absX + screenW + Math.round(BTN_OUTSIDE_GAP * docZoom * bz);
         int absBy = absY;
         sceneButtonsAbsX = absBx;
         sceneButtonsAbsY = absBy;
@@ -3286,10 +3293,12 @@ public class LytGuidebookScene extends LytBlock {
             my = -1;
         }
         GuideIconButton.Role[] roles = cachedSceneButtonRoles();
+        int btnDocSize = Math.round(BTN_SIZE * bz);
+        int btnDocStep = Math.round((BTN_SIZE + BTN_GAP) * bz);
         for (var role : roles) {
             boolean hover = mx >= absBx && my >= absBy && mx < absBx + btnScreenSize && my < absBy + btnScreenSize;
-            drawOneSceneButton(bx, by, role, hover);
-            by += BTN_SIZE + BTN_GAP;
+            drawOneSceneButton(bx, by, btnDocSize, role, hover);
+            by += btnDocStep;
             absBy += btnScreenStep;
         }
     }
@@ -3336,7 +3345,7 @@ public class LytGuidebookScene extends LytBlock {
         return cachedSceneButtonRoles;
     }
 
-    private void drawOneSceneButton(int x, int y, GuideIconButton.Role role, boolean hovered) {
+    private void drawOneSceneButton(int x, int y, int btnSize, GuideIconButton.Role role, boolean hovered) {
         Minecraft.getMinecraft()
             .getTextureManager()
             .bindTexture(BUTTONS_TEXTURE);
@@ -3355,9 +3364,9 @@ public class LytGuidebookScene extends LytBlock {
         float v1 = (role.iconSrcY() + role.iconSrcHeight()) / texSize;
         var tess = Tessellator.instance;
         tess.startDrawingQuads();
-        tess.addVertexWithUV(x, y + BTN_SIZE, 0, u0, v1);
-        tess.addVertexWithUV(x + BTN_SIZE, y + BTN_SIZE, 0, u1, v1);
-        tess.addVertexWithUV(x + BTN_SIZE, y, 0, u1, v0);
+        tess.addVertexWithUV(x, y + btnSize, 0, u0, v1);
+        tess.addVertexWithUV(x + btnSize, y + btnSize, 0, u1, v1);
+        tess.addVertexWithUV(x + btnSize, y, 0, u1, v0);
         tess.addVertexWithUV(x, y, 0, u0, v0);
         tess.draw();
         GL11.glColor4f(1f, 1f, 1f, 1f);
@@ -3386,8 +3395,8 @@ public class LytGuidebookScene extends LytBlock {
         if (lastW <= 0 || lastH <= 0) return null;
         int bx = sceneButtonsAbsX;
         int by = sceneButtonsAbsY;
-        int btnScreenSize = Math.round(BTN_SIZE * lastDocZoom);
-        int btnScreenStep = Math.round((BTN_SIZE + BTN_GAP) * lastDocZoom);
+        int btnScreenSize = Math.round(BTN_SIZE * lastDocZoom * buttonZoom);
+        int btnScreenStep = Math.round((BTN_SIZE + BTN_GAP) * lastDocZoom * buttonZoom);
         int rolesHeight = btnScreenSize + Math.max(0, cachedSceneButtonRoles().length - 1) * btnScreenStep;
         LytRect buttonColumnRect = new LytRect(bx, by, btnScreenSize, rolesHeight);
         if (renderedContentClip != null) {
