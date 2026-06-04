@@ -14,6 +14,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
@@ -66,6 +67,8 @@ public class GuideLightweightReloadService {
         StructureLibRuntimeFacade.IMPORT_RESULT_CACHE.clear();
         StructureLibElementTooltipResolver.BLOCK_CANDIDATE_CACHE.clear();
         StructureLibElementTooltipResolver.HATCH_CANDIDATE_CACHE.clear();
+        ClientProxy.getLytHost()
+            .clearPageCaches();
 
         long stageStartedAt = System.nanoTime();
         GuideRegistry.setDataDriven(DataDrivenGuideLoader.load());
