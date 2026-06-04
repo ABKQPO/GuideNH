@@ -5746,6 +5746,7 @@ public class GuideScreen extends GuiContainer
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
+        if (handleDebugHudToggleKey(keyCode)) return;
         if (GuideScreenNeiBridge.keyTyped(this, typedChar, keyCode)) return;
         if (handleSearchFieldKey(typedChar, keyCode)) return;
         if (handleSpecialSearchFieldKey(typedChar, keyCode)) return;
@@ -5789,6 +5790,14 @@ public class GuideScreen extends GuiContainer
             return;
         }
         super.keyTyped(typedChar, keyCode);
+    }
+
+    private boolean handleDebugHudToggleKey(int keyCode) {
+        if (keyCode != Keyboard.KEY_F3 || !ModConfig.debug.enableDebugMode || mc == null || mc.gameSettings == null) {
+            return false;
+        }
+        mc.gameSettings.showDebugInfo = !mc.gameSettings.showDebugInfo;
+        return true;
     }
 
     private boolean isInsideDocument(int mouseX, int mouseY) {
