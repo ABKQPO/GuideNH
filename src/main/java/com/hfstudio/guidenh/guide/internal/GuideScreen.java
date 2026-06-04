@@ -55,6 +55,7 @@ import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.color.Colors;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.AnchorIndexer;
@@ -132,6 +133,7 @@ import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
@@ -223,6 +225,10 @@ public class GuideScreen extends GuiContainer
     private static final int GUIDE_EDITOR_TOOLBAR_H = 16;
     private static final int GUIDE_EDITOR_MIN_SPLIT_PANE_W = 15;
     private static final int SCROLLBAR_W = SceneEditorMultilineTextArea.SCROLLBAR_SIZE;
+    private static final int SCROLLBAR_OUTLINE_LABEL_MAX_WIDTH = 132;
+    private static final int SCROLLBAR_OUTLINE_LABEL_PADDING_X = 5;
+    private static final int SCROLLBAR_OUTLINE_LABEL_PADDING_Y = 4;
+    private static final int SCROLLBAR_OUTLINE_LABEL_GAP = 6;
     private static final int GUIDE_EDITOR_DIVIDER_HOVER_DELAY_MILLIS = 1000;
     private static final long GUIDE_EDITOR_SAFETY_AUTOSAVE_INTERVAL_MILLIS = 5L * 60L * 1000L;
     private static final long GUIDE_EDITOR_NAVIGATION_REFRESH_DELAY_MILLIS = 1500L;
@@ -241,6 +247,7 @@ public class GuideScreen extends GuiContainer
     private final MinecraftFontMetrics layoutFontMetrics = new MinecraftFontMetrics();
     private final CodeBlockClipboardService codeBlockClipboardService = new CodeBlockClipboardService();
     private final GuideDebugOverlayRenderer debugOverlayRenderer = new GuideDebugOverlayRenderer();
+    private final GuideScreenScrollbarOutline scrollbarOutline = new GuideScreenScrollbarOutline();
     private final GuideScreenEditorFileStore guideEditorFileStore = GuideScreenEditorFileStore.createDefault();
     private final Map<Integer, GuideIconButton> guideEditorActionButtons = new LinkedHashMap<>();
 
@@ -632,6 +639,7 @@ public class GuideScreen extends GuiContainer
         currentPage = null;
         document = null;
         lastLayoutWidth = -1;
+        invalidateScrollbarOutline();
         if (currentAnchor != null) {
             ClientProxy.getLytHost()
                 .invalidatePage(
@@ -699,6 +707,7 @@ public class GuideScreen extends GuiContainer
         document = null;
         layoutDocument = null;
         lastLayoutWidth = -1;
+        invalidateScrollbarOutline();
         scrollY = 0;
         loadCurrentPage();
         ensureLayout();
@@ -758,6 +767,7 @@ public class GuideScreen extends GuiContainer
         rebuildToolbar();
         layoutDocument = null;
         lastLayoutWidth = -1;
+        invalidateScrollbarOutline();
         ensureLayout();
         clampScroll();
     }
@@ -2347,6 +2357,7 @@ public class GuideScreen extends GuiContainer
         }
         currentPage = loadedPage;
         document = loadedPage != null ? loadedPage.document() : null;
+        invalidateScrollbarOutline();
         lytHost.setCurrentPageId(pageIdStr);
         lytHost.setCurrentPageCollection(guide);
         lytHost.mountDocument(document);
@@ -2436,6 +2447,7 @@ public class GuideScreen extends GuiContainer
             layoutDocument = activeDocument;
             lastLayoutWidth = layoutWidth;
             lastLayoutVisualScalePermille = layoutVisualScalePermille;
+            invalidateScrollbarOutline();
         }
     }
 
@@ -2573,6 +2585,7 @@ public class GuideScreen extends GuiContainer
         currentZoom = resolveCurrentZoom();
         ensureLayout();
         clampScroll();
+        updateScrollbarOutlineHover(mouseX, mouseY);
 
         int navX = panelX;
         int navY = panelY + TOOLBAR_H + 1;
@@ -4455,31 +4468,42 @@ public class GuideScreen extends GuiContainer
     }
 
     private void drawScrollbar() {
-        int barW = SCROLLBAR_W;
-        int barX = panelX + panelW - 1 - barW;
-        int barY = getDocumentViewportY();
-        int barH = getDocumentViewportHeight();
-        drawRect(barX, barY, barX + barW, barY + barH, 0x40FFFFFF);
+        var bounds = scrollbarBounds();
+        drawRect(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), 0x40FFFFFF);
+        var renderState = scrollbarOutline.update(
+            currentPage,
+            getActiveDocument(),
+            bounds,
+            currentZoom,
+            scrollY,
+            lastMouseX,
+            lastMouseY,
+            System.currentTimeMillis(),
+            mc.fontRenderer,
+            SCROLLBAR_OUTLINE_LABEL_MAX_WIDTH,
+            SCROLLBAR_OUTLINE_LABEL_GAP,
+            panelX,
+            panelX + panelW);
+        drawScrollbarOutlineMarkers(renderState);
 
-        int total = getContentHeight();
-        int viewportH = getDocumentViewportHeight();
-        int thumbH = Math.max(16, (int) ((long) barH * viewportH / Math.max(1, total)));
-        int maxScroll = getMaxScroll();
-        int thumbY = maxScroll > 0 ? barY + (int) ((long) (barH - thumbH) * scrollY / maxScroll) : barY;
+        int thumbH = Math
+            .max(16, (int) ((long) bounds.height() * bounds.viewportHeight() / Math.max(1, bounds.contentHeight())));
+        int thumbY = bounds.maxScroll() > 0
+            ? bounds.y() + (int) ((long) (bounds.height() - thumbH) * scrollY / bounds.maxScroll())
+            : bounds.y();
         int thumbColor = draggingScrollbar ? 0xFFFFFFFF : 0xFFCCCCCC;
-        drawRect(barX, thumbY, barX + barW, thumbY + thumbH, thumbColor);
+        drawRect(bounds.x(), thumbY, bounds.x() + bounds.width(), thumbY + thumbH, thumbColor);
+        drawScrollbarOutlineLabel(renderState, mc.fontRenderer);
     }
 
     private int[] scrollbarThumbRect() {
-        int barX = panelX + panelW - 1 - SCROLLBAR_W;
-        int barY = getDocumentViewportY();
-        int barH = getDocumentViewportHeight();
-        int total = getContentHeight();
-        int viewportH = getDocumentViewportHeight();
-        int thumbH = Math.max(16, (int) ((long) barH * viewportH / Math.max(1, total)));
-        int maxScroll = getMaxScroll();
-        int thumbY = maxScroll > 0 ? barY + (int) ((long) (barH - thumbH) * scrollY / maxScroll) : barY;
-        return new int[] { barX, thumbY, SCROLLBAR_W, thumbH, barY, barH };
+        var bounds = scrollbarBounds();
+        int thumbH = Math
+            .max(16, (int) ((long) bounds.height() * bounds.viewportHeight() / Math.max(1, bounds.contentHeight())));
+        int thumbY = bounds.maxScroll() > 0
+            ? bounds.y() + (int) ((long) (bounds.height() - thumbH) * scrollY / bounds.maxScroll())
+            : bounds.y();
+        return new int[] { bounds.x(), thumbY, bounds.width(), thumbH, bounds.y(), bounds.height() };
     }
 
     private void updateScrollFromMouseY(int mouseY) {
@@ -4743,6 +4767,12 @@ public class GuideScreen extends GuiContainer
                     updateScrollFromMouseY(mouseY);
                 }
                 draggingScrollbar = true;
+                return;
+            }
+            Integer markerTarget = scrollbarOutline.findJumpTarget(mouseX, mouseY);
+            if (markerTarget != null) {
+                scrollY = markerTarget.intValue();
+                clampScroll();
                 return;
             }
         }
@@ -6567,6 +6597,7 @@ public class GuideScreen extends GuiContainer
         refreshCurrentPageTitle();
         rebuildSearchDocumentIfNeeded(true);
         scrollY = 0;
+        invalidateScrollbarOutline();
         rebuildToolbar();
         syncSearchFieldsToCurrentRoute();
     }
@@ -6599,6 +6630,7 @@ public class GuideScreen extends GuiContainer
         clearInteractionState();
         layoutDocument = null;
         lastLayoutWidth = -1;
+        invalidateScrollbarOutline();
         clampScroll();
     }
 
@@ -6612,6 +6644,87 @@ public class GuideScreen extends GuiContainer
         for (LytNode child : root.getChildren()) {
             updateSpecialSearchBlocks(child, query);
         }
+    }
+
+    private GuideScreenScrollbarOutline.ScrollbarBounds scrollbarBounds() {
+        return new GuideScreenScrollbarOutline.ScrollbarBounds(
+            panelX + panelW - SCROLLBAR_W,
+            getDocumentViewportY(),
+            SCROLLBAR_W,
+            getDocumentViewportHeight(),
+            getContentHeight(),
+            getDocumentViewportHeight(),
+            getMaxScroll());
+    }
+
+    private void updateScrollbarOutlineHover(int mouseX, int mouseY) {
+        if (getMaxScroll() <= 0 || isGuideEditorActive() || isHomeRoute()) {
+            scrollbarOutline.clearHover();
+            return;
+        }
+        scrollbarOutline.update(
+            currentPage,
+            getActiveDocument(),
+            scrollbarBounds(),
+            currentZoom,
+            scrollY,
+            mouseX,
+            mouseY,
+            System.currentTimeMillis(),
+            null,
+            SCROLLBAR_OUTLINE_LABEL_MAX_WIDTH,
+            SCROLLBAR_OUTLINE_LABEL_GAP,
+            panelX,
+            panelX + panelW);
+    }
+
+    private void drawScrollbarOutlineMarkers(GuideScreenScrollbarOutline.RenderState renderState) {
+        for (int index = 0; index < renderState.entries()
+            .size(); index++) {
+            var entry = renderState.entries()
+                .get(index);
+            int color = index == renderState.activeIndex() ? withAlpha(lighten(entry.colorArgb(), 12), 220)
+                : withAlpha(entry.colorArgb(), 140);
+            drawRect(
+                entry.markerX(),
+                entry.markerY(),
+                entry.markerX() + entry.markerWidth(),
+                entry.markerY() + entry.markerHeight(),
+                color);
+        }
+    }
+
+    private void drawScrollbarOutlineLabel(GuideScreenScrollbarOutline.RenderState renderState,
+        FontRenderer fontRenderer) {
+        var label = renderState.labelLayout();
+        if (label == null || label.lines()
+            .isEmpty()) {
+            return;
+        }
+        int bubbleWidth = label.width() + SCROLLBAR_OUTLINE_LABEL_PADDING_X * 2;
+        int bubbleHeight = label.height() + SCROLLBAR_OUTLINE_LABEL_PADDING_Y * 2;
+        int background = Colors.argb(label.alpha(), 16, 16, 16);
+        int border = Colors.argb(label.alpha(), 216, 216, 216);
+        drawRect(label.x(), label.y(), label.x() + bubbleWidth, label.y() + bubbleHeight, background);
+        drawBorder(label.x(), label.y(), bubbleWidth, bubbleHeight, border);
+        int textY = label.y() + SCROLLBAR_OUTLINE_LABEL_PADDING_Y;
+        for (String line : label.lines()) {
+            fontRenderer.drawStringWithShadow(line, label.x() + SCROLLBAR_OUTLINE_LABEL_PADDING_X, textY, 0xFFFFFF);
+            textY += fontRenderer.FONT_HEIGHT;
+        }
+    }
+
+    private int withAlpha(int argb, int alpha) {
+        int clampedAlpha = Math.max(0, Math.min(255, alpha));
+        return (argb & 0x00FFFFFF) | (clampedAlpha << 24);
+    }
+
+    private int lighten(int argb, int percent) {
+        return DiamondAnnotation.lighten(argb, percent);
+    }
+
+    private void invalidateScrollbarOutline() {
+        scrollbarOutline.invalidateLayout();
     }
 
     private void recordHomeHistoryIfEligible() {
