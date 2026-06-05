@@ -128,7 +128,8 @@ public class TagAttributeRegistry {
         register(
             "ContentTabs",
             new AttributeSpec("default", AttrType.STRING),
-            new AttributeSpec("defaultIndex", AttrType.INT));
+            new AttributeSpec("defaultIndex", AttrType.INT),
+            new AttributeSpec("color", AttrType.COLOR));
         register("Tab", new AttributeSpec("title", AttrType.STRING));
         register(
             "Row",

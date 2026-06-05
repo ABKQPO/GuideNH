@@ -4,7 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ContentTabsSpec;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -12,6 +16,7 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -19,15 +24,18 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 public class LytContentTabsBlock extends LytBlock implements InteractiveElement {
 
-    private static final int HEADER_GAP = 4;
-    private static final int HEADER_PAD_X = 8;
-    private static final int HEADER_PAD_Y = 5;
+    private static final int ACCENT_WIDTH = 3;
+    private static final int CONTAINER_PAD_X = 10;
+    private static final int CONTAINER_PAD_Y = 6;
+    private static final int HEADER_GAP = 6;
+    private static final int HEADER_PAD_X = 7;
+    private static final int HEADER_PAD_Y = 3;
     private static final int HEADER_RADIUS = 4;
     private static final int BODY_GAP = 6;
-    private static final int SELECTED_FILL = 0xFF2E5C8A;
-    private static final int SELECTED_BORDER = 0xFF8FC7FF;
-    private static final int IDLE_FILL = 0xFF1F2430;
-    private static final int IDLE_BORDER = 0xFF5A6372;
+    private static final ConstantColor DEFAULT_ACCENT = new ConstantColor(0xFF7C8795);
+    private static final int SELECTED_FILL = 0x403E4B59;
+    private static final int IDLE_FILL = 0x241A1F26;
+    private static final int IDLE_BORDER = 0x66586275;
     private static final ResolvedTextStyle SELECTED_STYLE = new ResolvedTextStyle(
         1.0f,
         false,
@@ -38,7 +46,7 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement 
         false,
         false,
         "",
-        new ConstantColor(0xFFFFFFFF),
+        new ConstantColor(0xFFF4F7FB),
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
@@ -54,7 +62,7 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement 
         false,
         false,
         "",
-        new ConstantColor(0xFFD8DEEA),
+        new ConstantColor(0xFFD5DCE7),
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
@@ -62,45 +70,58 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement 
         false);
 
     private final List<TabState> tabs = new ArrayList<>();
+    private final List<LytBlock> tabBodies = new ArrayList<>();
+    private final ColorValue accentColor;
     private int selectedIndex;
     private LytRect headerBounds = LytRect.empty();
+    private LytRect contentBounds = LytRect.empty();
 
-    public LytContentTabsBlock(int selectedIndex, List<ContentTabsSpec.TabEntry> entries) {
+    public LytContentTabsBlock(int selectedIndex, @Nullable ColorValue accentColor,
+        List<ContentTabsSpec.TabEntry> entries) {
+        this.accentColor = accentColor != null ? accentColor : DEFAULT_ACCENT;
         this.selectedIndex = Math.max(0, selectedIndex);
         for (ContentTabsSpec.TabEntry entry : entries) {
             tabs.add(new TabState(entry.title(), entry.body()));
+            tabBodies.add(entry.body());
             entry.body().parent = this;
         }
         setMarginTop(PageCompiler.DEFAULT_ELEMENT_SPACING);
         setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
         setFullWidth(true);
+        setBorderLeft(new BorderStyle(this.accentColor, ACCENT_WIDTH));
     }
 
     @Override
     public List<? extends LytNode> getChildren() {
-        return tabs.isEmpty() ? List.of() : List.of(tabs.get(selectedIndex).body);
+        // Expose every tab body to tree visitors so search, anchors, resource export,
+        // scene collection, and mount-time traversal still see hidden tabs.
+        return tabBodies;
     }
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         if (tabs.isEmpty()) {
             headerBounds = LytRect.empty();
+            contentBounds = LytRect.empty();
             return new LytRect(x, y, 0, 0);
         }
 
         selectedIndex = Math.max(0, Math.min(selectedIndex, tabs.size() - 1));
 
-        int cursorX = x;
-        int cursorY = y;
+        int contentX = x + ACCENT_WIDTH + CONTAINER_PAD_X;
+        int contentY = y + CONTAINER_PAD_Y;
+        int contentWidth = Math.max(0, availableWidth - ACCENT_WIDTH - CONTAINER_PAD_X * 2);
+        int cursorX = contentX;
+        int cursorY = contentY;
         int rowHeight = 0;
-        int maxRight = x;
-        int headerBottom = y;
+        int maxRight = contentX;
+        int headerBottom = contentY;
 
         for (TabState tab : tabs) {
             int tabWidth = tab.measureWidth(context);
             int tabHeight = tab.measureHeight(context);
-            if (cursorX > x && cursorX + tabWidth > x + availableWidth) {
-                cursorX = x;
+            if (cursorX > contentX && cursorX + tabWidth > contentX + contentWidth) {
+                cursorX = contentX;
                 cursorY += rowHeight + HEADER_GAP;
                 rowHeight = 0;
             }
@@ -111,18 +132,37 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement 
             headerBottom = Math.max(headerBottom, tab.bounds.bottom());
         }
 
-        headerBounds = new LytRect(x, y, Math.max(0, maxRight - x), Math.max(0, headerBottom - y));
-        LytBlock activeBody = tabs.get(selectedIndex).body;
-        LytRect bodyBounds = activeBody.layout(context, x, headerBounds.bottom() + BODY_GAP, availableWidth);
-        return new LytRect(x, y, Math.max(headerBounds.width(), bodyBounds.width()), bodyBounds.bottom() - y);
+        headerBounds = new LytRect(
+            contentX,
+            contentY,
+            Math.max(0, maxRight - contentX),
+            Math.max(0, headerBottom - contentY));
+        int safeSelectedIndex = getSafeSelectedIndex();
+        LytBlock activeBody = tabs.get(safeSelectedIndex).body;
+        LytRect bodyBounds = activeBody.layout(context, contentX, headerBounds.bottom() + BODY_GAP, contentWidth);
+        int contentRight = Math.max(headerBounds.right(), bodyBounds.right());
+        int contentBottom = Math.max(headerBounds.bottom(), bodyBounds.bottom());
+        contentBounds = new LytRect(
+            contentX,
+            contentY,
+            Math.max(0, contentRight - contentX),
+            Math.max(0, contentBottom - contentY));
+        return new LytRect(
+            x,
+            y,
+            Math.max(availableWidth, ACCENT_WIDTH + CONTAINER_PAD_X * 2 + contentBounds.width()),
+            contentBounds.height() + CONTAINER_PAD_Y * 2);
     }
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {
         headerBounds = headerBounds.move(deltaX, deltaY);
+        contentBounds = contentBounds.move(deltaX, deltaY);
         for (TabState tab : tabs) {
             tab.bounds = tab.bounds.move(deltaX, deltaY);
-            tab.body.moveLayoutPos(deltaX, deltaY);
+        }
+        if (!tabs.isEmpty()) {
+            tabs.get(getSafeSelectedIndex()).body.moveLayoutPos(deltaX, deltaY);
         }
     }
 
@@ -131,15 +171,39 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement 
         if (tabs.isEmpty()) {
             return;
         }
+        int safeSelectedIndex = getSafeSelectedIndex();
+        int accentArgb = context.resolveColor(accentColor);
+        context.fillRect(bounds, context.resolveColor(SymbolicColor.BLOCKQUOTE_BACKGROUND));
+        context.fillRect(bounds.x(), bounds.y(), ACCENT_WIDTH, bounds.height(), accentArgb);
         for (int index = 0; index < tabs.size(); index++) {
             TabState tab = tabs.get(index);
-            boolean selected = index == selectedIndex;
+            boolean selected = index == safeSelectedIndex;
+            int border = selected ? accentArgb : IDLE_BORDER;
             context.fillRoundedRect(tab.bounds, selected ? SELECTED_FILL : IDLE_FILL, HEADER_RADIUS);
-            context.drawRoundedBorder(tab.bounds, selected ? SELECTED_BORDER : IDLE_BORDER, 1, HEADER_RADIUS);
+            context.drawRoundedBorder(tab.bounds, border, 1, HEADER_RADIUS);
             context
                 .drawText(tab.title, tab.bounds.x() + HEADER_PAD_X, tab.bounds.y() + HEADER_PAD_Y, tab.style(selected));
         }
-        tabs.get(selectedIndex).body.render(context);
+        tabs.get(safeSelectedIndex).body.render(context);
+    }
+
+    @Override
+    public @Nullable LytNode pickNode(int x, int y) {
+        if (!bounds.contains(x, y)) {
+            return null;
+        }
+        for (TabState tab : tabs) {
+            if (tab.bounds.contains(x, y)) {
+                return this;
+            }
+        }
+        if (!tabs.isEmpty()) {
+            LytNode activeNode = tabs.get(getSafeSelectedIndex()).body.pickNode(x, y);
+            if (activeNode != null) {
+                return activeNode;
+            }
+        }
+        return this;
     }
 
     @Override
@@ -160,7 +224,7 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement 
                 }
             }
         }
-        LytBlock activeBody = tabs.get(selectedIndex).body;
+        LytBlock activeBody = tabs.get(getSafeSelectedIndex()).body;
         return activeBody instanceof InteractiveElement interactive
             && interactive.mouseClicked(screen, x, y, button, doubleClick);
     }
@@ -170,8 +234,15 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement 
         if (tabs.isEmpty()) {
             return Optional.empty();
         }
-        LytBlock activeBody = tabs.get(selectedIndex).body;
+        LytBlock activeBody = tabs.get(getSafeSelectedIndex()).body;
         return activeBody instanceof InteractiveElement interactive ? interactive.getTooltip(x, y) : Optional.empty();
+    }
+
+    private int getSafeSelectedIndex() {
+        if (tabs.isEmpty()) {
+            return 0;
+        }
+        return Math.max(0, Math.min(selectedIndex, tabs.size() - 1));
     }
 
     private static class TabState {
@@ -186,7 +257,7 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement 
         }
 
         private int measureWidth(LayoutContext context) {
-            return context.getWidth(title, style(false)) + HEADER_PAD_X * 2;
+            return context.getStringWidth(title, style(false)) + HEADER_PAD_X * 2;
         }
 
         private int measureHeight(LayoutContext context) {

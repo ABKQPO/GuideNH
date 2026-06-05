@@ -46,7 +46,7 @@ Inline markdown also supports action links for sound playback:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
-| `<ContentTabs>` | groups alternative rich content under independent tabs | `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `default`, `defaultIndex`, `color` |
 | `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
 | `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
@@ -161,6 +161,7 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
 
 - `default` matches the first tab whose `title` matches exactly
 - `defaultIndex` is zero-based and wins over `default` when both are present
+- `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
 - `title` is plain text only
 - invalid children or invalid defaults render visible author-facing errors
 

@@ -1752,13 +1752,13 @@ p {
 }
 
 .guide-content-tabs {
+    --guide-content-tabs-accent: rgba(124, 135, 149, 1);
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     margin: 1rem 0;
-    padding: 0.75rem;
-    border: 1px solid #3d4656;
-    border-radius: 12px;
+    padding: 0.45rem 0.7rem 0.7rem 0.7rem;
+    border-left: calc(2px * var(--gui-scale)) solid var(--guide-content-tabs-accent);
     background: rgba(64, 64, 64, 0.25);
 }
 
@@ -1771,12 +1771,12 @@ p {
 .guide-content-tabs-label {
     display: inline-flex;
     align-items: center;
-    min-height: 2.25rem;
-    padding: 0.45rem 0.8rem;
-    border: 1px solid #586275;
+    min-height: 1.9rem;
+    padding: 0.3rem 0.65rem;
+    border: 1px solid rgba(88, 98, 117, 0.75);
     border-radius: 999px;
-    background: #242b36;
-    color: #d8deea;
+    background: rgba(26, 31, 38, 0.45);
+    color: #d5dce7;
     cursor: pointer;
 }
 
@@ -1796,9 +1796,9 @@ p {
 }
 
 .guide-content-tabs-input:checked + .guide-content-tabs-label {
-    border-color: #8fc7ff;
-    background: #2a5278;
-    color: #ffffff;
+    border-color: var(--guide-content-tabs-accent);
+    background: rgba(62, 75, 89, 0.64);
+    color: #f4f7fb;
 }
 
 .guide-content-tabs-input:checked + .guide-content-tabs-label + .guide-content-tabs-panel {

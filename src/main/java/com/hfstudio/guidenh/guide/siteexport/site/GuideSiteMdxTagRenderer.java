@@ -1082,7 +1082,13 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return html.toString();
         }
         String groupName = "guide-content-tabs-" + contentTabsSequence.getAndIncrement();
-        html.append("<div class=\"guide-content-tabs\">");
+        html.append("<div class=\"guide-content-tabs\"");
+        if (parsed.accentCssColor != null) {
+            html.append(" style=\"--guide-content-tabs-accent:")
+                .append(escapeAttribute(parsed.accentCssColor))
+                .append(";\"");
+        }
+        html.append(">");
         for (int index = 0; index < parsed.tabs.size(); index++) {
             ParsedTab tab = parsed.tabs.get(index);
             boolean checked = index == parsed.selectedIndex;
@@ -1115,6 +1121,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         List<ParsedTab> tabs = new ArrayList<>();
         Integer defaultIndex = readPositiveOrZeroInt(readOptional(element, "defaultIndex"));
         String defaultTitle = readOptional(element, "default");
+        String accentCssColor = null;
+        String rawColor = readOptional(element, "color");
+        if (rawColor != null) {
+            accentCssColor = parseLiteralColor(rawColor);
+            if (accentCssColor == null) {
+                errors.add("Malformed color value");
+            }
+        }
         for (MdAstAnyContent child : element.children()) {
             if (!(child instanceof MdxJsxFlowElement flowElement) || !"Tab".equals(flowElement.name())) {
                 errors.add("ContentTabs only accepts <Tab> children.");
@@ -1129,7 +1143,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             tabs.add(new ParsedTab(title.trim(), flowElement.children()));
         }
         int selectedIndex = resolveSelectedIndex(defaultTitle, defaultIndex, tabs, errors);
-        return new ParsedTabs(tabs, selectedIndex, errors);
+        return new ParsedTabs(tabs, selectedIndex, errors, accentCssColor);
     }
 
     private int resolveSelectedIndex(@Nullable String defaultTitle, @Nullable Integer defaultIndex,
@@ -3013,11 +3027,15 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         private final List<ParsedTab> tabs;
         private final int selectedIndex;
         private final List<String> errors;
+        @Nullable
+        private final String accentCssColor;
 
-        private ParsedTabs(List<ParsedTab> tabs, int selectedIndex, List<String> errors) {
+        private ParsedTabs(List<ParsedTab> tabs, int selectedIndex, List<String> errors,
+            @Nullable String accentCssColor) {
             this.tabs = tabs;
             this.selectedIndex = selectedIndex;
             this.errors = errors;
+            this.accentCssColor = accentCssColor;
         }
     }
 

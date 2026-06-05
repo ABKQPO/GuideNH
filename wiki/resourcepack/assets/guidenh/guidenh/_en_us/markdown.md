@@ -298,7 +298,8 @@ Text outside the block should still wrap around it when `wrap="square"` is used.
 ## Content Tabs
 
 `<ContentTabs>` groups alternative rich content under one tab strip. Each child must be a direct
-`<Tab title="...">`, and the selected tab can be chosen with either `default` or `defaultIndex`.
+`<Tab title="...">`, the selected tab can be chosen with either `default` or `defaultIndex`, and
+`color` can override the quote-like accent line/highlight.
 
 <ContentTabs default="Scene">
   <Tab title="Code">

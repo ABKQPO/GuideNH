@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.CodeCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ColorTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CommentTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.ContentTabsTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DelUWaveMarkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsTagCompiler;

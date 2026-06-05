@@ -7,7 +7,9 @@ import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytContentTabsBlock;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
@@ -32,7 +34,7 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
         if (!spec.hasRenderableTabs()) {
             return;
         }
-        parent.append(new LytContentTabsBlock(resolveInitialIndex(spec), spec.tabs()));
+        parent.append(new LytContentTabsBlock(resolveInitialIndex(spec), spec.accentColor(), spec.tabs()));
     }
 
     private ContentTabsSpec parseSpec(PageCompiler compiler, MdxJsxElementFields el) {
@@ -41,9 +43,10 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
         List<ContentTabsSpec.ValidationIssue> issues = new ArrayList<>();
         Integer defaultIndex = parseDefaultIndex(el, issues, el);
         String defaultTitle = el.getAttributeString("default", null);
+        ColorValue accentColor = MdxAttrs.getColor(compiler, new ValidationIssueSink(issues), el, "color", null);
         collectTabs(compiler, children, tabs, issues);
         validateDefaultTarget(defaultTitle, defaultIndex, tabs, issues, el);
-        return new ContentTabsSpec(defaultTitle, defaultIndex, tabs, issues);
+        return new ContentTabsSpec(defaultTitle, defaultIndex, accentColor, tabs, issues);
     }
 
     private List<? extends MdAstAnyContent> resolveChildren(PageCompiler compiler, MdxJsxElementFields el) {
@@ -129,5 +132,20 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
             }
         }
         return 0;
+    }
+
+    private static class ValidationIssueSink implements LytErrorSink {
+
+        private final List<ContentTabsSpec.ValidationIssue> issues;
+
+        private ValidationIssueSink(List<ContentTabsSpec.ValidationIssue> issues) {
+            this.issues = issues;
+        }
+
+        @Override
+        public void appendError(PageCompiler compiler, String text, UnistNode node) {
+            issues.add(new ContentTabsSpec.ValidationIssue(text, node));
+        }
+
     }
 }
