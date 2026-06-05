@@ -80,9 +80,8 @@ public class PreCompiler extends BlockTagCompiler {
 
         // Default code block with syntax highlighting
         LytCodeBlock codeBlock = new LytCodeBlock();
-        codeBlock.setLanguageFenceName(lang != null ? lang : language.id());
+        codeBlock.setCodeContent(lang != null ? lang : language.id(), codeText);
         codeBlock.applyLanguage(language);
-        codeBlock.setCodeText(codeText);
         Integer preferredWidth = parseCodeBlockWidth(meta);
         if (preferredWidth != null) {
             codeBlock.setPreferredBodyWidth(preferredWidth);
@@ -100,9 +99,8 @@ public class PreCompiler extends BlockTagCompiler {
         List<List<String>> rows = CsvTableParser.parse(source);
         if (rows.isEmpty()) {
             LytCodeBlock codeBlock = new LytCodeBlock();
-            codeBlock.setLanguageFenceName("csv");
+            codeBlock.setCodeContent("csv", source);
             codeBlock.applyLanguage(new CodeBlockLanguage("csv", "CSV"));
-            codeBlock.setCodeText(source);
             return codeBlock;
         }
 

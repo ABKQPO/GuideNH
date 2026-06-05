@@ -1,22 +1,20 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorVerticalScrollbar;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguage;
+import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlightMode;
+import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlightResult;
+import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlightTheme;
+import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlighter;
+import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeTokenType;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -26,17 +24,15 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 public class LytCodeBlock extends LytVBox implements InteractiveElement, DocumentDragTarget {
 
-    private static final ConstantColor CODE_DEFAULT = new ConstantColor(0xFFD7DEE7);
-    private static final ConstantColor CODE_KEYWORD = new ConstantColor(0xFF7FD7FF);
-    private static final ConstantColor CODE_STRING = new ConstantColor(0xFF9BE28F);
-    private static final ConstantColor CODE_NUMBER = new ConstantColor(0xFFFFC774);
-    private static final ConstantColor CODE_COMMENT = new ConstantColor(0xFF7D8794);
-    private static final ConstantColor CODE_PUNCT = new ConstantColor(0xFFB7C0CD);
+    private static final CodeHighlightTheme CODE_THEME = CodeHighlightTheme.GITHUB_DARK_DEFAULT;
+    private static final CodeHighlighter CODE_HIGHLIGHTER = new CodeHighlighter();
+    private static final CodeHighlightFlowBuilder FLOW_BUILDER = new CodeHighlightFlowBuilder(CODE_THEME);
+    private static final ConstantColor CODE_DEFAULT = new ConstantColor(CODE_THEME.colorOf(CodeTokenType.PLAIN));
+    private static final ConstantColor CODE_BACKGROUND = new ConstantColor(CODE_THEME.backgroundArgb());
+    private static final ConstantColor CODE_BORDER = new ConstantColor(CODE_THEME.borderArgb());
     private static final int BODY_PADDING = 6;
     private static final int SCROLLBAR_WIDTH = 5;
     private static final int MIN_SCROLLBAR_THUMB = 14;
-    private static final Map<String, Set<String>> LANGUAGE_KEYWORDS = buildKeywordMap();
-    private static final String[] ASCII_STRINGS = buildAsciiStrings();
 
     private final LytCodeBlockToolbar toolbar = new LytCodeBlockToolbar();
     private final LytParagraph body = new LytParagraph();
@@ -56,13 +52,14 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     private boolean draggingScrollbar;
     private int scrollbarGrabOffsetY;
     private int lastBodyLineCount;
+    private CodeHighlightResult highlightResult = new CodeHighlightResult("text", CodeHighlightMode.PLAIN, List.of());
+    private List<LytFlowSpan> highlightedLines = List.of();
 
     public LytCodeBlock() {
         setPadding(6);
         setGap(4);
         setFullWidth(true);
-        setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);
-        setBorder(new BorderStyle(SymbolicColor.TABLE_BORDER, 1));
+        setBorder(new BorderStyle(CODE_BORDER, 1));
 
         body.setMarginTop(0);
         body.setMarginBottom(0);
@@ -84,12 +81,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     public void setCodeText(String codeText) {
-        this.codeText = codeText != null ? codeText : "";
-        this.normalizedCodeText = this.codeText.replace("\r\n", "\n")
-            .replace('\r', '\n');
-        this.lastBodyLineCount = countBodyLines();
-        toolbar.setCopyText(this.codeText);
-        rebuildBody();
+        setCodeContent(languageFenceName, codeText);
     }
 
     public String getLanguageFenceName() {
@@ -97,7 +89,23 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     public void setLanguageFenceName(String languageFenceName) {
-        this.languageFenceName = languageFenceName != null ? languageFenceName : "";
+        setCodeContent(languageFenceName, codeText);
+    }
+
+    public void setCodeContent(String languageFenceName, String codeText) {
+        String resolvedFenceName = languageFenceName != null ? languageFenceName : "";
+        String resolvedCodeText = codeText != null ? codeText : "";
+        String resolvedNormalizedCodeText = GuideStringLines.normalizeLineEndings(resolvedCodeText);
+        boolean changed = !Objects.equals(this.languageFenceName, resolvedFenceName)
+            || !Objects.equals(this.codeText, resolvedCodeText);
+        this.languageFenceName = resolvedFenceName;
+        this.codeText = resolvedCodeText;
+        this.normalizedCodeText = resolvedNormalizedCodeText;
+        this.lastBodyLineCount = countBodyLines(resolvedNormalizedCodeText);
+        toolbar.setCopyText(this.codeText);
+        if (changed) {
+            rebuildBody();
+        }
     }
 
     public String getLanguageDisplayName() {
@@ -112,6 +120,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     public String getDetectedLanguageId() {
         return detectedLanguageId;
+    }
+
+    public CodeHighlightResult getHighlightResult() {
+        return highlightResult;
     }
 
     public void applyLanguage(CodeBlockLanguage language) {
@@ -233,6 +245,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
         int safeWidth = preferredBodyWidth > 0 ? Math.max(1, Math.min(availableWidth, preferredBodyWidth))
             : Math.max(1, availableWidth);
+        toolbar.setPreferredWidth(safeWidth);
         LytRect toolbarBounds = toolbar.layout(context, x, y, safeWidth);
 
         int bodyY = toolbarBounds.bottom() + getGap();
@@ -258,9 +271,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         if (ownBounds.isEmpty()) {
             return;
         }
-        if (getBackgroundColor() != null) {
-            context.fillRect(ownBounds, getBackgroundColor());
-        }
+        context.fillRect(ownBounds, CODE_BACKGROUND);
 
         toolbar.render(context);
 
@@ -283,23 +294,25 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     private void rebuildBody() {
+        highlightResult = CODE_HIGHLIGHTER.highlight(languageFenceName, normalizedCodeText);
+        detectedLanguageId = highlightResult.languageId();
+        highlightedLines = FLOW_BUILDER.buildLines(highlightResult);
         body.clearContent();
-        List<LytFlowSpan> lines = highlightLines();
-        for (int i = 0; i < lines.size(); i++) {
-            body.append(lines.get(i));
-            if (i < lines.size() - 1) {
+        for (int i = 0; i < highlightedLines.size(); i++) {
+            body.append(highlightedLines.get(i));
+            if (i < highlightedLines.size() - 1) {
                 body.appendBreak();
             }
         }
     }
 
-    private int countBodyLines() {
-        if (normalizedCodeText.isEmpty()) {
+    private int countBodyLines(String text) {
+        if (text.isEmpty()) {
             return 1;
         }
         int lines = 1;
-        for (int i = 0; i < normalizedCodeText.length(); i++) {
-            if (normalizedCodeText.charAt(i) == '\n') {
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
                 lines++;
             }
         }
@@ -318,10 +331,12 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         if (track.isEmpty()) {
             return;
         }
-        context.fillRect(track, 0x30242B33);
+        context.fillRect(track, CODE_THEME.scrollbarTrackArgb());
         LytRect thumb = getScrollbarThumbBounds();
         if (!thumb.isEmpty()) {
-            context.fillRect(thumb, draggingScrollbar ? 0xFFCDD6E1 : 0xA0AAB5C2);
+            context.fillRect(
+                thumb,
+                draggingScrollbar ? CODE_THEME.scrollbarThumbActiveArgb() : CODE_THEME.scrollbarThumbArgb());
         }
     }
 
@@ -400,278 +415,5 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
             .clamp(mouseY - scrollbarGrabOffsetY, track.y(), track.y() + thumbTrack);
         int maxScroll = getMaxBodyScroll();
         setBodyScrollOffset((int) ((long) (thumbTop - track.y()) * maxScroll / thumbTrack));
-    }
-
-    private List<LytFlowSpan> highlightLines() {
-        List<String> lines = GuideStringLines.splitLines(normalizedCodeText);
-        String lowerLanguage = detectedLanguageId.toLowerCase(Locale.ROOT);
-        List<LytFlowSpan> result = new ArrayList<>(lines.size());
-        for (String line : lines) {
-            result.add(highlightLine(line, lowerLanguage));
-        }
-        if (lines.isEmpty()) {
-            result.add(new LytFlowSpan());
-        }
-        return result;
-    }
-
-    private LytFlowSpan highlightLine(String line, String lowerLanguage) {
-        LytFlowSpan root = new LytFlowSpan();
-        if (line.isEmpty()) {
-            root.append(LytFlowText.of(""));
-            return root;
-        }
-
-        int index = 0;
-        while (index < line.length()) {
-            int commentStart = findCommentStart(line, index, lowerLanguage);
-            if (commentStart == index) {
-                appendStyled(root, line.substring(index), CODE_COMMENT);
-                break;
-            }
-            if (commentStart > index) {
-                index = appendTokens(root, line, index, commentStart, lowerLanguage);
-                continue;
-            }
-            index = appendTokens(root, line, index, line.length(), lowerLanguage);
-        }
-        return root;
-    }
-
-    private int appendTokens(LytFlowSpan root, String line, int start, int end, String language) {
-        int index = start;
-        while (index < end) {
-            char current = line.charAt(index);
-            if (current == '"' || current == '\'') {
-                int close = findStringEnd(line, index + 1, current, end);
-                appendStyled(root, line.substring(index, close), CODE_STRING);
-                index = close;
-                continue;
-            }
-            if (Character.isDigit(current)) {
-                int close = index + 1;
-                while (close < end && (Character.isDigit(line.charAt(close)) || line.charAt(close) == '.')) {
-                    close++;
-                }
-                appendStyled(root, line.substring(index, close), CODE_NUMBER);
-                index = close;
-                continue;
-            }
-            if (Character.isLetter(current) || current == '_' || current == '$') {
-                int close = index + 1;
-                while (close < end) {
-                    char next = line.charAt(close);
-                    if (!Character.isLetterOrDigit(next) && next != '_' && next != '$') {
-                        break;
-                    }
-                    close++;
-                }
-                String token = line.substring(index, close);
-                appendStyled(root, token, isKeyword(token, language) ? CODE_KEYWORD : CODE_DEFAULT);
-                index = close;
-                continue;
-            }
-            if (!Character.isWhitespace(current)) {
-                appendStyled(root, singleChar(current), CODE_PUNCT);
-                index++;
-                continue;
-            }
-            int close = index + 1;
-            while (close < end && Character.isWhitespace(line.charAt(close))) {
-                close++;
-            }
-            appendStyled(root, line.substring(index, close), CODE_DEFAULT);
-            index = close;
-        }
-        return index;
-    }
-
-    private int findCommentStart(String line, int start, String language) {
-        int result = -1;
-        if (supportsSlashComment(language)) {
-            result = minPositive(result, line.indexOf("//", start));
-        }
-        if (supportsHashComment(language)) {
-            result = minPositive(result, line.indexOf('#', start));
-        }
-        if (supportsDashDashComment(language)) {
-            result = minPositive(result, line.indexOf("--", start));
-        }
-        if ("properties".equals(language)) {
-            result = minPositive(result, line.indexOf(';', start));
-        }
-        return result;
-    }
-
-    private int minPositive(int current, int next) {
-        if (next < 0) {
-            return current;
-        }
-        if (current < 0) {
-            return next;
-        }
-        return Math.min(current, next);
-    }
-
-    private boolean supportsSlashComment(String language) {
-        return "java".equals(language) || "kotlin".equals(language)
-            || "scala".equals(language)
-            || "groovy".equals(language)
-            || "json".equals(language)
-            || "javascript".equals(language);
-    }
-
-    private boolean supportsHashComment(String language) {
-        return "yaml".equals(language) || "bash".equals(language)
-            || "powershell".equals(language)
-            || "properties".equals(language)
-            || "mermaid".equals(language);
-    }
-
-    private boolean supportsDashDashComment(String language) {
-        return "lua".equals(language);
-    }
-
-    private int findStringEnd(String line, int start, char quote, int end) {
-        int index = start;
-        while (index < end) {
-            char current = line.charAt(index);
-            if (current == '\\') {
-                index += 2;
-                continue;
-            }
-            index++;
-            if (current == quote) {
-                break;
-            }
-        }
-        return Math.min(index, end);
-    }
-
-    private boolean isKeyword(String token, String language) {
-        if ("markdown".equals(language)) {
-            return token.startsWith("#");
-        }
-        Set<String> keywords = LANGUAGE_KEYWORDS.get(language);
-        return keywords != null && keywords.contains(token);
-    }
-
-    private static Map<String, Set<String>> buildKeywordMap() {
-        Map<String, Set<String>> m = new HashMap<>();
-        m.put(
-            "java",
-            kwSet(
-                "public",
-                "private",
-                "protected",
-                "class",
-                "interface",
-                "enum",
-                "static",
-                "void",
-                "new",
-                "return",
-                "if",
-                "else",
-                "switch",
-                "case",
-                "for",
-                "while",
-                "try",
-                "catch",
-                "throws"));
-        m.put(
-            "kotlin",
-            kwSet(
-                "fun",
-                "val",
-                "var",
-                "class",
-                "object",
-                "when",
-                "is",
-                "in",
-                "return",
-                "if",
-                "else",
-                "data",
-                "sealed"));
-        m.put(
-            "scala",
-            kwSet(
-                "object",
-                "class",
-                "trait",
-                "case",
-                "def",
-                "val",
-                "var",
-                "extends",
-                "match",
-                "yield",
-                "given",
-                "using"));
-        m.put(
-            "lua",
-            kwSet(
-                "local",
-                "function",
-                "end",
-                "if",
-                "then",
-                "elseif",
-                "else",
-                "for",
-                "while",
-                "repeat",
-                "until",
-                "return",
-                "nil",
-                "true",
-                "false"));
-        m.put(
-            "groovy",
-            kwSet(
-                "def",
-                "class",
-                "interface",
-                "enum",
-                "return",
-                "if",
-                "else",
-                "switch",
-                "case",
-                "for",
-                "while",
-                "in",
-                "as"));
-        m.put("json", kwSet("true", "false", "null"));
-        m.put("yaml", kwSet("true", "false", "null", "yes", "no"));
-        m.put("bash", kwSet("if", "then", "else", "fi", "for", "do", "done", "case", "esac", "function"));
-        m.put("powershell", kwSet("function", "param", "if", "else", "foreach", "switch", "return"));
-        m.put("mermaid", kwSet("graph", "flowchart", "mindmap", "subgraph"));
-        return m;
-    }
-
-    private static Set<String> kwSet(String... words) {
-        return new HashSet<>(List.of(words));
-    }
-
-    private static String[] buildAsciiStrings() {
-        String[] arr = new String[128];
-        for (int i = 0; i < 128; i++) {
-            arr[i] = String.valueOf((char) i);
-        }
-        return arr;
-    }
-
-    private static String singleChar(char c) {
-        return c < 128 ? ASCII_STRINGS[c] : Character.toString(c);
-    }
-
-    private void appendStyled(LytFlowSpan root, String text, ConstantColor color) {
-        var node = LytFlowText.of(text);
-        node.modifyStyle(style -> style.color(color));
-        root.append(node);
     }
 }

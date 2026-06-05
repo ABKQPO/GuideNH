@@ -40,6 +40,8 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public class GuideSiteHtmlCompiler {
 
+    private static final GuideSiteCodeBlockRenderer CODE_BLOCK_RENDERER = new GuideSiteCodeBlockRenderer();
+
     public interface RecipeTagRenderer {
 
         default String render(MdxJsxElementFields element, String defaultNamespace) {
@@ -526,6 +528,8 @@ public class GuideSiteHtmlCompiler {
         String codeText = extractTextFromElement(el);
         String lang = el.getAttributeString("lang", null);
         String meta = el.getAttributeString("meta", null);
+        Integer width = parseMetaInt(meta, "width");
+        Integer height = parseMetaInt(meta, "height");
         if (lang != null) {
             lang = lang.toLowerCase(Locale.ROOT);
         }
@@ -542,7 +546,7 @@ public class GuideSiteHtmlCompiler {
                 MermaidMindmapDocument doc = MermaidMindmapParser.parse(codeText);
                 return GuideSiteGraphRenderer.renderMermaidTree(doc);
             } catch (Exception ignored) {
-                return "<pre><code class=\"language-mermaid\">" + escapeHtml(codeText) + "</code></pre>";
+                return CODE_BLOCK_RENDERER.render("mermaid", codeText, width, height);
             }
         }
         if ("funcgraph".equals(lang) || "functiongraph".equals(lang)) {
@@ -550,42 +554,11 @@ public class GuideSiteHtmlCompiler {
                 LytFunctionGraph graph = FunctionGraphFenceParser.parse(codeText);
                 return GuideSiteGraphRenderer.renderFunctionGraph(graph);
             } catch (RuntimeException ignored) {
-                return "<pre><code class=\"language-" + escapeAttribute(lang)
-                    + "\">"
-                    + escapeHtml(codeText)
-                    + "</code></pre>";
+                return CODE_BLOCK_RENDERER.render(lang, codeText, width, height);
             }
         }
 
-        // Plain code block with optional size constraints
-        Integer width = parseMetaInt(meta, "width");
-        Integer height = parseMetaInt(meta, "height");
-        StringBuilder html = new StringBuilder();
-        html.append("<pre");
-        if (width != null || height != null) {
-            html.append(" class=\"guide-code-sized\" style=\"");
-            if (width != null) {
-                html.append("width:")
-                    .append(width)
-                    .append("px;max-width:100%;");
-            }
-            if (height != null) {
-                html.append("height:")
-                    .append(height)
-                    .append("px;overflow:auto;");
-            }
-            html.append("\"");
-        }
-        html.append("><code");
-        if (lang != null && !lang.isEmpty()) {
-            html.append(" class=\"language-")
-                .append(escapeAttribute(lang))
-                .append("\"");
-        }
-        html.append(">")
-            .append(escapeHtml(codeText))
-            .append("</code></pre>");
-        return html.toString();
+        return CODE_BLOCK_RENDERER.render(lang, codeText, width, height);
     }
 
     @Nullable

@@ -86,6 +86,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRenderer {
 
     private static final int SPECIAL_PAGES_GROUP_COLUMNS = 2;
+    private static final GuideSiteCodeBlockRenderer CODE_BLOCK_RENDERER = new GuideSiteCodeBlockRenderer();
 
     private static final Comparator<StructureBlockView> STRUCTURE_DRAW_ORDER = Comparator
         .comparingInt((StructureBlockView block) -> block.y)
@@ -1260,7 +1261,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                     sceneResolver,
                     compiler));
         } catch (Exception ex) {
-            return "<pre><code class=\"language-mermaid\">" + escapeHtml(source) + "</code></pre>";
+            return CODE_BLOCK_RENDERER.render("mermaid", source);
         }
     }
 

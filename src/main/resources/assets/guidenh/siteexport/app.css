@@ -209,6 +209,97 @@ pre code {
     padding: 0;
 }
 
+.guide-code-block {
+    display: flow-root;
+    margin-bottom: 0.8em;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    overflow: hidden;
+}
+
+.guide-code-block-toolbar {
+    display: flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 12px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+}
+
+.guide-code-block-language {
+    font-family: var(--minecraft-font);
+    color: #8b949e;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.guide-code-block pre,
+.guide-code-block code {
+    background: none;
+    border: none;
+}
+
+.guide-code-block pre {
+    margin: 0;
+    padding: 12px;
+    color: #e6edf3;
+    overflow-x: auto;
+}
+
+.guide-code-block code {
+    display: block;
+    padding: 0;
+    white-space: pre;
+}
+
+.guide-code-block-scroll {
+    max-width: 100%;
+}
+
+.gh-plain {
+    color: #e6edf3;
+}
+
+.gh-keyword {
+    color: #ff7b72;
+}
+
+.gh-string {
+    color: #a5d6ff;
+}
+
+.gh-number {
+    color: #79c0ff;
+}
+
+.gh-comment {
+    color: #8b949e;
+}
+
+.gh-operator {
+    color: #ff7b72;
+}
+
+.gh-punctuation {
+    color: #e6edf3;
+}
+
+.gh-type {
+    color: #7ee787;
+}
+
+.gh-function {
+    color: #d2a8ff;
+}
+
+.gh-annotation {
+    color: #ffa657;
+}
+
+.gh-property {
+    color: #79c0ff;
+}
+
 blockquote {
     display: flow-root;
     border-left: calc(2px * var(--gui-scale)) solid rgba(210, 210, 210, 0.35);
