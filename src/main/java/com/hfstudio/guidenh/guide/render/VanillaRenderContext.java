@@ -93,6 +93,15 @@ public class VanillaRenderContext implements RenderContext {
         this.zoom = zoom > 0f ? zoom : 1.0f;
     }
 
+    @Override
+    public LytRect toScreenRect(LytRect rect) {
+        return new LytRect(
+            Math.round(rect.x() * zoom) + documentOriginX,
+            Math.round((rect.y() - scrollOffsetY) * zoom) + documentOriginY,
+            Math.max(1, Math.round(rect.width() * zoom)),
+            Math.max(1, Math.round(rect.height() * zoom)));
+    }
+
     public int getScreenHeight() {
         return screenHeight;
     }

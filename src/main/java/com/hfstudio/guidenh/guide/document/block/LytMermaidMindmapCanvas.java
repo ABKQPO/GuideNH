@@ -690,30 +690,6 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
     private void renderNodeContentBlock(LytBlock block, NodeContentRenderContext nodeContext,
         RenderContext nativeContext, LytRect contentViewport) {
-        if (block instanceof LytGuidebookScene scene) {
-            // The camera's orthographic projection uses its own viewport size
-            // while the GL viewport comes from bounds + layoutSceneWidth/Height.
-            // By scaling the scene viewport (GL) and locking the camera viewport
-            // to the original size, the 3D content fills more pixels while the
-            // world-to-NDC mapping stays tight — content follows mindmap zoom.
-            LytRect savedBounds = scene.getBounds();
-            int savedW = savedBounds.width();
-            int savedH = savedBounds.height();
-            int scaledW = Math.max(1, Math.round(savedW * zoom));
-            int scaledH = Math.max(1, Math.round(savedH * zoom));
-            scene.bounds = new LytRect(contentViewport.x(), contentViewport.y(), scaledW, scaledH);
-            scene.setSceneViewportOverride(scaledW, scaledH);
-            scene.setCameraViewportOverride(savedW, savedH);
-            scene.setButtonZoom(zoom);
-            try {
-                scene.render(nativeContext);
-            } finally {
-                scene.bounds = savedBounds;
-                scene.clearSceneViewportOverride();
-                scene.clearCameraViewportOverride();
-            }
-            return;
-        }
         if (block instanceof LytNode container && !container.getChildren()
             .isEmpty()) {
             for (var child : new ArrayList<>(container.getChildren())) {
@@ -723,14 +699,11 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             }
             renderContainerDecoration(container, nodeContext);
         } else if (usesRawGl(block)) {
-            // This block renders with raw GL, bypassing RenderContext coordinate
-            // mapping. Apply mindmap zoom via GL matrix and use nativeContext so
-            // that the document-level GL transform chain remains intact.
             GL11.glPushMatrix();
-            GL11.glTranslatef(contentViewport.x(), contentViewport.y(), 0f);
+            GL11.glTranslatef(nodeContext.getDocumentOriginX(), nodeContext.getDocumentOriginY(), 0f);
             GL11.glScalef(zoom, zoom, 1f);
             try {
-                block.render(nativeContext);
+                block.render(nodeContext);
             } finally {
                 GL11.glPopMatrix();
             }
@@ -976,13 +949,6 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         }
         if (block instanceof LytLatexDisplayBlock latexDisplayBlock) {
             return latexDisplayBlock.getVisualBounds();
-        }
-        if (block instanceof LytGuidebookScene scene && scene.isSceneButtonsVisible()) {
-            return new LytRect(
-                bounds.x(),
-                bounds.y(),
-                bounds.width() + LytGuidebookScene.BTN_OUTSIDE_GAP + LytGuidebookScene.BTN_SIZE,
-                bounds.height());
         }
         return bounds;
     }
@@ -1356,7 +1322,12 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
         @Override
         public LytRect toScreenRect(LytRect rect) {
-            return scaleRect(rect);
+            LytRect s = scaleRect(rect);
+            return new LytRect(
+                s.x() + delegate.getDocumentOriginX(),
+                s.y() + delegate.getDocumentOriginY() - delegate.getScrollOffsetY(),
+                s.width(),
+                s.height());
         }
 
         @Override
@@ -1510,6 +1481,13 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
         @Override
         public void pushScissor(LytRect rect) {
+            delegate.pushScissor(scaleRect(rect));
+        }
+
+        @Override
+        public void pushLocalScissor(LytRect rect) {
+            // Override the default interface method to avoid double-scaling:
+            // the default chains toScreenRect(scale) + pushScissor(scale again).
             delegate.pushScissor(scaleRect(rect));
         }
 
