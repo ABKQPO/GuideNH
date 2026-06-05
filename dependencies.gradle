@@ -1,6 +1,6 @@
 dependencies {
 
-    api("com.github.GTNewHorizons:GTNHLib:0.10.3:dev")
+    api("com.github.GTNewHorizons:GTNHLib:0.10.8:dev")
     implementation("io.github.legacymoddingmc:unimixins:0.3.1:dev")
 
     shadowImplementation("org.yaml:snakeyaml:1.33") { transitive = false }

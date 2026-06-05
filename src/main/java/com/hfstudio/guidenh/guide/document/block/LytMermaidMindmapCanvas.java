@@ -769,7 +769,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             lastFlowHoverContent = hoveredFlow;
         }
     }
- 
+
     private static boolean containsScene(@Nullable LytBlock block) {
         if (block == null) return false;
         if (block instanceof LytGuidebookScene) return true;
@@ -812,7 +812,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
                         .color()));
         }
     }
- 
+
     private static boolean usesRawGl(LytBlock block) {
         return block instanceof LytLatexBlock || block instanceof LytLatexDisplayBlock
             || block instanceof LytItemImage

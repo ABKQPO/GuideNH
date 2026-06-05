@@ -81,15 +81,17 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     @Override
     public void accept(LytFlowContent content) {
-        switch (content) {
-            case LytFlowText text -> appendText(text.getText(), content);
-            case LytFlowBreak lytFlowBreak -> appendBreak(content);
-            case LytFlowInlineBlock inlineBlock -> appendInlineBlock(inlineBlock);
-            case LytFlowAnchor anchor ->
-                // Simply set the current layout position for the anchor
-                    anchor.setLayoutY(lineBoxY);
-            case null, default ->
-                    throw new IllegalArgumentException("Don't know how to layout flow content: " + content);
+        if (content instanceof LytFlowText text) {
+            appendText(text.getText(), content);
+        } else if (content instanceof LytFlowBreak) {
+            appendBreak(content);
+        } else if (content instanceof LytFlowInlineBlock inlineBlock) {
+            appendInlineBlock(inlineBlock);
+        } else if (content instanceof LytFlowAnchor anchor) {
+            // Simply set the current layout position for the anchor
+            anchor.setLayoutY(lineBoxY);
+        } else {
+            throw new IllegalArgumentException("Don't know how to layout flow content: " + content);
         }
     }
 
