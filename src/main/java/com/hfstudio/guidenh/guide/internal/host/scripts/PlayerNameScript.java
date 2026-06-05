@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.style.TextStyle;
 
 public class PlayerNameScript implements LytScript {
 
@@ -33,6 +34,7 @@ public class PlayerNameScript implements LytScript {
                 username = "<?>";
             }
             placeholder.setText(username);
+            placeholder.setStyle(TextStyle.EMPTY);
         }
     }
 }

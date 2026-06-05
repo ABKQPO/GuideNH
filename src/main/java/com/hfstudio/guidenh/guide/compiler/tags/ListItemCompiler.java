@@ -27,6 +27,8 @@ public class ListItemCompiler extends BlockTagCompiler {
         if (taskMarker != null) {
             LytTaskListItem taskItem = new LytTaskListItem();
             taskItem.setChecked(taskMarker.checked());
+            taskMarker.textNode()
+                .setValue(taskMarker.remainingText());
             listItem = taskItem;
         } else {
             listItem = new LytListItem();

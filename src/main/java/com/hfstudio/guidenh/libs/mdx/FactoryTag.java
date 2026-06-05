@@ -626,7 +626,8 @@ public class FactoryTag {
     }
 
     private static boolean isPascalTagStart(int code) {
-        return code >= Codes.uppercaseA && code <= Codes.uppercaseZ;
+        return (code >= Codes.uppercaseA && code <= Codes.uppercaseZ)
+            || (code >= Codes.lowercaseA && code <= Codes.lowercaseZ);
     }
 
 }

@@ -1430,6 +1430,10 @@ public class GuideScreen extends GuiContainer
                     resolveVisualScale(getVisualReferenceContentWidth(), previewWidth));
             }
             guideEditorPreviewDirty = false;
+            ClientProxy.getLytHost()
+                .invalidatePage(
+                    currentAnchor.pageId()
+                        .toString());
             if (canApplyGuideEditorParsedPage(parsedDraft)) {
                 guideEditorDraftPage = parsedDraft;
             }

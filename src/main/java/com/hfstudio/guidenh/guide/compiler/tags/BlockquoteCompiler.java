@@ -19,6 +19,8 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.Blockq
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public class BlockquoteCompiler extends BlockTagCompiler {
 
@@ -81,7 +83,8 @@ public class BlockquoteCompiler extends BlockTagCompiler {
             && directive.remainingText() != null
             && !directive.remainingText()
                 .isEmpty()) {
-            // Clone the first paragraph with the remaining text overriding the leading text
+            // Strip directive prefix from the first paragraph's leading text
+            stripLeadingText(directive.firstParagraph(), directive.remainingText());
             compiler.compileBlockContext(Collections.singletonList(directive.firstParagraph()), parent);
             for (int i = 1; i < directive.children()
                 .size(); i++) {
@@ -121,5 +124,15 @@ public class BlockquoteCompiler extends BlockTagCompiler {
         // The original buildQuoteIcon resolved item stacks from icon specs.
         // For now return null — icon rendering will be added in a later phase.
         return null;
+    }
+
+    private static void stripLeadingText(MdxJsxFlowElement paragraph, String replacementText) {
+        for (Object child : paragraph.children()) {
+            if (child instanceof MdAstText text && !text.value.trim()
+                .isEmpty()) {
+                text.setValue(replacementText);
+                return;
+            }
+        }
     }
 }

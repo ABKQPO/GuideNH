@@ -7,6 +7,7 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.style.TextStyle;
 
 public class KeyBindScript implements LytScript {
 
@@ -28,6 +29,7 @@ public class KeyBindScript implements LytScript {
             var mapping = KeyBindTagCompiler.findMapping(bindId);
             String display = mapping != null ? KeyBindTagCompiler.describeMapping(mapping) : "[" + bindId + "]";
             placeholder.setText(display);
+            placeholder.setStyle(TextStyle.EMPTY);
         }
     }
 }

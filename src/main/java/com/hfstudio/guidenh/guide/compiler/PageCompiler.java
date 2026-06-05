@@ -36,6 +36,7 @@ import com.hfstudio.guidenh.guide.document.block.LytFloatAwareBlock;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
 import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
+import com.hfstudio.guidenh.guide.document.block.LytListItem;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -725,7 +726,9 @@ public class PageCompiler {
     }
 
     public static LytBlock wrapFloatAwareIfNeeded(LytBlock block) {
-        if (block instanceof LytParagraph || block instanceof LytDocumentFloat || block instanceof LytFloatAwareBlock) {
+        if (block instanceof LytParagraph || block instanceof LytDocumentFloat
+            || block instanceof LytFloatAwareBlock
+            || block instanceof LytListItem) {
             return block;
         }
         return new LytFloatAwareBlock(block);

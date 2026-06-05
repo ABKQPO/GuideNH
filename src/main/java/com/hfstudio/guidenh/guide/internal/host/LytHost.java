@@ -138,6 +138,13 @@ public class LytHost {
         preheatScheduled.remove(pageId);
     }
 
+    public void clearPageCaches() {
+        cachedDocuments.clear();
+        pageNodeCounters.clear();
+        preheatQueue.clear();
+        preheatScheduled.clear();
+    }
+
     public void setCurrentPageId(String pageId) {
         this.currentPageId = pageId;
     }
