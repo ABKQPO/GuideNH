@@ -1940,7 +1940,7 @@ public class LytGuidebookScene extends LytBlock {
                 BLOCK_STATS_MIN_HEIGHT,
                 Math.min(blockStatsMaxHeight, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2));
         }
-        int rows = Math.max(1, Math.min(count, Math.max(1, height / rowHeight)));
+        int rows = Math.min(count, Math.max(1, height / rowHeight));
         return Math
             .max(BLOCK_STATS_MIN_HEIGHT, Math.min(blockStatsMaxHeight, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2));
     }
@@ -5785,7 +5785,7 @@ public class LytGuidebookScene extends LytBlock {
                 int density = particle.getWeatherDensityPerTick(
                     GuidebookSceneWeatherSupport
                         .defaultDensity(GuidebookSceneWeatherType.fromSerializedName(particle.getWeatherType())));
-                total += Math.clamp(density * 4, 1, 128);
+                total += Math.clamp(density * 4L, 1, 128);
                 continue;
             }
             if (particle.isIndicatorPreset()) {

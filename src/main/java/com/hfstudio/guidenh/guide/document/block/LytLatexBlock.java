@@ -171,6 +171,13 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         return offsetY;
     }
 
+    public LytRect getVisualBounds() {
+        if (bounds == null || bounds.isEmpty()) {
+            return LytRect.empty();
+        }
+        return new LytRect(bounds.x() + offsetX, bounds.y() + renderYOffset, bounds.width(), bounds.height());
+    }
+
     @Nullable
     @Override
     public LytRect getBounds() {
