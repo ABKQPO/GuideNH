@@ -60,7 +60,6 @@ import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
-import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnotation;
@@ -222,6 +221,8 @@ public class LytGuidebookScene extends LytBlock {
     private LytRect cachedPonderBarHitRect;
     private int cachedPonderBtnAbsX;
     private int cachedPonderBtnAbsY;
+    private int cachedPonderBtnScreenW;
+    private int cachedPonderBtnScreenH;
 
     private boolean interactive = true;
 
@@ -2262,11 +2263,11 @@ public class LytGuidebookScene extends LytBlock {
         context.restoreExternalRenderState();
 
         if (!overlays.isEmpty()) {
-            cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
+            LytRect viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
             context.pushLocalScissor(sceneRect);
             try {
                 for (var o : overlays) {
-                    o.render(camera, context, sceneRect);
+                    o.render(camera, context, viewport);
                 }
             } finally {
                 context.popScissor();
@@ -3226,20 +3227,6 @@ public class LytGuidebookScene extends LytBlock {
         return new InWorldLineAnnotation(new Vector3f(), to, color, ORIGIN_AXIS_THICKNESS);
     }
 
-    private static boolean needsGlTransform(RenderContext context) {
-        return !(context instanceof VanillaRenderContext);
-    }
-
-    private void pushGlTransform(RenderContext context, float scale) {
-        GL11.glPushMatrix();
-        GL11.glTranslatef(context.getDocumentOriginX(), context.getDocumentOriginY(), 0f);
-        GL11.glScalef(scale, scale, 1f);
-    }
-
-    private static void popGlTransform() {
-        GL11.glPopMatrix();
-    }
-
     private void drawSceneButtons(RenderContext context, LytRect sceneRect, LytRect screenRect) {
         this.lastAbsX = screenRect.x();
         this.lastAbsY = screenRect.y();
@@ -3261,8 +3248,7 @@ public class LytGuidebookScene extends LytBlock {
         int bx = sceneRect.right() + layoutGap;
         int by = sceneRect.y();
 
-        boolean useGl = needsGlTransform(context);
-        if (useGl) pushGlTransform(context, scale);
+        context.beginLocalView();
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -3297,7 +3283,7 @@ public class LytGuidebookScene extends LytBlock {
             }
             by += layoutStep;
         }
-        if (useGl) popGlTransform();
+        context.endLocalView();
     }
 
     private GuideIconButton.Role[] sceneButtonRoles() {
@@ -3377,14 +3363,13 @@ public class LytGuidebookScene extends LytBlock {
 
     @Nullable
     public GuideIconButton.Role sceneButtonAt(int mouseX, int mouseY) {
-        if (ponderSceneData != null && lastOuterH > 0) {
-            int btnSize = SCENE_SLIDER_AREA_HEIGHT;
-            if (mouseY >= cachedPonderBtnAbsY && mouseY < cachedPonderBtnAbsY + btnSize) {
+        if (ponderSceneData != null && lastOuterH > 0 && cachedPonderBtnScreenW > 0) {
+            if (mouseY >= cachedPonderBtnAbsY && mouseY < cachedPonderBtnAbsY + cachedPonderBtnScreenH) {
                 GuideIconButton.Role[] pRoles = { GuideIconButton.Role.PONDER_PREV_KEYFRAME,
                     GuideIconButton.Role.PONDER_PLAY_PAUSE, GuideIconButton.Role.PONDER_RESTART };
                 for (int i = 0; i < pRoles.length; i++) {
-                    int bx = cachedPonderBtnAbsX + i * btnSize;
-                    if (mouseX >= bx && mouseX < bx + btnSize) return pRoles[i];
+                    int bx = cachedPonderBtnAbsX + i * cachedPonderBtnScreenW;
+                    if (mouseX >= bx && mouseX < bx + cachedPonderBtnScreenW) return pRoles[i];
                 }
             }
         }
@@ -3606,14 +3591,13 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public boolean containsPonderButtons(int mouseX, int mouseY) {
-        if (!hasBottomControls() || ponderSceneData == null) {
+        if (!hasBottomControls() || ponderSceneData == null || cachedPonderBtnScreenW <= 0) {
             return false;
         }
-        int btnW = SCENE_SLIDER_AREA_HEIGHT;
-        int totalW = PONDER_BTN_TOTAL_WIDTH;
+        int totalW = cachedPonderBtnScreenW * PONDER_BUTTON_ROLES.length;
         return mouseX >= cachedPonderBtnAbsX && mouseX < cachedPonderBtnAbsX + totalW
             && mouseY >= cachedPonderBtnAbsY
-            && mouseY < cachedPonderBtnAbsY + btnW;
+            && mouseY < cachedPonderBtnAbsY + cachedPonderBtnScreenH;
     }
 
     @Nullable
@@ -3622,8 +3606,7 @@ public class LytGuidebookScene extends LytBlock {
             return null;
         }
         int relX = mouseX - cachedPonderBtnAbsX;
-        int btnW = SCENE_SLIDER_AREA_HEIGHT;
-        int idx = relX / btnW;
+        int idx = relX / cachedPonderBtnScreenW;
         return switch (idx) {
             case 0 -> GuideIconButton.Role.PONDER_PREV_KEYFRAME;
             case 1 -> GuideIconButton.Role.PONDER_PLAY_PAUSE;
@@ -6117,31 +6100,35 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void drawPonderControls(RenderContext context, LytRect outerRect, int totalControlH) {
-        int renderRowY = outerRect.bottom() - totalControlH;
-        int absRowY = lastOuterAbsY + lastOuterH - totalControlH;
-
         int rowH = SCENE_SLIDER_AREA_HEIGHT;
         int btnSize = SCENE_SLIDER_AREA_HEIGHT;
+        int sidePad = SCENE_SLIDER_SIDE_PADDING;
+        int renderRowY = outerRect.bottom() - totalControlH;
+        int renderBtnX = outerRect.x() + sidePad;
 
-        int renderBtnX = outerRect.x() + SCENE_SLIDER_SIDE_PADDING;
-        int absBtnX = lastOuterAbsX + SCENE_SLIDER_SIDE_PADDING;
-
-        cachedPonderBtnAbsX = absBtnX;
-        cachedPonderBtnAbsY = absRowY;
+        // Store screen-space button origin for hit-testing.
+        LytRect firstBtnLayout = new LytRect(renderBtnX, renderRowY, btnSize, btnSize);
+        LytRect firstBtnScreen = context.toScreenRect(firstBtnLayout);
+        cachedPonderBtnAbsX = firstBtnScreen.x();
+        cachedPonderBtnAbsY = firstBtnScreen.y();
+        cachedPonderBtnScreenW = firstBtnScreen.width();
+        cachedPonderBtnScreenH = firstBtnScreen.height();
 
         int mx = currentMousePositionAvailable ? currentMouseAbsX : -1;
         int my = currentMousePositionAvailable ? currentMouseAbsY : -1;
 
         Minecraft mc = Minecraft.getMinecraft();
-        boolean useGl = needsGlTransform(context);
-        if (useGl) pushGlTransform(context, lastDocZoom);
+        context.beginLocalView();
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
         for (int i = 0; i < PONDER_BUTTON_ROLES.length; i++) {
-            int absX = absBtnX + i * btnSize;
-            boolean hover = mx >= absX && mx < absX + btnSize && my >= absRowY && my < absRowY + btnSize;
+            LytRect btnLayout = new LytRect(renderBtnX + i * btnSize, renderRowY, btnSize, btnSize);
+            LytRect btnScreen = context.toScreenRect(btnLayout);
+            boolean hover = mx >= btnScreen.x() && mx < btnScreen.right()
+                && my >= btnScreen.y()
+                && my < btnScreen.bottom();
             boolean active = PONDER_BUTTON_ROLES[i] == GuideIconButton.Role.PONDER_PLAY_PAUSE && !ponderPaused
                 && !ponderFinished;
             int color = GuideIconButton.resolveIconColor(true, hover, active);
@@ -6150,38 +6137,37 @@ public class LytGuidebookScene extends LytBlock {
         }
 
         int renderBarLeft = renderBtnX + PONDER_BTN_TOTAL_WIDTH + 2;
-        int renderBarRight = outerRect.right() - SCENE_SLIDER_SIDE_PADDING;
+        int renderBarRight = outerRect.right() - sidePad;
         int renderBarW = renderBarRight - renderBarLeft;
         if (renderBarW >= 4) {
             int renderBarY = renderRowY + (rowH - GuideSliderRenderer.TRACK_HEIGHT) / 2;
-
-            int absBarLeft = absBtnX + PONDER_BTN_TOTAL_WIDTH + 2;
-            int absBarRight = lastOuterAbsX + lastOuterW - SCENE_SLIDER_SIDE_PADDING;
-            int absBarW = absBarRight - absBarLeft;
-            int absBarY = absRowY + (rowH - GuideSliderRenderer.TRACK_HEIGHT) / 2;
+            int trackH = GuideSliderRenderer.TRACK_HEIGHT;
 
             float progress = ponderSceneData.getProgress(ponderCurrentTick);
             GuideSliderRenderer.SliderGeometry renderGeom = GuideSliderRenderer
                 .layout(renderBarLeft, renderBarY, renderBarW, progress);
+
+            // Screen-space bar rect for hit-testing.
+            LytRect barScreen = context.toScreenRect(new LytRect(renderBarLeft, renderBarY, renderBarW, trackH));
             GuideSliderRenderer.SliderGeometry absGeom = GuideSliderRenderer
-                .layout(absBarLeft, absBarY, absBarW, progress);
+                .layout(barScreen.x(), barScreen.y(), barScreen.width(), progress);
 
             cachedPonderBarTrackRect = absGeom.trackRect();
             cachedPonderBarHitRect = absGeom.hitRect();
 
             int hitPad = GuideSliderRenderer.HIT_PADDING_Y;
-            boolean barHighlighted = draggingPonderBar || (mx >= absBarLeft && mx < absBarRight
-                && my >= absBarY - hitPad
-                && my < absBarY + GuideSliderRenderer.TRACK_HEIGHT + hitPad);
+            boolean barHighlighted = draggingPonderBar || (mx >= barScreen.x() && mx < barScreen.right()
+                && my >= barScreen.y() - hitPad
+                && my < barScreen.bottom() + hitPad);
             GuideSliderRenderer.render(Gui::drawRect, renderGeom, barHighlighted);
 
-            drawPonderKeyframeNodes(renderBarLeft, renderBarW, renderBarY, rowH, absBarLeft, absBarW, absBarY, mx, my);
+            drawPonderKeyframeNodes(context, renderBarLeft, renderBarW, renderBarY, rowH, mx, my);
         }
-        if (useGl) popGlTransform();
+        context.endLocalView();
     }
 
-    private void drawPonderKeyframeNodes(int renderBarLeft, int renderBarW, int renderBarY, int rowH, int absBarLeft,
-        int absBarW, int absBarY, int mx, int my) {
+    private void drawPonderKeyframeNodes(RenderContext context, int renderBarLeft, int renderBarW, int renderBarY,
+        int rowH, int mx, int my) {
         if (ponderSceneData == null || renderBarW <= 0) return;
         int totalTime = ponderSceneData.getTotalTime();
         int nodeW = 2;
@@ -6195,10 +6181,13 @@ public class LytGuidebookScene extends LytBlock {
             }
             float frac = totalTime > 0 ? kf.getTime() / (float) totalTime : 0f;
             int renderNx = renderBarLeft + Math.round(frac * (renderBarW - nodeW));
-            int absNx = absBarLeft + Math.round(frac * (absBarW - nodeW));
-            boolean hovered = mx >= absNx - 2 && mx < absNx + nodeW + 4
-                && my >= absBarY - hitPad
-                && my < absBarY + GuideSliderRenderer.TRACK_HEIGHT + hitPad;
+
+            // Screen-space hit region.
+            LytRect nodeScreen = context
+                .toScreenRect(new LytRect(renderNx, nodeRenderY, nodeW, GuideSliderRenderer.TRACK_HEIGHT));
+            boolean hovered = mx >= nodeScreen.x() - 2 && mx < nodeScreen.right() + 4
+                && my >= nodeScreen.y() - hitPad
+                && my < nodeScreen.bottom() + hitPad;
             int nodeColor = hovered ? PONDER_KEYFRAME_NODE_HOVER_COLOR : PONDER_KEYFRAME_NODE_COLOR;
             int drawH = hovered ? nodeH + 2 : nodeH;
             int drawY = hovered ? nodeRenderY - 1 : nodeRenderY;
@@ -6209,7 +6198,13 @@ public class LytGuidebookScene extends LytBlock {
                 if (label != null && !label.isEmpty()) {
                     Minecraft mc = Minecraft.getMinecraft();
                     boolean isAhead = ponderCurrentTick < kf.getTime();
-                    int textX = isAhead ? renderNx - mc.fontRenderer.getStringWidth(label) - 4 : renderNx + nodeW + 4;
+                    int textW = mc.fontRenderer.getStringWidth(label);
+                    int gap = 4;
+                    // Convert screen-space text metrics to layout for GL-transform drawing.
+                    float z = Math.max(0.0001f, lastDocZoom);
+                    int layoutTextW = Math.round(textW / z);
+                    int layoutGap = Math.round(gap / z);
+                    int textX = isAhead ? renderNx - layoutTextW - layoutGap : renderNx + nodeW + layoutGap;
                     mc.fontRenderer.drawStringWithShadow(label, textX, nodeRenderY, PONDER_KEYFRAME_NODE_HOVER_COLOR);
                 }
             }
@@ -6634,13 +6629,9 @@ public class LytGuidebookScene extends LytBlock {
 
     private void drawSlider(RenderContext context, GuideSliderRenderer.SliderGeometry geometry, boolean highlighted,
         LytRect outerRect, int rowIndex, String label, ResolvedTextStyle style) {
-        if (needsGlTransform(context)) {
-            pushGlTransform(context, lastDocZoom);
-            GuideSliderRenderer.render(Gui::drawRect, geometry, highlighted);
-            popGlTransform();
-        } else {
-            GuideSliderRenderer.render(Gui::drawRect, geometry, highlighted);
-        }
+        context.beginLocalView();
+        GuideSliderRenderer.render(Gui::drawRect, geometry, highlighted);
+        context.endLocalView();
 
         float z = Math.max(0.0001f, lastDocZoom);
         int textWidth = Math.round(context.getStringWidth(label, style) / z);

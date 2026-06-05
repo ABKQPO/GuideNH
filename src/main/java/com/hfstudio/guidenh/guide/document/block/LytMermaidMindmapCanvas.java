@@ -1506,6 +1506,18 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             delegate.restoreExternalRenderState();
         }
 
+        @Override
+        public void beginLocalView() {
+            GL11.glPushMatrix();
+            GL11.glTranslatef(originX, originY, 0f);
+            GL11.glScalef(scale, scale, 1f);
+        }
+
+        @Override
+        public void endLocalView() {
+            GL11.glPopMatrix();
+        }
+
         private ResolvedTextStyle scaleStyle(ResolvedTextStyle style) {
             return scaledStyleCache.computeIfAbsent(
                 style,
