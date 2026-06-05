@@ -8,6 +8,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -108,6 +109,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     @Nullable
     private Map<String, PageAnchor> itemAnchorsByItemId;
     private final MediaWikiSpecialPageResolver specialPageResolver = new MediaWikiSpecialPageResolver();
+    private final AtomicInteger contentTabsSequence = new AtomicInteger();
 
     public GuideSiteMdxTagRenderer(Guide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         NavigationTree navigationTree) {
@@ -231,6 +233,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         if ("details".equals(name)) {
             return renderDetails(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+        }
+        if ("ContentTabs".equals(name)) {
+            return renderContentTabs(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
         }
         if ("FileTree".equals(name)) {
             return renderFileTree(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
@@ -1061,6 +1066,93 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         html.append("</div>");
         html.append("</details>");
         return html.toString();
+    }
+
+    private String renderContentTabs(MdxJsxElementFields element, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+        ParsedTabs parsed = parseContentTabs(element);
+        StringBuilder html = new StringBuilder();
+        for (String error : parsed.errors) {
+            html.append("<div class=\"guide-content-tabs-error\">")
+                .append(escapeHtml(error))
+                .append("</div>");
+        }
+        if (parsed.tabs.isEmpty()) {
+            return html.toString();
+        }
+        String groupName = "guide-content-tabs-" + contentTabsSequence.getAndIncrement();
+        html.append("<div class=\"guide-content-tabs\">");
+        for (int index = 0; index < parsed.tabs.size(); index++) {
+            ParsedTab tab = parsed.tabs.get(index);
+            boolean checked = index == parsed.selectedIndex;
+            String inputId = groupName + '-' + index;
+            html.append("<input class=\"guide-content-tabs-input\" type=\"radio\" name=\"")
+                .append(escapeAttribute(groupName))
+                .append("\" id=\"")
+                .append(escapeAttribute(inputId))
+                .append("\"");
+            if (checked) {
+                html.append(" checked");
+            }
+            html.append(">");
+            html.append("<label class=\"guide-content-tabs-label\" for=\"")
+                .append(escapeAttribute(inputId))
+                .append("\">")
+                .append(escapeHtml(tab.title))
+                .append("</label>");
+            html.append("<div class=\"guide-content-tabs-panel\">")
+                .append(
+                    compiler.compileFragment(tab.children, templates, defaultNamespace, sceneResolver, currentPageId))
+                .append("</div>");
+        }
+        html.append("</div>");
+        return html.toString();
+    }
+
+    private ParsedTabs parseContentTabs(MdxJsxElementFields element) {
+        List<String> errors = new ArrayList<>();
+        List<ParsedTab> tabs = new ArrayList<>();
+        Integer defaultIndex = readPositiveOrZeroInt(readOptional(element, "defaultIndex"));
+        String defaultTitle = readOptional(element, "default");
+        for (MdAstAnyContent child : element.children()) {
+            if (!(child instanceof MdxJsxFlowElement flowElement) || !"Tab".equals(flowElement.name())) {
+                errors.add("ContentTabs only accepts <Tab> children.");
+                continue;
+            }
+            String title = flowElement.getAttributeString("title", null);
+            if (title == null || title.trim()
+                .isEmpty()) {
+                errors.add("<Tab> requires a non-empty title attribute.");
+                continue;
+            }
+            tabs.add(new ParsedTab(title.trim(), flowElement.children()));
+        }
+        int selectedIndex = resolveSelectedIndex(defaultTitle, defaultIndex, tabs, errors);
+        return new ParsedTabs(tabs, selectedIndex, errors);
+    }
+
+    private int resolveSelectedIndex(@Nullable String defaultTitle, @Nullable Integer defaultIndex,
+        List<ParsedTab> tabs, List<String> errors) {
+        if (tabs.isEmpty()) {
+            return 0;
+        }
+        if (defaultIndex != null) {
+            if (defaultIndex >= 0 && defaultIndex < tabs.size()) {
+                return defaultIndex;
+            }
+            errors.add("defaultIndex is out of range for ContentTabs.");
+            return 0;
+        }
+        if (defaultTitle != null) {
+            for (int index = 0; index < tabs.size(); index++) {
+                if (defaultTitle.equals(tabs.get(index).title)) {
+                    return index;
+                }
+            }
+            errors.add("default does not match any <Tab> title.");
+        }
+        return 0;
     }
 
     private String renderFileTree(MdxJsxElementFields element, String defaultNamespace,
@@ -2696,6 +2788,20 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
     }
 
+    @Nullable
+    private Integer readPositiveOrZeroInt(@Nullable String raw) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return null;
+        }
+        try {
+            int value = Integer.parseInt(raw.trim());
+            return value >= 0 ? value : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     private String renderFallbackItemLabel(String itemId, @Nullable ResourceLocation currentPageId,
         GuideSiteTemplateRegistry templates, boolean inline, @Nullable Float scale) {
         GuideSiteExportedItem exportedItem = GuideSiteItemSupport.unresolved(itemId);
@@ -2899,6 +3005,30 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             this.item = item;
             this.abbreviation = abbreviation;
             this.templateId = templateId;
+        }
+    }
+
+    private static class ParsedTabs {
+
+        private final List<ParsedTab> tabs;
+        private final int selectedIndex;
+        private final List<String> errors;
+
+        private ParsedTabs(List<ParsedTab> tabs, int selectedIndex, List<String> errors) {
+            this.tabs = tabs;
+            this.selectedIndex = selectedIndex;
+            this.errors = errors;
+        }
+    }
+
+    private static class ParsedTab {
+
+        private final String title;
+        private final List<? extends MdAstAnyContent> children;
+
+        private ParsedTab(String title, List<? extends MdAstAnyContent> children) {
+            this.title = title;
+            this.children = children;
         }
     }
 }

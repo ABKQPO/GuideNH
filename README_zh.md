@@ -22,7 +22,7 @@
 ## **功能**
 
 * 支持带 YAML 表头的 Markdown 页面、导航元数据、分类、锚点、表格、脚注、Mermaid、LaTeX、图表与文本高亮。
-* 支持 `<ItemLink>`、`<ItemImage>`、`<Recipe>`、`<GameScene>`、`<BlockStats>`、`<Tooltip>`、`<KeyBind>`、`<PlayerName>` 等 MDX 风格运行时标签。
+* 支持 `<ItemLink>`、`<ItemImage>`、`<Recipe>`、`<GameScene>`、`<ContentTabs>`、`<BlockStats>`、`<Tooltip>`、`<KeyBind>`、`<PlayerName>` 等 MDX 风格运行时标签。
 * 支持交互式 3D GameScene 预览，包括方块/实体放置、StructureLib 导入、Ponder 播放、层滑条、网格按钮、注解与方块统计表。
 * 支持游戏内指南编辑模式，包括编辑/预览分屏、工具栏操作、短延迟自动保存、外部变更处理与资源包页面创建。
 * 支持多语言指南目录与回退、物品索引跳转、搜索、服务端集成和资源重载。

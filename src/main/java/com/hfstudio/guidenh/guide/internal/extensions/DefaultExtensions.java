@@ -124,6 +124,7 @@ public class DefaultExtensions {
                 new ItemLinkCompiler(),
                 new FloatingImageCompiler(),
                 new BreakCompiler(),
+                new ContentTabsTagCompiler(),
                 new DetailsTagCompiler(),
                 new FileTreeTagCompiler(),
                 new RecipeCompiler(),

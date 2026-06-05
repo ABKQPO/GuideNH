@@ -126,6 +126,11 @@ public class TagAttributeRegistry {
             new AttributeSpec("widths", AttrType.STRING));
         register("details", new AttributeSpec("open", AttrType.BOOLEAN));
         register(
+            "ContentTabs",
+            new AttributeSpec("default", AttrType.STRING),
+            new AttributeSpec("defaultIndex", AttrType.INT));
+        register("Tab", new AttributeSpec("title", AttrType.STRING));
+        register(
             "Row",
             new AttributeSpec("gap", AttrType.INT),
             new AttributeSpec("alignItems", AttrType.ENUM, AlignItems.class),

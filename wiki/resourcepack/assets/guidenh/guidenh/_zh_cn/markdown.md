@@ -284,6 +284,27 @@ Markdown：
 
 当使用 `wrap="square"` 时，块外文本仍应继续围绕它排版。
 
+## 内容标签页
+
+`<ContentTabs>` 可以把可替代的富内容放进同一组标签页中。每个子节点都必须是直接的
+`<Tab title="...">`，默认选中项可以通过 `default` 或 `defaultIndex` 指定。
+
+<ContentTabs default="场景">
+  <Tab title="代码">
+    ```java
+    System.out.println("Hello GuideNH");
+    ```
+  </Tab>
+  <Tab title="场景">
+    <GameScene width="180" height="120">
+      <Block id="minecraft:crafting_table" />
+    </GameScene>
+  </Tab>
+  <Tab title="公式">
+    $$a^2 + b^2 = c^2$$
+  </Tab>
+</ContentTabs>
+
 ## 代码块
 
 显式语言：

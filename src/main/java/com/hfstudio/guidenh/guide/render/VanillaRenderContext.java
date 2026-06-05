@@ -159,6 +159,74 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
+    public void fillRoundedRect(LytRect rect, int argbColor, int radius) {
+        int clampedRadius = Math.max(0, Math.min(radius, Math.min(rect.width(), rect.height()) / 2));
+        if (clampedRadius == 0) {
+            fillRect(rect, argbColor);
+            return;
+        }
+        fillRect(rect.x() + clampedRadius, rect.y(), rect.width() - clampedRadius * 2, rect.height(), argbColor);
+        fillRect(rect.x(), rect.y() + clampedRadius, clampedRadius, rect.height() - clampedRadius * 2, argbColor);
+        fillRect(
+            rect.right() - clampedRadius,
+            rect.y() + clampedRadius,
+            clampedRadius,
+            rect.height() - clampedRadius * 2,
+            argbColor);
+        fillCircle(rect.x() + clampedRadius, rect.y() + clampedRadius, clampedRadius, argbColor);
+        fillCircle(rect.right() - clampedRadius, rect.y() + clampedRadius, clampedRadius, argbColor);
+        fillCircle(rect.x() + clampedRadius, rect.bottom() - clampedRadius, clampedRadius, argbColor);
+        fillCircle(rect.right() - clampedRadius, rect.bottom() - clampedRadius, clampedRadius, argbColor);
+    }
+
+    @Override
+    public void drawRoundedBorder(LytRect rect, int argbColor, int thickness, int radius) {
+        int clampedRadius = Math.max(0, Math.min(radius, Math.min(rect.width(), rect.height()) / 2));
+        if (clampedRadius == 0) {
+            drawBorder(rect, argbColor, thickness);
+            return;
+        }
+        fillRect(rect.x() + clampedRadius, rect.y(), rect.width() - clampedRadius * 2, thickness, argbColor);
+        fillRect(
+            rect.x() + clampedRadius,
+            rect.bottom() - thickness,
+            rect.width() - clampedRadius * 2,
+            thickness,
+            argbColor);
+        fillRect(rect.x(), rect.y() + clampedRadius, thickness, rect.height() - clampedRadius * 2, argbColor);
+        fillRect(
+            rect.right() - thickness,
+            rect.y() + clampedRadius,
+            thickness,
+            rect.height() - clampedRadius * 2,
+            argbColor);
+        drawCircleOutline(
+            rect.x() + clampedRadius,
+            rect.y() + clampedRadius,
+            clampedRadius - thickness * 0.5f,
+            thickness,
+            argbColor);
+        drawCircleOutline(
+            rect.right() - clampedRadius,
+            rect.y() + clampedRadius,
+            clampedRadius - thickness * 0.5f,
+            thickness,
+            argbColor);
+        drawCircleOutline(
+            rect.x() + clampedRadius,
+            rect.bottom() - clampedRadius,
+            clampedRadius - thickness * 0.5f,
+            thickness,
+            argbColor);
+        drawCircleOutline(
+            rect.right() - clampedRadius,
+            rect.bottom() - clampedRadius,
+            clampedRadius - thickness * 0.5f,
+            thickness,
+            argbColor);
+    }
+
+    @Override
     public void drawText(String text, int x, int y, ResolvedTextStyle style) {
         if (text == null || text.isEmpty()) return;
         int color = resolveColor(style.color());

@@ -295,6 +295,27 @@ together inside the same scrollable panel.
 
 Text outside the block should still wrap around it when `wrap="square"` is used.
 
+## Content Tabs
+
+`<ContentTabs>` groups alternative rich content under one tab strip. Each child must be a direct
+`<Tab title="...">`, and the selected tab can be chosen with either `default` or `defaultIndex`.
+
+<ContentTabs default="Scene">
+  <Tab title="Code">
+    ```java
+    System.out.println("Hello GuideNH");
+    ```
+  </Tab>
+  <Tab title="Scene">
+    <GameScene width="180" height="120">
+      <Block id="minecraft:crafting_table" />
+    </GameScene>
+  </Tab>
+  <Tab title="Math">
+    $$a^2 + b^2 = c^2$$
+  </Tab>
+</ContentTabs>
+
 ## Code Blocks
 
 Explicit language:

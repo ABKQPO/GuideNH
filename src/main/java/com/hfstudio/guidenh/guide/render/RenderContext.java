@@ -66,6 +66,14 @@ public interface RenderContext {
         drawBorder(new LytRect(x, y, width, height), argbColor, thickness);
     }
 
+    default void fillRoundedRect(LytRect rect, int argbColor, int radius) {
+        fillRect(rect, argbColor);
+    }
+
+    default void drawRoundedBorder(LytRect rect, int argbColor, int thickness, int radius) {
+        drawBorder(rect, argbColor, thickness);
+    }
+
     void drawText(String text, int x, int y, ResolvedTextStyle style);
 
     int getStringWidth(String text, ResolvedTextStyle style);

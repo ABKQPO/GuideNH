@@ -48,6 +48,8 @@
 | 标签 | 用途 | 关键属性 |
 | --- | --- | --- |
 | `<div>` | 透传块包装器 | 无 |
+| `<ContentTabs>` | 将可替代的富内容分组到独立标签页中 | `default`、`defaultIndex` |
+| `<Tab>` | `<ContentTabs>` 内的单个内容面板 | `title` |
 | `<details>` | 可折叠运行时块 | `open`、`width`、`height`、`wrap`、`align` |
 | `<FileTree>` | 目录树式大纲（带连接线） | `indent`、`gap` |
 | `<Row>` | 横向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
@@ -139,6 +141,28 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 - `height` — 正文视口首选高度，单位像素；超出部分会在游戏内和站点导出中变为可滚动区域
 - `wrap` — 支持常见块嵌入模式，例如 `square`、`tight`、`through`
 - `align` — `left`、`center` 或 `right`；与浮动型 `wrap` 搭配时会让整个 details 块浮动
+
+### `<ContentTabs>`
+
+将可替代的富内容分组到独立标签页中。`<ContentTabs>` 只接受直接的 `<Tab>` 子标签。
+
+````mdx
+<ContentTabs default="Java">
+  <Tab title="Java">
+    ```java
+    System.out.println("Hello GuideNH");
+    ```
+  </Tab>
+  <Tab title="Scene">
+    <BlockImage id="minecraft:crafting_table" />
+  </Tab>
+</ContentTabs>
+````
+
+- `default` 会匹配第一个 `title` 完全相同的标签页
+- `defaultIndex` 使用从 `0` 开始的下标，并且在同时出现时优先级高于 `default`
+- `title` 仅支持纯文本
+- 非法子节点或非法默认值会渲染为面向作者的可见错误
 
 ### `<FileTree>`
 
