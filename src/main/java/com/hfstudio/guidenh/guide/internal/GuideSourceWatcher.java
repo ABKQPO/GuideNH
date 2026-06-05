@@ -25,15 +25,14 @@ import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
 import com.hfstudio.guidenh.guide.internal.localization.GuidePageLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
-import cpw.mods.fml.common.FMLLog;
 import io.methvin.watcher.DirectoryChangeEvent;
 import io.methvin.watcher.DirectoryChangeListener;
 import io.methvin.watcher.DirectoryWatcher;
@@ -205,10 +204,7 @@ public class GuideSourceWatcher implements AutoCloseable {
         if (!Files.isDirectory(sourceFolder)) {
             throw new RuntimeException("Cannot find the specified folder with guidebook sources: " + sourceFolder);
         }
-        if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info("[GuideNH] [GuideSourceWatcher] Watching guidebook sources in {}", sourceFolder);
-        }
+        GuideDebugLog.info("[GuideNH] [GuideSourceWatcher] Watching guidebook sources in {}", sourceFolder);
 
         watchExecutor = Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setDaemon(true)
@@ -225,11 +221,10 @@ public class GuideSourceWatcher implements AutoCloseable {
                 .listener(new Listener())
                 .build();
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .error(
-                    "[GuideNH] [GuideSourceWatcher] Failed to watch for changes in the guidebook sources at {}",
-                    sourceFolder,
-                    e);
+            GuideDebugLog.error(
+                "[GuideNH] [GuideSourceWatcher] Failed to watch for changes in the guidebook sources at {}",
+                sourceFolder,
+                e);
             watcher = null;
         }
         sourceWatcher = watcher;
@@ -273,33 +268,27 @@ public class GuideSourceWatcher implements AutoCloseable {
 
                 @Override
                 public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                    FMLLog.getLogger()
-                        .error("[GuideNH] [GuideSourceWatcher] Failed to list page {}", file, exc);
+                    GuideDebugLog.error("[GuideNH] [GuideSourceWatcher] Failed to list page {}", file, exc);
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
                 public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
                     if (exc != null) {
-                        FMLLog.getLogger()
-                            .error("[GuideNH] [GuideSourceWatcher] Failed to list all pages in {}", dir, exc);
+                        GuideDebugLog.error("[GuideNH] [GuideSourceWatcher] Failed to list all pages in {}", dir, exc);
                     }
                     return FileVisitResult.CONTINUE;
                 }
             });
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [GuideSourceWatcher] Failed to list all pages in {}", sourceFolder, e);
+            GuideDebugLog.error("[GuideNH] [GuideSourceWatcher] Failed to list all pages in {}", sourceFolder, e);
         }
         long walkNs = System.nanoTime() - stageStartedAt;
 
-        if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideSourceWatcher] Loading {} guidebook pages from {} localized variants",
-                    pageIds.size(),
-                    pageSources.size());
-        }
+        GuideDebugLog.info(
+            "[GuideNH] [GuideSourceWatcher] Loading {} guidebook pages from {} localized variants",
+            pageIds.size(),
+            pageSources.size());
         stageStartedAt = System.nanoTime();
         Map<String, Map<String, String>> localizedSourcesByNamespace = loadLocalizedSourceOverrides(
             currentLanguage,
@@ -324,7 +313,7 @@ public class GuideSourceWatcher implements AutoCloseable {
                         Files.readAllBytes(pageSource.path()),
                         pageSource.localizedSourceOverride()));
             } catch (Exception e) {
-                FMLLog.getLogger()
+                GuideDebugLog
                     .error("[GuideNH] [GuideSourceWatcher] Failed to reload guidebook page {}", pageSource.path(), e);
             }
         }
@@ -332,21 +321,18 @@ public class GuideSourceWatcher implements AutoCloseable {
         int sourceLanguageCount = countSourceLanguages(pageSources.keySet());
         long totalNs = System.nanoTime() - startedAt;
 
-        if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideSourceWatcher] Loaded {} pages from {} with namespaceFilter={} sourceVariants={} sourceLanguages={} localizedNamespaces={} walkNs={} localizedOverrideNs={} parseNs={} totalNs={}",
-                    loadedPages.size(),
-                    sourceFolder,
-                    namespaceFilter != null ? namespaceFilter : "<all>",
-                    pageSources.size(),
-                    sourceLanguageCount,
-                    localizedSourcesByNamespace.size(),
-                    walkNs,
-                    localizedOverrideNs,
-                    parseNs,
-                    totalNs);
-        }
+        GuideDebugLog.info(
+            "[GuideNH] [GuideSourceWatcher] Loaded {} pages from {} with namespaceFilter={} sourceVariants={} sourceLanguages={} localizedNamespaces={} walkNs={} localizedOverrideNs={} parseNs={} totalNs={}",
+            loadedPages.size(),
+            sourceFolder,
+            namespaceFilter != null ? namespaceFilter : "<all>",
+            pageSources.size(),
+            sourceLanguageCount,
+            localizedSourcesByNamespace.size(),
+            walkNs,
+            localizedOverrideNs,
+            parseNs,
+            totalNs);
         return loadedPages;
     }
 
@@ -460,7 +446,7 @@ public class GuideSourceWatcher implements AutoCloseable {
             try {
                 sourceWatcher.close();
             } catch (IOException e) {
-                FMLLog.getLogger()
+                GuideDebugLog
                     .error("[GuideNH] [GuideSourceWatcher] Failed to close fileystem watcher for {}", sourceFolder);
             }
         }
@@ -486,8 +472,7 @@ public class GuideSourceWatcher implements AutoCloseable {
 
         @Override
         public void onException(Exception e) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [GuideSourceWatcher] Failed watching for changes", e);
+            GuideDebugLog.error("[GuideNH] [GuideSourceWatcher] Failed watching for changes", e);
         }
     }
 
@@ -725,11 +710,10 @@ public class GuideSourceWatcher implements AutoCloseable {
                 activeSource.localizedSourceOverride());
             return new ResolvedPageState(activeSource.requestedLanguage(), page, false);
         } catch (Exception e) {
-            FMLLog.getLogger()
-                .error(
-                    "[GuideNH] [GuideSourceWatcher] Failed to resolve effective guidebook page {}",
-                    activeSource.path(),
-                    e);
+            GuideDebugLog.error(
+                "[GuideNH] [GuideSourceWatcher] Failed to resolve effective guidebook page {}",
+                activeSource.path(),
+                e);
             return null;
         }
     }
@@ -769,8 +753,10 @@ public class GuideSourceWatcher implements AutoCloseable {
             Map<String, String> entries = GuidePageLanguageIndex.readPageKeys(input);
             return entries.get(GuideLocalizedPageSourceResolver.buildLangKey(contentRootFolder, pageId));
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [GuideSourceWatcher] Failed to read localized page lang file {}", langFilePath, e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [GuideSourceWatcher] Failed to read localized page lang file {}",
+                langFilePath,
+                e);
             return null;
         }
     }
@@ -808,11 +794,10 @@ public class GuideSourceWatcher implements AutoCloseable {
                             child.getFileName()
                                 .toString()));
             } catch (IOException e) {
-                FMLLog.getLogger()
-                    .warn(
-                        "[GuideNH] [GuideSourceWatcher] Failed to scan localized source namespaces in {}",
-                        assetsPath,
-                        e);
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [GuideSourceWatcher] Failed to scan localized source namespaces in {}",
+                    assetsPath,
+                    e);
             }
             return namespaces;
         }
@@ -839,8 +824,10 @@ public class GuideSourceWatcher implements AutoCloseable {
         try (InputStream input = Files.newInputStream(langFilePath)) {
             return GuidePageLanguageIndex.readPageKeys(input);
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [GuideSourceWatcher] Failed to read localized page lang file {}", langFilePath, e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [GuideSourceWatcher] Failed to read localized page lang file {}",
+                langFilePath,
+                e);
             return Map.of();
         }
     }

@@ -18,10 +18,9 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.recipe.NeiRecipeLayoutMetrics;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
-
-import cpw.mods.fml.common.FMLLog;
 
 /**
  * Renders NEI handler Phase1 ({@code drawBackground} / optionally {@code drawForeground} /
@@ -78,11 +77,10 @@ public class GuideSiteNeiPhase1BackgroundExporter {
         int vw = bodyW + 2 * m;
         int vh = bodyH + 2 * m;
         if (vw > MAX_EXPORT_EDGE || vh > MAX_EXPORT_EDGE) {
-            FMLLog.getLogger()
-                .debug(
-                    "[GuideNH] [GuideSiteNeiPhase1BackgroundExporter] Skip NEI Phase1 export: {}x{} exceeds cap",
-                    vw,
-                    vh);
+            GuideDebugLog.debugAlways(
+                "[GuideNH] [GuideSiteNeiPhase1BackgroundExporter] Skip NEI Phase1 export: {}x{} exceeds cap",
+                vw,
+                vh);
             return null;
         }
 
@@ -100,12 +98,11 @@ public class GuideSiteNeiPhase1BackgroundExporter {
             cache.put(cacheKey, res);
             return res;
         } catch (Throwable t) {
-            FMLLog.getLogger()
-                .debug(
-                    "[GuideNH] [GuideSiteNeiPhase1BackgroundExporter] NEI Phase1 snapshot failed for {} recipe {}",
-                    handler.getClass(),
-                    recipeIndex,
-                    t);
+            GuideDebugLog.debugAlways(
+                "[GuideNH] [GuideSiteNeiPhase1BackgroundExporter] NEI Phase1 snapshot failed for {} recipe {}",
+                handler.getClass(),
+                recipeIndex,
+                t);
             return null;
         }
     }

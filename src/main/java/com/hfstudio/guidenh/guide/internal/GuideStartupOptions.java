@@ -9,8 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.PageAnchor;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideStartupOptions {
 
@@ -39,7 +38,7 @@ public class GuideStartupOptions {
 
             return new ShowOnStartup(guideId, parseStartupAnchor(guideId, trimmedValue.substring(anchorSeparator + 1)));
         } catch (RuntimeException e) {
-            FMLLog.getLogger()
+            GuideDebugLog
                 .error("[GuideNH] [GuideStartupOptions] Failed to parse guideme.showOnStartup='{}'", trimmedValue, e);
             return null;
         }
@@ -69,11 +68,10 @@ public class GuideStartupOptions {
                 try {
                     result.add(new ResourceLocation(trimmedToken));
                 } catch (RuntimeException e) {
-                    FMLLog.getLogger()
-                        .error(
-                            "[GuideNH] [GuideStartupOptions] Failed to parse validateAtStartup guide id '{}'",
-                            trimmedToken,
-                            e);
+                    GuideDebugLog.error(
+                        "[GuideNH] [GuideStartupOptions] Failed to parse validateAtStartup guide id '{}'",
+                        trimmedToken,
+                        e);
                 }
             }
             if (end == length) {

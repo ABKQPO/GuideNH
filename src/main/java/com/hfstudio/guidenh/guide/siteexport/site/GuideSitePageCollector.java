@@ -22,8 +22,7 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSyntheticPageFactory;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSyntheticPageFactory.SyntheticSourceSnapshot;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSitePageCollector {
 
@@ -55,11 +54,10 @@ public class GuideSitePageCollector {
             try {
                 languages = discoverLanguages();
             } catch (Throwable t) {
-                FMLLog.getLogger()
-                    .debug(
-                        "[GuideNH] [GuideSitePageCollector] Falling back to the guide default language for {}",
-                        guide.getId(),
-                        t);
+                GuideDebugLog.debugAlways(
+                    "[GuideNH] [GuideSitePageCollector] Falling back to the guide default language for {}",
+                    guide.getId(),
+                    t);
                 languages = new ArrayList<>();
             }
         }
@@ -79,11 +77,10 @@ public class GuideSitePageCollector {
                 }
             }
         } catch (Throwable t) {
-            FMLLog.getLogger()
-                .debug(
-                    "[GuideNH] [GuideSitePageCollector] Falling back to already loaded page ids for {}",
-                    guide.getId(),
-                    t);
+            GuideDebugLog.debugAlways(
+                "[GuideNH] [GuideSitePageCollector] Falling back to already loaded page ids for {}",
+                guide.getId(),
+                t);
             pageIdSet = new LinkedHashSet<>();
         }
         for (ParsedGuidePage page : guide.getPages()) {
@@ -157,8 +154,9 @@ public class GuideSitePageCollector {
         try {
             return discoverLanguages();
         } catch (Throwable t) {
-            FMLLog.getLogger()
-                .debug("[GuideNH] [GuideSitePageCollector] Falling back to no discovered site export languages", t);
+            GuideDebugLog.debugAlways(
+                "[GuideNH] [GuideSitePageCollector] Falling back to no discovered site export languages",
+                t);
             return new ArrayList<>();
         }
     }

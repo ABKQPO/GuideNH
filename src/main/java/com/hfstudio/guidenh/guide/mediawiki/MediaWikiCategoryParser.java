@@ -7,8 +7,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class MediaWikiCategoryParser {
 
@@ -88,8 +87,7 @@ public class MediaWikiCategoryParser {
     }
 
     private static void warnMalformedCategories(ParsedGuidePage page, String message) {
-        FMLLog.getLogger()
-            .warn("[GuideNH] [MediaWikiCategoryParser] Page {} {}", page.getId(), message);
+        GuideDebugLog.warnAlways("[GuideNH] [MediaWikiCategoryParser] Page {} {}", page.getId(), message);
     }
 
     private static String normalizeCategoryKey(String categoryName) {

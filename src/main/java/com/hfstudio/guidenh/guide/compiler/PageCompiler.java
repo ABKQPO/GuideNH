@@ -59,6 +59,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLiteralAutolink;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -83,8 +84,6 @@ import com.hfstudio.guidenh.libs.micromark.ParseException;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class PageCompiler {
 
@@ -225,8 +224,7 @@ public class PageCompiler {
                 parseFailureTo = e.getTo();
             }
             String errorMessage = formatParseFailureMessage(id, language, sourcePack, parseFailureFrom);
-            FMLLog.getLogger()
-                .error("[GuideNH] [PageCompiler] {}", errorMessage, t);
+            GuideDebugLog.error("[GuideNH] [PageCompiler] {}", errorMessage, t);
             parseFailureMessage = errorMessage + ": \n" + t;
             astRoot = buildErrorPage(parseFailureMessage);
             frontmatter = new Frontmatter(null, Collections.emptyMap());
@@ -238,23 +236,22 @@ public class PageCompiler {
         }
 
         long totalNs = System.nanoTime() - parseStartedAt;
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [PageCompiler] Parsed page {} lang={} totalNs={} normalizeNs={} footnoteNs={} sourceFrontmatterNs={} latexMaskNs={} commentMaskNs={} markdownParseNs={} latexRestoreNs={} htmlNormalizeNs={} mdAstConvertNs={} astFrontmatterNs={} parseFailed={}",
-                id,
-                language,
-                totalNs,
-                normalizeNs,
-                footnoteNs,
-                sourceFrontmatterNs,
-                latexMaskNs,
-                commentMaskNs,
-                markdownParseNs,
-                latexRestoreNs,
-                htmlNormalizeNs,
-                mdAstConvertNs,
-                astFrontmatterNs,
-                parseFailureMessage != null);
+        GuideDebugLog.info(
+            "[GuideNH] [PageCompiler] Parsed page {} lang={} totalNs={} normalizeNs={} footnoteNs={} sourceFrontmatterNs={} latexMaskNs={} commentMaskNs={} markdownParseNs={} latexRestoreNs={} htmlNormalizeNs={} mdAstConvertNs={} astFrontmatterNs={} parseFailed={}",
+            id,
+            language,
+            totalNs,
+            normalizeNs,
+            footnoteNs,
+            sourceFrontmatterNs,
+            latexMaskNs,
+            commentMaskNs,
+            markdownParseNs,
+            latexRestoreNs,
+            htmlNormalizeNs,
+            mdAstConvertNs,
+            astFrontmatterNs,
+            parseFailureMessage != null);
 
         return new ParsedGuidePage(
             sourcePack,
@@ -408,15 +405,13 @@ public class PageCompiler {
         for (var child : root.children()) {
             if (child instanceof MdAstYamlFrontmatter frontmatter) {
                 if (result != null) {
-                    FMLLog.getLogger()
-                        .error("[GuideNH] [PageCompiler] Found more than one frontmatter!");
+                    GuideDebugLog.error("[GuideNH] [PageCompiler] Found more than one frontmatter!");
                     continue;
                 }
                 try {
                     result = Frontmatter.parse(pageId, frontmatter.value);
                 } catch (Exception e) {
-                    FMLLog.getLogger()
-                        .error("[GuideNH] [PageCompiler] Failed to parse frontmatter for page {}", pageId, e);
+                    GuideDebugLog.error("[GuideNH] [PageCompiler] Failed to parse frontmatter for page {}", pageId, e);
                     break;
                 }
             }
@@ -438,8 +433,7 @@ public class PageCompiler {
         try {
             return Frontmatter.parse(pageId, yamlText);
         } catch (Exception e) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [PageCompiler] Failed to parse frontmatter for page {}", pageId, e);
+            GuideDebugLog.error("[GuideNH] [PageCompiler] Failed to parse frontmatter for page {}", pageId, e);
             return new Frontmatter(null, Collections.emptyMap());
         }
     }
@@ -1093,11 +1087,9 @@ public class PageCompiler {
             span.appendText(tildes + "^");
             span.appendBreak();
 
-            FMLLog.getLogger()
-                .warn("[GuideNH] [PageCompiler] {}\n{}\n{}\n", text, line, tildes + "^");
+            GuideDebugLog.warnAlways("[GuideNH] [PageCompiler] {}\n{}\n{}\n", text, line, tildes + "^");
         } else {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [PageCompiler] {}\n", text);
+            GuideDebugLog.warnAlways("[GuideNH] [PageCompiler] {}\n", text);
         }
 
         return span;

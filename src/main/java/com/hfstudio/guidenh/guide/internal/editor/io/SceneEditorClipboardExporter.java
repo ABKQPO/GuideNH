@@ -11,8 +11,6 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
-import cpw.mods.fml.common.FMLLog;
-
 public class SceneEditorClipboardExporter {
 
     @FunctionalInterface
@@ -63,8 +61,7 @@ public class SceneEditorClipboardExporter {
     }
 
     public void notifyFailure(@Nullable EntityPlayer player, Throwable throwable) {
-        FMLLog.getLogger()
-            .error("Failed to save scene snippet", throwable);
+        GuideDebugLog.error("Failed to save scene snippet", throwable);
         chatSink.send(player, GuidebookText.SceneEditorSaveFailure, getErrorMessage(throwable));
     }
 

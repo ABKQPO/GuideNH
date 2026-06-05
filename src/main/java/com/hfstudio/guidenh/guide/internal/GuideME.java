@@ -6,8 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearch;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideME {
 
@@ -44,8 +43,7 @@ public class GuideME {
             try {
                 SEARCH.close();
             } catch (Exception e) {
-                FMLLog.getLogger()
-                    .error("[GuideNH] [GuideME] Failed to close GuideSearch", e);
+                GuideDebugLog.error("[GuideNH] [GuideME] Failed to close GuideSearch", e);
             } finally {
                 SEARCH = null;
             }

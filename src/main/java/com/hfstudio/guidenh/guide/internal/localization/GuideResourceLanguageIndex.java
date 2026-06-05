@@ -19,8 +19,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideResourceLanguageIndex {
 
@@ -50,13 +49,12 @@ public class GuideResourceLanguageIndex {
         }
         long totalNs = System.nanoTime() - startedAt;
         if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideResourceLanguageIndex] Loaded {} lang entries for language {} from {} resource packs in {} ns",
-                    merged.size(),
-                    normalizedLanguage,
-                    activeResourcePacks.size(),
-                    totalNs);
+            GuideDebugLog.infoAlways(
+                "[GuideNH] [GuideResourceLanguageIndex] Loaded {} lang entries for language {} from {} resource packs in {} ns",
+                merged.size(),
+                normalizedLanguage,
+                activeResourcePacks.size(),
+                totalNs);
         }
         return merged.isEmpty() ? Map.of() : Map.copyOf(merged);
     }
@@ -109,11 +107,10 @@ public class GuideResourceLanguageIndex {
             try (InputStream input = new FileInputStream(child)) {
                 target.putAll(StringTranslate.parseLangFile(input));
             } catch (IOException e) {
-                FMLLog.getLogger()
-                    .warn(
-                        "[GuideNH] [GuideResourceLanguageIndex] Failed to read lang file {}",
-                        child.getAbsolutePath(),
-                        e);
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [GuideResourceLanguageIndex] Failed to read lang file {}",
+                    child.getAbsolutePath(),
+                    e);
             }
         }
     }
@@ -142,11 +139,10 @@ public class GuideResourceLanguageIndex {
                 }
             }
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [GuideResourceLanguageIndex] Failed to scan lang entries from resource pack {}",
-                    resourcePackFile.getAbsolutePath(),
-                    e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [GuideResourceLanguageIndex] Failed to scan lang entries from resource pack {}",
+                resourcePackFile.getAbsolutePath(),
+                e);
         }
     }
 

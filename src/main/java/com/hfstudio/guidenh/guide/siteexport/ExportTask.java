@@ -22,8 +22,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class ExportTask {
 
@@ -64,8 +63,7 @@ public class ExportTask {
                         .toString());
                 ok++;
             } catch (Throwable t) {
-                FMLLog.getLogger()
-                    .warn("[GuideNH] [ExportTask] Failed to export page {}", page.getId(), t);
+                GuideDebugLog.warnAlways("[GuideNH] [ExportTask] Failed to export page {}", page.getId(), t);
                 failed++;
             }
         }
@@ -86,8 +84,7 @@ public class ExportTask {
                     }
                     assetsCopied++;
                 } catch (IOException e) {
-                    FMLLog.getLogger()
-                        .debug("[GuideNH] [ExportTask] Skipping missing asset {}", id, e);
+                    GuideDebugLog.debugAlways("[GuideNH] [ExportTask] Skipping missing asset {}", id, e);
                 }
             }
         }

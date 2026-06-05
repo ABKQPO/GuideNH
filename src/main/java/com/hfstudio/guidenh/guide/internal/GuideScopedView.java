@@ -25,8 +25,7 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiListContextProvider;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialDataIndex;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialDataIndexer;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideScopedView implements Guide, MediaWikiListContextProvider {
 
@@ -145,11 +144,10 @@ public class GuideScopedView implements Guide, MediaWikiListContextProvider {
             long startNanos = System.nanoTime();
             mediaWikiListContext = createFallbackMediaWikiListContext();
             if (ModConfig.debug.enableDebugMode) {
-                FMLLog.getLogger()
-                    .info(
-                        "[GuideNH] [GuideScopedView] Built preview MediaWikiListContext in {} ms for guide {}",
-                        nanosToMillis(System.nanoTime() - startNanos),
-                        delegate.getId());
+                GuideDebugLog.infoAlways(
+                    "[GuideNH] [GuideScopedView] Built preview MediaWikiListContext in {} ms for guide {}",
+                    nanosToMillis(System.nanoTime() - startNanos),
+                    delegate.getId());
             }
             return mediaWikiListContext;
         }

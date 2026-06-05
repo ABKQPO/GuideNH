@@ -11,8 +11,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeEntry
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIconKind;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 /**
  * Turns a textual file tree string into a {@link LytFileTree} block. Each entry payload is
@@ -61,17 +60,15 @@ public class FileTreeCompiler {
                     var imageId = IdUtils.resolveLink(value, compiler.getPageId());
                     var imageContent = compiler.loadAsset(imageId);
                     if (imageContent == null) {
-                        FMLLog.getLogger()
-                            .warn("[GuideNH] [FileTreeCompiler] File tree iconPng not found: {}", value);
+                        GuideDebugLog.warnAlways("[GuideNH] [FileTreeCompiler] File tree iconPng not found: {}", value);
                         image.setTitle("Missing image: " + value);
                     }
                     image.setImage(imageId, imageContent);
                 } catch (IllegalArgumentException e) {
-                    FMLLog.getLogger()
-                        .warn(
-                            "[GuideNH] [FileTreeCompiler] File tree iconPng has invalid id '{}': {}",
-                            value,
-                            e.getMessage());
+                    GuideDebugLog.warnAlways(
+                        "[GuideNH] [FileTreeCompiler] File tree iconPng has invalid id '{}': {}",
+                        value,
+                        e.getMessage());
                     image.setTitle("Invalid image: " + value);
                 }
                 return image;
@@ -82,8 +79,8 @@ public class FileTreeCompiler {
                     compiler.getPageId()
                         .getResourceDomain());
                 if (stack == null) {
-                    FMLLog.getLogger()
-                        .warn("[GuideNH] [FileTreeCompiler] File tree iconItem could not be resolved: {}", value);
+                    GuideDebugLog
+                        .warnAlways("[GuideNH] [FileTreeCompiler] File tree iconItem could not be resolved: {}", value);
                     LytParagraph fallback = new LytParagraph();
                     fallback.setMarginTop(0);
                     fallback.setMarginBottom(0);

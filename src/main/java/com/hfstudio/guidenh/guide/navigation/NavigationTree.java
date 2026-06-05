@@ -21,8 +21,8 @@ import com.hfstudio.guidenh.guide.compiler.FrontmatterNavigation;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.util.NavigationUtil;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
-import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.Loader;
 
 public class NavigationTree {
@@ -267,10 +267,9 @@ public class NavigationTree {
         }
 
         if (!parents.add(pageId)) {
-            FMLLog.getLogger()
-                .error(
-                    "[GuideNH] [NavigationTree] Detected a cycle in the navigation tree parent-child relationship for page {}",
-                    pageId);
+            GuideDebugLog.error(
+                "[GuideNH] [NavigationTree] Detected a cycle in the navigation tree parent-child relationship for page {}",
+                pageId);
             return null;
         }
 
@@ -279,7 +278,7 @@ public class NavigationTree {
 
         if (page == null) {
             // These children had a parent that doesn't exist
-            FMLLog.getLogger()
+            GuideDebugLog
                 .error("[GuideNH] [NavigationTree] Pages {} had unknown navigation parent {}", children, pageId);
             return null;
         }
@@ -344,17 +343,16 @@ public class NavigationTree {
         }
 
         if (!parents.add(pageId)) {
-            FMLLog.getLogger()
-                .error(
-                    "[GuideNH] [NavigationTree] Detected a cycle in the merged navigation tree parent-child relationship for page {}",
-                    pageId);
+            GuideDebugLog.error(
+                "[GuideNH] [NavigationTree] Detected a cycle in the merged navigation tree parent-child relationship for page {}",
+                pageId);
             return null;
         }
 
         var page = entry.getKey();
         var children = entry.getRight();
         if (page == null) {
-            FMLLog.getLogger()
+            GuideDebugLog
                 .error("[GuideNH] [NavigationTree] Pages {} had unknown merged navigation parent {}", children, pageId);
             return null;
         }

@@ -24,8 +24,7 @@ import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
 import com.hfstudio.guidenh.guide.scene.element.BlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class BlockImageScript implements LytScript {
 
@@ -90,8 +89,7 @@ public class BlockImageScript implements LytScript {
                     tileTag = explicitTag;
                 }
             } catch (Exception e) {
-                FMLLog.getLogger()
-                    .warn("[BlockImageScript] Failed to parse NBT for block image", e);
+                GuideDebugLog.error("[GuideNH] [BlockImageScript] Failed to parse NBT for block image", e);
             }
         }
 

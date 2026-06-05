@@ -17,8 +17,7 @@ import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 /**
  * An index of Forge ore-dictionary names to the main guidebook page describing them.
@@ -116,8 +115,8 @@ public class OreIndex extends UniqueIndex<String, PageAnchor> {
         }
 
         if (!(oreIdsNode instanceof List<?>oreIdList)) {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [OreIndex] Page {} contains malformed ore_ids frontmatter", page.getId());
+            GuideDebugLog
+                .warnAlways("[GuideNH] [OreIndex] Page {} contains malformed ore_ids frontmatter", page.getId());
             return List.of();
         }
 
@@ -127,17 +126,17 @@ public class OreIndex extends UniqueIndex<String, PageAnchor> {
             if (listEntry instanceof String oreName) {
                 String trimmed = oreName.trim();
                 if (trimmed.isEmpty()) {
-                    FMLLog.getLogger()
-                        .warn("[GuideNH] [OreIndex] Page {} contains an empty ore_ids frontmatter entry", page.getId());
+                    GuideDebugLog.warnAlways(
+                        "[GuideNH] [OreIndex] Page {} contains an empty ore_ids frontmatter entry",
+                        page.getId());
                     continue;
                 }
                 oreAnchors.add(Pair.of(trimmed, new PageAnchor(page.getId(), null)));
             } else {
-                FMLLog.getLogger()
-                    .warn(
-                        "[GuideNH] [OreIndex] Page {} contains a malformed ore_ids frontmatter entry: {}",
-                        page.getId(),
-                        listEntry);
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [OreIndex] Page {} contains a malformed ore_ids frontmatter entry: {}",
+                    page.getId(),
+                    listEntry);
             }
         }
 

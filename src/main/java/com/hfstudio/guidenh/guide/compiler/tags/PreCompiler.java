@@ -21,10 +21,9 @@ import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguage;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguageDetector;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeCompiler;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class PreCompiler extends BlockTagCompiler {
 
@@ -190,15 +189,14 @@ public class PreCompiler extends BlockTagCompiler {
         try {
             String normalized = MermaidMindmapParser.normalize(source);
             LytMermaidMindmap block = new LytMermaidMindmap(MermaidMindmapParser.parse(normalized), normalized);
-            FMLLog.getLogger()
-                .info("[GuideNH] [PreCompiler] Compiled fenced Mermaid runtime block ({} chars)", normalized.length());
+            GuideDebugLog
+                .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid runtime block ({} chars)", normalized.length());
             return block;
         } catch (IllegalArgumentException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [PreCompiler] Failed to compile fenced Mermaid runtime block from source: {}",
-                    source,
-                    e);
+            GuideDebugLog.error(
+                "[GuideNH] [PreCompiler] Failed to parse fenced Mermaid runtime block from source: {}",
+                source,
+                e);
             return null;
         }
     }

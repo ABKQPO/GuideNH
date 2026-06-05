@@ -23,7 +23,8 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+
 import guideme.flatbuffers.scene.ExpDepthTest;
 import guideme.flatbuffers.scene.ExpIndexElementType;
 import guideme.flatbuffers.scene.ExpPrimitiveType;
@@ -110,10 +111,9 @@ public class GuideSiteSceneTessellatorCapture {
     public void startDrawing(int drawMode) {
         if (drawing) {
             // A previous batch was not properly closed, so drop it before recording a new one.
-            FMLLog.getLogger()
-                .warn(
-                    "Scene capture startDrawing called while already drawing (mode={}); discarding previous unclosed batch",
-                    drawMode);
+            GuideDebugLog.warnAlways(
+                "Scene capture startDrawing called while already drawing (mode={}); discarding previous unclosed batch",
+                drawMode);
             drawing = false;
             currentVertices.clear();
         }
@@ -150,8 +150,7 @@ public class GuideSiteSceneTessellatorCapture {
                 captureCurrentMesh();
             }
         } catch (Throwable e) {
-            FMLLog.getLogger()
-                .warn("Scene capture mesh export failed ({} vertices)", vertexCount, e);
+            GuideDebugLog.warnAlways("Scene capture mesh export failed ({} vertices)", vertexCount, e);
         } finally {
             currentVertices.clear();
         }
@@ -335,12 +334,11 @@ public class GuideSiteSceneTessellatorCapture {
             int level0Width = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
             int level0Height = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
             if (level0Width <= 0 || level0Height <= 0) {
-                FMLLog.getLogger()
-                    .warn(
-                        "exportCurrentTexture: bound texture id={} has invalid level-0 dimensions {}x{}; skipping",
-                        textureId,
-                        level0Width,
-                        level0Height);
+                GuideDebugLog.warnAlways(
+                    "exportCurrentTexture: bound texture id={} has invalid level-0 dimensions {}x{}; skipping",
+                    textureId,
+                    level0Width,
+                    level0Height);
                 return null;
             }
 
@@ -361,22 +359,20 @@ public class GuideSiteSceneTessellatorCapture {
                     exportHeight = lh;
                     if (lw <= MAX_EXPORT_TEXTURE_SIZE && lh <= MAX_EXPORT_TEXTURE_SIZE) break;
                 }
-                FMLLog.getLogger()
-                    .debug(
-                        "exportCurrentTexture: texture id={} is {}x{} - using mip level {} ({}x{}) for site export",
-                        textureId,
-                        level0Width,
-                        level0Height,
-                        exportMipLevel,
-                        exportWidth,
-                        exportHeight);
+                GuideDebugLog.debugAlways(
+                    "exportCurrentTexture: texture id={} is {}x{} - using mip level {} ({}x{}) for site export",
+                    textureId,
+                    level0Width,
+                    level0Height,
+                    exportMipLevel,
+                    exportWidth,
+                    exportHeight);
             } else {
-                FMLLog.getLogger()
-                    .debug(
-                        "exportCurrentTexture: exporting texture id={} ({}x{})",
-                        textureId,
-                        exportWidth,
-                        exportHeight);
+                GuideDebugLog.debugAlways(
+                    "exportCurrentTexture: exporting texture id={} ({}x{})",
+                    textureId,
+                    exportWidth,
+                    exportHeight);
             }
 
             ByteBuffer pixels = BufferUtils.createByteBuffer(exportWidth * exportHeight * 4);

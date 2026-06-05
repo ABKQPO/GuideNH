@@ -15,8 +15,7 @@ import com.github.bsideup.jabel.Desugar;
 import com.google.gson.stream.JsonWriter;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 /**
  * Maintains an index for any given page using a mapping function for keys and values of the index.
@@ -100,15 +99,14 @@ public class UniqueIndex<K, V> implements PageIndex {
             var value = entry.getValue();
             var previousPage = index.putIfAbsent(key, new Record<>(page.getId(), value));
             if (previousPage != null) {
-                FMLLog.getLogger()
-                    .warn(
-                        "[GuideNH] [UniqueIndex] Key conflict in index {}: {} is used by pages {} and {}; keeping {} and ignoring {}",
-                        name,
-                        key,
-                        previousPage.pageId,
-                        page,
-                        previousPage.pageId,
-                        page.getId());
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [UniqueIndex] Key conflict in index {}: {} is used by pages {} and {}; keeping {} and ignoring {}",
+                    name,
+                    key,
+                    previousPage.pageId,
+                    page,
+                    previousPage.pageId,
+                    page.getId());
                 hadDuplicates = true;
             }
         }

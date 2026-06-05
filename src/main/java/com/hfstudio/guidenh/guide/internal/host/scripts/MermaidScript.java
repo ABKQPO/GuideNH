@@ -14,8 +14,7 @@ import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class MermaidScript implements LytScript {
 
@@ -75,18 +74,17 @@ public class MermaidScript implements LytScript {
             }
             // Dispatch MOUNT events into NodeContent subtrees (Recipe/BlockImage placeholders)
             if (ph.nodeContentBlocks != null) {
-                FMLLog.getLogger()
-                    .info("[MermaidDebug] Dispatching into {} NodeContent blocks", ph.nodeContentBlocks.size());
+                GuideDebugLog
+                    .debug("[MermaidDebug] Dispatching into {} NodeContent blocks", ph.nodeContentBlocks.size());
                 for (var entry : ph.nodeContentBlocks.entrySet()) {
                     var contentBlock = entry.getValue();
-                    FMLLog.getLogger()
-                        .info(
-                            "[MermaidDebug] NodeContent '{}' block type={} children={}",
-                            entry.getKey(),
-                            contentBlock.getClass()
-                                .getSimpleName(),
-                            contentBlock instanceof LytNode n ? n.getChildren()
-                                .size() : -1);
+                    GuideDebugLog.debug(
+                        "[MermaidDebug] NodeContent '{}' block type={} children={}",
+                        entry.getKey(),
+                        contentBlock.getClass()
+                            .getSimpleName(),
+                        contentBlock instanceof LytNode n ? n.getChildren()
+                            .size() : -1);
                     if (contentBlock instanceof LytNode root) {
                         ctx.dispatchSubtree(root);
                     }
@@ -94,8 +92,7 @@ public class MermaidScript implements LytScript {
             }
             ctx.replace(block);
         } catch (IllegalArgumentException e) {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [MermaidScript] Failed to parse Mermaid source: {}", sourceText, e);
+            GuideDebugLog.error("[GuideNH] [MermaidScript] Failed to parse Mermaid source: {}", sourceText, e);
             replaceWithError(ctx, "Failed to parse: " + e.getMessage());
         }
     }

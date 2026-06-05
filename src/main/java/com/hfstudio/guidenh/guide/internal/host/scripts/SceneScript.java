@@ -37,12 +37,11 @@ import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompile
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class SceneScript implements LytScript {
 
@@ -115,8 +114,7 @@ public class SceneScript implements LytScript {
                 MdAstToMdxConverter.convert(ast, Collections.emptyMap());
             }
         } catch (Exception e) {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [SceneScript] Failed to re-parse scene children", e);
+            GuideDebugLog.error("[GuideNH] [SceneScript] Failed to parse scene children", e);
             ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
             return;
         }
@@ -301,8 +299,7 @@ public class SceneScript implements LytScript {
 
         @Override
         public void appendError(PageCompiler compiler, String text, UnistNode node) {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [SceneScript] {}", text);
+            GuideDebugLog.warnAlways("[GuideNH] [SceneScript] {}", text);
         }
     }
 

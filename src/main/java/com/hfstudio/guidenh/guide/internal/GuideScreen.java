@@ -135,13 +135,13 @@ import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
-import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.Loader;
 
 public class GuideScreen extends GuiContainer
@@ -566,7 +566,7 @@ public class GuideScreen extends GuiContainer
     private static GuideScreenRoute contentRoute(ResourceLocation guideId, @Nullable PageAnchor anchor) {
         MutableGuide guide = GuideRegistry.getById(guideId);
         if (guide == null) {
-            FMLLog.warning("GuideScreen.open: no guide registered with id {}", guideId);
+            GuideDebugLog.warnAlways("GuideScreen.open: no guide registered with id {}", guideId);
             return null;
         }
         if (anchor == null) {
@@ -1130,7 +1130,8 @@ public class GuideScreen extends GuiContainer
         Path sourceRoot = guideEditorFileStore
             .findWritablePageResourcePackRoot(activeGuide, currentParsedPage.getId(), language);
         if (sourceRoot == null) {
-            FMLLog.warning("Failed to create guide editor page because current page has no writable resource pack");
+            GuideDebugLog
+                .warnAlways("Failed to create guide editor page because current page has no writable resource pack");
             return;
         }
 
@@ -1147,7 +1148,7 @@ public class GuideScreen extends GuiContainer
             refreshGuideEditorDraft(true);
             rebuildToolbar();
         } catch (Throwable t) {
-            FMLLog.warning("Failed to create guide editor page from path {}", requestedPath, t);
+            GuideDebugLog.warnAlways("Failed to create guide editor page from path {}", requestedPath, t);
         }
     }
 
@@ -1439,7 +1440,7 @@ public class GuideScreen extends GuiContainer
             }
             cachedGuideEditorPreviewInteractionState = null;
         } catch (Throwable t) {
-            FMLLog.warning("Failed to compile guide editor preview for {}", currentAnchor.pageId(), t);
+            GuideDebugLog.warnAlways("Failed to compile guide editor preview for {}", currentAnchor.pageId(), t);
         }
     }
 
@@ -1570,19 +1571,18 @@ public class GuideScreen extends GuiContainer
             }
             updateToolbarButtonState();
             if (ModConfig.debug.enableDebugMode) {
-                FMLLog.getLogger()
-                    .info(
-                        "[GuideNH] [GuideScreen] Saved guide editor draft for {} in {} ms (write: {} ms, parse: {} ms, stage: {} ms, reusedParsed={})",
-                        currentAnchor.pageId(),
-                        (System.nanoTime() - startedAt) / 1_000_000L,
-                        saveFileNs / 1_000_000L,
-                        parseNs / 1_000_000L,
-                        stagePageApplyNs / 1_000_000L,
-                        reusedGuideEditorParsedDraft(sourcePack, language));
+                GuideDebugLog.infoAlways(
+                    "[GuideNH] [GuideScreen] Saved guide editor draft for {} in {} ms (write: {} ms, parse: {} ms, stage: {} ms, reusedParsed={})",
+                    currentAnchor.pageId(),
+                    (System.nanoTime() - startedAt) / 1_000_000L,
+                    saveFileNs / 1_000_000L,
+                    parseNs / 1_000_000L,
+                    stagePageApplyNs / 1_000_000L,
+                    reusedGuideEditorParsedDraft(sourcePack, language));
             }
             return true;
         } catch (Throwable t) {
-            FMLLog.warning("Failed to autosave guide editor page {}", currentAnchor.pageId(), t);
+            GuideDebugLog.warnAlways("Failed to autosave guide editor page {}", currentAnchor.pageId(), t);
             return false;
         }
     }
@@ -1691,7 +1691,7 @@ public class GuideScreen extends GuiContainer
                 scheduleGuideEditorNavigationRefresh();
             }
         } catch (Throwable t) {
-            FMLLog.warning("Failed to refresh guide editor draft state for {}", currentAnchor.pageId(), t);
+            GuideDebugLog.warnAlways("Failed to refresh guide editor draft state for {}", currentAnchor.pageId(), t);
         }
     }
 
@@ -1792,7 +1792,7 @@ public class GuideScreen extends GuiContainer
             GuideME.getSearch()
                 .index(guide);
         } catch (Throwable t) {
-            FMLLog.warning("Guide editor navigation refresh failed", t);
+            GuideDebugLog.warnAlways("Guide editor navigation refresh failed", t);
         }
     }
 
@@ -2349,7 +2349,7 @@ public class GuideScreen extends GuiContainer
             try {
                 loadedPage = guide.getPage(currentAnchor.pageId());
             } catch (Throwable t) {
-                FMLLog.severe("Failed to compile guide page {}", currentAnchor.pageId(), t);
+                GuideDebugLog.error("Failed to compile guide page {}", currentAnchor.pageId(), t);
                 loadedPage = null;
             }
             if (loadedPage != null) {
@@ -2398,8 +2398,10 @@ public class GuideScreen extends GuiContainer
             }
         }
         if (found > 0) {
-            FMLLog.getLogger()
-                .info("[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}", found, list.size());
+            GuideDebugLog.infoAlways(
+                "[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}",
+                found,
+                list.size());
         }
     }
 
@@ -2725,12 +2727,12 @@ public class GuideScreen extends GuiContainer
 
         try (InputStream inputStream = GuideScreen.class.getResourceAsStream(HOME_LOGO_RESOURCE_PATH)) {
             if (inputStream == null) {
-                FMLLog.warning("GuideScreen home logo resource not found at {}", HOME_LOGO_RESOURCE_PATH);
+                GuideDebugLog.warnAlways("GuideScreen home logo resource not found at {}", HOME_LOGO_RESOURCE_PATH);
                 return null;
             }
             BufferedImage image = ImageIO.read(inputStream);
             if (image == null) {
-                FMLLog.warning("GuideScreen home logo failed to decode at {}", HOME_LOGO_RESOURCE_PATH);
+                GuideDebugLog.warnAlways("GuideScreen home logo failed to decode at {}", HOME_LOGO_RESOURCE_PATH);
                 return null;
             }
             homeLogoWidth = image.getWidth();
@@ -2740,7 +2742,7 @@ public class GuideScreen extends GuiContainer
                 .getDynamicTextureLocation(HOME_LOGO_SOURCE.getResourcePath(), new DynamicTexture(image));
             return homeLogoTexture;
         } catch (Exception e) {
-            FMLLog.warning("GuideScreen failed to load home logo from {}", HOME_LOGO_RESOURCE_PATH, e);
+            GuideDebugLog.warnAlways("GuideScreen failed to load home logo from {}", HOME_LOGO_RESOURCE_PATH, e);
             return null;
         }
     }
@@ -2952,7 +2954,7 @@ public class GuideScreen extends GuiContainer
         try {
             previewDocument.render(reusableRenderCtx);
         } catch (Throwable t) {
-            FMLLog.warning("Failed to render guide editor preview", t);
+            GuideDebugLog.warnAlways("Failed to render guide editor preview", t);
         } finally {
             GL11.glPopMatrix();
             reusableRenderCtx.restoreExternalRenderState();
@@ -4058,7 +4060,7 @@ public class GuideScreen extends GuiContainer
             ct.getContent()
                 .render(ctx);
         } catch (Throwable t) {
-            FMLLog.warning("Error rendering ContentTooltip", t);
+            GuideDebugLog.warnAlways("Error rendering ContentTooltip", t);
         } finally {
             GL11.glPopMatrix();
             ctx.restoreExternalRenderState();
@@ -4272,7 +4274,7 @@ public class GuideScreen extends GuiContainer
         try {
             activeDocument.render(ctx);
         } catch (Throwable t) {
-            FMLLog.severe("Error rendering guide document {}", currentAnchor.pageId(), t);
+            GuideDebugLog.error("Error rendering guide document {}", currentAnchor.pageId(), t);
         } finally {
             GL11.glPopMatrix();
             ctx.restoreExternalRenderState();
@@ -4440,8 +4442,7 @@ public class GuideScreen extends GuiContainer
     private void drawTiledBackground() {
         drawRect(0, 0, this.width, this.height, BACKGROUND_DIM_COLOR);
         if (mc == null || mc.getTextureManager() == null) {
-            FMLLog.getLogger()
-                .warn("[GuideNH] drawTiledBackground: mc or textureManager is null, skipping");
+            GuideDebugLog.warnAlways("[GuideNH] drawTiledBackground: mc or textureManager is null, skipping");
             return;
         }
         mc.getTextureManager()
@@ -5283,7 +5284,7 @@ public class GuideScreen extends GuiContainer
                 return;
             }
         } catch (Exception e) {
-            FMLLog.warning("Failed to open guide directory {}", directory, e);
+            GuideDebugLog.warnAlways("Failed to open guide directory {}", directory, e);
         }
         tryOpenDirectoryWithCommand(directory);
     }
@@ -5320,7 +5321,7 @@ public class GuideScreen extends GuiContainer
                 new ProcessBuilder(command).start();
                 return;
             } catch (Exception e) {
-                FMLLog.warning("Failed to reveal guide file {}", fileTarget, e);
+                GuideDebugLog.warnAlways("Failed to reveal guide file {}", fileTarget, e);
             }
         }
         Path parent = fileTarget.getParent();
@@ -5335,7 +5336,7 @@ public class GuideScreen extends GuiContainer
                     .open(fileTarget.toFile());
             }
         } catch (Exception e) {
-            FMLLog.warning("Failed to open guide file {}", fileTarget, e);
+            GuideDebugLog.warnAlways("Failed to open guide file {}", fileTarget, e);
         }
     }
 
@@ -5364,7 +5365,7 @@ public class GuideScreen extends GuiContainer
         try {
             new ProcessBuilder(command).start();
         } catch (Exception e) {
-            FMLLog.warning("Failed to open guide directory {}", directory, e);
+            GuideDebugLog.warnAlways("Failed to open guide directory {}", directory, e);
         }
     }
 
@@ -5983,7 +5984,7 @@ public class GuideScreen extends GuiContainer
             codeBlockClipboardService.copy(text);
             return true;
         } catch (Exception e) {
-            FMLLog.severe("Failed to copy code block", e);
+            GuideDebugLog.error("Failed to copy code block", e);
             return false;
         }
     }
@@ -5998,7 +5999,7 @@ public class GuideScreen extends GuiContainer
             Desktop.getDesktop()
                 .browse(uri);
         } catch (Exception e) {
-            FMLLog.warning("Failed to open external guide link {}", uri, e);
+            GuideDebugLog.warnAlways("Failed to open external guide link {}", uri, e);
         }
     }
 
@@ -6391,7 +6392,7 @@ public class GuideScreen extends GuiContainer
                         clipSnippetForWidth(result.text(), getSearchSnippetLineWidth(textColumnWidth))));
             }
         } catch (Throwable t) {
-            FMLLog.warning("Search failed", t);
+            GuideDebugLog.warnAlways("Search failed", t);
         }
 
         return GuideSearchResultDocumentBuilder

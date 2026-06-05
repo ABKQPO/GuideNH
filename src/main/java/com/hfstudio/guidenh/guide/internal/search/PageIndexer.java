@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
@@ -21,8 +22,6 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class PageIndexer implements IndexingContext {
 
@@ -65,8 +64,9 @@ public class PageIndexer implements IndexingContext {
         } else if (content instanceof MdxJsxElementFields el) {
             var compiler = tagCompilers.get(el.name());
             if (compiler == null) {
-                FMLLog.getLogger()
-                    .warn("[GuideNH] [PageIndexer] Unhandled MDX element in guide search indexing: {}", el.name());
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [PageIndexer] Unhandled MDX element in guide search indexing: {}",
+                    el.name());
                 // Fallback: index children content
                 indexContent(el.children(), sink);
             } else {
@@ -75,10 +75,9 @@ public class PageIndexer implements IndexingContext {
         } else if (content instanceof MdAstDefinition || content instanceof MdAstYamlFrontmatter) {
             // Handled via conversion
         } else {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [PageIndexer] Unhandled node type in guide search indexing: {}",
-                    ((UnistNode) content).type());
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [PageIndexer] Unhandled node type in guide search indexing: {}",
+                ((UnistNode) content).type());
         }
     }
 

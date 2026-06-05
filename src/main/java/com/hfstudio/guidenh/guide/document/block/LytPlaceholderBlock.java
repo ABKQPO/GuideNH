@@ -8,8 +8,7 @@ import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 /**
  * This layout block shows a loading indicator and will ultimately replace itself with the final content.
@@ -45,8 +44,7 @@ public class LytPlaceholderBlock extends LytBlock {
 
     private void onLoad(LytBlock element, Throwable error) {
         if (error != null || element == null) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [LytPlaceholderBlock] Failed to load an asynchronous guide element.", error);
+            GuideDebugLog.error("[GuideNH] [LytPlaceholderBlock] Failed to load an asynchronous guide element.", error);
             var errorParagraph = new LytParagraph();
             errorParagraph.setStyle(DefaultStyles.ERROR_TEXT);
             if (error == null) {

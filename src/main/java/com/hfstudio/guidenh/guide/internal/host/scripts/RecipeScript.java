@@ -28,12 +28,11 @@ import com.hfstudio.guidenh.guide.internal.host.ScriptType;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.RecipeEntry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class RecipeScript implements LytScript {
 
@@ -155,11 +154,9 @@ public class RecipeScript implements LytScript {
                     handlerPart = " with handler " + (ph.handlerName != null ? ph.handlerName : ph.handlerId);
                 }
                 showFallback(ctx, ph, "No recipe found for " + ph.idStr + handlerPart);
-            } else if (FMLLog.getLogger()
-                .isDebugEnabled()) {
-                    FMLLog.getLogger()
-                        .debug("Recipe handler filter eliminated all candidates for {}", ph.idStr);
-                }
+            } else if (GuideDebugLog.isDebugEnabled()) {
+                GuideDebugLog.debugAlways("Recipe handler filter eliminated all candidates for {}", ph.idStr);
+            }
             return;
         }
 

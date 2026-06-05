@@ -21,14 +21,13 @@ import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureFingerprintResolver;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistParent;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class SceneTagCompiler extends BlockTagCompiler {
 
@@ -135,8 +134,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
                 preParsedAst = MdAst.fromMarkdown(childrenSource, GuideMarkdownOptions.runtime());
                 MdAstToMdxConverter.convert(preParsedAst, Collections.emptyMap());
             } catch (RuntimeException e) {
-                FMLLog.getLogger()
-                    .warn("[GuideNH] [SceneTagCompiler] Failed to pre-parse scene children", e);
+                GuideDebugLog
+                    .error("[GuideNH] [SceneTagCompiler] Failed to parse scene children during pre-processing", e);
             }
         }
 

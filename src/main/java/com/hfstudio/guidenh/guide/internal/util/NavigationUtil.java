@@ -16,8 +16,7 @@ import com.hfstudio.guidenh.guide.compiler.NavigationIconEntry;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.compiler.YamlNbtConverter;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class NavigationUtil {
 
@@ -108,7 +107,7 @@ public class NavigationUtil {
         @Nullable java.util.Map<?, ?> nbt) {
         var item = (Item) Item.itemRegistry.getObject(itemId);
         if (item == null) {
-            FMLLog.getLogger()
+            GuideDebugLog
                 .error("[GuideNH] [NavigationUtil] Couldn't find icon item {} for page {}", itemId, page.getId());
             return null;
         }
@@ -124,13 +123,13 @@ public class NavigationUtil {
     private static GuidePageTexture loadTexture(ParsedGuidePage page, PageCollection pages, ResourceLocation iconId) {
         var data = pages.loadAsset(iconId);
         if (data == null || data.length == 0) {
-            FMLLog.getLogger()
+            GuideDebugLog
                 .error("[GuideNH] [NavigationUtil] Couldn't find icon texture {} for page {}", iconId, page.getId());
             return null;
         }
         var texture = GuidePageTexture.load(iconId, data);
         if (texture.isMissing()) {
-            FMLLog.getLogger()
+            GuideDebugLog
                 .error("[GuideNH] [NavigationUtil] Couldn't decode icon texture {} for page {}", iconId, page.getId());
             return null;
         }

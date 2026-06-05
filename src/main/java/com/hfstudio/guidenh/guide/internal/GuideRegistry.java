@@ -15,8 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 /**
  * Internal registry for Guides.
@@ -104,11 +103,10 @@ public class GuideRegistry {
         dataDrivenGuides.clear();
         dataDrivenGuides.putAll(guides);
         if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideRegistry] Replaced {} data-driven guides with {} freshly loaded guides",
-                    previousCount,
-                    dataDrivenGuides.size());
+            GuideDebugLog.infoAlways(
+                "[GuideNH] [GuideRegistry] Replaced {} data-driven guides with {} freshly loaded guides",
+                previousCount,
+                dataDrivenGuides.size());
         }
 
         rebuildGuides();
@@ -149,10 +147,9 @@ public class GuideRegistry {
         if (!overridden.isEmpty()) {
             overridden.sort(Comparator.comparing(ResourceLocation::toString));
             if (ModConfig.debug.enableDebugMode) {
-                FMLLog.getLogger()
-                    .info(
-                        "[GuideNH] [GuideRegistry] The following guides are overridden in resource packs: {}",
-                        overridden);
+                GuideDebugLog.infoAlways(
+                    "[GuideNH] [GuideRegistry] The following guides are overridden in resource packs: {}",
+                    overridden);
             }
         }
 

@@ -18,8 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class IdUtils {
 
@@ -107,12 +106,11 @@ public class IdUtils {
                     nbt = tc;
                 }
             } catch (Throwable t) {
-                FMLLog.getLogger()
-                    .warn(
-                        "[GuideNH] [IdUtils] Failed to parse SNBT tail '{}' for id '{}'; ignoring NBT",
-                        snbt,
-                        idText,
-                        t);
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [IdUtils] Failed to parse SNBT tail '{}' for id '{}'; ignoring NBT",
+                    snbt,
+                    idText,
+                    t);
             }
         } else {
             head = idText;

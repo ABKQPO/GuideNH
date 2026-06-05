@@ -22,11 +22,11 @@ import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePacks;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.mixins.early.fml.AccessorFMLClientHandler;
 import com.hfstudio.guidenh.mixins.early.minecraft.AccessorAbstractResourcePack;
 
 import cpw.mods.fml.client.FMLClientHandler;
-import cpw.mods.fml.common.FMLLog;
 
 public class DataDrivenGuideLoader {
 
@@ -62,16 +62,15 @@ public class DataDrivenGuideLoader {
         int discoveredLanguageCount = countDiscoveredLanguages(discoveredLanguages);
         long totalNs = System.nanoTime() - startedAt;
         if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [DataDrivenGuideLoader] Loaded {} guides across {} languages from {} resource packs in {} ns (resourcePackResolveNs={}, scanNs={}, buildNs={})",
-                    guides.size(),
-                    discoveredLanguageCount,
-                    activeResourcePacks.size(),
-                    totalNs,
-                    resourcePackResolveNs,
-                    scanNs,
-                    buildNs);
+            GuideDebugLog.infoAlways(
+                "[GuideNH] [DataDrivenGuideLoader] Loaded {} guides across {} languages from {} resource packs in {} ns (resourcePackResolveNs={}, scanNs={}, buildNs={})",
+                guides.size(),
+                discoveredLanguageCount,
+                activeResourcePacks.size(),
+                totalNs,
+                resourcePackResolveNs,
+                scanNs,
+                buildNs);
         }
         return guides;
     }
@@ -87,14 +86,13 @@ public class DataDrivenGuideLoader {
 
         long totalNs = System.nanoTime() - startedAt;
         if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [DataDrivenGuideLoader] Discovered {} page paths across {} namespaces for folder {} from {} resource packs in {} ns",
-                    countDiscoveredPagePaths(pagePaths),
-                    pagePaths.size(),
-                    folder,
-                    activeResourcePacks.size(),
-                    totalNs);
+            GuideDebugLog.infoAlways(
+                "[GuideNH] [DataDrivenGuideLoader] Discovered {} page paths across {} namespaces for folder {} from {} resource packs in {} ns",
+                countDiscoveredPagePaths(pagePaths),
+                pagePaths.size(),
+                folder,
+                activeResourcePacks.size(),
+                totalNs);
         }
         return pagePaths;
     }
@@ -204,11 +202,10 @@ public class DataDrivenGuideLoader {
                 }
             }
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide pages from resource pack {}",
-                    resourcePackFile.getAbsolutePath(),
-                    e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide pages from resource pack {}",
+                resourcePackFile.getAbsolutePath(),
+                e);
         }
     }
 
@@ -248,10 +245,9 @@ public class DataDrivenGuideLoader {
                 resourcePacks.addAll(basePacks);
             }
         } catch (RuntimeException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [DataDrivenGuideLoader] Failed to inspect the currently loaded base resource packs",
-                    e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [DataDrivenGuideLoader] Failed to inspect the currently loaded base resource packs",
+                e);
         }
 
         var repository = Minecraft.getMinecraft()
@@ -311,11 +307,10 @@ public class DataDrivenGuideLoader {
         try {
             return ((AccessorAbstractResourcePack) resourcePack).guidenh$getResourcePackFile();
         } catch (RuntimeException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [DataDrivenGuideLoader] Failed to resolve the backing file for resource pack {}",
-                    resourcePack.getPackName(),
-                    e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [DataDrivenGuideLoader] Failed to resolve the backing file for resource pack {}",
+                resourcePack.getPackName(),
+                e);
             return null;
         }
     }
@@ -327,12 +322,11 @@ public class DataDrivenGuideLoader {
         try (var input = resourcePack.getInputStream(resourceLocation)) {
             return GuideResourceAccess.readFully(input);
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [DataDrivenGuideLoader] Failed to read resource {} from resource pack {}",
-                    resourceLocation,
-                    resourcePack.getPackName(),
-                    e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [DataDrivenGuideLoader] Failed to read resource {} from resource pack {}",
+                resourceLocation,
+                resourcePack.getPackName(),
+                e);
             return null;
         }
     }
@@ -430,11 +424,10 @@ public class DataDrivenGuideLoader {
                     .add(toLanguageCode(languageFolder));
             }
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide languages from resource pack {}",
-                    resourcePackFile.getAbsolutePath(),
-                    e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide languages from resource pack {}",
+                resourcePackFile.getAbsolutePath(),
+                e);
         }
     }
 
@@ -484,11 +477,10 @@ public class DataDrivenGuideLoader {
                 }
             }
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide pages from resource pack {}",
-                    resourcePackFile.getAbsolutePath(),
-                    e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide pages from resource pack {}",
+                resourcePackFile.getAbsolutePath(),
+                e);
         }
     }
 

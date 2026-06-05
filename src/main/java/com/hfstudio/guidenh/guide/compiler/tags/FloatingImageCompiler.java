@@ -20,11 +20,10 @@ import com.hfstudio.guidenh.guide.document.flow.InlineBlockAlignment;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class FloatingImageCompiler extends FlowTagCompiler {
 
@@ -68,8 +67,7 @@ public class FloatingImageCompiler extends FlowTagCompiler {
             var imageId = IdUtils.resolveLink(src, compiler.getPageId());
             resolvedSrc = imageId.toString();
         } catch (IllegalArgumentException e) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [FloatingImageCompiler] Invalid image id: {}", src);
+            GuideDebugLog.error("[GuideNH] [FloatingImageCompiler] Invalid image id: {}", src);
             if (block.getTitle() == null) {
                 block.setTitle("Invalid image URL: " + src);
             }

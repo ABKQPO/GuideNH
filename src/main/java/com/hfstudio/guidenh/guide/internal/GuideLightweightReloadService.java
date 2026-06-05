@@ -15,7 +15,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.ClientProxy;
-import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
@@ -30,10 +29,9 @@ import com.hfstudio.guidenh.guide.latex.GuideLatexTextureCache;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiTranslationStats;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCache;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibElementTooltipResolver;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class GuideLightweightReloadService {
 
@@ -48,10 +46,7 @@ public class GuideLightweightReloadService {
     }
 
     public static void reloadGuides(IResourceManager resourceManager) {
-        if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info("[GuideNH] [GuideLightweightReloadService] Reloading guide data...");
-        }
+        GuideDebugLog.info("[GuideNH] [GuideLightweightReloadService] Reloading guide data...");
         long startedAt = System.nanoTime();
         var activeResourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
         RecipeCache.clear();
@@ -106,8 +101,8 @@ public class GuideLightweightReloadService {
             GuideME.getSearch()
                 .indexAll();
         } catch (Throwable t) {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [GuideLightweightReloadService] Failed to reindex search after reload", t);
+            GuideDebugLog
+                .warnAlways("[GuideNH] [GuideLightweightReloadService] Failed to reindex search after reload", t);
         }
         long searchIndexNs = System.nanoTime() - stageStartedAt;
 
@@ -115,17 +110,16 @@ public class GuideLightweightReloadService {
         int loadedLanguageCount = countLoadedLanguages(guidePages);
         long totalNs = System.nanoTime() - startedAt;
 
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [GuideLightweightReloadService] Guide reload complete, loaded {} guides, {} pages, {} languages in {} ns (dataDrivenLoadNs={}, pageLoadNs={}, registryUpdateNs={}, searchIndexNs={})",
-                guidePages.size(),
-                loadedPageCount,
-                loadedLanguageCount,
-                totalNs,
-                dataDrivenLoadNs,
-                pageLoadNs,
-                registryUpdateNs,
-                searchIndexNs);
+        GuideDebugLog.info(
+            "[GuideNH] [GuideLightweightReloadService] Guide reload complete, loaded {} guides, {} pages, {} languages in {} ns (dataDrivenLoadNs={}, pageLoadNs={}, registryUpdateNs={}, searchIndexNs={})",
+            guidePages.size(),
+            loadedPageCount,
+            loadedLanguageCount,
+            totalNs,
+            dataDrivenLoadNs,
+            pageLoadNs,
+            registryUpdateNs,
+            searchIndexNs);
     }
 
     /**
@@ -173,8 +167,8 @@ public class GuideLightweightReloadService {
             ParsedGuidePage parsed = loadResult != null ? loadResult.page() : null;
             if (parsed == null) {
                 failedLoads++;
-                FMLLog.getLogger()
-                    .warn("[GuideNH] [GuideLightweightReloadService] Failed to load guide page {}", pageId);
+                GuideDebugLog
+                    .warnAlways("[GuideNH] [GuideLightweightReloadService] Failed to load guide page {}", pageId);
                 continue;
             }
             switch (loadResult.kind()) {
@@ -194,22 +188,19 @@ public class GuideLightweightReloadService {
         }
 
         long totalNs = System.nanoTime() - startedAt;
-        if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideLightweightReloadService] Loaded {} pages for guide {} folder {} requestedLanguage={} defaultLanguage={} discoveredPaths={} localizedHits={} defaultLanguageHits={} rawSourceHits={} failedLoads={} durationNs={}",
-                    pages.size(),
-                    guideId,
-                    folder,
-                    lang,
-                    defaultLanguage,
-                    pagePaths.size(),
-                    localizedHits,
-                    defaultLanguageHits,
-                    rawSourceHits,
-                    failedLoads,
-                    totalNs);
-        }
+        GuideDebugLog.info(
+            "[GuideNH] [GuideLightweightReloadService] Loaded {} pages for guide {} folder {} requestedLanguage={} defaultLanguage={} discoveredPaths={} localizedHits={} defaultLanguageHits={} rawSourceHits={} failedLoads={} durationNs={}",
+            pages.size(),
+            guideId,
+            folder,
+            lang,
+            defaultLanguage,
+            pagePaths.size(),
+            localizedHits,
+            defaultLanguageHits,
+            rawSourceHits,
+            failedLoads,
+            totalNs);
         return pages;
     }
 
@@ -300,7 +291,7 @@ public class GuideLightweightReloadService {
             return GuideLocalizedPageSourceResolver
                 .parseFrontmatterOnly(sourcePack, language, contentRootFolder, pageId, bytes);
         } catch (Exception ex) {
-            FMLLog.getLogger()
+            GuideDebugLog
                 .error("[GuideNH] [GuideLightweightReloadService] Error parsing page {} from {}", pageId, sourceId, ex);
             return null;
         }
