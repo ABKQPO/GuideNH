@@ -1755,7 +1755,9 @@ p {
     --guide-content-tabs-accent: rgba(124, 135, 149, 1);
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    align-items: flex-end;
+    column-gap: 10px;
+    row-gap: 5px;
     margin: 1rem 0;
     padding: 0.45rem 0.7rem 0.7rem 0.7rem;
     border-left: calc(2px * var(--gui-scale)) solid var(--guide-content-tabs-accent);
@@ -1771,20 +1773,24 @@ p {
 .guide-content-tabs-label {
     display: inline-flex;
     align-items: center;
-    min-height: 1.9rem;
-    padding: 0.3rem 0.65rem;
-    border: 1px solid rgba(88, 98, 117, 0.75);
-    border-radius: 999px;
-    background: rgba(26, 31, 38, 0.45);
+    position: relative;
+    order: 0;
+    min-height: 1.6rem;
+    padding: 0.05rem 0.15rem 0.35rem;
+    border-bottom: 2px solid transparent;
     color: #d5dce7;
     cursor: pointer;
+    font-family: var(--minecraft-font);
+    font-weight: 700;
+    letter-spacing: 0.01em;
 }
 
 .guide-content-tabs-panel {
     display: none;
-    order: 999;
+    order: 1;
     width: 100%;
-    padding-top: 0.5rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(88, 98, 117, 0.75);
 }
 
 .guide-content-tabs-panel > :first-child {
@@ -1796,9 +1802,8 @@ p {
 }
 
 .guide-content-tabs-input:checked + .guide-content-tabs-label {
-    border-color: var(--guide-content-tabs-accent);
-    background: rgba(62, 75, 89, 0.64);
     color: #f4f7fb;
+    border-bottom-color: var(--guide-content-tabs-accent);
 }
 
 .guide-content-tabs-input:checked + .guide-content-tabs-label + .guide-content-tabs-panel {
