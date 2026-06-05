@@ -298,10 +298,17 @@ Text outside the block should still wrap around it when `wrap="square"` is used.
 ## Content Tabs
 
 `<ContentTabs>` groups alternative rich content under one tab strip. Each child must be a direct
-`<Tab title="...">`, the selected tab can be chosen with either `default` or `defaultIndex`, and
-`color` can override the quote-like accent line/highlight.
+`<Tab title="...">`. The selected tab can be chosen with either `default` or `defaultIndex`,
+`color` can override the quote-like accent line/highlight, and the container itself can expose
+an optional callout-style heading through `title` plus `icon`, `iconPng` / `icon_png`, or
+`iconItem` / `icon_item`.
 
-<ContentTabs default="Scene">
+<ContentTabs
+  title="Build Variants"
+  iconItem="minecraft:crafting_table"
+  color="#4f8cff"
+  default="Scene"
+>
   <Tab title="Code">
     ```java
     System.out.println("Hello GuideNH");

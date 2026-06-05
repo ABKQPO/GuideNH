@@ -13,6 +13,7 @@ import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytContentTabsBlock;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
@@ -34,19 +35,27 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
         if (!spec.hasRenderableTabs()) {
             return;
         }
-        parent.append(new LytContentTabsBlock(resolveInitialIndex(spec), spec.accentColor(), spec.tabs()));
+        parent.append(
+            new LytContentTabsBlock(
+                spec.title(),
+                CalloutIconSupport.buildFlowIcon(compiler, spec.icon()),
+                resolveInitialIndex(spec),
+                spec.accentColor(),
+                spec.tabs()));
     }
 
     private ContentTabsSpec parseSpec(PageCompiler compiler, MdxJsxElementFields el) {
         List<? extends MdAstAnyContent> children = resolveChildren(compiler, el);
         List<ContentTabsSpec.TabEntry> tabs = new ArrayList<>();
         List<ContentTabsSpec.ValidationIssue> issues = new ArrayList<>();
+        String title = el.getAttributeString("title", null);
+        var icon = MarkdownRuntimeBlocks.parseQuoteIconAttributes(el);
         Integer defaultIndex = parseDefaultIndex(el, issues, el);
         String defaultTitle = el.getAttributeString("default", null);
         ColorValue accentColor = MdxAttrs.getColor(compiler, new ValidationIssueSink(issues), el, "color", null);
         collectTabs(compiler, children, tabs, issues);
         validateDefaultTarget(defaultTitle, defaultIndex, tabs, issues, el);
-        return new ContentTabsSpec(defaultTitle, defaultIndex, accentColor, tabs, issues);
+        return new ContentTabsSpec(title, icon, defaultTitle, defaultIndex, accentColor, tabs, issues);
     }
 
     private List<? extends MdAstAnyContent> resolveChildren(PageCompiler compiler, MdxJsxElementFields el) {

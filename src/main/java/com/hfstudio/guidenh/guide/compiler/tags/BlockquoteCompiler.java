@@ -3,8 +3,6 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Collections;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytAlertBox;
@@ -13,10 +11,8 @@ import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
-import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
@@ -48,7 +44,10 @@ public class BlockquoteCompiler extends BlockTagCompiler {
 
         if (directive != null && (directive.title() != null || directive.icon() != null)) {
             LytQuoteBox quoteBox = new LytQuoteBox();
-            quoteBox.setQuoteStyle(directive.accentColor(), directive.title(), buildQuoteIcon(directive.icon()));
+            quoteBox.setQuoteStyle(
+                directive.accentColor(),
+                directive.title(),
+                CalloutIconSupport.buildFlowIcon(compiler, directive.icon()));
             quoteBox.setMarginTop(PageCompiler.DEFAULT_ELEMENT_SPACING);
             quoteBox.setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
             compileDirectiveBody(compiler, directive, quoteBox);
@@ -117,13 +116,6 @@ public class BlockquoteCompiler extends BlockTagCompiler {
             LytParagraph first = (LytParagraph) boxChildren.get(0);
             first.setPaddingTop(first.getPaddingTop() + pixels);
         }
-    }
-
-    @Nullable
-    private LytFlowContent buildQuoteIcon(@Nullable QuoteIconSpec icon) {
-        // The original buildQuoteIcon resolved item stacks from icon specs.
-        // For now return null — icon rendering will be added in a later phase.
-        return null;
     }
 
     private static void stripLeadingText(MdxJsxFlowElement paragraph, String replacementText) {

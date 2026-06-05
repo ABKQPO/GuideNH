@@ -127,9 +127,15 @@ public class TagAttributeRegistry {
         register("details", new AttributeSpec("open", AttrType.BOOLEAN));
         register(
             "ContentTabs",
+            new AttributeSpec("title", AttrType.STRING),
             new AttributeSpec("default", AttrType.STRING),
             new AttributeSpec("defaultIndex", AttrType.INT),
-            new AttributeSpec("color", AttrType.COLOR));
+            new AttributeSpec("color", AttrType.COLOR),
+            new AttributeSpec("icon", AttrType.STRING),
+            new AttributeSpec("iconPng", AttrType.FILE_PATH),
+            new AttributeSpec("icon_png", AttrType.FILE_PATH),
+            new AttributeSpec("iconItem", AttrType.ITEM_ID),
+            new AttributeSpec("icon_item", AttrType.ITEM_ID));
         register("Tab", new AttributeSpec("title", AttrType.STRING));
         register(
             "Row",

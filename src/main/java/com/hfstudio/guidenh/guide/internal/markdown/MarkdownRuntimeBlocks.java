@@ -25,6 +25,26 @@ public class MarkdownRuntimeBlocks {
         return new GithubAlertBlock(directive.alertType(), directive.children(), directive.remainingText());
     }
 
+    public static @Nullable QuoteIconSpec parseQuoteIconAttributes(MdxJsxElementFields element) {
+        String item = firstNonBlank(
+            element.getAttributeString("iconItem", null),
+            element.getAttributeString("icon_item", null));
+        if (item != null) {
+            return new QuoteIconSpec(QuoteIconKind.ITEM, item);
+        }
+        String png = firstNonBlank(
+            element.getAttributeString("iconPng", null),
+            element.getAttributeString("icon_png", null));
+        if (png != null) {
+            return new QuoteIconSpec(QuoteIconKind.PNG, png);
+        }
+        String text = firstNonBlank(element.getAttributeString("icon", null));
+        if (text != null) {
+            return new QuoteIconSpec(QuoteIconKind.TEXT, text);
+        }
+        return null;
+    }
+
     public static @Nullable BlockquoteDirective parseBlockquoteDirective(MdxJsxElementFields blockquote) {
         FirstParagraphText firstParagraph = findFirstParagraphText(blockquote);
         if (firstParagraph == null) {
@@ -215,6 +235,18 @@ public class MarkdownRuntimeBlocks {
                 return new ConstantColor((int) argb);
             }
         } catch (NumberFormatException ignored) {}
+        return null;
+    }
+
+    private static @Nullable String firstNonBlank(@Nullable String... values) {
+        for (String value : values) {
+            if (value != null) {
+                String trimmed = value.trim();
+                if (!trimmed.isEmpty()) {
+                    return trimmed;
+                }
+            }
+        }
         return null;
     }
 

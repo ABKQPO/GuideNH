@@ -46,7 +46,7 @@ Inline markdown also supports action links for sound playback:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
-| `<ContentTabs>` | groups alternative rich content under independent tabs | `default`, `defaultIndex`, `color` |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
 | `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
@@ -144,10 +144,15 @@ Attributes:
 
 ### `<ContentTabs>`
 
-Groups alternative rich content under independent tabs. Only direct `<Tab>` children are valid.
+Groups alternative rich content under independent tabs. Only direct `<Tab>` children are valid. The container itself can also render a quote-style heading row above the tabs, matching the visual language of markdown callouts.
 
 ````mdx
-<ContentTabs default="Java">
+<ContentTabs
+  title="Implementation Options"
+  icon="</>"
+  color="#4f8cff"
+  default="Java"
+>
   <Tab title="Java">
     ```java
     System.out.println("Hello GuideNH");
@@ -162,7 +167,8 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
 - `default` matches the first tab whose `title` matches exactly
 - `defaultIndex` is zero-based and wins over `default` when both are present
 - `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
-- `title` is plain text only
+- `title` adds an optional plain-text heading above the tab strip
+- `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
 - invalid children or invalid defaults render visible author-facing errors
 
 ### `<FileTree>`

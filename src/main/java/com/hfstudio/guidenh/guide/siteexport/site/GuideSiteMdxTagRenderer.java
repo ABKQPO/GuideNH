@@ -55,6 +55,8 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeEntry
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeContentExtractor;
@@ -1089,6 +1091,20 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 .append(";\"");
         }
         html.append(">");
+        if (parsed.title != null || parsed.icon != null) {
+            html.append("<div class=\"guide-content-tabs-title\">");
+            if (parsed.icon != null) {
+                html.append(
+                    renderContentTabsIcon(parsed.icon, templates, defaultNamespace, currentPageId, sceneResolver));
+                if (parsed.title != null) {
+                    html.append(' ');
+                }
+            }
+            if (parsed.title != null) {
+                html.append(escapeHtml(parsed.title));
+            }
+            html.append("</div>");
+        }
         for (int index = 0; index < parsed.tabs.size(); index++) {
             ParsedTab tab = parsed.tabs.get(index);
             boolean checked = index == parsed.selectedIndex;
@@ -1119,6 +1135,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private ParsedTabs parseContentTabs(MdxJsxElementFields element) {
         List<String> errors = new ArrayList<>();
         List<ParsedTab> tabs = new ArrayList<>();
+        String containerTitle = readOptional(element, "title");
+        QuoteIconSpec icon = MarkdownRuntimeBlocks.parseQuoteIconAttributes(element);
         Integer defaultIndex = readPositiveOrZeroInt(readOptional(element, "defaultIndex"));
         String defaultTitle = readOptional(element, "default");
         String accentCssColor = null;
@@ -1134,16 +1152,56 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 errors.add("ContentTabs only accepts <Tab> children.");
                 continue;
             }
-            String title = flowElement.getAttributeString("title", null);
-            if (title == null || title.trim()
+            String tabTitle = flowElement.getAttributeString("title", null);
+            if (tabTitle == null || tabTitle.trim()
                 .isEmpty()) {
                 errors.add("<Tab> requires a non-empty title attribute.");
                 continue;
             }
-            tabs.add(new ParsedTab(title.trim(), flowElement.children()));
+            tabs.add(new ParsedTab(tabTitle.trim(), flowElement.children()));
         }
         int selectedIndex = resolveSelectedIndex(defaultTitle, defaultIndex, tabs, errors);
-        return new ParsedTabs(tabs, selectedIndex, errors, accentCssColor);
+        return new ParsedTabs(
+            containerTitle != null && !containerTitle.trim()
+                .isEmpty() ? containerTitle.trim() : null,
+            icon,
+            tabs,
+            selectedIndex,
+            errors,
+            accentCssColor);
+    }
+
+    private String renderContentTabsIcon(QuoteIconSpec icon, GuideSiteTemplateRegistry templates,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver) {
+        String value = icon.value();
+        if (value == null || value.trim()
+            .isEmpty()) {
+            return "";
+        }
+        return switch (icon.kind()) {
+            case PNG -> {
+                String resolved = assetExporter != null ? assetExporter.resolveImageSrc(value, currentPageId) : value;
+                if (resolved == null || resolved.isEmpty()) {
+                    yield "<span class=\"guide-content-tabs-title-icon\">" + escapeHtml(value) + "</span>";
+                }
+                yield "<span class=\"guide-content-tabs-title-icon guide-content-tabs-title-icon-image\"><img src=\""
+                    + escapeAttribute(resolved)
+                    + "\" alt=\"\" decoding=\"async\"></span>";
+            }
+            case ITEM -> {
+                List<MdxJsxAttributeNode> attrs = new ArrayList<>();
+                attrs.add(new MdxJsxAttribute("id", value));
+                MdxJsxFlowElement synthetic = new MdxJsxFlowElement("ItemImage", attrs);
+                String rendered = renderItemImage(synthetic, defaultNamespace, currentPageId, templates, true);
+                if (rendered == null || rendered.isEmpty()) {
+                    yield "<span class=\"guide-content-tabs-title-icon\">" + escapeHtml(value) + "</span>";
+                }
+                yield "<span class=\"guide-content-tabs-title-icon guide-content-tabs-title-icon-item\">" + rendered
+                    + "</span>";
+            }
+            case TEXT -> "<span class=\"guide-content-tabs-title-icon\">" + escapeHtml(value) + "</span>";
+        };
     }
 
     private int resolveSelectedIndex(@Nullable String defaultTitle, @Nullable Integer defaultIndex,
@@ -3024,14 +3082,20 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
 
     private static class ParsedTabs {
 
+        @Nullable
+        private final String title;
+        @Nullable
+        private final QuoteIconSpec icon;
         private final List<ParsedTab> tabs;
         private final int selectedIndex;
         private final List<String> errors;
         @Nullable
         private final String accentCssColor;
 
-        private ParsedTabs(List<ParsedTab> tabs, int selectedIndex, List<String> errors,
-            @Nullable String accentCssColor) {
+        private ParsedTabs(@Nullable String title, @Nullable QuoteIconSpec icon, List<ParsedTab> tabs,
+            int selectedIndex, List<String> errors, @Nullable String accentCssColor) {
+            this.title = title;
+            this.icon = icon;
             this.tabs = tabs;
             this.selectedIndex = selectedIndex;
             this.errors = errors;

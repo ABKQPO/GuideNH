@@ -1764,6 +1764,36 @@ p {
     background: rgba(64, 64, 64, 0.25);
 }
 
+.guide-content-tabs-title {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    color: var(--guide-content-tabs-accent);
+    font-family: var(--minecraft-font);
+    font-weight: 700;
+}
+
+.guide-content-tabs-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.guide-content-tabs-title-icon-image img {
+    width: calc(8px * var(--gui-scale));
+    height: calc(8px * var(--gui-scale));
+    image-rendering: pixelated;
+    vertical-align: middle;
+}
+
+.guide-content-tabs-title-icon-item .guide-inline-item,
+.guide-content-tabs-title-icon-item .item-icon {
+    transform: translateY(calc(-0.5px * var(--gui-scale)));
+}
+
 .guide-content-tabs-input {
     position: absolute;
     opacity: 0;
