@@ -55,6 +55,11 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     private static final float ZOOM_STEP = 1.1f;
     private static final float MIN_ZOOM = 0.5f;
     private static final float MAX_ZOOM = 2.5f;
+    static final ConstantColor PANEL_BACKGROUND = new ConstantColor(0x1A0C1117);
+    static final ConstantColor PANEL_BORDER = new ConstantColor(0x66434C57);
+    static final ConstantColor ROOT_TEXT_COLOR = new ConstantColor(0xFFF1F6FB);
+    static final ConstantColor NODE_TEXT_COLOR = new ConstantColor(0xFFD7DEE7);
+    static final ConstantColor ICON_TEXT_COLOR = new ConstantColor(0xFFB8C2CF);
 
     private static final ResolvedTextStyle ROOT_TEXT_STYLE = new ResolvedTextStyle(
         1f,
@@ -66,7 +71,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         false,
         false,
         null,
-        new ConstantColor(0xFFF1F6FB),
+        ROOT_TEXT_COLOR,
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
@@ -82,7 +87,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         false,
         false,
         null,
-        new ConstantColor(0xFFD7DEE7),
+        NODE_TEXT_COLOR,
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
@@ -98,7 +103,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         false,
         false,
         null,
-        new ConstantColor(0xFFB8C2CF),
+        ICON_TEXT_COLOR,
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
@@ -191,8 +196,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         updateVisualState();
         ensureScaledStyles(visualZoom.value());
 
-        context.fillRect(bounds, 0x1A0C1117);
-        context.drawBorder(bounds, 0x66434C57, 1);
+        context.fillRect(bounds, PANEL_BACKGROUND);
+        context.drawBorder(bounds, context.resolveColor(PANEL_BORDER), 1);
 
         LytRect viewport = getInnerViewport();
         int baseX = viewport.x() + visualContentOffsetX.rounded()
@@ -1465,6 +1470,11 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             } finally {
                 GL11.glPopMatrix();
             }
+        }
+
+        @Override
+        public void fillIcon(LytRect rect, GuiSprite sprite, ColorValue color) {
+            delegate.fillIcon(scaleRect(rect), sprite, color);
         }
 
         @Override

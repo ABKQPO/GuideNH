@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.home;
 
+import java.util.List;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
@@ -430,10 +432,20 @@ public class HomePageController {
         if (text == null || text.isEmpty()) {
             return;
         }
-        int textWidth = font.getStringWidth(text);
-        int textX = rect.x() + (rect.width() - textWidth) / 2;
-        int textY = rect.y() + (rect.height() - font.FONT_HEIGHT) / 2;
-        font.drawString(text, textX, textY, EMPTY_COLOR, false);
+        int maxWidth = Math.max(1, rect.width() - SECTION_PADDING * 2);
+        List<String> lines = font.listFormattedStringToWidth(text, maxWidth);
+        if (lines.isEmpty()) {
+            lines = List.of(text);
+        }
+        int lineHeight = font.FONT_HEIGHT + 1;
+        int textHeight = lines.size() * lineHeight - 1;
+        int textY = rect.y() + Math.max(0, (rect.height() - textHeight) / 2);
+        for (String line : lines) {
+            int textWidth = font.getStringWidth(line);
+            int textX = rect.x() + (rect.width() - textWidth) / 2;
+            font.drawString(line, textX, textY, EMPTY_COLOR, false);
+            textY += lineHeight;
+        }
     }
 
     private String trimToWidth(FontRenderer font, String text, int maxWidth) {

@@ -412,6 +412,51 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
+    public void fillIcon(LytRect rect, GuiSprite sprite, ColorValue color) {
+        if (sprite == null || rect == null) {
+            return;
+        }
+        int resolved = resolveColor(color);
+        int a = (resolved >>> 24) & 0xFF;
+        int r = (resolved >>> 16) & 0xFF;
+        int g = (resolved >>> 8) & 0xFF;
+        int b = resolved & 0xFF;
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
+        try {
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
+            Minecraft.getMinecraft()
+                .getTextureManager()
+                .bindTexture(sprite.getTexture());
+            var tess = Tessellator.instance;
+            float texW = sprite.getTexWidth();
+            float texH = sprite.getTexHeight();
+            int x = rect.x();
+            int y = rect.y();
+            int u = sprite.getU();
+            int v = sprite.getV();
+            int spriteWidth = sprite.getWidth();
+            int spriteHeight = sprite.getHeight();
+            tess.startDrawingQuads();
+            tess.addVertexWithUV(x, y + spriteHeight, 0, u / texW, (v + spriteHeight) / texH);
+            tess.addVertexWithUV(
+                x + spriteWidth,
+                y + spriteHeight,
+                0,
+                (u + spriteWidth) / texW,
+                (v + spriteHeight) / texH);
+            tess.addVertexWithUV(x + spriteWidth, y, 0, (u + spriteWidth) / texW, v / texH);
+            tess.addVertexWithUV(x, y, 0, u / texW, v / texH);
+            tess.draw();
+        } finally {
+            GL11.glColor4f(1f, 1f, 1f, 1f);
+            GL11.glPopAttrib();
+        }
+    }
+
+    @Override
     public void fillTexturedRect(LytRect rect, GuidePageTexture texture) {
         if (texture == null || texture.isMissing()) {
             fillRect(rect, 0xFF333333);

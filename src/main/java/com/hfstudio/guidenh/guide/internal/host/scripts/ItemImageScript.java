@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
+import java.util.List;
+
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.oredict.OreDictionary;
 
@@ -33,20 +35,19 @@ public class ItemImageScript implements LytScript {
 
         ItemImagePlaceholder ph = LytFlowInlineBlock.unwrapPlaceholder(node, ItemImagePlaceholder.class);
         if (ph == null) return;
-        boolean isWrapped = node instanceof LytFlowInlineBlock;
 
         ItemStack stack = resolveItemId(ph.itemId);
         if (stack == null) {
             // Fallback to ore dictionary if direct item lookup fails
             if (ph.ore != null) {
-                java.util.List<ItemStack> oreStacks = OreDictionary.getOres(ph.ore);
+                List<ItemStack> oreStacks = OreDictionary.getOres(ph.ore);
                 if (oreStacks != null && !oreStacks.isEmpty()) {
                     stack = oreStacks.get(0)
                         .copy();
                 }
             }
             if (stack == null) {
-                replaceFlowError(ctx, isWrapped, "[ItemImage] Item not found: " + ph.itemId);
+                replaceFlowError(ctx, "[ItemImage] Item not found: " + ph.itemId);
                 return;
             }
         }
@@ -61,25 +62,13 @@ public class ItemImageScript implements LytScript {
         if (ph.yOffset != null) image.setInlineYOffsetOverride(ph.yOffset);
         if (ph.labelYOffset != null) image.setLabelYOffsetOverride(ph.labelYOffset);
 
-        if (isWrapped) {
-            LytFlowInlineBlock newWrapper = new LytFlowInlineBlock();
-            newWrapper.setBlock(image);
-            ctx.replace(newWrapper);
-        } else {
-            ctx.replace(image);
-        }
+        ctx.replace(image);
     }
 
     @SuppressWarnings("deprecation")
-    private void replaceFlowError(ScriptContext ctx, boolean isWrapped, String message) {
+    private void replaceFlowError(ScriptContext ctx, String message) {
         LytParagraph error = LytParagraph.error(message);
-        if (isWrapped) {
-            LytFlowInlineBlock wrapper = new LytFlowInlineBlock();
-            wrapper.setBlock(error);
-            ctx.replace(wrapper);
-        } else {
-            ctx.replace(error);
-        }
+        ctx.replace(error);
     }
 
     private static ItemStack resolveItemId(String itemId) {

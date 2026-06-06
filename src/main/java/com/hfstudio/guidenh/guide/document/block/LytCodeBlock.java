@@ -46,6 +46,9 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     private int preferredBodyWidth;
     private int forcedBodyHeight;
     private int bodyContentHeight;
+    private int bodyViewportX;
+    private int bodyViewportY;
+    private int bodyViewportWidth;
     private int bodyViewportHeight;
     private int bodyScrollOffsetY;
     private final SmoothFloatState visualBodyScrollOffsetY = new SmoothFloatState();
@@ -263,6 +266,9 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         }
 
         bodyViewportHeight = forcedBodyHeight > 0 ? forcedBodyHeight : bodyContentHeight;
+        bodyViewportX = x;
+        bodyViewportY = bodyY;
+        bodyViewportWidth = bodyAvailableWidth;
         setBodyScrollOffset(bodyScrollOffsetY);
         snapVisualScrollToTarget();
         return new LytRect(x, y, safeWidth, toolbarBounds.height() + getGap() + bodyViewportHeight);
@@ -345,16 +351,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     private LytRect getBodyViewportBounds() {
-        LytRect toolbarBounds = toolbar.getBounds();
-        int viewportY = toolbarBounds.bottom() + getGap();
-        int viewportHeight = Math.max(0, bodyViewportHeight);
-        return new LytRect(
-            body.getBounds()
-                .x(),
-            viewportY,
-            body.getBounds()
-                .width(),
-            viewportHeight);
+        return new LytRect(bodyViewportX, bodyViewportY, bodyViewportWidth, Math.max(0, bodyViewportHeight));
     }
 
     private LytRect getScrollbarTrackBounds() {

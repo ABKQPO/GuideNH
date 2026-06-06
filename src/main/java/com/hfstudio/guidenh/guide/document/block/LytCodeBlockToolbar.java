@@ -2,7 +2,9 @@ package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.Optional;
 
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytPoint;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
@@ -20,15 +22,28 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
 
-    private static final GuiSprite COPY_SPRITE = new GuiSprite(GuideIconButton.TEX, 0, 48, 16, 16, 64, 64);
+    private static final GuiSprite COPY_SPRITE = new GuiSprite(
+        GuideIconButton.TEX,
+        0,
+        48,
+        16,
+        16,
+        GuideIconButton.TEXTURE_SIZE,
+        GuideIconButton.TEXTURE_SIZE);
     private static final long COPY_TOOLTIP_RESET_DELAY_MILLIS = 1500L;
+    private static final int TEXT_CENTERING_OFFSET_Y = 1;
     private static final CodeHighlightTheme CODE_THEME = CodeHighlightTheme.GITHUB_DARK_DEFAULT;
-    private static final ConstantColor TOOLBAR_BACKGROUND = new ConstantColor(CODE_THEME.toolbarBackgroundArgb());
-    private static final ConstantColor TOOLBAR_BORDER = new ConstantColor(CODE_THEME.borderArgb());
-    private static final ConstantColor TOOLBAR_TEXT = new ConstantColor(CODE_THEME.toolbarTextArgb());
+    private static final ConstantColor DEFAULT_TOOLBAR_BACKGROUND = new ConstantColor(
+        CODE_THEME.toolbarBackgroundArgb());
+    private static final ConstantColor DEFAULT_TOOLBAR_BORDER = new ConstantColor(CODE_THEME.borderArgb());
+    private static final ConstantColor DEFAULT_TOOLBAR_TEXT = new ConstantColor(CODE_THEME.toolbarTextArgb());
 
     private final LytParagraph languageLabel = new LytParagraph();
     private final LytGuiSprite copyButton = new LytGuiSprite(COPY_SPRITE, new LytSize(16, 16));
+
+    private ColorValue toolbarBackground = DEFAULT_TOOLBAR_BACKGROUND;
+    private ColorValue toolbarBorder = DEFAULT_TOOLBAR_BORDER;
+    private ColorValue toolbarText = DEFAULT_TOOLBAR_TEXT;
 
     private String copyText = "";
     private boolean copied;
@@ -41,15 +56,16 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
         languageLabel.setMarginBottom(0);
         languageLabel.modifyStyle(
             style -> style.bold(true)
-                .color(TOOLBAR_TEXT));
-        copyButton.setColor(TOOLBAR_TEXT);
+                .color(toolbarText));
+        copyButton.setColor(toolbarText);
+        copyButton.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
         append(languageLabel);
         append(copyButton);
         setPaddingLeft(8);
         setPaddingTop(4);
         setPaddingRight(8);
         setPaddingBottom(4);
-        setBorderBottom(new BorderStyle(TOOLBAR_BORDER, 1));
+        setBorderBottom(new BorderStyle(toolbarBorder, 1));
     }
 
     public void setLanguageDisplayName(String languageDisplayName) {
@@ -70,6 +86,21 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
         this.copyButtonVisible = copyButtonVisible;
     }
 
+    public void setToolbarBackground(ColorValue toolbarBackground) {
+        this.toolbarBackground = toolbarBackground != null ? toolbarBackground : DEFAULT_TOOLBAR_BACKGROUND;
+    }
+
+    public void setToolbarBorder(ColorValue toolbarBorder) {
+        this.toolbarBorder = toolbarBorder != null ? toolbarBorder : DEFAULT_TOOLBAR_BORDER;
+        setBorderBottom(new BorderStyle(this.toolbarBorder, getBorderBottom().width()));
+    }
+
+    public void setToolbarText(ColorValue toolbarText) {
+        this.toolbarText = toolbarText != null ? toolbarText : DEFAULT_TOOLBAR_TEXT;
+        languageLabel.modifyStyle(style -> style.color(this.toolbarText));
+        copyButton.setColor(this.toolbarText);
+    }
+
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
         int toolbarWidth = preferredWidth > 0 ? Math.min(availableWidth, preferredWidth) : availableWidth;
@@ -77,8 +108,9 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
         LytRect labelBounds = languageLabel.layout(context, x, y, labelWidth);
         int buttonX = x + Math.max(0, toolbarWidth - 16);
         LytRect buttonBounds = copyButtonVisible ? copyButton.layout(context, buttonX, y, 16) : LytRect.empty();
-        int height = Math.max(labelBounds.height(), copyButtonVisible ? buttonBounds.height() : 0);
-        languageLabel.setLayoutPos(new LytPoint(labelBounds.x(), y + (height - labelBounds.height()) / 2f));
+        int height = Math.max(16, Math.max(labelBounds.height(), copyButtonVisible ? buttonBounds.height() : 0));
+        float labelY = y + (height - labelBounds.height()) / 2f + TEXT_CENTERING_OFFSET_Y;
+        languageLabel.setLayoutPos(new LytPoint(labelBounds.x(), labelY));
         if (copyButtonVisible) {
             copyButton.setLayoutPos(new LytPoint(buttonX, y + (height - buttonBounds.height()) / 2f));
         } else {
@@ -121,7 +153,7 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
 
     @Override
     public void render(RenderContext context) {
-        context.fillRect(bounds, TOOLBAR_BACKGROUND);
+        context.fillRect(bounds, toolbarBackground);
         languageLabel.render(context);
         if (copyButtonVisible) {
             copyButton.render(context);

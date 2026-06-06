@@ -6,6 +6,7 @@ import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuiSprite;
@@ -20,6 +21,11 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
     private GuiSprite sprite;
 
     private ColorValue color = ConstantColor.WHITE;
+
+    @Nullable
+    private ColorValue hoverColor;
+
+    private boolean hovered;
 
     private LytSize size = new LytSize(16, 16);
 
@@ -45,6 +51,10 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
 
     public void setColor(ColorValue color) {
         this.color = color != null ? color : ConstantColor.WHITE;
+    }
+
+    public void setHoverColor(@Nullable ColorValue hoverColor) {
+        this.hoverColor = hoverColor;
     }
 
     public LytSize getSize() {
@@ -83,9 +93,19 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
     protected void onLayoutMoved(int deltaX, int deltaY) {}
 
     @Override
+    public void onMouseEnter(@Nullable LytFlowContent hoveredContent) {
+        hovered = true;
+    }
+
+    @Override
+    public void onMouseLeave() {
+        hovered = false;
+    }
+
+    @Override
     public void render(RenderContext context) {
         if (sprite != null) {
-            context.fillIcon(getBounds(), sprite, color);
+            context.fillIcon(getBounds(), sprite, hovered && hoverColor != null ? hoverColor : color);
         }
     }
 }

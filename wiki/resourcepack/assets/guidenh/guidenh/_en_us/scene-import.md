@@ -33,6 +33,7 @@ correctly:
     <GregTechActiveController />
     <GregTechPlaceHatches />
   </ImportStructureLib>
+</GameScene>
 
 `facing`, `rotation`, and `flip` use the same orientation vocabulary as StructureLib export. If a
 controller rejects the requested combination, GuideNH automatically falls back to the first valid
