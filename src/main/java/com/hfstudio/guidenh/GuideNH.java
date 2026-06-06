@@ -3,9 +3,6 @@ package com.hfstudio.guidenh;
 import static com.hfstudio.guidenh.GuideNH.MODID;
 import static com.hfstudio.guidenh.GuideNH.MODNAME;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.hfstudio.guidenh.guide.internal.GuideCommand;
 import com.hfstudio.guidenh.guide.internal.GuideNhBridgeCommand;
 import com.hfstudio.guidenh.guide.internal.item.GuideItem;
@@ -35,7 +32,6 @@ public class GuideNH {
     public static final String MODNAME = Tags.MODNAME;
     public static final String VERSION = Tags.VERSION;
     public static final String AUTHOR = "HFstudio";
-    public static final Logger LOG = LogManager.getLogger(MODID);
 
     public static boolean debug = false;
 

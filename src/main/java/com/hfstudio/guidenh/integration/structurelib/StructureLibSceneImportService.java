@@ -2,8 +2,6 @@ package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.function.Supplier;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -12,8 +10,6 @@ import com.hfstudio.guidenh.integration.Mods;
 import cpw.mods.fml.common.Optional;
 
 public class StructureLibSceneImportService {
-
-    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
 
     private final StructureLibFacade facade;
 
@@ -33,7 +29,7 @@ public class StructureLibSceneImportService {
         try {
             return facade.isAvailable();
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "StructureLib facade availability check failed", t);
+            GuideDebugLog.warn("StructureLib facade availability check failed", t);
             return false;
         }
     }
@@ -50,7 +46,7 @@ public class StructureLibSceneImportService {
             }
             return StructureLibImportResult.failure("StructureLib facade returned no import result");
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "StructureLib import failed for controller {}", request.getController(), t);
+            GuideDebugLog.warn("StructureLib import failed for controller {}", request.getController(), t);
             return StructureLibImportResult.failure(resolveFailureMessage(t));
         }
     }
@@ -71,7 +67,7 @@ public class StructureLibSceneImportService {
             }
             return StructureLibImportResult.failure("StructureLib facade returned no import result");
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "StructureLib import failed for controller {}", request.getController(), t);
+            GuideDebugLog.warn("StructureLib import failed for controller {}", request.getController(), t);
             return StructureLibImportResult.failure(resolveFailureMessage(t));
         }
     }
@@ -93,7 +89,7 @@ public class StructureLibSceneImportService {
             StructureLibFacade facade = facadeFactory.get();
             return facade != null ? facade : createDefaultFacade();
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "StructureLib facade factory failed, falling back to default facade", t);
+            GuideDebugLog.warn("StructureLib facade factory failed, falling back to default facade", t);
             return createDefaultFacade();
         }
     }
@@ -105,8 +101,7 @@ public class StructureLibSceneImportService {
         try {
             return createRuntimeFacade();
         } catch (Throwable t) {
-            GuideDebugLog
-                .warn(LOG, "Failed to initialize StructureLib runtime facade, falling back to unavailable facade", t);
+            GuideDebugLog.warn("Failed to initialize StructureLib runtime facade, falling back to unavailable facade", t);
             return new StructureLibUnavailableFacade();
         }
     }

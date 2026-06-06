@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.bridge.preview.PreviewQueryFactory;
 import com.hfstudio.guidenh.bridge.preview.PreviewResolveQuery;
 import com.hfstudio.guidenh.bridge.preview.PreviewResolveResult;
@@ -22,6 +21,7 @@ import com.hfstudio.guidenh.bridge.security.BridgeTokenAuthenticator;
 import com.hfstudio.guidenh.bridge.semantic.SemanticProviderRegistry;
 import com.hfstudio.guidenh.bridge.semantic.SemanticQuery;
 import com.hfstudio.guidenh.bridge.semantic.SemanticQueryFactory;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class RuntimeBridgeConnection implements Runnable {
 
@@ -60,19 +60,22 @@ public class RuntimeBridgeConnection implements Runnable {
     public void run() {
         try {
             socket.setSoTimeout(SOCKET_TIMEOUT_MILLIS);
-            GuideNH.LOG.info("GuideNH runtime bridge waiting for WebSocket handshake from {}", describeRemote());
+            GuideDebugLog.infoAlways("GuideNH runtime bridge waiting for WebSocket handshake from {}", describeRemote());
             if (!new WebSocketHandshake().accept(socket.getInputStream(), socket.getOutputStream())) {
-                GuideNH.LOG
-                    .warn("GuideNH runtime bridge rejected invalid WebSocket handshake from {}", describeRemote());
+                GuideDebugLog.warnAlways(
+                    "GuideNH runtime bridge rejected invalid WebSocket handshake from {}",
+                    describeRemote());
                 return;
             }
-            GuideNH.LOG.info("GuideNH runtime bridge WebSocket handshake completed for {}", describeRemote());
+            GuideDebugLog.infoAlways(
+                "GuideNH runtime bridge WebSocket handshake completed for {}",
+                describeRemote());
             readFrames();
         } catch (SocketTimeoutException ignored) {
-            GuideNH.LOG.warn("GuideNH runtime bridge connection timed out for {}", describeRemote());
+            GuideDebugLog.warnAlways("GuideNH runtime bridge connection timed out for {}", describeRemote());
             closeQuietly();
         } catch (IOException e) {
-            GuideNH.LOG.warn("GuideNH runtime bridge connection I/O failed for {}", describeRemote(), e);
+            GuideDebugLog.warnAlways("GuideNH runtime bridge connection I/O failed for {}", describeRemote(), e);
             closeQuietly();
         } finally {
             close();
@@ -83,7 +86,7 @@ public class RuntimeBridgeConnection implements Runnable {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
-        GuideNH.LOG.info("GuideNH runtime bridge closing connection for {}", describeRemote());
+        GuideDebugLog.infoAlways("GuideNH runtime bridge closing connection for {}", describeRemote());
         closeQuietly();
         closeCallback.accept(this);
     }
@@ -156,12 +159,12 @@ public class RuntimeBridgeConnection implements Runnable {
                 .get("token")
                 .getAsString() : "";
         if (!authenticator.matches(token)) {
-            GuideNH.LOG.warn("GuideNH runtime bridge authentication failed for {}", describeRemote());
+            GuideDebugLog.warnAlways("GuideNH runtime bridge authentication failed for {}", describeRemote());
             return responseFactory
                 .error(envelope.getId(), envelope.getMethod(), "unauthorized", "Invalid bridge token", false);
         }
         authenticated = true;
-        GuideNH.LOG.info("GuideNH runtime bridge authenticated {}", describeRemote());
+        GuideDebugLog.infoAlways("GuideNH runtime bridge authenticated {}", describeRemote());
         return responseFactory.hello(envelope.getId(), limits);
     }
 

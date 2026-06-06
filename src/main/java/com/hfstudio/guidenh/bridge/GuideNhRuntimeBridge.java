@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.bridge;
 
-import com.hfstudio.guidenh.GuideNH;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideNhRuntimeBridge {
 
@@ -9,7 +9,7 @@ public class GuideNhRuntimeBridge {
     public void start(GuideNhRuntimeBridgeSettings settings) {
         stop();
         if (!settings.canStart()) {
-            GuideNH.LOG.info(
+            GuideDebugLog.infoAlways(
                 "GuideNH runtime bridge start skipped. enabled={}, hostConfigured={}, portConfigured={}, tokenConfigured={}",
                 settings.isEnabled(),
                 !settings.getHost()
@@ -19,7 +19,7 @@ public class GuideNhRuntimeBridge {
                     .isEmpty());
             return;
         }
-        GuideNH.LOG.info(
+        GuideDebugLog.infoAlways(
             "Starting GuideNH runtime bridge. host={}, port={}, maxConnections={}, maxMessageBytes={}, maxPageSize={}, maxSubscriptions={}, maxDeltaEntries={}",
             settings.getHost(),
             settings.getPort(),
@@ -34,7 +34,7 @@ public class GuideNhRuntimeBridge {
 
     public void stop() {
         if (server != null) {
-            GuideNH.LOG.info("Stopping GuideNH runtime bridge");
+            GuideDebugLog.infoAlways("Stopping GuideNH runtime bridge");
             server.stop();
             server = null;
         }

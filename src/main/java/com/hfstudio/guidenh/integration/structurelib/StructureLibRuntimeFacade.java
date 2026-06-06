@@ -24,8 +24,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
@@ -48,8 +46,6 @@ import com.mojang.authlib.GameProfile;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 public class StructureLibRuntimeFacade implements StructureLibFacade {
-
-    public static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     public static final int CONTROLLER_X = 0;
     public static final int CONTROLLER_Y = 64;
     public static final int CONTROLLER_Z = 0;
@@ -87,7 +83,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 context.clear();
             }
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib preview", t);
+            GuideDebugLog.warn("Failed to create Guidebook fake world for StructureLib preview", t);
             return StructureLibImportResult.failure("StructureLib preview requires an active client world.");
         }
     }
@@ -154,7 +150,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             IMPORT_RESULT_CACHE.put(importCacheKey, result);
             return result;
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "StructureLib import failed for controller {}", request.getController(), t);
+            GuideDebugLog.warn("StructureLib import failed for controller {}", request.getController(), t);
             return StructureLibImportResult
                 .failure("StructureLib import failed: " + sanitizeMessage(t.getMessage()), warnings, null);
         } finally {
@@ -171,7 +167,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 context.clear();
             }
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib control analysis", t);
+            GuideDebugLog.warn("Failed to create Guidebook fake world for StructureLib control analysis", t);
             return new ControlAnalysis(MIN_TIER, Map.of());
         }
     }
@@ -211,7 +207,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 context.clear();
             }
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib tier analysis", t);
+            GuideDebugLog.warn("Failed to create Guidebook fake world for StructureLib tier analysis", t);
             return MIN_TIER;
         }
     }
@@ -262,7 +258,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 context.clear();
             }
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib channel analysis", t);
+            GuideDebugLog.warn("Failed to create Guidebook fake world for StructureLib channel analysis", t);
             return new LinkedHashMap<>();
         }
     }
@@ -382,7 +378,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 context.clear();
             }
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "Failed to create Guidebook fake world for StructureLib preview", t);
+            GuideDebugLog.warn("Failed to create Guidebook fake world for StructureLib preview", t);
             return BuildSnapshot.failure("StructureLib preview requires an active client world.");
         }
     }
@@ -487,7 +483,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         } catch (Throwable t) {
             warnings.add("StructureLib instrumentation setup failed; preview tooltip metadata may be incomplete.");
             GuideDebugLog.warn(
-                LOG,
                 "Failed to enable StructureLib instrumentation for controller {}",
                 request.getController(),
                 t);
@@ -506,7 +501,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             }
             synchronizePreviewState(controllerTile, triggerStack, selection, warnings);
         } catch (Throwable t) {
-            GuideDebugLog.warn(LOG, "StructureLib construct() failed for controller {}", request.getController(), t);
+            GuideDebugLog.warn("StructureLib construct() failed for controller {}", request.getController(), t);
             context.resetPreviewState();
             return PreparedPreviewWorld.failure("StructureLib construct() failed: " + sanitizeMessage(t.getMessage()));
         } finally {
@@ -544,7 +539,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                     return integratedTile;
                 }
             } catch (Throwable t) {
-                GuideDebugLog.warn(LOG, "StructureLib controller placement integration failed", t);
+                GuideDebugLog.warn("StructureLib controller placement integration failed", t);
             }
         }
 
@@ -557,7 +552,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             if (warnings != null) {
                 warnings.add("Direct controller tile creation failed for " + controller.blockId + ".");
             }
-            GuideDebugLog.warn(LOG, "Direct controller tile creation failed for {}", controller.blockId, t);
+            GuideDebugLog.warn("Direct controller tile creation failed for {}", controller.blockId, t);
             return null;
         }
 
@@ -717,7 +712,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             try {
                 synchronizer.synchronizePreviewState(controllerTile, triggerStack, selection, warnings);
             } catch (Throwable t) {
-                GuideDebugLog.warn(LOG, "StructureLib preview state synchronizer failed", t);
+                GuideDebugLog.warn("StructureLib preview state synchronizer failed", t);
             }
         }
     }
@@ -861,7 +856,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             return tag;
         } catch (Throwable t) {
             GuideDebugLog.warn(
-                LOG,
                 "Failed to serialize preview tile entity {}",
                 tile.getClass()
                     .getName(),

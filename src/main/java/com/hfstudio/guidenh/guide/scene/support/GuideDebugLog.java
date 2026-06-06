@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.scene.support;
 
 import java.util.Set;
 
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
@@ -45,10 +44,6 @@ public class GuideDebugLog {
             .error(message.toString(), args);
     }
 
-    public static void error(@Nullable Logger ignoredLogger, @Nullable String message, Object... args) {
-        error(message, args);
-    }
-
     public static void warn(boolean enabled, @Nullable CharSequence message, Object... args) {
         if (!enabled) {
             return;
@@ -69,14 +64,6 @@ public class GuideDebugLog {
         }
         FMLLog.getLogger()
             .warn(message.toString(), args);
-    }
-
-    public static void warn(@Nullable Logger ignoredLogger, @Nullable String message, Object... args) {
-        warn(message, args);
-    }
-
-    public static void warnAlways(@Nullable Logger ignoredLogger, @Nullable String message, Object... args) {
-        warnAlways(message, args);
     }
 
     public static void info(boolean enabled, @Nullable CharSequence message, Object... args) {
@@ -101,14 +88,6 @@ public class GuideDebugLog {
             .info(message.toString(), args);
     }
 
-    public static void info(@Nullable Logger ignoredLogger, @Nullable String message, Object... args) {
-        info(message, args);
-    }
-
-    public static void infoAlways(@Nullable Logger ignoredLogger, @Nullable String message, Object... args) {
-        infoAlways(message, args);
-    }
-
     public static void debug(boolean enabled, @Nullable CharSequence message, Object... args) {
         if (!enabled) {
             return;
@@ -131,11 +110,4 @@ public class GuideDebugLog {
             .debug(message.toString(), args);
     }
 
-    public static void debug(@Nullable Logger ignoredLogger, @Nullable String message, Object... args) {
-        debug(message, args);
-    }
-
-    public static void debugAlways(@Nullable Logger ignoredLogger, @Nullable String message, Object... args) {
-        debugAlways(message, args);
-    }
 }

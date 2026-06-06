@@ -1,8 +1,5 @@
 package com.hfstudio.guidenh.integration.buildcraft;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPrepareContributor;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -10,7 +7,6 @@ import com.hfstudio.guidenh.integration.Mods;
 
 public class BuildCraftPreviewPrepareContributor implements PreviewPrepareContributor {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     private static volatile boolean invokeFailureLogged;
 
     @Override
@@ -28,7 +24,7 @@ public class BuildCraftPreviewPrepareContributor implements PreviewPrepareContri
         } catch (Throwable t) {
             if (!invokeFailureLogged) {
                 invokeFailureLogged = true;
-                GuideDebugLog.warn(LOG, "BuildCraft preview state preparation failed; pipe textures may be wrong", t);
+                GuideDebugLog.warn("BuildCraft preview state preparation failed; pipe textures may be wrong", t);
             }
         }
     }

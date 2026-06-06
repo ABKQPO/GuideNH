@@ -1,8 +1,5 @@
 package com.hfstudio.guidenh.integration.ae2;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPrepareContributor;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -10,7 +7,6 @@ import com.hfstudio.guidenh.integration.Mods;
 
 public class Ae2PreviewPrepareContributor implements PreviewPrepareContributor {
 
-    private static final Logger LOG = LogManager.getLogger("GuideNH/ScenePreview");
     private static volatile boolean invokeFailureLogged;
 
     @Override
@@ -28,7 +24,7 @@ public class Ae2PreviewPrepareContributor implements PreviewPrepareContributor {
         } catch (Throwable t) {
             if (!invokeFailureLogged) {
                 invokeFailureLogged = true;
-                GuideDebugLog.warn(LOG, "AE2 preview state preparation failed; 3D cable preview may be incomplete", t);
+                GuideDebugLog.warn("AE2 preview state preparation failed; 3D cable preview may be incomplete", t);
             }
         }
     }

@@ -72,6 +72,7 @@ import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
 import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.network.Ae2NetworkRegistration;
@@ -199,7 +200,7 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("RecipesFor", recipeScript);
 
         MinecraftForge.EVENT_BUS.register(this);
-        GuideNH.LOG.info(
+        GuideDebugLog.infoAlways(
             "GuideNH runtime bridge configuration loaded. enabled={}, hostConfigured={}, port={}, tokenConfigured={}",
             ModConfig.runtimeBridge.enabled,
             ModConfig.runtimeBridge.host != null && !ModConfig.runtimeBridge.host.trim()
@@ -235,7 +236,7 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
-        GuideNH.LOG.info("Minecraft client disconnected. Stopping GuideNH runtime bridge session state");
+        GuideDebugLog.infoAlways("Minecraft client disconnected. Stopping GuideNH runtime bridge session state");
         runtimeBridge.stop();
         GuideME.closeSearch();
         lytHost.getNavigation()
