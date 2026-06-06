@@ -9,7 +9,6 @@ import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytDetailsBlock;
 import com.hfstudio.guidenh.guide.document.block.LytSizeBox;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
-import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 
 public class DetailsTagCompiler extends BlockTagCompiler {
@@ -27,11 +26,9 @@ public class DetailsTagCompiler extends BlockTagCompiler {
         details.setOpen(el.hasAttribute("open"));
         details.setFallbackSummaryText("Details");
 
-        String detailsBodySource = compiler.getBlockTagChildrenSource(el);
-        List<? extends MdAstAnyContent> children = detailsBodySource != null ? compiler.reparseBlockTagChildren(el)
-            : el.children();
+        List<? extends MdAstAnyContent> children = el.children();
         int bodyStart = 0;
-        if (!children.isEmpty() && children.getFirst() instanceof MdxJsxFlowElement summaryElement
+        if (!children.isEmpty() && children.getFirst() instanceof MdxJsxElementFields summaryElement
             && "summary".equals(summaryElement.name())) {
             details.getSummaryBox()
                 .clearContent();
@@ -45,13 +42,7 @@ public class DetailsTagCompiler extends BlockTagCompiler {
 
         if (bodyStart < children.size()) {
             List<? extends MdAstAnyContent> bodyChildren = children.subList(bodyStart, children.size());
-            if (detailsBodySource != null) {
-                compiler.withSourceContext(
-                    detailsBodySource,
-                    () -> compiler.compileBlockContextInSourceContext(bodyChildren, details.getContentBox()));
-            } else {
-                compiler.compileBlockContextInSourceContext(bodyChildren, details.getContentBox());
-            }
+            compiler.compileBlockContextInSourceContext(bodyChildren, details.getContentBox());
         }
 
         Integer width = readOptionalInt(el, "width");

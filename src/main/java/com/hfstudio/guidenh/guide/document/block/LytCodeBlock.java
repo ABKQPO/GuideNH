@@ -282,18 +282,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         LytRect bodyViewport = getBodyViewportBounds();
         context.pushLocalScissor(bodyViewport);
         try {
-                int offsetY = visualBodyScrollOffsetY.rounded() - bodyScrollOffsetY;
-            if (offsetY != 0) {
-                org.lwjgl.opengl.GL11.glPushMatrix();
-                try {
-                    org.lwjgl.opengl.GL11.glTranslatef(0f, -offsetY, 0f);
-                    body.render(context);
-                } finally {
-                    org.lwjgl.opengl.GL11.glPopMatrix();
-                }
-            } else {
-                body.render(context);
-            }
+            renderBodyWithVisualOffset(context);
         } finally {
             context.popScissor();
         }
@@ -356,24 +345,18 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     private LytRect getBodyViewportBounds() {
-        LytRect own = getBounds();
         LytRect toolbarBounds = toolbar.getBounds();
         int viewportY = toolbarBounds.bottom() + getGap();
         int viewportHeight = Math.max(0, bodyViewportHeight);
-        int viewportWidth = own.width();
-        if (getMaxBodyScroll() > 0) {
-            viewportWidth = Math.max(1, viewportWidth - SCROLLBAR_WIDTH - 4);
-        }
-        return new LytRect(own.x(), viewportY, viewportWidth, viewportHeight);
+        return new LytRect(body.getBounds().x(), viewportY, body.getBounds().width(), viewportHeight);
     }
 
     private LytRect getScrollbarTrackBounds() {
         if (getMaxBodyScroll() <= 0) {
             return LytRect.empty();
         }
-        LytRect own = getBounds();
         LytRect viewport = getBodyViewportBounds();
-        int x = own.right() - SCROLLBAR_WIDTH - 1;
+        int x = viewport.right() + 4;
         return new LytRect(x, viewport.y(), SCROLLBAR_WIDTH, viewport.height());
     }
 
@@ -414,7 +397,21 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
                 0,
                 bodyViewportY - bodyScrollOffsetY
                     - body.getBounds()
-                        .y());
+                .y());
+        }
+    }
+
+    private void renderBodyWithVisualOffset(RenderContext context) {
+        int renderDeltaY = bodyScrollOffsetY - visualBodyScrollOffsetY.rounded();
+        if (renderDeltaY == 0) {
+            body.render(context);
+            return;
+        }
+        body.moveLayoutPos(0, renderDeltaY);
+        try {
+            body.render(context);
+        } finally {
+            body.moveLayoutPos(0, -renderDeltaY);
         }
     }
 

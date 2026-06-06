@@ -91,22 +91,7 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
         LytRect viewportBounds = getViewportBounds();
         context.pushLocalScissor(viewportBounds);
         try {
-            int offsetY = visualScrollOffsetY.rounded() - appliedScrollOffsetY;
-            if (offsetY != 0) {
-                org.lwjgl.opengl.GL11.glPushMatrix();
-                try {
-                    org.lwjgl.opengl.GL11.glTranslatef(0f, -offsetY, 0f);
-                    for (LytBlock child : children) {
-                        child.render(context);
-                    }
-                } finally {
-                    org.lwjgl.opengl.GL11.glPopMatrix();
-                }
-            } else {
-                for (LytBlock child : children) {
-                    child.render(context);
-                }
-            }
+            renderChildrenWithVisualOffset(context);
         } finally {
             context.popScissor();
         }
@@ -287,5 +272,27 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
 
     private void updateVisualScroll() {
         visualScrollOffsetY.updateTowards(scrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, viewportHeight * 2f));
+    }
+
+    private void renderChildrenWithVisualOffset(RenderContext context) {
+        int renderDeltaY = appliedScrollOffsetY - visualScrollOffsetY.rounded();
+        if (renderDeltaY != 0) {
+            moveChildrenLayoutY(renderDeltaY);
+        }
+        try {
+            for (LytBlock child : children) {
+                child.render(context);
+            }
+        } finally {
+            if (renderDeltaY != 0) {
+                moveChildrenLayoutY(-renderDeltaY);
+            }
+        }
+    }
+
+    private void moveChildrenLayoutY(int deltaY) {
+        for (LytBlock child : children) {
+            child.moveLayoutPos(0, deltaY);
+        }
     }
 }
