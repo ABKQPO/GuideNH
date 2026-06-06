@@ -275,7 +275,8 @@ Another width-hint sample with three columns:
 ## Details
 
 `<details>` accepts `width`, `height`, `wrap`, and `align`. The summary supports inline tags, and
-the body can mix ordinary text with arbitrary runtime blocks.
+the body can mix ordinary text with arbitrary runtime blocks. When a height is set, the summary and
+outer frame stay fixed while only the body scrolls.
 
 <details open width="220" height="150" wrap="square" align="right">
 <summary>Mixed runtime content <ItemImage id="minecraft:diamond" /></summary>

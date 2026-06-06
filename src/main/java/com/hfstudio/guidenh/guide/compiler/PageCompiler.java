@@ -26,6 +26,7 @@ import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor;
 import com.hfstudio.guidenh.guide.document.block.LatexRenderOptions;
 import com.hfstudio.guidenh.guide.document.block.LatexVerticalAlign;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -529,6 +530,21 @@ public class PageCompiler {
             layoutParent);
     }
 
+    public void compileBlockMarkdown(String source, LytBlockContainer layoutParent) {
+        if (source == null || source.isEmpty()) {
+            return;
+        }
+        ParsedGuidePage parsed = parse(sourcePack, language, pageId, source);
+        Map<String, MdAstDefinition> previousDefinitions = new HashMap<>(definitions);
+        definitions.putAll(GuideMarkdownDefinitions.collect(parsed.getAstRoot()));
+        try {
+            withSourceSlice(source, () -> compileBlockContext(parsed.getAstRoot(), layoutParent));
+        } finally {
+            definitions.clear();
+            definitions.putAll(previousDefinitions);
+        }
+    }
+
     public void compileInlineFragment(Collection<? extends MdAstAnyContent> children, LytFlowParent layoutParent) {
         for (MdAstAnyContent child : children) {
             if (child instanceof MdxJsxFlowElement el && "p".equals(el.name())) {
@@ -953,7 +969,7 @@ public class PageCompiler {
             return null;
         }
 
-        return new BlockTagChildSource(dedentBlockTagBody(body));
+        return new BlockTagChildSource(DetailsContentExtractor.dedent(body));
     }
 
     private BlockTagChildrenCacheEntry getBlockTagChildrenCacheEntry(MdxJsxElementFields element) {
@@ -972,83 +988,6 @@ public class PageCompiler {
         }
         blockTagChildrenCache.put(element, cachedEntry);
         return cachedEntry;
-    }
-
-    private String dedentBlockTagBody(String body) {
-        String normalized = normalizeLineEndings(body);
-        if (normalized.isEmpty()) {
-            return normalized;
-        }
-
-        List<String> lines = GuideStringLines.splitLines(normalized);
-        int firstContentLine = 0;
-        while (firstContentLine < lines.size() && lines.get(firstContentLine)
-            .trim()
-            .isEmpty()) {
-            firstContentLine++;
-        }
-
-        int minIndent = Integer.MAX_VALUE;
-        for (int i = firstContentLine; i < lines.size(); i++) {
-            String line = lines.get(i);
-            if (line.trim()
-                .isEmpty()) {
-                continue;
-            }
-            minIndent = Math.min(minIndent, leadingWhitespaceWidth(line));
-        }
-        if (minIndent == Integer.MAX_VALUE) {
-            minIndent = 0;
-        }
-
-        StringBuilder result = new StringBuilder(normalized.length());
-        for (int i = firstContentLine; i < lines.size(); i++) {
-            if (i > firstContentLine) {
-                result.append('\n');
-            }
-            result.append(removeLeadingWhitespace(lines.get(i), minIndent));
-        }
-
-        while (result.length() > 0 && result.charAt(result.length() - 1) == '\n') {
-            result.setLength(result.length() - 1);
-        }
-        if (Objects.equals(body, normalized) && body.endsWith("\n")) {
-            result.append('\n');
-        }
-        return result.toString();
-    }
-
-    private int leadingWhitespaceWidth(String line) {
-        int width = 0;
-        for (int i = 0; i < line.length(); i++) {
-            char ch = line.charAt(i);
-            if (ch == ' ') {
-                width++;
-            } else if (ch == '\t') {
-                width += 4;
-            } else {
-                break;
-            }
-        }
-        return width;
-    }
-
-    private String removeLeadingWhitespace(String line, int widthToRemove) {
-        int index = 0;
-        int removed = 0;
-        while (index < line.length() && removed < widthToRemove) {
-            char ch = line.charAt(index);
-            if (ch == ' ') {
-                removed++;
-                index++;
-            } else if (ch == '\t') {
-                removed += 4;
-                index++;
-            } else {
-                break;
-            }
-        }
-        return line.substring(index);
     }
 
     public LytBlock createErrorBlock(String text, UnistNode child) {

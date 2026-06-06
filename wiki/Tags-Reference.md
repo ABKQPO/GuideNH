@@ -123,6 +123,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 Creates a collapsible runtime block with a summary row. The `<summary>` line supports normal
 inline markdown/tag content, and the body can hold ordinary text plus arbitrary block tags such as
 `<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tables, charts, and layout containers.
+When `height` is set, only the body scrolls; the summary row and outer frame stay fixed.
 
 ````md
 <details open width="220" height="140" wrap="square" align="right">

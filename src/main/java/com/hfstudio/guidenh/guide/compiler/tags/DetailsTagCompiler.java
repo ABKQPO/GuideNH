@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor.DetailsContent;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytDetailsBlock;
-import com.hfstudio.guidenh.guide.document.block.LytSizeBox;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 
@@ -26,10 +26,39 @@ public class DetailsTagCompiler extends BlockTagCompiler {
         details.setOpen(el.hasAttribute("open"));
         details.setFallbackSummaryText("Details");
 
-        List<? extends MdAstAnyContent> children = el.children();
+        String childrenSource = compiler.getBlockTagChildrenSource(el);
+        if (childrenSource != null) {
+            DetailsContent extracted = DetailsContentExtractor.extract(childrenSource);
+            if (extracted.summaryMarkdown() != null) {
+                details.getSummaryBox()
+                    .clearContent();
+                compiler.compileInlineMarkdown(extracted.summaryMarkdown(), details.getSummaryBox());
+                if (details.getSummaryBox()
+                    .isEmpty()) {
+                    details.setFallbackSummaryText("Details");
+                }
+            }
+            compiler.compileBlockMarkdown(extracted.bodyMarkdown(), details.getContentBox());
+        } else {
+            compileAstChildren(compiler, details, el.children());
+        }
+
+        Integer width = readOptionalInt(el, "width");
+        Integer height = readOptionalInt(el, "height");
+        if (width != null) {
+            details.setPreferredWidth(width);
+        }
+        if (height != null) {
+            details.setPreferredContentHeight(height);
+        }
+        parent.append(details);
+    }
+
+    private void compileAstChildren(PageCompiler compiler, LytDetailsBlock details,
+        List<? extends MdAstAnyContent> children) {
         int bodyStart = 0;
-        if (!children.isEmpty() && children.getFirst() instanceof MdxJsxElementFields summaryElement
-            && "summary".equals(summaryElement.name())) {
+        MdxJsxElementFields summaryElement = findLeadingSummary(children);
+        if (summaryElement != null) {
             details.getSummaryBox()
                 .clearContent();
             compiler.compileInlineFragment(summaryElement.children(), details.getSummaryBox());
@@ -44,22 +73,17 @@ public class DetailsTagCompiler extends BlockTagCompiler {
             List<? extends MdAstAnyContent> bodyChildren = children.subList(bodyStart, children.size());
             compiler.compileBlockContextInSourceContext(bodyChildren, details.getContentBox());
         }
+    }
 
-        Integer width = readOptionalInt(el, "width");
-        Integer height = readOptionalInt(el, "height");
-        if (width != null || height != null) {
-            LytSizeBox sizeBox = new LytSizeBox();
-            if (width != null) {
-                sizeBox.setPreferredWidth(width);
-            }
-            if (height != null) {
-                sizeBox.setPreferredHeight(height);
-            }
-            sizeBox.append(details);
-            parent.append(sizeBox);
-            return;
+    private MdxJsxElementFields findLeadingSummary(List<? extends MdAstAnyContent> children) {
+        if (children.isEmpty()) {
+            return null;
         }
-        parent.append(details);
+        if (children.getFirst() instanceof MdxJsxElementFields summaryElement
+            && "summary".equals(summaryElement.name())) {
+            return summaryElement;
+        }
+        return null;
     }
 
     private Integer readOptionalInt(MdxJsxElementFields el, String name) {

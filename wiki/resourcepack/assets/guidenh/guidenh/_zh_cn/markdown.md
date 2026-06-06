@@ -265,7 +265,7 @@ Markdown：
 
 ## 折叠详情
 
-`<details>` 支持 `width`、`height`、`wrap`、`align`。`<summary>` 支持行内标签，正文则可以混排普通文本与任意运行时块。
+`<details>` 支持 `width`、`height`、`wrap`、`align`。`<summary>` 支持行内标签，正文则可以混排普通文本与任意运行时块。设置高度时，标题和外框保持固定，只有正文区域滚动。
 
 <details open width="220" height="150" wrap="square" align="right">
 <summary>混合运行时内容 <ItemImage id="minecraft:diamond" /></summary>
