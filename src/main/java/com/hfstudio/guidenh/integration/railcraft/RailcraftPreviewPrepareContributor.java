@@ -24,9 +24,8 @@ public class RailcraftPreviewPrepareContributor implements PreviewPrepareContrib
         } catch (Throwable t) {
             if (!invokeFailureLogged) {
                 invokeFailureLogged = true;
-                GuideDebugLog.warn(
-                    "Railcraft multiblock preview preparation failed; multiblock textures may be inactive",
-                    t);
+                GuideDebugLog
+                    .warn("Railcraft multiblock preview preparation failed; multiblock textures may be inactive", t);
             }
         }
     }

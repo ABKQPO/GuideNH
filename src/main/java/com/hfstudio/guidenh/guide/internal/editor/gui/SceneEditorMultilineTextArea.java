@@ -1270,7 +1270,7 @@ public class SceneEditorMultilineTextArea {
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         if (lines.isEmpty()) return PADDING;
         int lineIdx = getVisualLineIndex(selectionModel.getCursorIndex());
-            return PADDING + getCursorPixelOnLine(selectionModel.getCursorIndex(), lines.get(lineIdx))
+        return PADDING + getCursorPixelOnLine(selectionModel.getCursorIndex(), lines.get(lineIdx))
             - visualHorizontalOffsetPixels.rounded();
     }
 
@@ -1403,12 +1403,8 @@ public class SceneEditorMultilineTextArea {
             0.25f,
             0.01f,
             Math.max(160f, getContentClipHeight() * 2f));
-        visualHorizontalOffsetPixels.updateTowards(
-            horizontalOffsetPixels,
-            30f,
-            0.25f,
-            0.01f,
-            Math.max(160f, textViewportWidth * 2f));
+        visualHorizontalOffsetPixels
+            .updateTowards(horizontalOffsetPixels, 30f, 0.25f, 0.01f, Math.max(160f, textViewportWidth * 2f));
     }
 
     private int clamp(int value, int min, int max) {

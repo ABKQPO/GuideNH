@@ -3993,8 +3993,11 @@ public class LytGuidebookScene extends LytBlock {
         float targetRotZ = getLogicalCameraRotationZ();
         float targetOffX = getLogicalCameraOffsetX();
         float targetOffY = getLogicalCameraOffsetY();
-        if (visualCamZoom.value() == 0f && visualCamRotX.value() == 0f && visualCamRotY.value() == 0f && visualCamRotZ.value() == 0f
-            && visualCamOffX.value() == 0f && visualCamOffY.value() == 0f) {
+        if (visualCamZoom.value() == 0f && visualCamRotX.value() == 0f
+            && visualCamRotY.value() == 0f
+            && visualCamRotZ.value() == 0f
+            && visualCamOffX.value() == 0f
+            && visualCamOffY.value() == 0f) {
             visualCamZoom.snapTo(targetZoom);
             visualCamRotX.snapTo(targetRotX);
             visualCamRotY.snapTo(targetRotY);
@@ -4121,7 +4124,8 @@ public class LytGuidebookScene extends LytBlock {
             return;
         }
         int mouseX = Mouse.getX() * minecraft.currentScreen.width / minecraft.displayWidth;
-        int mouseY = minecraft.currentScreen.height - Mouse.getY() * minecraft.currentScreen.height / minecraft.displayHeight
+        int mouseY = minecraft.currentScreen.height
+            - Mouse.getY() * minecraft.currentScreen.height / minecraft.displayHeight
             - 1;
         if (mouseX == dragLastX && mouseY == dragLastY) {
             return;

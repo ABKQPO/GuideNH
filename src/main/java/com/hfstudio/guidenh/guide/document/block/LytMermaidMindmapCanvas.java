@@ -276,8 +276,12 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             .x() + (documentX - viewport.x() - previousOffsetX) / Math.max(previousZoom, 0.0001f);
         float anchorY = layout.contentBounds()
             .y() + (documentY - viewport.y() - previousOffsetY) / Math.max(previousZoom, 0.0001f);
-        contentOffsetX = Math.round((documentX - viewport.x()) - (anchorX - layout.contentBounds().x()) * zoom);
-        contentOffsetY = Math.round((documentY - viewport.y()) - (anchorY - layout.contentBounds().y()) * zoom);
+        contentOffsetX = Math.round(
+            (documentX - viewport.x()) - (anchorX - layout.contentBounds()
+                .x()) * zoom);
+        contentOffsetY = Math.round(
+            (documentY - viewport.y()) - (anchorY - layout.contentBounds()
+                .y()) * zoom);
         clampOffsets();
         return true;
     }

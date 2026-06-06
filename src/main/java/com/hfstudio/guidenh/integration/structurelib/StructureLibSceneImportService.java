@@ -101,7 +101,8 @@ public class StructureLibSceneImportService {
         try {
             return createRuntimeFacade();
         } catch (Throwable t) {
-            GuideDebugLog.warn("Failed to initialize StructureLib runtime facade, falling back to unavailable facade", t);
+            GuideDebugLog
+                .warn("Failed to initialize StructureLib runtime facade, falling back to unavailable facade", t);
             return new StructureLibUnavailableFacade();
         }
     }

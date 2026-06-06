@@ -63,17 +63,13 @@ public class GuideNhRuntimeBridgeServer {
             return;
         }
         try {
-            GuideDebugLog.infoAlways(
-                "Binding GuideNH runtime bridge server to {}:{}",
-                settings.getHost(),
-                settings.getPort());
+            GuideDebugLog
+                .infoAlways("Binding GuideNH runtime bridge server to {}:{}", settings.getHost(), settings.getPort());
             serverSocket = new ServerSocket();
             serverSocket.bind(new InetSocketAddress(settings.getHost(), settings.getPort()));
             executor.execute(this::acceptConnections);
-            GuideDebugLog.infoAlways(
-                "GuideNH runtime bridge started at ws://{}:{}",
-                settings.getHost(),
-                settings.getPort());
+            GuideDebugLog
+                .infoAlways("GuideNH runtime bridge started at ws://{}:{}", settings.getHost(), settings.getPort());
         } catch (IOException e) {
             running.set(false);
             closeServerSocket();

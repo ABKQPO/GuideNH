@@ -15,8 +15,8 @@ import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlightResul
 import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlightTheme;
 import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlighter;
 import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeTokenType;
-import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
@@ -348,7 +348,13 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         LytRect toolbarBounds = toolbar.getBounds();
         int viewportY = toolbarBounds.bottom() + getGap();
         int viewportHeight = Math.max(0, bodyViewportHeight);
-        return new LytRect(body.getBounds().x(), viewportY, body.getBounds().width(), viewportHeight);
+        return new LytRect(
+            body.getBounds()
+                .x(),
+            viewportY,
+            body.getBounds()
+                .width(),
+            viewportHeight);
     }
 
     private LytRect getScrollbarTrackBounds() {
@@ -397,7 +403,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
                 0,
                 bodyViewportY - bodyScrollOffsetY
                     - body.getBounds()
-                .y());
+                        .y());
         }
     }
 
@@ -434,6 +440,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     private void updateVisualScroll() {
-        visualBodyScrollOffsetY.updateTowards(bodyScrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, bodyViewportHeight * 2f));
+        visualBodyScrollOffsetY
+            .updateTowards(bodyScrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, bodyViewportHeight * 2f));
     }
 }

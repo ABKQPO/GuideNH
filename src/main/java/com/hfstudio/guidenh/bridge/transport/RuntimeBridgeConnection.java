@@ -60,16 +60,15 @@ public class RuntimeBridgeConnection implements Runnable {
     public void run() {
         try {
             socket.setSoTimeout(SOCKET_TIMEOUT_MILLIS);
-            GuideDebugLog.infoAlways("GuideNH runtime bridge waiting for WebSocket handshake from {}", describeRemote());
+            GuideDebugLog
+                .infoAlways("GuideNH runtime bridge waiting for WebSocket handshake from {}", describeRemote());
             if (!new WebSocketHandshake().accept(socket.getInputStream(), socket.getOutputStream())) {
                 GuideDebugLog.warnAlways(
                     "GuideNH runtime bridge rejected invalid WebSocket handshake from {}",
                     describeRemote());
                 return;
             }
-            GuideDebugLog.infoAlways(
-                "GuideNH runtime bridge WebSocket handshake completed for {}",
-                describeRemote());
+            GuideDebugLog.infoAlways("GuideNH runtime bridge WebSocket handshake completed for {}", describeRemote());
             readFrames();
         } catch (SocketTimeoutException ignored) {
             GuideDebugLog.warnAlways("GuideNH runtime bridge connection timed out for {}", describeRemote());

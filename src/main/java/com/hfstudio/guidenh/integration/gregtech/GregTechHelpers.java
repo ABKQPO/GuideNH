@@ -36,6 +36,7 @@ import gregtech.common.blocks.ItemMachines;
 import gregtech.common.misc.GTStructureChannels;
 
 public class GregTechHelpers {
+
     public static final Set<String> LOGGED_KEYS = Collections.synchronizedSet(new HashSet<>());
 
     public static ItemStack applyOreDictUnification(ItemStack stack) {

@@ -256,13 +256,12 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
             return LytRect.empty();
         }
 
-        SceneEditorVerticalScrollbar.Thumb thumb = SceneEditorVerticalScrollbar
-            .computeThumb(
-                trackBounds.y(),
-                trackBounds.height(),
-                contentHeight,
-                viewportHeight,
-                visualScrollOffsetY.rounded());
+        SceneEditorVerticalScrollbar.Thumb thumb = SceneEditorVerticalScrollbar.computeThumb(
+            trackBounds.y(),
+            trackBounds.height(),
+            contentHeight,
+            viewportHeight,
+            visualScrollOffsetY.rounded());
         return new LytRect(trackBounds.x(), thumb.start(), trackBounds.width(), thumb.size());
     }
 

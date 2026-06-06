@@ -117,7 +117,8 @@ public class GuideScreenEditorContextMenu {
         panes.add(new MenuPane(entries, rootRect.x(), rootRect.y(), rootWidth, rootHeight));
         open = true;
         draggingScrollbarPaneIndex = -1;
-        panes.getFirst().snapVisualScrollToTarget();
+        panes.getFirst()
+            .snapVisualScrollToTarget();
         update(mouseX, mouseY, viewportWidth, viewportHeight, fontRenderer);
     }
 
@@ -482,12 +483,11 @@ public class GuideScreenEditorContextMenu {
                 pane.entries,
                 pane.scrollY)) {
                 draggingScrollbarPaneIndex = i;
-                scrollbarGrabOffset = mouseY
-                    - scrollbarThumbY(
-                        pane.y,
-                        pane.height,
-                        computeMenuContentHeight(pane.entries),
-                        pane.visualScrollY.rounded());
+                scrollbarGrabOffset = mouseY - scrollbarThumbY(
+                    pane.y,
+                    pane.height,
+                    computeMenuContentHeight(pane.entries),
+                    pane.visualScrollY.rounded());
                 return true;
             }
         }

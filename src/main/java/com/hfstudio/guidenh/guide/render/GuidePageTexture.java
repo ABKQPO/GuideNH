@@ -22,6 +22,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 public class GuidePageTexture {
+
     public static final GuidePageTexture MISSING = new GuidePageTexture(null, 0, 0, null);
     private static final String TEXTURE_OBJECTS_FIELD = "mapTextureObjects";
     private static final String TEXTURE_OBJECTS_SRG_FIELD = "field_110585_a";

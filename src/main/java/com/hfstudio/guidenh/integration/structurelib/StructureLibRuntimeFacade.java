@@ -46,6 +46,7 @@ import com.mojang.authlib.GameProfile;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 public class StructureLibRuntimeFacade implements StructureLibFacade {
+
     public static final int CONTROLLER_X = 0;
     public static final int CONTROLLER_Y = 64;
     public static final int CONTROLLER_Z = 0;
@@ -482,10 +483,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 .add("StructureLib instrumentation was already active; preview tooltip metadata may be incomplete.");
         } catch (Throwable t) {
             warnings.add("StructureLib instrumentation setup failed; preview tooltip metadata may be incomplete.");
-            GuideDebugLog.warn(
-                "Failed to enable StructureLib instrumentation for controller {}",
-                request.getController(),
-                t);
+            GuideDebugLog
+                .warn("Failed to enable StructureLib instrumentation for controller {}", request.getController(), t);
         }
 
         try {
