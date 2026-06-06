@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 
 public class AutocompletePopup {
 
@@ -35,6 +36,7 @@ public class AutocompletePopup {
     private List<String> lastCandidateKeys = Collections.emptyList();
     private int selectedIndex;
     private int scrollY;
+    private final SmoothFloatState visualScrollY = new SmoothFloatState();
     private int x, y, width, height;
     private int viewportWidth, viewportHeight;
 
@@ -58,6 +60,7 @@ public class AutocompletePopup {
             this.scrollY = 0;
             lastCandidateKeys = candidateKeys(this.candidates);
             computeSize(fontRenderer);
+            snapVisualScrollToTarget();
         }
         this.viewportWidth = viewportWidth;
         this.viewportHeight = viewportHeight;
@@ -88,6 +91,7 @@ public class AutocompletePopup {
         candidates = Collections.emptyList();
         lastCandidateKeys = Collections.emptyList();
         selectedIndex = -1;
+        snapVisualScrollToTarget();
     }
 
     public void moveSelection(int delta) {
@@ -163,13 +167,15 @@ public class AutocompletePopup {
 
     public void draw(FontRenderer fontRenderer, int mouseX, int mouseY) {
         if (!open) return;
+        updateVisualScroll();
+        int renderedScrollY = visualScrollY.rounded();
 
         Gui.drawRect(x - 1, y - 1, x + width + 1, y + height + 1, BORDER_COLOR);
         Gui.drawRect(x, y, x + width, y + height, BACKGROUND_COLOR);
 
         pushScissor(x + 1, y + 1, width - 2, height - 2);
 
-        int drawY = y + PADDING_Y - scrollY;
+        int drawY = y + PADDING_Y - renderedScrollY;
         int itemIndex = 0;
         int itemHeight = computeMaxItemHeight();
         for (AutocompleteCandidate candidate : candidates) {
@@ -245,7 +251,7 @@ public class AutocompletePopup {
     private int findItemIndex(int mouseX, int mouseY) {
         if (!contains(mouseX, mouseY)) return -1;
         int itemH = computeMaxItemHeight();
-        int localY = mouseY - y - PADDING_Y + scrollY;
+        int localY = mouseY - y - PADDING_Y + visualScrollY.rounded();
         int index = localY / itemH;
         if (index < 0 || index >= candidates.size()) return -1;
         return index;
@@ -258,7 +264,7 @@ public class AutocompletePopup {
         Gui.drawRect(barX, y + 1, x + width - 1, y + height - 1, SCROLLBAR_TRACK_COLOR);
         int thumbH = Math.max(16, height * height / Math.max(1, contentH));
         int maxScroll = Math.max(0, contentH - height);
-        int thumbY = y + (maxScroll > 0 ? (height - thumbH) * scrollY / maxScroll : 0);
+        int thumbY = y + (maxScroll > 0 ? (height - thumbH) * visualScrollY.rounded() / maxScroll : 0);
         Gui.drawRect(barX, thumbY, x + width - 1, thumbY + thumbH, SCROLLBAR_THUMB_COLOR);
     }
 
@@ -271,6 +277,14 @@ public class AutocompletePopup {
         int maxScroll = Math.max(0, computeContentHeight() - height);
         if (value < 0) return 0;
         return Math.min(value, maxScroll);
+    }
+
+    private void snapVisualScrollToTarget() {
+        visualScrollY.snapTo(scrollY);
+    }
+
+    private void updateVisualScroll() {
+        visualScrollY.updateTowards(scrollY, 28f, 0.25f, 0.01f, Math.max(96f, height * 2f));
     }
 
     private static void pushScissor(int x, int y, int width, int height) {

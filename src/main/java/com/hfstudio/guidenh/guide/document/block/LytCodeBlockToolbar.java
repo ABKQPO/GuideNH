@@ -45,6 +45,9 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
         copyButton.setColor(TOOLBAR_TEXT);
         append(languageLabel);
         append(copyButton);
+        setPaddingLeft(8);
+        setPaddingTop(4);
+        setPaddingRight(8);
         setPaddingBottom(4);
         setBorderBottom(new BorderStyle(TOOLBAR_BORDER, 1));
     }

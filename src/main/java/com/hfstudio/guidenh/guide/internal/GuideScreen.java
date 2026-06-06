@@ -187,6 +187,7 @@ public class GuideScreen extends GuiContainer
     private final Deque<GuideScreenViewState> forwardHistory = new ArrayDeque<>();
 
     private int scrollY;
+    private float visualScrollY;
     private boolean pendingAnchorScroll;
     private float currentZoom = 1.0f;
     private float currentVisualScale = 1.0f;
@@ -387,6 +388,7 @@ public class GuideScreen extends GuiContainer
     private long guideLastMouseEvent;
     private int guideTouchValue;
     private boolean temporaryScreenChangeExpected;
+    private long lastVisualUpdateNanos;
 
     public static class SceneButtonHit {
 
@@ -709,6 +711,7 @@ public class GuideScreen extends GuiContainer
         lastLayoutWidth = -1;
         invalidateScrollbarOutline();
         scrollY = 0;
+        snapVisualScrollToTarget();
         loadCurrentPage();
         ensureLayout();
         scrollToCurrentAnchor();
@@ -727,6 +730,7 @@ public class GuideScreen extends GuiContainer
         scrollY = pendingRestoreViewState.scrollY();
         pendingRestoreViewState = null;
         clampScroll();
+        snapVisualScrollToTarget();
     }
 
     private void finalizePendingViewState() {
@@ -2471,12 +2475,14 @@ public class GuideScreen extends GuiContainer
             var layoutY = flowAnchor.getLayoutY();
             if (layoutY.isPresent()) {
                 scrollY = layoutY.getAsInt();
+                snapVisualScrollToTarget();
                 return;
             }
         }
         LytRect bounds = blockNode.getBounds();
         if (bounds != null) {
             scrollY = bounds.y();
+            snapVisualScrollToTarget();
         }
     }
 
@@ -2566,6 +2572,9 @@ public class GuideScreen extends GuiContainer
         int max = getMaxScroll();
         if (scrollY < 0) scrollY = 0;
         if (scrollY > max) scrollY = max;
+        if (Math.abs(visualScrollY - scrollY) > Math.max(96f, getDocumentViewportHeight() * 2f)) {
+            visualScrollY = scrollY;
+        }
         ClientProxy.getLytHost()
             .getViewport()
             .updateContent(contentW, contentH);
@@ -2574,11 +2583,39 @@ public class GuideScreen extends GuiContainer
             .scrollTo(scrollY);
     }
 
+    private void snapVisualScrollToTarget() {
+        visualScrollY = scrollY;
+    }
+
+    private void updateVisualState() {
+        long now = System.nanoTime();
+        if (lastVisualUpdateNanos == 0L) {
+            lastVisualUpdateNanos = now;
+            visualScrollY = scrollY;
+            return;
+        }
+        float deltaSeconds = Math.min(0.05f, (now - lastVisualUpdateNanos) / 1_000_000_000f);
+        lastVisualUpdateNanos = now;
+        visualScrollY = smoothApproach(visualScrollY, scrollY, deltaSeconds, 28f);
+        if (Math.abs(visualScrollY - scrollY) < 0.01f) {
+            visualScrollY = scrollY;
+        }
+    }
+
+    private static float smoothApproach(float current, float target, float deltaSeconds, float sharpness) {
+        if (deltaSeconds <= 0f) {
+            return current;
+        }
+        float blend = 1f - (float) Math.exp(-sharpness * deltaSeconds);
+        return current + (target - current) * blend;
+    }
+
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
         hoveredItemStack = null;
+        updateVisualState();
         drawTiledBackground();
         recomputePanelBounds();
         if (consumePanelBoundsChanged()) {
@@ -2591,6 +2628,7 @@ public class GuideScreen extends GuiContainer
         currentZoom = resolveCurrentZoom();
         ensureLayout();
         clampScroll();
+        pollContinuousMouseDrag(mouseX, mouseY);
         updateScrollbarOutlineHover(mouseX, mouseY);
 
         int navX = panelX;
@@ -2751,6 +2789,17 @@ public class GuideScreen extends GuiContainer
         if (activeScene != null) {
             activeScene.pollDrag();
         }
+    }
+
+    private void pollContinuousMouseDrag(int mouseX, int mouseY) {
+        if (guideMouseEventButton < 0 || guideLastMouseEvent <= 0L) {
+            return;
+        }
+        if (guideMouseEventButton <= 2 && !Mouse.isButtonDown(guideMouseEventButton)) {
+            return;
+        }
+        long heldTime = Minecraft.getSystemTime() - guideLastMouseEvent;
+        mouseClickMove(mouseX, mouseY, guideMouseEventButton, heldTime);
     }
 
     private void drawGuideEditorScreen(int mouseX, int mouseY) {
@@ -4255,14 +4304,16 @@ public class GuideScreen extends GuiContainer
         var ctx = reusableRenderCtx;
         ctx.setLightDarkMode(LightDarkMode.LIGHT_MODE);
         int documentRenderOffsetY = getDocumentRenderOffsetY(activeDocument);
-        int viewportTopInDocument = Math.max(0, scrollY - documentRenderOffsetY);
+        int renderedScrollY = Math.round(visualScrollY);
+        int viewportTopInDocument = Math.max(0, renderedScrollY - documentRenderOffsetY);
         cachedViewportRect = cachedRect(cachedViewportRect, 0, viewportTopInDocument, contentW, documentH);
         cachedScissorRect = cachedRect(cachedScissorRect, contentX, documentY, contentW, documentH);
         ctx.setViewport(cachedViewportRect);
         ctx.setScreenHeight(this.height);
         int documentRenderY = getDocumentViewportY() + documentRenderOffsetY;
         ctx.setDocumentOrigin(contentX, documentRenderY);
-        ctx.setScrollOffsetY(scrollY);
+        ctx.setScrollOffsetY(renderedScrollY);
+        ctx.setPreciseScrollOffsetY(visualScrollY);
         ctx.setZoom(currentZoom);
         ctx.pushScissor(cachedScissorRect);
         GL11.glPushMatrix();
@@ -4270,7 +4321,7 @@ public class GuideScreen extends GuiContainer
         if (currentZoom != 1.0f) {
             GL11.glScalef(currentZoom, currentZoom, 1f);
         }
-        GL11.glTranslatef(0f, -(float) scrollY, 0f);
+        GL11.glTranslatef(0f, -visualScrollY, 0f);
         try {
             activeDocument.render(ctx);
         } catch (Throwable t) {
@@ -4480,7 +4531,7 @@ public class GuideScreen extends GuiContainer
             getActiveDocument(),
             bounds,
             currentZoom,
-            scrollY,
+            Math.round(visualScrollY),
             lastMouseX,
             lastMouseY,
             System.currentTimeMillis(),
@@ -4494,7 +4545,7 @@ public class GuideScreen extends GuiContainer
         int thumbH = Math
             .max(16, (int) ((long) bounds.height() * bounds.viewportHeight() / Math.max(1, bounds.contentHeight())));
         int thumbY = bounds.maxScroll() > 0
-            ? bounds.y() + (int) ((long) (bounds.height() - thumbH) * scrollY / bounds.maxScroll())
+            ? bounds.y() + (int) ((long) (bounds.height() - thumbH) * Math.round(visualScrollY) / bounds.maxScroll())
             : bounds.y();
         int thumbColor = draggingScrollbar ? 0xFFFFFFFF : 0xFFCCCCCC;
         drawRect(bounds.x(), thumbY, bounds.x() + bounds.width(), thumbY + thumbH, thumbColor);
@@ -4506,7 +4557,7 @@ public class GuideScreen extends GuiContainer
         int thumbH = Math
             .max(16, (int) ((long) bounds.height() * bounds.viewportHeight() / Math.max(1, bounds.contentHeight())));
         int thumbY = bounds.maxScroll() > 0
-            ? bounds.y() + (int) ((long) (bounds.height() - thumbH) * scrollY / bounds.maxScroll())
+            ? bounds.y() + (int) ((long) (bounds.height() - thumbH) * Math.round(visualScrollY) / bounds.maxScroll())
             : bounds.y();
         return new int[] { bounds.x(), thumbY, bounds.width(), thumbH, bounds.y(), bounds.height() };
     }
@@ -4778,6 +4829,7 @@ public class GuideScreen extends GuiContainer
             if (markerTarget != null) {
                 scrollY = markerTarget.intValue();
                 clampScroll();
+                snapVisualScrollToTarget();
                 return;
             }
         }
@@ -5656,11 +5708,11 @@ public class GuideScreen extends GuiContainer
             getDocumentRenderY(activeDocument),
             contentW,
             getDocumentViewportHeight(),
-            scrollY)) {
+            Math.round(visualScrollY))) {
             return interaction;
         }
         int docX = Math.round((mouseX - contentX) / currentZoom);
-        int docY = Math.round((mouseY - getDocumentRenderY(activeDocument)) / currentZoom) + scrollY;
+        int docY = Math.round((mouseY - getDocumentRenderY(activeDocument)) / currentZoom) + Math.round(visualScrollY);
         var hit = activeDocument.pick(docX, docY);
         var scene = hit != null ? findSceneAncestor(hit.node()) : null;
         SceneButtonHit sceneButtonHit = null;
@@ -5686,7 +5738,7 @@ public class GuideScreen extends GuiContainer
             getDocumentRenderY(activeDocument),
             contentW,
             getDocumentViewportHeight(),
-            scrollY,
+            Math.round(visualScrollY),
             contentX,
             getDocumentViewportY(),
             contentW,
@@ -5735,10 +5787,10 @@ public class GuideScreen extends GuiContainer
         var activeDocument = getActiveDocument();
         if (activeDocument == null) {
             return new int[] { Math.round((mouseX - contentX) / currentZoom),
-                Math.round((mouseY - getDocumentViewportY()) / currentZoom) + scrollY };
+                Math.round((mouseY - getDocumentViewportY()) / currentZoom) + Math.round(visualScrollY) };
         }
         return new int[] { Math.round((mouseX - contentX) / currentZoom),
-            Math.round((mouseY - getDocumentRenderY(activeDocument)) / currentZoom) + scrollY };
+            Math.round((mouseY - getDocumentRenderY(activeDocument)) / currentZoom) + Math.round(visualScrollY) };
     }
 
     private int[] screenToActiveDocumentPoint(int mouseX, int mouseY) {
@@ -5808,6 +5860,7 @@ public class GuideScreen extends GuiContainer
         }
         if (keyCode == Keyboard.KEY_HOME) {
             scrollY = 0;
+            snapVisualScrollToTarget();
             return;
         }
         if (keyCode == Keyboard.KEY_END) {
@@ -6602,6 +6655,7 @@ public class GuideScreen extends GuiContainer
         refreshCurrentPageTitle();
         rebuildSearchDocumentIfNeeded(true);
         scrollY = 0;
+        snapVisualScrollToTarget();
         invalidateScrollbarOutline();
         rebuildToolbar();
         syncSearchFieldsToCurrentRoute();
@@ -6624,6 +6678,7 @@ public class GuideScreen extends GuiContainer
         pendingAnchorScroll = false;
         applySpecialPageSearchQuery(query);
         scrollY = 0;
+        snapVisualScrollToTarget();
         syncSearchFieldsToCurrentRoute();
     }
 

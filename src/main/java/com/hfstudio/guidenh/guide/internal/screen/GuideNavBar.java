@@ -25,6 +25,7 @@ import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.internal.GuideBookmarkState;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
@@ -168,6 +169,7 @@ public class GuideNavBar {
     private boolean contextMenuOpen;
     private int openWidth = WIDTH_OPEN;
     private int scrollY;
+    private final SmoothFloatState visualScrollY = new SmoothFloatState();
     @Nullable
     private Row hoveredScrollingRow;
     private long hoveredScrollingStartedAtMillis;
@@ -267,6 +269,7 @@ public class GuideNavBar {
     public void render(Minecraft mc, @Nullable ResourceLocation currentGuideId,
         @Nullable ResourceLocation currentPageId, int mouseX, int mouseY, @Nullable PageCollection pageCollection,
         GuideBookmarkState bookmarkState, boolean showNewPageButton) {
+        updateVisualScroll();
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
         try {
             int w = currentWidth();
@@ -733,7 +736,7 @@ public class GuideNavBar {
     }
 
     private int getFirstVisibleRowIndex() {
-        int firstVisibleRow = Math.floorDiv(scrollY - CONTENT_PADDING - 1, ROW_H);
+        int firstVisibleRow = Math.floorDiv(visualScrollY.rounded() - CONTENT_PADDING - 1, ROW_H);
         return Math.clamp(firstVisibleRow, 0, rows.size());
     }
 
@@ -746,7 +749,7 @@ public class GuideNavBar {
             }
         }
 
-        int relativeY = mouseY - y - TITLE_H + scrollY - CONTENT_PADDING;
+        int relativeY = mouseY - y - TITLE_H + visualScrollY.rounded() - CONTENT_PADDING;
         if (relativeY < 0) {
             return null;
         }
@@ -761,7 +764,7 @@ public class GuideNavBar {
     }
 
     private int getRowY(int rowIndex) {
-        return y + TITLE_H + CONTENT_PADDING - scrollY + rowIndex * ROW_H;
+        return y + TITLE_H + CONTENT_PADDING - visualScrollY.rounded() + rowIndex * ROW_H;
     }
 
     private int getTitleButtonY() {
@@ -782,6 +785,10 @@ public class GuideNavBar {
 
     private int getBodyHeight() {
         return Math.max(0, height - TITLE_H);
+    }
+
+    private void updateVisualScroll() {
+        visualScrollY.updateTowards(scrollY, 28f, 0.25f, 0.01f, Math.max(128f, getBodyHeight() * 2f));
     }
 
     private int getBodyBottom() {

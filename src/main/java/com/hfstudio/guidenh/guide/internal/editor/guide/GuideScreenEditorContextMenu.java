@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextAr
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 
 public class GuideScreenEditorContextMenu {
 
@@ -116,6 +117,7 @@ public class GuideScreenEditorContextMenu {
         panes.add(new MenuPane(entries, rootRect.x(), rootRect.y(), rootWidth, rootHeight));
         open = true;
         draggingScrollbarPaneIndex = -1;
+        panes.getFirst().snapVisualScrollToTarget();
         update(mouseX, mouseY, viewportWidth, viewportHeight, fontRenderer);
     }
 
@@ -127,6 +129,7 @@ public class GuideScreenEditorContextMenu {
         rootPane.width = computeMenuWidth(entries, fontRenderer);
         rootPane.height = clampMenuHeight(computeMenuContentHeight(entries), viewportHeight);
         rootPane.scrollY = clampScroll(rootPane.scrollY, rootPane.entries, rootPane.height);
+        rootPane.snapVisualScrollToTarget();
         var rootRect = SceneEditorPopupLayout
             .clampToViewport(rootPane.x, rootPane.y, rootPane.width, rootPane.height, viewportWidth, viewportHeight, 2);
         rootPane.x = rootRect.x();
@@ -205,6 +208,7 @@ public class GuideScreenEditorContextMenu {
         }
         for (MenuPane pane : panes) {
             pane.scrollY = clampScroll(pane.scrollY, pane.entries, pane.height);
+            pane.updateVisualScroll();
         }
 
         int paneIndex = findDeepestPaneIndex(mouseX, mouseY);
@@ -223,7 +227,7 @@ public class GuideScreenEditorContextMenu {
             pane.y,
             pane.width,
             pane.height,
-            pane.scrollY,
+            pane.visualScrollY.rounded(),
             pane.entries);
         if (entryIndex < 0) {
             pane.hoveredIndex = -1;
@@ -257,7 +261,7 @@ public class GuideScreenEditorContextMenu {
             childX = parentPane.x - childWidth + 1;
         }
         childX = clampToViewportX(childX, childWidth, viewportWidth);
-        int childY = parentPane.y + PADDING_Y + entryIndex * ITEM_HEIGHT - parentPane.scrollY;
+        int childY = parentPane.y + PADDING_Y + entryIndex * ITEM_HEIGHT - parentPane.visualScrollY.rounded();
         childY = clampToViewportY(childY, childHeight, viewportHeight);
 
         int childPaneIndex = paneIndex + 1;
@@ -267,6 +271,7 @@ public class GuideScreenEditorContextMenu {
                 childPane.entries = childEntries;
                 childPane.hoveredIndex = -1;
                 childPane.scrollY = 0;
+                childPane.snapVisualScrollToTarget();
             }
             childPane.x = childX;
             childPane.y = childY;
@@ -274,7 +279,9 @@ public class GuideScreenEditorContextMenu {
             childPane.height = childHeight;
             childPane.scrollY = clampScroll(childPane.scrollY, childPane.entries, childPane.height);
         } else {
-            panes.add(new MenuPane(childEntries, childX, childY, childWidth, childHeight));
+            MenuPane pane = new MenuPane(childEntries, childX, childY, childWidth, childHeight);
+            pane.snapVisualScrollToTarget();
+            panes.add(pane);
         }
     }
 
@@ -344,7 +351,7 @@ public class GuideScreenEditorContextMenu {
                 pane.height,
                 pane.entries,
                 pane.hoveredIndex,
-                pane.scrollY);
+                pane.visualScrollY.rounded());
         }
     }
 
@@ -476,7 +483,11 @@ public class GuideScreenEditorContextMenu {
                 pane.scrollY)) {
                 draggingScrollbarPaneIndex = i;
                 scrollbarGrabOffset = mouseY
-                    - scrollbarThumbY(pane.y, pane.height, computeMenuContentHeight(pane.entries), pane.scrollY);
+                    - scrollbarThumbY(
+                        pane.y,
+                        pane.height,
+                        computeMenuContentHeight(pane.entries),
+                        pane.visualScrollY.rounded());
                 return true;
             }
         }
@@ -552,6 +563,7 @@ public class GuideScreenEditorContextMenu {
         private int width;
         private int height;
         private int scrollY;
+        private final SmoothFloatState visualScrollY = new SmoothFloatState();
         private int hoveredIndex = -1;
 
         private MenuPane(List<Entry> entries, int x, int y, int width, int height) {
@@ -560,6 +572,14 @@ public class GuideScreenEditorContextMenu {
             this.y = y;
             this.width = width;
             this.height = height;
+        }
+
+        private void snapVisualScrollToTarget() {
+            visualScrollY.snapTo(scrollY);
+        }
+
+        private void updateVisualScroll() {
+            visualScrollY.updateTowards(scrollY, 28f, 0.25f, 0.01f, Math.max(96f, height * 2f));
         }
     }
 }

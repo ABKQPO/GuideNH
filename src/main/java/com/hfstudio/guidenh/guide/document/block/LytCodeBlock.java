@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlightResul
 import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlightTheme;
 import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlighter;
 import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeTokenType;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -47,6 +48,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     private int bodyContentHeight;
     private int bodyViewportHeight;
     private int bodyScrollOffsetY;
+    private final SmoothFloatState visualBodyScrollOffsetY = new SmoothFloatState();
     private boolean draggingBody;
     private int dragLastDocumentY;
     private boolean draggingScrollbar;
@@ -262,11 +264,13 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
         bodyViewportHeight = forcedBodyHeight > 0 ? forcedBodyHeight : bodyContentHeight;
         setBodyScrollOffset(bodyScrollOffsetY);
+        snapVisualScrollToTarget();
         return new LytRect(x, y, safeWidth, toolbarBounds.height() + getGap() + bodyViewportHeight);
     }
 
     @Override
     public void render(RenderContext context) {
+        updateVisualScroll();
         LytRect ownBounds = getBounds();
         if (ownBounds.isEmpty()) {
             return;
@@ -278,7 +282,18 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         LytRect bodyViewport = getBodyViewportBounds();
         context.pushLocalScissor(bodyViewport);
         try {
-            body.render(context);
+                int offsetY = visualBodyScrollOffsetY.rounded() - bodyScrollOffsetY;
+            if (offsetY != 0) {
+                org.lwjgl.opengl.GL11.glPushMatrix();
+                try {
+                    org.lwjgl.opengl.GL11.glTranslatef(0f, -offsetY, 0f);
+                    body.render(context);
+                } finally {
+                    org.lwjgl.opengl.GL11.glPopMatrix();
+                }
+            } else {
+                body.render(context);
+            }
         } finally {
             context.popScissor();
         }
@@ -374,7 +389,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         int thumbTrack = Math.max(1, track.height() - thumbHeight);
         int thumbY = track.y();
         if (maxScroll > 0) {
-            thumbY += (int) ((long) thumbTrack * bodyScrollOffsetY / maxScroll);
+            thumbY += (int) ((long) thumbTrack * visualBodyScrollOffsetY.rounded() / maxScroll);
         }
         return new LytRect(track.x(), thumbY, track.width(), thumbHeight);
     }
@@ -415,5 +430,13 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
             .clamp(mouseY - scrollbarGrabOffsetY, track.y(), track.y() + thumbTrack);
         int maxScroll = getMaxBodyScroll();
         setBodyScrollOffset((int) ((long) (thumbTop - track.y()) * maxScroll / thumbTrack));
+    }
+
+    private void snapVisualScrollToTarget() {
+        visualBodyScrollOffsetY.snapTo(bodyScrollOffsetY);
+    }
+
+    private void updateVisualScroll() {
+        visualBodyScrollOffsetY.updateTowards(bodyScrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, bodyViewportHeight * 2f));
     }
 }

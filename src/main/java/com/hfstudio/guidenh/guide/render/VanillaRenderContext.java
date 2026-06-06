@@ -44,6 +44,7 @@ public class VanillaRenderContext implements RenderContext {
     private int documentOriginY = 0;
 
     private int scrollOffsetY = 0;
+    private float preciseScrollOffsetY = 0f;
 
     private float zoom = 1.0f;
 
@@ -78,6 +79,12 @@ public class VanillaRenderContext implements RenderContext {
 
     public void setScrollOffsetY(int scrollOffsetY) {
         this.scrollOffsetY = scrollOffsetY;
+        this.preciseScrollOffsetY = scrollOffsetY;
+    }
+
+    public void setPreciseScrollOffsetY(float scrollOffsetY) {
+        this.preciseScrollOffsetY = scrollOffsetY;
+        this.scrollOffsetY = Math.round(scrollOffsetY);
     }
 
     @Override
@@ -97,7 +104,7 @@ public class VanillaRenderContext implements RenderContext {
     public LytRect toScreenRect(LytRect rect) {
         return new LytRect(
             Math.round(rect.x() * zoom) + documentOriginX,
-            Math.round((rect.y() - scrollOffsetY) * zoom) + documentOriginY,
+            Math.round((rect.y() - preciseScrollOffsetY) * zoom) + documentOriginY,
             Math.max(1, Math.round(rect.width() * zoom)),
             Math.max(1, Math.round(rect.height() * zoom)));
     }

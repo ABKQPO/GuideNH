@@ -58,6 +58,7 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
@@ -191,6 +192,12 @@ public class LytGuidebookScene extends LytBlock {
     private float ponderCamRotZ = 0f;
     private float ponderCamOffX = 0f;
     private float ponderCamOffY = 0f;
+    private final SmoothFloatState visualCamZoom = new SmoothFloatState();
+    private final SmoothFloatState visualCamRotX = new SmoothFloatState();
+    private final SmoothFloatState visualCamRotY = new SmoothFloatState();
+    private final SmoothFloatState visualCamRotZ = new SmoothFloatState();
+    private final SmoothFloatState visualCamOffX = new SmoothFloatState();
+    private final SmoothFloatState visualCamOffY = new SmoothFloatState();
     private final List<SceneAnnotation> ponderActiveAnnotations = new ArrayList<>();
     private final List<SceneAnnotation> ponderOutgoingAnnotations = new ArrayList<>();
     private int ponderOutgoingFadeTick = 0;
@@ -2220,67 +2227,45 @@ public class LytGuidebookScene extends LytBlock {
         List<GuidebookSceneWeatherEffect> weatherEffects = resolveRenderableWeatherEffectsForCurrentView(
             weatherLayerSelection);
 
-        boolean ponderCameraApplied = false;
-        float savedZoom = 0, savedRotX = 0, savedRotY = 0, savedRotZ = 0, savedOffX = 0, savedOffY = 0;
-        if (ponderSceneData != null) {
-            savedZoom = camera.getZoom();
-            savedRotX = camera.getRotationX();
-            savedRotY = camera.getRotationY();
-            savedRotZ = camera.getRotationZ();
-            savedOffX = camera.getOffsetX();
-            savedOffY = camera.getOffsetY();
-            camera.setZoom(ponderCamZoom);
-            camera.setRotationX(ponderCamRotX);
-            camera.setRotationY(ponderCamRotY);
-            camera.setRotationZ(ponderCamRotZ);
-            camera.setOffsetX(ponderCamOffX);
-            camera.setOffsetY(ponderCamOffY);
-            ponderCameraApplied = true;
-        }
+        float[] savedCameraState = applyVisualCameraState();
+        try {
+            GuidebookLevelRenderer.getInstance()
+                .render(
+                    level,
+                    camera,
+                    absX,
+                    absY,
+                    w,
+                    h,
+                    clipX,
+                    clipY,
+                    clipW,
+                    clipH,
+                    0f,
+                    inWorld,
+                    context.lightDarkMode(),
+                    weatherLayerSelection,
+                    resolveRenderableSceneParticles(),
+                    weatherEffects,
+                    resolveWeatherAnimationTick());
 
-        GuidebookLevelRenderer.getInstance()
-            .render(
-                level,
-                camera,
-                absX,
-                absY,
-                w,
-                h,
-                clipX,
-                clipY,
-                clipW,
-                clipH,
-                0f,
-                inWorld,
-                context.lightDarkMode(),
-                weatherLayerSelection,
-                resolveRenderableSceneParticles(),
-                weatherEffects,
-                resolveWeatherAnimationTick());
+            context.restoreExternalRenderState();
+            drawBlockStatsOverlay(context, sceneRect, outerRect);
+            context.restoreExternalRenderState();
 
-        context.restoreExternalRenderState();
-        drawBlockStatsOverlay(context, sceneRect, outerRect);
-        context.restoreExternalRenderState();
-
-        if (!overlays.isEmpty()) {
-            LytRect viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
-            context.pushLocalScissor(sceneRect);
-            try {
-                for (var o : overlays) {
-                    o.render(camera, context, viewport);
+            if (!overlays.isEmpty()) {
+                LytRect viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
+                context.pushLocalScissor(sceneRect);
+                try {
+                    for (var o : overlays) {
+                        o.render(camera, context, viewport);
+                    }
+                } finally {
+                    context.popScissor();
                 }
-            } finally {
-                context.popScissor();
             }
-        }
-
-        if (ponderCameraApplied) {
-            camera.setZoom(savedZoom);
-            camera.setRotationX(savedRotX);
-            camera.setRotationY(savedRotY);
-            camera.setRotationZ(savedRotZ);
-            camera.setOffsetX(savedOffX);
-            camera.setOffsetY(savedOffY);
+        } finally {
+            applyCapturedCameraState(savedCameraState);
         }
 
         drawBottomControls(context, outerRect);
@@ -3665,35 +3650,13 @@ public class LytGuidebookScene extends LytBlock {
         float relX = (mouseAbsX) - (lastAbsX + lastW * 0.5f);
         float relY = (mouseAbsY) - (lastAbsY + lastH * 0.5f);
 
-        // Apply ponder camera so the raycast matches the rendered view.
-        boolean ponderApplied = false;
-        float pSavedZoom = 0, pSavedRX = 0, pSavedRY = 0, pSavedRZ = 0, pSavedOX = 0, pSavedOY = 0;
-        if (ponderSceneData != null) {
-            pSavedZoom = camera.getZoom();
-            pSavedRX = camera.getRotationX();
-            pSavedRY = camera.getRotationY();
-            pSavedRZ = camera.getRotationZ();
-            pSavedOX = camera.getOffsetX();
-            pSavedOY = camera.getOffsetY();
-            camera.setZoom(ponderCamZoom);
-            camera.setRotationX(ponderCamRotX);
-            camera.setRotationY(ponderCamRotY);
-            camera.setRotationZ(ponderCamRotZ);
-            camera.setOffsetX(ponderCamOffX);
-            camera.setOffsetY(ponderCamOffY);
-            ponderApplied = true;
-        }
-
-        camera.setViewportSize(lastW, lastH);
-        float[] ray = camera.screenToWorldRay(relX, relY, pickRayScratch);
-
-        if (ponderApplied) {
-            camera.setZoom(pSavedZoom);
-            camera.setRotationX(pSavedRX);
-            camera.setRotationY(pSavedRY);
-            camera.setRotationZ(pSavedRZ);
-            camera.setOffsetX(pSavedOX);
-            camera.setOffsetY(pSavedOY);
+        float[] ray;
+        float[] savedCameraState = applyVisualCameraState();
+        try {
+            camera.setViewportSize(lastW, lastH);
+            ray = camera.screenToWorldRay(relX, relY, pickRayScratch);
+        } finally {
+            applyCapturedCameraState(savedCameraState);
         }
 
         float ox = ray[0], oy = ray[1], oz = ray[2];
@@ -3940,6 +3903,7 @@ public class LytGuidebookScene extends LytBlock {
         this.dragButton = button;
         this.dragLastX = mouseX;
         this.dragLastY = mouseY;
+        updateVisualCameraState();
     }
 
     public void updateSoundHover(int mouseX, int mouseY) {
@@ -4013,39 +3977,101 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private float[] projectSoundPosition(GuideSoundSpec sound) {
-        float[] saved = null;
-        if (ponderSceneData != null) {
-            saved = applyPonderCameraForProjection();
-        }
+        float[] saved = applyVisualCameraState();
         try {
             var projected = camera.worldToScreen(sound.x(), sound.y(), sound.z());
             return new float[] { lastAbsX + projected.x, lastAbsY + projected.y };
         } finally {
-            if (saved != null) {
-                restoreCameraFromProjection(saved);
-            }
+            applyCapturedCameraState(saved);
         }
     }
 
-    private float[] applyPonderCameraForProjection() {
-        float[] saved = new float[] { camera.getZoom(), camera.getRotationX(), camera.getRotationY(),
-            camera.getRotationZ(), camera.getOffsetX(), camera.getOffsetY() };
-        camera.setZoom(ponderCamZoom);
-        camera.setRotationX(ponderCamRotX);
-        camera.setRotationY(ponderCamRotY);
-        camera.setRotationZ(ponderCamRotZ);
-        camera.setOffsetX(ponderCamOffX);
-        camera.setOffsetY(ponderCamOffY);
+    private void updateVisualCameraState() {
+        float targetZoom = getLogicalCameraZoom();
+        float targetRotX = getLogicalCameraRotationX();
+        float targetRotY = getLogicalCameraRotationY();
+        float targetRotZ = getLogicalCameraRotationZ();
+        float targetOffX = getLogicalCameraOffsetX();
+        float targetOffY = getLogicalCameraOffsetY();
+        if (visualCamZoom.value() == 0f && visualCamRotX.value() == 0f && visualCamRotY.value() == 0f && visualCamRotZ.value() == 0f
+            && visualCamOffX.value() == 0f && visualCamOffY.value() == 0f) {
+            visualCamZoom.snapTo(targetZoom);
+            visualCamRotX.snapTo(targetRotX);
+            visualCamRotY.snapTo(targetRotY);
+            visualCamRotZ.snapTo(targetRotZ);
+            visualCamOffX.snapTo(targetOffX);
+            visualCamOffY.snapTo(targetOffY);
+            return;
+        }
+        if (isDraggingCamera()) {
+            visualCamZoom.updateTowards(targetZoom, 48f, 0.05f, 0.0001f, 8f);
+            visualCamRotX.updateTowards(targetRotX, 48f, 0.05f, 0.01f, 360f);
+            visualCamRotY.updateTowards(targetRotY, 48f, 0.05f, 0.01f, 360f);
+            visualCamRotZ.updateTowards(targetRotZ, 48f, 0.05f, 0.01f, 360f);
+            visualCamOffX.updateTowards(targetOffX, 54f, 0.05f, 0.01f, 512f);
+            visualCamOffY.updateTowards(targetOffY, 54f, 0.05f, 0.01f, 512f);
+            return;
+        }
+        visualCamZoom.updateTowards(targetZoom, 22f, 0.05f, 0.0001f, 4f);
+        visualCamRotX.updateTowards(targetRotX, 22f, 0.05f, 0.01f, 180f);
+        visualCamRotY.updateTowards(targetRotY, 22f, 0.05f, 0.01f, 180f);
+        visualCamRotZ.updateTowards(targetRotZ, 22f, 0.05f, 0.01f, 180f);
+        visualCamOffX.updateTowards(targetOffX, 26f, 0.05f, 0.01f, 256f);
+        visualCamOffY.updateTowards(targetOffY, 26f, 0.05f, 0.01f, 256f);
+    }
+
+    private float getLogicalCameraZoom() {
+        return ponderSceneData != null ? ponderCamZoom : camera.getZoom();
+    }
+
+    private float getLogicalCameraRotationX() {
+        return ponderSceneData != null ? ponderCamRotX : camera.getRotationX();
+    }
+
+    private float getLogicalCameraRotationY() {
+        return ponderSceneData != null ? ponderCamRotY : camera.getRotationY();
+    }
+
+    private float getLogicalCameraRotationZ() {
+        return ponderSceneData != null ? ponderCamRotZ : camera.getRotationZ();
+    }
+
+    private float getLogicalCameraOffsetX() {
+        return ponderSceneData != null ? ponderCamOffX : camera.getOffsetX();
+    }
+
+    private float getLogicalCameraOffsetY() {
+        return ponderSceneData != null ? ponderCamOffY : camera.getOffsetY();
+    }
+
+    private float[] captureCameraState() {
+        return new float[] { camera.getZoom(), camera.getRotationX(), camera.getRotationY(), camera.getRotationZ(),
+            camera.getOffsetX(), camera.getOffsetY() };
+    }
+
+    private void applyCapturedCameraState(float[] state) {
+        camera.setZoom(state[0]);
+        camera.setRotationX(state[1]);
+        camera.setRotationY(state[2]);
+        camera.setRotationZ(state[3]);
+        camera.setOffsetX(state[4]);
+        camera.setOffsetY(state[5]);
+    }
+
+    private float[] applyVisualCameraState() {
+        updateVisualCameraState();
+        float[] saved = captureCameraState();
+        camera.setZoom(visualCamZoom.value());
+        camera.setRotationX(visualCamRotX.value());
+        camera.setRotationY(visualCamRotY.value());
+        camera.setRotationZ(visualCamRotZ.value());
+        camera.setOffsetX(visualCamOffX.value());
+        camera.setOffsetY(visualCamOffY.value());
         return saved;
     }
 
-    private void restoreCameraFromProjection(float[] saved) {
-        camera.setZoom(saved[0]);
-        camera.setRotationX(saved[1]);
-        camera.setRotationY(saved[2]);
-        camera.setRotationZ(saved[3]);
-        camera.setOffsetX(saved[4]);
-        camera.setOffsetY(saved[5]);
+    private boolean isDraggingCamera() {
+        return dragButton >= 0 && !isPonderPlaying();
     }
 
     public static boolean isPanButton(int button) {
@@ -4087,8 +4113,20 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void pollDrag() {
-        // Camera movement is driven by explicit mouse drag events. Polling raw Mouse.getDX/Y here
-        // also consumes tiny deltas left by a plain click, which makes a click rotate the scene.
+        if (dragButton < 0 || isPonderPlaying()) {
+            return;
+        }
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft.currentScreen == null || minecraft.displayWidth <= 0 || minecraft.displayHeight <= 0) {
+            return;
+        }
+        int mouseX = Mouse.getX() * minecraft.currentScreen.width / minecraft.displayWidth;
+        int mouseY = minecraft.currentScreen.height - Mouse.getY() * minecraft.currentScreen.height / minecraft.displayHeight
+            - 1;
+        if (mouseX == dragLastX && mouseY == dragLastY) {
+            return;
+        }
+        drag(mouseX, mouseY);
     }
 
     private void applyCameraDrag(float dx, float dy) {
@@ -4113,6 +4151,7 @@ public class LytGuidebookScene extends LytBlock {
                 camera.setRotationX(camera.getRotationX() + dy * DRAG_ROTATE_SENSITIVITY);
             }
         }
+        updateVisualCameraState();
     }
 
     public void endDrag() {
@@ -4158,6 +4197,7 @@ public class LytGuidebookScene extends LytBlock {
             if (dwheel > 0) z *= WHEEL_ZOOM_STEP;
             else z /= WHEEL_ZOOM_STEP;
             ponderCamZoom = Math.clamp(z, MIN_ZOOM, MAX_ZOOM);
+            updateVisualCameraState();
             return;
         }
         float z = camera.getZoom();
@@ -4166,6 +4206,7 @@ public class LytGuidebookScene extends LytBlock {
         if (z < MIN_ZOOM) z = MIN_ZOOM;
         if (z > MAX_ZOOM) z = MAX_ZOOM;
         camera.setZoom(z);
+        updateVisualCameraState();
     }
 
     public void scroll(int dwheel) {
@@ -4177,6 +4218,7 @@ public class LytGuidebookScene extends LytBlock {
             if (dwheel > 0) z *= WHEEL_ZOOM_STEP;
             else z /= WHEEL_ZOOM_STEP;
             ponderCamZoom = Math.clamp(z, MIN_ZOOM, MAX_ZOOM);
+            updateVisualCameraState();
             return;
         }
         float z = camera.getZoom();
@@ -4185,6 +4227,7 @@ public class LytGuidebookScene extends LytBlock {
         if (z < MIN_ZOOM) z = MIN_ZOOM;
         if (z > MAX_ZOOM) z = MAX_ZOOM;
         camera.setZoom(z);
+        updateVisualCameraState();
     }
 
     public List<SceneAnnotation> getPonderActiveAnnotationsForTesting() {

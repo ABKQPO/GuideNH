@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorVerticalScrollbar;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
@@ -25,6 +26,7 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
     private int viewportHeight;
     private int scrollOffsetY;
     private int appliedScrollOffsetY;
+    private final SmoothFloatState visualScrollOffsetY = new SmoothFloatState();
     private boolean draggingContent;
     private int dragLastDocumentY;
     private boolean draggingScrollbar;
@@ -67,6 +69,7 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
 
         viewportHeight = preferredHeight > 0 ? preferredHeight : contentHeight;
         setScrollOffset(scrollOffsetY);
+        snapVisualScrollToTarget();
 
         int totalWidth = preferredWidth > 0 ? measuredWidth
             : contentBounds.width() + (hasVerticalScroll() ? SCROLLBAR_WIDTH + SCROLLBAR_GAP : 0);
@@ -75,6 +78,7 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
 
     @Override
     public void render(RenderContext context) {
+        updateVisualScroll();
         if (!hasVerticalScroll()) {
             super.render(context);
             return;
@@ -87,8 +91,21 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
         LytRect viewportBounds = getViewportBounds();
         context.pushLocalScissor(viewportBounds);
         try {
-            for (LytBlock child : children) {
-                child.render(context);
+            int offsetY = visualScrollOffsetY.rounded() - appliedScrollOffsetY;
+            if (offsetY != 0) {
+                org.lwjgl.opengl.GL11.glPushMatrix();
+                try {
+                    org.lwjgl.opengl.GL11.glTranslatef(0f, -offsetY, 0f);
+                    for (LytBlock child : children) {
+                        child.render(context);
+                    }
+                } finally {
+                    org.lwjgl.opengl.GL11.glPopMatrix();
+                }
+            } else {
+                for (LytBlock child : children) {
+                    child.render(context);
+                }
             }
         } finally {
             context.popScissor();
@@ -255,7 +272,20 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
         }
 
         SceneEditorVerticalScrollbar.Thumb thumb = SceneEditorVerticalScrollbar
-            .computeThumb(trackBounds.y(), trackBounds.height(), contentHeight, viewportHeight, scrollOffsetY);
+            .computeThumb(
+                trackBounds.y(),
+                trackBounds.height(),
+                contentHeight,
+                viewportHeight,
+                visualScrollOffsetY.rounded());
         return new LytRect(trackBounds.x(), thumb.start(), trackBounds.width(), thumb.size());
+    }
+
+    private void snapVisualScrollToTarget() {
+        visualScrollOffsetY.snapTo(scrollOffsetY);
+    }
+
+    private void updateVisualScroll() {
+        visualScrollOffsetY.updateTowards(scrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, viewportHeight * 2f));
     }
 }

@@ -18,6 +18,7 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
@@ -57,6 +58,8 @@ public class SceneEditorMultilineTextArea {
     private int textViewportWidth;
     private int textViewportHeight;
     private int horizontalOffsetPixels;
+    private final SmoothFloatState visualVerticalOffsetPixels = new SmoothFloatState();
+    private final SmoothFloatState visualHorizontalOffsetPixels = new SmoothFloatState();
     private boolean wrapEnabled;
     private boolean verticalScrollbarVisible;
     private boolean horizontalScrollbarVisible;
@@ -329,6 +332,7 @@ public class SceneEditorMultilineTextArea {
         int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
         int offset = Math.round(Math.clamp(fraction, 0f, 1f) * maxOffset);
         scrollState.setOffsetPixels(offset);
+        snapVisualOffsetsToTarget();
         syncImeFocusProxy();
     }
 
@@ -957,6 +961,9 @@ public class SceneEditorMultilineTextArea {
     }
 
     public void draw(boolean validationError) {
+        updateVisualOffsets();
+        int renderedVerticalOffset = visualVerticalOffsetPixels.rounded();
+        int renderedHorizontalOffset = visualHorizontalOffsetPixels.rounded();
         int borderColor = validationError ? ERROR_BORDER_COLOR : (focused ? FOCUSED_BORDER_COLOR : BORDER_COLOR);
         Gui.drawRect(x - 1, y - 1, x + width + 1, y + height + 1, borderColor);
         Gui.drawRect(x, y, x + width, y + height, BACKGROUND_COLOR);
@@ -973,13 +980,13 @@ public class SceneEditorMultilineTextArea {
 
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         int lineHeight = getLineHeight();
-        int drawY = y + PADDING - scrollState.getOffsetPixels();
+        int drawY = y + PADDING - renderedVerticalOffset;
         for (SceneEditorMultilineTextLayoutCache.VisualLine line : lines) {
             if (drawY + lineHeight >= y && drawY < y + clipHeight) {
-                drawExternalHighlightForLine(line, drawY);
-                drawSelectionForLine(line, drawY);
-                fontRenderer.drawString(line.text(), x + PADDING - horizontalOffsetPixels, drawY, 0xF0F0F0);
-                drawSyntaxWarningForLine(line, drawY);
+                drawExternalHighlightForLine(line, drawY, renderedHorizontalOffset);
+                drawSelectionForLine(line, drawY, renderedHorizontalOffset);
+                fontRenderer.drawString(line.text(), x + PADDING - renderedHorizontalOffset, drawY, 0xF0F0F0);
+                drawSyntaxWarningForLine(line, drawY, renderedHorizontalOffset);
             }
             drawY += lineHeight;
         }
@@ -988,8 +995,8 @@ public class SceneEditorMultilineTextArea {
             int cursorLine = getVisualLineIndex(selectionModel.getCursorIndex());
             SceneEditorMultilineTextLayoutCache.VisualLine visualLine = lines.get(cursorLine);
             int cursorPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), visualLine);
-            int cursorX = x + PADDING + cursorPixel - horizontalOffsetPixels;
-            int cursorY = y + PADDING + cursorLine * lineHeight - scrollState.getOffsetPixels();
+            int cursorX = x + PADDING + cursorPixel - renderedHorizontalOffset;
+            int cursorY = y + PADDING + cursorLine * lineHeight - renderedVerticalOffset;
             Gui.drawRect(cursorX, cursorY, cursorX + 1, cursorY + fontRenderer.FONT_HEIGHT + 1, 0xFFFFFFFF);
         }
 
@@ -1035,19 +1042,22 @@ public class SceneEditorMultilineTextArea {
         }
         scrollState.setViewportPixels(textViewportHeight);
         scrollState.setContentPixels(layoutCache.getContentHeightPixels());
+        snapVisualOffsetsToTarget();
     }
 
     private void syncImeFocusProxy() {
         int lineHeight = getLineHeight();
         int cursorX = x + PADDING;
         int cursorY = y + PADDING;
+        int renderedVerticalOffset = visualVerticalOffsetPixels.rounded();
+        int renderedHorizontalOffset = visualHorizontalOffsetPixels.rounded();
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         if (!lines.isEmpty()) {
             int cursorLine = getVisualLineIndex(selectionModel.getCursorIndex());
             SceneEditorMultilineTextLayoutCache.VisualLine visualLine = lines.get(cursorLine);
             int cursorPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), visualLine);
-            cursorX += cursorPixel - horizontalOffsetPixels;
-            cursorY += cursorLine * lineHeight - scrollState.getOffsetPixels();
+            cursorX += cursorPixel - renderedHorizontalOffset;
+            cursorY += cursorLine * lineHeight - renderedVerticalOffset;
         }
 
         int contentLeft = x + PADDING;
@@ -1062,7 +1072,8 @@ public class SceneEditorMultilineTextArea {
         imeFocusProxy.height = Math.max(1, lineHeight);
     }
 
-    private void drawSelectionForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY) {
+    private void drawSelectionForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY,
+        int renderedHorizontalOffset) {
         if (!selectionModel.hasSelection()) {
             return;
         }
@@ -1081,7 +1092,7 @@ public class SceneEditorMultilineTextArea {
             .substring(0, max);
         String selectedText = line.text()
             .substring(max, Math.max(0, highlightEnd - line.startIndex()));
-        int selectionX = x + PADDING + fontRenderer.getStringWidth(beforeSelection) - horizontalOffsetPixels;
+        int selectionX = x + PADDING + fontRenderer.getStringWidth(beforeSelection) - renderedHorizontalOffset;
         int selectionWidth = fontRenderer.getStringWidth(selectedText);
         if (selectionWidth <= 0 && spansLineBreak) {
             selectionWidth = 2;
@@ -1096,7 +1107,8 @@ public class SceneEditorMultilineTextArea {
         }
     }
 
-    private void drawExternalHighlightForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY) {
+    private void drawExternalHighlightForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY,
+        int renderedHorizontalOffset) {
         if (externalHighlightStart < 0 || externalHighlightEnd <= externalHighlightStart) {
             return;
         }
@@ -1113,7 +1125,7 @@ public class SceneEditorMultilineTextArea {
             .substring(0, max);
         String highlightedText = line.text()
             .substring(max, Math.max(0, highlightEnd - line.startIndex()));
-        int highlightX = x + PADDING + fontRenderer.getStringWidth(beforeHighlight) - horizontalOffsetPixels;
+        int highlightX = x + PADDING + fontRenderer.getStringWidth(beforeHighlight) - renderedHorizontalOffset;
         int highlightWidth = fontRenderer.getStringWidth(highlightedText);
         if (highlightWidth <= 0 && spansLineBreak) {
             highlightWidth = 2;
@@ -1128,7 +1140,8 @@ public class SceneEditorMultilineTextArea {
         }
     }
 
-    private void drawSyntaxWarningForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY) {
+    private void drawSyntaxWarningForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY,
+        int renderedHorizontalOffset) {
         if (syntaxWarningStart < 0 || syntaxWarningEnd <= syntaxWarningStart) {
             return;
         }
@@ -1145,7 +1158,7 @@ public class SceneEditorMultilineTextArea {
             .substring(0, max);
         String warnedText = line.text()
             .substring(max, Math.max(0, highlightEnd - line.startIndex()));
-        int warningX = x + PADDING + fontRenderer.getStringWidth(beforeWarning) - horizontalOffsetPixels;
+        int warningX = x + PADDING + fontRenderer.getStringWidth(beforeWarning) - renderedHorizontalOffset;
         int warningWidth = fontRenderer.getStringWidth(warnedText);
         if (warningWidth <= 0 && spansLineBreak) {
             warningWidth = 2;
@@ -1206,7 +1219,7 @@ public class SceneEditorMultilineTextArea {
             getVerticalScrollbarTrackLength(),
             scrollState.getContentPixels(),
             scrollState.getViewportPixels(),
-            scrollState.getOffsetPixels());
+            visualVerticalOffsetPixels.rounded());
     }
 
     private SceneEditorHorizontalScrollbar.Thumb getHorizontalScrollbarThumb() {
@@ -1218,7 +1231,7 @@ public class SceneEditorMultilineTextArea {
             getHorizontalScrollbarTrackLength(),
             layoutCache.getContentWidthPixels(),
             textViewportWidth,
-            horizontalOffsetPixels);
+            visualHorizontalOffsetPixels.rounded());
     }
 
     private void moveCursorVertical(int direction, boolean keepSelection) {
@@ -1257,8 +1270,8 @@ public class SceneEditorMultilineTextArea {
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         if (lines.isEmpty()) return PADDING;
         int lineIdx = getVisualLineIndex(selectionModel.getCursorIndex());
-        return PADDING + getCursorPixelOnLine(selectionModel.getCursorIndex(), lines.get(lineIdx))
-            - horizontalOffsetPixels;
+            return PADDING + getCursorPixelOnLine(selectionModel.getCursorIndex(), lines.get(lineIdx))
+            - visualHorizontalOffsetPixels.rounded();
     }
 
     /** Returns the pixel Y position of the cursor relative to this text area. */
@@ -1266,7 +1279,7 @@ public class SceneEditorMultilineTextArea {
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         if (lines.isEmpty()) return PADDING;
         int lineIdx = getVisualLineIndex(selectionModel.getCursorIndex());
-        return PADDING + lineIdx * getLineHeight() - scrollState.getOffsetPixels();
+        return PADDING + lineIdx * getLineHeight() - visualVerticalOffsetPixels.rounded();
     }
 
     public boolean isCursorVisibleInViewport() {
@@ -1282,7 +1295,7 @@ public class SceneEditorMultilineTextArea {
         if (lines.isEmpty()) {
             return 0;
         }
-        int localY = mouseY - y - PADDING + scrollState.getOffsetPixels();
+        int localY = mouseY - y - PADDING + visualVerticalOffsetPixels.rounded();
         int lineIndex = localY <= 0 ? 0 : localY / getLineHeight();
         if (lineIndex < 0) {
             lineIndex = 0;
@@ -1290,7 +1303,7 @@ public class SceneEditorMultilineTextArea {
         if (lineIndex >= lines.size()) {
             lineIndex = lines.size() - 1;
         }
-        int localX = Math.max(0, mouseX - x - PADDING + horizontalOffsetPixels);
+        int localX = Math.max(0, mouseX - x - PADDING + visualHorizontalOffsetPixels.rounded());
         return getCursorIndexAtPixel(lines.get(lineIndex), localX);
     }
 
@@ -1376,6 +1389,26 @@ public class SceneEditorMultilineTextArea {
             return 0;
         }
         return Math.min(requestedOffset, maxOffset);
+    }
+
+    private void snapVisualOffsetsToTarget() {
+        visualVerticalOffsetPixels.snapTo(scrollState.getOffsetPixels());
+        visualHorizontalOffsetPixels.snapTo(horizontalOffsetPixels);
+    }
+
+    private void updateVisualOffsets() {
+        visualVerticalOffsetPixels.updateTowards(
+            scrollState.getOffsetPixels(),
+            30f,
+            0.25f,
+            0.01f,
+            Math.max(160f, getContentClipHeight() * 2f));
+        visualHorizontalOffsetPixels.updateTowards(
+            horizontalOffsetPixels,
+            30f,
+            0.25f,
+            0.01f,
+            Math.max(160f, textViewportWidth * 2f));
     }
 
     private int clamp(int value, int min, int max) {

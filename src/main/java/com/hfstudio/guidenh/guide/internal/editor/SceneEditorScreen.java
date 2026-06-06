@@ -290,6 +290,8 @@ public class SceneEditorScreen extends GuiScreen {
     private boolean previewFrameOverlayVisible;
     private boolean previewDirty;
     private boolean preservePreviewCameraOnNextRebuild;
+    private int activeMouseDragButton = -1;
+    private long activeMouseDragStartedAt;
     @Nullable
     private Integer previewVisibleLayerOverride;
     @Nullable
@@ -626,6 +628,17 @@ public class SceneEditorScreen extends GuiScreen {
         }
     }
 
+    private void pollContinuousMouseDrag(int mouseX, int mouseY) {
+        if (activeMouseDragButton < 0 || activeMouseDragStartedAt <= 0L) {
+            return;
+        }
+        if (activeMouseDragButton <= 2 && !Mouse.isButtonDown(activeMouseDragButton)) {
+            return;
+        }
+        long heldTime = Minecraft.getSystemTime() - activeMouseDragStartedAt;
+        mouseClickMove(mouseX, mouseY, activeMouseDragButton, heldTime);
+    }
+
     @Override
     protected void actionPerformed(GuiButton button) {
         if (button.id == CLOSE_BUTTON_ID) {
@@ -742,6 +755,7 @@ public class SceneEditorScreen extends GuiScreen {
             addElementButton.visible = !rightPanelCollapsed;
         }
         syncToolbarToggleState();
+        pollContinuousMouseDrag(mouseX, mouseY);
         pollActivePreviewSceneDrag();
 
         drawTiledBackground();
@@ -847,6 +861,8 @@ public class SceneEditorScreen extends GuiScreen {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int button) {
+        activeMouseDragButton = button;
+        activeMouseDragStartedAt = Minecraft.getSystemTime();
         if (closeConfirmDialogOpen) {
             handleCloseConfirmDialogClick(mouseX, mouseY, button);
             return;
@@ -1078,6 +1094,10 @@ public class SceneEditorScreen extends GuiScreen {
 
     @Override
     protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
+        if (state != -1) {
+            activeMouseDragButton = -1;
+            activeMouseDragStartedAt = 0L;
+        }
         if (markdownTextArea != null && state != -1) {
             markdownTextArea.mouseReleased(state);
         }

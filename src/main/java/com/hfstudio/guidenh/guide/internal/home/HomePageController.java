@@ -11,6 +11,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 
 public class HomePageController {
 
@@ -36,6 +37,9 @@ public class HomePageController {
     private int recommendedScrollOffset;
     private int bookmarksScrollOffset;
     private int historyScrollOffset;
+    private final SmoothFloatState recommendedVisualScrollOffset = new SmoothFloatState();
+    private final SmoothFloatState bookmarksVisualScrollOffset = new SmoothFloatState();
+    private final SmoothFloatState historyVisualScrollOffset = new SmoothFloatState();
 
     @Nullable
     private PendingClick pendingClick;
@@ -44,6 +48,7 @@ public class HomePageController {
 
     public void render(Minecraft mc, HomePageDataBuilder.HomePageSections sections, HomePageLayout.LayoutRects layout,
         ResourceLocation logoTexture, int logoSourceWidth, int logoSourceHeight, int mouseX, int mouseY) {
+        updateVisualScrollOffsets();
         drawLogo(mc, layout.logo(), logoTexture, logoSourceWidth, logoSourceHeight);
         drawSection(mc, layout.recommended(), sections.recommended(), mouseX, mouseY, layout.recommendedTitleSafeTop());
         drawSection(mc, layout.bookmarks(), sections.bookmarks(), mouseX, mouseY, 0);
@@ -190,13 +195,14 @@ public class HomePageController {
         int maxScroll = Math.max(0, contentHeight - visibleHeight);
         int scrollOffset = clampScroll(section, rect, getScrollOffset(section), topInset);
         setScrollOffset(section, scrollOffset);
+        int renderedScrollOffset = getVisualScrollOffset(section).rounded();
 
         pushScissor(contentX, contentY, rowWidth, visibleHeight);
         for (int i = 0; i < section.entries()
             .size(); i++) {
             HomePageEntry entry = section.entries()
                 .get(i);
-            int rowY = contentY + i * (ROW_HEIGHT + ROW_GAP) - scrollOffset;
+            int rowY = contentY + i * (ROW_HEIGHT + ROW_GAP) - renderedScrollOffset;
             if (rowY + ROW_HEIGHT < contentY || rowY > contentY + visibleHeight) {
                 continue;
             }
@@ -205,7 +211,7 @@ public class HomePageController {
         popScissor();
 
         if (maxScroll > 0) {
-            drawScrollbar(rect, section, scrollOffset, metrics, contentHeight);
+            drawScrollbar(rect, section, renderedScrollOffset, metrics, contentHeight);
         }
     }
 
@@ -285,6 +291,20 @@ public class HomePageController {
         }
     }
 
+    private SmoothFloatState getVisualScrollOffset(HomePageSection section) {
+        return switch (section.kind()) {
+            case RECOMMENDED -> recommendedVisualScrollOffset;
+            case BOOKMARKS -> bookmarksVisualScrollOffset;
+            case HISTORY -> historyVisualScrollOffset;
+        };
+    }
+
+    private void updateVisualScrollOffsets() {
+        recommendedVisualScrollOffset.updateTowards(recommendedScrollOffset, 28f, 0.25f, 0.01f, 256f);
+        bookmarksVisualScrollOffset.updateTowards(bookmarksScrollOffset, 28f, 0.25f, 0.01f, 256f);
+        historyVisualScrollOffset.updateTowards(historyScrollOffset, 28f, 0.25f, 0.01f, 256f);
+    }
+
     private void pushScissor(int x, int y, int width, int height) {
         int scale = DisplayScale.scaleFactor();
         Minecraft mc = Minecraft.getMinecraft();
@@ -323,7 +343,7 @@ public class HomePageController {
             return null;
         }
         int contentY = metrics.contentY();
-        int localY = mouseY - contentY + getScrollOffset(target.section());
+        int localY = mouseY - contentY + getVisualScrollOffset(target.section()).rounded();
         if (localY < 0) {
             return null;
         }
@@ -366,7 +386,8 @@ public class HomePageController {
             metrics.visibleHeight() * metrics.visibleHeight()
                 / Math.max(metrics.visibleHeight(), computeContentHeight(section)));
         int travel = Math.max(1, metrics.visibleHeight() - thumbHeight);
-        int thumbY = metrics.contentY() + (int) ((long) getScrollOffset(section) * travel / Math.max(1, maxScroll));
+        int thumbY = metrics.contentY()
+            + (int) ((long) getVisualScrollOffset(section).rounded() * travel / Math.max(1, maxScroll));
         if (mouseY >= thumbY && mouseY < thumbY + thumbHeight) {
             return mouseY - thumbY;
         }
