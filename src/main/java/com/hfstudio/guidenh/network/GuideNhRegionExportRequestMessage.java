@@ -6,6 +6,7 @@ import io.netty.buffer.ByteBuf;
 public class GuideNhRegionExportRequestMessage implements IMessage {
 
     private int requestId;
+    private int dimensionId;
     private int x;
     private int y;
     private int z;
@@ -16,9 +17,10 @@ public class GuideNhRegionExportRequestMessage implements IMessage {
 
     public GuideNhRegionExportRequestMessage() {}
 
-    public GuideNhRegionExportRequestMessage(int requestId, int x, int y, int z, int sizeX, int sizeY, int sizeZ,
-        boolean includeEntities) {
+    public GuideNhRegionExportRequestMessage(int requestId, int dimensionId, int x, int y, int z, int sizeX, int sizeY,
+        int sizeZ, boolean includeEntities) {
         this.requestId = requestId;
+        this.dimensionId = dimensionId;
         this.x = x;
         this.y = y;
         this.z = z;
@@ -30,6 +32,10 @@ public class GuideNhRegionExportRequestMessage implements IMessage {
 
     public int getRequestId() {
         return requestId;
+    }
+
+    public int getDimensionId() {
+        return dimensionId;
     }
 
     public int getX() {
@@ -63,6 +69,7 @@ public class GuideNhRegionExportRequestMessage implements IMessage {
     @Override
     public void fromBytes(ByteBuf buf) {
         requestId = buf.readInt();
+        dimensionId = buf.readInt();
         x = buf.readInt();
         y = buf.readInt();
         z = buf.readInt();
@@ -75,6 +82,7 @@ public class GuideNhRegionExportRequestMessage implements IMessage {
     @Override
     public void toBytes(ByteBuf buf) {
         buf.writeInt(requestId);
+        buf.writeInt(dimensionId);
         buf.writeInt(x);
         buf.writeInt(y);
         buf.writeInt(z);

@@ -7,6 +7,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChatComponentTranslation;
 
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.structure.GuideNhServerStructureAccess;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureRuntime;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureMemoryStore;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureWorldPlacementTarget;
@@ -25,6 +26,7 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
         if (player == null) {
             return null;
         }
+        pruneExpiredTransfers();
         var playerId = player.getUniqueID();
         var sessionStore = GuideNhStructureRuntime.getServerSessionStore();
 
@@ -32,11 +34,18 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
             byte action = message.getAction();
             String structureText = message.getStructureText();
             if (message.isChunkedStructureTransfer()) {
+                if (!GuideNhServerStructureAccess.canUseSceneExport(player)) {
+                    send(player, GuidebookText.CommandStructurePermissionDenied);
+                    return null;
+                }
                 TransferKey key = new TransferKey(playerId, message.getAction(), message.getTransferId());
                 GuideNhStructureChunkAssembler assembler = CHUNK_TRANSFERS
                     .computeIfAbsent(key, ignored -> new GuideNhStructureChunkAssembler(message.getChunkCount()));
                 structureText = assembler.accept(message);
                 if (structureText == null) {
+                    if (assembler.isExpired()) {
+                        CHUNK_TRANSFERS.remove(key, assembler);
+                    }
                     return null;
                 }
                 CHUNK_TRANSFERS.remove(key);
@@ -45,10 +54,14 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
 
             switch (action) {
                 case GuideNhStructureRequestMessage.ACTION_CACHE:
+                    if (!GuideNhServerStructureAccess.canUseSceneExport(player)) {
+                        send(player, GuidebookText.CommandStructurePermissionDenied);
+                        break;
+                    }
                     sessionStore.remember(playerId, "client-cache", structureText);
                     break;
                 case GuideNhStructureRequestMessage.ACTION_IMPORT_AND_PLACE:
-                    if (!player.canCommandSenderUseCommand(3, "guidenh")) {
+                    if (!GuideNhServerStructureAccess.hasStructurePermission(player)) {
                         send(player, GuidebookText.CommandStructurePermissionDenied);
                         break;
                     }
@@ -69,7 +82,7 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
                         message.getZ());
                     break;
                 case GuideNhStructureRequestMessage.ACTION_PLACE_ALL:
-                    if (!player.canCommandSenderUseCommand(3, "guidenh")) {
+                    if (!GuideNhServerStructureAccess.hasStructurePermission(player)) {
                         send(player, GuidebookText.CommandStructurePermissionDenied);
                         break;
                     }
@@ -110,6 +123,13 @@ public class GuideNhStructureRequestHandler implements IMessageHandler<GuideNhSt
         return throwable.getMessage() != null ? throwable.getMessage()
             : throwable.getClass()
                 .getSimpleName();
+    }
+
+    private static void pruneExpiredTransfers() {
+        CHUNK_TRANSFERS.entrySet()
+            .removeIf(
+                entry -> entry.getValue()
+                    .isExpired());
     }
 
     private static final class TransferKey {
