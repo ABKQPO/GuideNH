@@ -2130,25 +2130,9 @@ public class GuideScreen extends GuiContainer
         if (btn == btnClose) {
             close();
         } else if (btn == btnBack) {
-            if (!history.isEmpty()) {
-                confirmGuideEditorDirtyBefore(() -> {
-                    rememberCurrentContentStateIfEligible();
-                    forwardHistory.push(captureCurrentViewState());
-                    var prev = history.pop();
-                    restoreViewState(prev);
-                    rebuildToolbar();
-                });
-            }
+            navigateBackInHistory();
         } else if (btn == btnForward) {
-            if (!forwardHistory.isEmpty()) {
-                confirmGuideEditorDirtyBefore(() -> {
-                    rememberCurrentContentStateIfEligible();
-                    history.push(captureCurrentViewState());
-                    var next = forwardHistory.pop();
-                    restoreViewState(next);
-                    rebuildToolbar();
-                });
-            }
+            navigateForwardInHistory();
         } else if (btn == btnFullWidth) {
             fullWidth = !fullWidth;
             try {
@@ -2203,6 +2187,40 @@ public class GuideScreen extends GuiContainer
         } else if (btn != null && btn.id >= 2000) {
             handleGuideEditorActionButton(btn.id - 2000);
         }
+    }
+
+    public void navigateBackFromHotkey() {
+        navigateBackInHistory();
+    }
+
+    public void navigateForwardFromHotkey() {
+        navigateForwardInHistory();
+    }
+
+    private void navigateBackInHistory() {
+        if (history.isEmpty()) {
+            return;
+        }
+        confirmGuideEditorDirtyBefore(() -> {
+            rememberCurrentContentStateIfEligible();
+            forwardHistory.push(captureCurrentViewState());
+            var prev = history.pop();
+            restoreViewState(prev);
+            rebuildToolbar();
+        });
+    }
+
+    private void navigateForwardInHistory() {
+        if (forwardHistory.isEmpty()) {
+            return;
+        }
+        confirmGuideEditorDirtyBefore(() -> {
+            rememberCurrentContentStateIfEligible();
+            history.push(captureCurrentViewState());
+            var next = forwardHistory.pop();
+            restoreViewState(next);
+            rebuildToolbar();
+        });
     }
 
     private void loadCurrentPage() {

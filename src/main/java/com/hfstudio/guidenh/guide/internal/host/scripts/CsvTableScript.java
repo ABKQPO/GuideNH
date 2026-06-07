@@ -5,10 +5,14 @@ import java.util.List;
 
 import net.minecraft.util.ResourceLocation;
 
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.PageCollection;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler.CsvTablePlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.internal.csv.CsvTableParser;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
@@ -54,7 +58,21 @@ public class CsvTableScript implements LytScript {
 
         try {
             List<List<String>> rows = CsvTableParser.parse(new String(data, StandardCharsets.UTF_8));
-            LytBlock table = CsvTableCompiler.buildTable(rows, ph.header, ph.widths);
+            PageCollection pageCollection = ctx.getPageCollection();
+            if (pageCollection == null) {
+                ctx.replace(LytParagraph.error("[CsvTable] Missing page context for: " + ph.src));
+                return;
+            }
+            ExtensionCollection extensions = pageCollection instanceof Guide guide ? guide.getExtensions()
+                : ExtensionCollection.EMPTY;
+            PageCompiler runtimeCompiler = new PageCompiler(
+                pageCollection,
+                extensions,
+                ph.sourcePack,
+                ph.language,
+                new ResourceLocation(ph.pageId),
+                "");
+            LytBlock table = CsvTableCompiler.buildTable(runtimeCompiler, rows, ph.header, ph.widths);
             if (table != null) {
                 ctx.replace(table);
             } else {

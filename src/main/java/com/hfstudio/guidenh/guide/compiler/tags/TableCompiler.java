@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -34,8 +35,7 @@ public class TableCompiler extends BlockTagCompiler {
             if (child instanceof MdxJsxFlowElement meta && "table-meta".equals(meta.name())) {
                 String content = meta.getAttributeString("content", "");
                 if (!content.isEmpty()) {
-                    java.util.List<Integer> widths = com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler
-                        .parseWidthHints(extractKramdownExpression(content));
+                    List<Integer> widths = CsvTableCompiler.parseWidthHints(extractKramdownExpression(content));
                     var columns = table.getColumns();
                     for (int wi = 0; wi < widths.size() && wi < columns.size(); wi++) {
                         columns.get(wi)
@@ -67,7 +67,7 @@ public class TableCompiler extends BlockTagCompiler {
                             }
                         }
 
-                        compiler.compileBlockContext(td.children(), cell);
+                        compiler.compileTableCellContent(td.children(), cell);
                         cellIndex++;
                     }
                 }

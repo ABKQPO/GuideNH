@@ -46,7 +46,14 @@ public class CsvTableCompiler extends BlockTagCompiler {
         boolean header = MdxAttrs.getBoolean(compiler, parent, el, "header", true);
         List<Integer> widths = parseWidthHints(MdxAttrs.getString(compiler, parent, el, "widths", null));
 
-        CsvTablePlaceholder placeholder = new CsvTablePlaceholder(csvId.toString(), header, widths);
+        CsvTablePlaceholder placeholder = new CsvTablePlaceholder(
+            csvId.toString(),
+            header,
+            widths,
+            compiler.getSourcePack(),
+            compiler.getLanguage(),
+            compiler.getPageId()
+                .toString());
         placeholder.appendText("[CsvTable]");
         parent.append(placeholder);
     }
@@ -87,6 +94,11 @@ public class CsvTableCompiler extends BlockTagCompiler {
     }
 
     public static LytTable buildTable(List<List<String>> rows, boolean header, List<Integer> widthHints) {
+        return buildTable(null, rows, header, widthHints);
+    }
+
+    public static LytTable buildTable(PageCompiler compiler, List<List<String>> rows, boolean header,
+        List<Integer> widthHints) {
         LytTable table = new LytTable();
         table.setMarginTop(PageCompiler.DEFAULT_ELEMENT_SPACING);
         table.setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
@@ -103,7 +115,7 @@ public class CsvTableCompiler extends BlockTagCompiler {
                     table.getOrCreateColumn(columnIndex)
                         .setPreferredWidth(widthHints.get(columnIndex));
                 }
-                appendCellContent(row.appendCell(), values.get(columnIndex));
+                appendCellContent(compiler, row.appendCell(), values.get(columnIndex));
             }
             firstRow = false;
             rowIndex++;
@@ -145,7 +157,7 @@ public class CsvTableCompiler extends BlockTagCompiler {
         return result;
     }
 
-    private static void appendCellContent(LytTableCell cell, String value) {
+    private static void appendCellContent(PageCompiler compiler, LytTableCell cell, String value) {
         LytParagraph paragraph = new LytParagraph();
         paragraph.setMarginTop(0);
         paragraph.setMarginBottom(0);
@@ -157,7 +169,12 @@ public class CsvTableCompiler extends BlockTagCompiler {
             if (end < 0) {
                 end = value.length();
             }
-            paragraph.appendText(value.substring(start, end));
+            String line = value.substring(start, end);
+            if (compiler != null) {
+                compiler.compileInlineMarkdown(line, paragraph);
+            } else {
+                paragraph.appendText(line);
+            }
             if (end == value.length()) {
                 break;
             }
@@ -173,11 +190,18 @@ public class CsvTableCompiler extends BlockTagCompiler {
         public final String src;
         public final boolean header;
         public final List<Integer> widths;
+        public final String sourcePack;
+        public final String language;
+        public final String pageId;
 
-        public CsvTablePlaceholder(String src, boolean header, List<Integer> widths) {
+        public CsvTablePlaceholder(String src, boolean header, List<Integer> widths, String sourcePack, String language,
+            String pageId) {
             this.src = src;
             this.header = header;
             this.widths = widths;
+            this.sourcePack = sourcePack;
+            this.language = language;
+            this.pageId = pageId;
             setStyleClass("CsvTable");
             setStyle(LytParagraph.PLACEHOLDER_STYLE);
         }

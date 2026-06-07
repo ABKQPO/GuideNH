@@ -563,6 +563,21 @@ public class PageCompiler {
         }
     }
 
+    public void compileTableCellContent(MdAstParent<?> markdownParent, LytBlockContainer layoutParent) {
+        compileTableCellContent(markdownParent.children(), layoutParent);
+    }
+
+    public void compileTableCellContent(List<? extends MdAstAnyContent> children, LytBlockContainer layoutParent) {
+        var paragraph = new LytParagraph();
+        paragraph.setMarginTop(0);
+        paragraph.setMarginBottom(0);
+        withChildrenSourceContext(children, () -> compileInlineFragment(children, paragraph));
+        if (paragraph.isEmpty()) {
+            return;
+        }
+        layoutParent.append(paragraph);
+    }
+
     public void compileBlockContextInSourceContext(List<? extends MdAstAnyContent> children,
         LytBlockContainer layoutParent) {
         withChildrenSourceContext(children, () -> compileBlockContext(children, layoutParent));
@@ -727,7 +742,7 @@ public class PageCompiler {
                     }
                 }
 
-                compileBlockContext(astCells.get(i), cell);
+                compileTableCellContent(astCells.get(i), cell);
             }
             rowIndex++;
         }

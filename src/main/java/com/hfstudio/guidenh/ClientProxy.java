@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.client.RegionWandRenderer;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.command.GuideNhClientCommand;
 import com.hfstudio.guidenh.client.hotkey.CycleRegionWandModeHotkey;
+import com.hfstudio.guidenh.client.hotkey.GuidePageHistoryHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHomeHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
@@ -132,6 +133,7 @@ public class ClientProxy extends CommonProxy {
         }
         OpenGuideHomeHotkey.init();
         OpenGuideHotkey.init();
+        GuidePageHistoryHotkey.init();
         OpenSceneEditorHotkey.init();
         AutocompleteProviders.register(new ItemIdProvider());
         TagAttributeRegistry.initialize();

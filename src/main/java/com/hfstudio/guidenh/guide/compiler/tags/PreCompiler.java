@@ -52,7 +52,7 @@ public class PreCompiler extends BlockTagCompiler {
 
         // CSV table
         if (lang != null && "csv".equals(language.id())) {
-            LytBlock csvBlock = compileCsvCodeBlock(codeText, meta);
+            LytBlock csvBlock = compileCsvCodeBlock(compiler, codeText, meta);
             parent.append(csvBlock);
             return;
         }
@@ -95,7 +95,7 @@ public class PreCompiler extends BlockTagCompiler {
 
     // ---- CSV code block compilation ----
 
-    private LytBlock compileCsvCodeBlock(String source, @Nullable String meta) {
+    private LytBlock compileCsvCodeBlock(PageCompiler compiler, String source, @Nullable String meta) {
         List<List<String>> rows = CsvTableParser.parse(source);
         if (rows.isEmpty()) {
             LytCodeBlock codeBlock = new LytCodeBlock();
@@ -105,7 +105,7 @@ public class PreCompiler extends BlockTagCompiler {
         }
 
         CsvFenceMeta csvMeta = parseCsvFenceMeta(meta);
-        return CsvTableCompiler.buildTable(rows, csvMeta.header(), csvMeta.widthHints());
+        return CsvTableCompiler.buildTable(compiler, rows, csvMeta.header(), csvMeta.widthHints());
     }
 
     private CsvFenceMeta parseCsvFenceMeta(@Nullable String meta) {
