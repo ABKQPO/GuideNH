@@ -517,7 +517,7 @@ public class GuideScreen extends GuiContainer
             .setPreheatCompiler(pageId -> {
                 if (guide == null) return null;
                 try {
-                    return guide.getPage(new net.minecraft.util.ResourceLocation(pageId));
+                    return guide.getPage(new ResourceLocation(pageId));
                 } catch (Exception e) {
                     return null;
                 }
@@ -713,6 +713,7 @@ public class GuideScreen extends GuiContainer
         scrollY = 0;
         snapVisualScrollToTarget();
         loadCurrentPage();
+        expandNavigationParentsToCurrentPage();
         ensureLayout();
         scrollToCurrentAnchor();
         applyPendingRestoreScroll();
@@ -720,6 +721,13 @@ public class GuideScreen extends GuiContainer
         if (isGuideEditorActive()) {
             refreshGuideEditorDraft(true);
         }
+    }
+
+    private void expandNavigationParentsToCurrentPage() {
+        if (!hasContentRoute()) {
+            return;
+        }
+        navBar.expandParentsTo(resolveNavigationTree(), currentAnchor.pageId(), bookmarkState);
     }
 
     private void applyPendingRestoreScroll() {
@@ -2373,6 +2381,8 @@ public class GuideScreen extends GuiContainer
         if (document != null && isSpecialPageWithSearchField()) {
             applySpecialPageSearchQuery(queryFromCurrentAnchor());
         }
+        ensureLayout();
+        scrollToCurrentAnchor();
         syncSearchFieldToCurrentRoute();
         if (loadedPage != null) {
             queuePageSceneRegistrations(loadedPage);
@@ -2466,9 +2476,9 @@ public class GuideScreen extends GuiContainer
         if (!pendingAnchorScroll) return;
         if (currentAnchor == null || currentAnchor.anchor() == null) return;
         if (document == null) return;
-        pendingAnchorScroll = false;
         var target = new AnchorIndexer(document).get(currentAnchor.anchor());
         if (target == null) return;
+        pendingAnchorScroll = false;
         var blockNode = target.blockNode();
         var flowContent = target.flowContent();
         if (flowContent instanceof LytFlowAnchor flowAnchor) {

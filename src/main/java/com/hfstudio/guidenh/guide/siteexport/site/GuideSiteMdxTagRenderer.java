@@ -850,6 +850,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates) {
         String rawId = readOptional(element, "id");
         String rawOre = readOptional(element, "ore");
+        String rawLinksTo = readOptional(element, "linksTo");
         GuideItemReferenceResolver.ResolvedItemReference item = GuideItemReferenceResolver
             .resolveItemReference(defaultNamespace, rawId, rawOre);
         String itemId = resolveItemLabelKey(defaultNamespace, rawId, rawOre, item);
@@ -863,6 +864,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         boolean noTooltip = readBoolean(noTooltipAttribute, "noTooltip", false);
         boolean showTooltip = showTooltipAttribute != null ? readBoolean(showTooltipAttribute, "showTooltip", true)
             : !noTooltip;
+        boolean showText = readBoolean(element, "showText", true);
 
         // showIcon — null/falsy = no icon; "left", "right", or any truthy = icon at that side
         String iconPosition = ItemImageCompiler.resolveLabelPosition(readOptional(element.getAttribute("showIcon")));
@@ -874,23 +876,13 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 : createTextTooltipTemplate(itemId, templates, currentPageId);
         }
 
-        PageAnchor linksTo = null;
-        try {
-            if (item != null && item.stack() != null) {
-                linksTo = guide.getIndex(ItemIndex.class)
-                    .findByStack(item.stack());
-            }
-        } catch (Exception ignored) {}
-        if (linksTo == null) {
-            linksTo = findPageAnchorByItemId(itemId);
-        }
-
-        String innerHtml = buildItemLinkContent(exportedItem, iconPosition);
-        boolean samePageLink = linksTo != null && linksTo.anchor() == null
+        PageAnchor linksTo = resolveItemLinkTarget(rawLinksTo, currentPageId, item, itemId);
+        String innerHtml = buildItemLinkContent(exportedItem, iconPosition, showText);
+        boolean samePageWithoutAnchor = linksTo != null && linksTo.anchor() == null
             && currentPageId != null
             && currentPageId.equals(linksTo.pageId());
-        if (linksTo == null || samePageLink) {
-            return buildTaggedSpanHtml("guide-item-link guide-tooltip", templateId, innerHtml);
+        if (linksTo == null || samePageWithoutAnchor) {
+            return buildTaggedSpanHtml("guide-item-link guide-item-link-muted guide-tooltip", templateId, innerHtml);
         }
 
         NavigationNode targetNode = navigationTree.getNodeById(linksTo.pageId());
@@ -903,16 +895,51 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             innerHtml);
     }
 
-    private String buildItemLinkContent(GuideSiteExportedItem item, @Nullable String iconPosition) {
+    @Nullable
+    private PageAnchor resolveItemLinkTarget(@Nullable String rawLinksTo, @Nullable ResourceLocation currentPageId,
+        @Nullable GuideItemReferenceResolver.ResolvedItemReference item, String itemId) {
+        if (rawLinksTo != null && !rawLinksTo.trim()
+            .isEmpty()) {
+            if (currentPageId == null) {
+                return null;
+            }
+            String target = rawLinksTo.trim();
+            String anchorPart = null;
+            int hashIdx = target.indexOf('#');
+            if (hashIdx >= 0) {
+                anchorPart = target.substring(hashIdx + 1);
+                target = target.substring(0, hashIdx);
+            }
+            try {
+                ResourceLocation pageId = target.isEmpty() ? currentPageId : IdUtils.resolveLink(target, currentPageId);
+                return parsedPagesById.containsKey(pageId) ? new PageAnchor(pageId, anchorPart) : null;
+            } catch (IllegalArgumentException ignored) {
+                return null;
+            }
+        }
+
+        PageAnchor linksTo = null;
+        try {
+            if (item != null && item.stack() != null) {
+                linksTo = guide.getIndex(ItemIndex.class)
+                    .findByStack(item.stack());
+            }
+        } catch (Exception ignored) {}
+        return linksTo != null ? linksTo : findPageAnchorByItemId(itemId);
+    }
+
+    private String buildItemLinkContent(GuideSiteExportedItem item, @Nullable String iconPosition, boolean showText) {
         StringBuilder html = new StringBuilder();
         if ("left".equals(iconPosition)) {
             GuideSiteItemHtml.appendIcon(html, item, "guide-item-link-icon");
         }
-        String name = item.displayName()
-            .isEmpty() ? item.itemId() : item.displayName();
-        html.append("<span class=\"guide-item-link-text\">")
-            .append(escapeHtml(name))
-            .append("</span>");
+        if (showText) {
+            String name = item.displayName()
+                .isEmpty() ? item.itemId() : item.displayName();
+            html.append("<span class=\"guide-item-link-text\">")
+                .append(escapeHtml(name))
+                .append("</span>");
+        }
         if ("right".equals(iconPosition)) {
             GuideSiteItemHtml.appendIcon(html, item, "guide-item-link-icon");
         }

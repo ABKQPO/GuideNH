@@ -243,6 +243,26 @@ public class GuideNavBar {
         }
     }
 
+    public void expandParentsTo(@Nullable NavigationTree tree, @Nullable ResourceLocation pageId,
+        GuideBookmarkState bookmarkState) {
+        if (tree == null || pageId == null) {
+            return;
+        }
+
+        var path = tree.getPathTo(pageId);
+        boolean changed = false;
+        for (int index = 0; index < path.size() - 1; index++) {
+            ResourceLocation parentPageId = path.get(index)
+                .pageId();
+            if (parentPageId != null) {
+                changed |= expandedPageIds.add(parentPageId);
+            }
+        }
+        if (changed) {
+            rebuildRows(tree, bookmarkState);
+        }
+    }
+
     private boolean shouldRebuildRows(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
         return tree != lastTree || lastBookmarkStateVersion != bookmarkState.version()
             || lastExpandedStateHash != expandedPageIds.hashCode();

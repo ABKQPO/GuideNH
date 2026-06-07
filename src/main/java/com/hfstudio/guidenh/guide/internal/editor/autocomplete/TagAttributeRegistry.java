@@ -54,6 +54,7 @@ public class TagAttributeRegistry {
             new AttributeSpec("ore", AttrType.ORE_DICT),
             new AttributeSpec("noTooltip", AttrType.BOOLEAN),
             new AttributeSpec("showTooltip", AttrType.BOOLEAN),
+            new AttributeSpec("showText", AttrType.BOOLEAN),
             new AttributeSpec("showIcon", AttrType.STRING),
             new AttributeSpec("linksTo", AttrType.PAGE_PATH));
         register(

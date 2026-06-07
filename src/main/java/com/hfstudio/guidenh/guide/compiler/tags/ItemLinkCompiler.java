@@ -30,6 +30,8 @@ public class ItemLinkCompiler extends FlowTagCompiler {
         boolean noTooltip = MdxAttrs.getBoolean(noTooltipAttr, false);
         Boolean showTooltipAttr = MdxAttrs.getOptionalBoolean(el, "showTooltip");
         boolean showTooltip = showTooltipAttr != null ? showTooltipAttr : !noTooltip;
+        Boolean showTextAttr = MdxAttrs.getOptionalBoolean(el, "showText");
+        boolean showText = showTextAttr == null || showTextAttr;
 
         // showIcon — null/falsy = no icon; "left", "right", or any truthy = icon at that side
         String showIconRaw = el.getAttributeString("showIcon", null);
@@ -44,9 +46,17 @@ public class ItemLinkCompiler extends FlowTagCompiler {
         link.setData("itemId", itemId != null ? itemId.trim() : null);
         link.setData("ore", ore != null ? ore.trim() : null);
         link.setData("showTooltip", showTooltip);
+        link.setData("showText", showText);
         link.setData("showIcon", iconPosition);
         link.setData("linksTo", linksTo);
-        link.setData("pageId", compiler.getPageId());
+        link.setData(
+            "guideId",
+            compiler.getGuideId()
+                .toString());
+        link.setData(
+            "pageId",
+            compiler.getPageId()
+                .toString());
 
         compiler.compileFlowContext(el.children(), link);
         parent.append(link);

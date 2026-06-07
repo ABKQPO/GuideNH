@@ -17,6 +17,7 @@ public class AttributePresetValueProvider implements AutocompleteProvider {
     static {
         VALUES.put("showIcon", new String[] { "left", "right", "true", "false" });
         VALUES.put("showTooltip", new String[] { "true", "false" });
+        VALUES.put("showText", new String[] { "true", "false" });
         VALUES.put("noTooltip", new String[] { "true", "false" });
         VALUES.put("wrap", new String[] { "inline", "square", "tight", "through" });
         VALUES.put("align", new String[] { "left", "center", "right" });
