@@ -48,7 +48,7 @@ public class GuideLightweightReloadService {
     public static void reloadGuides(IResourceManager resourceManager) {
         GuideDebugLog.info("[GuideNH] [GuideLightweightReloadService] Reloading guide data...");
         long startedAt = System.nanoTime();
-        var activeResourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
+        var activeResourcePacks = DataDrivenGuideLoader.getActiveResourcePacks(resourceManager);
         RecipeCache.clear();
         NeiAnimationTicker.clear();
         GuidePageTexture.clear();
@@ -66,7 +66,7 @@ public class GuideLightweightReloadService {
             .clearPageCaches();
 
         long stageStartedAt = System.nanoTime();
-        GuideRegistry.setDataDriven(DataDrivenGuideLoader.load());
+        GuideRegistry.setDataDriven(DataDrivenGuideLoader.load(activeResourcePacks));
         MediaWikiTranslationStats.invalidateCache();
         long dataDrivenLoadNs = System.nanoTime() - stageStartedAt;
 
@@ -134,7 +134,7 @@ public class GuideLightweightReloadService {
             defaultLanguage,
             currentLanguage,
             new LinkedHashMap<>(),
-            DataDrivenGuideLoader.getActiveResourcePacks());
+            DataDrivenGuideLoader.getActiveResourcePacks(resourceManager));
     }
 
     static Map<ResourceLocation, ParsedGuidePage> loadPages(IResourceManager resourceManager, ResourceLocation guideId,
@@ -143,7 +143,11 @@ public class GuideLightweightReloadService {
         Iterable<? extends IResourcePack> activeResourcePacks) {
         long startedAt = System.nanoTime();
         var pages = new HashMap<ResourceLocation, ParsedGuidePage>();
-        var pagePaths = pagePathsForGuide(guideId, folder, pagePathCache, DataDrivenGuideLoader::discoverPagePaths);
+        var pagePaths = pagePathsForGuide(
+            guideId,
+            folder,
+            pagePathCache,
+            lookupFolder -> DataDrivenGuideLoader.discoverPagePaths(lookupFolder, activeResourcePacks));
         String lang = currentLanguage != null ? currentLanguage : defaultLanguage;
         String sourceNamespace = guideId.getResourceDomain();
         String sourcePack = "resources:" + sourceNamespace;
