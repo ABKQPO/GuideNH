@@ -14,17 +14,15 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.util.ResourceLocation;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytSize;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 public class GuidePageTexture {
 
-    public static final Logger LOG = LogManager.getLogger("GuideNH/GuidePageTexture");
     public static final GuidePageTexture MISSING = new GuidePageTexture(null, 0, 0, null);
     private static final String TEXTURE_OBJECTS_FIELD = "mapTextureObjects";
     private static final String TEXTURE_OBJECTS_SRG_FIELD = "field_110585_a";
@@ -66,14 +64,14 @@ public class GuidePageTexture {
         try {
             BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageData));
             if (img == null) {
-                LOG.warn("Failed to decode image {} (ImageIO returned null)", id);
+                GuideDebugLog.warnAlways("Failed to decode image {} (ImageIO returned null)", id);
                 return missing();
             }
             var gpt = new GuidePageTexture(id, img.getWidth(), img.getHeight(), imageData);
             CACHE.put(id, gpt);
             return gpt;
         } catch (Throwable t) {
-            LOG.error("Failed to load guide page texture {}", id, t);
+            GuideDebugLog.error("Failed to load guide page texture {}", id, t);
             return missing();
         }
     }
@@ -114,7 +112,9 @@ public class GuidePageTexture {
         try {
             BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
             if (img == null) {
-                LOG.warn("Failed to decode image {} while creating dynamic texture (ImageIO returned null)", sourceId);
+                GuideDebugLog.warnAlways(
+                    "Failed to decode image {} while creating dynamic texture (ImageIO returned null)",
+                    sourceId);
                 imageData = null;
                 return null;
             }
@@ -126,7 +126,7 @@ public class GuidePageTexture {
             imageData = null;
             return texture;
         } catch (Throwable t) {
-            LOG.error("Failed to create guide page dynamic texture {}", sourceId, t);
+            GuideDebugLog.error("Failed to create guide page dynamic texture {}", sourceId, t);
             imageData = null;
             return null;
         }
@@ -158,7 +158,10 @@ public class GuidePageTexture {
                 TEXTURE_OBJECTS_SRG_FIELD);
             return textureObjects.remove(location);
         } catch (Throwable t) {
-            LOG.warn("Failed to remove dynamic guide page texture {} from Minecraft texture manager", location, t);
+            GuideDebugLog.warnAlways(
+                "Failed to remove dynamic guide page texture {} from Minecraft texture manager",
+                location,
+                t);
             return null;
         }
     }

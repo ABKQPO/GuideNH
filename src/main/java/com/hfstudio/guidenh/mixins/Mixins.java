@@ -11,8 +11,10 @@ import lombok.RequiredArgsConstructor;
 public enum Mixins implements IMixins {
 
     EARLY(Side.CLIENT, "forge.AccessorForgeHooksClient", "forge.AccessorGuiIngameForge", "fml.AccessorFMLClientHandler",
-        "minecraft.AccessorAbstractResourcePack", "forge.AccessorShapedOreRecipe", "forge.AccessorShapelessOreRecipe",
-        "minecraft.MixinModelRendererSceneExportCapture", "minecraft.MixinTessellatorSceneExportCapture"),
+        "minecraft.AccessorAbstractResourcePack", "minecraft.AccessorFallbackResourceManager",
+        "minecraft.AccessorSimpleReloadableResourceManager", "forge.AccessorShapedOreRecipe",
+        "forge.AccessorShapelessOreRecipe", "minecraft.MixinModelRendererSceneExportCapture",
+        "minecraft.MixinTessellatorSceneExportCapture"),
 
     BQ_PANEL_HOVER(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.MixinPanelButtonQuest"),
 

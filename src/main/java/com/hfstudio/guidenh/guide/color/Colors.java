@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.color;
 
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class Colors {
 
@@ -56,8 +56,7 @@ public class Colors {
             }
         }
 
-        FMLLog.getLogger()
-            .error("[GuideNH] [Colors] Tried to parse an invalid hexadecimal color string: '{}'", hexColor);
+        GuideDebugLog.error("[GuideNH] [Colors] Tried to parse an invalid hexadecimal color string: '{}'", hexColor);
         return 0;
     }
 

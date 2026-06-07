@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
@@ -27,9 +28,13 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapLayoutMode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
+import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuiSprite;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -50,6 +55,11 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     private static final float ZOOM_STEP = 1.1f;
     private static final float MIN_ZOOM = 0.5f;
     private static final float MAX_ZOOM = 2.5f;
+    static final ConstantColor PANEL_BACKGROUND = new ConstantColor(0x1A0C1117);
+    static final ConstantColor PANEL_BORDER = new ConstantColor(0x66434C57);
+    static final ConstantColor ROOT_TEXT_COLOR = new ConstantColor(0xFFF1F6FB);
+    static final ConstantColor NODE_TEXT_COLOR = new ConstantColor(0xFFD7DEE7);
+    static final ConstantColor ICON_TEXT_COLOR = new ConstantColor(0xFFB8C2CF);
 
     private static final ResolvedTextStyle ROOT_TEXT_STYLE = new ResolvedTextStyle(
         1f,
@@ -61,11 +71,12 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         false,
         false,
         null,
-        new ConstantColor(0xFFF1F6FB),
+        ROOT_TEXT_COLOR,
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
-        null);
+        null,
+        false);
     private static final ResolvedTextStyle NODE_TEXT_STYLE = new ResolvedTextStyle(
         1f,
         false,
@@ -76,11 +87,12 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         false,
         false,
         null,
-        new ConstantColor(0xFFD7DEE7),
+        NODE_TEXT_COLOR,
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
-        null);
+        null,
+        false);
     private static final ResolvedTextStyle ICON_TEXT_STYLE = new ResolvedTextStyle(
         0.85f,
         false,
@@ -91,11 +103,12 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         false,
         false,
         null,
-        new ConstantColor(0xFFB8C2CF),
+        ICON_TEXT_COLOR,
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
-        null);
+        null,
+        false);
 
     private final MermaidMindmapDocument mindmap;
     private final Map<String, LytBlock> nodeContentBlocks;
@@ -103,7 +116,10 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     private DiagramLayout layout;
     private int contentOffsetX;
     private int contentOffsetY;
+    private final SmoothFloatState visualContentOffsetX = new SmoothFloatState();
+    private final SmoothFloatState visualContentOffsetY = new SmoothFloatState();
     private float zoom = 1f;
+    private final SmoothFloatState visualZoom = new SmoothFloatState();
     private int preferredWidth;
     private int preferredHeight;
     private float scaledStyleZoom = Float.NaN;
@@ -114,6 +130,13 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     private boolean dragging;
     private int dragLastDocumentX;
     private int dragLastDocumentY;
+    private int lastPickDocX;
+    private int lastPickDocY;
+    private boolean lastPickValid;
+    @Nullable
+    private LytParagraph lastFlowHoverParagraph;
+    @Nullable
+    private LytFlowContent lastFlowHoverContent;
 
     public LytMermaidMindmapCanvas(MermaidMindmapDocument mindmap, Map<String, LytBlock> nodeContentBlocks) {
         this.mindmap = mindmap;
@@ -135,10 +158,12 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int preferredViewportWidth = preferredWidth > 0
-            ? ResponsiveVisualSizing.scaleWidth(preferredWidth, context.getVisualScale(), 1)
-            : 0;
-        int safeWidth = preferredViewportWidth > 0 ? Math.max(1, Math.min(preferredViewportWidth, availableWidth))
+        DiagramLayout previousLayout = layout;
+        int previousContentOffsetX = contentOffsetX;
+        int previousContentOffsetY = contentOffsetY;
+        int previousViewportWidth = Math.max(1, bounds.width() - CANVAS_PADDING * 2);
+        int previousViewportHeight = Math.max(1, bounds.height() - CANVAS_PADDING * 2);
+        int safeWidth = preferredWidth > 0 ? Math.max(1, Math.min(preferredWidth, availableWidth))
             : Math.max(1, availableWidth);
         layout = buildLayout(context, safeWidth);
         int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
@@ -147,7 +172,16 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         if (preferredHeight > 0 && safeWidth < resolvePreferredViewportWidth()) {
             viewportHeight = Math.max(viewportHeight, Math.min(MAX_HEIGHT, desiredHeight));
         }
-        centerDiagram(safeWidth, viewportHeight);
+        int viewportWidth = Math.max(1, safeWidth - CANVAS_PADDING * 2);
+        int innerViewportHeight = Math.max(1, viewportHeight - CANVAS_PADDING * 2);
+        restoreViewportAfterLayout(
+            previousLayout,
+            previousContentOffsetX,
+            previousContentOffsetY,
+            previousViewportWidth,
+            previousViewportHeight,
+            viewportWidth,
+            innerViewportHeight);
         return new LytRect(x, y, safeWidth, viewportHeight);
     }
 
@@ -159,23 +193,25 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         if (layout == null) {
             return;
         }
-        ensureScaledStyles();
+        updateVisualState();
+        ensureScaledStyles(visualZoom.value());
 
-        context.fillRect(bounds, 0x1A0C1117);
-        context.drawBorder(bounds, 0x66434C57, 1);
+        context.fillRect(bounds, PANEL_BACKGROUND);
+        context.drawBorder(bounds, context.resolveColor(PANEL_BORDER), 1);
 
         LytRect viewport = getInnerViewport();
-        int baseX = viewport.x() + contentOffsetX
+        int baseX = viewport.x() + visualContentOffsetX.rounded()
             - Math.round(
                 layout.contentBounds()
-                    .x() * zoom);
-        int baseY = viewport.y() + contentOffsetY
+                    .x() * visualZoom.value());
+        int baseY = viewport.y() + visualContentOffsetY.rounded()
             - Math.round(
                 layout.contentBounds()
-                    .y() * zoom);
+                    .y() * visualZoom.value());
 
         context.pushLocalScissor(viewport);
         try {
+            refreshFlowHover();
             renderConnectors(context, layout.root(), baseX, baseY);
             renderNodes(context, layout.root(), baseX, baseY);
         } finally {
@@ -184,14 +220,25 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     }
 
     @Override
+    public LytNode pickNode(int x, int y) {
+        if (!getBounds().contains(x, y)) return null;
+        lastPickDocX = x;
+        lastPickDocY = y;
+        lastPickValid = true;
+        NodeHit hit = pickNodeHit(x, y);
+        return hit != null ? hit.node() : this;
+    }
+
+    @Override
+    public List<? extends LytNode> getChildren() {
+        return new ArrayList<>(nodeContentBlocks.values());
+    }
+
+    @Override
     public boolean beginDrag(int documentX, int documentY, int button) {
-        if (button != 0 || layout == null) {
-            return false;
-        }
+        if (button != 0 || layout == null) return false;
         LytRect viewport = getInnerViewport();
-        if (!viewport.contains(documentX, documentY)) {
-            return false;
-        }
+        if (!viewport.contains(documentX, documentY)) return false;
         dragging = true;
         dragLastDocumentX = documentX;
         dragLastDocumentY = documentY;
@@ -200,9 +247,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
     @Override
     public void dragTo(int documentX, int documentY) {
-        if (!dragging || layout == null) {
-            return;
-        }
+        if (!dragging || layout == null) return;
         int dx = documentX - dragLastDocumentX;
         int dy = documentY - dragLastDocumentY;
         dragLastDocumentX = documentX;
@@ -219,9 +264,10 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
     @Override
     public boolean scroll(int documentX, int documentY, int wheelDelta) {
-        if (wheelDelta == 0 || layout == null || !getInnerViewport().contains(documentX, documentY)) {
-            return false;
-        }
+        if (wheelDelta == 0 || layout == null || !getInnerViewport().contains(documentX, documentY)) return false;
+        LytRect viewport = getInnerViewport();
+        int previousOffsetX = contentOffsetX;
+        int previousOffsetY = contentOffsetY;
         float previousZoom = zoom;
         if (wheelDelta > 0) {
             zoom = Math.min(MAX_ZOOM, zoom * ZOOM_STEP);
@@ -231,34 +277,37 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         if (Math.abs(previousZoom - zoom) < 0.0001f) {
             return false;
         }
+        float anchorX = layout.contentBounds()
+            .x() + (documentX - viewport.x() - previousOffsetX) / Math.max(previousZoom, 0.0001f);
+        float anchorY = layout.contentBounds()
+            .y() + (documentY - viewport.y() - previousOffsetY) / Math.max(previousZoom, 0.0001f);
+        contentOffsetX = Math.round(
+            (documentX - viewport.x()) - (anchorX - layout.contentBounds()
+                .x()) * zoom);
+        contentOffsetY = Math.round(
+            (documentY - viewport.y()) - (anchorY - layout.contentBounds()
+                .y()) * zoom);
         clampOffsets();
         return true;
     }
 
     @Override
     public boolean mouseClicked(GuideUiHost screen, int x, int y, int button, boolean doubleClick) {
-        if (layout == null || !getInnerViewport().contains(x, y)) {
-            return false;
-        }
+        if (layout == null || !getInnerViewport().contains(x, y)) return false;
         NodeHit hit = pickNodeHit(x, y);
-        if (hit == null) {
-            return false;
-        }
+        if (hit == null) return false;
         boolean handled = false;
         for (var content : hit.flowPath()
             .targets()) {
-            if (handled) {
-                break;
-            }
             if (content instanceof InteractiveElement interactiveElement) {
                 handled = interactiveElement.mouseClicked(screen, hit.localX(), hit.localY(), button, doubleClick);
+                if (handled) return true;
             }
         }
-        if (!handled) {
-            for (LytNode current = hit.node(); current != null && !handled; current = current.getParent()) {
-                if (current instanceof InteractiveElement interactiveElement) {
-                    handled = interactiveElement.mouseClicked(screen, hit.localX(), hit.localY(), button, doubleClick);
-                }
+        for (LytNode current = hit.node(); current != null && current != this
+            && !handled; current = current.getParent()) {
+            if (current instanceof InteractiveElement interactiveElement) {
+                handled = interactiveElement.mouseClicked(screen, hit.localX(), hit.localY(), button, doubleClick);
             }
         }
         return handled;
@@ -266,28 +315,20 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
     @Override
     public Optional<GuideTooltip> getTooltip(float x, float y) {
-        if (layout == null || !getInnerViewport().contains((int) x, (int) y)) {
-            return Optional.empty();
-        }
+        if (layout == null || !getInnerViewport().contains((int) x, (int) y)) return Optional.empty();
         NodeHit hit = pickNodeHit((int) x, (int) y);
-        if (hit == null) {
-            return Optional.empty();
-        }
+        if (hit == null) return Optional.empty();
         for (var content : hit.flowPath()
             .targets()) {
             if (content instanceof InteractiveElement interactiveElement) {
                 Optional<GuideTooltip> tooltip = interactiveElement.getTooltip(hit.localX(), hit.localY());
-                if (tooltip.isPresent()) {
-                    return tooltip;
-                }
+                if (tooltip.isPresent()) return tooltip;
             }
         }
-        for (LytNode current = hit.node(); current != null; current = current.getParent()) {
+        for (LytNode current = hit.node(); current != null && current != this; current = current.getParent()) {
             if (current instanceof InteractiveElement interactiveElement) {
                 Optional<GuideTooltip> tooltip = interactiveElement.getTooltip(hit.localX(), hit.localY());
-                if (tooltip.isPresent()) {
-                    return tooltip;
-                }
+                if (tooltip.isPresent()) return tooltip;
             }
         }
         return Optional.empty();
@@ -365,7 +406,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     }
 
     private DiagramLayout buildDiagramLayout(NodeLayout root) {
-        LytRect contentBounds = collectContentBounds(root);
+        LytRect contentBounds = collectRenderedBounds(root);
         return new DiagramLayout(
             root,
             Math.max(1, contentBounds.width()),
@@ -374,10 +415,10 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             collectContentNodes(root, new ArrayList<>()));
     }
 
-    private LytRect collectContentBounds(NodeLayout node) {
-        LytRect bounds = new LytRect(node.x, node.y, node.width, node.height);
+    private LytRect collectRenderedBounds(NodeLayout node) {
+        LytRect bounds = resolveNodeVisualRect(node);
         for (NodeLayout child : node.children) {
-            bounds = LytRect.union(bounds, collectContentBounds(child));
+            bounds = LytRect.union(bounds, collectRenderedBounds(child));
         }
         return bounds;
     }
@@ -424,8 +465,10 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             int lineHeight = context.getLineHeight(style);
             textHeight = Math.max(1, lines.size()) * lineHeight;
         } else {
-            textWidth = contentLayout.width();
-            textHeight = contentLayout.height();
+            textWidth = contentLayout.visualBounds()
+                .width();
+            textHeight = contentLayout.visualBounds()
+                .height();
         }
 
         int badgeWidth = 0;
@@ -473,8 +516,9 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         }
         LayoutContext localContext = new LayoutContext(context).withVisualScale(context.getVisualScale());
         int contentWidth = Math.clamp(maxNodeTextWidth + 60, 96, 240);
-        LytRect contentBounds = block.layout(localContext, 0, 0, contentWidth);
-        return new NodeContentLayout(block, contentBounds.width(), contentBounds.height());
+        block.layout(localContext, 0, 0, contentWidth);
+        LytRect visualBounds = resolveBlockVisualBounds(block);
+        return new NodeContentLayout(block, visualBounds);
     }
 
     private void measureSideTree(NodeLayout node) {
@@ -567,25 +611,26 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     }
 
     private void renderConnectors(RenderContext context, NodeLayout node, int baseX, int baseY) {
+        float activeZoom = visualZoom.value();
         for (NodeLayout child : node.children) {
             if (mindmap.getLayoutMode() == MermaidMindmapLayoutMode.TIDY_TREE) {
                 drawVerticalConnector(
                     context,
-                    scaled(baseX, node.centerX()),
-                    scaled(baseY, node.bottom()),
-                    scaled(baseX, child.centerX()),
-                    scaled(baseY, child.y),
+                    scaled(baseX, node.centerX(), activeZoom),
+                    scaled(baseY, node.bottom(), activeZoom),
+                    scaled(baseX, child.centerX(), activeZoom),
+                    scaled(baseY, child.y, activeZoom),
                     0xFF5D6C7C);
             } else {
                 boolean rightSide = child.centerX() >= node.centerX();
-                int parentEdgeX = scaled(baseX, rightSide ? node.right() : node.x);
-                int childEdgeX = scaled(baseX, rightSide ? child.x : child.right());
+                int parentEdgeX = scaled(baseX, rightSide ? node.right() : node.x, activeZoom);
+                int childEdgeX = scaled(baseX, rightSide ? child.x : child.right(), activeZoom);
                 drawHorizontalConnector(
                     context,
                     parentEdgeX,
-                    scaled(baseY, node.centerY()),
+                    scaled(baseY, node.centerY(), activeZoom),
                     childEdgeX,
-                    scaled(baseY, child.centerY()),
+                    scaled(baseY, child.centerY(), activeZoom),
                     0xFF5D6C7C);
             }
             renderConnectors(context, child, baseX, baseY);
@@ -593,23 +638,25 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     }
 
     private void renderNodes(RenderContext context, NodeLayout node, int baseX, int baseY) {
+        float activeZoom = visualZoom.value();
         LytRect rect = new LytRect(
-            scaled(baseX, node.x),
-            scaled(baseY, node.y),
-            Math.max(1, Math.round(node.width * zoom)),
-            Math.max(1, Math.round(node.height * zoom)));
+            scaled(baseX, node.x, activeZoom),
+            scaled(baseY, node.y, activeZoom),
+            Math.max(1, Math.round(node.width * activeZoom)),
+            Math.max(1, Math.round(node.height * activeZoom)));
+        LytRect boxRect = rect;
         NodeColors colors = resolveColors(node.node);
-        context.fillRect(rect, colors.background);
-        context.drawBorder(rect, colors.border, node.node.getShape() == MermaidMindmapNodeShape.BANG ? 2 : 1);
-        context.fillRect(new LytRect(rect.x(), rect.y(), 3, rect.height()), colors.accent);
+        context.fillRect(boxRect, colors.background);
+        context.drawBorder(boxRect, colors.border, node.node.getShape() == MermaidMindmapNodeShape.BANG ? 2 : 1);
+        context.fillRect(new LytRect(boxRect.x(), boxRect.y(), 3, boxRect.height()), colors.accent);
 
         ResolvedTextStyle style = node.depth == 0 ? scaledRootTextStyle : scaledNodeTextStyle;
         ResolvedTextStyle badgeStyle = scaledIconTextStyle;
-        int paddingX = Math.max(1, Math.round(NODE_PADDING_X * zoom));
-        int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * zoom));
-        int iconGapY = Math.max(1, Math.round(ICON_GAP_Y * zoom));
-        int badgePaddingX = Math.max(2, Math.round(4 * zoom));
-        int badgePaddingY = Math.max(1, Math.round(2 * zoom));
+        int paddingX = Math.max(1, Math.round(NODE_PADDING_X * activeZoom));
+        int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * activeZoom));
+        int iconGapY = Math.max(1, Math.round(ICON_GAP_Y * activeZoom));
+        int badgePaddingX = Math.max(2, Math.round(4 * activeZoom));
+        int badgePaddingY = Math.max(1, Math.round(2 * activeZoom));
         int textY = rect.y() + paddingY;
         if (node.showBadge && node.badgeText != null) {
             int badgeWidth = Math.max(1, context.getStringWidth(node.badgeText, badgeStyle) + badgePaddingX * 2);
@@ -625,7 +672,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         }
 
         if (node.contentLayout != null) {
-            renderNodeContent(context, node, rect, paddingX, textY);
+            renderNodeContent(context, node, rect, paddingX, textY, activeZoom);
         } else {
             int lineHeight = context.getLineHeight(style);
             for (String line : node.lines) {
@@ -641,33 +688,138 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         }
     }
 
-    private void renderNodeContent(RenderContext context, NodeLayout node, LytRect rect, int paddingX, int contentY) {
+    private void renderNodeContent(RenderContext context, NodeLayout node, LytRect rect, int paddingX, int contentY,
+        float activeZoom) {
         if (node.contentLayout == null) {
             return;
         }
         LytRect viewport = getInnerViewport();
-        LytRect contentViewport = new LytRect(
-            rect.x() + paddingX,
-            contentY,
-            Math.max(1, rect.width() - paddingX * 2),
-            Math.max(1, rect.bottom() - contentY - Math.max(1, Math.round(NODE_PADDING_Y * zoom))));
+        LytRect contentViewport = resolveNodeContentRect(node, rect, paddingX, contentY, activeZoom);
         LytRect clip = intersect(viewport, contentViewport);
         if (clip == null) {
             return;
         }
         context.pushLocalScissor(clip);
         try {
+            int originX = contentViewport.x() - Math.round(
+                node.contentLayout.visualBounds()
+                    .x() * activeZoom);
+            int originY = contentViewport.y() - Math.round(
+                node.contentLayout.visualBounds()
+                    .y() * activeZoom);
             NodeContentRenderContext nodeContext = new NodeContentRenderContext(
                 context,
                 clip,
-                contentViewport.x(),
-                contentViewport.y(),
-                zoom);
-            node.contentLayout.block()
-                .render(nodeContext);
+                originX,
+                originY,
+                activeZoom);
+            renderNodeContentBlock(node.contentLayout.block(), nodeContext, context, contentViewport);
         } finally {
             context.popScissor();
         }
+    }
+
+    private void renderNodeContentBlock(LytBlock block, NodeContentRenderContext nodeContext,
+        RenderContext nativeContext, LytRect contentViewport) {
+        if (block instanceof LytNode container && !container.getChildren()
+            .isEmpty()) {
+            for (var child : new ArrayList<>(container.getChildren())) {
+                if (child instanceof LytBlock childBlock) {
+                    renderNodeContentBlock(childBlock, nodeContext, nativeContext, contentViewport);
+                }
+            }
+            renderContainerDecoration(container, nodeContext);
+        } else if (usesRawGl(block)) {
+            GL11.glPushMatrix();
+            GL11.glTranslatef(nodeContext.getDocumentOriginX(), nodeContext.getDocumentOriginY(), 0f);
+            GL11.glScalef(nodeContext.getScale(), nodeContext.getScale(), 1f);
+            try {
+                block.render(nodeContext);
+            } finally {
+                GL11.glPopMatrix();
+            }
+        } else {
+            block.render(nodeContext);
+        }
+    }
+
+    private void refreshFlowHover() {
+        if (!lastPickValid || layout == null) return;
+        NodeHit hit = pickNodeHit(lastPickDocX, lastPickDocY);
+        LytFlowContent hoveredFlow = null;
+        LytParagraph hoveredParagraph = null;
+        if (hit != null) {
+            for (var content : hit.flowPath()
+                .targets()) {
+                if (content instanceof InteractiveElement) {
+                    hoveredFlow = content;
+                    break;
+                }
+            }
+            if (hoveredFlow != null) {
+                for (LytNode node = hit.node(); node != null; node = node.getParent()) {
+                    if (node instanceof LytParagraph p) {
+                        hoveredParagraph = p;
+                        break;
+                    }
+                }
+            }
+        }
+        if (hoveredParagraph != lastFlowHoverParagraph || hoveredFlow != lastFlowHoverContent) {
+            if (lastFlowHoverParagraph != null) lastFlowHoverParagraph.onMouseLeave();
+            if (hoveredParagraph != null) hoveredParagraph.onMouseEnter(hoveredFlow);
+            lastFlowHoverParagraph = hoveredParagraph;
+            lastFlowHoverContent = hoveredFlow;
+        }
+    }
+
+    private static boolean containsScene(@Nullable LytBlock block) {
+        if (block == null) return false;
+        if (block instanceof LytGuidebookScene) return true;
+        if (block instanceof LytNode container) {
+            for (var child : container.getChildren()) {
+                if (child instanceof LytBlock childBlock && containsScene(childBlock)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static void renderContainerDecoration(LytNode container, RenderContext context) {
+        if (!(container instanceof LytBox box)) return;
+        LytRect b = container.getBounds();
+        if (box.getBackgroundColor() != null) {
+            context.fillRect(b, box.getBackgroundColor());
+        }
+        int topW = box.getBorderTop()
+            .width();
+        int bottomW = box.getBorderBottom()
+            .width();
+        if (topW > 0) {
+            context.fillRect(
+                b.x(),
+                b.y(),
+                b.width(),
+                topW,
+                context.resolveColor(
+                    box.getBorderTop()
+                        .color()));
+        }
+        if (bottomW > 0) {
+            context.fillRect(
+                b.x(),
+                b.bottom() - bottomW,
+                b.width(),
+                bottomW,
+                context.resolveColor(
+                    box.getBorderBottom()
+                        .color()));
+        }
+    }
+
+    private static boolean usesRawGl(LytBlock block) {
+        return block instanceof LytLatexBlock || block instanceof LytLatexDisplayBlock
+            || block instanceof LytItemImage
+            || block instanceof LytNeiRecipeBox;
     }
 
     private @Nullable NodeHit pickNodeHit(int documentX, int documentY) {
@@ -675,23 +827,24 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             return null;
         }
         LytRect viewport = getInnerViewport();
-        int baseX = viewport.x() + contentOffsetX
+        float activeZoom = visualZoom.value();
+        int baseX = viewport.x() + visualContentOffsetX.rounded()
             - Math.round(
                 layout.contentBounds()
-                    .x() * zoom);
-        int baseY = viewport.y() + contentOffsetY
+                    .x() * activeZoom);
+        int baseY = viewport.y() + visualContentOffsetY.rounded()
             - Math.round(
                 layout.contentBounds()
-                    .y() * zoom);
+                    .y() * activeZoom);
         List<NodeLayout> contentNodes = layout.contentNodes();
         for (int index = contentNodes.size() - 1; index >= 0; index--) {
             NodeLayout node = contentNodes.get(index);
-            LytRect contentScreenRect = getNodeContentScreenRect(node, baseX, baseY);
+            LytRect contentScreenRect = getNodeContentScreenRect(node, baseX, baseY, activeZoom);
             if (contentScreenRect == null || !contentScreenRect.contains(documentX, documentY)) {
                 continue;
             }
-            int localX = unscaleCoordinate(documentX - contentScreenRect.x());
-            int localY = unscaleCoordinate(documentY - contentScreenRect.y());
+            int localX = unscaleCoordinate(documentX - contentScreenRect.x(), activeZoom);
+            int localY = unscaleCoordinate(documentY - contentScreenRect.y(), activeZoom);
             DocumentInteractionSnapshot hit = LytDocument.pick(node.contentLayout.block(), localX, localY);
             if (hit != null) {
                 return new NodeHit(hit.node(), hit.flowPath(), localX, localY);
@@ -700,46 +853,55 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         return null;
     }
 
-    private @Nullable LytRect getNodeContentScreenRect(NodeLayout node, int baseX, int baseY) {
+    private @Nullable LytRect getNodeContentScreenRect(NodeLayout node, int baseX, int baseY, float activeZoom) {
         if (node.contentLayout == null) {
             return null;
         }
-        return resolveNodeContentRect(node, baseX, baseY);
+        LytRect nodeRect = new LytRect(
+            scaled(baseX, node.x, activeZoom),
+            scaled(baseY, node.y, activeZoom),
+            Math.max(1, Math.round(node.width * activeZoom)),
+            Math.max(1, Math.round(node.height * activeZoom)));
+        int paddingX = Math.max(1, Math.round(NODE_PADDING_X * activeZoom));
+        int contentY = nodeRect.y() + Math.max(1, Math.round(NODE_PADDING_Y * activeZoom))
+            + resolveNodeBadgeHeight(node, activeZoom);
+        return resolveNodeContentRect(node, nodeRect, paddingX, contentY, activeZoom);
     }
 
     private int contextLineHeight(ResolvedTextStyle style) {
         return Math.max(1, Math.round((9 + 1) * style.fontScale()));
     }
 
-    private LytRect resolveNodeContentRect(NodeLayout node, int baseX, int baseY) {
-        LytRect nodeRect = new LytRect(
-            scaled(baseX, node.x),
-            scaled(baseY, node.y),
-            Math.max(1, Math.round(node.width * zoom)),
-            Math.max(1, Math.round(node.height * zoom)));
-        int paddingX = Math.max(1, Math.round(NODE_PADDING_X * zoom));
-        int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * zoom));
-        int textY = nodeRect.y() + paddingY + resolveNodeBadgeHeight(node);
+    private LytRect resolveNodeContentRect(NodeLayout node, LytRect nodeRect, int paddingX, int contentY,
+        float activeZoom) {
         return new LytRect(
             nodeRect.x() + paddingX,
-            textY,
-            Math.max(1, Math.round(node.contentLayout.width() * zoom)),
-            Math.max(1, Math.round(node.contentLayout.height() * zoom)));
+            contentY,
+            Math.max(
+                1,
+                Math.round(
+                    node.contentLayout.visualBounds()
+                        .width() * activeZoom)),
+            Math.max(
+                1,
+                Math.round(
+                    node.contentLayout.visualBounds()
+                        .height() * activeZoom)));
     }
 
-    private int resolveNodeBadgeHeight(NodeLayout node) {
+    private int resolveNodeBadgeHeight(NodeLayout node, float activeZoom) {
         if (!node.showBadge || node.badgeText == null) {
             return 0;
         }
-        ensureScaledStyles();
+        ensureScaledStyles(activeZoom);
         ResolvedTextStyle badgeStyle = scaledIconTextStyle;
-        int badgePaddingY = Math.max(1, Math.round(2 * zoom));
-        int iconGapY = Math.max(1, Math.round(ICON_GAP_Y * zoom));
+        int badgePaddingY = Math.max(1, Math.round(2 * activeZoom));
+        int iconGapY = Math.max(1, Math.round(ICON_GAP_Y * activeZoom));
         return contextLineHeight(badgeStyle) + badgePaddingY * 2 + iconGapY;
     }
 
-    private int unscaleCoordinate(int coordinate) {
-        return Math.max(0, Math.round(coordinate / Math.max(zoom, 0.0001f)));
+    private int unscaleCoordinate(int coordinate, float activeZoom) {
+        return Math.max(0, Math.round(coordinate / Math.max(activeZoom, 0.0001f)));
     }
 
     private @Nullable LytRect intersect(LytRect a, LytRect b) {
@@ -751,6 +913,78 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             return null;
         }
         return new LytRect(left, top, right - left, bottom - top);
+    }
+
+    private void restoreViewportAfterLayout(@Nullable DiagramLayout previousLayout, int previousOffsetX,
+        int previousOffsetY, int previousViewportWidth, int previousViewportHeight, int viewportWidth,
+        int viewportHeight) {
+        if (previousLayout == null) {
+            centerDiagram(viewportWidth + CANVAS_PADDING * 2, viewportHeight + CANVAS_PADDING * 2);
+            return;
+        }
+        float anchorX = previousLayout.contentBounds()
+            .x() + (previousViewportWidth * 0.5f - previousOffsetX) / Math.max(zoom, 0.0001f);
+        float anchorY = previousLayout.contentBounds()
+            .y() + (previousViewportHeight * 0.5f - previousOffsetY) / Math.max(zoom, 0.0001f);
+        contentOffsetX = Math.round(
+            viewportWidth * 0.5f - (anchorX - layout.contentBounds()
+                .x()) * zoom);
+        contentOffsetY = Math.round(
+            viewportHeight * 0.5f - (anchorY - layout.contentBounds()
+                .y()) * zoom);
+        clampOffsets();
+    }
+
+    private LytRect resolveNodeVisualRect(NodeLayout node) {
+        LytRect nodeRect = new LytRect(node.x, node.y, node.width, node.height);
+        if (node.contentLayout == null) {
+            return nodeRect;
+        }
+        int contentY = node.y + NODE_PADDING_Y + resolveNodeBadgeHeightUnscaled(node);
+        LytRect contentRect = new LytRect(
+            node.x + NODE_PADDING_X,
+            contentY,
+            node.contentLayout.visualBounds()
+                .width(),
+            node.contentLayout.visualBounds()
+                .height());
+        return LytRect.union(nodeRect, contentRect);
+    }
+
+    private int resolveNodeBadgeHeightUnscaled(NodeLayout node) {
+        if (!node.showBadge || node.badgeText == null) {
+            return 0;
+        }
+        return contextLineHeight(ICON_TEXT_STYLE) + 4 + ICON_GAP_Y;
+    }
+
+    private LytRect resolveBlockVisualBounds(LytBlock block) {
+        LytRect[] result = { LytRect.empty() };
+        block.visit(new LytVisitor() {
+
+            @Override
+            public Result beforeNode(LytNode node) {
+                if (node instanceof LytBlock childBlock) {
+                    result[0] = LytRect.union(result[0], resolveSelfVisualBounds(childBlock));
+                }
+                return Result.CONTINUE;
+            }
+        });
+        return result[0];
+    }
+
+    private LytRect resolveSelfVisualBounds(LytBlock block) {
+        LytRect bounds = block.getBounds();
+        if (bounds == null) {
+            return LytRect.empty();
+        }
+        if (block instanceof LytLatexBlock latexBlock) {
+            return latexBlock.getVisualBounds();
+        }
+        if (block instanceof LytLatexDisplayBlock latexDisplayBlock) {
+            return latexDisplayBlock.getVisualBounds();
+        }
+        return bounds;
     }
 
     private NodeColors resolveColors(MermaidMindmapNode node) {
@@ -949,6 +1183,9 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         int innerHeight = Math.max(1, viewportHeight - CANVAS_PADDING * 2);
         contentOffsetX = (innerWidth - Math.round(layout.diagramWidth * zoom)) / 2;
         contentOffsetY = (innerHeight - Math.round(layout.diagramHeight * zoom)) / 2;
+        visualContentOffsetX.snapTo(contentOffsetX);
+        visualContentOffsetY.snapTo(contentOffsetY);
+        visualZoom.snapTo(zoom);
         clampOffsets();
     }
 
@@ -961,6 +1198,12 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
         contentOffsetX = clampAxis(contentOffsetX, innerWidth, Math.round(layout.diagramWidth * zoom));
         contentOffsetY = clampAxis(contentOffsetY, innerHeight, Math.round(layout.diagramHeight * zoom));
+    }
+
+    private void updateVisualState() {
+        visualContentOffsetX.updateTowards(contentOffsetX, 26f, 0.05f, 0.01f, Math.max(128f, bounds.width() * 2f));
+        visualContentOffsetY.updateTowards(contentOffsetY, 26f, 0.05f, 0.01f, Math.max(128f, bounds.height() * 2f));
+        visualZoom.updateTowards(zoom, 24f, 0.05f, 0.0001f, 4f);
     }
 
     private int clampAxis(int offset, int viewportSize, int contentSize) {
@@ -984,13 +1227,13 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         return preferredWidth > 0 ? preferredWidth : MIN_WIDTH;
     }
 
-    private int scaled(int base, int value) {
-        return base + Math.round(value * zoom);
+    private int scaled(int base, int value, float activeZoom) {
+        return base + Math.round(value * activeZoom);
     }
 
-    private ResolvedTextStyle scaleStyle(ResolvedTextStyle baseStyle) {
+    private ResolvedTextStyle scaleStyle(ResolvedTextStyle baseStyle, float activeZoom) {
         return new ResolvedTextStyle(
-            baseStyle.fontScale() * zoom,
+            baseStyle.fontScale() * activeZoom,
             baseStyle.bold(),
             baseStyle.italic(),
             baseStyle.underlined(),
@@ -1003,19 +1246,20 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             baseStyle.whiteSpace(),
             baseStyle.alignment(),
             baseStyle.dropShadow(),
-            baseStyle.backgroundColor());
+            baseStyle.backgroundColor(),
+            baseStyle.inlineCode());
     }
 
-    private void ensureScaledStyles() {
-        if (Float.compare(scaledStyleZoom, zoom) == 0 && scaledRootTextStyle != null
+    private void ensureScaledStyles(float activeZoom) {
+        if (Float.compare(scaledStyleZoom, activeZoom) == 0 && scaledRootTextStyle != null
             && scaledNodeTextStyle != null
             && scaledIconTextStyle != null) {
             return;
         }
-        scaledStyleZoom = zoom;
-        scaledRootTextStyle = scaleStyle(ROOT_TEXT_STYLE);
-        scaledNodeTextStyle = scaleStyle(NODE_TEXT_STYLE);
-        scaledIconTextStyle = scaleStyle(ICON_TEXT_STYLE);
+        scaledStyleZoom = activeZoom;
+        scaledRootTextStyle = scaleStyle(ROOT_TEXT_STYLE, activeZoom);
+        scaledNodeTextStyle = scaleStyle(NODE_TEXT_STYLE, activeZoom);
+        scaledIconTextStyle = scaleStyle(ICON_TEXT_STYLE, activeZoom);
     }
 
     LytRect getContentBoundsForTesting() {
@@ -1030,25 +1274,19 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
     public static class NodeContentLayout {
 
         private final LytBlock block;
-        private final int width;
-        private final int height;
+        private final LytRect visualBounds;
 
-        public NodeContentLayout(LytBlock block, int width, int height) {
+        public NodeContentLayout(LytBlock block, LytRect visualBounds) {
             this.block = block;
-            this.width = Math.max(1, width);
-            this.height = Math.max(1, height);
+            this.visualBounds = visualBounds != null && !visualBounds.isEmpty() ? visualBounds : LytRect.empty();
         }
 
         public LytBlock block() {
             return block;
         }
 
-        public int width() {
-            return width;
-        }
-
-        public int height() {
-            return height;
+        public LytRect visualBounds() {
+            return visualBounds;
         }
     }
 
@@ -1125,9 +1363,18 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
             return originY;
         }
 
+        public float getScale() {
+            return scale;
+        }
+
         @Override
         public LytRect toScreenRect(LytRect rect) {
-            return scaleRect(rect);
+            LytRect s = scaleRect(rect);
+            return new LytRect(
+                s.x() + delegate.getDocumentOriginX(),
+                s.y() + delegate.getDocumentOriginY() - delegate.getScrollOffsetY(),
+                s.width(),
+                s.height());
         }
 
         @Override
@@ -1204,6 +1451,33 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         }
 
         @Override
+        public void blitGuiSprite(LytRect rect, GuiSprite sprite) {
+            if (sprite == null) return;
+            int sx = scaleX(rect.x());
+            int sy = scaleY(rect.y());
+            GL11.glPushMatrix();
+            GL11.glTranslatef(sx, sy, 0f);
+            GL11.glScalef(scale, scale, 1f);
+            try {
+                delegate.blitTexture(
+                    sprite.getTexture(),
+                    0,
+                    0,
+                    sprite.getU(),
+                    sprite.getV(),
+                    sprite.getWidth(),
+                    sprite.getHeight());
+            } finally {
+                GL11.glPopMatrix();
+            }
+        }
+
+        @Override
+        public void fillIcon(LytRect rect, GuiSprite sprite, ColorValue color) {
+            delegate.fillIcon(scaleRect(rect), sprite, color);
+        }
+
+        @Override
         public void blitTexture(ResourceLocation texture, int x, int y, int u, int v, int width, int height) {
             delegate.blitTexture(texture, scaleX(x), scaleY(y), u, v, scaleLength(width), scaleLength(height));
         }
@@ -1263,6 +1537,13 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         }
 
         @Override
+        public void pushLocalScissor(LytRect rect) {
+            // Override the default interface method to avoid double-scaling:
+            // the default chains toScreenRect(scale) + pushScissor(scale again).
+            delegate.pushScissor(scaleRect(rect));
+        }
+
+        @Override
         public LytRect currentScissor() {
             return delegate.currentScissor();
         }
@@ -1275,6 +1556,18 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         @Override
         public void restoreExternalRenderState() {
             delegate.restoreExternalRenderState();
+        }
+
+        @Override
+        public void beginLocalView() {
+            GL11.glPushMatrix();
+            GL11.glTranslatef(originX, originY, 0f);
+            GL11.glScalef(scale, scale, 1f);
+        }
+
+        @Override
+        public void endLocalView() {
+            GL11.glPopMatrix();
         }
 
         private ResolvedTextStyle scaleStyle(ResolvedTextStyle style) {
@@ -1294,7 +1587,8 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
                     key.whiteSpace(),
                     key.alignment(),
                     key.dropShadow(),
-                    key.backgroundColor()));
+                    key.backgroundColor(),
+                    key.inlineCode()));
         }
 
         private LytRect scaleRect(LytRect rect) {

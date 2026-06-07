@@ -4,6 +4,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import net.minecraft.client.resources.IResource;
 import net.minecraft.client.resources.IResourceManager;
@@ -12,10 +15,17 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePacks;
+import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 
 public class GuideResourceAccess {
 
+    private static final ConcurrentMap<ResourceLocation, Optional<byte[]>> FALLBACK_CACHE = new ConcurrentHashMap<>();
+
     private GuideResourceAccess() {}
+
+    public static void clearCache() {
+        FALLBACK_CACHE.clear();
+    }
 
     public static @Nullable byte[] readBytes(IResourceManager resourceManager, ResourceLocation id) {
         byte[] developmentBytes = GuideDevelopmentResourcePacks.readBytes(id);
@@ -29,7 +39,19 @@ public class GuideResourceAccess {
                 return readFully(input);
             }
         } catch (IOException ignored) {}
-        return null;
+
+        return FALLBACK_CACHE.computeIfAbsent(id, GuideResourceAccess::readFallbackBytes)
+            .orElse(null);
+    }
+
+    private static Optional<byte[]> readFallbackBytes(ResourceLocation id) {
+        for (var resourcePack : DataDrivenGuideLoader.getLastActiveResourcePacks()) {
+            byte[] bytes = DataDrivenGuideLoader.readLooseBytes(resourcePack, id);
+            if (bytes != null) {
+                return Optional.of(bytes);
+            }
+        }
+        return Optional.empty();
     }
 
     public static @Nullable InputStream openStream(IResourceManager resourceManager, ResourceLocation id) {

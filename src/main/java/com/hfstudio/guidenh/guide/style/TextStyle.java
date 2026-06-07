@@ -13,9 +13,10 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
     @Nullable Boolean underlined, @Nullable Boolean wavyUnderline, @Nullable Boolean dottedUnderline,
     @Nullable Boolean strikethrough, @Nullable Boolean obfuscated, @Nullable String font, @Nullable ColorValue color,
     @Nullable WhiteSpaceMode whiteSpace, @Nullable TextAlignment alignment, @Nullable Boolean dropShadow,
-    @Nullable ColorValue backgroundColor) {
+    @Nullable ColorValue backgroundColor, @Nullable Boolean inlineCode) {
 
     public static final TextStyle EMPTY = new TextStyle(
+        null,
         null,
         null,
         null,
@@ -47,6 +48,7 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
         var alignment = this.alignment != null ? this.alignment : base.alignment();
         var dropShadow = this.dropShadow != null ? this.dropShadow : base.dropShadow();
         var backgroundColor = this.backgroundColor != null ? this.backgroundColor : base.backgroundColor();
+        var inlineCode = this.inlineCode != null ? this.inlineCode : base.inlineCode();
         return new ResolvedTextStyle(
             fontScale,
             bold,
@@ -61,7 +63,8 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
             whiteSpace,
             alignment,
             dropShadow,
-            backgroundColor);
+            backgroundColor,
+            inlineCode);
     }
 
     public Builder toBuilder() {
@@ -80,6 +83,7 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
         builder.alignment = alignment;
         builder.dropShadow = dropShadow;
         builder.backgroundColor = backgroundColor;
+        builder.inlineCode = inlineCode;
         return builder;
     }
 
@@ -103,6 +107,7 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
         private TextAlignment alignment;
         private Boolean dropShadow;
         private ColorValue backgroundColor;
+        private Boolean inlineCode;
 
         public Builder apply(TextStyle style) {
             if (style.fontScale() != null) {
@@ -146,6 +151,9 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
             }
             if (style.backgroundColor() != null) {
                 backgroundColor = style.backgroundColor();
+            }
+            if (style.inlineCode() != null) {
+                inlineCode = style.inlineCode();
             }
             return this;
         }
@@ -220,6 +228,11 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
             return this;
         }
 
+        public Builder inlineCode(Boolean inlineCode) {
+            this.inlineCode = inlineCode;
+            return this;
+        }
+
         public TextStyle build() {
             return new TextStyle(
                 fontScale,
@@ -235,7 +248,8 @@ public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Null
                 whiteSpace,
                 alignment,
                 dropShadow,
-                backgroundColor);
+                backgroundColor,
+                inlineCode);
         }
     }
 }

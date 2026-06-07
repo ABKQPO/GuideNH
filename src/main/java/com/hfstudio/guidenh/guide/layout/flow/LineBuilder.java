@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.layout.flow;
 
 import java.text.BreakIterator;
 import java.text.CharacterIterator;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -19,6 +20,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.document.flow.LytSpoilerSpan;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideFontCompat;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.TextStyle;
@@ -50,6 +52,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     private LineElement openLineTail;
     private final TextAlignment alignment;
     private final StringBuilder lineBuffer = new StringBuilder();
+    private float[] lineBufferPrefixWidths = new float[64];
 
     /** Reusable CharacterIterator wrapping {@link #lineBuffer} to avoid String allocation in BreakIterator. */
     private final StringBuilderCharIterator charIterator = new StringBuilderCharIterator();
@@ -79,15 +82,17 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     @Override
     public void accept(LytFlowContent content) {
-        switch (content) {
-            case LytFlowText text -> appendText(text.getText(), content);
-            case LytFlowBreak lytFlowBreak -> appendBreak(content);
-            case LytFlowInlineBlock inlineBlock -> appendInlineBlock(inlineBlock);
-            case LytFlowAnchor anchor ->
-                // Simply set the current layout position for the anchor
-                    anchor.setLayoutY(lineBoxY);
-            case null, default ->
-                    throw new IllegalArgumentException("Don't know how to layout flow content: " + content);
+        if (content instanceof LytFlowText text) {
+            appendText(text.getText(), content);
+        } else if (content instanceof LytFlowBreak) {
+            appendBreak(content);
+        } else if (content instanceof LytFlowInlineBlock inlineBlock) {
+            appendInlineBlock(inlineBlock);
+        } else if (content instanceof LytFlowAnchor anchor) {
+            // Simply set the current layout position for the anchor
+            anchor.setLayoutY(lineBoxY);
+        } else {
+            throw new IllegalArgumentException("Don't know how to layout flow content: " + content);
         }
     }
 
@@ -194,6 +199,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     }
 
     private void appendText(String text, LytFlowContent flowContent) {
+        String layoutText = GuideFontCompat.preprocessText(text);
         var resolvedStyle = flowContent.resolveStyle();
         var resolvedHoverStyle = flowContent.resolveHoverStyle(resolvedStyle);
         var spoiler = flowContent.findAncestor(LytSpoilerSpan.class);
@@ -208,22 +214,26 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         final var finalStyle = style;
         final var finalRevealStyle = revealStyle;
         final var finalHoverStyle = hoverStyle;
+        final boolean inlineCode = finalStyle.inlineCode();
 
         char lastChar = '\0';
         var endOfOpenLine = getEndOfOpenLine();
         if (endOfOpenLine instanceof LineTextRun textRun && !textRun.text.isEmpty()) {
-            lastChar = textRun.text.charAt(textRun.text.length() - 1);
+            lastChar = findLastVisibleChar(textRun.text);
         } else if (endOfOpenLine == null || endOfOpenLine.floating) {
             // Treat the first text in a line or text directly after a float as if it was after a line-break.
             lastChar = '\n';
         }
 
-        iterateRuns(text, finalStyle, lastChar, (run, width, endLine) -> {
+        iterateRuns(layoutText, finalStyle, lastChar, (run, width, endLine) -> {
             if (!run.isEmpty()) {
                 var el = new LineTextRun(run.toString(), finalStyle, finalRevealStyle, finalHoverStyle);
                 el.flowContent = flowContent;
                 int w = Math.round(width);
                 int h = context.getLineHeight(finalStyle);
+                if (inlineCode) {
+                    w += LineTextRun.INLINE_CODE_EXTRA_WIDTH;
+                }
                 el.bounds = new LytRect(innerX, 0, w, h);
                 appendToOpenLine(el);
                 innerX += w;
@@ -258,6 +268,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         float curLineWidth = 0;
 
         lineBuffer.setLength(0);
+        lineBufferPrefixWidths[0] = 0f;
 
         // Hoist whitespace mode flags out of the per-character loop to avoid repeated method calls.
         boolean collapseSegmentBreaks = style.whiteSpace()
@@ -267,10 +278,20 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
         boolean lastCharWasWhitespace = Character.isWhitespace(lastChar);
         boolean canBreakAtStart = lastCharWasWhitespace;
+        boolean bold = style.bold();
+        boolean visibleGlyphSeen = false;
 
         for (var i = 0; i < text.length(); i++) {
             char ch = text.charAt(i);
             int codePoint = ch;
+
+            if (GuideFontCompat.isFormattingCodeStart(text, i)) {
+                appendCharToLineBuffer(ch, 0f);
+                char formatChar = text.charAt(++i);
+                appendCharToLineBuffer(formatChar, 0f);
+                bold = GuideFontCompat.determineBold(bold, formatChar);
+                continue;
+            }
 
             // UTF-16 surrogate handling
             if (Character.isHighSurrogate(ch) && i + 1 < text.length()) {
@@ -289,6 +310,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 } else {
                     consumer.visitRun(lineBuffer, curLineWidth, true);
                     lineBuffer.setLength(0);
+                    lineBufferPrefixWidths[0] = 0f;
                     lastCharWasWhitespace = true;
                     remainingLineWidth = getAvailableHorizontalSpace();
                     continue;
@@ -305,7 +327,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 lastCharWasWhitespace = false;
             }
 
-            var advance = context.getAdvance(codePoint, style);
+            var advance = context.getRenderedAdvance(codePoint, style, visibleGlyphSeen);
             // Break line if necessary
             if (curLineWidth + advance > remainingLineWidth) {
                 int precedingBreakOpportunity;
@@ -329,33 +351,26 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 // current word does not offer us any opportunity to.
                 if (precedingBreakOpportunity > 0 || precedingBreakOpportunity == 0 && canBreakAtStart) {
                     // Determine width up until the break opportunity.
-                    // Short-circuit: when breaking at end-of-buffer (whitespace case), curLineWidth
-                    // already equals the total, so skip the O(N) recomputation loop.
-                    float widthAtBreakOpportunity;
-                    if (precedingBreakOpportunity == lineBuffer.length()) {
-                        widthAtBreakOpportunity = curLineWidth;
-                    } else {
-                        widthAtBreakOpportunity = 0f;
-                        for (var j = 0; j < precedingBreakOpportunity; j++) {
-                            widthAtBreakOpportunity += context.getAdvance(lineBuffer.charAt(j), style);
-                        }
-                    }
+                    float widthAtBreakOpportunity = lineBufferPrefixWidths[precedingBreakOpportunity];
 
                     consumer
                         .visitRun(lineBuffer.subSequence(0, precedingBreakOpportunity), widthAtBreakOpportunity, true);
-                    curLineWidth -= widthAtBreakOpportunity;
-                    lineBuffer.delete(0, precedingBreakOpportunity);
+                    deleteLineBufferPrefix(precedingBreakOpportunity);
                     if (!lineBuffer.isEmpty() && Character.isWhitespace(lineBuffer.charAt(0))) {
-                        var firstChar = lineBuffer.charAt(0);
-                        lineBuffer.deleteCharAt(0);
-                        curLineWidth -= context.getAdvance(firstChar, style);
+                        deleteLineBufferPrefix(1);
                     }
+                    curLineWidth = rebuildLineBufferWidths(style);
+                    bold = resolveTrailingBold(style, lineBuffer);
+                    visibleGlyphSeen = containsVisibleGlyph(lineBuffer);
                 } else {
                     // We exceeded the line length, but did not find a break opportunity
                     // this causes a forced break mid-word
                     consumer.visitRun(lineBuffer, curLineWidth, true);
                     lineBuffer.setLength(0);
+                    lineBufferPrefixWidths[0] = 0f;
                     curLineWidth = 0;
+                    bold = style.bold();
+                    visibleGlyphSeen = false;
                 }
                 remainingLineWidth = getAvailableHorizontalSpace();
                 // If a white-space character broke the line, ignore it as it
@@ -365,12 +380,137 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                 }
             }
             curLineWidth += advance;
-            lineBuffer.appendCodePoint(codePoint);
+            appendCodePointToLineBuffer(codePoint, advance);
+            if (advance > 0f) {
+                visibleGlyphSeen = true;
+            }
         }
 
         if (!lineBuffer.isEmpty()) {
             consumer.visitRun(lineBuffer, curLineWidth, false);
         }
+    }
+
+    private void appendCodePointToLineBuffer(int codePoint, float advance) {
+        int previousLength = lineBuffer.length();
+        float bufferWidth = lineBufferPrefixWidths[previousLength] + advance;
+        lineBuffer.appendCodePoint(codePoint);
+        int newLength = lineBuffer.length();
+        ensureLineBufferPrefixCapacity(newLength + 1);
+        for (int i = previousLength + 1; i <= newLength; i++) {
+            lineBufferPrefixWidths[i] = bufferWidth;
+        }
+    }
+
+    private void appendCharToLineBuffer(char character, float advance) {
+        int previousLength = lineBuffer.length();
+        float bufferWidth = lineBufferPrefixWidths[previousLength] + advance;
+        lineBuffer.append(character);
+        ensureLineBufferPrefixCapacity(previousLength + 2);
+        lineBufferPrefixWidths[previousLength + 1] = bufferWidth;
+    }
+
+    private float deleteLineBufferPrefix(int charCount) {
+        if (charCount <= 0) {
+            return 0f;
+        }
+        float removedWidth = lineBufferPrefixWidths[charCount];
+        int remainingChars = lineBuffer.length() - charCount;
+        if (remainingChars > 0) {
+            System.arraycopy(lineBufferPrefixWidths, charCount + 1, lineBufferPrefixWidths, 1, remainingChars);
+            for (int i = 1; i <= remainingChars; i++) {
+                lineBufferPrefixWidths[i] -= removedWidth;
+            }
+        }
+        lineBuffer.delete(0, charCount);
+        lineBufferPrefixWidths[0] = 0f;
+        return removedWidth;
+    }
+
+    private float rebuildLineBufferWidths(ResolvedTextStyle style) {
+        ensureLineBufferPrefixCapacity(lineBuffer.length() + 1);
+        lineBufferPrefixWidths[0] = 0f;
+        float width = 0f;
+        boolean bold = style.bold();
+        boolean visibleGlyphSeen = false;
+        for (int index = 0; index < lineBuffer.length(); index++) {
+            char character = lineBuffer.charAt(index);
+            if (GuideFontCompat.isFormattingCodeStart(lineBuffer, index)) {
+                lineBufferPrefixWidths[index + 1] = width;
+                char formatChar = lineBuffer.charAt(index + 1);
+                bold = GuideFontCompat.determineBold(bold, formatChar);
+                lineBufferPrefixWidths[index + 2] = width;
+                index++;
+                continue;
+            }
+            int codePoint = character;
+            if (Character.isHighSurrogate(character) && index + 1 < lineBuffer.length()) {
+                char low = lineBuffer.charAt(index + 1);
+                if (Character.isLowSurrogate(low)) {
+                    codePoint = Character.toCodePoint(character, low);
+                }
+            }
+            float advance = context.getRenderedAdvance(codePoint, style, visibleGlyphSeen);
+            width += Math.max(0f, advance);
+            int charCount = Character.charCount(codePoint);
+            for (int offset = 1; offset <= charCount; offset++) {
+                lineBufferPrefixWidths[index + offset] = width;
+            }
+            index += charCount - 1;
+            if (advance > 0f) {
+                visibleGlyphSeen = true;
+            }
+        }
+        return width;
+    }
+
+    private boolean resolveTrailingBold(ResolvedTextStyle style, CharSequence text) {
+        boolean bold = style.bold();
+        for (int index = 0; index < text.length() - 1; index++) {
+            if (!GuideFontCompat.isFormattingCodeStart(text, index)) {
+                continue;
+            }
+            bold = GuideFontCompat.determineBold(bold, text.charAt(index + 1));
+            index++;
+        }
+        return bold;
+    }
+
+    private boolean containsVisibleGlyph(CharSequence text) {
+        for (int index = 0; index < text.length(); index++) {
+            if (GuideFontCompat.isFormattingCodeStart(text, index)) {
+                index++;
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private char findLastVisibleChar(CharSequence text) {
+        for (int index = text.length() - 1; index >= 0; index--) {
+            char character = text.charAt(index);
+            if (character == GuideFontCompat.FORMATTING_CHAR && index + 1 < text.length()) {
+                continue;
+            }
+            if (index > 0 && text.charAt(index - 1) == GuideFontCompat.FORMATTING_CHAR) {
+                index--;
+                continue;
+            }
+            return character;
+        }
+        return '\0';
+    }
+
+    private void ensureLineBufferPrefixCapacity(int requiredLength) {
+        if (requiredLength <= lineBufferPrefixWidths.length) {
+            return;
+        }
+        int newLength = lineBufferPrefixWidths.length;
+        while (newLength < requiredLength) {
+            newLength <<= 1;
+        }
+        lineBufferPrefixWidths = Arrays.copyOf(lineBufferPrefixWidths, newLength);
     }
 
     private void endLine() {
@@ -540,7 +680,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     }
 
     @FunctionalInterface
-    interface LineConsumer {
+    private interface LineConsumer {
 
         void visitRun(CharSequence run, float width, boolean end);
     }
@@ -549,7 +689,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
      * A {@link CharacterIterator} that wraps a {@link StringBuilder} without copying it to a {@link String}.
      * Reuse by calling {@link #reset} before each use.
      */
-    private static final class StringBuilderCharIterator implements CharacterIterator {
+    private static class StringBuilderCharIterator implements CharacterIterator {
 
         private StringBuilder sb;
         private int begin;

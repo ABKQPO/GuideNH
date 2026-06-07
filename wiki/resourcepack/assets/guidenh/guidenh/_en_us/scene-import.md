@@ -21,6 +21,20 @@ categories:
 
 Hover blocks in the StructureLib preview to inspect the extra structure text. Hold `Shift` to expand replacement candidates. If the imported structure exposes hatch or channel metadata, the preview also adds the hatch highlight button and the bottom sliders automatically.
 
+Defaults can be written as child tags. Reset view restores these values after interactive slider
+changes, and GregTech controllers use the survival preview path so hatch-only positions are filled
+correctly:
+
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
+    <Tier value="4" />
+    <Channel name="voltage" value="4" />
+    <Facing value="north" />
+    <GregTechActiveController />
+    <GregTechPlaceHatches />
+  </ImportStructureLib>
+</GameScene>
+
 `facing`, `rotation`, and `flip` use the same orientation vocabulary as StructureLib export. If a
 controller rejects the requested combination, GuideNH automatically falls back to the first valid
 alignment. GregTech controller previews also default to the opposite horizontal facing from the
@@ -62,6 +76,21 @@ StructureLib import with orientation and offsets:
 </GameScene>
 ```
 
+Defaults can also be written as child tags. Reset view restores these values after interactive
+slider changes, and GregTech controllers use the survival preview path so hatch-only positions are
+filled correctly:
+
+```mdx
+<GameScene width="384" height="256" zoom={4} interactive={true}>
+  <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
+    <Tier value="4" />
+    <Channel name="voltage" value="4" />
+    <Facing value="north" />
+    <GregTechActiveController />
+    <GregTechPlaceHatches />
+  </ImportStructureLib>
+</GameScene>
+```
 Named StructureLib imports can drive conditional annotations and sounds:
 
 <GameScene width="384" height="256" zoom={4} interactive={true}>

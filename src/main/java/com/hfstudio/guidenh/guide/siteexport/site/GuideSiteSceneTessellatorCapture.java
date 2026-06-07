@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -23,7 +22,8 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+
 import guideme.flatbuffers.scene.ExpDepthTest;
 import guideme.flatbuffers.scene.ExpIndexElementType;
 import guideme.flatbuffers.scene.ExpPrimitiveType;
@@ -31,36 +31,29 @@ import guideme.flatbuffers.scene.ExpTransparency;
 
 public class GuideSiteSceneTessellatorCapture {
 
-    private static final ThreadLocal<GuideSiteSceneTessellatorCapture> ACTIVE = new ThreadLocal<>();
+    // Scene export capture is only expected to run on the client render thread, so a
+    // direct active reference is cheaper than paying a ThreadLocal lookup on every vertex.
+    private static volatile @Nullable GuideSiteSceneTessellatorCapture ACTIVE;
 
     private final GuideSiteAssetRegistry assets;
     private final Matrix4f inverseViewMatrix;
     private final Matrix4f currentWorldMatrix = new Matrix4f();
+    private final Matrix4f modelViewMatrix = new Matrix4f();
     private final Matrix3f currentNormalMatrix = new Matrix3f();
+    private final VertexDecodeScratch decodeScratch = new VertexDecodeScratch();
     private final FloatBuffer modelViewBuffer = BufferUtils.createFloatBuffer(16);
-    private final Vector3f transformedPosition = new Vector3f();
-    private final Vector3f transformedNormal = new Vector3f();
     private final List<CapturedMesh> meshes = new ArrayList<>();
     private final Map<Integer, TextureExport> textures = new LinkedHashMap<>();
-    private final ArrayList<RecordedVertex> currentVertices = new ArrayList<>();
+    private static final int RAW_VERTEX_STRIDE = 8;
+    private static final byte[] EMPTY_VERTEX_BYTES = new byte[0];
 
     private boolean drawing;
     private int drawMode;
     private boolean hasTexture;
-    private boolean hasColor;
     private boolean hasBrightness;
     private boolean hasNormals;
-    private boolean colorDisabled;
-    private float normalX;
-    private float normalY;
-    private float normalZ;
-    private float textureU;
-    private float textureV;
-    private int color = 0xFFFFFFFF;
-    private int brightness;
-    private double xOffset;
-    private double yOffset;
-    private double zOffset;
+    private byte[] currentVertexBytes = EMPTY_VERTEX_BYTES;
+    private int currentVertexCount;
     @Nullable
     private String currentSourceTextureId;
 
@@ -73,20 +66,20 @@ public class GuideSiteSceneTessellatorCapture {
         if (capture == null) {
             throw new IllegalArgumentException("capture");
         }
-        GuideSiteSceneTessellatorCapture previous = ACTIVE.get();
+        GuideSiteSceneTessellatorCapture previous = ACTIVE;
         if (previous != null && previous != capture) {
             throw new IllegalStateException("Another scene tessellator capture is already active.");
         }
-        ACTIVE.set(capture);
+        ACTIVE = capture;
     }
 
     public static void deactivate() {
-        ACTIVE.remove();
+        ACTIVE = null;
     }
 
     @Nullable
     public static GuideSiteSceneTessellatorCapture getActive() {
-        return ACTIVE.get();
+        return ACTIVE;
     }
 
     public RecordingResult finish() {
@@ -110,31 +103,20 @@ public class GuideSiteSceneTessellatorCapture {
     public void startDrawing(int drawMode) {
         if (drawing) {
             // A previous batch was not properly closed, so drop it before recording a new one.
-            FMLLog.getLogger()
-                .warn(
-                    "Scene capture startDrawing called while already drawing (mode={}); discarding previous unclosed batch",
-                    drawMode);
+            GuideDebugLog.warnAlways(
+                "Scene capture startDrawing called while already drawing (mode={}); discarding previous unclosed batch",
+                drawMode);
             drawing = false;
-            currentVertices.clear();
+            currentVertexBytes = EMPTY_VERTEX_BYTES;
+            currentVertexCount = 0;
         }
         drawing = true;
-        currentVertices.clear();
+        currentVertexBytes = EMPTY_VERTEX_BYTES;
+        currentVertexCount = 0;
         this.drawMode = drawMode;
         hasTexture = false;
-        hasColor = false;
         hasBrightness = false;
         hasNormals = false;
-        colorDisabled = false;
-        textureU = 0.0f;
-        textureV = 0.0f;
-        color = 0xFFFFFFFF;
-        brightness = 0;
-        normalX = 0.0f;
-        normalY = 0.0f;
-        normalZ = 0.0f;
-        xOffset = 0.0D;
-        yOffset = 0.0D;
-        zOffset = 0.0D;
         captureCurrentWorldTransform();
     }
 
@@ -144,128 +126,42 @@ public class GuideSiteSceneTessellatorCapture {
             return 0;
         }
         drawing = false;
-        int vertexCount = currentVertices.size();
+        int vertexCount = currentVertexCount;
         try {
             if (vertexCount > 0) {
                 captureCurrentMesh();
             }
         } catch (Throwable e) {
-            FMLLog.getLogger()
-                .warn("Scene capture mesh export failed ({} vertices)", vertexCount, e);
+            GuideDebugLog.warnAlways("Scene capture mesh export failed ({} vertices)", vertexCount, e);
         } finally {
-            currentVertices.clear();
+            currentVertexBytes = EMPTY_VERTEX_BYTES;
+            currentVertexCount = 0;
         }
         return vertexCount * 32;
     }
 
-    public void setTextureUV(double u, double v) {
-        hasTexture = true;
-        textureU = (float) u;
-        textureV = (float) v;
-    }
-
-    public void addVertexWithUV(double x, double y, double z, double u, double v) {
-        setTextureUV(u, v);
-        addVertex(x, y, z);
-    }
-
-    public void setBrightness(int brightness) {
-        hasBrightness = true;
-        this.brightness = brightness;
-    }
-
-    public void setColorOpaque_F(float red, float green, float blue) {
-        setColorOpaque((int) (red * 255.0F), (int) (green * 255.0F), (int) (blue * 255.0F));
-    }
-
-    public void setColorRGBA_F(float red, float green, float blue, float alpha) {
-        setColorRGBA((int) (red * 255.0F), (int) (green * 255.0F), (int) (blue * 255.0F), (int) (alpha * 255.0F));
-    }
-
-    public void setColorOpaque(int red, int green, int blue) {
-        setColorRGBA(red, green, blue, 255);
-    }
-
-    public void setColorRGBA(int red, int green, int blue, int alpha) {
-        if (colorDisabled) {
+    public void captureRawBuffer(int[] rawBuffer, int vertexCount, boolean hasTexture, boolean hasColor,
+        boolean hasBrightness, boolean hasNormals) {
+        this.hasTexture = hasTexture;
+        this.hasBrightness = hasBrightness;
+        this.hasNormals = hasNormals;
+        currentVertexCount = sanitizeVertexCount(rawBuffer, vertexCount);
+        if (currentVertexCount <= 0) {
+            currentVertexBytes = EMPTY_VERTEX_BYTES;
             return;
         }
-        hasColor = true;
-        color = clamp(alpha) << 24 | clamp(blue) << 16 | clamp(green) << 8 | clamp(red);
-    }
-
-    public void func_154352_a(byte red, byte green, byte blue) {
-        setColorOpaque(red & 255, green & 255, blue & 255);
-    }
-
-    public void setColorOpaque_I(int color) {
-        setColorOpaque(color >> 16 & 255, color >> 8 & 255, color & 255);
-    }
-
-    public void setColorRGBA_I(int color, int alpha) {
-        setColorRGBA(color >> 16 & 255, color >> 8 & 255, color & 255, alpha);
-    }
-
-    public void disableColor() {
-        colorDisabled = true;
-    }
-
-    public void setNormal(float x, float y, float z) {
-        hasNormals = true;
-        normalX = x;
-        normalY = y;
-        normalZ = z;
-    }
-
-    public void setTranslation(double x, double y, double z) {
-        xOffset = x;
-        yOffset = y;
-        zOffset = z;
-    }
-
-    public void addTranslation(float x, float y, float z) {
-        xOffset += x;
-        yOffset += y;
-        zOffset += z;
-    }
-
-    public void addVertex(double x, double y, double z) {
-        int rgba = hasColor ? color : 0xFFFFFFFF;
-        float px = (float) (x + xOffset);
-        float py = (float) (y + yOffset);
-        float pz = (float) (z + zOffset);
-
-        transformedPosition.set(px, py, pz);
-        currentWorldMatrix.transformPosition(transformedPosition);
-
-        byte nx = 0;
-        byte ny = 0;
-        byte nz = 0;
-        if (hasNormals) {
-            transformedNormal.set(normalX, normalY, normalZ);
-            currentNormalMatrix.transform(transformedNormal);
-            if (transformedNormal.lengthSquared() > 1.0e-12f) {
-                transformedNormal.normalize();
-            }
-            nx = packNormalComponent(transformedNormal.x);
-            ny = packNormalComponent(transformedNormal.y);
-            nz = packNormalComponent(transformedNormal.z);
-        }
-
-        currentVertices.add(
-            new RecordedVertex(
-                transformedPosition.x,
-                transformedPosition.y,
-                transformedPosition.z,
-                hasTexture ? textureU : 0.0f,
-                hasTexture ? textureV : 0.0f,
-                rgba & 255,
-                rgba >> 8 & 255,
-                rgba >> 16 & 255,
-                rgba >> 24 & 255,
-                nx,
-                ny,
-                nz));
+        currentVertexBytes = new byte[currentVertexCount * exportVertexStride(hasTexture, hasNormals)];
+        appendCapturedVertices(
+            rawBuffer,
+            currentVertexCount,
+            hasTexture,
+            hasColor,
+            hasNormals,
+            currentWorldMatrix,
+            currentNormalMatrix,
+            decodeScratch,
+            currentVertexBytes,
+            0);
     }
 
     private void captureCurrentWorldTransform() {
@@ -273,7 +169,7 @@ public class GuideSiteSceneTessellatorCapture {
         GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelViewBuffer);
         modelViewBuffer.flip();
 
-        Matrix4f modelViewMatrix = new Matrix4f().set(modelViewBuffer);
+        modelViewMatrix.set(modelViewBuffer);
         currentWorldMatrix.set(inverseViewMatrix)
             .mul(modelViewMatrix);
 
@@ -287,21 +183,19 @@ public class GuideSiteSceneTessellatorCapture {
     }
 
     private void captureCurrentMesh() throws Exception {
-        if (currentVertices.isEmpty()) {
+        if (currentVertexCount <= 0) {
             return;
         }
 
         TextureExport texture = hasTexture ? exportCurrentTexture() : null;
         MaterialKey material = createMaterialKey(texture);
         VertexFormatKey vertexFormat = new VertexFormatKey(hasTexture, hasNormals);
-
-        ByteBuffer vertexBuffer = buildVertexBuffer(vertexFormat);
-        IndexData indexData = buildIndexData();
+        EncodedIndexData indexData = buildIndexData(currentVertexCount);
 
         meshes.add(
             new CapturedMesh(
-                toByteArray(vertexBuffer),
-                toByteArray(indexData.buffer),
+                currentVertexBytes,
+                indexData.indexBuffer(),
                 indexData.indexCount,
                 indexData.indexType,
                 indexData.primitiveType,
@@ -335,12 +229,11 @@ public class GuideSiteSceneTessellatorCapture {
             int level0Width = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
             int level0Height = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
             if (level0Width <= 0 || level0Height <= 0) {
-                FMLLog.getLogger()
-                    .warn(
-                        "exportCurrentTexture: bound texture id={} has invalid level-0 dimensions {}x{}; skipping",
-                        textureId,
-                        level0Width,
-                        level0Height);
+                GuideDebugLog.warnAlways(
+                    "exportCurrentTexture: bound texture id={} has invalid level-0 dimensions {}x{}; skipping",
+                    textureId,
+                    level0Width,
+                    level0Height);
                 return null;
             }
 
@@ -361,22 +254,20 @@ public class GuideSiteSceneTessellatorCapture {
                     exportHeight = lh;
                     if (lw <= MAX_EXPORT_TEXTURE_SIZE && lh <= MAX_EXPORT_TEXTURE_SIZE) break;
                 }
-                FMLLog.getLogger()
-                    .debug(
-                        "exportCurrentTexture: texture id={} is {}x{} - using mip level {} ({}x{}) for site export",
-                        textureId,
-                        level0Width,
-                        level0Height,
-                        exportMipLevel,
-                        exportWidth,
-                        exportHeight);
+                GuideDebugLog.debugAlways(
+                    "exportCurrentTexture: texture id={} is {}x{} - using mip level {} ({}x{}) for site export",
+                    textureId,
+                    level0Width,
+                    level0Height,
+                    exportMipLevel,
+                    exportWidth,
+                    exportHeight);
             } else {
-                FMLLog.getLogger()
-                    .debug(
-                        "exportCurrentTexture: exporting texture id={} ({}x{})",
-                        textureId,
-                        exportWidth,
-                        exportHeight);
+                GuideDebugLog.debugAlways(
+                    "exportCurrentTexture: exporting texture id={} ({}x{})",
+                    textureId,
+                    exportWidth,
+                    exportHeight);
             }
 
             ByteBuffer pixels = BufferUtils.createByteBuffer(exportWidth * exportHeight * 4);
@@ -488,81 +379,11 @@ public class GuideSiteSceneTessellatorCapture {
         return ExpDepthTest.LEQUAL;
     }
 
-    private ByteBuffer buildVertexBuffer(VertexFormatKey vertexFormat) {
-        int stride = 12 + (vertexFormat.hasUv ? 8 : 0) + 4 + (vertexFormat.hasNormal ? 4 : 0);
-        ByteBuffer buffer = ByteBuffer.allocate(currentVertices.size() * stride)
-            .order(ByteOrder.LITTLE_ENDIAN);
-
-        for (RecordedVertex vertex : currentVertices) {
-            buffer.putFloat(vertex.x);
-            buffer.putFloat(vertex.y);
-            buffer.putFloat(vertex.z);
-            if (vertexFormat.hasUv) {
-                buffer.putFloat(vertex.u);
-                buffer.putFloat(vertex.v);
-            }
-            buffer.put((byte) vertex.r);
-            buffer.put((byte) vertex.g);
-            buffer.put((byte) vertex.b);
-            buffer.put((byte) vertex.a);
-            if (vertexFormat.hasNormal) {
-                buffer.put(vertex.nx);
-                buffer.put(vertex.ny);
-                buffer.put(vertex.nz);
-                buffer.put((byte) 0);
-            }
-        }
-
-        buffer.flip();
-        return buffer;
+    private EncodedIndexData buildIndexData(int vertexCount) {
+        return encodeIndexData(drawMode, vertexCount);
     }
 
-    private IndexData buildIndexData() {
-        int primitiveType = mapPrimitiveType(drawMode);
-        int[] indices = buildIndices(drawMode, currentVertices.size());
-        boolean useUInt = currentVertices.size() > 0xFFFF;
-        ByteBuffer buffer = ByteBuffer.allocate(indices.length * (useUInt ? 4 : 2))
-            .order(ByteOrder.LITTLE_ENDIAN);
-        for (int index : indices) {
-            if (useUInt) {
-                buffer.putInt(index);
-            } else {
-                buffer.putShort((short) index);
-            }
-        }
-        buffer.flip();
-        return new IndexData(
-            buffer,
-            indices.length,
-            useUInt ? ExpIndexElementType.UINT : ExpIndexElementType.USHORT,
-            primitiveType);
-    }
-
-    private int[] buildIndices(int drawMode, int vertexCount) {
-        if (drawMode == GL11.GL_QUADS) {
-            int quadCount = vertexCount / 4;
-            int[] indices = new int[quadCount * 6];
-            int cursor = 0;
-            for (int quad = 0; quad < quadCount; quad++) {
-                int base = quad * 4;
-                indices[cursor++] = base;
-                indices[cursor++] = base + 1;
-                indices[cursor++] = base + 2;
-                indices[cursor++] = base + 2;
-                indices[cursor++] = base + 3;
-                indices[cursor++] = base;
-            }
-            return indices;
-        }
-
-        int[] indices = new int[vertexCount];
-        for (int i = 0; i < vertexCount; i++) {
-            indices[i] = i;
-        }
-        return indices;
-    }
-
-    private int mapPrimitiveType(int drawMode) {
+    private static int mapPrimitiveType(int drawMode) {
         if (drawMode == GL11.GL_LINES) {
             return ExpPrimitiveType.LINES;
         }
@@ -581,11 +402,157 @@ public class GuideSiteSceneTessellatorCapture {
         return ExpPrimitiveType.TRIANGLES;
     }
 
-    private static int clamp(int value) {
-        if (value < 0) {
+    static int exportVertexStride(boolean hasUv, boolean hasNormal) {
+        return 12 + (hasUv ? 8 : 0) + 4 + (hasNormal ? 4 : 0);
+    }
+
+    static EncodedIndexData encodeIndexData(int drawMode, int vertexCount) {
+        int primitiveType = mapPrimitiveType(drawMode);
+        boolean useUInt = vertexCount > 0xFFFF;
+        int bytesPerIndex = useUInt ? Integer.BYTES : Short.BYTES;
+        int indexCount = drawMode == GL11.GL_QUADS ? vertexCount / 4 * 6 : vertexCount;
+        byte[] encoded = new byte[indexCount * bytesPerIndex];
+        int cursor = 0;
+
+        if (drawMode == GL11.GL_QUADS) {
+            int quadCount = vertexCount / 4;
+            for (int quad = 0; quad < quadCount; quad++) {
+                int base = quad * 4;
+                cursor = writeIndexLE(encoded, cursor, useUInt, base);
+                cursor = writeIndexLE(encoded, cursor, useUInt, base + 1);
+                cursor = writeIndexLE(encoded, cursor, useUInt, base + 2);
+                cursor = writeIndexLE(encoded, cursor, useUInt, base + 2);
+                cursor = writeIndexLE(encoded, cursor, useUInt, base + 3);
+                cursor = writeIndexLE(encoded, cursor, useUInt, base);
+            }
+        } else {
+            for (int index = 0; index < vertexCount; index++) {
+                cursor = writeIndexLE(encoded, cursor, useUInt, index);
+            }
+        }
+
+        return new EncodedIndexData(
+            encoded,
+            indexCount,
+            useUInt ? ExpIndexElementType.UINT : ExpIndexElementType.USHORT,
+            primitiveType);
+    }
+
+    static void appendCapturedVertices(int[] rawBuffer, int vertexCount, boolean hasTexture, boolean hasColor,
+        boolean hasNormals, Matrix4f worldMatrix, Matrix3f normalMatrix, ByteBuffer target) {
+        appendCapturedVertices(
+            rawBuffer,
+            vertexCount,
+            hasTexture,
+            hasColor,
+            hasNormals,
+            worldMatrix,
+            normalMatrix,
+            new VertexDecodeScratch(),
+            target);
+    }
+
+    static void appendCapturedVertices(int[] rawBuffer, int vertexCount, boolean hasTexture, boolean hasColor,
+        boolean hasNormals, Matrix4f worldMatrix, Matrix3f normalMatrix, VertexDecodeScratch scratch,
+        ByteBuffer target) {
+        int start = target.position();
+        if (target.hasArray()) {
+            int written = appendCapturedVertices(
+                rawBuffer,
+                vertexCount,
+                hasTexture,
+                hasColor,
+                hasNormals,
+                worldMatrix,
+                normalMatrix,
+                scratch,
+                target.array(),
+                target.arrayOffset() + start);
+            target.position(start + written);
+            return;
+        }
+
+        int sanitizedVertexCount = sanitizeVertexCount(rawBuffer, vertexCount);
+        int written = sanitizedVertexCount * exportVertexStride(hasTexture, hasNormals);
+        if (written <= 0) {
+            return;
+        }
+        byte[] temp = new byte[written];
+        appendCapturedVertices(
+            rawBuffer,
+            sanitizedVertexCount,
+            hasTexture,
+            hasColor,
+            hasNormals,
+            worldMatrix,
+            normalMatrix,
+            scratch,
+            temp,
+            0);
+        target.put(temp, 0, written);
+    }
+
+    static int appendCapturedVertices(int[] rawBuffer, int vertexCount, boolean hasTexture, boolean hasColor,
+        boolean hasNormals, Matrix4f worldMatrix, Matrix3f normalMatrix, VertexDecodeScratch scratch, byte[] target,
+        int targetOffset) {
+        if (rawBuffer == null || vertexCount <= 0) {
             return 0;
         }
-        return Math.min(value, 255);
+
+        int stride = exportVertexStride(hasTexture, hasNormals);
+        int sanitizedVertexCount = sanitizeVertexCount(rawBuffer, vertexCount);
+        int cursor = targetOffset;
+        for (int vertexIndex = 0; vertexIndex < sanitizedVertexCount; vertexIndex++) {
+            int base = vertexIndex * RAW_VERTEX_STRIDE;
+            scratch.transformedPosition.set(
+                Float.intBitsToFloat(rawBuffer[base]),
+                Float.intBitsToFloat(rawBuffer[base + 1]),
+                Float.intBitsToFloat(rawBuffer[base + 2]));
+            worldMatrix.transformPosition(scratch.transformedPosition);
+            writeFloatLE(target, cursor, scratch.transformedPosition.x);
+            cursor += Float.BYTES;
+            writeFloatLE(target, cursor, scratch.transformedPosition.y);
+            cursor += Float.BYTES;
+            writeFloatLE(target, cursor, scratch.transformedPosition.z);
+            cursor += Float.BYTES;
+
+            if (hasTexture) {
+                writeFloatLE(target, cursor, Float.intBitsToFloat(rawBuffer[base + 3]));
+                cursor += Float.BYTES;
+                writeFloatLE(target, cursor, Float.intBitsToFloat(rawBuffer[base + 4]));
+                cursor += Float.BYTES;
+            }
+
+            int rgba = hasColor ? rawBuffer[base + 5] : 0xFFFFFFFF;
+            target[cursor++] = (byte) (rgba & 255);
+            target[cursor++] = (byte) (rgba >> 8 & 255);
+            target[cursor++] = (byte) (rgba >> 16 & 255);
+            target[cursor++] = (byte) (rgba >> 24 & 255);
+
+            if (hasNormals) {
+                int packedNormal = rawBuffer[base + 6];
+                scratch.transformedNormal.set(
+                    unpackNormalComponent(packedNormal),
+                    unpackNormalComponent(packedNormal >> 8),
+                    unpackNormalComponent(packedNormal >> 16));
+                normalMatrix.transform(scratch.transformedNormal);
+                if (scratch.transformedNormal.lengthSquared() > 1.0e-12f) {
+                    scratch.transformedNormal.normalize();
+                }
+                target[cursor++] = packNormalComponent(scratch.transformedNormal.x);
+                target[cursor++] = packNormalComponent(scratch.transformedNormal.y);
+                target[cursor++] = packNormalComponent(scratch.transformedNormal.z);
+                target[cursor++] = 0;
+            }
+        }
+        return sanitizedVertexCount * stride;
+    }
+
+    private static int sanitizeVertexCount(int[] rawBuffer, int vertexCount) {
+        if (rawBuffer == null || vertexCount <= 0) {
+            return 0;
+        }
+        return Math.min(vertexCount, rawBuffer.length / RAW_VERTEX_STRIDE);
     }
 
     private static byte packNormalComponent(float value) {
@@ -598,10 +565,29 @@ public class GuideSiteSceneTessellatorCapture {
         return (byte) packed;
     }
 
-    private static byte[] toByteArray(ByteBuffer buffer) {
-        byte[] out = new byte[buffer.remaining()];
-        buffer.get(out);
-        return out;
+    private static float unpackNormalComponent(int packedByte) {
+        return (byte) (packedByte & 0xFF) / 127.0f;
+    }
+
+    private static void writeFloatLE(byte[] target, int offset, float value) {
+        int bits = Float.floatToRawIntBits(value);
+        target[offset] = (byte) bits;
+        target[offset + 1] = (byte) (bits >> 8);
+        target[offset + 2] = (byte) (bits >> 16);
+        target[offset + 3] = (byte) (bits >> 24);
+    }
+
+    private static int writeIndexLE(byte[] target, int offset, boolean useUInt, int index) {
+        if (useUInt) {
+            target[offset] = (byte) index;
+            target[offset + 1] = (byte) (index >> 8);
+            target[offset + 2] = (byte) (index >> 16);
+            target[offset + 3] = (byte) (index >> 24);
+            return offset + Integer.BYTES;
+        }
+        target[offset] = (byte) index;
+        target[offset + 1] = (byte) (index >> 8);
+        return offset + Short.BYTES;
     }
 
     public static class RecordingResult {
@@ -633,6 +619,14 @@ public class GuideSiteSceneTessellatorCapture {
             this.useMipmaps = useMipmaps;
         }
     }
+
+    static final class VertexDecodeScratch {
+
+        final Vector3f transformedPosition = new Vector3f();
+        final Vector3f transformedNormal = new Vector3f();
+    }
+
+    record EncodedIndexData(byte[] indexBuffer, long indexCount, int indexType, int primitiveType) {}
 
     public static class CapturedMesh {
 
@@ -776,50 +770,4 @@ public class GuideSiteSceneTessellatorCapture {
         }
     }
 
-    private static class RecordedVertex {
-
-        private final float x;
-        private final float y;
-        private final float z;
-        private final float u;
-        private final float v;
-        private final int r;
-        private final int g;
-        private final int b;
-        private final int a;
-        private final byte nx;
-        private final byte ny;
-        private final byte nz;
-
-        private RecordedVertex(float x, float y, float z, float u, float v, int r, int g, int b, int a, byte nx,
-            byte ny, byte nz) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.u = u;
-            this.v = v;
-            this.r = r;
-            this.g = g;
-            this.b = b;
-            this.a = a;
-            this.nx = nx;
-            this.ny = ny;
-            this.nz = nz;
-        }
-    }
-
-    private static class IndexData {
-
-        private final ByteBuffer buffer;
-        private final long indexCount;
-        private final int indexType;
-        private final int primitiveType;
-
-        private IndexData(ByteBuffer buffer, long indexCount, int indexType, int primitiveType) {
-            this.buffer = buffer;
-            this.indexCount = indexCount;
-            this.indexType = indexType;
-            this.primitiveType = primitiveType;
-        }
-    }
 }

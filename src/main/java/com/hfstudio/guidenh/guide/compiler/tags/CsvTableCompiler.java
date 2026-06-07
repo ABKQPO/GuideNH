@@ -43,60 +43,62 @@ public class CsvTableCompiler extends BlockTagCompiler {
             return;
         }
 
-        byte[] data = compiler.loadAsset(csvId);
-        if (data == null) {
-            parent.appendError(compiler, "Missing CSV asset: " + csvId, el);
-            return;
-        }
-
-        List<List<String>> rows = CsvTableParser.parse(new String(data, StandardCharsets.UTF_8));
-        if (rows.isEmpty()) {
-            parent.appendError(compiler, "CsvTable source is empty: " + csvId, el);
-            return;
-        }
-
         boolean header = MdxAttrs.getBoolean(compiler, parent, el, "header", true);
-        parent.append(
-            buildTable(rows, header, parseWidthHints(MdxAttrs.getString(compiler, parent, el, "widths", null))));
+        List<Integer> widths = parseWidthHints(MdxAttrs.getString(compiler, parent, el, "widths", null));
+
+        CsvTablePlaceholder placeholder = new CsvTablePlaceholder(
+            csvId.toString(),
+            header,
+            widths,
+            compiler.getSourcePack(),
+            compiler.getLanguage(),
+            compiler.getPageId()
+                .toString());
+        placeholder.appendText("[CsvTable]");
+        parent.append(placeholder);
     }
 
     @Override
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
+        // Load CSV asset content and index cell values for search.
+        // CSV data is available at compile time (src is a file path), unlike Category/Special
+        // whose data is resolved at MOUNT time by scripts.
         String src;
         try {
             src = MdxAttrs.getString(el, "src", null);
         } catch (MdxAttrs.AttributeException e) {
             return;
         }
-        if (src == null || src.trim()
+        if (src != null && !src.trim()
             .isEmpty()) {
-            return;
-        }
-
-        ResourceLocation csvId;
-        try {
-            csvId = IdUtils.resolveLink(src.trim(), indexer.getPageId());
-        } catch (IllegalArgumentException e) {
-            return;
-        }
-
-        byte[] data = indexer.loadAsset(csvId);
-        if (data == null) {
-            return;
-        }
-
-        List<List<String>> rows = CsvTableParser.parse(new String(data, StandardCharsets.UTF_8));
-        for (List<String> row : rows) {
-            for (String cell : row) {
-                if (!cell.isEmpty()) {
-                    sink.appendText(el, cell);
+            try {
+                ResourceLocation csvId = IdUtils.resolveLink(src.trim(), indexer.getPageId());
+                byte[] data = indexer.loadAsset(csvId);
+                if (data != null) {
+                    List<List<String>> rows = CsvTableParser.parse(new String(data, StandardCharsets.UTF_8));
+                    for (List<String> row : rows) {
+                        for (String cell : row) {
+                            if (!cell.isEmpty()) {
+                                sink.appendText(el, cell);
+                            }
+                        }
+                        sink.appendBreak();
+                    }
                 }
+            } catch (Exception ignored) {
+                // Fallback: index the src path string if asset loading fails
+                sink.appendText(el, src);
+                sink.appendBreak();
             }
-            sink.appendBreak();
         }
     }
 
     public static LytTable buildTable(List<List<String>> rows, boolean header, List<Integer> widthHints) {
+        return buildTable(null, rows, header, widthHints);
+    }
+
+    public static LytTable buildTable(PageCompiler compiler, List<List<String>> rows, boolean header,
+        List<Integer> widthHints) {
         LytTable table = new LytTable();
         table.setMarginTop(PageCompiler.DEFAULT_ELEMENT_SPACING);
         table.setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
@@ -113,7 +115,7 @@ public class CsvTableCompiler extends BlockTagCompiler {
                     table.getOrCreateColumn(columnIndex)
                         .setPreferredWidth(widthHints.get(columnIndex));
                 }
-                appendCellContent(row.appendCell(), values.get(columnIndex));
+                appendCellContent(compiler, row.appendCell(), values.get(columnIndex));
             }
             firstRow = false;
             rowIndex++;
@@ -155,7 +157,7 @@ public class CsvTableCompiler extends BlockTagCompiler {
         return result;
     }
 
-    private static void appendCellContent(LytTableCell cell, String value) {
+    private static void appendCellContent(PageCompiler compiler, LytTableCell cell, String value) {
         LytParagraph paragraph = new LytParagraph();
         paragraph.setMarginTop(0);
         paragraph.setMarginBottom(0);
@@ -167,7 +169,12 @@ public class CsvTableCompiler extends BlockTagCompiler {
             if (end < 0) {
                 end = value.length();
             }
-            paragraph.appendText(value.substring(start, end));
+            String line = value.substring(start, end);
+            if (compiler != null) {
+                compiler.compileInlineMarkdown(line, paragraph);
+            } else {
+                paragraph.appendText(line);
+            }
             if (end == value.length()) {
                 break;
             }
@@ -176,5 +183,27 @@ public class CsvTableCompiler extends BlockTagCompiler {
         }
 
         cell.append(paragraph);
+    }
+
+    public static class CsvTablePlaceholder extends LytParagraph {
+
+        public final String src;
+        public final boolean header;
+        public final List<Integer> widths;
+        public final String sourcePack;
+        public final String language;
+        public final String pageId;
+
+        public CsvTablePlaceholder(String src, boolean header, List<Integer> widths, String sourcePack, String language,
+            String pageId) {
+            this.src = src;
+            this.header = header;
+            this.widths = widths;
+            this.sourcePack = sourcePack;
+            this.language = language;
+            this.pageId = pageId;
+            setStyleClass("CsvTable");
+            setStyle(LytParagraph.PLACEHOLDER_STYLE);
+        }
     }
 }

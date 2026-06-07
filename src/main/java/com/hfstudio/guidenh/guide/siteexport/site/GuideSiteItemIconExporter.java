@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
 
@@ -53,11 +53,10 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
             exportedIcons.put(cacheKey, exportedPath);
             return exportedPath;
         } catch (Throwable t) {
-            FMLLog.getLogger()
-                .debug(
-                    "[GuideNH] [GuideSiteItemIconExporter] Failed to export offline icon for {}",
-                    GuideSiteItemSupport.itemId(stack),
-                    t);
+            GuideDebugLog.debugAlways(
+                "[GuideNH] [GuideSiteItemIconExporter] Failed to export offline icon for {}",
+                GuideSiteItemSupport.itemId(stack),
+                t);
             exportedIcons.put(cacheKey, "");
             return "";
         }

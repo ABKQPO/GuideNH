@@ -1,17 +1,18 @@
 package com.hfstudio.guidenh.guide.compiler.tags.mediawiki;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
+
+import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
-import com.hfstudio.guidenh.guide.mediawiki.MediaWikiListEntry;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageListBuilder;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
@@ -36,32 +37,56 @@ public class CategoryCompiler extends BlockTagCompiler {
             return;
         }
 
-        var context = MediaWikiTagCompilerSupport.createListContext(guide, compiler.getIndex(CategoryIndex.class));
-        List<MediaWikiListEntry> entries = MediaWikiPageListBuilder.buildCategoryMembers(context, categoryName.trim());
-        parent.append(
-            MediaWikiTagCompilerSupport.createBlock(
-                entries,
-                MediaWikiTagCompilerSupport.readRows(el),
-                GuidebookText.MediaWikiNoPagesInCategory.text()));
+        var block = new CategoryPlaceholder(
+            categoryName.trim(),
+            MediaWikiTagCompilerSupport.readRows(el),
+            guide.getId());
+        parent.append(block);
     }
 
     @Override
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
         String categoryName = el.getAttributeString("name", null);
         if (categoryName == null || categoryName.trim()
-            .isEmpty()) {
-            return;
-        }
+            .isEmpty()) return;
 
+        // Restore Phase 2: index resolved category member titles for full-text search
         var guide = MediaWikiTagCompilerSupport.resolveGuide(indexer);
-        if (guide == null) {
-            return;
+        if (guide != null) {
+            CategoryIndex catIndex = indexer.getIndex(CategoryIndex.class);
+            if (catIndex != null) {
+                var context = MediaWikiTagCompilerSupport.createListContext(guide, catIndex);
+                var entries = MediaWikiPageListBuilder.buildCategoryMembers(context, categoryName.trim());
+                sink.appendText(el, categoryName.trim());
+                sink.appendBreak();
+                for (var entry : entries) {
+                    if (entry.title() != null && !entry.title()
+                        .isEmpty()) {
+                        sink.appendText(el, entry.title());
+                    }
+                    sink.appendBreak();
+                }
+                return;
+            }
         }
-
-        var context = MediaWikiTagCompilerSupport.createListContext(guide, indexer.getIndex(CategoryIndex.class));
-        sink.appendText(el, categoryName);
+        // Fallback: index only the category name
+        sink.appendText(el, categoryName.trim());
         sink.appendBreak();
-        MediaWikiTagCompilerSupport
-            .indexEntries(sink, el, MediaWikiPageListBuilder.buildCategoryMembers(context, categoryName.trim()));
+    }
+
+    public static class CategoryPlaceholder extends LytParagraph {
+
+        public final String name;
+        public final int rows;
+        public final ResourceLocation guideId;
+
+        CategoryPlaceholder(String name, int rows, ResourceLocation guideId) {
+            this.name = name;
+            this.rows = rows;
+            this.guideId = guideId;
+            setStyleClass("Category");
+            setStyle(LytParagraph.PLACEHOLDER_STYLE);
+            appendText("[Category]");
+        }
     }
 }

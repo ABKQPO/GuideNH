@@ -50,12 +50,27 @@ public class CsvTableParser {
             return "";
         }
 
-        String text = rawText.replace("\r\n", "\n")
-            .replace('\r', '\n');
-        if (!text.isEmpty() && text.charAt(0) == '\uFEFF') {
-            return text.substring(1);
+        int start = rawText.charAt(0) == '\uFEFF' ? 1 : 0;
+        StringBuilder normalized = null;
+        for (int i = start; i < rawText.length(); i++) {
+            char current = rawText.charAt(i);
+            if (current == '\r') {
+                if (normalized == null) {
+                    normalized = new StringBuilder(rawText.length());
+                    normalized.append(rawText, start, i);
+                }
+                normalized.append('\n');
+                if (i + 1 < rawText.length() && rawText.charAt(i + 1) == '\n') {
+                    i++;
+                }
+            } else if (normalized != null) {
+                normalized.append(current);
+            }
         }
-        return text;
+        if (normalized != null) {
+            return normalized.toString();
+        }
+        return start == 0 ? rawText : rawText.substring(start);
     }
 
     private static void flushCell(List<String> row, StringBuilder cell) {

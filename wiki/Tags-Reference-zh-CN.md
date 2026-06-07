@@ -48,6 +48,8 @@
 | 标签 | 用途 | 关键属性 |
 | --- | --- | --- |
 | `<div>` | 透传块包装器 | 无 |
+| `<ContentTabs>` | 将可替代的富内容分组到独立标签页中 | `title`、`color`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`、`default`、`defaultIndex` |
+| `<Tab>` | `<ContentTabs>` 内的单个内容面板 | `title` |
 | `<details>` | 可折叠运行时块 | `open`、`width`、`height`、`wrap`、`align` |
 | `<FileTree>` | 目录树式大纲（带连接线） | `indent`、`gap` |
 | `<Row>` | 横向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
@@ -72,6 +74,11 @@
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | 配方渲染器 | 详见 [配方](Recipes-zh-CN) |
 | `<GameScene>`, `<Scene>` | 3D 指南游戏场景 | 详见 [游戏场景](GameScene-zh-CN) |
 | `<QuestCard>` | 块级 BetterQuesting 任务摘要卡片（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `show_desc`, `show_tooltip` |
+
+`<ImportStructureLib>` 是 `<GameScene>` 的子标签。它支持 `controller`、`piece`、`facing`、
+`rotation`、`flip`、`channel` 属性，也支持用于设置 StructureLib 默认值的子标签：
+`<Tier>`、`<Channel>`、`<Facing>`、`<Rotation>`、`<Flip>`、`<Orientation>`、
+`<GregTechActiveController>`、`<GregTechPlaceHatches>`。
 
 ## 标签细节
 
@@ -115,7 +122,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 
 ### `<details>`
 
-用于创建可折叠的运行时内容块。`<summary>` 行支持常规行内 Markdown/标签内容，正文则可以放普通文本与任意块级标签，例如 `<BlockImage>`、`<FloatingImage>`、`<GameScene>`、表格、图表或布局容器。
+用于创建可折叠的运行时内容块。`<summary>` 行支持常规行内 Markdown/标签内容，正文则可以放普通文本与任意块级标签，例如 `<BlockImage>`、`<FloatingImage>`、`<GameScene>`、表格、图表或布局容器。设置 `height` 时，只有正文区域滚动，标题行和外框保持固定。
 
 ````md
 <details open width="220" height="140" wrap="square" align="right">
@@ -134,6 +141,35 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 - `height` — 正文视口首选高度，单位像素；超出部分会在游戏内和站点导出中变为可滚动区域
 - `wrap` — 支持常见块嵌入模式，例如 `square`、`tight`、`through`
 - `align` — `left`、`center` 或 `right`；与浮动型 `wrap` 搭配时会让整个 details 块浮动
+
+### `<ContentTabs>`
+
+将可替代的富内容分组到独立标签页中。`<ContentTabs>` 只接受直接的 `<Tab>` 子标签。容器本身也可以在标签页上方渲染一个类似 Markdown 标记/引用块的标题行。
+
+````mdx
+<ContentTabs
+  title="实现方案"
+  icon="</>"
+  color="#4f8cff"
+  default="Java"
+>
+  <Tab title="Java">
+    ```java
+    System.out.println("Hello GuideNH");
+    ```
+  </Tab>
+  <Tab title="Scene">
+    <BlockImage id="minecraft:crafting_table" />
+  </Tab>
+</ContentTabs>
+````
+
+- `default` 会匹配第一个 `title` 完全相同的标签页
+- `defaultIndex` 使用从 `0` 开始的下标，并且在同时出现时优先级高于 `default`
+- `color` 可选，用 `#RRGGBB` 或 `#AARRGGBB` 覆盖左侧强调线与选中标签的高亮颜色
+- `title` 会在标签栏上方增加一个可选的纯文本标题
+- `icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 与 Markdown 标记/引用块标题的图标语义完全一致
+- 非法子节点或非法默认值会渲染为面向作者的可见错误
 
 ### `<FileTree>`
 

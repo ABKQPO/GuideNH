@@ -3,13 +3,9 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
@@ -17,7 +13,6 @@ import com.hfstudio.guidenh.guide.color.ARGB;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
-import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -73,138 +68,6 @@ public class MdxAttrs {
     }
 
     @Nullable
-    public static Pair<ResourceLocation, Item> getRequiredItemAndId(PageCompiler compiler, LytErrorSink errorSink,
-        MdxJsxElementFields el, String attribute) {
-        var raw = getString(compiler, errorSink, el, attribute, null);
-        if (raw == null) {
-            errorSink.appendError(compiler, "Missing " + attribute + " attribute.", el);
-            return null;
-        }
-        raw = raw.trim();
-        IdUtils.ParsedItemRef ref;
-        try {
-            ref = IdUtils.parseItemRef(
-                raw,
-                compiler.getPageId()
-                    .getResourceDomain());
-        } catch (IllegalArgumentException e) {
-            errorSink.appendError(compiler, "Malformed id " + raw + ": " + e.getMessage(), el);
-            return null;
-        }
-        if (ref == null) {
-            errorSink.appendError(compiler, "Missing " + attribute + " attribute.", el);
-            return null;
-        }
-        Item resultItem = (Item) Item.itemRegistry.getObject(ref.rawKey());
-        if (resultItem == null) {
-            errorSink.appendError(compiler, "Missing item: " + ref.id(), el);
-            return null;
-        }
-        return Pair.of(ref.id(), resultItem);
-    }
-
-    @Nullable
-    public static Pair<ResourceLocation, Block> getRequiredBlockAndId(PageCompiler compiler, LytErrorSink errorSink,
-        MdxJsxElementFields el, String attribute) {
-        String oreName = GuideItemReferenceResolver.trimToNull(getString(compiler, errorSink, el, "ore", null));
-        if (oreName != null) {
-            ItemStack stack = GuideItemReferenceResolver.resolveOreDictionaryStack(oreName);
-            if (stack == null || stack.getItem() == null) {
-                errorSink.appendError(compiler, "Missing ore dictionary entry: " + oreName, el);
-                return null;
-            }
-
-            Block block = Block.getBlockFromItem(stack.getItem());
-            ResourceLocation blockId = GuideItemReferenceResolver.resolveBlockRegistryId(block);
-            if (block == null || blockId == null) {
-                errorSink.appendError(
-                    compiler,
-                    "Ore dictionary entry '" + oreName + "' does not resolve to a block item",
-                    el);
-                return null;
-            }
-            return Pair.of(blockId, block);
-        }
-
-        var blockId = getRequiredId(compiler, errorSink, el, attribute);
-        if (blockId == null) {
-            return null;
-        }
-        var rawAttr = getString(el, attribute, null);
-        String blockLookupKey = rawAttr != null && !rawAttr.trim()
-            .isEmpty() ? IdUtils.rawRegistryKey(
-                rawAttr.trim(),
-                compiler.getPageId()
-                    .getResourceDomain())
-                : blockId.toString();
-        Block resultBlock = (Block) Block.blockRegistry.getObject(blockLookupKey);
-        if (resultBlock == null) {
-            errorSink.appendError(compiler, "Missing block: " + blockId, el);
-            return null;
-        }
-        return Pair.of(blockId, resultBlock);
-    }
-
-    @Nullable
-    public static Item getRequiredItem(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
-        String attribute) {
-        var result = getRequiredItemAndId(compiler, errorSink, el, attribute);
-        return result != null ? result.getRight() : null;
-    }
-
-    @Nullable
-    public static Pair<ResourceLocation, ItemStack> getRequiredItemStackAndId(PageCompiler compiler,
-        LytErrorSink errorSink, MdxJsxElementFields el) {
-        String oreName = GuideItemReferenceResolver.trimToNull(getString(compiler, errorSink, el, "ore", null));
-        if (oreName != null) {
-            ItemStack stack = GuideItemReferenceResolver.resolveOreDictionaryStack(oreName);
-            if (stack == null || stack.getItem() == null) {
-                errorSink.appendError(compiler, "Missing ore dictionary entry: " + oreName, el);
-                return null;
-            }
-
-            ResourceLocation itemId = GuideItemReferenceResolver.resolveItemRegistryId(stack);
-            if (itemId == null) {
-                errorSink.appendError(compiler, "Unregistered item from ore dictionary entry: " + oreName, el);
-                return null;
-            }
-            return Pair.of(itemId, stack);
-        }
-
-        var raw = getString(compiler, errorSink, el, "id", null);
-        if (raw == null) {
-            errorSink.appendError(compiler, "Missing id or ore attribute.", el);
-            return null;
-        }
-        String idStr = raw.trim();
-        IdUtils.ParsedItemRef ref;
-        try {
-            ref = IdUtils.parseItemRef(
-                idStr,
-                compiler.getPageId()
-                    .getResourceDomain());
-        } catch (IllegalArgumentException e) {
-            errorSink.appendError(compiler, "Malformed id " + idStr + ": " + e.getMessage(), el);
-            return null;
-        }
-        if (ref == null) {
-            errorSink.appendError(compiler, "Missing id or ore attribute.", el);
-            return null;
-        }
-        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
-        if (item == null) {
-            errorSink.appendError(compiler, "Missing item: " + ref.id(), el);
-            return null;
-        }
-        ItemStack stack = new ItemStack(item, 1, ref.concreteMeta());
-        if (ref.nbt() != null) {
-            stack.stackTagCompound = (NBTTagCompound) ref.nbt()
-                .copy();
-        }
-        return Pair.of(ref.id(), stack);
-    }
-
-    @Nullable
     public static GuideItemReferenceResolver.ResolvedBlockReference getRequiredBlockReference(PageCompiler compiler,
         LytErrorSink errorSink, MdxJsxElementFields el, String attribute) {
         String oreName = GuideItemReferenceResolver.trimToNull(getString(compiler, errorSink, el, "ore", null));
@@ -247,13 +110,6 @@ public class MdxAttrs {
         return GuideItemReferenceResolver.resolveBlockReference(defaultNamespace, raw, oreName);
     }
 
-    @Nullable
-    public static ItemStack getRequiredItemStack(PageCompiler compiler, LytErrorSink errorSink,
-        MdxJsxElementFields el) {
-        var result = getRequiredItemStackAndId(compiler, errorSink, el);
-        return result != null ? result.getValue() : null;
-    }
-
     public static float getFloat(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el, String name,
         float defaultValue) {
         try {
@@ -278,7 +134,11 @@ public class MdxAttrs {
             return defaultValue;
         }
         try {
-            return Float.parseFloat(attrValue);
+            float value = Float.parseFloat(attrValue);
+            if (Float.isNaN(value) || Float.isInfinite(value)) {
+                throw new AttributeException(name, "Floating point value must be finite: '" + attrValue + "'");
+            }
+            return value;
         } catch (NumberFormatException e) {
             throw new AttributeException(name, "Malformed floating point value: '" + attrValue + "'");
         }
@@ -404,7 +264,11 @@ public class MdxAttrs {
                 cursor++;
             }
             try {
-                values[index] = Float.parseFloat(raw.substring(start, cursor));
+                float value = Float.parseFloat(raw.substring(start, cursor));
+                if (Float.isNaN(value) || Float.isInfinite(value)) {
+                    return null;
+                }
+                values[index] = value;
             } catch (NumberFormatException e) {
                 return null;
             }

@@ -4,7 +4,7 @@ public class GuideScreenEditorTextActions {
 
     private GuideScreenEditorTextActions() {}
 
-    public static final class Result {
+    public static class Result {
 
         private final String text;
         private final int selectionStart;
@@ -314,6 +314,78 @@ public class GuideScreenEditorTextActions {
             case THEMATIC_BREAK -> insertAt(source, start, end, "\n---\n", 1, 4);
             default -> new Result(source, start, end);
         };
+    }
+
+    public static String formatDocument(String text) {
+        String source = normalizeLineEndings(text);
+        String[] lines = source.split("\n", -1);
+        StringBuilder formatted = new StringBuilder(source.length());
+        int mdxIndent = 0;
+        boolean previousBlank = false;
+        for (int i = 0; i < lines.length; i++) {
+            String rawLine = trimRight(lines[i]);
+            String trimmed = rawLine.trim();
+            if (trimmed.isEmpty()) {
+                if (!previousBlank && i + 1 < lines.length) {
+                    formatted.append('\n');
+                }
+                previousBlank = true;
+                continue;
+            }
+            previousBlank = false;
+            if (isMdxClosingLine(trimmed)) {
+                mdxIndent = Math.max(0, mdxIndent - 1);
+            }
+            if (shouldIndentLine(trimmed)) {
+                appendSpaces(formatted, mdxIndent * 4);
+            }
+            formatted.append(trimmed)
+                .append('\n');
+            if (opensMdxBlock(trimmed)) {
+                mdxIndent++;
+            }
+        }
+        if (formatted.length() > 0 && formatted.charAt(formatted.length() - 1) == '\n' && !source.endsWith("\n")) {
+            formatted.setLength(formatted.length() - 1);
+        }
+        return formatted.toString();
+    }
+
+    private static boolean shouldIndentLine(String trimmed) {
+        return trimmed.startsWith("<") && !trimmed.startsWith("<!--") && !trimmed.startsWith("<!");
+    }
+
+    private static boolean isMdxClosingLine(String trimmed) {
+        return trimmed.startsWith("</");
+    }
+
+    private static boolean opensMdxBlock(String trimmed) {
+        return trimmed.startsWith("<") && !trimmed.startsWith("</")
+            && !trimmed.endsWith("/>")
+            && !trimmed.contains("</")
+            && !trimmed.startsWith("<!--");
+    }
+
+    private static String normalizeLineEndings(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        return text.replace("\r\n", "\n")
+            .replace('\r', '\n');
+    }
+
+    private static String trimRight(String line) {
+        int end = line.length();
+        while (end > 0 && Character.isWhitespace(line.charAt(end - 1)) && line.charAt(end - 1) != '\n') {
+            end--;
+        }
+        return line.substring(0, end);
+    }
+
+    private static void appendSpaces(StringBuilder out, int count) {
+        for (int i = 0; i < count; i++) {
+            out.append(' ');
+        }
     }
 
     private static Result applyRecipeTag(String source, int start, int end, String tagName, String extraAttributes) {
@@ -1408,7 +1480,7 @@ public class GuideScreenEditorTextActions {
         return Math.min(value, max);
     }
 
-    private static final class Range {
+    private static class Range {
 
         private final int start;
         private final int end;

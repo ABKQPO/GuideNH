@@ -66,6 +66,14 @@ public interface RenderContext {
         drawBorder(new LytRect(x, y, width, height), argbColor, thickness);
     }
 
+    default void fillRoundedRect(LytRect rect, int argbColor, int radius) {
+        fillRect(rect, argbColor);
+    }
+
+    default void drawRoundedBorder(LytRect rect, int argbColor, int thickness, int radius) {
+        drawBorder(rect, argbColor, thickness);
+    }
+
     void drawText(String text, int x, int y, ResolvedTextStyle style);
 
     int getStringWidth(String text, ResolvedTextStyle style);
@@ -169,4 +177,19 @@ public interface RenderContext {
             blitTexture(texture.getTexture(), rect.x(), rect.y(), 0, 0, rect.width(), rect.height());
         }
     }
+
+    /**
+     * Set up the GL modelview so that raw OpenGL calls (Tessellator, direct
+     * {@code Gui.drawRect}, etc.) operate in this context's coordinate space.
+     * This is a no-op when the GL state is already set up for this space
+     * (e.g. vanilla screen rendering). Subclasses that apply a local transform
+     * should override this pair.
+     */
+    default void beginLocalView() {}
+
+    /**
+     * Restore the GL modelview to the state it was in before
+     * {@link #beginLocalView()}.
+     */
+    default void endLocalView() {}
 }

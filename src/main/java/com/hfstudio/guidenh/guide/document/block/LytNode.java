@@ -24,7 +24,29 @@ public abstract class LytNode implements Styleable {
     @Nullable
     private MdAstNode sourceNode;
 
+    @Nullable
+    private String id;
+
+    @Nullable
+    private String nodeUid;
+
+    @Nullable
+    private String styleClass;
+
     public void removeChild(LytNode node) {}
+
+    public void replaceChild(LytNode oldChild, LytNode newChild) {
+        throw new UnsupportedOperationException(getClass().getSimpleName() + " must override replaceChild");
+    }
+
+    protected void onAttach() {}
+
+    protected void onDetach() {}
+
+    public boolean isAttached() {
+        LytDocument doc = getDocument();
+        return doc != null && doc.isLive();
+    }
 
     public List<? extends LytNode> getChildren() {
         return List.of();
@@ -150,5 +172,32 @@ public abstract class LytNode implements Styleable {
 
     public void setSourceNode(@Nullable MdAstNode sourceNode) {
         this.sourceNode = sourceNode;
+    }
+
+    @Nullable
+    public String getId() {
+        return id;
+    }
+
+    public void setId(@Nullable String id) {
+        this.id = id;
+    }
+
+    @Nullable
+    public String getNodeUid() {
+        return nodeUid;
+    }
+
+    public void setNodeUid(@Nullable String nodeUid) {
+        this.nodeUid = nodeUid;
+    }
+
+    @Nullable
+    public String getStyleClass() {
+        return styleClass;
+    }
+
+    public void setStyleClass(@Nullable String styleClass) {
+        this.styleClass = styleClass;
     }
 }

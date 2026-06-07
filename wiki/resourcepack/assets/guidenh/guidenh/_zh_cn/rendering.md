@@ -32,6 +32,12 @@ categories:
 
 正常文本，**粗体文本**，*斜体文本*，***粗斜体文本***，~~删除线~~，以及 `行内代码`。
 
+嵌套代码样式：**`粗体代码`**、*`斜体代码`*、~~`删除线代码`~~，以及 ***`粗斜体代码`***。
+
+代码内字面标记：*是* ~~`aaa**`~~，以及 **`literal ~~ markers`**。
+
+长行内代码换行示例：`inline-code-with-a-long-name-that-should-wrap-cleanly-inside-the-line-layout`。
+
 ## 分割线
 
 上面是一段文本。

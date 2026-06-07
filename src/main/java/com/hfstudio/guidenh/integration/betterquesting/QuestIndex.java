@@ -12,8 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.indices.UniqueIndex;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 /**
  * An index of BetterQuesting quest ids to the main guidebook page describing them.
@@ -65,8 +64,8 @@ public class QuestIndex extends UniqueIndex<UUID, PageAnchor> {
         }
 
         if (!(questIdsNode instanceof List<?>questIdList)) {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [QuestIndex] Page {} contains malformed quest_ids frontmatter", page.getId());
+            GuideDebugLog
+                .warnAlways("[GuideNH] [QuestIndex] Page {} contains malformed quest_ids frontmatter", page.getId());
             return List.of();
         }
 
@@ -77,26 +76,25 @@ public class QuestIndex extends UniqueIndex<UUID, PageAnchor> {
             if (listEntry instanceof String questIdStr) {
                 String trimmed = questIdStr.trim();
                 if (trimmed.isEmpty()) {
-                    FMLLog.getLogger()
-                        .warn("[GuideNH] [QuestIndex] Page {} contains an empty quest_ids frontmatter entry", pageId);
+                    GuideDebugLog.warnAlways(
+                        "[GuideNH] [QuestIndex] Page {} contains an empty quest_ids frontmatter entry",
+                        pageId);
                     continue;
                 }
                 UUID parsed = QuestIdParser.parse(trimmed);
                 if (parsed == null) {
-                    FMLLog.getLogger()
-                        .warn(
-                            "[GuideNH] [QuestIndex] Page {} contains a malformed quest_ids frontmatter entry: {}",
-                            pageId,
-                            trimmed);
+                    GuideDebugLog.warnAlways(
+                        "[GuideNH] [QuestIndex] Page {} contains a malformed quest_ids frontmatter entry: {}",
+                        pageId,
+                        trimmed);
                     continue;
                 }
                 anchors.add(Pair.of(parsed, new PageAnchor(pageId, null)));
             } else {
-                FMLLog.getLogger()
-                    .warn(
-                        "[GuideNH] [QuestIndex] Page {} contains a malformed quest_ids frontmatter entry: {}",
-                        pageId,
-                        listEntry);
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [QuestIndex] Page {} contains a malformed quest_ids frontmatter entry: {}",
+                    pageId,
+                    listEntry);
             }
         }
 

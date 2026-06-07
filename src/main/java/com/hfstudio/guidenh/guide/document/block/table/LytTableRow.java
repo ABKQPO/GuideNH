@@ -35,4 +35,13 @@ public class LytTableRow extends LytNode {
     public List<LytTableCell> getChildren() {
         return cells;
     }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void replaceChild(LytNode oldChild, LytNode newChild) {
+        if (!(newChild instanceof LytTableCell)) return;
+        int idx = cells.indexOf(oldChild);
+        if (idx < 0) return;
+        cells.set(idx, (LytTableCell) newChild);
+    }
 }

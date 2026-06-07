@@ -33,6 +33,8 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     @Nullable
     private DocumentInteractionSnapshot hoveredElement;
 
+    private boolean live;
+
     // Cached list of blocks intersecting the last rendered viewport. Invalidated whenever the
     // block list mutates or the layout is rebuilt; kept across frames otherwise so scrolling at
     // a steady viewport position only pays the iteration cost once.
@@ -84,6 +86,23 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         invalidateLayout();
     }
 
+    @Override
+    public void replaceChild(LytNode oldChild, LytNode newNode) {
+        if (oldChild instanceof LytBlock oldBlock) {
+            int idx = blocks.indexOf(oldBlock);
+            if (idx < 0) return;
+            oldBlock.parent = null;
+            if (newNode instanceof LytBlock newBlock) {
+                if (newBlock.parent != null) {
+                    newBlock.parent.removeChild(newBlock);
+                }
+                newBlock.parent = this;
+                blocks.set(idx, newBlock);
+            }
+            invalidateLayout();
+        }
+    }
+
     public void clearContent() {
         for (var block : blocks) {
             block.parent = null;
@@ -94,6 +113,35 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
     public boolean hasLayout() {
         return layout != null;
+    }
+
+    public boolean isLive() {
+        return live;
+    }
+
+    public void setLive(boolean live) {
+        if (this.live == live) return;
+        this.live = live;
+        cascadeLive(this, live);
+    }
+
+    private static void cascadeLive(LytNode node, boolean live) {
+        if (live) {
+            node.onAttach();
+        } else {
+            node.onDetach();
+        }
+        for (var child : node.getChildren()) {
+            cascadeLive(child, live);
+        }
+    }
+
+    static void notifyAttach(LytNode node) {
+        cascadeLive(node, true);
+    }
+
+    static void notifyDetach(LytNode node) {
+        cascadeLive(node, false);
     }
 
     public void invalidateLayout() {

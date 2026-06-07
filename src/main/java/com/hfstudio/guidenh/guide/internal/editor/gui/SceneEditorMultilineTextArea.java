@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.client.gui.FontRenderer;
@@ -10,10 +11,23 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
+import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
+import com.hfstudio.guidenh.libs.mdast.MdAst;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstListContent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstListItem;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
+import com.hfstudio.guidenh.libs.unist.UnistNode;
+import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 public class SceneEditorMultilineTextArea {
 
@@ -44,13 +58,18 @@ public class SceneEditorMultilineTextArea {
     private int textViewportWidth;
     private int textViewportHeight;
     private int horizontalOffsetPixels;
+    private final SmoothFloatState visualVerticalOffsetPixels = new SmoothFloatState();
+    private final SmoothFloatState visualHorizontalOffsetPixels = new SmoothFloatState();
     private boolean wrapEnabled;
     private boolean verticalScrollbarVisible;
     private boolean horizontalScrollbarVisible;
     private boolean focused;
     private boolean selectingWithMouse;
+    private boolean panningWithMiddleMouse;
     private boolean draggingVerticalScrollbar;
     private boolean draggingHorizontalScrollbar;
+    private int panLastMouseX;
+    private int panLastMouseY;
     private int verticalScrollbarGrabOffset;
     private int horizontalScrollbarGrabOffset;
     private int externalHighlightStart;
@@ -60,6 +79,12 @@ public class SceneEditorMultilineTextArea {
     private int pendingImePhysicalDuplicateChar;
     private int recentPhysicalAsciiChar;
     private long recentPhysicalAsciiAtMillis;
+
+    // Double-click word selection
+    private long lastClickTimeMillis;
+    private static final long DOUBLE_CLICK_WINDOW_MS = 400;
+    @Nullable
+    private DoubleClickHandler doubleClickHandler;
 
     public SceneEditorMultilineTextArea(FontRenderer fontRenderer) {
         this(fontRenderer, new ClipboardAccess() {
@@ -94,6 +119,7 @@ public class SceneEditorMultilineTextArea {
         this.wrapEnabled = true;
         this.focused = false;
         this.selectingWithMouse = false;
+        this.panningWithMiddleMouse = false;
         this.draggingVerticalScrollbar = false;
         this.draggingHorizontalScrollbar = false;
         this.verticalScrollbarGrabOffset = 0;
@@ -122,7 +148,7 @@ public class SceneEditorMultilineTextArea {
     }
 
     public void setText(String text) {
-        String safeText = text != null ? text : "";
+        String safeText = normalizeLineEndings(text);
         if (selectionModel.getText()
             .equals(safeText)) {
             return;
@@ -187,7 +213,7 @@ public class SceneEditorMultilineTextArea {
     }
 
     public boolean pasteClipboard() {
-        selectionModel.insertText(clipboardAccess.paste());
+        selectionModel.insertText(normalizeLineEndings(clipboardAccess.paste()));
         rebuildLayoutCache();
         ensureCursorVisible();
         syncImeFocusProxy();
@@ -195,7 +221,7 @@ public class SceneEditorMultilineTextArea {
     }
 
     public void applyEdit(String text, int selectionStart, int selectionEnd) {
-        selectionModel.setText(text != null ? text : "");
+        selectionModel.setText(normalizeLineEndings(text));
         selectionModel.setSelection(selectionStart, selectionEnd);
         rebuildLayoutCache();
         ensureCursorVisible();
@@ -203,7 +229,7 @@ public class SceneEditorMultilineTextArea {
     }
 
     public void insertAtSelection(String text) {
-        selectionModel.insertText(text);
+        selectionModel.insertText(normalizeLineEndings(text));
         rebuildLayoutCache();
         ensureCursorVisible();
         syncImeFocusProxy();
@@ -306,6 +332,7 @@ public class SceneEditorMultilineTextArea {
         int maxOffset = Math.max(0, scrollState.getContentPixels() - scrollState.getViewportPixels());
         int offset = Math.round(Math.clamp(fraction, 0f, 1f) * maxOffset);
         scrollState.setOffsetPixels(offset);
+        snapVisualOffsetsToTarget();
         syncImeFocusProxy();
     }
 
@@ -358,6 +385,7 @@ public class SceneEditorMultilineTextArea {
         imeFocusProxy.setFocused(focused);
         if (!focused) {
             selectingWithMouse = false;
+            panningWithMiddleMouse = false;
             draggingVerticalScrollbar = false;
             draggingHorizontalScrollbar = false;
         }
@@ -383,6 +411,16 @@ public class SceneEditorMultilineTextArea {
     public boolean mouseClicked(int mouseX, int mouseY, int button) {
         if (!contains(mouseX, mouseY)) {
             return false;
+        }
+        if (button == 2) {
+            setFocused(true);
+            panningWithMiddleMouse = true;
+            selectingWithMouse = false;
+            draggingVerticalScrollbar = false;
+            draggingHorizontalScrollbar = false;
+            panLastMouseX = mouseX;
+            panLastMouseY = mouseY;
+            return true;
         }
         if (button != 0 && button != 1) {
             return true;
@@ -432,6 +470,13 @@ public class SceneEditorMultilineTextArea {
         int cursorIndex = getCursorIndexAt(mouseX, mouseY);
         if (button == 0) {
             selectionModel.beginSelection(cursorIndex);
+            long now = System.currentTimeMillis();
+            long elapsed = now - lastClickTimeMillis;
+            lastClickTimeMillis = now;
+            if (elapsed < DOUBLE_CLICK_WINDOW_MS && doubleClickHandler != null) {
+                doubleClickHandler.onDoubleClick(selectionModel.getCursorIndex());
+                return true;
+            }
             selectingWithMouse = true;
         } else {
             selectionModel.setCursorIndex(cursorIndex);
@@ -469,6 +514,16 @@ public class SceneEditorMultilineTextArea {
             syncImeFocusProxy();
             return true;
         }
+        if (button == 2 && panningWithMiddleMouse) {
+            int deltaX = mouseX - panLastMouseX;
+            int deltaY = mouseY - panLastMouseY;
+            panLastMouseX = mouseX;
+            panLastMouseY = mouseY;
+            horizontalOffsetPixels = clampHorizontalOffset(horizontalOffsetPixels - deltaX);
+            scrollState.scrollPixels(-deltaY);
+            syncImeFocusProxy();
+            return true;
+        }
         if (!focused || button != 0 || !selectingWithMouse) {
             return false;
         }
@@ -483,6 +538,9 @@ public class SceneEditorMultilineTextArea {
             selectingWithMouse = false;
             draggingVerticalScrollbar = false;
             draggingHorizontalScrollbar = false;
+        }
+        if (button == 2) {
+            panningWithMiddleMouse = false;
         }
     }
 
@@ -522,7 +580,7 @@ public class SceneEditorMultilineTextArea {
             return true;
         }
         if (isCtrlKeyCombo(keyCode, Keyboard.KEY_V)) {
-            selectionModel.insertText(clipboardAccess.paste());
+            selectionModel.insertText(normalizeLineEndings(clipboardAccess.paste()));
             rebuildLayoutCache();
             ensureCursorVisible();
             return true;
@@ -531,7 +589,7 @@ public class SceneEditorMultilineTextArea {
         switch (keyCode) {
             case Keyboard.KEY_RETURN:
             case Keyboard.KEY_NUMPADENTER:
-                selectionModel.insertText("\n");
+                applySmartNewline();
                 rebuildLayoutCache();
                 ensureCursorVisible();
                 return true;
@@ -633,7 +691,279 @@ public class SceneEditorMultilineTextArea {
         recentPhysicalAsciiAtMillis = System.currentTimeMillis();
     }
 
+    private void applySmartNewline() {
+        String text = selectionModel.getText();
+        int cursor = selectionModel.getCursorIndex();
+
+        // 1. Try AST-based list continuation
+        MdAstRoot root = MdAst.fromMarkdown(text, GuideMarkdownOptions.runtime());
+        MdAstToMdxConverter.convert(root, Collections.<String, MdAstDefinition>emptyMap());
+        MdAstListItem item = findEnclosingListItem(root, cursor);
+        if (item != null) {
+            int lineStart = findLineStart(text, cursor - 1);
+            if (isListItemContentEmpty(item, text)) {
+                selectionModel.setSelection(lineStart, cursor);
+                selectionModel.insertText(leadingWhitespace(text.substring(lineStart, findLineEnd(text, cursor))));
+                return;
+            }
+            String nextMarker = resolveNextListMarker(text, item, root);
+            if (nextMarker != null) {
+                selectionModel.insertText("\n" + nextMarker);
+                return;
+            }
+        }
+
+        // 2. Fallback: manual list marker continuation (for YAML and non-Markdown lists)
+        int lineStart = findLineStart(text, Math.max(0, cursor - 1));
+        int lineEnd = findLineEnd(text, cursor);
+        String line = text.substring(lineStart, lineEnd);
+        String indent = leadingWhitespace(line);
+        String trimmed = line.trim();
+        String manualMarker = resolveManualListMarker(trimmed);
+        if (manualMarker != null) {
+            int markerLen = manualMarker.length();
+            if (trimmed.length() <= markerLen || (trimmed.length() > markerLen && trimmed.substring(markerLen)
+                .trim()
+                .isEmpty())) {
+                // Empty list item: remove marker
+                selectionModel.setSelection(lineStart, cursor);
+                selectionModel.insertText(indent);
+                return;
+            }
+            selectionModel.insertText("\n" + indent + manualMarker);
+            return;
+        }
+        if (trimmed.isEmpty()) {
+            // Blank line: move cursor to next line instead of inserting another blank line.
+            int nextLineStart = findLineEnd(text, cursor) + 1;
+            if (nextLineStart <= text.length()) {
+                selectionModel.setSelection(nextLineStart, nextLineStart);
+            }
+            return;
+        }
+        selectionModel.insertText("\n" + indent);
+    }
+
+    @Nullable
+    private static String resolveManualListMarker(String trimmed) {
+        if (trimmed.isEmpty()) return null;
+        char first = trimmed.charAt(0);
+        if (first == '-' || first == '*' || first == '+') {
+            if (trimmed.length() >= 2 && trimmed.charAt(1) == ' ') return "- ";
+            if (trimmed.length() == 1) return "- "; // bare marker, empty item
+        }
+        // Ordered list: number. or number)
+        int i = 0;
+        while (i < trimmed.length() && Character.isDigit(trimmed.charAt(i))) i++;
+        if (i > 0 && i + 1 < trimmed.length()
+            && (trimmed.charAt(i) == '.' || trimmed.charAt(i) == ')')
+            && trimmed.charAt(i + 1) == ' ') {
+            int num = Integer.parseInt(trimmed.substring(0, i));
+            return (num + 1) + trimmed.charAt(i) + " ";
+        }
+        return null;
+    }
+
+    @Nullable
+    private static MdAstListItem findEnclosingListItem(UnistNode node, int cursorIndex) {
+        UnistPosition pos = node.position();
+        if (pos != null && pos.start() != null && pos.end() != null) {
+            if (cursorIndex < pos.start()
+                .offset() || cursorIndex
+                    > pos.end()
+                        .offset()) {
+                return null;
+            }
+        }
+        if (node instanceof MdAstListItem) {
+            return (MdAstListItem) node;
+        }
+        if (node instanceof MdAstParent) {
+            for (UnistNode child : ((MdAstParent<?>) node).children()) {
+                MdAstListItem found = findEnclosingListItem(child, cursorIndex);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isListItemContentEmpty(MdAstListItem item, String text) {
+        UnistPosition pos = item.position();
+        if (pos == null || pos.start() == null || pos.end() == null) return false;
+        int start = pos.start()
+            .offset();
+        int end = pos.end()
+            .offset();
+        if (start >= end || end > text.length()) return false;
+        // Find first newline to get the first line (contains the marker)
+        int firstLineEnd = text.indexOf('\n', start);
+        if (firstLineEnd < 0 || firstLineEnd >= end) firstLineEnd = end;
+        // Skip past the marker: find the first non-digit/non-marker char after indent
+        String firstLine = text.substring(start, firstLineEnd);
+        String trimmed = firstLine.trim();
+        if (trimmed.isEmpty()) return true;
+        // Check if after the marker the content is empty
+        int contentStart = findListContentStart(trimmed);
+        return contentStart >= trimmed.length() || trimmed.substring(contentStart)
+            .trim()
+            .isEmpty();
+    }
+
+    private static int findListContentStart(String trimmed) {
+        int i = 0;
+        // Unordered: -, *, +
+        if (i < trimmed.length()
+            && (trimmed.charAt(i) == '-' || trimmed.charAt(i) == '*' || trimmed.charAt(i) == '+')) {
+            i++;
+            if (i < trimmed.length() && trimmed.charAt(i) == ' ') return i + 1;
+        }
+        // Ordered: number. or number)
+        while (i < trimmed.length() && Character.isDigit(trimmed.charAt(i))) i++;
+        if (i > 0 && i + 1 < trimmed.length()
+            && (trimmed.charAt(i) == '.' || trimmed.charAt(i) == ')')
+            && trimmed.charAt(i + 1) == ' ') {
+            return i + 2;
+        }
+        return 0;
+    }
+
+    @Nullable
+    private static String resolveNextListMarker(String text, MdAstListItem item, MdAstRoot root) {
+        MdAstList list = findParentList(root, item);
+        if (list == null) return null;
+        // Find the marker from the current item's source text
+        UnistPosition pos = item.position();
+        if (pos == null || pos.start() == null) return null;
+        int itemStart = pos.start()
+            .offset();
+        int firstLineEnd = text.indexOf('\n', itemStart);
+        if (firstLineEnd < 0) firstLineEnd = Math.min(itemStart + 80, text.length());
+        String firstLine = text.substring(itemStart, Math.min(firstLineEnd, text.length()))
+            .trim();
+        String marker = extractListMarker(firstLine);
+        if (marker == null) return null;
+
+        if (list.ordered) {
+            // Compute next number: find the index of this item in the list's children
+            int index = 0;
+            for (MdAstListContent child : list.children()) {
+                if (child == item) break;
+                if (child instanceof MdAstListItem) index++;
+            }
+            int nextNumber = list.start + index + 1;
+            char delimiter = marker.charAt(marker.length() - 1); // . or )
+            return indentFor(item) + nextNumber + delimiter + " ";
+        }
+        return indentFor(item) + marker;
+    }
+
+    @Nullable
+    private static String extractListMarker(String firstLine) {
+        if (firstLine.isEmpty()) return null;
+        int i = 0;
+        char c = firstLine.charAt(i);
+        if (c == '-' || c == '*' || c == '+') {
+            return i + 1 < firstLine.length() && firstLine.charAt(i + 1) == ' ' ? "- " : null;
+        }
+        while (i < firstLine.length() && Character.isDigit(firstLine.charAt(i))) i++;
+        if (i > 0 && i + 1 < firstLine.length()
+            && (firstLine.charAt(i) == '.' || firstLine.charAt(i) == ')')
+            && firstLine.charAt(i + 1) == ' ') {
+            return firstLine.substring(0, i) + firstLine.charAt(i) + " ";
+        }
+        return null;
+    }
+
+    private static String indentFor(MdAstListItem item) {
+        // Simple: use empty indent (list items are typically left-aligned)
+        return "";
+    }
+
+    @Nullable
+    private static MdAstList findParentList(UnistNode root, MdAstListItem target) {
+        if (!(root instanceof MdAstParent)) return null;
+        for (UnistNode child : ((MdAstParent<?>) root).children()) {
+            if (child instanceof MdAstList) {
+                for (MdAstListContent item : ((MdAstList) child).children()) {
+                    if (item == target) return (MdAstList) child;
+                }
+                MdAstList found = findParentList(child, target);
+                if (found != null) return found;
+            } else {
+                MdAstList found = findParentList(child, target);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private static int findLineStart(String text, int index) {
+        int pos = Math.min(index, text.length());
+        while (pos > 0) {
+            char previous = text.charAt(pos - 1);
+            if (previous == '\n' || previous == '\r') {
+                break;
+            }
+            pos--;
+        }
+        return pos;
+    }
+
+    private static int findLineEnd(String text, int index) {
+        int pos = Math.min(index, text.length());
+        while (pos < text.length()) {
+            char current = text.charAt(pos);
+            if (current == '\n' || current == '\r') {
+                break;
+            }
+            pos++;
+        }
+        return pos;
+    }
+
+    private static String leadingWhitespace(String line) {
+        int end = 0;
+        while (end < line.length()) {
+            char c = line.charAt(end);
+            if (c != ' ' && c != '\t') {
+                break;
+            }
+            end++;
+        }
+        return line.substring(0, end);
+    }
+
+    private static String normalizeLineEndings(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        StringBuilder normalized = null;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c != '\r') {
+                if (normalized != null) {
+                    normalized.append(c);
+                }
+                continue;
+            }
+            if (normalized == null) {
+                normalized = new StringBuilder(text.length());
+                normalized.append(text, 0, i);
+            }
+            if (i + 1 < text.length() && text.charAt(i + 1) == '\n') {
+                normalized.append('\n');
+                i++;
+            } else {
+                normalized.append('\n');
+            }
+        }
+        return normalized != null ? normalized.toString() : text;
+    }
+
     public void draw(boolean validationError) {
+        updateVisualOffsets();
+        int renderedVerticalOffset = visualVerticalOffsetPixels.rounded();
+        int renderedHorizontalOffset = visualHorizontalOffsetPixels.rounded();
         int borderColor = validationError ? ERROR_BORDER_COLOR : (focused ? FOCUSED_BORDER_COLOR : BORDER_COLOR);
         Gui.drawRect(x - 1, y - 1, x + width + 1, y + height + 1, borderColor);
         Gui.drawRect(x, y, x + width, y + height, BACKGROUND_COLOR);
@@ -650,13 +980,13 @@ public class SceneEditorMultilineTextArea {
 
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         int lineHeight = getLineHeight();
-        int drawY = y + PADDING - scrollState.getOffsetPixels();
+        int drawY = y + PADDING - renderedVerticalOffset;
         for (SceneEditorMultilineTextLayoutCache.VisualLine line : lines) {
             if (drawY + lineHeight >= y && drawY < y + clipHeight) {
-                drawExternalHighlightForLine(line, drawY);
-                drawSelectionForLine(line, drawY);
-                fontRenderer.drawString(line.text(), x + PADDING - horizontalOffsetPixels, drawY, 0xF0F0F0);
-                drawSyntaxWarningForLine(line, drawY);
+                drawExternalHighlightForLine(line, drawY, renderedHorizontalOffset);
+                drawSelectionForLine(line, drawY, renderedHorizontalOffset);
+                fontRenderer.drawString(line.text(), x + PADDING - renderedHorizontalOffset, drawY, 0xF0F0F0);
+                drawSyntaxWarningForLine(line, drawY, renderedHorizontalOffset);
             }
             drawY += lineHeight;
         }
@@ -665,8 +995,8 @@ public class SceneEditorMultilineTextArea {
             int cursorLine = getVisualLineIndex(selectionModel.getCursorIndex());
             SceneEditorMultilineTextLayoutCache.VisualLine visualLine = lines.get(cursorLine);
             int cursorPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), visualLine);
-            int cursorX = x + PADDING + cursorPixel - horizontalOffsetPixels;
-            int cursorY = y + PADDING + cursorLine * lineHeight - scrollState.getOffsetPixels();
+            int cursorX = x + PADDING + cursorPixel - renderedHorizontalOffset;
+            int cursorY = y + PADDING + cursorLine * lineHeight - renderedVerticalOffset;
             Gui.drawRect(cursorX, cursorY, cursorX + 1, cursorY + fontRenderer.FONT_HEIGHT + 1, 0xFFFFFFFF);
         }
 
@@ -712,19 +1042,22 @@ public class SceneEditorMultilineTextArea {
         }
         scrollState.setViewportPixels(textViewportHeight);
         scrollState.setContentPixels(layoutCache.getContentHeightPixels());
+        snapVisualOffsetsToTarget();
     }
 
     private void syncImeFocusProxy() {
         int lineHeight = getLineHeight();
         int cursorX = x + PADDING;
         int cursorY = y + PADDING;
+        int renderedVerticalOffset = visualVerticalOffsetPixels.rounded();
+        int renderedHorizontalOffset = visualHorizontalOffsetPixels.rounded();
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         if (!lines.isEmpty()) {
             int cursorLine = getVisualLineIndex(selectionModel.getCursorIndex());
             SceneEditorMultilineTextLayoutCache.VisualLine visualLine = lines.get(cursorLine);
             int cursorPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), visualLine);
-            cursorX += cursorPixel - horizontalOffsetPixels;
-            cursorY += cursorLine * lineHeight - scrollState.getOffsetPixels();
+            cursorX += cursorPixel - renderedHorizontalOffset;
+            cursorY += cursorLine * lineHeight - renderedVerticalOffset;
         }
 
         int contentLeft = x + PADDING;
@@ -739,7 +1072,8 @@ public class SceneEditorMultilineTextArea {
         imeFocusProxy.height = Math.max(1, lineHeight);
     }
 
-    private void drawSelectionForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY) {
+    private void drawSelectionForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY,
+        int renderedHorizontalOffset) {
         if (!selectionModel.hasSelection()) {
             return;
         }
@@ -758,7 +1092,7 @@ public class SceneEditorMultilineTextArea {
             .substring(0, max);
         String selectedText = line.text()
             .substring(max, Math.max(0, highlightEnd - line.startIndex()));
-        int selectionX = x + PADDING + fontRenderer.getStringWidth(beforeSelection) - horizontalOffsetPixels;
+        int selectionX = x + PADDING + fontRenderer.getStringWidth(beforeSelection) - renderedHorizontalOffset;
         int selectionWidth = fontRenderer.getStringWidth(selectedText);
         if (selectionWidth <= 0 && spansLineBreak) {
             selectionWidth = 2;
@@ -773,7 +1107,8 @@ public class SceneEditorMultilineTextArea {
         }
     }
 
-    private void drawExternalHighlightForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY) {
+    private void drawExternalHighlightForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY,
+        int renderedHorizontalOffset) {
         if (externalHighlightStart < 0 || externalHighlightEnd <= externalHighlightStart) {
             return;
         }
@@ -790,7 +1125,7 @@ public class SceneEditorMultilineTextArea {
             .substring(0, max);
         String highlightedText = line.text()
             .substring(max, Math.max(0, highlightEnd - line.startIndex()));
-        int highlightX = x + PADDING + fontRenderer.getStringWidth(beforeHighlight) - horizontalOffsetPixels;
+        int highlightX = x + PADDING + fontRenderer.getStringWidth(beforeHighlight) - renderedHorizontalOffset;
         int highlightWidth = fontRenderer.getStringWidth(highlightedText);
         if (highlightWidth <= 0 && spansLineBreak) {
             highlightWidth = 2;
@@ -805,7 +1140,8 @@ public class SceneEditorMultilineTextArea {
         }
     }
 
-    private void drawSyntaxWarningForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY) {
+    private void drawSyntaxWarningForLine(SceneEditorMultilineTextLayoutCache.VisualLine line, int drawY,
+        int renderedHorizontalOffset) {
         if (syntaxWarningStart < 0 || syntaxWarningEnd <= syntaxWarningStart) {
             return;
         }
@@ -822,7 +1158,7 @@ public class SceneEditorMultilineTextArea {
             .substring(0, max);
         String warnedText = line.text()
             .substring(max, Math.max(0, highlightEnd - line.startIndex()));
-        int warningX = x + PADDING + fontRenderer.getStringWidth(beforeWarning) - horizontalOffsetPixels;
+        int warningX = x + PADDING + fontRenderer.getStringWidth(beforeWarning) - renderedHorizontalOffset;
         int warningWidth = fontRenderer.getStringWidth(warnedText);
         if (warningWidth <= 0 && spansLineBreak) {
             warningWidth = 2;
@@ -883,7 +1219,7 @@ public class SceneEditorMultilineTextArea {
             getVerticalScrollbarTrackLength(),
             scrollState.getContentPixels(),
             scrollState.getViewportPixels(),
-            scrollState.getOffsetPixels());
+            visualVerticalOffsetPixels.rounded());
     }
 
     private SceneEditorHorizontalScrollbar.Thumb getHorizontalScrollbarThumb() {
@@ -895,7 +1231,7 @@ public class SceneEditorMultilineTextArea {
             getHorizontalScrollbarTrackLength(),
             layoutCache.getContentWidthPixels(),
             textViewportWidth,
-            horizontalOffsetPixels);
+            visualHorizontalOffsetPixels.rounded());
     }
 
     private void moveCursorVertical(int direction, boolean keepSelection) {
@@ -925,12 +1261,41 @@ public class SceneEditorMultilineTextArea {
         ensureCursorVisible();
     }
 
+    public int getCursorIndexAtPublic(int mouseX, int mouseY) {
+        return getCursorIndexAt(mouseX, mouseY);
+    }
+
+    /** Returns the pixel X position of the cursor relative to this text area. */
+    public int getCursorPixelX() {
+        List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
+        if (lines.isEmpty()) return PADDING;
+        int lineIdx = getVisualLineIndex(selectionModel.getCursorIndex());
+        return PADDING + getCursorPixelOnLine(selectionModel.getCursorIndex(), lines.get(lineIdx))
+            - visualHorizontalOffsetPixels.rounded();
+    }
+
+    /** Returns the pixel Y position of the cursor relative to this text area. */
+    public int getCursorPixelY() {
+        List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
+        if (lines.isEmpty()) return PADDING;
+        int lineIdx = getVisualLineIndex(selectionModel.getCursorIndex());
+        return PADDING + lineIdx * getLineHeight() - visualVerticalOffsetPixels.rounded();
+    }
+
+    public boolean isCursorVisibleInViewport() {
+        int cursorX = getCursorPixelX();
+        int cursorY = getCursorPixelY();
+        return cursorX >= PADDING && cursorX <= getContentClipWidth() - PADDING
+            && cursorY >= PADDING
+            && cursorY <= getContentClipHeight() - PADDING;
+    }
+
     private int getCursorIndexAt(int mouseX, int mouseY) {
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
         if (lines.isEmpty()) {
             return 0;
         }
-        int localY = mouseY - y - PADDING + scrollState.getOffsetPixels();
+        int localY = mouseY - y - PADDING + visualVerticalOffsetPixels.rounded();
         int lineIndex = localY <= 0 ? 0 : localY / getLineHeight();
         if (lineIndex < 0) {
             lineIndex = 0;
@@ -938,7 +1303,7 @@ public class SceneEditorMultilineTextArea {
         if (lineIndex >= lines.size()) {
             lineIndex = lines.size() - 1;
         }
-        int localX = Math.max(0, mouseX - x - PADDING + horizontalOffsetPixels);
+        int localX = Math.max(0, mouseX - x - PADDING + visualHorizontalOffsetPixels.rounded());
         return getCursorIndexAtPixel(lines.get(lineIndex), localX);
     }
 
@@ -1026,6 +1391,22 @@ public class SceneEditorMultilineTextArea {
         return Math.min(requestedOffset, maxOffset);
     }
 
+    private void snapVisualOffsetsToTarget() {
+        visualVerticalOffsetPixels.snapTo(scrollState.getOffsetPixels());
+        visualHorizontalOffsetPixels.snapTo(horizontalOffsetPixels);
+    }
+
+    private void updateVisualOffsets() {
+        visualVerticalOffsetPixels.updateTowards(
+            scrollState.getOffsetPixels(),
+            30f,
+            0.25f,
+            0.01f,
+            Math.max(160f, getContentClipHeight() * 2f));
+        visualHorizontalOffsetPixels
+            .updateTowards(horizontalOffsetPixels, 30f, 0.25f, 0.01f, Math.max(160f, textViewportWidth * 2f));
+    }
+
     private int clamp(int value, int min, int max) {
         if (value < min) {
             return min;
@@ -1060,6 +1441,15 @@ public class SceneEditorMultilineTextArea {
     public static boolean isCtrlKeyCombo(int keyCode, int expectedKeyCode) {
         return keyCode == expectedKeyCode
             && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL));
+    }
+
+    public void setDoubleClickHandler(@Nullable DoubleClickHandler handler) {
+        this.doubleClickHandler = handler;
+    }
+
+    public interface DoubleClickHandler {
+
+        void onDoubleClick(int cursorIndex);
     }
 
     public interface ClipboardAccess {

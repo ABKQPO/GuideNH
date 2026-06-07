@@ -12,8 +12,7 @@ import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class MediaWikiSyntheticPageFactory {
 
@@ -49,13 +48,12 @@ public class MediaWikiSyntheticPageFactory {
             .removeIf(pageId -> !seenIds.contains(pageId));
         long categoryElapsedNanos = System.nanoTime() - categoryStartNanos;
         long totalElapsedNanos = System.nanoTime() - startNanos;
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [MediaWikiSyntheticPageFactory] Built {} synthetic pages in {} ms (special: {} ms, category: {} ms)",
-                syntheticPages.size(),
-                nanosToMillis(totalElapsedNanos),
-                nanosToMillis(specialElapsedNanos),
-                nanosToMillis(categoryElapsedNanos));
+        GuideDebugLog.infoAlways(
+            "[GuideNH] [MediaWikiSyntheticPageFactory] Built {} synthetic pages in {} ms (special: {} ms, category: {} ms)",
+            syntheticPages.size(),
+            nanosToMillis(totalElapsedNanos),
+            nanosToMillis(specialElapsedNanos),
+            nanosToMillis(categoryElapsedNanos));
         return syntheticPages;
     }
 

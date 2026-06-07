@@ -14,7 +14,7 @@ public class ParsedGuidePage {
     private final String sourcePack;
     private final ResourceLocation id;
     private final String source;
-    private final MdAstRoot astRoot;
+    private volatile MdAstRoot astRoot;
     private final Frontmatter frontmatter;
     private final String language;
     private final @Nullable String parseFailureMessage;
@@ -64,7 +64,19 @@ public class ParsedGuidePage {
     }
 
     public MdAstRoot getAstRoot() {
-        return astRoot;
+        MdAstRoot r = astRoot;
+        if (r != null) {
+            return r;
+        }
+        synchronized (this) {
+            r = astRoot;
+            if (r != null) {
+                return r;
+            }
+            ParsedGuidePage full = PageCompiler.parse(sourcePack, language, id, source);
+            astRoot = full.astRoot;
+            return astRoot;
+        }
     }
 
     public String getLanguage() {

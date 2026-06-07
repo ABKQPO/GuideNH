@@ -147,6 +147,15 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
         return offsetY;
     }
 
+    public LytRect getVisualBounds() {
+        if (bounds == null || bounds.isEmpty() || formulaDisplayW <= 0 || formulaDisplayH <= 0) {
+            return bounds != null ? bounds : LytRect.empty();
+        }
+        int centeredX = bounds.x() + (bounds.width() - formulaDisplayW) / 2;
+        int formulaY = bounds.y() + VERTICAL_MARGIN;
+        return new LytRect(centeredX + offsetX, formulaY + offsetY, formulaDisplayW, formulaDisplayH);
+    }
+
     @Nullable
     @Override
     public LytRect getBounds() {

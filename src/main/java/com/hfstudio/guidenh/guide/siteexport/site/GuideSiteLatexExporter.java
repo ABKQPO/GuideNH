@@ -16,7 +16,7 @@ import org.scilab.forge.jlatexmath.TeXConstants;
 import org.scilab.forge.jlatexmath.TeXFormula;
 import org.scilab.forge.jlatexmath.TeXIcon;
 
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSiteLatexExporter {
 
@@ -55,19 +55,17 @@ public class GuideSiteLatexExporter {
             exports.put(key, exported);
             return exported;
         } catch (ParseException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [GuideSiteLatexExporter] Failed to parse LaTeX formula '{}': {}",
-                    formula,
-                    e.getMessage());
+            GuideDebugLog.error(
+                "[GuideNH] [GuideSiteLatexExporter] Failed to parse LaTeX formula '{}': {}",
+                formula,
+                e.getMessage());
             return null;
         } catch (Exception e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [GuideSiteLatexExporter] Failed to export LaTeX formula '{}': {}",
-                    formula,
-                    e.getMessage(),
-                    e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [GuideSiteLatexExporter] Failed to export LaTeX formula '{}': {}",
+                formula,
+                e.getMessage(),
+                e);
             return null;
         }
     }

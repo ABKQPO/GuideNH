@@ -75,9 +75,19 @@ navigation:
 
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
-  <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
+  <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
+    <Tier value="4" />
+    <Channel name="hatch" value="1" />
+    <Facing value="north" />
+    <Rotation value="normal" />
+    <Flip value="none" />
+    <GregTechActiveController />
+    <GregTechPlaceHatches />
+  </ImportStructureLib>
 </GameScene>
 ````
+
+The child tags set StructureLib defaults for the scene and are restored when the scene view is reset.
 
 ### Imported Structure Cleanup
 

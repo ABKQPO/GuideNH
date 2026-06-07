@@ -31,6 +31,7 @@ public enum Mods implements IMod, ITargetMod {
     DistantHorizons("distanthorizons"),
     EtFuturum("etfuturum"),
     SimpleSkinBackport("simpleskinbackport"),
+    ChromaticTooltips("chromatictooltips"),
     Translocators("Translocator"),
     TinkersConstruct("TConstruct"),
     ;

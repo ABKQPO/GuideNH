@@ -58,9 +58,9 @@ import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
-import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnotation;
@@ -106,7 +106,6 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 import lombok.Getter;
-import lombok.Setter;
 
 public class LytGuidebookScene extends LytBlock {
 
@@ -193,6 +192,12 @@ public class LytGuidebookScene extends LytBlock {
     private float ponderCamRotZ = 0f;
     private float ponderCamOffX = 0f;
     private float ponderCamOffY = 0f;
+    private final SmoothFloatState visualCamZoom = new SmoothFloatState();
+    private final SmoothFloatState visualCamRotX = new SmoothFloatState();
+    private final SmoothFloatState visualCamRotY = new SmoothFloatState();
+    private final SmoothFloatState visualCamRotZ = new SmoothFloatState();
+    private final SmoothFloatState visualCamOffX = new SmoothFloatState();
+    private final SmoothFloatState visualCamOffY = new SmoothFloatState();
     private final List<SceneAnnotation> ponderActiveAnnotations = new ArrayList<>();
     private final List<SceneAnnotation> ponderOutgoingAnnotations = new ArrayList<>();
     private int ponderOutgoingFadeTick = 0;
@@ -223,26 +228,16 @@ public class LytGuidebookScene extends LytBlock {
     private LytRect cachedPonderBarHitRect;
     private int cachedPonderBtnAbsX;
     private int cachedPonderBtnAbsY;
+    private int cachedPonderBtnScreenW;
+    private int cachedPonderBtnScreenH;
 
-    @Getter
     private boolean interactive = true;
-    @Setter
-    @Getter
+
     private boolean sceneButtonsVisible = true;
-    @Getter
-    @Setter
     private boolean bottomControlsVisible = true;
-    @Getter
-    @Setter
     private boolean reserveBottomControlArea = true;
-    @Getter
-    @Setter
     private boolean visibleLayerSliderEnabled;
-    @Getter
-    @Setter
     private boolean forceOriginAxesVisible;
-    @Setter
-    @Getter
     private boolean forceHideOriginAxes;
 
     public static int SCENE_BG_COLOR = 0xFF0A0A10;
@@ -269,24 +264,15 @@ public class LytGuidebookScene extends LytBlock {
     public static final int DEFAULT_WIDTH = 256;
     public static final int DEFAULT_HEIGHT = 192;
 
-    @Getter
     private GuidebookLevel level = new GuidebookLevel();
-    @Getter
     private CameraSettings camera = new CameraSettings();
     private int width = DEFAULT_WIDTH;
     private int height = DEFAULT_HEIGHT;
-    @Setter
-    @Getter
     private int sceneBackgroundColor = SCENE_BG_COLOR;
-    @Setter
-    @Getter
     private int sceneBorderColor = SCENE_BORDER_COLOR;
-    @Setter
-    @Getter
     private boolean showBackground = true;
     @Nullable
     private LytSize cameraViewportOverride;
-    @Getter
     private final List<SceneAnnotation> annotations = new ArrayList<>();
 
     // Reuse annotation partitions instead of allocating new lists every frame.
@@ -342,6 +328,8 @@ public class LytGuidebookScene extends LytBlock {
     private final Map<String, LytRect> cachedChannelSliderHitRects = new LinkedHashMap<>();
     private int sceneButtonsAbsX;
     private int sceneButtonsAbsY;
+    private int lastBtnScreenSize;
+    private int lastBtnScreenStep;
     private boolean cachedSceneButtonRolesDirty = true;
     private boolean cachedSceneButtonsVisible = true;
     private boolean cachedSceneHasAnnotations = true;
@@ -350,7 +338,6 @@ public class LytGuidebookScene extends LytBlock {
     private boolean cachedBlockStatsButtonEnabled = true;
     private GuideIconButton.Role[] cachedSceneButtonRoles = SCENE_BUTTONS_SHOWN;
 
-    @Getter
     private boolean annotationsVisible = true;
     @Nullable
     private Integer visibleLayerOverride;
@@ -382,8 +369,6 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private GuideSceneStructureCacheEntry initialStructureState;
     private boolean gridButtonEnabled = true;
-    @Setter
-    @Getter
     private boolean gridVisible = false;
     private boolean initialGridVisible = false;
     private boolean blockStatsEnabled = false;
@@ -448,7 +433,6 @@ public class LytGuidebookScene extends LytBlock {
     private AxisAlignedBB hoveredEntityBounds;
     @Nullable
     private MovingObjectPosition hoveredEntityHitResult;
-    @Setter
     private int @Nullable [] hoveredStructureLibHatch;
     private int currentMouseAbsX = -1;
     private int currentMouseAbsY = -1;
@@ -1450,6 +1434,115 @@ public class LytGuidebookScene extends LytBlock {
         soundCues.clear();
     }
 
+    public boolean isInteractive() {
+        return interactive;
+    }
+
+    public boolean isSceneButtonsVisible() {
+        return sceneButtonsVisible;
+    }
+
+    public void setSceneButtonsVisible(boolean sceneButtonsVisible) {
+        this.sceneButtonsVisible = sceneButtonsVisible;
+    }
+
+    public boolean isBottomControlsVisible() {
+        return bottomControlsVisible;
+    }
+
+    public void setBottomControlsVisible(boolean bottomControlsVisible) {
+        this.bottomControlsVisible = bottomControlsVisible;
+        clearCachedVisibleLayerSliderRects();
+        clearCachedTierSliderRects();
+        clearCachedChannelSliderRects();
+    }
+
+    public boolean isReserveBottomControlArea() {
+        return reserveBottomControlArea;
+    }
+
+    public void setReserveBottomControlArea(boolean reserveBottomControlArea) {
+        this.reserveBottomControlArea = reserveBottomControlArea;
+    }
+
+    public boolean isVisibleLayerSliderEnabled() {
+        return visibleLayerSliderEnabled;
+    }
+
+    public void setVisibleLayerSliderEnabled(boolean visibleLayerSliderEnabled) {
+        this.visibleLayerSliderEnabled = visibleLayerSliderEnabled;
+        clearCachedVisibleLayerSliderRects();
+    }
+
+    public boolean isForceOriginAxesVisible() {
+        return forceOriginAxesVisible;
+    }
+
+    public void setForceOriginAxesVisible(boolean forceOriginAxesVisible) {
+        this.forceOriginAxesVisible = forceOriginAxesVisible;
+    }
+
+    public boolean isForceHideOriginAxes() {
+        return forceHideOriginAxes;
+    }
+
+    public void setForceHideOriginAxes(boolean forceHideOriginAxes) {
+        this.forceHideOriginAxes = forceHideOriginAxes;
+    }
+
+    public GuidebookLevel getLevel() {
+        return level;
+    }
+
+    public CameraSettings getCamera() {
+        return camera;
+    }
+
+    public int getSceneBackgroundColor() {
+        return sceneBackgroundColor;
+    }
+
+    public void setSceneBackgroundColor(int sceneBackgroundColor) {
+        this.sceneBackgroundColor = sceneBackgroundColor;
+    }
+
+    public int getSceneBorderColor() {
+        return sceneBorderColor;
+    }
+
+    public void setSceneBorderColor(int sceneBorderColor) {
+        this.sceneBorderColor = sceneBorderColor;
+    }
+
+    public boolean isShowBackground() {
+        return showBackground;
+    }
+
+    public void setShowBackground(boolean showBackground) {
+        this.showBackground = showBackground;
+    }
+
+    public List<SceneAnnotation> getAnnotations() {
+        return annotations;
+    }
+
+    public boolean isAnnotationsVisible() {
+        return annotationsVisible;
+    }
+
+    public boolean isGridVisible() {
+        return gridVisible;
+    }
+
+    public void setGridVisible(boolean gridVisible) {
+        this.gridVisible = gridVisible;
+        cachedSceneButtonRolesDirty = true;
+    }
+
+    public void setHoveredStructureLibHatch(int @Nullable [] hoveredStructureLibHatch) {
+        this.hoveredStructureLibHatch = hoveredStructureLibHatch;
+    }
+
     private void notifyStructureLibSelectionChanged() {
         if (structureLibSelectionChangeListener != null) {
             structureLibSelectionChangeListener.accept(getStructureLibPreviewSelection());
@@ -1841,7 +1934,7 @@ public class LytGuidebookScene extends LytBlock {
                 BLOCK_STATS_MIN_HEIGHT,
                 Math.min(blockStatsMaxHeight, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2));
         }
-        int rows = Math.max(1, Math.min(count, Math.max(1, height / rowHeight)));
+        int rows = Math.min(count, Math.max(1, height / rowHeight));
         return Math
             .max(BLOCK_STATS_MIN_HEIGHT, Math.min(blockStatsMaxHeight, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2));
     }
@@ -1969,26 +2062,20 @@ public class LytGuidebookScene extends LytBlock {
             outerRect.y(),
             outerRect.width(),
             sceneH);
-        // Resolve document zoom and compute screen-space absolute coords for both render paths.
-        float docZoom = context instanceof VanillaRenderContext mrc ? mrc.getZoom() : 1.0f;
-        int absX = sceneRect.x();
-        int absY = sceneRect.y();
-        int outerAbsX = outerRect.x();
-        int outerAbsY = outerRect.y();
-        int clipX = outerAbsX, clipY = outerAbsY, clipW = outerRect.width(), clipH = outerRect.height();
-        if (context instanceof VanillaRenderContext mrc) {
-            absX = mrc.getDocumentOriginX() + Math.round(sceneRect.x() * docZoom);
-            absY = mrc.getDocumentOriginY() + Math.round((sceneRect.y() - mrc.getScrollOffsetY()) * docZoom);
-            outerAbsX = absX;
-            outerAbsY = absY;
-        }
-        // Scale layout dimensions to screen pixels when document zoom != 1.
-        int w = Math.round(sceneRect.width() * docZoom);
-        int h = Math.round(sceneRect.height() * docZoom);
-        int outerW = Math.round(outerRect.width() * docZoom);
-        int outerH = Math.round(outerRect.height() * docZoom);
+        LytRect screenRect = context.toScreenRect(sceneRect);
+        LytRect screenOuter = context.toScreenRect(outerRect);
+        int absX = screenRect.x();
+        int absY = screenRect.y();
+        int w = screenRect.width();
+        int h = screenRect.height();
+        int outerAbsX = screenOuter.x();
+        int outerAbsY = screenOuter.y();
+        int outerW = screenOuter.width();
+        int outerH = screenOuter.height();
+        float scale = sceneRect.width() > 0 ? (float) w / sceneRect.width() : 1.0f;
         int sceneRight = absX + w;
         int sceneBottom = absY + h;
+        int clipX = outerAbsX, clipY = outerAbsY, clipW = outerW, clipH = outerH;
         LytRect activeScissor = context.currentScissor();
         if (activeScissor != null) {
             clipX = Math.max(absX, activeScissor.x());
@@ -2010,7 +2097,7 @@ public class LytGuidebookScene extends LytBlock {
             this.lastAbsY = absY;
             this.lastW = w;
             this.lastH = h;
-            this.lastDocZoom = docZoom;
+            this.lastDocZoom = scale;
             this.lastOuterAbsX = outerAbsX;
             this.lastOuterAbsY = outerAbsY;
             this.lastOuterW = outerW;
@@ -2021,7 +2108,7 @@ public class LytGuidebookScene extends LytBlock {
             drawBlockStatsOverlay(context, sceneRect, outerRect);
             renderSceneBorder(context, sceneRect);
             if (interactive && sceneButtonsVisible) {
-                drawSceneButtons(sceneRect.x(), sceneRect.y(), w, h, absX, absY, docZoom);
+                drawSceneButtons(context, sceneRect, screenRect);
             }
             return;
         }
@@ -2029,16 +2116,13 @@ public class LytGuidebookScene extends LytBlock {
         renderSceneBackground(context, sceneRect);
         this.renderedContentClip = updateCachedRect(this.renderedContentClip, clipX, clipY, clipW, clipH);
 
-        if (cameraViewportOverride != null) {
-            camera.setViewportSize(cameraViewportOverride);
-        } else {
-            camera.setViewportSize(w, h);
-        }
+        LytSize camOverride = cameraViewportOverride;
+        camera.setViewportSize(camOverride != null ? camOverride : new LytSize(sceneW, sceneH));
         this.lastAbsX = absX;
         this.lastAbsY = absY;
         this.lastW = w;
         this.lastH = h;
-        this.lastDocZoom = docZoom;
+        this.lastDocZoom = scale;
         this.lastOuterAbsX = outerAbsX;
         this.lastOuterAbsY = outerAbsY;
         this.lastOuterW = outerW;
@@ -2143,71 +2227,45 @@ public class LytGuidebookScene extends LytBlock {
         List<GuidebookSceneWeatherEffect> weatherEffects = resolveRenderableWeatherEffectsForCurrentView(
             weatherLayerSelection);
 
-        boolean ponderCameraApplied = false;
-        float savedZoom = 0, savedRotX = 0, savedRotY = 0, savedRotZ = 0, savedOffX = 0, savedOffY = 0;
-        if (ponderSceneData != null) {
-            savedZoom = camera.getZoom();
-            savedRotX = camera.getRotationX();
-            savedRotY = camera.getRotationY();
-            savedRotZ = camera.getRotationZ();
-            savedOffX = camera.getOffsetX();
-            savedOffY = camera.getOffsetY();
-            camera.setZoom(ponderCamZoom);
-            camera.setRotationX(ponderCamRotX);
-            camera.setRotationY(ponderCamRotY);
-            camera.setRotationZ(ponderCamRotZ);
-            camera.setOffsetX(ponderCamOffX);
-            camera.setOffsetY(ponderCamOffY);
-            ponderCameraApplied = true;
-        }
+        float[] savedCameraState = applyVisualCameraState();
+        try {
+            GuidebookLevelRenderer.getInstance()
+                .render(
+                    level,
+                    camera,
+                    absX,
+                    absY,
+                    w,
+                    h,
+                    clipX,
+                    clipY,
+                    clipW,
+                    clipH,
+                    0f,
+                    inWorld,
+                    context.lightDarkMode(),
+                    weatherLayerSelection,
+                    resolveRenderableSceneParticles(),
+                    weatherEffects,
+                    resolveWeatherAnimationTick());
 
-        GuidebookLevelRenderer.getInstance()
-            .render(
-                level,
-                camera,
-                absX,
-                absY,
-                w,
-                h,
-                clipX,
-                clipY,
-                clipW,
-                clipH,
-                0f,
-                inWorld,
-                context.lightDarkMode(),
-                weatherLayerSelection,
-                resolveRenderableSceneParticles(),
-                weatherEffects,
-                resolveWeatherAnimationTick());
+            context.restoreExternalRenderState();
+            drawBlockStatsOverlay(context, sceneRect, outerRect);
+            context.restoreExternalRenderState();
 
-        context.restoreExternalRenderState();
-        drawBlockStatsOverlay(context, sceneRect, outerRect);
-        context.restoreExternalRenderState();
-
-        if (!overlays.isEmpty()) {
-            LytRect viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
-            // Scissor overlays to the scene rect so diamond icons etc. cannot escape.
-            // NOTE: pushScissor expects SCREEN coords (same space as GuideScreen.cachedScissorRect),
-            // not document-local coords. Passing sceneRect (doc-local) caused the scissor to clip
-            // overlays out of sight, making diamond annotations disappear.
-            context.pushScissor(viewport);
-            try {
-                for (var o : overlays) {
-                    o.render(camera, context, viewport);
+            if (!overlays.isEmpty()) {
+                LytRect viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
+                context.pushLocalScissor(sceneRect);
+                try {
+                    for (var o : overlays) {
+                        o.render(camera, context, viewport);
+                    }
+                } finally {
+                    context.popScissor();
                 }
-            } finally {
-                context.popScissor();
             }
-        }
-
-        if (ponderCameraApplied) {
-            camera.setZoom(savedZoom);
-            camera.setRotationX(savedRotX);
-            camera.setRotationY(savedRotY);
-            camera.setRotationZ(savedRotZ);
-            camera.setOffsetX(savedOffX);
-            camera.setOffsetY(savedOffY);
+        } finally {
+            applyCapturedCameraState(savedCameraState);
         }
 
         drawBottomControls(context, outerRect);
@@ -2216,7 +2274,7 @@ public class LytGuidebookScene extends LytBlock {
         renderSceneBorder(context, sceneRect);
 
         if (interactive && sceneButtonsVisible) {
-            drawSceneButtons(sceneRect.x(), sceneRect.y(), w, h, absX, absY, docZoom);
+            drawSceneButtons(context, sceneRect, screenRect);
         }
     }
 
@@ -3154,12 +3212,28 @@ public class LytGuidebookScene extends LytBlock {
         return new InWorldLineAnnotation(new Vector3f(), to, color, ORIGIN_AXIS_THICKNESS);
     }
 
-    private void drawSceneButtons(int drawX, int drawY, int screenW, int screenH, int absX, int absY, float docZoom) {
-        this.lastAbsX = absX;
-        this.lastAbsY = absY;
-        this.lastW = screenW;
-        this.lastH = screenH;
-        this.lastDocZoom = docZoom;
+    private void drawSceneButtons(RenderContext context, LytRect sceneRect, LytRect screenRect) {
+        this.lastAbsX = screenRect.x();
+        this.lastAbsY = screenRect.y();
+        this.lastW = screenRect.width();
+        this.lastH = screenRect.height();
+        float scale = sceneRect.width() > 0 ? (float) screenRect.width() / sceneRect.width() : 1.0f;
+        this.lastDocZoom = scale;
+        cachedScreenRect = updateCachedRect(
+            cachedScreenRect,
+            screenRect.x(),
+            screenRect.y(),
+            screenRect.width(),
+            screenRect.height());
+
+        // Draw each button in layout coords wrapped in the context's GL transform.
+        int layoutGap = BTN_OUTSIDE_GAP;
+        int layoutSize = BTN_SIZE;
+        int layoutStep = BTN_SIZE + BTN_GAP;
+        int bx = sceneRect.right() + layoutGap;
+        int by = sceneRect.y();
+
+        context.beginLocalView();
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -3168,17 +3242,6 @@ public class LytGuidebookScene extends LytBlock {
         GL11.glColor4f(1f, 1f, 1f, 1f);
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
 
-        // GL drawing uses layout coords; convert screen pixels back to layout units for bx.
-        int layoutW = Math.round(screenW / docZoom);
-        int bx = drawX + layoutW + BTN_OUTSIDE_GAP;
-        int by = drawY;
-        int btnScreenSize = Math.round(BTN_SIZE * docZoom);
-        int btnScreenStep = Math.round((BTN_SIZE + BTN_GAP) * docZoom);
-        int absBx = absX + screenW + Math.round(BTN_OUTSIDE_GAP * docZoom);
-        int absBy = absY;
-        sceneButtonsAbsX = absBx;
-        sceneButtonsAbsY = absBy;
-        cachedScreenRect = updateCachedRect(cachedScreenRect, absX, absY, screenW, screenH);
         int mx, my;
         try {
             var mc = Minecraft.getMinecraft();
@@ -3191,11 +3254,21 @@ public class LytGuidebookScene extends LytBlock {
         }
         GuideIconButton.Role[] roles = cachedSceneButtonRoles();
         for (var role : roles) {
-            boolean hover = mx >= absBx && my >= absBy && mx < absBx + btnScreenSize && my < absBy + btnScreenSize;
-            drawOneSceneButton(bx, by, role, hover);
-            by += BTN_SIZE + BTN_GAP;
-            absBy += btnScreenStep;
+            LytRect btnLayout = new LytRect(bx, by, layoutSize, layoutSize);
+            LytRect btnScreen = context.toScreenRect(btnLayout);
+            boolean hover = mx >= btnScreen.x() && my >= btnScreen.y()
+                && mx < btnScreen.right()
+                && my < btnScreen.bottom();
+            drawOneSceneButton(bx, by, layoutSize, role, hover);
+            if (role == roles[0]) {
+                sceneButtonsAbsX = btnScreen.x();
+                sceneButtonsAbsY = btnScreen.y();
+                lastBtnScreenSize = btnScreen.width();
+                lastBtnScreenStep = Math.round((BTN_SIZE + BTN_GAP) * scale);
+            }
+            by += layoutStep;
         }
+        context.endLocalView();
     }
 
     private GuideIconButton.Role[] sceneButtonRoles() {
@@ -3240,7 +3313,7 @@ public class LytGuidebookScene extends LytBlock {
         return cachedSceneButtonRoles;
     }
 
-    private void drawOneSceneButton(int x, int y, GuideIconButton.Role role, boolean hovered) {
+    private void drawOneSceneButton(int x, int y, int btnSize, GuideIconButton.Role role, boolean hovered) {
         Minecraft.getMinecraft()
             .getTextureManager()
             .bindTexture(BUTTONS_TEXTURE);
@@ -3259,9 +3332,9 @@ public class LytGuidebookScene extends LytBlock {
         float v1 = (role.iconSrcY() + role.iconSrcHeight()) / texSize;
         var tess = Tessellator.instance;
         tess.startDrawingQuads();
-        tess.addVertexWithUV(x, y + BTN_SIZE, 0, u0, v1);
-        tess.addVertexWithUV(x + BTN_SIZE, y + BTN_SIZE, 0, u1, v1);
-        tess.addVertexWithUV(x + BTN_SIZE, y, 0, u1, v0);
+        tess.addVertexWithUV(x, y + btnSize, 0, u0, v1);
+        tess.addVertexWithUV(x + btnSize, y + btnSize, 0, u1, v1);
+        tess.addVertexWithUV(x + btnSize, y, 0, u1, v0);
         tess.addVertexWithUV(x, y, 0, u0, v0);
         tess.draw();
         GL11.glColor4f(1f, 1f, 1f, 1f);
@@ -3275,14 +3348,13 @@ public class LytGuidebookScene extends LytBlock {
 
     @Nullable
     public GuideIconButton.Role sceneButtonAt(int mouseX, int mouseY) {
-        if (ponderSceneData != null && lastOuterH > 0) {
-            int btnSize = SCENE_SLIDER_AREA_HEIGHT;
-            if (mouseY >= cachedPonderBtnAbsY && mouseY < cachedPonderBtnAbsY + btnSize) {
+        if (ponderSceneData != null && lastOuterH > 0 && cachedPonderBtnScreenW > 0) {
+            if (mouseY >= cachedPonderBtnAbsY && mouseY < cachedPonderBtnAbsY + cachedPonderBtnScreenH) {
                 GuideIconButton.Role[] pRoles = { GuideIconButton.Role.PONDER_PREV_KEYFRAME,
                     GuideIconButton.Role.PONDER_PLAY_PAUSE, GuideIconButton.Role.PONDER_RESTART };
                 for (int i = 0; i < pRoles.length; i++) {
-                    int bx = cachedPonderBtnAbsX + i * btnSize;
-                    if (mouseX >= bx && mouseX < bx + btnSize) return pRoles[i];
+                    int bx = cachedPonderBtnAbsX + i * cachedPonderBtnScreenW;
+                    if (mouseX >= bx && mouseX < bx + cachedPonderBtnScreenW) return pRoles[i];
                 }
             }
         }
@@ -3290,8 +3362,8 @@ public class LytGuidebookScene extends LytBlock {
         if (lastW <= 0 || lastH <= 0) return null;
         int bx = sceneButtonsAbsX;
         int by = sceneButtonsAbsY;
-        int btnScreenSize = Math.round(BTN_SIZE * lastDocZoom);
-        int btnScreenStep = Math.round((BTN_SIZE + BTN_GAP) * lastDocZoom);
+        int btnScreenSize = lastBtnScreenSize > 0 ? lastBtnScreenSize : Math.round(BTN_SIZE * lastDocZoom);
+        int btnScreenStep = lastBtnScreenStep > 0 ? lastBtnScreenStep : Math.round((BTN_SIZE + BTN_GAP) * lastDocZoom);
         int rolesHeight = btnScreenSize + Math.max(0, cachedSceneButtonRoles().length - 1) * btnScreenStep;
         LytRect buttonColumnRect = new LytRect(bx, by, btnScreenSize, rolesHeight);
         if (renderedContentClip != null) {
@@ -3504,14 +3576,13 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public boolean containsPonderButtons(int mouseX, int mouseY) {
-        if (!hasBottomControls() || ponderSceneData == null) {
+        if (!hasBottomControls() || ponderSceneData == null || cachedPonderBtnScreenW <= 0) {
             return false;
         }
-        int btnW = SCENE_SLIDER_AREA_HEIGHT;
-        int totalW = PONDER_BTN_TOTAL_WIDTH;
+        int totalW = cachedPonderBtnScreenW * PONDER_BUTTON_ROLES.length;
         return mouseX >= cachedPonderBtnAbsX && mouseX < cachedPonderBtnAbsX + totalW
             && mouseY >= cachedPonderBtnAbsY
-            && mouseY < cachedPonderBtnAbsY + btnW;
+            && mouseY < cachedPonderBtnAbsY + cachedPonderBtnScreenH;
     }
 
     @Nullable
@@ -3520,8 +3591,7 @@ public class LytGuidebookScene extends LytBlock {
             return null;
         }
         int relX = mouseX - cachedPonderBtnAbsX;
-        int btnW = SCENE_SLIDER_AREA_HEIGHT;
-        int idx = relX / btnW;
+        int idx = relX / cachedPonderBtnScreenW;
         return switch (idx) {
             case 0 -> GuideIconButton.Role.PONDER_PREV_KEYFRAME;
             case 1 -> GuideIconButton.Role.PONDER_PLAY_PAUSE;
@@ -3580,35 +3650,13 @@ public class LytGuidebookScene extends LytBlock {
         float relX = (mouseAbsX) - (lastAbsX + lastW * 0.5f);
         float relY = (mouseAbsY) - (lastAbsY + lastH * 0.5f);
 
-        // Apply ponder camera so the raycast matches the rendered view.
-        boolean ponderApplied = false;
-        float pSavedZoom = 0, pSavedRX = 0, pSavedRY = 0, pSavedRZ = 0, pSavedOX = 0, pSavedOY = 0;
-        if (ponderSceneData != null) {
-            pSavedZoom = camera.getZoom();
-            pSavedRX = camera.getRotationX();
-            pSavedRY = camera.getRotationY();
-            pSavedRZ = camera.getRotationZ();
-            pSavedOX = camera.getOffsetX();
-            pSavedOY = camera.getOffsetY();
-            camera.setZoom(ponderCamZoom);
-            camera.setRotationX(ponderCamRotX);
-            camera.setRotationY(ponderCamRotY);
-            camera.setRotationZ(ponderCamRotZ);
-            camera.setOffsetX(ponderCamOffX);
-            camera.setOffsetY(ponderCamOffY);
-            ponderApplied = true;
-        }
-
-        camera.setViewportSize(lastW, lastH);
-        float[] ray = camera.screenToWorldRay(relX, relY, pickRayScratch);
-
-        if (ponderApplied) {
-            camera.setZoom(pSavedZoom);
-            camera.setRotationX(pSavedRX);
-            camera.setRotationY(pSavedRY);
-            camera.setRotationZ(pSavedRZ);
-            camera.setOffsetX(pSavedOX);
-            camera.setOffsetY(pSavedOY);
+        float[] ray;
+        float[] savedCameraState = applyVisualCameraState();
+        try {
+            camera.setViewportSize(lastW, lastH);
+            ray = camera.screenToWorldRay(relX, relY, pickRayScratch);
+        } finally {
+            applyCapturedCameraState(savedCameraState);
         }
 
         float ox = ray[0], oy = ray[1], oz = ray[2];
@@ -3790,9 +3838,18 @@ public class LytGuidebookScene extends LytBlock {
                 }
             }
             case RESET_VIEW -> resetViewToInitialCamera();
-            case PONDER_PREV_KEYFRAME -> ponderPrevKeyframe();
-            case PONDER_PLAY_PAUSE -> ponderTogglePlay();
-            case PONDER_RESTART -> ponderRestart();
+            case PONDER_PREV_KEYFRAME -> {
+                GuideDebugLog.info("[PonderDebug] activateSceneButton: PONDER_PREV_KEYFRAME");
+                ponderPrevKeyframe();
+            }
+            case PONDER_PLAY_PAUSE -> {
+                GuideDebugLog.info("[PonderDebug] activateSceneButton: PONDER_PLAY_PAUSE");
+                ponderTogglePlay();
+            }
+            case PONDER_RESTART -> {
+                GuideDebugLog.info("[PonderDebug] activateSceneButton: PONDER_RESTART");
+                ponderRestart();
+            }
             default -> {}
         }
     }
@@ -3846,6 +3903,7 @@ public class LytGuidebookScene extends LytBlock {
         this.dragButton = button;
         this.dragLastX = mouseX;
         this.dragLastY = mouseY;
+        updateVisualCameraState();
     }
 
     public void updateSoundHover(int mouseX, int mouseY) {
@@ -3919,39 +3977,104 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private float[] projectSoundPosition(GuideSoundSpec sound) {
-        float[] saved = null;
-        if (ponderSceneData != null) {
-            saved = applyPonderCameraForProjection();
-        }
+        float[] saved = applyVisualCameraState();
         try {
             var projected = camera.worldToScreen(sound.x(), sound.y(), sound.z());
             return new float[] { lastAbsX + projected.x, lastAbsY + projected.y };
         } finally {
-            if (saved != null) {
-                restoreCameraFromProjection(saved);
-            }
+            applyCapturedCameraState(saved);
         }
     }
 
-    private float[] applyPonderCameraForProjection() {
-        float[] saved = new float[] { camera.getZoom(), camera.getRotationX(), camera.getRotationY(),
-            camera.getRotationZ(), camera.getOffsetX(), camera.getOffsetY() };
-        camera.setZoom(ponderCamZoom);
-        camera.setRotationX(ponderCamRotX);
-        camera.setRotationY(ponderCamRotY);
-        camera.setRotationZ(ponderCamRotZ);
-        camera.setOffsetX(ponderCamOffX);
-        camera.setOffsetY(ponderCamOffY);
+    private void updateVisualCameraState() {
+        float targetZoom = getLogicalCameraZoom();
+        float targetRotX = getLogicalCameraRotationX();
+        float targetRotY = getLogicalCameraRotationY();
+        float targetRotZ = getLogicalCameraRotationZ();
+        float targetOffX = getLogicalCameraOffsetX();
+        float targetOffY = getLogicalCameraOffsetY();
+        if (visualCamZoom.value() == 0f && visualCamRotX.value() == 0f
+            && visualCamRotY.value() == 0f
+            && visualCamRotZ.value() == 0f
+            && visualCamOffX.value() == 0f
+            && visualCamOffY.value() == 0f) {
+            visualCamZoom.snapTo(targetZoom);
+            visualCamRotX.snapTo(targetRotX);
+            visualCamRotY.snapTo(targetRotY);
+            visualCamRotZ.snapTo(targetRotZ);
+            visualCamOffX.snapTo(targetOffX);
+            visualCamOffY.snapTo(targetOffY);
+            return;
+        }
+        if (isDraggingCamera()) {
+            visualCamZoom.updateTowards(targetZoom, 48f, 0.05f, 0.0001f, 8f);
+            visualCamRotX.updateTowards(targetRotX, 48f, 0.05f, 0.01f, 360f);
+            visualCamRotY.updateTowards(targetRotY, 48f, 0.05f, 0.01f, 360f);
+            visualCamRotZ.updateTowards(targetRotZ, 48f, 0.05f, 0.01f, 360f);
+            visualCamOffX.updateTowards(targetOffX, 54f, 0.05f, 0.01f, 512f);
+            visualCamOffY.updateTowards(targetOffY, 54f, 0.05f, 0.01f, 512f);
+            return;
+        }
+        visualCamZoom.updateTowards(targetZoom, 22f, 0.05f, 0.0001f, 4f);
+        visualCamRotX.updateTowards(targetRotX, 22f, 0.05f, 0.01f, 180f);
+        visualCamRotY.updateTowards(targetRotY, 22f, 0.05f, 0.01f, 180f);
+        visualCamRotZ.updateTowards(targetRotZ, 22f, 0.05f, 0.01f, 180f);
+        visualCamOffX.updateTowards(targetOffX, 26f, 0.05f, 0.01f, 256f);
+        visualCamOffY.updateTowards(targetOffY, 26f, 0.05f, 0.01f, 256f);
+    }
+
+    private float getLogicalCameraZoom() {
+        return ponderSceneData != null ? ponderCamZoom : camera.getZoom();
+    }
+
+    private float getLogicalCameraRotationX() {
+        return ponderSceneData != null ? ponderCamRotX : camera.getRotationX();
+    }
+
+    private float getLogicalCameraRotationY() {
+        return ponderSceneData != null ? ponderCamRotY : camera.getRotationY();
+    }
+
+    private float getLogicalCameraRotationZ() {
+        return ponderSceneData != null ? ponderCamRotZ : camera.getRotationZ();
+    }
+
+    private float getLogicalCameraOffsetX() {
+        return ponderSceneData != null ? ponderCamOffX : camera.getOffsetX();
+    }
+
+    private float getLogicalCameraOffsetY() {
+        return ponderSceneData != null ? ponderCamOffY : camera.getOffsetY();
+    }
+
+    private float[] captureCameraState() {
+        return new float[] { camera.getZoom(), camera.getRotationX(), camera.getRotationY(), camera.getRotationZ(),
+            camera.getOffsetX(), camera.getOffsetY() };
+    }
+
+    private void applyCapturedCameraState(float[] state) {
+        camera.setZoom(state[0]);
+        camera.setRotationX(state[1]);
+        camera.setRotationY(state[2]);
+        camera.setRotationZ(state[3]);
+        camera.setOffsetX(state[4]);
+        camera.setOffsetY(state[5]);
+    }
+
+    private float[] applyVisualCameraState() {
+        updateVisualCameraState();
+        float[] saved = captureCameraState();
+        camera.setZoom(visualCamZoom.value());
+        camera.setRotationX(visualCamRotX.value());
+        camera.setRotationY(visualCamRotY.value());
+        camera.setRotationZ(visualCamRotZ.value());
+        camera.setOffsetX(visualCamOffX.value());
+        camera.setOffsetY(visualCamOffY.value());
         return saved;
     }
 
-    private void restoreCameraFromProjection(float[] saved) {
-        camera.setZoom(saved[0]);
-        camera.setRotationX(saved[1]);
-        camera.setRotationY(saved[2]);
-        camera.setRotationZ(saved[3]);
-        camera.setOffsetX(saved[4]);
-        camera.setOffsetY(saved[5]);
+    private boolean isDraggingCamera() {
+        return dragButton >= 0 && !isPonderPlaying();
     }
 
     public static boolean isPanButton(int button) {
@@ -3993,8 +4116,21 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void pollDrag() {
-        // Camera movement is driven by explicit mouse drag events. Polling raw Mouse.getDX/Y here
-        // also consumes tiny deltas left by a plain click, which makes a click rotate the scene.
+        if (dragButton < 0 || isPonderPlaying()) {
+            return;
+        }
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft.currentScreen == null || minecraft.displayWidth <= 0 || minecraft.displayHeight <= 0) {
+            return;
+        }
+        int mouseX = Mouse.getX() * minecraft.currentScreen.width / minecraft.displayWidth;
+        int mouseY = minecraft.currentScreen.height
+            - Mouse.getY() * minecraft.currentScreen.height / minecraft.displayHeight
+            - 1;
+        if (mouseX == dragLastX && mouseY == dragLastY) {
+            return;
+        }
+        drag(mouseX, mouseY);
     }
 
     private void applyCameraDrag(float dx, float dy) {
@@ -4019,6 +4155,7 @@ public class LytGuidebookScene extends LytBlock {
                 camera.setRotationX(camera.getRotationX() + dy * DRAG_ROTATE_SENSITIVITY);
             }
         }
+        updateVisualCameraState();
     }
 
     public void endDrag() {
@@ -4064,6 +4201,7 @@ public class LytGuidebookScene extends LytBlock {
             if (dwheel > 0) z *= WHEEL_ZOOM_STEP;
             else z /= WHEEL_ZOOM_STEP;
             ponderCamZoom = Math.clamp(z, MIN_ZOOM, MAX_ZOOM);
+            updateVisualCameraState();
             return;
         }
         float z = camera.getZoom();
@@ -4072,6 +4210,7 @@ public class LytGuidebookScene extends LytBlock {
         if (z < MIN_ZOOM) z = MIN_ZOOM;
         if (z > MAX_ZOOM) z = MAX_ZOOM;
         camera.setZoom(z);
+        updateVisualCameraState();
     }
 
     public void scroll(int dwheel) {
@@ -4083,6 +4222,7 @@ public class LytGuidebookScene extends LytBlock {
             if (dwheel > 0) z *= WHEEL_ZOOM_STEP;
             else z /= WHEEL_ZOOM_STEP;
             ponderCamZoom = Math.clamp(z, MIN_ZOOM, MAX_ZOOM);
+            updateVisualCameraState();
             return;
         }
         float z = camera.getZoom();
@@ -4091,6 +4231,7 @@ public class LytGuidebookScene extends LytBlock {
         if (z < MIN_ZOOM) z = MIN_ZOOM;
         if (z > MAX_ZOOM) z = MAX_ZOOM;
         camera.setZoom(z);
+        updateVisualCameraState();
     }
 
     public List<SceneAnnotation> getPonderActiveAnnotationsForTesting() {
@@ -4334,8 +4475,24 @@ public class LytGuidebookScene extends LytBlock {
 
     public void ponderTick() {
         sceneAnimationTick++;
-        if (ponderSceneData == null || ponderPaused || ponderFinished) return;
+        if (ponderSceneData == null || ponderPaused || ponderFinished) {
+            if (sceneAnimationTick % 100 == 1) {
+                GuideDebugLog.info(
+                    "[PonderDebug] ponderTick blocked: data={} paused={} finished={} tick={}",
+                    ponderSceneData != null,
+                    ponderPaused,
+                    ponderFinished,
+                    ponderCurrentTick);
+            }
+            return;
+        }
         ponderCurrentTick++;
+        if (ponderCurrentTick % 20 == 0) {
+            GuideDebugLog.info(
+                "[PonderDebug] ponderTick advancing: tick={}/{}",
+                ponderCurrentTick,
+                ponderSceneData.getTotalTime());
+        }
         if (ponderCurrentTick >= ponderSceneData.getTotalTime()) {
             ponderCurrentTick = ponderSceneData.getTotalTime();
             ponderFinished = true;
@@ -4360,7 +4517,15 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void ponderTogglePlay() {
-        if (ponderSceneData == null) return;
+        if (ponderSceneData == null) {
+            GuideDebugLog.info("[PonderDebug] ponderTogglePlay blocked: no ponderSceneData");
+            return;
+        }
+        GuideDebugLog.info(
+            "[PonderDebug] ponderTogglePlay: paused={} finished={} tick={}",
+            ponderPaused,
+            ponderFinished,
+            ponderCurrentTick);
         if (ponderFinished) {
             ponderCurrentTick = 0;
             ponderFinished = false;
@@ -5640,7 +5805,7 @@ public class LytGuidebookScene extends LytBlock {
                 int density = particle.getWeatherDensityPerTick(
                     GuidebookSceneWeatherSupport
                         .defaultDensity(GuidebookSceneWeatherType.fromSerializedName(particle.getWeatherType())));
-                total += Math.clamp(density * 4, 1, 128);
+                total += Math.clamp(density * 4L, 1, 128);
                 continue;
             }
             if (particle.isIndicatorPreset()) {
@@ -5982,29 +6147,35 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void drawPonderControls(RenderContext context, LytRect outerRect, int totalControlH) {
-        int renderRowY = outerRect.bottom() - totalControlH;
-        int absRowY = lastOuterAbsY + lastOuterH - totalControlH;
-
         int rowH = SCENE_SLIDER_AREA_HEIGHT;
         int btnSize = SCENE_SLIDER_AREA_HEIGHT;
+        int sidePad = SCENE_SLIDER_SIDE_PADDING;
+        int renderRowY = outerRect.bottom() - totalControlH;
+        int renderBtnX = outerRect.x() + sidePad;
 
-        int renderBtnX = outerRect.x() + SCENE_SLIDER_SIDE_PADDING;
-        int absBtnX = lastOuterAbsX + SCENE_SLIDER_SIDE_PADDING;
-
-        cachedPonderBtnAbsX = absBtnX;
-        cachedPonderBtnAbsY = absRowY;
+        // Store screen-space button origin for hit-testing.
+        LytRect firstBtnLayout = new LytRect(renderBtnX, renderRowY, btnSize, btnSize);
+        LytRect firstBtnScreen = context.toScreenRect(firstBtnLayout);
+        cachedPonderBtnAbsX = firstBtnScreen.x();
+        cachedPonderBtnAbsY = firstBtnScreen.y();
+        cachedPonderBtnScreenW = firstBtnScreen.width();
+        cachedPonderBtnScreenH = firstBtnScreen.height();
 
         int mx = currentMousePositionAvailable ? currentMouseAbsX : -1;
         int my = currentMousePositionAvailable ? currentMouseAbsY : -1;
 
         Minecraft mc = Minecraft.getMinecraft();
+        context.beginLocalView();
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
         for (int i = 0; i < PONDER_BUTTON_ROLES.length; i++) {
-            int absX = absBtnX + i * btnSize;
-            boolean hover = mx >= absX && mx < absX + btnSize && my >= absRowY && my < absRowY + btnSize;
+            LytRect btnLayout = new LytRect(renderBtnX + i * btnSize, renderRowY, btnSize, btnSize);
+            LytRect btnScreen = context.toScreenRect(btnLayout);
+            boolean hover = mx >= btnScreen.x() && mx < btnScreen.right()
+                && my >= btnScreen.y()
+                && my < btnScreen.bottom();
             boolean active = PONDER_BUTTON_ROLES[i] == GuideIconButton.Role.PONDER_PLAY_PAUSE && !ponderPaused
                 && !ponderFinished;
             int color = GuideIconButton.resolveIconColor(true, hover, active);
@@ -6013,35 +6184,37 @@ public class LytGuidebookScene extends LytBlock {
         }
 
         int renderBarLeft = renderBtnX + PONDER_BTN_TOTAL_WIDTH + 2;
-        int renderBarRight = outerRect.right() - SCENE_SLIDER_SIDE_PADDING;
+        int renderBarRight = outerRect.right() - sidePad;
         int renderBarW = renderBarRight - renderBarLeft;
-        if (renderBarW < 4) return;
-        int renderBarY = renderRowY + (rowH - GuideSliderRenderer.TRACK_HEIGHT) / 2;
+        if (renderBarW >= 4) {
+            int renderBarY = renderRowY + (rowH - GuideSliderRenderer.TRACK_HEIGHT) / 2;
+            int trackH = GuideSliderRenderer.TRACK_HEIGHT;
 
-        int absBarLeft = absBtnX + PONDER_BTN_TOTAL_WIDTH + 2;
-        int absBarRight = lastOuterAbsX + lastOuterW - SCENE_SLIDER_SIDE_PADDING;
-        int absBarW = absBarRight - absBarLeft;
-        int absBarY = absRowY + (rowH - GuideSliderRenderer.TRACK_HEIGHT) / 2;
+            float progress = ponderSceneData.getProgress(ponderCurrentTick);
+            GuideSliderRenderer.SliderGeometry renderGeom = GuideSliderRenderer
+                .layout(renderBarLeft, renderBarY, renderBarW, progress);
 
-        float progress = ponderSceneData.getProgress(ponderCurrentTick);
-        GuideSliderRenderer.SliderGeometry renderGeom = GuideSliderRenderer
-            .layout(renderBarLeft, renderBarY, renderBarW, progress);
-        GuideSliderRenderer.SliderGeometry absGeom = GuideSliderRenderer.layout(absBarLeft, absBarY, absBarW, progress);
+            // Screen-space bar rect for hit-testing.
+            LytRect barScreen = context.toScreenRect(new LytRect(renderBarLeft, renderBarY, renderBarW, trackH));
+            GuideSliderRenderer.SliderGeometry absGeom = GuideSliderRenderer
+                .layout(barScreen.x(), barScreen.y(), barScreen.width(), progress);
 
-        cachedPonderBarTrackRect = absGeom.trackRect();
-        cachedPonderBarHitRect = absGeom.hitRect();
+            cachedPonderBarTrackRect = absGeom.trackRect();
+            cachedPonderBarHitRect = absGeom.hitRect();
 
-        int hitPad = GuideSliderRenderer.HIT_PADDING_Y;
-        boolean barHighlighted = draggingPonderBar || (mx >= absBarLeft && mx < absBarRight
-            && my >= absBarY - hitPad
-            && my < absBarY + GuideSliderRenderer.TRACK_HEIGHT + hitPad);
-        GuideSliderRenderer.render(Gui::drawRect, renderGeom, barHighlighted);
+            int hitPad = GuideSliderRenderer.HIT_PADDING_Y;
+            boolean barHighlighted = draggingPonderBar || (mx >= barScreen.x() && mx < barScreen.right()
+                && my >= barScreen.y() - hitPad
+                && my < barScreen.bottom() + hitPad);
+            GuideSliderRenderer.render(Gui::drawRect, renderGeom, barHighlighted);
 
-        drawPonderKeyframeNodes(renderBarLeft, renderBarW, renderBarY, rowH, absBarLeft, absBarW, absBarY, mx, my);
+            drawPonderKeyframeNodes(context, renderBarLeft, renderBarW, renderBarY, rowH, mx, my);
+        }
+        context.endLocalView();
     }
 
-    private void drawPonderKeyframeNodes(int renderBarLeft, int renderBarW, int renderBarY, int rowH, int absBarLeft,
-        int absBarW, int absBarY, int mx, int my) {
+    private void drawPonderKeyframeNodes(RenderContext context, int renderBarLeft, int renderBarW, int renderBarY,
+        int rowH, int mx, int my) {
         if (ponderSceneData == null || renderBarW <= 0) return;
         int totalTime = ponderSceneData.getTotalTime();
         int nodeW = 2;
@@ -6055,10 +6228,13 @@ public class LytGuidebookScene extends LytBlock {
             }
             float frac = totalTime > 0 ? kf.getTime() / (float) totalTime : 0f;
             int renderNx = renderBarLeft + Math.round(frac * (renderBarW - nodeW));
-            int absNx = absBarLeft + Math.round(frac * (absBarW - nodeW));
-            boolean hovered = mx >= absNx - 2 && mx < absNx + nodeW + 4
-                && my >= absBarY - hitPad
-                && my < absBarY + GuideSliderRenderer.TRACK_HEIGHT + hitPad;
+
+            // Screen-space hit region.
+            LytRect nodeScreen = context
+                .toScreenRect(new LytRect(renderNx, nodeRenderY, nodeW, GuideSliderRenderer.TRACK_HEIGHT));
+            boolean hovered = mx >= nodeScreen.x() - 2 && mx < nodeScreen.right() + 4
+                && my >= nodeScreen.y() - hitPad
+                && my < nodeScreen.bottom() + hitPad;
             int nodeColor = hovered ? PONDER_KEYFRAME_NODE_HOVER_COLOR : PONDER_KEYFRAME_NODE_COLOR;
             int drawH = hovered ? nodeH + 2 : nodeH;
             int drawY = hovered ? nodeRenderY - 1 : nodeRenderY;
@@ -6069,7 +6245,13 @@ public class LytGuidebookScene extends LytBlock {
                 if (label != null && !label.isEmpty()) {
                     Minecraft mc = Minecraft.getMinecraft();
                     boolean isAhead = ponderCurrentTick < kf.getTime();
-                    int textX = isAhead ? renderNx - mc.fontRenderer.getStringWidth(label) - 4 : renderNx + nodeW + 4;
+                    int textW = mc.fontRenderer.getStringWidth(label);
+                    int gap = 4;
+                    // Convert screen-space text metrics to layout for GL-transform drawing.
+                    float z = Math.max(0.0001f, lastDocZoom);
+                    int layoutTextW = Math.round(textW / z);
+                    int layoutGap = Math.round(gap / z);
+                    int textX = isAhead ? renderNx - layoutTextW - layoutGap : renderNx + nodeW + layoutGap;
                     mc.fontRenderer.drawStringWithShadow(label, textX, nodeRenderY, PONDER_KEYFRAME_NODE_HOVER_COLOR);
                 }
             }
@@ -6171,17 +6353,30 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private LytRect resolveSliderTrackRect(int originX, int originY, int outerWidth, int outerHeight, int rowIndex) {
+        return resolveSliderTrackRectImpl(originX, originY, outerWidth, outerHeight, rowIndex, false);
+    }
+
+    private LytRect resolveSliderTrackLayoutRect(int originX, int originY, int outerWidth, int outerHeight,
+        int rowIndex) {
+        return resolveSliderTrackRectImpl(originX, originY, outerWidth, outerHeight, rowIndex, true);
+    }
+
+    private LytRect resolveSliderTrackRectImpl(int originX, int originY, int outerWidth, int outerHeight, int rowIndex,
+        boolean layoutSpace) {
         if (rowIndex < 0 || outerWidth <= SCENE_SLIDER_SIDE_PADDING * 2 || getBottomControlRowCount() <= 0) {
             return LytRect.empty();
         }
-        int totalControlHeight = getBottomControlAreaHeight();
+        float z = layoutSpace ? 1.0f : lastDocZoom;
+        int totalControlHeight = Math.round(getBottomControlAreaHeight() * z);
         if (outerHeight < totalControlHeight) {
             return LytRect.empty();
         }
-        int rowTop = originY + outerHeight - totalControlHeight + rowIndex * SCENE_SLIDER_AREA_HEIGHT;
-        int sliderX = originX + SCENE_SLIDER_SIDE_PADDING;
-        int sliderWidth = Math.max(24, outerWidth - SCENE_SLIDER_SIDE_PADDING * 2);
-        int sliderY = rowTop + (SCENE_SLIDER_AREA_HEIGHT - GuideSliderRenderer.TRACK_HEIGHT) / 2;
+        int rowH = Math.round(SCENE_SLIDER_AREA_HEIGHT * z);
+        int sidePad = Math.round(SCENE_SLIDER_SIDE_PADDING * z);
+        int rowTop = originY + outerHeight - totalControlHeight + rowIndex * rowH;
+        int sliderX = originX + sidePad;
+        int sliderWidth = Math.max(24, outerWidth - sidePad * 2);
+        int sliderY = rowTop + (rowH - GuideSliderRenderer.TRACK_HEIGHT) / 2;
         return new LytRect(sliderX, sliderY, sliderWidth, GuideSliderRenderer.TRACK_HEIGHT);
     }
 
@@ -6219,7 +6414,7 @@ public class LytGuidebookScene extends LytBlock {
     private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect) {
         int rowIndex = resolveVisibleLayerRowIndex();
         LytRect screenTrackRect = resolveVisibleLayerSliderTrackRect();
-        LytRect renderTrackRect = resolveSliderTrackRect(
+        LytRect renderTrackRect = resolveSliderTrackLayoutRect(
             outerRect.x(),
             outerRect.y(),
             outerRect.width(),
@@ -6289,7 +6484,7 @@ public class LytGuidebookScene extends LytBlock {
     private void drawStructureLibTierSlider(RenderContext context, LytRect outerRect) {
         int rowIndex = resolveStructureLibTierRowIndex();
         LytRect screenTrackRect = resolveStructureLibTierSliderTrackRect();
-        LytRect renderTrackRect = resolveSliderTrackRect(
+        LytRect renderTrackRect = resolveSliderTrackLayoutRect(
             outerRect.x(),
             outerRect.y(),
             outerRect.width(),
@@ -6395,7 +6590,7 @@ public class LytGuidebookScene extends LytBlock {
         StructureLibSceneMetadata.ChannelData channelData) {
         int rowIndex = resolveStructureLibChannelRowIndex(channelData.getChannelId());
         LytRect screenTrackRect = resolveStructureLibChannelSliderTrackRect(channelData.getChannelId());
-        LytRect renderTrackRect = resolveSliderTrackRect(
+        LytRect renderTrackRect = resolveSliderTrackLayoutRect(
             outerRect.x(),
             outerRect.y(),
             outerRect.width(),
@@ -6481,9 +6676,13 @@ public class LytGuidebookScene extends LytBlock {
 
     private void drawSlider(RenderContext context, GuideSliderRenderer.SliderGeometry geometry, boolean highlighted,
         LytRect outerRect, int rowIndex, String label, ResolvedTextStyle style) {
+        context.beginLocalView();
         GuideSliderRenderer.render(Gui::drawRect, geometry, highlighted);
-        int textWidth = context.getStringWidth(label, style);
-        int textHeight = context.getLineHeight(style);
+        context.endLocalView();
+
+        float z = Math.max(0.0001f, lastDocZoom);
+        int textWidth = Math.round(context.getStringWidth(label, style) / z);
+        int textHeight = Math.round(context.getLineHeight(style) / z);
         int textX = outerRect.x() + (outerRect.width() - textWidth) / 2;
         int rowTop = bottomControlAreaTop(outerRect.bottom()) + rowIndex * SCENE_SLIDER_AREA_HEIGHT;
         int textY = rowTop + (SCENE_SLIDER_AREA_HEIGHT - textHeight) / 2;

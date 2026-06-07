@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.IntConsumer;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
@@ -44,8 +45,7 @@ public class FileTreeTagCompiler extends BlockTagCompiler {
         parent.append(tree);
     }
 
-    private static void applyOptionalIntAttribute(MdxJsxElementFields el, String name,
-        java.util.function.IntConsumer setter) {
+    private static void applyOptionalIntAttribute(MdxJsxElementFields el, String name, IntConsumer setter) {
         String raw = el.getAttributeString(name, null);
         if (raw == null || raw.isEmpty()) {
             return;

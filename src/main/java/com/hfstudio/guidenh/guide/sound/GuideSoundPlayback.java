@@ -13,7 +13,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSoundPlayback {
 
@@ -114,7 +114,6 @@ public class GuideSoundPlayback {
             return;
         }
         LAST_WARNED_AT.put(key, now);
-        FMLLog.getLogger()
-            .warn("[GuideNH] [GuideSoundPlayback] Failed to play sound {}", soundId, e);
+        GuideDebugLog.warnAlways("[GuideNH] [GuideSoundPlayback] Failed to play sound {}", soundId, e);
     }
 }

@@ -30,7 +30,8 @@ public class DefaultStyles {
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
-        null);
+        null,
+        false);
 
     public static final TextStyle BODY_TEXT = TextStyle.builder()
         .font(UNIFORM_FONT)

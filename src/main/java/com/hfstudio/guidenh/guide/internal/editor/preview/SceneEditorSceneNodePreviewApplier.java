@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
@@ -43,6 +44,7 @@ import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheEntry;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheKey;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureFingerprintResolver;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
+import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
@@ -55,6 +57,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
 public class SceneEditorSceneNodePreviewApplier {
 
@@ -232,22 +235,31 @@ public class SceneEditorSceneNodePreviewApplier {
         Integer requestedChannel = parseIntegerAttribute(node.getAttribute("channel"));
         String structureName = normalizeAttribute(node.getAttribute("name"));
         StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
-        StructureLibPreviewSelection selection = structureLibSelectionOverride != null ? structureLibSelectionOverride
-            : binding.getPendingSelection() != null ? binding.getPendingSelection()
+        StructureLibSceneOptions options = readStructureLibSceneOptions(node);
+        StructureLibPreviewSelection defaultSelection = options.createSelection(requestedChannel);
+        StructureLibPreviewSelection selection = structureLibSelectionOverride != null
+            ? ImportStructureLibElementCompiler
+                .mergePersistentOptions(structureLibSelectionOverride, defaultSelection, options)
+            : binding.getPendingSelection() != null
+                ? ImportStructureLibElementCompiler
+                    .mergePersistentOptions(binding.getPendingSelection(), defaultSelection, options)
                 : scene.getPendingStructureLibPreviewSelection(structureName) != null
-                    ? scene.getPendingStructureLibPreviewSelection(structureName)
-                    : requestedChannel != null ? StructureLibPreviewSelection.ofMasterTier(requestedChannel)
-                        : StructureLibPreviewSelection.defaultSelection();
+                    ? ImportStructureLibElementCompiler.mergePersistentOptions(
+                        scene.getPendingStructureLibPreviewSelection(structureName),
+                        defaultSelection,
+                        options)
+                    : defaultSelection;
 
         StructureLibImportRequest request = new StructureLibImportRequest(
             controller,
             node.getAttribute("piece"),
-            node.getAttribute("facing"),
-            node.getAttribute("rotation"),
-            node.getAttribute("flip"),
-            structureLibSelectionOverride != null ? Integer.valueOf(structureLibSelectionOverride.getMasterTier())
-                : requestedChannel,
-            selection);
+            StructureLibSceneOptions.resolveFacing(node.getAttribute("facing"), options),
+            StructureLibSceneOptions.resolveRotation(node.getAttribute("rotation"), options),
+            StructureLibSceneOptions.resolveFlip(node.getAttribute("flip"), options),
+            Integer.valueOf(selection.getMasterTier()),
+            ImportStructureLibElementCompiler.applyControllerDefaults(controller, selection, options),
+            options);
+        scene.setPendingStructureLibPreviewSelection(structureName, request.getPreviewSelection());
         StructureLibImportResult result = structureLibImportService.importScene(request);
         attachStructureLibMetadata(scene, structureName, request, result);
         if (!result.isSuccess()) {
@@ -278,6 +290,28 @@ public class SceneEditorSceneNodePreviewApplier {
                 formed);
         }
         return true;
+    }
+
+    private StructureLibSceneOptions readStructureLibSceneOptions(SceneEditorSceneNodeModel node) {
+        StructureLibSceneOptions.Builder builder = StructureLibSceneOptions.builder();
+        builder.tier(parseIntegerAttribute(node.getAttribute("tier")));
+        builder.facing(node.getAttribute("defaultFacing"));
+        builder.rotation(node.getAttribute("defaultRotation"));
+        builder.flip(node.getAttribute("defaultFlip"));
+        builder.gregTechActiveController(parseBooleanAttribute(node.getAttribute("gtActiveController")));
+        builder.gregTechPlaceHatches(parseBooleanAttribute(node.getAttribute("gtPlaceHatches")));
+        for (Map.Entry<String, String> entry : node.getAttributes()
+            .entrySet()) {
+            String key = entry.getKey();
+            if (!key.startsWith("channel.")) {
+                continue;
+            }
+            Integer value = parseIntegerAttribute(entry.getValue());
+            if (value != null) {
+                builder.channel(key.substring("channel.".length()), value);
+            }
+        }
+        return builder.build();
     }
 
     private void attachStructureLibMetadata(LytGuidebookScene scene, @Nullable String structureName,
@@ -675,11 +709,6 @@ public class SceneEditorSceneNodePreviewApplier {
         return element.getTextMarkdown();
     }
 
-    private boolean parseBooleanAttribute(@Nullable String value) {
-        String normalized = normalizeAttribute(value);
-        return normalized != null && Boolean.parseBoolean(normalized);
-    }
-
     private TextAnnotation.ConnectorSide parseConnectorSideAttribute(SceneEditorElementModel element) {
         String rawValue = element != null ? normalizeAttribute(element.getExtraAttribute("connectorSide")) : null;
         if (rawValue == null) {
@@ -729,6 +758,11 @@ public class SceneEditorSceneNodePreviewApplier {
         } catch (NumberFormatException ignored) {
             return null;
         }
+    }
+
+    public static boolean parseBooleanAttribute(@Nullable String value) {
+        String normalized = normalizeAttribute(value);
+        return normalized != null && Boolean.parseBoolean(normalized);
     }
 
     private static int parseIntegerAttributeOrDefault(@Nullable String value, int defaultValue) {

@@ -32,6 +32,19 @@ public class GuideLocalizedPageSourceResolver {
             resolve(language, contentRootFolder, pageId, fileBytes, localizedSourceOverride).source());
     }
 
+    /**
+     * Lightweight variant that extracts only frontmatter during reload.
+     * Full Micromark AST parse is deferred to first {@link ParsedGuidePage#getAstRoot()}.
+     */
+    public static ParsedGuidePage parseFrontmatterOnly(String sourcePack, String language, String contentRootFolder,
+        ResourceLocation pageId, byte[] fileBytes) {
+        return PageCompiler.parseFrontmatterOnly(
+            sourcePack,
+            language,
+            pageId,
+            resolve(language, contentRootFolder, pageId, fileBytes, null).source());
+    }
+
     public static ParsedGuidePage parse(String sourcePack, String language, ResourceLocation pageId,
         ResolvedGuidePageSource resolvedSource) {
         return PageCompiler.parse(sourcePack, language, pageId, resolvedSource.source());

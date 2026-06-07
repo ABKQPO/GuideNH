@@ -19,9 +19,8 @@ import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.recipe.NeiHandlerRenderer;
 import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class NeiCustomDiagramBridge {
 
@@ -217,8 +216,9 @@ public class NeiCustomDiagramBridge {
                 .getMethod("get");
             available = true;
         } catch (Throwable t) {
-            FMLLog.getLogger()
-                .debug("[GuideNH] [NeiCustomDiagramBridge] nei-custom-diagram bridge unavailable: {}", t.toString());
+            GuideDebugLog.debugAlways(
+                "[GuideNH] [NeiCustomDiagramBridge] nei-custom-diagram bridge unavailable: {}",
+                t.toString());
         }
 
         AVAILABLE = available;
@@ -331,8 +331,8 @@ public class NeiCustomDiagramBridge {
             METHOD_DIAGRAM_DRAW_BACKGROUND.invoke(diagram, diagramState);
             renderForeground(diagram, diagramState, guiScissorAbsX, guiScissorAbsY, gw, gh);
         } catch (Throwable t) {
-            FMLLog.getLogger()
-                .debug("[GuideNH] [NeiCustomDiagramBridge] Embedded nei-custom-diagram render failed", t);
+            GuideDebugLog
+                .debugAlways("[GuideNH] [NeiCustomDiagramBridge] Embedded nei-custom-diagram render failed", t);
         } finally {
             GL11.glPopMatrix();
             GL11.glPopAttrib();
@@ -368,8 +368,8 @@ public class NeiCustomDiagramBridge {
                 return lines.isEmpty() ? null : new TextTooltip(String.join("\n", lines));
             }
         } catch (Throwable t) {
-            FMLLog.getLogger()
-                .debug("[GuideNH] [NeiCustomDiagramBridge] Embedded nei-custom-diagram tooltip lookup failed", t);
+            GuideDebugLog
+                .debugAlways("[GuideNH] [NeiCustomDiagramBridge] Embedded nei-custom-diagram tooltip lookup failed", t);
         }
         return null;
     }

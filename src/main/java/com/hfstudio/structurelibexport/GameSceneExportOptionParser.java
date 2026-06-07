@@ -198,7 +198,11 @@ public class GameSceneExportOptionParser {
 
     private static float parseFloat(String raw, String flag) throws CommandException {
         try {
-            return Float.parseFloat(raw);
+            float value = Float.parseFloat(raw);
+            if (Float.isNaN(value) || Float.isInfinite(value)) {
+                throw new CommandException("Invalid number for " + flag + ": " + raw);
+            }
+            return value;
         } catch (NumberFormatException e) {
             throw new CommandException("Invalid number for " + flag + ": " + raw);
         }

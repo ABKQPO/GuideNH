@@ -6,6 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.oredict.OreDictionary;
 
@@ -47,7 +48,7 @@ public class GuideItemReferenceResolver {
 
         ItemStack stack = new ItemStack(item, 1, ref.concreteMeta());
         if (ref.nbt() != null) {
-            stack.stackTagCompound = (net.minecraft.nbt.NBTTagCompound) ref.nbt()
+            stack.stackTagCompound = (NBTTagCompound) ref.nbt()
                 .copy();
         }
         return new ResolvedItemReference(ref.id(), stack);
@@ -89,7 +90,7 @@ public class GuideItemReferenceResolver {
         Item item = Item.getItemFromBlock(block);
         ItemStack stack = item != null ? new ItemStack(item, 1, ref.hasExplicitMeta() ? ref.meta() : 0) : null;
         if (stack != null && ref.nbt() != null) {
-            stack.stackTagCompound = (net.minecraft.nbt.NBTTagCompound) ref.nbt()
+            stack.stackTagCompound = (NBTTagCompound) ref.nbt()
                 .copy();
         }
         return new ResolvedBlockReference(ref.id(), block, stack, ref.hasExplicitMeta(), ref.meta());

@@ -19,8 +19,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuidePageLanguageIndex {
 
@@ -66,26 +65,25 @@ public class GuidePageLanguageIndex {
     private static Map<String, String> loadLanguage(String normalizedLanguage) {
         long startedAt = System.nanoTime();
         Map<String, String> merged = new LinkedHashMap<>();
-        var activeResourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
+        var activeResourcePacks = DataDrivenGuideLoader.getLastActiveResourcePacks();
         for (IResourcePack resourcePack : activeResourcePacks) {
             loadResourcePackLanguage(resourcePack, normalizedLanguage, merged);
         }
         long totalNs = System.nanoTime() - startedAt;
         if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuidePageLanguageIndex] Loaded {} page language keys for language {} from {} resource packs in {} ns",
-                    merged.size(),
-                    normalizedLanguage,
-                    activeResourcePacks.size(),
-                    totalNs);
+            GuideDebugLog.infoAlways(
+                "[GuideNH] [GuidePageLanguageIndex] Loaded {} page language keys for language {} from {} resource packs in {} ns",
+                merged.size(),
+                normalizedLanguage,
+                activeResourcePacks.size(),
+                totalNs);
         }
         return merged.isEmpty() ? Map.of() : Map.copyOf(merged);
     }
 
     private static void loadResourcePackLanguage(IResourcePack resourcePack, String normalizedLanguage,
         Map<String, String> target) {
-        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(resourcePack);
+        File resourcePackFile = DataDrivenGuideLoader.getLooseResourcePackRoot(resourcePack);
         if (resourcePackFile == null || !resourcePackFile.exists()) {
             return;
         }
@@ -100,17 +98,31 @@ public class GuidePageLanguageIndex {
         Map<String, String> target) {
         File assetsDir = new File(resourcePackRoot, "assets");
         File[] namespaceDirs = assetsDir.listFiles(File::isDirectory);
-        if (namespaceDirs == null) {
-            return;
+        if (namespaceDirs != null) {
+            for (File namespaceDir : namespaceDirs) {
+                loadDirectoryLanguageNamespace(namespaceDir, normalizedLanguage, target);
+            }
         }
 
-        for (File namespaceDir : namespaceDirs) {
-            File langDir = new File(namespaceDir, "lang");
-            if (!langDir.isDirectory()) {
+        File[] looseNamespaceDirs = resourcePackRoot.listFiles(File::isDirectory);
+        if (looseNamespaceDirs == null) {
+            return;
+        }
+        for (File namespaceDir : looseNamespaceDirs) {
+            if ("assets".equals(namespaceDir.getName())) {
                 continue;
             }
-            loadDirectoryLanguageEntries(langDir, normalizedLanguage, target);
+            loadDirectoryLanguageNamespace(namespaceDir, normalizedLanguage, target);
         }
+    }
+
+    private static void loadDirectoryLanguageNamespace(File namespaceDir, String normalizedLanguage,
+        Map<String, String> target) {
+        File langDir = new File(namespaceDir, "lang");
+        if (!langDir.isDirectory()) {
+            return;
+        }
+        loadDirectoryLanguageEntries(langDir, normalizedLanguage, target);
     }
 
     private static void loadDirectoryLanguageEntries(File directory, String normalizedLanguage,
@@ -131,8 +143,10 @@ public class GuidePageLanguageIndex {
             try (InputStream input = new FileInputStream(child)) {
                 mergePageKeys(input, target);
             } catch (IOException e) {
-                FMLLog.getLogger()
-                    .warn("[GuideNH] [GuidePageLanguageIndex] Failed to read lang file {}", child.getAbsolutePath(), e);
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [GuidePageLanguageIndex] Failed to read lang file {}",
+                    child.getAbsolutePath(),
+                    e);
             }
         }
     }
@@ -146,7 +160,7 @@ public class GuidePageLanguageIndex {
                     continue;
                 }
                 String path = entry.getName();
-                if (!path.startsWith("assets/") || !path.contains("/lang/")) {
+                if (!isLangZipPath(path)) {
                     continue;
                 }
                 int fileNameStart = path.lastIndexOf('/') + 1;
@@ -161,11 +175,10 @@ public class GuidePageLanguageIndex {
                 }
             }
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .warn(
-                    "[GuideNH] [GuidePageLanguageIndex] Failed to scan lang entries from resource pack {}",
-                    resourcePackFile.getAbsolutePath(),
-                    e);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [GuidePageLanguageIndex] Failed to scan lang entries from resource pack {}",
+                resourcePackFile.getAbsolutePath(),
+                e);
         }
     }
 
@@ -176,6 +189,10 @@ public class GuidePageLanguageIndex {
         String baseName = fileName.substring(0, fileName.length() - 5);
         return LangUtil.normalizeLanguage(baseName)
             .equals(normalizedLanguage);
+    }
+
+    private static boolean isLangZipPath(String path) {
+        return path.contains("/lang/");
     }
 
     private static void mergePageKeys(InputStream input, Map<String, String> target) throws IOException {

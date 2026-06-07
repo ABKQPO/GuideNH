@@ -1,8 +1,9 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -11,7 +12,6 @@ import java.util.function.Consumer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -21,17 +21,11 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
-import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
-import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
-import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
-import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.RecipeEntry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class RecipeCompiler extends BlockTagCompiler {
 
@@ -39,7 +33,7 @@ public class RecipeCompiler extends BlockTagCompiler {
 
     @Override
     public Set<String> getTagNames() {
-        return new HashSet<>(Set.of("Recipe", "RecipeFor", "RecipeUsage", "RecipesFor"));
+        return new HashSet<>(Arrays.asList("Recipe", "RecipeFor", "RecipeUsage", "RecipesFor"));
     }
 
     @Override
@@ -65,25 +59,10 @@ public class RecipeCompiler extends BlockTagCompiler {
             parent.appendError(compiler, "Blank id", el);
             return;
         }
-        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
-        if (item == null) {
-            if (fallbackText != null) {
-                if (!fallbackText.isEmpty()) parent.append(LytParagraph.of(fallbackText));
-            } else {
-                parent.appendError(compiler, "Missing item: " + ref.id(), el);
-            }
-            return;
-        }
 
-        boolean multi = "RecipesFor".equals(el.name());
-        boolean usageQuery = "RecipeUsage".equals(el.name());
-
-        // Build the concrete query stack with meta + nbt (wildcard meta collapses to 0).
-        ItemStack targetStack = new ItemStack(item, 1, ref.concreteMeta());
-        if (ref.nbt() != null) {
-            targetStack.stackTagCompound = (NBTTagCompound) ref.nbt()
-                .copy();
-        }
+        String tagName = el.name();
+        boolean multi = "RecipesFor".equals(tagName);
+        boolean usageQuery = "RecipeUsage".equals(tagName);
 
         String handlerNameFilter = trimToNull(MdxAttrs.getString(compiler, parent, el, "handlerName", null));
         String handlerIdFilter = trimToNull(MdxAttrs.getString(compiler, parent, el, "handlerId", null));
@@ -126,141 +105,26 @@ public class RecipeCompiler extends BlockTagCompiler {
                 return;
             }
         }
-        boolean hasRecipeFilter = !inputExpr.isEmpty() || !outputExpr.isEmpty();
-        boolean hasHandlerFilter = handlerNameFilter != null || handlerIdFilter != null || handlerOrder >= 0;
 
-        // Prefer NEI-native handler rendering if available.
-        List<Object> rawHandlers = usageQuery ? RecipeCache.getUsageHandlers(targetStack)
-            : RecipeCache.getCraftingHandlers(targetStack);
-        // When a handler filter is specified, also consult usage handlers. This covers NEI handlers
-        // that treat the target as an input rather than an output. Anvil, repair, fuel, and brewing
-        // ingredients never show up under getCraftingHandlers.
-        if (!usageQuery && hasHandlerFilter) {
-            List<Object> usage = RecipeCache.getUsageHandlers(targetStack);
-            if (!usage.isEmpty()) {
-                if (rawHandlers.isEmpty()) {
-                    rawHandlers = usage;
-                } else {
-                    List<Object> merged = new ArrayList<>(rawHandlers.size() + usage.size());
-                    merged.addAll(rawHandlers);
-                    // Dedup by identity because the same IRecipeHandler instance may appear in both lists.
-                    IdentityHashMap<Object, Boolean> seen = new IdentityHashMap<>(merged.size());
-                    for (Object h : rawHandlers) seen.put(h, Boolean.TRUE);
-                    for (Object h : usage) if (seen.put(h, Boolean.TRUE) == null) merged.add(h);
-                    rawHandlers = merged;
-                }
-            }
-        }
-        List<Object> handlers = filterHandlers(rawHandlers, handlerNameFilter, handlerIdFilter, handlerOrder);
-        if (!handlers.isEmpty()) {
-            List<LytNeiRecipeBox> boxes = new ArrayList<>();
-            for (int hi = 0; hi < handlers.size() && boxes.size() < limit; hi++) {
-                Object handler = handlers.get(hi);
-                int num = GuideNhIntegrationRegistry.global()
-                    .lookupRecipeHandlerRecipeCount(handler);
-                int recipeStart = Math.max(exactRecipeIndex, 0);
-                int recipeEnd = exactRecipeIndex >= 0 ? Math.min(num, exactRecipeIndex + 1) : num;
-                for (int ri = recipeStart; ri < recipeEnd && boxes.size() < limit; ri++) {
-                    if (hasRecipeFilter && !recipeMatches(handler, ri, inputExpr, outputExpr)) continue;
-                    boxes.add(new LytNeiRecipeBox(handler, ri, !usageQuery));
-                }
-            }
-            if (!boxes.isEmpty()) {
-                appendRecipes(parent, boxes, multi);
-                return;
-            }
-            if (exactRecipeIndex >= 0) {
-                appendRecipeNotFoundFallback(compiler, parent, el, fallbackText, usageQuery, ref);
-                return;
-            }
-        } else if (hasHandlerFilter) {
-            // Handler filter eliminated every candidate. Respect fallbackText (if any) and bail quietly.
-            // this is a legitimate authoring case (e.g. "only render when NEI + the relevant handler is
-            // installed") and should not spam error overlays.
-            if (fallbackText != null && !fallbackText.isEmpty()) {
-                parent.append(LytParagraph.of(fallbackText));
-            } else if (FMLLog.getLogger()
-                .isDebugEnabled()) {
-                    FMLLog.getLogger()
-                        .debug(
-                            "[GuideNH] [RecipeCompiler] No NEI handler matched filters for {} (handlerName={}, handlerId={}, handlerOrder={})",
-                            ref.id(),
-                            handlerNameFilter,
-                            handlerIdFilter,
-                            handlerOrder);
-                }
-            return;
-        }
-
-        // Legacy fallback: raw slot data coming from NEI (no handler draw) or from vanilla crafting registry.
-        List<RecipeEntry> recipeEntries = usageQuery ? List.of()
-            : GuideNhIntegrationRegistry.global()
-                .findCraftingRecipeEntries(targetStack);
-        if (!recipeEntries.isEmpty()) {
-            List<LytStandardRecipeBox> boxes = new ArrayList<>();
-            int entryStart = Math.max(exactRecipeIndex, 0);
-            int entryEnd = exactRecipeIndex >= 0 ? Math.min(recipeEntries.size(), exactRecipeIndex + 1)
-                : recipeEntries.size();
-            for (int i = entryStart; i < entryEnd && boxes.size() < limit; i++) {
-                var e = recipeEntries.get(i);
-                if (e.result() == null || e.ingredients()
-                    .isEmpty()) continue;
-                if (hasRecipeFilter && !entryMatches(e, inputExpr, outputExpr)) continue;
-                List<ItemStack> flat = new ArrayList<>(9);
-                for (int s = 0; s < 9; s++) flat.add(null);
-                int idx = 0;
-                for (RecipeSlot slot : e.ingredients()) {
-                    if (idx >= 9) break;
-                    if (slot.stacks() != null && !slot.stacks()
-                        .isEmpty()) flat.set(
-                            idx,
-                            slot.stacks()
-                                .get(0));
-                    idx++;
-                }
-                ItemStack resultStack = e.result()
-                    .stacks() != null
-                    && !e.result()
-                        .stacks()
-                        .isEmpty() ? e.result()
-                            .stacks()
-                            .get(0) : null;
-                if (resultStack != null) boxes.add(LytStandardRecipeBox.shapeless(flat, resultStack));
-            }
-            if (!boxes.isEmpty()) {
-                appendRecipes(parent, boxes, multi);
-                return;
-            }
-        }
-
-        List<RecipeLookup.Entry> entries = usageQuery ? List.of() : RecipeLookup.findByOutput(item);
-        if (entries.isEmpty()) {
-            if (fallbackText != null) {
-                if (!fallbackText.isEmpty()) parent.append(LytParagraph.of(fallbackText));
-            } else {
-                parent.appendError(
-                    compiler,
-                    "Couldn't find " + (usageQuery ? "usage" : "recipe") + " for " + ref.id(),
-                    el);
-            }
-            return;
-        }
-
-        List<LytStandardRecipeBox> boxes = new ArrayList<>();
-        int vanillaStart = Math.max(exactRecipeIndex, 0);
-        int vanillaEnd = exactRecipeIndex >= 0 ? Math.min(entries.size(), exactRecipeIndex + 1) : entries.size();
-        for (int i = vanillaStart; i < vanillaEnd && boxes.size() < limit; i++) {
-            var e = entries.get(i);
-            if (hasRecipeFilter && !vanillaEntryMatches(e, inputExpr, outputExpr)) continue;
-            var box = e.shapeless ? LytStandardRecipeBox.shapeless(RecipeLookup.asList(e), e.result)
-                : LytStandardRecipeBox.shaped3x3(RecipeLookup.asList(e), e.result);
-            boxes.add(box);
-        }
-        if (!boxes.isEmpty()) {
-            appendRecipes(parent, boxes, multi);
-            return;
-        }
-        appendRecipeNotFoundFallback(compiler, parent, el, fallbackText, usageQuery, ref);
+        // RecipePlaceholder -- recipe resolution deferred to RecipeScript
+        RecipePlaceholder ph = new RecipePlaceholder(
+            tagName,
+            idStr,
+            ref,
+            fallbackText,
+            handlerNameFilter,
+            handlerIdFilter,
+            handlerOrder,
+            exactRecipeIndex,
+            inputExpr,
+            outputExpr,
+            limit,
+            multi,
+            usageQuery);
+        ph.setStyleClass(tagName);
+        ph.setStyle(LytParagraph.PLACEHOLDER_STYLE);
+        ph.appendText("[Recipe]");
+        parent.append(ph);
     }
 
     /**
@@ -285,11 +149,6 @@ public class RecipeCompiler extends BlockTagCompiler {
      * overlay identifier equality) and {@code handlerOrder} (0-based index into the post-filter
      * list) in that order. Null / empty filters are no-ops.
      */
-    public static List<Object> filterHandlers(List<Object> raw, @Nullable String nameFilter, @Nullable String idFilter,
-        int order) {
-        return filterHandlers(raw, nameFilter, idFilter, order, NEI_HANDLER_METADATA_READER);
-    }
-
     public static List<Object> filterHandlers(List<Object> raw, @Nullable String nameFilter, @Nullable String idFilter,
         int order, HandlerMetadataReader metadataReader) {
         if (raw.isEmpty()) return raw;
@@ -360,19 +219,19 @@ public class RecipeCompiler extends BlockTagCompiler {
 
     /**
      * Disjunctive-normal-form filter expression:
-     * 
+     *
      * <pre>
      *   expr  := orGroup ( ',' orGroup )*   // any group satisfied -> expression holds
      *   group := term    ( '&' term    )*   // every term in the group must be satisfied
      *   term  := [ '!' ] itemRef            // '!' flips the match sense
      * </pre>
-     * 
+     *
      * Empty expression (from an absent/blank attribute) means "no filter" and is cheap to check
      * via {@link #isEmpty()}.
      */
     public static class FilterExpr {
 
-        private static final FilterExpr EMPTY = new FilterExpr(List.of());
+        private static final FilterExpr EMPTY = new FilterExpr(Collections.<List<FilterTerm>>emptyList());
         private final List<List<FilterTerm>> orGroups;
 
         private FilterExpr(List<List<FilterTerm>> orGroups) {
@@ -404,151 +263,43 @@ public class RecipeCompiler extends BlockTagCompiler {
         NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex);
     }
 
-    public interface RecipeSlotAccess {
-
-        List<RecipeSlot> readIngredientSlots(Object handler, int recipeIndex);
-
-        @Nullable
-        RecipeSlot readResultSlot(Object handler, int recipeIndex);
-    }
-
-    private static final HandlerMetadataReader NEI_HANDLER_METADATA_READER = new HandlerMetadataReader() {
-
-        @Override
-        public @Nullable String handlerName(Object handler) {
-            return GuideNhIntegrationRegistry.global()
-                .lookupRecipeHandlerName(handler);
-        }
-
-        @Override
-        public @Nullable String handlerId(Object handler) {
-            return GuideNhIntegrationRegistry.global()
-                .lookupRecipeHandlerId(handler);
-        }
-
-        @Override
-        public @Nullable String overlayIdentifier(Object handler) {
-            return GuideNhIntegrationRegistry.global()
-                .lookupRecipeHandlerOverlayIdentifier(handler);
-        }
-    };
-
-    private static void appendRecipeNotFoundFallback(PageCompiler compiler, LytBlockContainer parent,
-        MdxJsxElementFields el, @Nullable String fallbackText, boolean usageQuery, IdUtils.ParsedItemRef ref) {
-        if (fallbackText != null) {
-            if (!fallbackText.isEmpty()) parent.append(LytParagraph.of(fallbackText));
-            return;
-        }
-        parent.appendError(compiler, "Couldn't find " + (usageQuery ? "usage" : "recipe") + " for " + ref.id(), el);
-    }
-
-    private static final RecipeSlotAccess REGISTRY_RECIPE_SLOT_ACCESS = new RecipeSlotAccess() {
-
-        @Override
-        public List<RecipeSlot> readIngredientSlots(Object handler, int recipeIndex) {
-            return GuideNhIntegrationRegistry.global()
-                .readRecipeIngredientSlots(handler, recipeIndex);
-        }
-
-        @Override
-        public @Nullable RecipeSlot readResultSlot(Object handler, int recipeIndex) {
-            return GuideNhIntegrationRegistry.global()
-                .readRecipeResultSlot(handler, recipeIndex);
-        }
-    };
-
     /**
-     * Parse an {@code input} / {@code output} attribute supporting OR (',') + AND ('&') + NOT ('!').
-     * Malformed tokens emit a compile error and are skipped; a group with no surviving terms is
-     * dropped, and if every group is dropped the result is {@link FilterExpr#EMPTY} (i.e. "no
-     * filter", which is safer than "always fail").
+     * A placeholder paragraph that carries all extracted recipe query attributes.
+     * Actual recipe resolution is deferred to RecipeScript.
      */
-    public static FilterExpr parseFilterExpr(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el,
-        String attr, String defaultNs) {
-        String raw = trimToNull(MdxAttrs.getString(compiler, parent, el, attr, null));
-        return parseFilterExpr(raw, attr, defaultNs, message -> parent.appendError(compiler, message, el));
-    }
+    public static class RecipePlaceholder extends LytParagraph {
 
-    public static FilterExpr parseFilterExpr(@Nullable String raw, String defaultNs) {
-        return parseFilterExpr(raw, null, defaultNs, null);
-    }
+        public final String tagName;
+        public final String idStr;
+        public final IdUtils.ParsedItemRef ref;
+        public final String fallbackText;
+        public final String handlerName;
+        public final String handlerId;
+        public final int handlerOrder;
+        public final int recipeIndex;
+        public final FilterExpr inputExpr;
+        public final FilterExpr outputExpr;
+        public final int limit;
+        public final boolean multi;
+        public final boolean usageQuery;
 
-    private static FilterExpr parseFilterExpr(@Nullable String raw, @Nullable String attr, String defaultNs,
-        @Nullable Consumer<String> errorSink) {
-        if (raw == null) return FilterExpr.EMPTY;
-        List<List<FilterTerm>> groups = new ArrayList<>();
-        int rawLength = raw.length();
-        int orStart = 0;
-        while (orStart <= rawLength) {
-            int orEnd = raw.indexOf(',', orStart);
-            if (orEnd < 0) {
-                orEnd = rawLength;
-            }
-            String orTrim = raw.substring(orStart, orEnd)
-                .trim();
-            if (!orTrim.isEmpty()) {
-                List<FilterTerm> andTerms = new ArrayList<>();
-                parseFilterTerms(orTrim, attr, defaultNs, errorSink, andTerms);
-                if (!andTerms.isEmpty()) groups.add(andTerms);
-            }
-            if (orEnd == rawLength) {
-                break;
-            }
-            orStart = orEnd + 1;
+        public RecipePlaceholder(String tagName, String idStr, IdUtils.ParsedItemRef ref, String fallbackText,
+            String handlerName, String handlerId, int handlerOrder, int recipeIndex, FilterExpr inputExpr,
+            FilterExpr outputExpr, int limit, boolean multi, boolean usageQuery) {
+            this.tagName = tagName;
+            this.idStr = idStr;
+            this.ref = ref;
+            this.fallbackText = fallbackText;
+            this.handlerName = handlerName;
+            this.handlerId = handlerId;
+            this.handlerOrder = handlerOrder;
+            this.recipeIndex = recipeIndex;
+            this.inputExpr = inputExpr;
+            this.outputExpr = outputExpr;
+            this.limit = limit;
+            this.multi = multi;
+            this.usageQuery = usageQuery;
         }
-        return groups.isEmpty() ? FilterExpr.EMPTY : new FilterExpr(groups);
-    }
-
-    private static void parseFilterTerms(String orTrim, @Nullable String attr, String defaultNs,
-        @Nullable Consumer<String> errorSink, List<FilterTerm> andTerms) {
-        int andLength = orTrim.length();
-        int andStart = 0;
-        while (andStart <= andLength) {
-            int andEnd = orTrim.indexOf('&', andStart);
-            if (andEnd < 0) {
-                andEnd = andLength;
-            }
-            parseFilterTerm(
-                orTrim.substring(andStart, andEnd)
-                    .trim(),
-                attr,
-                defaultNs,
-                errorSink,
-                andTerms);
-            if (andEnd == andLength) {
-                break;
-            }
-            andStart = andEnd + 1;
-        }
-    }
-
-    private static void parseFilterTerm(String token, @Nullable String attr, String defaultNs,
-        @Nullable Consumer<String> errorSink, List<FilterTerm> andTerms) {
-        if (token.isEmpty()) return;
-        boolean negated = false;
-        if (token.startsWith("!")) {
-            negated = true;
-            token = token.substring(1)
-                .trim();
-            if (token.isEmpty()) {
-                if (errorSink != null) {
-                    errorSink.accept("Empty " + filterAttrName(attr) + " negation token '!' has no id");
-                }
-                return;
-            }
-        }
-        try {
-            IdUtils.ParsedItemRef p = IdUtils.parseItemRef(token, defaultNs);
-            if (p != null) andTerms.add(new FilterTerm(p, negated));
-        } catch (IllegalArgumentException e) {
-            if (errorSink != null) {
-                errorSink.accept("Malformed " + filterAttrName(attr) + " filter '" + token + "': " + e.getMessage());
-            }
-        }
-    }
-
-    private static String filterAttrName(@Nullable String attr) {
-        return attr == null || attr.isEmpty() ? "filter" : attr;
     }
 
     /**
@@ -726,21 +477,6 @@ public class RecipeCompiler extends BlockTagCompiler {
         return false;
     }
 
-    public static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr) {
-        return recipeMatches(handler, recipeIndex, inputExpr, outputExpr, REGISTRY_RECIPE_SLOT_ACCESS);
-    }
-
-    public static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr,
-        RecipeSlotAccess recipeAccess) {
-        if (!outputExpr.isEmpty()) {
-            if (!evalRecipeResultSlot(recipeAccess.readResultSlot(handler, recipeIndex), outputExpr)) return false;
-        }
-        if (!inputExpr.isEmpty()) {
-            if (!evalRecipeSlots(recipeAccess.readIngredientSlots(handler, recipeIndex), inputExpr)) return false;
-        }
-        return true;
-    }
-
     public static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr,
         HandlerRecipeAccess recipeAccess) {
         if (!outputExpr.isEmpty()) {
@@ -768,5 +504,105 @@ public class RecipeCompiler extends BlockTagCompiler {
         if (!outputExpr.isEmpty() && !evalStack(e.result, outputExpr)) return false;
         if (!inputExpr.isEmpty() && !evalArray(e.input3x3, inputExpr)) return false;
         return true;
+    }
+
+    /**
+     * Parse an {@code input} / {@code output} attribute supporting OR (',') + AND ('&') + NOT ('!').
+     * Malformed tokens emit a compile error and are skipped; a group with no surviving terms is
+     * dropped, and if every group is dropped the result is {@link FilterExpr#EMPTY} (i.e. "no
+     * filter", which is safer than "always fail").
+     */
+    public static FilterExpr parseFilterExpr(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el,
+        String attr, String defaultNs) {
+        String raw = trimToNull(MdxAttrs.getString(compiler, parent, el, attr, null));
+        return parseFilterExpr(raw, attr, defaultNs, new Consumer<String>() {
+
+            @Override
+            public void accept(String message) {
+                parent.appendError(compiler, message, el);
+            }
+        });
+    }
+
+    public static FilterExpr parseFilterExpr(@Nullable String raw, String defaultNs) {
+        return parseFilterExpr(raw, null, defaultNs, null);
+    }
+
+    private static FilterExpr parseFilterExpr(@Nullable String raw, @Nullable String attr, String defaultNs,
+        @Nullable Consumer<String> errorSink) {
+        if (raw == null) return FilterExpr.EMPTY;
+        List<List<FilterTerm>> groups = new ArrayList<>();
+        int rawLength = raw.length();
+        int orStart = 0;
+        while (orStart <= rawLength) {
+            int orEnd = raw.indexOf(',', orStart);
+            if (orEnd < 0) {
+                orEnd = rawLength;
+            }
+            String orTrim = raw.substring(orStart, orEnd)
+                .trim();
+            if (!orTrim.isEmpty()) {
+                List<FilterTerm> andTerms = new ArrayList<>();
+                parseFilterTerms(orTrim, attr, defaultNs, errorSink, andTerms);
+                if (!andTerms.isEmpty()) groups.add(andTerms);
+            }
+            if (orEnd == rawLength) {
+                break;
+            }
+            orStart = orEnd + 1;
+        }
+        return groups.isEmpty() ? FilterExpr.EMPTY : new FilterExpr(groups);
+    }
+
+    private static void parseFilterTerms(String orTrim, @Nullable String attr, String defaultNs,
+        @Nullable Consumer<String> errorSink, List<FilterTerm> andTerms) {
+        int andLength = orTrim.length();
+        int andStart = 0;
+        while (andStart <= andLength) {
+            int andEnd = orTrim.indexOf('&', andStart);
+            if (andEnd < 0) {
+                andEnd = andLength;
+            }
+            parseFilterTerm(
+                orTrim.substring(andStart, andEnd)
+                    .trim(),
+                attr,
+                defaultNs,
+                errorSink,
+                andTerms);
+            if (andEnd == andLength) {
+                break;
+            }
+            andStart = andEnd + 1;
+        }
+    }
+
+    private static void parseFilterTerm(String token, @Nullable String attr, String defaultNs,
+        @Nullable Consumer<String> errorSink, List<FilterTerm> andTerms) {
+        if (token.isEmpty()) return;
+        boolean negated = false;
+        if (token.startsWith("!")) {
+            negated = true;
+            token = token.substring(1)
+                .trim();
+            if (token.isEmpty()) {
+                if (errorSink != null) {
+                    errorSink.accept("Empty " + filterAttrName(attr) + " negation token '!' has no id");
+                }
+                return;
+            }
+        }
+        try {
+            IdUtils.ParsedItemRef p = IdUtils.parseItemRef(token, defaultNs);
+            if (p != null) andTerms.add(new FilterTerm(p, negated));
+        } catch (IllegalArgumentException e) {
+            if (errorSink != null) {
+                errorSink.accept("Malformed " + filterAttrName(attr) + " filter '" + token + "': " + e.getMessage());
+            }
+        }
+    }
+
+    private static String filterAttrName(@Nullable String attr) {
+        return attr == null || attr.isEmpty() ? "filter" : attr;
     }
 }

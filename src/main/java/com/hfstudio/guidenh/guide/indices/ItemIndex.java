@@ -14,8 +14,7 @@ import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 /**
  * An index of Minecraft items to the main guidebook page describing it.
@@ -74,8 +73,8 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
 
         List<?> itemIdList = normalizeItemIdEntries(page, itemIdsNode);
         if (itemIdList == null) {
-            FMLLog.getLogger()
-                .warn("[GuideNH] [ItemIndex] Page {} contains malformed item_ids frontmatter", page.getId());
+            GuideDebugLog
+                .warnAlways("[GuideNH] [ItemIndex] Page {} contains malformed item_ids frontmatter", page.getId());
             return List.of();
         }
 
@@ -98,30 +97,27 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
                         page.getId()
                             .getResourceDomain());
                 } catch (IllegalArgumentException e) {
-                    FMLLog.getLogger()
-                        .warn(
-                            "[GuideNH] [ItemIndex] Page {} contains a malformed item_ids frontmatter entry: {}",
-                            page.getId(),
-                            listEntry);
+                    GuideDebugLog.warnAlways(
+                        "[GuideNH] [ItemIndex] Page {} contains a malformed item_ids frontmatter entry: {}",
+                        page.getId(),
+                        listEntry);
                     continue;
                 }
 
                 if (itemId == null) {
-                    FMLLog.getLogger()
-                        .warn(
-                            "[GuideNH] [ItemIndex] Page {} references an unknown item {} in its item_ids frontmatter",
-                            page.getId(),
-                            listEntry);
+                    GuideDebugLog.warnAlways(
+                        "[GuideNH] [ItemIndex] Page {} references an unknown item {} in its item_ids frontmatter",
+                        page.getId(),
+                        listEntry);
                     continue;
                 }
 
                 itemAnchors.add(Pair.of(itemId, new PageAnchor(page.getId(), anchor)));
             } else {
-                FMLLog.getLogger()
-                    .warn(
-                        "[GuideNH] [ItemIndex] Page {} contains a malformed item_ids frontmatter entry: {}",
-                        page.getId(),
-                        listEntry);
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [ItemIndex] Page {} contains a malformed item_ids frontmatter entry: {}",
+                    page.getId(),
+                    listEntry);
             }
         }
 
@@ -136,8 +132,9 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
         if (itemIdsNode instanceof String itemIdEntry) {
             String trimmed = itemIdEntry.trim();
             if (trimmed.isEmpty()) {
-                FMLLog.getLogger()
-                    .warn("[GuideNH] [ItemIndex] Page {} contains an empty item_ids frontmatter entry", page.getId());
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [ItemIndex] Page {} contains an empty item_ids frontmatter entry",
+                    page.getId());
                 return List.of();
             }
             return List.of(trimmed);

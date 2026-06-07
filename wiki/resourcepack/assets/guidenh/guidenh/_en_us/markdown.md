@@ -275,7 +275,8 @@ Another width-hint sample with three columns:
 ## Details
 
 `<details>` accepts `width`, `height`, `wrap`, and `align`. The summary supports inline tags, and
-the body can mix ordinary text with arbitrary runtime blocks.
+the body can mix ordinary text with arbitrary runtime blocks. When a height is set, the summary and
+outer frame stay fixed while only the body scrolls.
 
 <details open width="220" height="150" wrap="square" align="right">
 <summary>Mixed runtime content <ItemImage id="minecraft:diamond" /></summary>
@@ -294,6 +295,35 @@ together inside the same scrollable panel.
 </details>
 
 Text outside the block should still wrap around it when `wrap="square"` is used.
+
+## Content Tabs
+
+`<ContentTabs>` groups alternative rich content under one tab strip. Each child must be a direct
+`<Tab title="...">`. The selected tab can be chosen with either `default` or `defaultIndex`,
+`color` can override the quote-like accent line/highlight, and the container itself can expose
+an optional callout-style heading through `title` plus `icon`, `iconPng` / `icon_png`, or
+`iconItem` / `icon_item`.
+
+<ContentTabs
+  title="Build Variants"
+  iconItem="minecraft:crafting_table"
+  color="#4f8cff"
+  default="Scene"
+>
+  <Tab title="Code">
+    ```java
+    System.out.println("Hello GuideNH");
+    ```
+  </Tab>
+  <Tab title="Scene">
+    <GameScene width="180" height="120">
+      <Block id="minecraft:crafting_table" />
+    </GameScene>
+  </Tab>
+  <Tab title="Math">
+    $$a^2 + b^2 = c^2$$
+  </Tab>
+</ContentTabs>
 
 ## Code Blocks
 

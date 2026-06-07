@@ -3,21 +3,20 @@ package com.hfstudio.guidenh.guide.compiler.tags.mediawiki;
 import java.util.Collections;
 import java.util.Set;
 
+import net.minecraft.util.ResourceLocation;
+
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
-import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageQuery;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResolver;
-import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResult;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class SpecialCompiler extends BlockTagCompiler {
-
-    private final MediaWikiSpecialPageResolver resolver = new MediaWikiSpecialPageResolver();
 
     @Override
     public Set<String> getTagNames() {
@@ -32,45 +31,71 @@ public class SpecialCompiler extends BlockTagCompiler {
             parent.appendError(compiler, GuidebookText.MediaWikiMissingSpecialPageName.text(), el);
             return;
         }
-        String specialName = resolver.normalizeSupportedName(rawSpecialName);
-        if (specialName == null) {
-            parent.appendError(compiler, GuidebookText.MediaWikiUnsupportedSpecialPage.text(rawSpecialName), el);
-            return;
-        }
 
         var guide = MediaWikiTagCompilerSupport.resolveGuide(compiler, parent, el);
         if (guide == null) {
             return;
         }
 
-        var context = MediaWikiTagCompilerSupport.createListContext(guide, compiler.getIndex(CategoryIndex.class));
-        MediaWikiSpecialPageQuery specialQuery = MediaWikiTagCompilerSupport.readSpecialQuery(el);
-        MediaWikiSpecialPageResult result = resolver
-            .resolve(context, specialName, specialQuery.withVisibleCount(Integer.MAX_VALUE));
-        parent.append(
-            MediaWikiTagCompilerSupport
-                .createSpecialBlock(result, MediaWikiTagCompilerSupport.readRows(el), context, specialQuery, resolver));
+        var block = new SpecialPlaceholder(
+            rawSpecialName.trim(),
+            MediaWikiTagCompilerSupport.readRows(el),
+            guide.getId(),
+            el.getAttributeString("page", null),
+            el.getAttributeString("prefix", null),
+            el.getAttributeString("language", null),
+            el.getAttributeString("query", null));
+        parent.append(block);
     }
 
     @Override
     public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
-        String specialName = resolver.normalizeSupportedName(el.getAttributeString("name", null));
-        if (specialName == null) {
-            return;
-        }
+        String specialName = el.getAttributeString("name", null);
+        if (specialName == null || specialName.trim()
+            .isEmpty()) return;
 
+        // Restore Phase 2: index resolved special page result entries for full-text search
         var guide = MediaWikiTagCompilerSupport.resolveGuide(indexer);
-        if (guide == null) {
-            return;
+        if (guide != null) {
+            CategoryIndex catIndex = indexer.getIndex(CategoryIndex.class);
+            if (catIndex != null) {
+                var context = MediaWikiTagCompilerSupport.createListContext(guide, catIndex);
+                var query = MediaWikiTagCompilerSupport.readSpecialQuery(el);
+                var resolver = new MediaWikiSpecialPageResolver();
+                var result = resolver.resolve(context, specialName.trim(), query);
+                sink.appendText(el, specialName.trim());
+                sink.appendBreak();
+                MediaWikiTagCompilerSupport.indexSpecialResult(sink, el, result);
+                return;
+            }
         }
-
-        var context = MediaWikiTagCompilerSupport.createListContext(guide, indexer.getIndex(CategoryIndex.class));
-        sink.appendText(el, specialName);
+        // Fallback: index only the special page name
+        sink.appendText(el, specialName.trim());
         sink.appendBreak();
-        MediaWikiSpecialPageQuery specialQuery = MediaWikiTagCompilerSupport.readSpecialQuery(el);
-        MediaWikiTagCompilerSupport.indexSpecialResult(
-            sink,
-            el,
-            resolver.resolve(context, specialName, specialQuery.withVisibleCount(MediaWikiSpecialPageQuery.PAGE_SIZE)));
+    }
+
+    public static class SpecialPlaceholder extends LytParagraph {
+
+        public final String name;
+        public final int rows;
+        public final ResourceLocation guideId;
+        public final String page;
+        public final String prefix;
+        public final String language;
+        public final String query;
+
+        SpecialPlaceholder(String name, int rows, ResourceLocation guideId, String page, String prefix, String language,
+            String query) {
+            this.name = name;
+            this.rows = rows;
+            this.guideId = guideId;
+            this.page = page;
+            this.prefix = prefix;
+            this.language = language;
+            this.query = query;
+            setStyleClass("Special");
+            setStyle(LytParagraph.PLACEHOLDER_STYLE);
+            appendText("[Special]");
+        }
     }
 }

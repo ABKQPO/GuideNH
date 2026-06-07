@@ -133,6 +133,11 @@ public class LayoutContext implements FontMetrics {
     }
 
     @Override
+    public float getRenderedAdvance(int codePoint, ResolvedTextStyle style, boolean hasVisibleGlyphBefore) {
+        return fontMetrics.getRenderedAdvance(codePoint, style, hasVisibleGlyphBefore);
+    }
+
+    @Override
     public int getLineHeight(ResolvedTextStyle style) {
         return fontMetrics.getLineHeight(style);
     }

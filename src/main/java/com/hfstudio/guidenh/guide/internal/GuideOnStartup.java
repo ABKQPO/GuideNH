@@ -7,9 +7,9 @@ import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
@@ -68,18 +68,16 @@ public class GuideOnStartup {
         for (ResourceLocation guideId : guidesToValidate) {
             MutableGuide guide = GuideRegistry.getById(guideId);
             if (guide == null) {
-                FMLLog.getLogger()
-                    .error(
-                        "[GuideNH] [GuideOnStartup] Cannot validate guide '{}' because it is not registered.",
-                        guideId);
+                GuideDebugLog.error(
+                    "[GuideNH] [GuideOnStartup] Cannot validate guide '{}' because it is not registered.",
+                    guideId);
                 continue;
             }
 
             try {
                 guide.validateAll();
             } catch (RuntimeException e) {
-                FMLLog.getLogger()
-                    .error("[GuideNH] [GuideOnStartup] Failed to validate guide '{}'", guideId, e);
+                GuideDebugLog.error("[GuideNH] [GuideOnStartup] Failed to validate guide '{}'", guideId, e);
             }
         }
 
@@ -89,10 +87,9 @@ public class GuideOnStartup {
 
         MutableGuide guide = GuideRegistry.getById(showOnStartup.guideId());
         if (guide == null) {
-            FMLLog.getLogger()
-                .error(
-                    "[GuideNH] [GuideOnStartup] Cannot open guide '{}' because it is not registered.",
-                    showOnStartup.guideId());
+            GuideDebugLog.error(
+                "[GuideNH] [GuideOnStartup] Cannot open guide '{}' because it is not registered.",
+                showOnStartup.guideId());
             return;
         }
 
@@ -100,8 +97,7 @@ public class GuideOnStartup {
             PageAnchor anchor = showOnStartup.anchor();
             GuideScreen.open(showOnStartup.guideId(), anchor);
         } catch (RuntimeException e) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [GuideOnStartup] Failed to open guide '{}'", showOnStartup.guideId(), e);
+            GuideDebugLog.error("[GuideNH] [GuideOnStartup] Failed to open guide '{}'", showOnStartup.guideId(), e);
         }
     }
 }

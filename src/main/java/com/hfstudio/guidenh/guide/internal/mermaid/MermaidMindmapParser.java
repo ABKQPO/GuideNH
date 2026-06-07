@@ -279,9 +279,8 @@ public class MermaidMindmapParser {
             .replace("++", "")
             .replace("^^", "")
             .replace("::", "")
-            .replace("`", "")
-            .replace("<", "")
-            .replace(">", "");
+            .replace("`", "");
+        normalized = normalized.replaceAll("</?[a-zA-Z]+[^>]*>", "");
         return stripWrappingQuotes(normalized.trim());
     }
 

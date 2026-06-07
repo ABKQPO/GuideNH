@@ -34,6 +34,10 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
 
         toolbar.setLanguageDisplayName("Mermaid");
         toolbar.setCopyText(this.sourceText);
+        toolbar.setCopyButtonVisible(false);
+        toolbar.setToolbarBackground(LytMermaidMindmapCanvas.PANEL_BACKGROUND);
+        toolbar.setToolbarBorder(LytMermaidMindmapCanvas.PANEL_BORDER);
+        toolbar.setToolbarText(LytMermaidMindmapCanvas.NODE_TEXT_COLOR);
 
         append(toolbar);
         append(canvas);

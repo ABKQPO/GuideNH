@@ -27,6 +27,7 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
     @Override
     public void removeChild(LytNode node) {
         if (node instanceof LytBlock block && block.parent == this) {
+            if (isAttached()) LytDocument.notifyDetach(block);
             children.remove(block);
             block.parent = null;
         }
@@ -39,6 +40,29 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
         }
         block.parent = this;
         children.add(block);
+        if (isAttached()) LytDocument.notifyAttach(block);
+    }
+
+    @Override
+    public void replaceChild(LytNode oldChild, LytNode newChild) {
+        if (!(oldChild instanceof LytBlock)) return;
+        if (!(newChild instanceof LytBlock)) return;
+        LytBlock oldBlock = (LytBlock) oldChild;
+        LytBlock newBlock = (LytBlock) newChild;
+        int idx = children.indexOf(oldBlock);
+        if (idx < 0) return;
+        if (isAttached()) LytDocument.notifyDetach(oldBlock);
+        oldBlock.parent = null;
+        if (newBlock.parent != null) {
+            newBlock.parent.removeChild(newBlock);
+        }
+        newBlock.parent = this;
+        children.set(idx, newBlock);
+        if (isAttached()) LytDocument.notifyAttach(newBlock);
+        LytDocument doc = getDocument();
+        if (doc != null) {
+            doc.invalidateLayout();
+        }
     }
 
     public void clearContent() {

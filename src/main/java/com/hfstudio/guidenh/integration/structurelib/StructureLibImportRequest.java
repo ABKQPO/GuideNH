@@ -18,6 +18,7 @@ public class StructureLibImportRequest {
     @Nullable
     private final Integer channel;
     private final StructureLibPreviewSelection previewSelection;
+    private final StructureLibSceneOptions sceneOptions;
 
     public StructureLibImportRequest(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip, @Nullable Integer channel) {
@@ -29,12 +30,19 @@ public class StructureLibImportRequest {
             flip,
             channel,
             channel != null ? StructureLibPreviewSelection.ofMasterTier(channel)
-                : StructureLibPreviewSelection.defaultSelection());
+                : StructureLibPreviewSelection.defaultSelection(),
+            StructureLibSceneOptions.empty());
     }
 
     public StructureLibImportRequest(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip, @Nullable Integer channel,
         @Nullable StructureLibPreviewSelection previewSelection) {
+        this(controller, piece, facing, rotation, flip, channel, previewSelection, StructureLibSceneOptions.empty());
+    }
+
+    public StructureLibImportRequest(String controller, @Nullable String piece, @Nullable String facing,
+        @Nullable String rotation, @Nullable String flip, @Nullable Integer channel,
+        @Nullable StructureLibPreviewSelection previewSelection, @Nullable StructureLibSceneOptions sceneOptions) {
         this.controller = requireController(controller);
         this.piece = normalizeOptional(piece);
         this.facing = normalizeOptional(facing);
@@ -43,6 +51,7 @@ public class StructureLibImportRequest {
         this.channel = channel;
         this.previewSelection = previewSelection != null ? previewSelection
             : StructureLibPreviewSelection.defaultSelection();
+        this.sceneOptions = sceneOptions != null ? sceneOptions : StructureLibSceneOptions.empty();
     }
 
     public String getController() {
@@ -78,6 +87,10 @@ public class StructureLibImportRequest {
         return previewSelection;
     }
 
+    public StructureLibSceneOptions getSceneOptions() {
+        return sceneOptions;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -91,12 +104,13 @@ public class StructureLibImportRequest {
             && Objects.equals(rotation, other.rotation)
             && Objects.equals(flip, other.flip)
             && Objects.equals(channel, other.channel)
-            && previewSelection.equals(other.previewSelection);
+            && previewSelection.equals(other.previewSelection)
+            && Objects.equals(sceneOptions, other.sceneOptions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(controller, piece, facing, rotation, flip, channel, previewSelection);
+        return Objects.hash(controller, piece, facing, rotation, flip, channel, previewSelection, sceneOptions);
     }
 
     public static String requireController(@Nullable String controller) {

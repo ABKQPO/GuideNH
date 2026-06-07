@@ -18,6 +18,7 @@ public class MdxJsxFlowElement extends MdAstParent<MdAstFlowContent> implements 
     public static final String TYPE = "mdxJsxFlowElement";
     public String name;
     public List<MdxJsxAttributeNode> attributes;
+    public transient boolean recovered;
 
     public MdxJsxFlowElement() {
         this("", new ArrayList<>());

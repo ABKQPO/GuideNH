@@ -91,6 +91,11 @@ public class LytQuoteBox extends LytBlock implements LytBlockContainer {
     }
 
     @Override
+    public void replaceChild(LytNode oldChild, LytNode newChild) {
+        root.replaceChild(oldChild, newChild);
+    }
+
+    @Override
     public List<? extends LytNode> getChildren() {
         return root.getChildren();
     }

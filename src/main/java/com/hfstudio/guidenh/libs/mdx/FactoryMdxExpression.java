@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.libs.mdx;
 
 import com.hfstudio.guidenh.libs.micromark.Assert;
 import com.hfstudio.guidenh.libs.micromark.CharUtil;
-import com.hfstudio.guidenh.libs.micromark.ParseException;
 import com.hfstudio.guidenh.libs.micromark.Point;
 import com.hfstudio.guidenh.libs.micromark.State;
 import com.hfstudio.guidenh.libs.micromark.TokenizeContext;
@@ -28,7 +27,6 @@ public class FactoryMdxExpression {
             final int prefixExpressionIndent = initialPrefix != 0 ? initialPrefix + 1 : 0;
             int balance = 1;
             Point startPosition;
-            RuntimeException lastCrash;
 
             State start(int code) {
                 Assert.check(code == Codes.leftCurlyBrace, "expected `{`");
@@ -42,13 +40,9 @@ public class FactoryMdxExpression {
 
             State atBreak(int code) {
                 if (code == Codes.eof) {
-                    if (lastCrash != null) {
-                        throw lastCrash;
-                    }
-                    throw new ParseException(
-                        "Unexpected end of file in expression, expected a corresponding closing brace for `{`",
-                        context.now(),
-                        "micromark-extension-mdx-expression:unexpected-eof");
+                    effects.exit(type);
+                    effects.consume(code);
+                    return ok;
                 }
 
                 if (code == Codes.rightCurlyBrace) {
@@ -59,13 +53,6 @@ public class FactoryMdxExpression {
                     effects.enter(Types.lineEnding);
                     effects.consume(code);
                     effects.exit(Types.lineEnding);
-                    // `startColumn` is used by the JSX extensions that also wraps this
-                    // factory.
-                    // JSX can be indented arbitrarily, but expressions can’t exdent
-                    // arbitrarily, due to that they might contain template strings
-                    // (backticked strings).
-                    // We’ll eat up to where that tag starts (`startColumn`), and a tab size.
-                    /* c8 ignore next 3 */
                     var prefixTagIndent = startColumn != 0 ? startColumn + Constants.tabSize
                         - context.now()
                             .column()
@@ -78,10 +65,11 @@ public class FactoryMdxExpression {
                 var now = context.now();
 
                 if (now.line() != startPosition.line() && !allowLazy && context.isOnLazyLine()) {
-                    throw new ParseException(
-                        "Unexpected end of file in expression, expected a corresponding closing brace for `{`",
-                        context.now(),
-                        "micromark-extension-mdx-expression:unexpected-eof");
+                    effects.exit(type);
+                    effects.enter("mdxExpressionRecovery");
+                    effects.consume(code);
+                    effects.exit("mdxExpressionRecovery");
+                    return ok;
                 }
 
                 effects.enter(chunkType);

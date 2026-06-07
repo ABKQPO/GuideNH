@@ -317,6 +317,16 @@ public class GuideScreenNeiNativeBridge {
         }
     }
 
+    public static void ensureManagerInitialized(GuiContainer gui) {
+        try {
+            java.lang.reflect.Field f = GuiContainer.class.getDeclaredField("manager");
+            f.setAccessible(true);
+            if (f.get(gui) == null) {
+                f.set(gui, new GuiContainerManager(gui));
+            }
+        } catch (Exception ignored) {}
+    }
+
     private static void registerGuideObjectHandler() {
         if (guideObjectHandlerRegistered) {
             return;

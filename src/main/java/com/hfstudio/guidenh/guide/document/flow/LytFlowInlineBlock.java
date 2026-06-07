@@ -2,6 +2,8 @@ package com.hfstudio.guidenh.guide.document.flow;
 
 import java.util.Optional;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -81,6 +83,25 @@ public class LytFlowInlineBlock extends LytFlowContent implements InteractiveEle
         if (block != null) {
             block.visit(visitor);
         }
+    }
+
+    /**
+     * Unwraps a flow-wrapped placeholder node. When a block-level tag appears in inline
+     * context, BlockTagCompiler wraps the placeholder in LytFlowInlineBlock. Dispatch
+     * passes the wrapper. This helper returns the inner placeholder regardless.
+     *
+     * @return the unwrapped placeholder of type T, or null if the node is neither
+     *         a direct instance nor a LytFlowInlineBlock wrapping an instance
+     */
+    @Nullable
+    public static <T> T unwrapPlaceholder(Object node, Class<T> placeholderClass) {
+        if (placeholderClass.isInstance(node)) {
+            return placeholderClass.cast(node);
+        }
+        if (node instanceof LytFlowInlineBlock wrapper && placeholderClass.isInstance(wrapper.getBlock())) {
+            return placeholderClass.cast(wrapper.getBlock());
+        }
+        return null;
     }
 
     public static LytFlowInlineBlock of(LytBlock block) {

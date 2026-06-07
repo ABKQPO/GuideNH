@@ -39,7 +39,7 @@ public class LytDocumentFloat extends LytBlock {
 
     private static final int FLOAT_GAP = 5;
 
-    private final LytBlock inner;
+    private LytBlock inner;
     private final boolean floatRight;
 
     /**
@@ -54,6 +54,16 @@ public class LytDocumentFloat extends LytBlock {
 
     public LytBlock getInner() {
         return inner;
+    }
+
+    @Override
+    public void replaceChild(LytNode oldChild, LytNode newChild) {
+        if (oldChild != inner || !(newChild instanceof LytBlock)) return;
+        inner.parent = null;
+        inner = (LytBlock) newChild;
+        inner.parent = this;
+        LytDocument doc = getDocument();
+        if (doc != null) doc.invalidateLayout();
     }
 
     public boolean isFloatRight() {

@@ -191,8 +191,8 @@ td + td, th + th {
 code {
     font-family: 'Pixeloid Mono', monospace;
     font-size: 0.88em;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(124, 124, 124, 0.4);
+    color: inherit;
+    background: rgba(111, 182, 255, 0.12);
     padding: 1px 4px;
 }
 
@@ -206,8 +206,98 @@ pre {
 
 pre code {
     background: none;
-    border: none;
     padding: 0;
+}
+
+.guide-code-block {
+    display: flow-root;
+    margin-bottom: 0.8em;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    overflow: hidden;
+}
+
+.guide-code-block-toolbar {
+    display: flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 12px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+}
+
+.guide-code-block-language {
+    font-family: var(--minecraft-font);
+    color: #8b949e;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.guide-code-block pre,
+.guide-code-block code {
+    background: none;
+    border: none;
+}
+
+.guide-code-block pre {
+    margin: 0;
+    padding: 12px;
+    color: #e6edf3;
+    overflow-x: auto;
+}
+
+.guide-code-block code {
+    display: block;
+    padding: 0;
+    white-space: pre;
+}
+
+.guide-code-block-scroll {
+    max-width: 100%;
+}
+
+.gh-plain {
+    color: #e6edf3;
+}
+
+.gh-keyword {
+    color: #ff7b72;
+}
+
+.gh-string {
+    color: #a5d6ff;
+}
+
+.gh-number {
+    color: #79c0ff;
+}
+
+.gh-comment {
+    color: #8b949e;
+}
+
+.gh-operator {
+    color: #ff7b72;
+}
+
+.gh-punctuation {
+    color: #e6edf3;
+}
+
+.gh-type {
+    color: #7ee787;
+}
+
+.gh-function {
+    color: #d2a8ff;
+}
+
+.gh-annotation {
+    color: #ffa657;
+}
+
+.gh-property {
+    color: #79c0ff;
 }
 
 blockquote {
@@ -805,6 +895,12 @@ p {
 .guide-item-link:hover {
     color: var(--color-link);
     text-decoration: none;
+}
+
+.guide-item-link-muted,
+.guide-item-link-muted:hover {
+    color: #aaa;
+    font-style: italic;
 }
 
 .guide-item-summary-text,
@@ -1659,6 +1755,104 @@ p {
 
 .guide-details-body > :last-child {
     margin-bottom: 0;
+}
+
+.guide-content-tabs {
+    --guide-content-tabs-accent: rgba(124, 135, 149, 1);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    column-gap: 10px;
+    row-gap: 5px;
+    margin: 1rem 0;
+    padding: 0.45rem 0.7rem 0.7rem 0.7rem;
+    border-left: calc(2px * var(--gui-scale)) solid var(--guide-content-tabs-accent);
+    background: rgba(64, 64, 64, 0.25);
+}
+
+.guide-content-tabs-title {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    color: var(--guide-content-tabs-accent);
+    font-family: var(--minecraft-font);
+    font-weight: 700;
+}
+
+.guide-content-tabs-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.guide-content-tabs-title-icon-image img {
+    width: calc(8px * var(--gui-scale));
+    height: calc(8px * var(--gui-scale));
+    image-rendering: pixelated;
+    vertical-align: middle;
+}
+
+.guide-content-tabs-title-icon-item .guide-inline-item,
+.guide-content-tabs-title-icon-item .item-icon {
+    transform: translateY(calc(-0.5px * var(--gui-scale)));
+}
+
+.guide-content-tabs-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.guide-content-tabs-label {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    order: 0;
+    min-height: 1.6rem;
+    padding: 0.05rem 0.15rem 0.35rem;
+    border-bottom: 2px solid transparent;
+    color: #d5dce7;
+    cursor: pointer;
+    font-family: var(--minecraft-font);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.guide-content-tabs-panel {
+    display: none;
+    order: 1;
+    width: 100%;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(88, 98, 117, 0.75);
+}
+
+.guide-content-tabs-panel > :first-child {
+    margin-top: 0;
+}
+
+.guide-content-tabs-panel > :last-child {
+    margin-bottom: 0;
+}
+
+.guide-content-tabs-input:checked + .guide-content-tabs-label {
+    color: #f4f7fb;
+    border-bottom-color: var(--guide-content-tabs-accent);
+}
+
+.guide-content-tabs-input:checked + .guide-content-tabs-label + .guide-content-tabs-panel {
+    display: block;
+}
+
+.guide-content-tabs-error {
+    margin: 0.75rem 0;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid #8f3030;
+    border-radius: 10px;
+    background: #331818;
+    color: #ffd4d4;
 }
 
 .guide-tooltip-scene-placeholder {

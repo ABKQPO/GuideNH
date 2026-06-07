@@ -30,10 +30,9 @@ import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.betterquesting.QuestIndex;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
-
-import cpw.mods.fml.common.FMLLog;
 
 public class MediaWikiSpecialDataIndexer {
 
@@ -97,29 +96,27 @@ public class MediaWikiSpecialDataIndexer {
             Map.copyOf(overrides),
             Set.copyOf(unusedFiles));
         long totalElapsedNanos = System.nanoTime() - totalStartNanos;
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [MediaWikiSpecialDataIndexer] Built special data index for {} pages in {} ms (assets: {} ms, usage: {} ms, metadata: {} ms)",
-                normalPages.size(),
-                nanosToMillis(totalElapsedNanos),
-                nanosToMillis(assetElapsedNanos),
-                nanosToMillis(usageElapsedNanos),
-                nanosToMillis(metadataElapsedNanos));
-        FMLLog.getLogger()
-            .info(
-                "[GuideNH] [MediaWikiSpecialDataIndexer] Details assets={}, assetAliases={}, fileUsageKeys={}, translations={}, propertyPages={}, externalLinkPages={}, pageSizes={}, lintPages={}, lintIssues={}, ambiguousBindings={}, overrides={}, unusedFiles={}",
-                assetSizesById.size(),
-                assetVariantsByReference.size(),
-                fileUsageByPath.size(),
-                translations.size(),
-                pageProperties.size(),
-                externalLinks.size(),
-                pageSizes.size(),
-                lintIssues.size(),
-                countLintIssues(lintIssues),
-                ambiguousBindings.size(),
-                overrides.size(),
-                unusedFiles.size());
+        GuideDebugLog.infoAlways(
+            "[GuideNH] [MediaWikiSpecialDataIndexer] Built special data index for {} pages in {} ms (assets: {} ms, usage: {} ms, metadata: {} ms)",
+            normalPages.size(),
+            nanosToMillis(totalElapsedNanos),
+            nanosToMillis(assetElapsedNanos),
+            nanosToMillis(usageElapsedNanos),
+            nanosToMillis(metadataElapsedNanos));
+        GuideDebugLog.infoAlways(
+            "[GuideNH] [MediaWikiSpecialDataIndexer] Details assets={}, assetAliases={}, fileUsageKeys={}, translations={}, propertyPages={}, externalLinkPages={}, pageSizes={}, lintPages={}, lintIssues={}, ambiguousBindings={}, overrides={}, unusedFiles={}",
+            assetSizesById.size(),
+            assetVariantsByReference.size(),
+            fileUsageByPath.size(),
+            translations.size(),
+            pageProperties.size(),
+            externalLinks.size(),
+            pageSizes.size(),
+            lintIssues.size(),
+            countLintIssues(lintIssues),
+            ambiguousBindings.size(),
+            overrides.size(),
+            unusedFiles.size());
         return dataIndex;
     }
 

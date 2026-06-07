@@ -467,11 +467,10 @@ public class MdastCompiler implements MdastContext {
         var open = ListUtils.pop(this.tokenStack);
 
         if (open == null) {
-            throw new RuntimeException(
-                "Cannot close `" + token.type
-                    + "` ("
-                    + MdAstPosition.stringify(token.start, token.end)
-                    + "): it’s not open");
+            // Token was never opened (recovery path). Push the node back —
+            // it may be the root or a node whose token was already consumed.
+            this.stack.add(node);
+            return node;
         } else if (!open.token().type.equals(token.type)) {
             if (onExitError != null) {
                 onExitError.error(this, token, open.token());
@@ -651,6 +650,9 @@ public class MdastCompiler implements MdastContext {
     }
 
     private void onexitlineending(MdastContext ignored, Token token) {
+        if (stack.isEmpty()) {
+            return;
+        }
         var context = stack.get(stack.size() - 1);
         Assert.check(context != null, "expected `node`");
 
@@ -988,24 +990,27 @@ public class MdastCompiler implements MdastContext {
         return new MdAstThematicBreak();
     }
 
+    /**
+     * Recursively unwind mismatched stack entries until the correct token is found.
+     * Each call to {@code context.exit(left, this::unwindExit)} pops one more pair;
+     * if still mismatched the method recurses, otherwise the exit succeeds and the
+     * recursion terminates naturally.
+     */
+    private void unwindExit(MdastContext context, Token left, Token right) {
+        if (left != null) {
+            context.exit(left, this::unwindExit);
+        }
+    }
+
     private void defaultOnError(MdastContext context, @Nullable Token left, Token right) {
         if (left != null) {
-            throw new RuntimeException(
-                "Cannot close `" + left.type
-                    + "` ("
-                    + MdAstPosition.stringify(left.start, left.end)
-                    + "): a different token (`"
-                    + right.type
-                    + "`, "
-                    + MdAstPosition.stringify(right.start, right.end)
-                    + ") is open");
-        } else {
-            throw new RuntimeException(
-                "Cannot close document, a token (`" + right.type
-                    + "`, "
-                    + MdAstPosition.stringify(right.start, right.end)
-                    + ") is still open");
+            // Stack mismatch: expected to close `left` but `right` was on top.
+            // Unwind the stack until the correct token is found.
+            context.exit(left, this::unwindExit);
         }
+        // If left is null (end-of-file): remaining unclosed tokens correspond to
+        // AST nodes already added to parents on enter. They lack end positions
+        // but remain usable for autocomplete queries against the partial AST.
     }
 
     static class Fragment extends MdAstParent<MdAstPhrasingContent> {

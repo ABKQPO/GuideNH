@@ -39,7 +39,6 @@ import org.apache.lucene.store.ByteBuffersDirectory;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
-import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.Guides;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
@@ -48,9 +47,8 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageTitleResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
-
-import cpw.mods.fml.common.FMLLog;
 
 /**
  * Manages the in-memory Lucene index for guide search.
@@ -105,8 +103,7 @@ public class GuideSearch implements AutoCloseable {
                     guide.getId()
                         .toString()));
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [GuideSearch] Failed to delete all documents before re-indexing.", e);
+            GuideDebugLog.error("[GuideNH] [GuideSearch] Failed to delete all documents before re-indexing.", e);
         }
 
         if (pendingTasks.isEmpty()) {
@@ -171,8 +168,7 @@ public class GuideSearch implements AutoCloseable {
                     try {
                         indexWriter.addDocument(pageDoc);
                     } catch (IOException e) {
-                        FMLLog.getLogger()
-                            .error("[GuideNH] [GuideSearch] Failed to index document {}{}", guide, page, e);
+                        GuideDebugLog.error("[GuideNH] [GuideSearch] Failed to index document {}{}", guide, page, e);
                     }
 
                     var searchLang = pageDoc.get(IndexSchema.FIELD_SEARCH_LANG);
@@ -195,13 +191,10 @@ public class GuideSearch implements AutoCloseable {
             throw new UncheckedIOException(e);
         }
 
-        if (ModConfig.debug.enableDebugMode) {
-            FMLLog.getLogger()
-                .info(
-                    "[GuideNH] [GuideSearch] Indexing of {} pages finished in {}",
-                    pagesIndexed,
-                    Duration.between(indexingStarted, Instant.now()));
-        }
+        GuideDebugLog.info(
+            "[GuideNH] [GuideSearch] Indexing of {} pages finished in {}",
+            pagesIndexed,
+            Duration.between(indexingStarted, Instant.now()));
     }
 
     public void processAllWork() {
@@ -238,8 +231,7 @@ public class GuideSearch implements AutoCloseable {
         try {
             query = GuideQueryParser.parse(queryText, analyzer, indexedLanguages);
         } catch (Exception e) {
-            FMLLog.getLogger()
-                .debug("[GuideNH] [GuideSearch] Failed to parse search query: '{}'", queryText, e);
+            GuideDebugLog.debug("[GuideNH] [GuideSearch] Failed to parse search query: '{}'", queryText, e);
             return List.of();
         }
 
@@ -256,15 +248,13 @@ public class GuideSearch implements AutoCloseable {
                 .build();
         }
 
-        FMLLog.getLogger()
-            .debug("[GuideNH] [GuideSearch] Running GuideME search query: {}", query);
+        GuideDebugLog.debug("[GuideNH] [GuideSearch] Running GuideME search query: {}", query);
 
         TopDocs topDocs;
         try {
             topDocs = indexSearcher.search(query, 25);
         } catch (IOException e) {
-            FMLLog.getLogger()
-                .error("[GuideNH] [GuideSearch] Failed to search for '{}'", queryText, e);
+            GuideDebugLog.error("[GuideNH] [GuideSearch] Failed to search for '{}'", queryText, e);
             return List.of();
         }
 
@@ -278,20 +268,18 @@ public class GuideSearch implements AutoCloseable {
 
                 var guide = Guides.getById(guideId);
                 if (guide == null) {
-                    FMLLog.getLogger()
-                        .warn(
-                            "[GuideNH] [GuideSearch] Search index produced guide id {} which couldn't be found.",
-                            guideId);
+                    GuideDebugLog.warnAlways(
+                        "[GuideNH] [GuideSearch] Search index produced guide id {} which couldn't be found.",
+                        guideId);
                     continue;
                 }
 
                 var page = guide.getParsedPage(pageId);
                 if (page == null) {
-                    FMLLog.getLogger()
-                        .warn(
-                            "[GuideNH] [GuideSearch] Search index produced page {} in guide {}, which couldn't be found.",
-                            pageId,
-                            guideId);
+                    GuideDebugLog.warnAlways(
+                        "[GuideNH] [GuideSearch] Search index produced page {} in guide {}, which couldn't be found.",
+                        pageId,
+                        guideId);
                     continue;
                 }
 
@@ -305,8 +293,7 @@ public class GuideSearch implements AutoCloseable {
                         bestFragment = "";
                     }
                 } catch (InvalidTokenOffsetsException e) {
-                    FMLLog.getLogger()
-                        .error("[GuideNH] [GuideSearch] Cannot determine text to highlight for result", e);
+                    GuideDebugLog.error("[GuideNH] [GuideSearch] Cannot determine text to highlight for result", e);
                 }
 
                 var pageTitle = document.get(IndexSchema.FIELD_TITLE);
@@ -386,10 +373,9 @@ public class GuideSearch implements AutoCloseable {
         var luceneLang = Analyzers.MINECRAFT_TO_LUCENE_LANG.get(language);
         if (luceneLang == null) {
             if (warnedAboutLanguage.add(language)) {
-                FMLLog.getLogger()
-                    .warn(
-                        "[GuideNH] [GuideSearch] Minecraft language '{}' is unknown, so search falls back to english.",
-                        language);
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [GuideSearch] Minecraft language '{}' is unknown, so search falls back to english.",
+                    language);
             }
             return Analyzers.LANG_ENGLISH;
         }

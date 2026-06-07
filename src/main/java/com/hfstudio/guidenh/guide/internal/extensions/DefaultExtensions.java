@@ -10,33 +10,47 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ATagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.BlockquoteCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BoxFlowDirection;
 import com.hfstudio.guidenh.guide.compiler.tags.BoxTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BreakCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ColorTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CommentTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.ContentTabsTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.DelUWaveMarkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DivTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.EmphasisCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FileTreeTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FloatingImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.FootnoteListCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.HeadingCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.HrCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.ImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KbdTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.LatexTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.ListCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.ListItemCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MarkTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.ParagraphCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PlayerNameTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.PreCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SoundLinkCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.StrongCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.StructureViewCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SubPagesCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SubscriptTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.SuperscriptTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.TableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.TooltipTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.BarChartCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ColumnChartCompiler;
@@ -111,6 +125,7 @@ public class DefaultExtensions {
                 new ItemLinkCompiler(),
                 new FloatingImageCompiler(),
                 new BreakCompiler(),
+                new ContentTabsTagCompiler(),
                 new DetailsTagCompiler(),
                 new FileTreeTagCompiler(),
                 new RecipeCompiler(),
@@ -141,7 +156,22 @@ public class DefaultExtensions {
                 new ScatterChartCompiler(),
                 new FunctionGraphTagCompiler(),
                 new FunctionTagCompiler(),
-                new LatexTagCompiler()));
+                new LatexTagCompiler(),
+                // Phase 2A: block-level compilers
+                new ParagraphCompiler(),
+                new HeadingCompiler(),
+                new ListCompiler(),
+                new ListItemCompiler(),
+                new PreCompiler(),
+                new BlockquoteCompiler(),
+                new TableCompiler(),
+                new HrCompiler(),
+                // Phase 2A: inline compilers
+                new StrongCompiler(),
+                new EmphasisCompiler(),
+                new DelUWaveMarkCompiler(),
+                new CodeCompiler(),
+                new ImageCompiler()));
         for (TagCompilerProvider provider : GuideNhIntegrationRegistry.global()
             .tagCompilerProviders()) {
             provider.appendTagCompilers(compilers);

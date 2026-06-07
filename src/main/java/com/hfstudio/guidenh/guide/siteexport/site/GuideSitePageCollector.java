@@ -22,8 +22,7 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSyntheticPageFactory;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSyntheticPageFactory.SyntheticSourceSnapshot;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSitePageCollector {
 
@@ -53,13 +52,12 @@ public class GuideSitePageCollector {
             languages = new ArrayList<>(discoveredLanguages);
         } else {
             try {
-                languages = discoverLanguages();
+                languages = discoverLanguages(guide.getId());
             } catch (Throwable t) {
-                FMLLog.getLogger()
-                    .debug(
-                        "[GuideNH] [GuideSitePageCollector] Falling back to the guide default language for {}",
-                        guide.getId(),
-                        t);
+                GuideDebugLog.debugAlways(
+                    "[GuideNH] [GuideSitePageCollector] Falling back to the guide default language for {}",
+                    guide.getId(),
+                    t);
                 languages = new ArrayList<>();
             }
         }
@@ -72,18 +70,18 @@ public class GuideSitePageCollector {
         LinkedHashSet<ResourceLocation> pageIdSet;
         try {
             pageIdSet = new LinkedHashSet<>();
-            var pathsByNs = DataDrivenGuideLoader.discoverPagePaths(guide.getContentRootFolder());
-            for (var entry : pathsByNs.entrySet()) {
-                for (String path : entry.getValue()) {
-                    pageIdSet.add(new ResourceLocation(entry.getKey(), path));
-                }
+            for (String path : DataDrivenGuideLoader.discoverPagePaths(guide.getId(), guide.getContentRootFolder())) {
+                pageIdSet.add(
+                    new ResourceLocation(
+                        guide.getId()
+                            .getResourceDomain(),
+                        path));
             }
         } catch (Throwable t) {
-            FMLLog.getLogger()
-                .debug(
-                    "[GuideNH] [GuideSitePageCollector] Falling back to already loaded page ids for {}",
-                    guide.getId(),
-                    t);
+            GuideDebugLog.debugAlways(
+                "[GuideNH] [GuideSitePageCollector] Falling back to already loaded page ids for {}",
+                guide.getId(),
+                t);
             pageIdSet = new LinkedHashSet<>();
         }
         for (ParsedGuidePage page : guide.getPages()) {
@@ -155,10 +153,11 @@ public class GuideSitePageCollector {
 
     public static List<String> discoverLanguagesOrEmpty() {
         try {
-            return discoverLanguages();
+            return discoverLanguages(null);
         } catch (Throwable t) {
-            FMLLog.getLogger()
-                .debug("[GuideNH] [GuideSitePageCollector] Falling back to no discovered site export languages", t);
+            GuideDebugLog.debugAlways(
+                "[GuideNH] [GuideSitePageCollector] Falling back to no discovered site export languages",
+                t);
             return new ArrayList<>();
         }
     }
@@ -191,14 +190,18 @@ public class GuideSitePageCollector {
         return variants;
     }
 
-    private static List<String> discoverLanguages() {
-        Map<ResourceLocation, LinkedHashSet<String>> discovered = new LinkedHashMap<>();
-        for (var resourcePack : DataDrivenGuideLoader.getActiveResourcePacks()) {
-            DataDrivenGuideLoader.scanResourcePack(resourcePack, discovered);
-        }
+    private static List<String> discoverLanguages(@Nullable ResourceLocation guideId) {
         var merged = new LinkedHashSet<String>();
-        for (var langs : discovered.values()) {
-            merged.addAll(langs);
+        var discovered = DataDrivenGuideLoader.discoverGuideLanguages();
+        if (guideId != null) {
+            var languages = discovered.get(guideId);
+            if (languages != null) {
+                merged.addAll(languages);
+            }
+        } else {
+            for (var langs : discovered.values()) {
+                merged.addAll(langs);
+            }
         }
         return new ArrayList<>(merged);
     }

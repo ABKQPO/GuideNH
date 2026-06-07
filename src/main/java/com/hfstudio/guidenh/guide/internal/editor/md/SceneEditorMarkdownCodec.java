@@ -20,6 +20,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
+import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.BlockAnnotationTemplateElementCompiler;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
@@ -70,6 +71,19 @@ public class SceneEditorMarkdownCodec {
         "offsetY",
         "offsetZ",
         "formed");
+    public static final Set<String> STRUCTURE_LIB_OPTION_ATTRIBUTES = Set
+        .of("name", "id", "value", "expr", "tier", "facing", "rotation", "flip", "channel");
+    public static final Set<String> STRUCTURE_LIB_OPTION_TAGS = Set.of(
+        "Tier",
+        "Channel",
+        "Facing",
+        "Rotation",
+        "Flip",
+        "Orientation",
+        "GregTechActiveController",
+        "GtActiveController",
+        "GregTechPlaceHatches",
+        "GtPlaceHatches");
     public static final Set<String> REMOVE_BLOCKS_ATTRIBUTES = Set.of("id");
     public static final Set<String> BLOCK_ANNOTATION_TEMPLATE_ATTRIBUTES = Set
         .of("id", "showWhenStructure", "showWhenTier", "showWhenChannels");
@@ -142,6 +156,7 @@ public class SceneEditorMarkdownCodec {
         MdAstRoot root;
         try {
             root = MdAst.fromMarkdown(parseSource, PARSE_OPTIONS);
+            MdAstToMdxConverter.convert(root, Map.of());
         } catch (ParseException e) {
             return new SceneEditorMarkdownParseResult.SyntaxError(formatParseException(e));
         }

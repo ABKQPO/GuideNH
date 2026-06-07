@@ -17,8 +17,7 @@ import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiExternalLinkSupport;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSiteHrefResolver {
 
@@ -62,12 +61,11 @@ public class GuideSiteHrefResolver {
                 : resolveTargetPageId(currentPageId, target);
             return resolvePageAnchor(currentPageId, new PageAnchor(targetPageId, fragment));
         } catch (IllegalArgumentException e) {
-            FMLLog.getLogger()
-                .debug(
-                    "[GuideNH] [GuideSiteHrefResolver] Failed to resolve href {} from page {}",
-                    href,
-                    currentPageId,
-                    e);
+            GuideDebugLog.debugAlways(
+                "[GuideNH] [GuideSiteHrefResolver] Failed to resolve href {} from page {}",
+                href,
+                currentPageId,
+                e);
             return href;
         }
     }

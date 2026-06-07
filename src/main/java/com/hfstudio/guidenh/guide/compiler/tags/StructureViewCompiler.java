@@ -1,15 +1,13 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
-
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
-import com.hfstudio.guidenh.guide.document.block.LytStructureView;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLiteral;
 
@@ -33,11 +31,8 @@ public class StructureViewCompiler extends BlockTagCompiler {
 
     @Override
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
-        var view = new LytStructureView();
-
         int width = MdxAttrs.getInt(compiler, parent, el, "width", 192);
         int height = MdxAttrs.getInt(compiler, parent, el, "height", 144);
-        view.setViewSize(width, height);
 
         StringBuilder text = new StringBuilder();
         for (var child : el.children()) {
@@ -47,13 +42,15 @@ public class StructureViewCompiler extends BlockTagCompiler {
             }
         }
 
-        parseLines(compiler, parent, view, text, el);
+        List<StructureEntry> entries = new ArrayList<>();
+        parseLines(compiler, parent, entries, text, el);
 
-        parent.append(view);
+        StructurePlaceholder placeholder = new StructurePlaceholder(width, height, entries);
+        parent.append(placeholder);
     }
 
-    public static void parseLine(PageCompiler compiler, LytBlockContainer parent, LytStructureView view, String line,
-        MdxJsxElementFields el) {
+    private static void parseLine(PageCompiler compiler, LytBlockContainer parent, List<StructureEntry> entries,
+        String line, MdxJsxElementFields el) {
         String[] parts = firstTokens(line, 4);
         if (parts == null) {
             parent.appendError(compiler, "Structure entry needs '<x> <y> <z> <modid:name>': " + line, el);
@@ -71,27 +68,10 @@ public class StructureViewCompiler extends BlockTagCompiler {
         }
 
         String idSpec = parts[3];
-        int meta = 0;
-        int firstColon = idSpec.indexOf(':');
-        int lastColon = idSpec.lastIndexOf(':');
-        String resourceId = idSpec;
-        if (firstColon != lastColon) {
-            try {
-                meta = Integer.parseInt(idSpec.substring(lastColon + 1));
-                resourceId = idSpec.substring(0, lastColon);
-            } catch (NumberFormatException ignored) {}
-        }
-
-        ItemStack stack = resolveStack(resourceId, meta);
-        if (stack == null) {
-            parent.appendError(compiler, "Unknown block/item: " + idSpec, el);
-            return;
-        }
-
-        view.addBlock(x, y, z, stack);
+        entries.add(new StructureEntry(x, y, z, idSpec));
     }
 
-    private static void parseLines(PageCompiler compiler, LytBlockContainer parent, LytStructureView view,
+    private static void parseLines(PageCompiler compiler, LytBlockContainer parent, List<StructureEntry> entries,
         StringBuilder text, MdxJsxElementFields el) {
         int lineStart = 0;
         for (int i = 0; i <= text.length(); i++) {
@@ -101,7 +81,7 @@ public class StructureViewCompiler extends BlockTagCompiler {
             parseRawLine(
                 compiler,
                 parent,
-                view,
+                entries,
                 text.substring(lineStart, i)
                     .trim(),
                 el);
@@ -112,12 +92,12 @@ public class StructureViewCompiler extends BlockTagCompiler {
         }
     }
 
-    private static void parseRawLine(PageCompiler compiler, LytBlockContainer parent, LytStructureView view,
+    private static void parseRawLine(PageCompiler compiler, LytBlockContainer parent, List<StructureEntry> entries,
         String line, MdxJsxElementFields el) {
         if (line.isEmpty() || line.startsWith("#")) {
             return;
         }
-        parseLine(compiler, parent, view, line, el);
+        parseLine(compiler, parent, entries, line, el);
     }
 
     private static String[] firstTokens(String line, int count) {
@@ -151,15 +131,34 @@ public class StructureViewCompiler extends BlockTagCompiler {
         return current;
     }
 
-    public static ItemStack resolveStack(String resourceId, int meta) {
-        var item = (Item) Item.itemRegistry.getObject(resourceId);
-        if (item != null) {
-            return new ItemStack(item, 1, meta);
+    public static class StructureEntry {
+
+        public final int x;
+        public final int y;
+        public final int z;
+        public final String idSpec;
+
+        public StructureEntry(int x, int y, int z, String idSpec) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.idSpec = idSpec;
         }
-        var block = (Block) Block.blockRegistry.getObject(resourceId);
-        if (block != null) {
-            return new ItemStack(block, 1, meta);
+    }
+
+    public static class StructurePlaceholder extends LytParagraph {
+
+        public final int width;
+        public final int height;
+        public final List<StructureEntry> entries;
+
+        public StructurePlaceholder(int width, int height, List<StructureEntry> entries) {
+            this.width = width;
+            this.height = height;
+            this.entries = entries;
+            setStyleClass("Structure");
+            setStyle(LytParagraph.PLACEHOLDER_STYLE);
+            appendText("[Structure]");
         }
-        return null;
     }
 }

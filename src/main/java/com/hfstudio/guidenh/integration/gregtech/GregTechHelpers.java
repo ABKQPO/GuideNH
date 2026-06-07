@@ -14,8 +14,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
@@ -39,7 +37,6 @@ import gregtech.common.misc.GTStructureChannels;
 
 public class GregTechHelpers {
 
-    public static final Logger LOG = LogManager.getLogger("GuideNH/GregTechHelpers");
     public static final Set<String> LOGGED_KEYS = Collections.synchronizedSet(new HashSet<>());
 
     public static ItemStack applyOreDictUnification(ItemStack stack) {
@@ -476,7 +473,6 @@ public class GregTechHelpers {
                 applyPreviewTextureUpdate(metaTileEntity);
             }
             GuideDebugLog.info(
-                LOG,
                 "GregTech preview sync controller={} meta={} facing={} valid={} activeRequested={} activeBefore={} activeAfter={} machineBefore={} machineAfter={} machineApplied={}",
                 describeTile(controllerTile),
                 describeMetaTile(metaTileEntity),
@@ -697,7 +693,7 @@ public class GregTechHelpers {
         if (key == null || key.isEmpty() || message == null || message.isEmpty()) {
             return;
         }
-        GuideDebugLog.runOnce(LOGGED_KEYS, key, () -> LOG.info(message, args));
+        GuideDebugLog.runOnce(LOGGED_KEYS, key, () -> GuideDebugLog.info(message, args));
     }
 
     public static String describeBlock(@Nullable Block block) {

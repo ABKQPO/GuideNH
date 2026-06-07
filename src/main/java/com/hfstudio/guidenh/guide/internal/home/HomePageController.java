@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.home;
 
+import java.util.List;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
@@ -11,6 +13,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 
 public class HomePageController {
 
@@ -36,6 +39,9 @@ public class HomePageController {
     private int recommendedScrollOffset;
     private int bookmarksScrollOffset;
     private int historyScrollOffset;
+    private final SmoothFloatState recommendedVisualScrollOffset = new SmoothFloatState();
+    private final SmoothFloatState bookmarksVisualScrollOffset = new SmoothFloatState();
+    private final SmoothFloatState historyVisualScrollOffset = new SmoothFloatState();
 
     @Nullable
     private PendingClick pendingClick;
@@ -43,8 +49,9 @@ public class HomePageController {
     private DragState dragState;
 
     public void render(Minecraft mc, HomePageDataBuilder.HomePageSections sections, HomePageLayout.LayoutRects layout,
-        ResourceLocation logoTexture, int mouseX, int mouseY) {
-        drawLogo(mc, layout.logo(), logoTexture);
+        ResourceLocation logoTexture, int logoSourceWidth, int logoSourceHeight, int mouseX, int mouseY) {
+        updateVisualScrollOffsets();
+        drawLogo(mc, layout.logo(), logoTexture, logoSourceWidth, logoSourceHeight);
         drawSection(mc, layout.recommended(), sections.recommended(), mouseX, mouseY, layout.recommendedTitleSafeTop());
         drawSection(mc, layout.bookmarks(), sections.bookmarks(), mouseX, mouseY, 0);
         drawSection(mc, layout.history(), sections.history(), mouseX, mouseY, 0);
@@ -143,7 +150,14 @@ public class HomePageController {
         }
     }
 
-    private void drawLogo(Minecraft mc, HomePageLayout.Rect rect, ResourceLocation logoTexture) {
+    private void drawLogo(Minecraft mc, HomePageLayout.Rect rect, ResourceLocation logoTexture, int logoSourceWidth,
+        int logoSourceHeight) {
+        int safeSourceWidth = Math.max(1, logoSourceWidth);
+        int safeSourceHeight = Math.max(1, logoSourceHeight);
+        int drawWidth = Math.max(1, rect.width());
+        int drawHeight = Math.max(1, Math.round((float) drawWidth * safeSourceHeight / safeSourceWidth));
+        int drawY = rect.y() + (rect.height() - drawHeight) / 2;
+
         mc.getTextureManager()
             .bindTexture(logoTexture);
         GL11.glEnable(GL11.GL_BLEND);
@@ -151,10 +165,10 @@ public class HomePageController {
         GL11.glColor4f(1f, 1f, 1f, 1f);
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
-        tessellator.addVertexWithUV(rect.x(), rect.y() + rect.height(), 0, 0f, 1f);
-        tessellator.addVertexWithUV(rect.x() + rect.width(), rect.y() + rect.height(), 0, 1f, 1f);
-        tessellator.addVertexWithUV(rect.x() + rect.width(), rect.y(), 0, 1f, 0f);
-        tessellator.addVertexWithUV(rect.x(), rect.y(), 0, 0f, 0f);
+        tessellator.addVertexWithUV(rect.x(), drawY + drawHeight, 0, 0f, 1f);
+        tessellator.addVertexWithUV(rect.x() + drawWidth, drawY + drawHeight, 0, 1f, 1f);
+        tessellator.addVertexWithUV(rect.x() + drawWidth, drawY, 0, 1f, 0f);
+        tessellator.addVertexWithUV(rect.x(), drawY, 0, 0f, 0f);
         tessellator.draw();
     }
 
@@ -183,13 +197,14 @@ public class HomePageController {
         int maxScroll = Math.max(0, contentHeight - visibleHeight);
         int scrollOffset = clampScroll(section, rect, getScrollOffset(section), topInset);
         setScrollOffset(section, scrollOffset);
+        int renderedScrollOffset = getVisualScrollOffset(section).rounded();
 
         pushScissor(contentX, contentY, rowWidth, visibleHeight);
         for (int i = 0; i < section.entries()
             .size(); i++) {
             HomePageEntry entry = section.entries()
                 .get(i);
-            int rowY = contentY + i * (ROW_HEIGHT + ROW_GAP) - scrollOffset;
+            int rowY = contentY + i * (ROW_HEIGHT + ROW_GAP) - renderedScrollOffset;
             if (rowY + ROW_HEIGHT < contentY || rowY > contentY + visibleHeight) {
                 continue;
             }
@@ -198,7 +213,7 @@ public class HomePageController {
         popScissor();
 
         if (maxScroll > 0) {
-            drawScrollbar(rect, section, scrollOffset, metrics, contentHeight);
+            drawScrollbar(rect, section, renderedScrollOffset, metrics, contentHeight);
         }
     }
 
@@ -278,6 +293,20 @@ public class HomePageController {
         }
     }
 
+    private SmoothFloatState getVisualScrollOffset(HomePageSection section) {
+        return switch (section.kind()) {
+            case RECOMMENDED -> recommendedVisualScrollOffset;
+            case BOOKMARKS -> bookmarksVisualScrollOffset;
+            case HISTORY -> historyVisualScrollOffset;
+        };
+    }
+
+    private void updateVisualScrollOffsets() {
+        recommendedVisualScrollOffset.updateTowards(recommendedScrollOffset, 28f, 0.25f, 0.01f, 256f);
+        bookmarksVisualScrollOffset.updateTowards(bookmarksScrollOffset, 28f, 0.25f, 0.01f, 256f);
+        historyVisualScrollOffset.updateTowards(historyScrollOffset, 28f, 0.25f, 0.01f, 256f);
+    }
+
     private void pushScissor(int x, int y, int width, int height) {
         int scale = DisplayScale.scaleFactor();
         Minecraft mc = Minecraft.getMinecraft();
@@ -316,7 +345,7 @@ public class HomePageController {
             return null;
         }
         int contentY = metrics.contentY();
-        int localY = mouseY - contentY + getScrollOffset(target.section());
+        int localY = mouseY - contentY + getVisualScrollOffset(target.section()).rounded();
         if (localY < 0) {
             return null;
         }
@@ -359,7 +388,8 @@ public class HomePageController {
             metrics.visibleHeight() * metrics.visibleHeight()
                 / Math.max(metrics.visibleHeight(), computeContentHeight(section)));
         int travel = Math.max(1, metrics.visibleHeight() - thumbHeight);
-        int thumbY = metrics.contentY() + (int) ((long) getScrollOffset(section) * travel / Math.max(1, maxScroll));
+        int thumbY = metrics.contentY()
+            + (int) ((long) getVisualScrollOffset(section).rounded() * travel / Math.max(1, maxScroll));
         if (mouseY >= thumbY && mouseY < thumbY + thumbHeight) {
             return mouseY - thumbY;
         }
@@ -402,10 +432,20 @@ public class HomePageController {
         if (text == null || text.isEmpty()) {
             return;
         }
-        int textWidth = font.getStringWidth(text);
-        int textX = rect.x() + (rect.width() - textWidth) / 2;
-        int textY = rect.y() + (rect.height() - font.FONT_HEIGHT) / 2;
-        font.drawString(text, textX, textY, EMPTY_COLOR, false);
+        int maxWidth = Math.max(1, rect.width() - SECTION_PADDING * 2);
+        List<String> lines = font.listFormattedStringToWidth(text, maxWidth);
+        if (lines.isEmpty()) {
+            lines = List.of(text);
+        }
+        int lineHeight = font.FONT_HEIGHT + 1;
+        int textHeight = lines.size() * lineHeight - 1;
+        int textY = rect.y() + Math.max(0, (rect.height() - textHeight) / 2);
+        for (String line : lines) {
+            int textWidth = font.getStringWidth(line);
+            int textX = rect.x() + (rect.width() - textWidth) / 2;
+            font.drawString(line, textX, textY, EMPTY_COLOR, false);
+            textY += lineHeight;
+        }
     }
 
     private String trimToWidth(FontRenderer font, String text, int maxWidth) {

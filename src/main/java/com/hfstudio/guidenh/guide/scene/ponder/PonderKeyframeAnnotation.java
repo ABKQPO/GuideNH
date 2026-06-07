@@ -371,26 +371,24 @@ public class PonderKeyframeAnnotation {
     }
 
     public int parseHighlightColor(int defaultArgb) {
-        if (highlightColor == null || highlightColor.isEmpty()) {
-            return defaultArgb;
-        }
-        try {
-            return (int) Long.parseLong(
-                highlightColor.replace("0x", "")
-                    .replace("0X", ""),
-                16);
-        } catch (NumberFormatException ignored) {
-            return defaultArgb;
-        }
+        return parseHexColor(highlightColor, defaultArgb);
     }
 
     public int parseColor(int defaultArgb) {
-        if (color == null || color.isEmpty()) {
+        return parseHexColor(color, defaultArgb);
+    }
+
+    private static int parseHexColor(@Nullable String colorLiteral, int defaultArgb) {
+        if (colorLiteral == null || colorLiteral.isEmpty()) {
             return defaultArgb;
+        }
+        String normalized = colorLiteral;
+        if (normalized.startsWith("ox") || normalized.startsWith("OX")) {
+            normalized = "0x" + normalized.substring(2);
         }
         try {
             return (int) Long.parseLong(
-                color.replace("0x", "")
+                normalized.replace("0x", "")
                     .replace("0X", ""),
                 16);
         } catch (NumberFormatException ignored) {

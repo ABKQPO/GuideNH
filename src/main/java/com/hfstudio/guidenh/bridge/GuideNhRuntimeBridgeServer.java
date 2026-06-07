@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.bridge.preview.ItemPreviewCache;
 import com.hfstudio.guidenh.bridge.preview.ItemPreviewSearchService;
 import com.hfstudio.guidenh.bridge.preview.ItemPreviewService;
@@ -27,6 +26,7 @@ import com.hfstudio.guidenh.bridge.security.BridgeTokenAuthenticator;
 import com.hfstudio.guidenh.bridge.semantic.SemanticProviderRegistry;
 import com.hfstudio.guidenh.bridge.semantic.providers.RuntimeSemanticProviders;
 import com.hfstudio.guidenh.bridge.transport.RuntimeBridgeConnection;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideNhRuntimeBridgeServer {
 
@@ -63,15 +63,17 @@ public class GuideNhRuntimeBridgeServer {
             return;
         }
         try {
-            GuideNH.LOG.info("Binding GuideNH runtime bridge server to {}:{}", settings.getHost(), settings.getPort());
+            GuideDebugLog
+                .infoAlways("Binding GuideNH runtime bridge server to {}:{}", settings.getHost(), settings.getPort());
             serverSocket = new ServerSocket();
             serverSocket.bind(new InetSocketAddress(settings.getHost(), settings.getPort()));
             executor.execute(this::acceptConnections);
-            GuideNH.LOG.info("GuideNH runtime bridge started at ws://{}:{}", settings.getHost(), settings.getPort());
+            GuideDebugLog
+                .infoAlways("GuideNH runtime bridge started at ws://{}:{}", settings.getHost(), settings.getPort());
         } catch (IOException e) {
             running.set(false);
             closeServerSocket();
-            GuideNH.LOG.warn("Failed to start GuideNH runtime bridge", e);
+            GuideDebugLog.warnAlways("Failed to start GuideNH runtime bridge", e);
         }
     }
 
@@ -79,7 +81,7 @@ public class GuideNhRuntimeBridgeServer {
         if (!running.getAndSet(false)) {
             return;
         }
-        GuideNH.LOG.info("GuideNH runtime bridge server stopping");
+        GuideDebugLog.infoAlways("GuideNH runtime bridge server stopping");
         closeServerSocket();
         List<RuntimeBridgeConnection> snapshot;
         synchronized (connections) {
@@ -101,9 +103,9 @@ public class GuideNhRuntimeBridgeServer {
             try {
                 Socket socket = serverSocket.accept();
                 String remoteAddress = describeRemote(socket);
-                GuideNH.LOG.info("GuideNH runtime bridge accepted socket from {}", remoteAddress);
+                GuideDebugLog.infoAlways("GuideNH runtime bridge accepted socket from {}", remoteAddress);
                 if (connections.size() >= limits.getMaxConnections()) {
-                    GuideNH.LOG.warn(
+                    GuideDebugLog.warnAlways(
                         "GuideNH runtime bridge rejected socket from {} because maxConnections={} has been reached",
                         remoteAddress,
                         limits.getMaxConnections());
@@ -119,14 +121,14 @@ public class GuideNhRuntimeBridgeServer {
                     limits,
                     this::handleClosedConnection);
                 connections.add(connection);
-                GuideNH.LOG.info(
+                GuideDebugLog.infoAlways(
                     "GuideNH runtime bridge starting session for {}. activeConnections={}",
                     remoteAddress,
                     connections.size());
                 executor.execute(connection);
             } catch (IOException e) {
                 if (running.get()) {
-                    GuideNH.LOG.warn("GuideNH runtime bridge accept loop failed", e);
+                    GuideDebugLog.warnAlways("GuideNH runtime bridge accept loop failed", e);
                 }
             }
         }
@@ -149,7 +151,7 @@ public class GuideNhRuntimeBridgeServer {
 
     private void handleClosedConnection(RuntimeBridgeConnection connection) {
         connections.remove(connection);
-        GuideNH.LOG.info(
+        GuideDebugLog.infoAlways(
             "GuideNH runtime bridge session closed for {}. activeConnections={}",
             connection.getRemoteAddress(),
             connections.size());

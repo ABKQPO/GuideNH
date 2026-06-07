@@ -58,3 +58,5 @@ layout.json
 /src/test
 /docs
 /gradle-user
+.claude/
+CLAUDE.md

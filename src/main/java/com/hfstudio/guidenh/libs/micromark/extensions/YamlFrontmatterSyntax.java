@@ -88,9 +88,11 @@ public class YamlFrontmatterSyntax {
             }
 
             State lineEnd(int code) {
-                // Require a closing fence.
+                // EOF without closing fence: emit partial yaml node so the AST
+                // is always available for autocomplete.
                 if (code == Codes.eof) {
-                    return nok.step(code);
+                    effects.exit(TYPE);
+                    return ok.step(code);
                 }
 
                 // Can only be an eol.

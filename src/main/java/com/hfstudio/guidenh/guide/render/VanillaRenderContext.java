@@ -33,13 +33,11 @@ public class VanillaRenderContext implements RenderContext {
 
     private final Deque<LytRect> scissorStack = new ArrayDeque<>();
 
-    // Reuse the style buffer across text segments.
-    private final StringBuilder textStyleBuffer = new StringBuilder(32);
-
     private int documentOriginX = 0;
     private int documentOriginY = 0;
 
     private int scrollOffsetY = 0;
+    private float preciseScrollOffsetY = 0f;
 
     private float zoom = 1.0f;
 
@@ -74,6 +72,12 @@ public class VanillaRenderContext implements RenderContext {
 
     public void setScrollOffsetY(int scrollOffsetY) {
         this.scrollOffsetY = scrollOffsetY;
+        this.preciseScrollOffsetY = scrollOffsetY;
+    }
+
+    public void setPreciseScrollOffsetY(float scrollOffsetY) {
+        this.preciseScrollOffsetY = scrollOffsetY;
+        this.scrollOffsetY = Math.round(scrollOffsetY);
     }
 
     @Override
@@ -87,6 +91,15 @@ public class VanillaRenderContext implements RenderContext {
 
     public void setZoom(float zoom) {
         this.zoom = zoom > 0f ? zoom : 1.0f;
+    }
+
+    @Override
+    public LytRect toScreenRect(LytRect rect) {
+        return new LytRect(
+            Math.round(rect.x() * zoom) + documentOriginX,
+            Math.round((rect.y() - preciseScrollOffsetY) * zoom) + documentOriginY,
+            Math.max(1, Math.round(rect.width() * zoom)),
+            Math.max(1, Math.round(rect.height() * zoom)));
     }
 
     public int getScreenHeight() {
@@ -146,24 +159,81 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
+    public void fillRoundedRect(LytRect rect, int argbColor, int radius) {
+        int clampedRadius = Math.max(0, Math.min(radius, Math.min(rect.width(), rect.height()) / 2));
+        if (clampedRadius == 0) {
+            fillRect(rect, argbColor);
+            return;
+        }
+        fillRect(rect.x() + clampedRadius, rect.y(), rect.width() - clampedRadius * 2, rect.height(), argbColor);
+        fillRect(rect.x(), rect.y() + clampedRadius, clampedRadius, rect.height() - clampedRadius * 2, argbColor);
+        fillRect(
+            rect.right() - clampedRadius,
+            rect.y() + clampedRadius,
+            clampedRadius,
+            rect.height() - clampedRadius * 2,
+            argbColor);
+        fillCircle(rect.x() + clampedRadius, rect.y() + clampedRadius, clampedRadius, argbColor);
+        fillCircle(rect.right() - clampedRadius, rect.y() + clampedRadius, clampedRadius, argbColor);
+        fillCircle(rect.x() + clampedRadius, rect.bottom() - clampedRadius, clampedRadius, argbColor);
+        fillCircle(rect.right() - clampedRadius, rect.bottom() - clampedRadius, clampedRadius, argbColor);
+    }
+
+    @Override
+    public void drawRoundedBorder(LytRect rect, int argbColor, int thickness, int radius) {
+        int clampedRadius = Math.max(0, Math.min(radius, Math.min(rect.width(), rect.height()) / 2));
+        if (clampedRadius == 0) {
+            drawBorder(rect, argbColor, thickness);
+            return;
+        }
+        fillRect(rect.x() + clampedRadius, rect.y(), rect.width() - clampedRadius * 2, thickness, argbColor);
+        fillRect(
+            rect.x() + clampedRadius,
+            rect.bottom() - thickness,
+            rect.width() - clampedRadius * 2,
+            thickness,
+            argbColor);
+        fillRect(rect.x(), rect.y() + clampedRadius, thickness, rect.height() - clampedRadius * 2, argbColor);
+        fillRect(
+            rect.right() - thickness,
+            rect.y() + clampedRadius,
+            thickness,
+            rect.height() - clampedRadius * 2,
+            argbColor);
+        drawCircleOutline(
+            rect.x() + clampedRadius,
+            rect.y() + clampedRadius,
+            clampedRadius - thickness * 0.5f,
+            thickness,
+            argbColor);
+        drawCircleOutline(
+            rect.right() - clampedRadius,
+            rect.y() + clampedRadius,
+            clampedRadius - thickness * 0.5f,
+            thickness,
+            argbColor);
+        drawCircleOutline(
+            rect.x() + clampedRadius,
+            rect.bottom() - clampedRadius,
+            clampedRadius - thickness * 0.5f,
+            thickness,
+            argbColor);
+        drawCircleOutline(
+            rect.right() - clampedRadius,
+            rect.bottom() - clampedRadius,
+            clampedRadius - thickness * 0.5f,
+            thickness,
+            argbColor);
+    }
+
+    @Override
     public void drawText(String text, int x, int y, ResolvedTextStyle style) {
         if (text == null || text.isEmpty()) return;
         int color = resolveColor(style.color());
         if ((color >>> 24) == 0) {
             color |= 0xFF000000;
         }
-
-        StringBuilder sb = null;
-        if (style.bold() || style.italic() || style.strikethrough() || style.obfuscated()) {
-            sb = textStyleBuffer;
-            sb.setLength(0);
-            if (style.bold()) sb.append("\u00a7l");
-            if (style.italic()) sb.append("\u00a7o");
-            if (style.strikethrough()) sb.append("\u00a7m");
-            if (style.obfuscated()) sb.append("\u00a7k");
-        }
-        String drawn = sb != null ? sb.append(text)
-            .toString() : text;
+        String drawn = GuideFontCompat.prepareRenderedText(text, style);
 
         float scale = style.fontScale();
         boolean scaled = Math.abs(scale - 1f) > 1e-4f;
@@ -183,69 +253,57 @@ public class VanillaRenderContext implements RenderContext {
             fontRenderer.drawString(drawn, x, y, color);
         }
 
-        int decoratedWidth = -1;
+        boolean hasUnderline = style.underlined();
+        boolean hasWavyUnderline = style.wavyUnderline();
+        boolean hasDottedUnderline = style.dottedUnderline();
+        if (!hasUnderline && !hasWavyUnderline && !hasDottedUnderline) {
+            return;
+        }
+
+        int scaledFontHeight = Math.round(fontRenderer.FONT_HEIGHT * scale);
+        int decorationY = y + scaledFontHeight - 1;
+        int decoratedWidth = getStringWidth(text, style);
         if (style.underlined()) {
-            decoratedWidth = Math.round(fontRenderer.getStringWidth(drawn) * scale);
-            int uy = y + Math.round((fontRenderer.FONT_HEIGHT) * scale) - 1;
-            Gui.drawRect(x, uy, x + decoratedWidth, uy + 1, color);
+            Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
         }
         if (style.wavyUnderline()) {
-            int w = decoratedWidth >= 0 ? decoratedWidth : Math.round(fontRenderer.getStringWidth(drawn) * scale);
-            int baseY = y + Math.round((fontRenderer.FONT_HEIGHT) * scale) - 1;
+            int w = decoratedWidth;
             // Draw a 2px-tall sine-like zig-zag using 1x1 rects: pattern of 4 px period.
             for (int i = 0; i < w; i++) {
                 int phase = i & 3; // 0,1,2,3
                 int dy = (phase == 0 || phase == 2) ? 0 : (phase == 1 ? -1 : 1);
-                Gui.drawRect(x + i, baseY + dy, x + i + 1, baseY + dy + 1, color);
+                Gui.drawRect(x + i, decorationY + dy, x + i + 1, decorationY + dy + 1, color);
             }
         }
         if (style.dottedUnderline()) {
-            int dy = y + Math.round((fontRenderer.FONT_HEIGHT) * scale) - 1;
             // Center a single 2x2 dot under each rendered character cell.
             int cursor = 0;
+            boolean bold = style.bold();
+            boolean visibleGlyphSeen = false;
             int len = drawn.length();
             for (int i = 0; i < len; i++) {
                 char c = drawn.charAt(i);
-                if (c == '\u00a7' && i + 1 < len) {
+                if (GuideFontCompat.isFormattingCodeStart(drawn, i)) {
+                    bold = GuideFontCompat.determineBold(bold, drawn.charAt(i + 1));
                     i++;
                     continue;
                 }
-                int cw = Math.round(fontRenderer.getCharWidth(c) * scale);
+                float advance = GuideFontCompat.getRenderedAdvance(fontRenderer, c, bold, visibleGlyphSeen);
+                int cw = Math.round(advance * scale);
                 if (cw <= 0) {
-                    cursor += cw;
                     continue;
                 }
                 int dotX = x + cursor + Math.max(0, (cw - 2) / 2);
-                Gui.drawRect(dotX, dy, dotX + 2, dy + 2, color);
+                Gui.drawRect(dotX, decorationY, dotX + 2, decorationY + 2, color);
                 cursor += cw;
+                visibleGlyphSeen = true;
             }
         }
     }
 
     @Override
     public int getStringWidth(String text, ResolvedTextStyle style) {
-        int raw = fontRenderer.getStringWidth(text);
-        if (style != null && style.bold() && text != null) {
-            raw += countRenderedChars(text);
-        }
-        if (style != null && style.italic() && text != null && !text.isEmpty()) {
-            raw += 2;
-        }
-        float scale = style != null ? style.fontScale() : 1f;
-        return Math.round(raw * scale);
-    }
-
-    public static int countRenderedChars(String text) {
-        int n = 0;
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == '\u00a7' && i + 1 < text.length()) {
-                i++;
-                continue;
-            }
-            n++;
-        }
-        return n;
+        return GuideFontCompat.getStringWidth(fontRenderer, text, style);
     }
 
     @Override
@@ -315,6 +373,51 @@ public class VanillaRenderContext implements RenderContext {
         tess.addVertexWithUV(x + width, y, 0, (u + width) / texW, v / texH);
         tess.addVertexWithUV(x, y, 0, u / texW, v / texH);
         tess.draw();
+    }
+
+    @Override
+    public void fillIcon(LytRect rect, GuiSprite sprite, ColorValue color) {
+        if (sprite == null || rect == null) {
+            return;
+        }
+        int resolved = resolveColor(color);
+        int a = (resolved >>> 24) & 0xFF;
+        int r = (resolved >>> 16) & 0xFF;
+        int g = (resolved >>> 8) & 0xFF;
+        int b = resolved & 0xFF;
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
+        try {
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
+            Minecraft.getMinecraft()
+                .getTextureManager()
+                .bindTexture(sprite.getTexture());
+            var tess = Tessellator.instance;
+            float texW = sprite.getTexWidth();
+            float texH = sprite.getTexHeight();
+            int x = rect.x();
+            int y = rect.y();
+            int u = sprite.getU();
+            int v = sprite.getV();
+            int spriteWidth = sprite.getWidth();
+            int spriteHeight = sprite.getHeight();
+            tess.startDrawingQuads();
+            tess.addVertexWithUV(x, y + spriteHeight, 0, u / texW, (v + spriteHeight) / texH);
+            tess.addVertexWithUV(
+                x + spriteWidth,
+                y + spriteHeight,
+                0,
+                (u + spriteWidth) / texW,
+                (v + spriteHeight) / texH);
+            tess.addVertexWithUV(x + spriteWidth, y, 0, (u + spriteWidth) / texW, v / texH);
+            tess.addVertexWithUV(x, y, 0, u / texW, v / texH);
+            tess.draw();
+        } finally {
+            GL11.glColor4f(1f, 1f, 1f, 1f);
+            GL11.glPopAttrib();
+        }
     }
 
     @Override

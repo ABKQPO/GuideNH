@@ -9,12 +9,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.logging.log4j.Logger;
-
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import io.methvin.watcher.DirectoryChangeEvent;
@@ -147,17 +145,12 @@ public class GuideDevelopmentResourcePackWatcher implements AutoCloseable {
     }
 
     private static void logInfo(String message, Object... args) {
-        Logger logger = FMLLog.getLogger();
-        if (logger != null && ModConfig.debug.enableDebugMode) {
-            logger.info("[GuideNH] [GuideDevelopmentResourcePackWatcher] " + message, args);
-        }
+        GuideDebugLog
+            .info(ModConfig.debug.enableDebugMode, "[GuideNH] [GuideDevelopmentResourcePackWatcher] " + message, args);
     }
 
     private static void logError(String message, Object arg, Throwable throwable) {
-        Logger logger = FMLLog.getLogger();
-        if (logger != null) {
-            logger.error("[GuideNH] [GuideDevelopmentResourcePackWatcher] " + message, arg, throwable);
-        }
+        GuideDebugLog.error("[GuideNH] [GuideDevelopmentResourcePackWatcher] " + message, arg, throwable);
     }
 
     private final class Listener implements DirectoryChangeListener {
@@ -176,11 +169,8 @@ public class GuideDevelopmentResourcePackWatcher implements AutoCloseable {
 
         @Override
         public void onException(Exception e) {
-            Logger logger = FMLLog.getLogger();
-            if (logger != null) {
-                logger
-                    .error("[GuideNH] [GuideDevelopmentResourcePackWatcher] Failed watching development resources", e);
-            }
+            GuideDebugLog
+                .error("[GuideNH] [GuideDevelopmentResourcePackWatcher] Failed watching development resources", e);
         }
     }
 }

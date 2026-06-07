@@ -265,7 +265,7 @@ Markdown：
 
 ## 折叠详情
 
-`<details>` 支持 `width`、`height`、`wrap`、`align`。`<summary>` 支持行内标签，正文则可以混排普通文本与任意运行时块。
+`<details>` 支持 `width`、`height`、`wrap`、`align`。`<summary>` 支持行内标签，正文则可以混排普通文本与任意运行时块。设置高度时，标题和外框保持固定，只有正文区域滚动。
 
 <details open width="220" height="150" wrap="square" align="right">
 <summary>混合运行时内容 <ItemImage id="minecraft:diamond" /></summary>
@@ -283,6 +283,34 @@ Markdown：
 </details>
 
 当使用 `wrap="square"` 时，块外文本仍应继续围绕它排版。
+
+## 内容标签页
+
+`<ContentTabs>` 可以把可替代的富内容放进同一组标签页中。每个子节点都必须是直接的
+`<Tab title="...">`。默认选中项可以通过 `default` 或 `defaultIndex` 指定，`color`
+可以覆盖类似引用块的强调线与高亮颜色，容器本身还支持通过 `title` 配合
+`icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 渲染一个可选的标记式标题行。
+
+<ContentTabs
+  title="构建方案"
+  iconItem="minecraft:crafting_table"
+  color="#4f8cff"
+  default="场景"
+>
+  <Tab title="代码">
+    ```java
+    System.out.println("Hello GuideNH");
+    ```
+  </Tab>
+  <Tab title="场景">
+    <GameScene width="180" height="120">
+      <Block id="minecraft:crafting_table" />
+    </GameScene>
+  </Tab>
+  <Tab title="公式">
+    $$a^2 + b^2 = c^2$$
+  </Tab>
+</ContentTabs>
 
 ## 代码块
 

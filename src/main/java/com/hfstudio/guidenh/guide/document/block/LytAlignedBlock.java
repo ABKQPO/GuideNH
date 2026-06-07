@@ -27,7 +27,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
  */
 public class LytAlignedBlock extends LytBlock {
 
-    private final LytBlock inner;
+    private LytBlock inner;
     private final ContentAlign align;
 
     /**
@@ -46,6 +46,16 @@ public class LytAlignedBlock extends LytBlock {
 
     public ContentAlign getAlign() {
         return align;
+    }
+
+    @Override
+    public void replaceChild(LytNode oldChild, LytNode newChild) {
+        if (oldChild != inner || !(newChild instanceof LytBlock)) return;
+        inner.parent = null;
+        inner = (LytBlock) newChild;
+        inner.parent = this;
+        LytDocument doc = getDocument();
+        if (doc != null) doc.invalidateLayout();
     }
 
     @Override

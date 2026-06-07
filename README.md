@@ -22,7 +22,7 @@
 ## **Features**
 
 * Markdown pages with YAML frontmatter, navigation metadata, categories, anchors, tables, footnotes, Mermaid, LaTeX, charts, and highlighted text.
-* MDX-style runtime tags such as `<ItemLink>`, `<ItemImage>`, `<Recipe>`, `<GameScene>`, `<BlockStats>`, `<Tooltip>`, `<KeyBind>`, and `<PlayerName>`.
+* MDX-style runtime tags such as `<ItemLink>`, `<ItemImage>`, `<Recipe>`, `<GameScene>`, `<ContentTabs>`, `<BlockStats>`, `<Tooltip>`, `<KeyBind>`, and `<PlayerName>`.
 * Interactive 3D GameScene previews with block/entity placement, StructureLib import, Ponder playback, layer sliders, grid controls, annotations, and block statistics.
 * Live guide editing mode with split editor/preview, toolbar actions, debounced saving, external-change handling, and resource-pack page creation.
 * Multi-language guide folders with fallback, item index navigation, search, server integration, and resource reload support.

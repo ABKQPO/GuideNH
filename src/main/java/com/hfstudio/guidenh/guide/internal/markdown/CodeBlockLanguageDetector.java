@@ -61,7 +61,7 @@ public class CodeBlockLanguageDetector {
     }
 
     private static CodeBlockLanguage require(String fenceName) {
-        CodeBlockLanguage language = CodeBlockLanguageRegistry.findByFenceName(fenceName);
+        CodeBlockLanguage language = CodeBlockLanguageRegistry.findById(fenceName);
         return language != null ? language : PLAIN_TEXT;
     }
 

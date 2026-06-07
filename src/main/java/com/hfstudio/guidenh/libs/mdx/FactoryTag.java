@@ -3,14 +3,13 @@ package com.hfstudio.guidenh.libs.mdx;
 import static com.hfstudio.guidenh.libs.mdx.EcmaScriptIdentifiers.isCont;
 import static com.hfstudio.guidenh.libs.mdx.EcmaScriptIdentifiers.isStart;
 
-import java.util.Locale;
-
 import com.hfstudio.guidenh.libs.micromark.Assert;
 import com.hfstudio.guidenh.libs.micromark.CharUtil;
 import com.hfstudio.guidenh.libs.micromark.Construct;
-import com.hfstudio.guidenh.libs.micromark.ParseException;
 import com.hfstudio.guidenh.libs.micromark.Point;
 import com.hfstudio.guidenh.libs.micromark.State;
+import com.hfstudio.guidenh.libs.micromark.Token;
+import com.hfstudio.guidenh.libs.micromark.TokenProperty;
 import com.hfstudio.guidenh.libs.micromark.TokenizeContext;
 import com.hfstudio.guidenh.libs.micromark.Tokenizer;
 import com.hfstudio.guidenh.libs.micromark.Types;
@@ -21,6 +20,13 @@ import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
 public class FactoryTag {
 
     private FactoryTag() {}
+
+    /**
+     * Marker set on a tag token when recovery happens at EOF (where a separate
+     * mdxJsxRecovery token cannot be emitted because consume(EOF) must be the
+     * last event). Read by {@code MdxMdastExtension.exitMdxJsxTag}.
+     */
+    public static final TokenProperty<Boolean> RECOVERED_AT_EOF = new TokenProperty<>();
 
     public static final Construct lazyLineEnd;
 
@@ -47,11 +53,12 @@ public class FactoryTag {
             State returnState;
             Integer marker;
             Point startPoint;
+            Token tagToken;
 
             State start(int code) {
                 Assert.check(code == Codes.lessThan, "expected `<`");
                 startPoint = context.now();
-                effects.enter(tagType);
+                tagToken = effects.enter(tagType);
                 effects.enter(tagMarkerType);
                 effects.consume(code);
                 effects.exit(tagMarkerType);
@@ -135,11 +142,7 @@ public class FactoryTag {
                     return optionalEsWhitespace(code);
                 }
 
-                return crash(
-                    code,
-                    "in name",
-                    "a name character such as letters, digits, `$`, or `_`; whitespace before attributes; or the end of the tag"
-                        + (code == Codes.atSign ? " (note: to create a link in MDX, use `[text](url)`)" : ""));
+                return recover(code, tagNamePrimaryType, tagNameType);
             }
 
             // After a name.
@@ -170,10 +173,7 @@ public class FactoryTag {
                     return beforeAttribute(code);
                 }
 
-                return crash(
-                    code,
-                    "after name",
-                    "a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag");
+                return recover(code, tagNameType);
             }
 
             // We’ve seen a `.` and are expecting a member name.
@@ -185,10 +185,7 @@ public class FactoryTag {
                     return this::memberName;
                 }
 
-                return crash(
-                    code,
-                    "before member name",
-                    "a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag");
+                return recover(code, tagNameType);
             }
 
             // Inside the member name.
@@ -210,11 +207,7 @@ public class FactoryTag {
                     return optionalEsWhitespace(code);
                 }
 
-                return crash(
-                    code,
-                    "in member name",
-                    "a name character such as letters, digits, `$`, or `_`; whitespace before attributes; or the end of the tag"
-                        + (code == Codes.atSign ? " (note: to create a link in MDX, use `[text](url)`)" : ""));
+                return recover(code, tagNameMemberType, tagNameType);
             }
 
             // After a member name: this is the same as `afterPrimaryName` but we don’t
@@ -237,10 +230,7 @@ public class FactoryTag {
                     return beforeAttribute(code);
                 }
 
-                return crash(
-                    code,
-                    "after member name",
-                    "a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag");
+                return recover(code, tagNameType);
             }
 
             // We’ve seen a `:`, and are expecting a local name.
@@ -252,13 +242,7 @@ public class FactoryTag {
                     return this::localName;
                 }
 
-                return crash(
-                    code,
-                    "before local name",
-                    "a character that can start a name, such as a letter, `$`, or `_`"
-                        + (code == Codes.plusSign || (code > Codes.dot && code < Codes.colon) /* `/` - `9` */
-                            ? " (note: to create a link in MDX, use `[text](url)`)"
-                            : ""));
+                return recover(code, tagNameType);
             }
 
             // Inside the local name.
@@ -279,10 +263,7 @@ public class FactoryTag {
                     return optionalEsWhitespace(code);
                 }
 
-                return crash(
-                    code,
-                    "in local name",
-                    "a name character such as letters, digits, `$`, or `_`; whitespace before attributes; or the end of the tag");
+                return recover(code, tagNameLocalType, tagNameType);
             }
 
             // After a local name: this is the same as `afterPrimaryName` but we don’t
@@ -296,10 +277,7 @@ public class FactoryTag {
                     return beforeAttribute(code);
                 }
 
-                return crash(
-                    code,
-                    "after local name",
-                    "a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag");
+                return recover(code, tagNameType);
             }
 
             State beforeAttribute(int code) {
@@ -342,10 +320,7 @@ public class FactoryTag {
                     return this::attributePrimaryName;
                 }
 
-                return crash(
-                    code,
-                    "before attribute name",
-                    "a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag");
+                return recover(code);
             }
 
             // At the start of an attribute expression.
@@ -374,10 +349,7 @@ public class FactoryTag {
                     return optionalEsWhitespace(code);
                 }
 
-                return crash(
-                    code,
-                    "in attribute name",
-                    "an attribute name character such as letters, digits, `$`, or `_`; `=` to initialize a value; whitespace before attributes; or the end of the tag");
+                return recover(code, tagAttributeNamePrimaryType, tagAttributeNameType, tagAttributeType);
             }
 
             // After an attribute name, probably finding an equals.
@@ -413,10 +385,7 @@ public class FactoryTag {
                     return optionalEsWhitespace(code);
                 }
 
-                return crash(
-                    code,
-                    "after attribute name",
-                    "a character that can start an attribute name, such as a letter, `$`, or `_`; `=` to initialize a value; or the end of the tag");
+                return recover(code, tagAttributeNameType, tagAttributeType);
             }
 
             // We’ve seen a `:`, and are expecting a local name.
@@ -428,10 +397,7 @@ public class FactoryTag {
                     return this::attributeLocalName;
                 }
 
-                return crash(
-                    code,
-                    "before local attribute name",
-                    "a character that can start an attribute name, such as a letter, `$`, or `_`; `=` to initialize a value; or the end of the tag");
+                return recover(code, tagAttributeNameType, tagAttributeType);
             }
 
             // In the local attribute name.
@@ -454,10 +420,7 @@ public class FactoryTag {
                     return optionalEsWhitespace(code);
                 }
 
-                return crash(
-                    code,
-                    "in local attribute name",
-                    "an attribute name character such as letters, digits, `$`, or `_`; `=` to initialize a value; whitespace before attributes; or the end of the tag");
+                return recover(code, tagAttributeNameLocalType, tagAttributeNameType, tagAttributeType);
             }
 
             // After a local attribute name, expecting an equals.
@@ -479,10 +442,7 @@ public class FactoryTag {
                     return beforeAttribute(code);
                 }
 
-                return crash(
-                    code,
-                    "after local attribute name",
-                    "a character that can start an attribute name, such as a letter, `$`, or `_`; `=` to initialize a value; or the end of the tag");
+                return recover(code, tagAttributeType);
             }
 
             // After an attribute value initializer, expecting quotes and such.
@@ -513,12 +473,7 @@ public class FactoryTag {
                         .step(code);
                 }
 
-                return crash(
-                    code,
-                    "before attribute value",
-                    "a character that can start an attribute value, such as `\"`, `'`, or `{`" + (code == Codes.lessThan
-                        ? " (note: to use an element or fragment as a prop value in MDX, use `{<element />}`)"
-                        : ""));
+                return recover(code, tagAttributeType);
             }
 
             State afterAttributeValueExpression(int code) {
@@ -532,10 +487,7 @@ public class FactoryTag {
                 Assert.check(marker != null, "expected `marker` to be defined");
 
                 if (code == Codes.eof) {
-                    crash(
-                        code,
-                        "in attribute value",
-                        "a corresponding closing quote `" + (char) marker.intValue() + '`');
+                    return recover(code, tagAttributeValueLiteralType, tagAttributeType);
                 }
 
                 if (code == marker) {
@@ -577,12 +529,7 @@ public class FactoryTag {
                     return tagEnd(code);
                 }
 
-                return crash(
-                    code,
-                    "after self-closing slash",
-                    "`>` to end the tag" + (code == Codes.asterisk || code == Codes.slash
-                        ? " (note: JS comments in JSX tags are not supported in MDX)"
-                        : ""));
+                return recover(code);
             }
 
             // At a `>`.
@@ -598,21 +545,11 @@ public class FactoryTag {
             // Optionally start whitespace.
             State optionalEsWhitespace(int code) {
                 if (CharUtil.markdownLineEnding(code)) {
-                    if (allowLazy) {
-                        effects.enter(Types.lineEnding);
-                        effects.consume(code);
-                        effects.exit(Types.lineEnding);
-                        return FactorySpace
-                            .create(effects, this::optionalEsWhitespace, Types.linePrefix, Constants.tabSize);
-                    }
-
-                    return effects.attempt
-                        .hook(
-                            lazyLineEnd,
-                            FactorySpace
-                                .create(effects, this::optionalEsWhitespace, Types.linePrefix, Constants.tabSize),
-                            this::crashEol)
-                        .step(code);
+                    effects.enter(Types.lineEnding);
+                    effects.consume(code);
+                    effects.exit(Types.lineEnding);
+                    return FactorySpace
+                        .create(effects, this::optionalEsWhitespace, Types.linePrefix, Constants.tabSize);
                 }
 
                 if (CharUtil.markdownSpace(code) || CharUtil.unicodeWhitespace(code)) {
@@ -635,27 +572,34 @@ public class FactoryTag {
                 return this::optionalEsWhitespaceContinue;
             }
 
-            private State crashEol(int code) {
-                throw new ParseException(
-                    "Unexpected lazy line in container, expected line to be prefixed with `>` when in a block quote, whitespace when in a list, etc",
-                    context.now(),
-                    "micromark-extension-mdx-jsx:unexpected-eof");
-            }
-
-            // Crash at a nonconforming character.
-            private <T> T crash(int code, String at, String expect) {
-                throw new ParseException(
-                    "Unexpected " + (code == Codes.eof ? "end of file"
-                        : "character `" + (code == Codes.graveAccent ? "` ` `" : String.valueOf((char) code))
-                            + "` ("
-                            + serializeCharCode(code)
-                            + ')')
-                        + ' '
-                        + at
-                        + ", expected "
-                        + expect,
-                    context.now(),
-                    "micromark-extension-mdx-jsx:unexpected-" + (code == Codes.eof ? "eof" : "character"));
+            // Recover from a nonconforming character: exit any open tokens, close the tag,
+            // and return ok so parsing can continue. This makes the tokenizer error-tolerant
+            // so autocomplete can always query the AST even for incomplete input.
+            private State recover(int code, String... openTokens) {
+                for (String openToken : openTokens) {
+                    effects.exit(openToken);
+                }
+                if (code == Codes.eof) {
+                    // Cannot emit mdxJsxRecovery here — consume(EOF) must be the
+                    // final event (see Tokenizer.Effects.consume). Mark the tag
+                    // token directly when the tag NAME is still in progress
+                    // (openTokens > 1 means we're inside a name-content token).
+                    // When openTokens <= 1 the name is complete and the cursor
+                    // is in the attribute area — don't flag as recovered.
+                    if (openTokens.length > 1) {
+                        tagToken.set(RECOVERED_AT_EOF, true);
+                    }
+                    effects.exit(tagType);
+                    effects.consume(code);
+                } else {
+                    // Emit recovery marker BEFORE exiting the tag so the mdast
+                    // handler can set tag.recovered before the AST node is created.
+                    effects.enter("mdxJsxRecovery");
+                    effects.consume(code);
+                    effects.exit("mdxJsxRecovery");
+                    effects.exit(tagType);
+                }
+                return ok;
             }
         }
 
@@ -681,12 +625,9 @@ public class FactoryTag {
         return new StateMachine()::start;
     }
 
-    public static String serializeCharCode(int code) {
-        return String.format(Locale.ROOT, "U+%04X", code);
-    }
-
     private static boolean isPascalTagStart(int code) {
-        return code >= Codes.uppercaseA && code <= Codes.uppercaseZ;
+        return (code >= Codes.uppercaseA && code <= Codes.uppercaseZ)
+            || (code >= Codes.lowercaseA && code <= Codes.lowercaseZ);
     }
 
 }

@@ -9,8 +9,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
-
-import cpw.mods.fml.common.FMLLog;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSitePageAssetExporter {
 
@@ -40,12 +39,11 @@ public class GuideSitePageAssetExporter {
         try {
             uri = URI.create(rawUrl);
         } catch (Exception e) {
-            FMLLog.getLogger()
-                .debug(
-                    "[GuideNH] [GuideSitePageAssetExporter] Failed to parse image source {} from page {}",
-                    rawUrl,
-                    currentPageId,
-                    e);
+            GuideDebugLog.error(
+                "[GuideNH] [GuideSitePageAssetExporter] Failed to parse image source {} from page {}",
+                rawUrl,
+                currentPageId,
+                e);
             uri = null;
         }
         if (uri != null && uri.isAbsolute()) {
@@ -60,12 +58,11 @@ public class GuideSitePageAssetExporter {
             String exportedPath = exportResource(imageId);
             return exportedPath.isEmpty() ? rawUrl : exportedPath;
         } catch (Exception e) {
-            FMLLog.getLogger()
-                .debug(
-                    "[GuideNH] [GuideSitePageAssetExporter] Failed to resolve image source {} from page {}",
-                    rawUrl,
-                    currentPageId,
-                    e);
+            GuideDebugLog.debug(
+                "[GuideNH] [GuideSitePageAssetExporter] Failed to resolve image source {} from page {}",
+                rawUrl,
+                currentPageId,
+                e);
             return rawUrl;
         }
     }
@@ -104,7 +101,7 @@ public class GuideSitePageAssetExporter {
             String exportedPath = assets.writeShared(bucket, extensionOf(assetId), content);
             return ROOT_PREFIX + exportedPath;
         } catch (Exception e) {
-            FMLLog.getLogger()
+            GuideDebugLog
                 .debug("[GuideNH] [GuideSitePageAssetExporter] Failed to export {} resource {}", bucket, assetId, e);
             return "";
         }

@@ -12,6 +12,7 @@ public class MdxCommentMasker {
         int fenceLength = 0;
         int inlineCodeFence = 0;
         boolean inComment = false;
+        boolean closeBracePending = false;
 
         int lineStart = 0;
         while (lineStart <= chars.length) {
@@ -37,6 +38,19 @@ public class MdxCommentMasker {
                 int i = lineStart;
                 while (i < lineEnd) {
                     if (inComment) {
+                        if (closeBracePending) {
+                            int closeBrace = findClosingBraceAtLineStart(chars, lineStart, lineEnd);
+                            if (closeBrace != -1) {
+                                maskRange(chars, lineStart, closeBrace + 1);
+                                inComment = false;
+                                closeBracePending = false;
+                                i = closeBrace + 1;
+                                continue;
+                            }
+                            maskRange(chars, lineStart, lineEnd);
+                            i = lineEnd;
+                            continue;
+                        }
                         int closeEnd = findCommentClose(chars, i, lineEnd);
                         if (closeEnd != -1) {
                             maskRange(chars, i, closeEnd + 1);
@@ -44,7 +58,13 @@ public class MdxCommentMasker {
                             i = closeEnd + 1;
                             continue;
                         }
-                        maskRange(chars, i, lineEnd);
+                        int starSlash = findStarSlash(chars, i, lineEnd);
+                        if (starSlash != -1) {
+                            closeBracePending = true;
+                            maskRange(chars, i, starSlash + 2);
+                        } else {
+                            maskRange(chars, i, lineEnd);
+                        }
                         i = lineEnd;
                         continue;
                     }
@@ -101,6 +121,26 @@ public class MdxCommentMasker {
             if (braceIndex < lineEnd && chars[braceIndex] == '}') {
                 return braceIndex;
             }
+        }
+        return -1;
+    }
+
+    private static int findStarSlash(char[] chars, int index, int lineEnd) {
+        for (int i = index; i + 1 < lineEnd; i++) {
+            if (chars[i] == '*' && chars[i + 1] == '/') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int findClosingBraceAtLineStart(char[] chars, int lineStart, int lineEnd) {
+        int i = lineStart;
+        while (i < lineEnd && (chars[i] == ' ' || chars[i] == '\t')) {
+            i++;
+        }
+        if (i < lineEnd && chars[i] == '}') {
+            return i;
         }
         return -1;
     }

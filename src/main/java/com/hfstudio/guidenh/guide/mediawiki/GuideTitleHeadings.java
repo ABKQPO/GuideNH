@@ -4,7 +4,7 @@ import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.search.PageIndexer;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstHeading;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 public class GuideTitleHeadings {
@@ -14,7 +14,7 @@ public class GuideTitleHeadings {
     public static String resolveHeading1Title(Guide guide, ParsedGuidePage page) {
         for (Object child : page.getAstRoot()
             .children()) {
-            if (!(child instanceof MdAstHeading heading) || heading.depth != 1) {
+            if (!(child instanceof MdxJsxFlowElement el) || !"h1".equals(el.name())) {
                 continue;
             }
             StringBuilder title = new StringBuilder();
@@ -30,7 +30,7 @@ public class GuideTitleHeadings {
                     title.append(' ');
                 }
             };
-            new PageIndexer(guide, guide.getExtensions(), page.getId()).indexContent(heading.children(), sink);
+            new PageIndexer(guide, guide.getExtensions(), page.getId()).indexContent(el.children(), sink);
             if (!title.isEmpty()) {
                 return title.toString();
             }

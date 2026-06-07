@@ -46,6 +46,8 @@ Inline markdown also supports action links for sound playback:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<div>` | pass-through block wrapper | none |
+| `<ContentTabs>` | groups alternative rich content under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<Tab>` | one content panel inside `<ContentTabs>` | `title` |
 | `<details>` | collapsible runtime block | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directory-style outline with connector lines | `indent`, `gap` |
 | `<Row>` | horizontal flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
@@ -70,6 +72,11 @@ Inline markdown also supports action links for sound playback:
 | `<Recipe>`, `<RecipeFor>`, `<RecipesFor>` | recipe renderers | see [Recipes](Recipes) |
 | `<GameScene>`, `<Scene>` | 3D guide scene | see [GameScene](GameScene) |
 | `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc`, `show_tooltip` |
+
+`<ImportStructureLib>` is a `<GameScene>` child tag. It accepts `controller`, `piece`, `facing`,
+`rotation`, `flip`, and `channel` attributes, and also supports StructureLib default child tags:
+`<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
+`<GregTechActiveController>`, and `<GregTechPlaceHatches>`.
 
 ## Tag Details
 
@@ -116,6 +123,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 Creates a collapsible runtime block with a summary row. The `<summary>` line supports normal
 inline markdown/tag content, and the body can hold ordinary text plus arbitrary block tags such as
 `<BlockImage>`, `<FloatingImage>`, `<GameScene>`, tables, charts, and layout containers.
+When `height` is set, only the body scrolls; the summary row and outer frame stay fixed.
 
 ````md
 <details open width="220" height="140" wrap="square" align="right">
@@ -134,6 +142,35 @@ Attributes:
 - `height` — preferred body viewport height in pixels; overflow becomes scrollable in-game and in site export
 - `wrap` — supports the usual block embedding modes such as `square`, `tight`, and `through`
 - `align` — `left`, `center`, or `right`; when combined with a floating wrap mode, the whole details block floats
+
+### `<ContentTabs>`
+
+Groups alternative rich content under independent tabs. Only direct `<Tab>` children are valid. The container itself can also render a quote-style heading row above the tabs, matching the visual language of markdown callouts.
+
+````mdx
+<ContentTabs
+  title="Implementation Options"
+  icon="</>"
+  color="#4f8cff"
+  default="Java"
+>
+  <Tab title="Java">
+    ```java
+    System.out.println("Hello GuideNH");
+    ```
+  </Tab>
+  <Tab title="Scene">
+    <BlockImage id="minecraft:crafting_table" />
+  </Tab>
+</ContentTabs>
+````
+
+- `default` matches the first tab whose `title` matches exactly
+- `defaultIndex` is zero-based and wins over `default` when both are present
+- `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
+- `title` adds an optional plain-text heading above the tab strip
+- `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
+- invalid children or invalid defaults render visible author-facing errors
 
 ### `<FileTree>`
 

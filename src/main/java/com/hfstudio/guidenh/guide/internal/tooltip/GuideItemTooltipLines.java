@@ -9,6 +9,7 @@ import net.minecraft.util.EnumChatFormatting;
 
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
+import com.hfstudio.guidenh.integration.Mods;
 
 public class GuideItemTooltipLines {
 
@@ -26,11 +27,20 @@ public class GuideItemTooltipLines {
 
     public static List<String> build(ItemTooltip tooltip, Minecraft mc) {
         ItemStack stack = tooltip.getStack();
-        List<String> lines;
+        List<String> rawLines;
         try {
-            lines = new ArrayList<>(stack.getTooltip(mc.thePlayer, mc.gameSettings.advancedItemTooltips));
+            rawLines = new ArrayList<>(stack.getTooltip(mc.thePlayer, mc.gameSettings.advancedItemTooltips));
         } catch (Throwable t) {
-            lines = new ArrayList<>();
+            rawLines = new ArrayList<>();
+        }
+
+        List<String> lines = new ArrayList<>(rawLines.size());
+        for (String rawLine : rawLines) {
+            if (Mods.ChromaticTooltips.isModLoaded()) {
+                lines.addAll(GuideChromaticTooltipCompat.expandLine(rawLine));
+            } else {
+                lines.add(rawLine);
+            }
         }
 
         if (lines.isEmpty()) {

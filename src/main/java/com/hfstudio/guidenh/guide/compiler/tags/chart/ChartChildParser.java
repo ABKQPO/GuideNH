@@ -3,9 +3,6 @@ package com.hfstudio.guidenh.guide.compiler.tags.chart;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
@@ -16,7 +13,6 @@ import com.hfstudio.guidenh.guide.document.block.chart.ChartIcon;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartSeries;
 import com.hfstudio.guidenh.guide.document.block.chart.PieInsetSpec;
 import com.hfstudio.guidenh.guide.document.block.chart.PieSlice;
-import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
@@ -267,29 +263,16 @@ public class ChartChildParser {
         if (ref == null) {
             return null;
         }
-        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
-        if (item == null) {
-            errorSink.appendError(compiler, "Missing item for icon: " + ref.id(), el);
-            return null;
-        }
-        ItemStack stack = new ItemStack(item, 1, ref.concreteMeta());
-        if (ref.nbt() != null) {
-            stack.stackTagCompound = (NBTTagCompound) ref.nbt()
-                .copy();
-        }
-        return ChartIcon.ofItemStack(stack);
+        // Deferred resolution: store raw key + meta, resolve at render time
+        return ChartIcon.ofDeferredItem(ref.rawKey(), ref.concreteMeta());
     }
 
     private static ChartIcon parseImageIcon(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
         String src) {
         try {
             ResourceLocation imgId = IdUtils.resolveLink(src, compiler.getPageId());
-            byte[] data = compiler.loadAsset(imgId);
-            if (data == null) {
-                errorSink.appendError(compiler, "Missing icon image: " + src, el);
-                return null;
-            }
-            return ChartIcon.ofImage(imgId, GuidePageTexture.load(imgId, data));
+            // Deferred resolution: store resolved id, load image data at render time
+            return ChartIcon.ofDeferredImage(imgId);
         } catch (IllegalArgumentException e) {
             errorSink.appendError(compiler, "Invalid icon image " + src + ": " + e.getMessage(), el);
             return null;

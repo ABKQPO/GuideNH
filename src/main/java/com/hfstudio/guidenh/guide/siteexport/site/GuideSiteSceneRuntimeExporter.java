@@ -28,8 +28,8 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
-import cpw.mods.fml.common.FMLLog;
 import guideme.flatbuffers.scene.ExpAnimatedTexturePart;
 import guideme.flatbuffers.scene.ExpAnimatedTexturePartFrame;
 import guideme.flatbuffers.scene.ExpCameraSettings;
@@ -134,11 +134,10 @@ public class GuideSiteSceneRuntimeExporter {
 
         GuideSiteSceneTessellatorCapture.RecordingResult result = recorder.finish();
         if (result.meshes.isEmpty()) {
-            FMLLog.getLogger()
-                .warn(
-                    "Scene site export captured no tessellated meshes for a {}x{} scene; exported 3D preview will be blank.",
-                    width,
-                    height);
+            GuideDebugLog.warnAlways(
+                "Scene site export captured no tessellated meshes for a {}x{} scene; exported 3D preview will be blank.",
+                width,
+                height);
         }
         return encodeScene(scene.getCamera(), result);
     }

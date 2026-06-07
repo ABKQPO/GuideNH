@@ -4,21 +4,12 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.StatCollector;
-
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
-import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
-import com.hfstudio.guidenh.integration.betterquesting.BqHelpers;
-import com.hfstudio.guidenh.integration.betterquesting.QuestDisplay;
 import com.hfstudio.guidenh.integration.betterquesting.QuestIdParser;
-import com.hfstudio.guidenh.integration.betterquesting.QuestState;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
@@ -51,92 +42,23 @@ public class QuestCardCompiler extends BlockTagCompiler {
         boolean showDesc = !"false".equalsIgnoreCase(MdxAttrs.getString(compiler, parent, el, "show_desc", "true"));
         boolean showTooltip = QuestTagSupport.resolveShowTooltip(compiler, parent, el);
 
-        QuestDisplay display = BqHelpers
-            .resolveDisplay(questId, Minecraft.getMinecraft().thePlayer, showTooltip || showDesc);
-        QuestState state = display.getState();
-
-        var box = new LytQuoteBox();
-        SymbolicColor accent = pickAccentColor(state);
-        box.setQuoteStyle(accent, null, null);
-
-        // Title line: clickable link for visible/completed states, placeholder text otherwise.
-        var title = new LytParagraph();
-        title.setMarginTop(0);
-        title.setMarginBottom(2);
-        appendTitle(compiler, title, questId, display, showTooltip);
-        box.append(title);
-
-        // Description body: only shown when the player can actually see the quest.
-        if (showDesc && isVisibleToPlayer(state)) {
-            String description = display.getDescription();
-            if (description != null && !description.isEmpty()) {
-                var descPar = new LytParagraph();
-                descPar.appendText(description);
-                box.append(descPar);
-            }
-        }
-
-        parent.append(box);
+        QuestCardPlaceholder ph = new QuestCardPlaceholder(questId, showDesc, showTooltip);
+        ph.setStyleClass("QuestCard");
+        ph.setStyle(LytParagraph.LOADING_STYLE);
+        ph.appendText("Loading quest...");
+        parent.append(ph);
     }
 
-    private static void appendTitle(PageCompiler compiler, LytParagraph title, UUID questId, QuestDisplay display,
-        boolean showTooltip) {
-        QuestState state = display.getState();
-        String name = resolveTitleText(display, questId);
+    public static class QuestCardPlaceholder extends LytParagraph {
 
-        if (QuestTagSupport.isNavigable(state)) {
-            title.append(QuestTagSupport.createQuestLink(compiler, questId, display, name, showTooltip));
-        } else {
-            var span = new LytFlowSpan();
-            span.modifyStyle(
-                style -> style.color(pickPlaceholderColor(state))
-                    .italic(true));
-            span.appendText(name);
-            title.append(span);
-        }
-    }
+        public final UUID questId;
+        public final boolean showDesc;
+        public final boolean showTooltip;
 
-    private static String resolveTitleText(QuestDisplay display, UUID questId) {
-        QuestState state = display.getState();
-        if (state == QuestState.COMPLETED) {
-            return QuestTagSupport.nameOrFallback(display, questId) + " \u2713";
+        QuestCardPlaceholder(UUID questId, boolean showDesc, boolean showTooltip) {
+            this.questId = questId;
+            this.showDesc = showDesc;
+            this.showTooltip = showTooltip;
         }
-        if (QuestTagSupport.isNavigable(state)) {
-            return QuestTagSupport.nameOrFallback(display, questId);
-        }
-        if (state == QuestState.HIDDEN) {
-            return "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
-        }
-        if (state == QuestState.MISSING) {
-            return "[" + StatCollector.translateToLocal("guidenh.compat.bq.missing") + "]";
-        }
-        return "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
-    }
-
-    private static SymbolicColor pickAccentColor(QuestState state) {
-        if (state == QuestState.COMPLETED) {
-            return SymbolicColor.GREEN;
-        }
-        if (state == QuestState.LOCKED || state == QuestState.HIDDEN) {
-            return SymbolicColor.GRAY;
-        }
-        if (state == QuestState.MISSING) {
-            return SymbolicColor.RED;
-        }
-        return SymbolicColor.LINK;
-    }
-
-    private static SymbolicColor pickPlaceholderColor(QuestState state) {
-        if (state == QuestState.HIDDEN) {
-            return SymbolicColor.DARK_GRAY;
-        }
-        if (state == QuestState.MISSING) {
-            return SymbolicColor.RED;
-        }
-        return SymbolicColor.GRAY;
-    }
-
-    private static boolean isVisibleToPlayer(QuestState state) {
-        return QuestTagSupport.isVisibleToPlayer(state);
     }
 }

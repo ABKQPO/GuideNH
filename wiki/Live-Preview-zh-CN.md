@@ -82,26 +82,6 @@ GuideNH 也支持更宽的开发源根目录：
 
 `!` 后面的相对页面 id 会自动按指南命名空间解析，因此 `index.md` 会变成 `guidenh:index.md`。
 
-## 本仓库内置的 Gradle 运行任务
-
-本仓库提供了专门的实时预览任务：
-
-- `runGuide`
-- `runGuide17`
-- `runGuide21`
-- `runGuide25`
-
-它们会继承普通客户端运行配置，并额外注入：
-
-- `guideme.guidenh.guidenh.sources`
-- `guideme.showOnStartup=guidenh:guidenh!index.md`
-
-典型用法：
-
-```text
-.\gradlew.bat runGuide
-```
-
 ## 性能说明
 
 GuideNH 不会每帧轮询指南文件。
