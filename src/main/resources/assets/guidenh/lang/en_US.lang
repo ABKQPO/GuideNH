@@ -95,7 +95,6 @@ guideme.gui.config.ui.sceneWheelInteractionDelayMillis=3D Preview Wheel Delay
 guideme.gui.config.ui.sceneWheelInteractionDelayMillis.tooltip=Controls how long page-wheel scrolling temporarily blocks 3D preview wheel interactions, in milliseconds.
 
 # Guidebook UI
-guideme.guidebook.Blasting=Blasting
 guideme.guidebook.Close=Close
 guideme.guidebook.CloseFullWidthView=Close Full Width View
 guideme.guidebook.OpenRecipeInNei=Open This Recipe in NEI
@@ -144,7 +143,6 @@ guideme.guidebook.CommandStructureSaved=Structure exported to %s
 guideme.guidebook.CommandStructureServerRequired=This structure command requires GuideNH on the server.
 guideme.guidebook.CommandUsage=/guide <list|open <guideId>|reload|search <query>>
 guideme.guidebook.ContentFrom=Content from
-guideme.guidebook.Crafting=Crafting
 guideme.guidebook.FullWidthView=Full Width View
 guideme.guidebook.GuideEditorAdvancedToggle=Show Advanced Guide Editor Buttons
 guideme.guidebook.GuideEditorAlertCaution=Caution Alert
@@ -475,9 +473,7 @@ guideme.guidebook.SearchNoMatch=(No matches)
 guideme.guidebook.SearchNoQuery=Enter a Search Query
 guideme.guidebook.SearchNoResults=No Results
 guideme.guidebook.SearchPlaceholder=Type to search...
-guideme.guidebook.ShapelessCrafting=Crafting (Shapeless)
 guideme.guidebook.ShowAnnotations=Show Annotations
-guideme.guidebook.Smelting=Smelting
 guideme.guidebook.ToggleBlockStats=Toggle Block Stats
 guideme.guidebook.ToggleGrid=Toggle Floor Grid
 guideme.guidebook.ZoomIn=Zoom In

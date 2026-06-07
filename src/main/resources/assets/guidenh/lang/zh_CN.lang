@@ -95,7 +95,6 @@ guideme.gui.config.ui.sceneWheelInteractionDelayMillis=3D 预览滚轮延迟
 guideme.gui.config.ui.sceneWheelInteractionDelayMillis.tooltip=控制页面滚轮滚动后，需要等待多久才重新允许 3D 预览响应滚轮，单位为毫秒。
 
 # Guidebook UI
-guideme.guidebook.Blasting=高炉熔炼
 guideme.guidebook.Close=关闭
 guideme.guidebook.CloseFullWidthView=关闭全宽视图
 guideme.guidebook.OpenRecipeInNei=在 NEI 中打开此配方
@@ -144,7 +143,6 @@ guideme.guidebook.CommandStructureSaved=结构已导出到 %s
 guideme.guidebook.CommandStructureServerRequired=该结构指令需要服务端也安装 GuideNH。
 guideme.guidebook.CommandUsage=/guide <list|open <guideId>|reload|search <query>>
 guideme.guidebook.ContentFrom=内容来自
-guideme.guidebook.Crafting=合成
 guideme.guidebook.FullWidthView=全宽视图
 guideme.guidebook.GuideEditorAdvancedToggle=显示高级编辑按钮
 guideme.guidebook.GuideEditorAlertCaution=小心块
@@ -475,9 +473,7 @@ guideme.guidebook.SearchNoMatch=（无匹配结果）
 guideme.guidebook.SearchNoQuery=请输入搜索关键词
 guideme.guidebook.SearchNoResults=无结果
 guideme.guidebook.SearchPlaceholder=键入以搜索...
-guideme.guidebook.ShapelessCrafting=合成（无序）
 guideme.guidebook.ShowAnnotations=显示标注
-guideme.guidebook.Smelting=熔炼
 guideme.guidebook.ToggleBlockStats=切换方块统计
 guideme.guidebook.ToggleGrid=切换地板网格
 guideme.guidebook.ZoomIn=放大
