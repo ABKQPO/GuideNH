@@ -583,17 +583,12 @@ public class GuidebookPreviewBlockPlacer {
 
         World world = level.getOrCreateFakeWorld();
         TileEntity residentTile = resolveWorldResidentTile(world, x, y, z, preparedTileEntity);
-        if (residentTile == preparedTileEntity) {
-            return preparedTileEntity;
-        }
-
         NBTTagCompound restoreTag = tileSnapshot != null ? tileSnapshot : tileTag;
-        TileEntity restoredTile = residentTile;
-        if (restoredTile == null || (restoreTag != null && !applyTileSnapshot(restoredTile, restoreTag, x, y, z))) {
+        TileEntity restoredTile = residentTile != null ? residentTile : preparedTileEntity;
+        if (restoreTag != null && !applyTileSnapshot(restoredTile, restoreTag, x, y, z)
+            && restoredTile != preparedTileEntity) {
             restoredTile = preparedTileEntity;
-            if (restoreTag != null) {
-                applyTileSnapshot(restoredTile, restoreTag, x, y, z);
-            }
+            applyTileSnapshot(restoredTile, restoreTag, x, y, z);
         }
 
         initializeGregTechMetaTile(restoredTile, placementData.metaTileId, restoreTag);

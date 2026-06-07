@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.layout;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 
+import com.hfstudio.guidenh.guide.render.GuideFontCompat;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public class MinecraftFontMetrics implements FontMetrics {
@@ -19,15 +20,28 @@ public class MinecraftFontMetrics implements FontMetrics {
 
     @Override
     public float getAdvance(int codePoint, ResolvedTextStyle style) {
-        char ch = codePoint <= 0xFFFF ? (char) codePoint : '?';
-        float raw = font.getCharWidth(ch);
-        if (style == null) {
-            return raw;
+        boolean bold = style != null && style.bold();
+        float raw = GuideFontCompat.getRenderedAdvance(font, codePoint, bold, false);
+        if (raw <= 0f) {
+            return 0f;
         }
-        if (style.bold() && raw > 0) {
-            raw += 1f;
+        float scale = style != null ? style.fontScale() : 1f;
+        return scale == 1f ? raw : raw * scale;
+    }
+
+    @Override
+    public int getStringWidth(String text, ResolvedTextStyle style) {
+        return GuideFontCompat.getStringWidth(font, text, style);
+    }
+
+    @Override
+    public float getRenderedAdvance(int codePoint, ResolvedTextStyle style, boolean hasVisibleGlyphBefore) {
+        boolean bold = style != null && style.bold();
+        float raw = GuideFontCompat.getRenderedAdvance(font, codePoint, bold, hasVisibleGlyphBefore);
+        if (raw <= 0f) {
+            return 0f;
         }
-        float scale = style.fontScale();
+        float scale = style != null ? style.fontScale() : 1f;
         return scale == 1f ? raw : raw * scale;
     }
 

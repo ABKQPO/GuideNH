@@ -1,20 +1,20 @@
 package com.hfstudio.guidenh.guide.mediawiki;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.IResource;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 
 public class MediaWikiSpecialContributors {
 
@@ -72,15 +72,14 @@ public class MediaWikiSpecialContributors {
         return translated != null && !translated.equals(key) ? translated : key;
     }
 
-    private byte @org.jetbrains.annotations.Nullable [] loadContributorsBytes() {
+    private byte @Nullable [] loadContributorsBytes() {
+        var minecraft = Minecraft.getMinecraft();
+        if (minecraft == null || minecraft.getResourceManager() == null) {
+            return null;
+        }
         try {
-            IResource resource = Minecraft.getMinecraft()
-                .getResourceManager()
-                .getResource(CONTRIBUTORS_ID);
-            try (InputStream stream = resource.getInputStream()) {
-                return org.apache.commons.io.IOUtils.toByteArray(stream);
-            }
-        } catch (IOException ignored) {
+            return GuideResourceAccess.readBytes(minecraft.getResourceManager(), CONTRIBUTORS_ID);
+        } catch (RuntimeException ignored) {
             return null;
         }
     }

@@ -46,6 +46,8 @@ public class DataDrivenGuideLoader {
     private static volatile List<IResourcePack> lastActiveResourcePacks = List.of();
     private static volatile List<IResourcePack> lastResourceManagerResourcePacks = List.of();
     private static volatile Map<IResourcePack, Set<String>> lastResourceManagerDomainsByPack = Map.of();
+    private static volatile GuideLanguageDiscoverySnapshot lastGuideLanguageDiscovery = GuideLanguageDiscoverySnapshot
+        .empty();
 
     private DataDrivenGuideLoader() {}
 
@@ -63,11 +65,8 @@ public class DataDrivenGuideLoader {
         var resolvedResourcePacks = toList(activeResourcePacks);
         long resourcePackResolveNs = System.nanoTime() - stageStartedAt;
 
-        var discoveredLanguages = new LinkedHashMap<ResourceLocation, LinkedHashSet<String>>();
         stageStartedAt = System.nanoTime();
-        for (var resourcePack : resolvedResourcePacks) {
-            scanResourcePack(resourcePack, discoveredLanguages);
-        }
+        var discoveredLanguages = discoverGuideLanguages(resolvedResourcePacks);
         long scanNs = System.nanoTime() - stageStartedAt;
 
         stageStartedAt = System.nanoTime();
@@ -97,6 +96,28 @@ public class DataDrivenGuideLoader {
         return guides;
     }
 
+    public static Map<ResourceLocation, Set<String>> discoverGuideLanguages() {
+        return discoverGuideLanguages(getActiveResourcePacks());
+    }
+
+    public static Map<ResourceLocation, Set<String>> discoverGuideLanguages(
+        Iterable<? extends IResourcePack> activeResourcePacks) {
+        var resolvedResourcePacks = toList(activeResourcePacks);
+        GuideLanguageDiscoverySnapshot cached = lastGuideLanguageDiscovery;
+        if (cached.matches(resolvedResourcePacks)) {
+            return cached.discoveredLanguages();
+        }
+
+        var discoveredLanguages = new LinkedHashMap<ResourceLocation, LinkedHashSet<String>>();
+        for (var resourcePack : resolvedResourcePacks) {
+            scanResourcePack(resourcePack, discoveredLanguages);
+        }
+
+        var frozen = freezeDiscoveredLanguages(discoveredLanguages);
+        lastGuideLanguageDiscovery = new GuideLanguageDiscoverySnapshot(List.copyOf(resolvedResourcePacks), frozen);
+        return frozen;
+    }
+
     public static LinkedHashMap<String, LinkedHashSet<String>> discoverPagePaths(String folder) {
         return discoverPagePaths(folder, getActiveResourcePacks());
     }
@@ -124,18 +145,18 @@ public class DataDrivenGuideLoader {
         return pagePaths;
     }
 
-    private static int countDiscoveredLanguages(Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
-        int total = 0;
-        for (var languages : discoveredLanguages.values()) {
-            total += languages.size();
-        }
-        return total;
-    }
-
     private static int countDiscoveredPagePaths(LinkedHashMap<String, LinkedHashSet<String>> pagePaths) {
         int total = 0;
         for (var namespacePaths : pagePaths.values()) {
             total += namespacePaths.size();
+        }
+        return total;
+    }
+
+    private static int countDiscoveredLanguages(Map<ResourceLocation, ? extends Set<String>> discoveredLanguages) {
+        int total = 0;
+        for (var languages : discoveredLanguages.values()) {
+            total += languages.size();
         }
         return total;
     }
@@ -185,8 +206,9 @@ public class DataDrivenGuideLoader {
         }
 
         var discovered = new LinkedHashSet<String>();
-        scanFolderPagePaths(resourcePackRoot, toFolderPrefix(namespace, folder), discovered);
-        scanFolderPagePaths(resourcePackRoot, toLooseFolderPrefix(namespace, folder), discovered);
+        for (String prefix : pagePathPrefixes(namespace, folder)) {
+            scanFolderPagePaths(resourcePackRoot, prefix, discovered);
+        }
         if (!discovered.isEmpty()) {
             pagePaths.computeIfAbsent(namespace, k -> new LinkedHashSet<>())
                 .addAll(discovered);
@@ -288,8 +310,9 @@ public class DataDrivenGuideLoader {
     public static void scanPagePathsForNamespace(File resourcePackRoot, String namespace, String folder,
         Set<String> pagePaths) {
         if (resourcePackRoot.isDirectory()) {
-            scanFolderPagePaths(resourcePackRoot, toFolderPrefix(namespace, folder), pagePaths);
-            scanFolderPagePaths(resourcePackRoot, toLooseFolderPrefix(namespace, folder), pagePaths);
+            for (String prefix : pagePathPrefixes(namespace, folder)) {
+                scanFolderPagePaths(resourcePackRoot, prefix, pagePaths);
+            }
         } else {
             scanZipPagePaths(resourcePackRoot, toFolderPrefix(namespace, folder), pagePaths);
         }
@@ -815,6 +838,16 @@ public class DataDrivenGuideLoader {
         return namespace + "/" + folder + "/";
     }
 
+    private static List<String> pagePathPrefixes(String namespace, String folder) {
+        var prefixes = new ArrayList<String>(3);
+        prefixes.add(toFolderPrefix(namespace, folder));
+        prefixes.add(toLooseFolderPrefix(namespace, folder));
+        if (folder.equals(namespace)) {
+            prefixes.add(folder + "/");
+        }
+        return prefixes;
+    }
+
     private static boolean isValidNamespace(String namespace) {
         return namespace != null && !namespace.isEmpty() && namespace.indexOf('/') < 0 && namespace.indexOf('\\') < 0;
     }
@@ -825,5 +858,34 @@ public class DataDrivenGuideLoader {
             result.add(resourcePack);
         }
         return result;
+    }
+
+    public static void clearCaches() {
+        lastGuideLanguageDiscovery = GuideLanguageDiscoverySnapshot.empty();
+    }
+
+    private static Map<ResourceLocation, Set<String>> freezeDiscoveredLanguages(
+        Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
+        if (discoveredLanguages.isEmpty()) {
+            return Map.of();
+        }
+
+        var frozen = new LinkedHashMap<ResourceLocation, Set<String>>(discoveredLanguages.size());
+        for (var entry : discoveredLanguages.entrySet()) {
+            frozen.put(entry.getKey(), Set.copyOf(entry.getValue()));
+        }
+        return Collections.unmodifiableMap(frozen);
+    }
+
+    private record GuideLanguageDiscoverySnapshot(List<IResourcePack> resourcePacks,
+        Map<ResourceLocation, Set<String>> discoveredLanguages) {
+
+        private static GuideLanguageDiscoverySnapshot empty() {
+            return new GuideLanguageDiscoverySnapshot(List.of(), Map.of());
+        }
+
+        private boolean matches(List<IResourcePack> otherResourcePacks) {
+            return !resourcePacks.isEmpty() && resourcePacks.equals(otherResourcePacks);
+        }
     }
 }

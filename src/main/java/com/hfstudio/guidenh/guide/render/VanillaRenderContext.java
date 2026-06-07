@@ -24,10 +24,6 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 public class VanillaRenderContext implements RenderContext {
 
     public static final RenderItem ITEM_RENDERER = new RenderItem();
-    private static final String FORMAT_BOLD = "\u00a7l";
-    private static final String FORMAT_ITALIC = "\u00a7o";
-    private static final String FORMAT_STRIKETHROUGH = "\u00a7m";
-    private static final String FORMAT_OBFUSCATED = "\u00a7k";
 
     private final FontRenderer fontRenderer;
     private int screenHeight;
@@ -36,9 +32,6 @@ public class VanillaRenderContext implements RenderContext {
     private LytRect viewport;
 
     private final Deque<LytRect> scissorStack = new ArrayDeque<>();
-
-    // Reuse the style buffer across text segments.
-    private final StringBuilder textStyleBuffer = new StringBuilder(32);
 
     private int documentOriginX = 0;
     private int documentOriginY = 0;
@@ -240,18 +233,7 @@ public class VanillaRenderContext implements RenderContext {
         if ((color >>> 24) == 0) {
             color |= 0xFF000000;
         }
-
-        StringBuilder sb = null;
-        if (style.bold() || style.italic() || style.strikethrough() || style.obfuscated()) {
-            sb = textStyleBuffer;
-            sb.setLength(0);
-            if (style.bold()) sb.append(FORMAT_BOLD);
-            if (style.italic()) sb.append(FORMAT_ITALIC);
-            if (style.strikethrough()) sb.append(FORMAT_STRIKETHROUGH);
-            if (style.obfuscated()) sb.append(FORMAT_OBFUSCATED);
-        }
-        String drawn = sb != null ? sb.append(text)
-            .toString() : text;
+        String drawn = GuideFontCompat.prepareRenderedText(text, style);
 
         float scale = style.fontScale();
         boolean scaled = Math.abs(scale - 1f) > 1e-4f;
@@ -280,13 +262,12 @@ public class VanillaRenderContext implements RenderContext {
 
         int scaledFontHeight = Math.round(fontRenderer.FONT_HEIGHT * scale);
         int decorationY = y + scaledFontHeight - 1;
-        int decoratedWidth = -1;
+        int decoratedWidth = getStringWidth(text, style);
         if (style.underlined()) {
-            decoratedWidth = Math.round(fontRenderer.getStringWidth(drawn) * scale);
             Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
         }
         if (style.wavyUnderline()) {
-            int w = decoratedWidth >= 0 ? decoratedWidth : Math.round(fontRenderer.getStringWidth(drawn) * scale);
+            int w = decoratedWidth;
             // Draw a 2px-tall sine-like zig-zag using 1x1 rects: pattern of 4 px period.
             for (int i = 0; i < w; i++) {
                 int phase = i & 3; // 0,1,2,3
@@ -297,49 +278,32 @@ public class VanillaRenderContext implements RenderContext {
         if (style.dottedUnderline()) {
             // Center a single 2x2 dot under each rendered character cell.
             int cursor = 0;
+            boolean bold = style.bold();
+            boolean visibleGlyphSeen = false;
             int len = drawn.length();
             for (int i = 0; i < len; i++) {
                 char c = drawn.charAt(i);
-                if (c == '\u00a7' && i + 1 < len) {
+                if (GuideFontCompat.isFormattingCodeStart(drawn, i)) {
+                    bold = GuideFontCompat.determineBold(bold, drawn.charAt(i + 1));
                     i++;
                     continue;
                 }
-                int cw = Math.round(fontRenderer.getCharWidth(c) * scale);
+                float advance = GuideFontCompat.getRenderedAdvance(fontRenderer, c, bold, visibleGlyphSeen);
+                int cw = Math.round(advance * scale);
                 if (cw <= 0) {
-                    cursor += cw;
                     continue;
                 }
                 int dotX = x + cursor + Math.max(0, (cw - 2) / 2);
                 Gui.drawRect(dotX, decorationY, dotX + 2, decorationY + 2, color);
                 cursor += cw;
+                visibleGlyphSeen = true;
             }
         }
     }
 
     @Override
     public int getStringWidth(String text, ResolvedTextStyle style) {
-        int raw = fontRenderer.getStringWidth(text);
-        if (style != null && style.bold() && text != null) {
-            raw += countRenderedChars(text);
-        }
-        if (style != null && style.italic() && text != null && !text.isEmpty()) {
-            raw += 2;
-        }
-        float scale = style != null ? style.fontScale() : 1f;
-        return Math.round(raw * scale);
-    }
-
-    public static int countRenderedChars(String text) {
-        int n = 0;
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == '\u00a7' && i + 1 < text.length()) {
-                i++;
-                continue;
-            }
-            n++;
-        }
-        return n;
+        return GuideFontCompat.getStringWidth(fontRenderer, text, style);
     }
 
     @Override

@@ -1,10 +1,8 @@
 package com.hfstudio.guidenh.guide.siteexport;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -13,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.IResource;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 
@@ -22,6 +19,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class ExportTask {
@@ -74,14 +72,14 @@ public class ExportTask {
             Path assetsDir = outDir.resolve("assets");
             for (ResourceLocation id : collector.textures) {
                 try {
-                    IResource res = mc.getResourceManager()
-                        .getResource(id);
+                    byte[] bytes = GuideResourceAccess.readBytes(mc.getResourceManager(), id);
+                    if (bytes == null) {
+                        continue;
+                    }
                     Path dest = assetsDir.resolve(id.getResourceDomain())
                         .resolve(id.getResourcePath());
                     Files.createDirectories(dest.getParent());
-                    try (InputStream in = res.getInputStream()) {
-                        Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
-                    }
+                    Files.write(dest, bytes);
                     assetsCopied++;
                 } catch (IOException e) {
                     GuideDebugLog.debugAlways("[GuideNH] [ExportTask] Skipping missing asset {}", id, e);

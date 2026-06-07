@@ -49,6 +49,7 @@ public class GuideLightweightReloadService {
         GuideDebugLog.info("[GuideNH] [GuideLightweightReloadService] Reloading guide data...");
         long startedAt = System.nanoTime();
         var activeResourcePacks = DataDrivenGuideLoader.getActiveResourcePacks(resourceManager);
+        DataDrivenGuideLoader.clearCaches();
         RecipeCache.clear();
         NeiAnimationTicker.clear();
         GuidePageTexture.clear();
@@ -302,11 +303,11 @@ public class GuideLightweightReloadService {
         }
     }
 
-    static @Nullable byte[] selectPageCandidate(ResourceLocation sourceId) {
+    static byte @Nullable [] selectPageCandidate(ResourceLocation sourceId) {
         return selectPageCandidate(sourceId, DataDrivenGuideLoader.getActiveResourcePacks());
     }
 
-    static @Nullable byte[] selectPageCandidate(ResourceLocation sourceId,
+    static byte @Nullable [] selectPageCandidate(ResourceLocation sourceId,
         Iterable<? extends IResourcePack> resourcePacks) {
         GuidePageResourceSelector.SelectedPageResource winner = GuidePageResourceSelector
             .select(sourceId, resourcePacks);

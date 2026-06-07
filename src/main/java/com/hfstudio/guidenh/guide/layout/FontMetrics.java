@@ -6,6 +6,10 @@ public interface FontMetrics {
 
     float getAdvance(int codePoint, ResolvedTextStyle style);
 
+    default float getRenderedAdvance(int codePoint, ResolvedTextStyle style, boolean hasVisibleGlyphBefore) {
+        return getAdvance(codePoint, style);
+    }
+
     int getLineHeight(ResolvedTextStyle style);
 
     default int getStringWidth(String text, ResolvedTextStyle style) {
