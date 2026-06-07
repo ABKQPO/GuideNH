@@ -52,6 +52,7 @@ public class GuideLightweightReloadService {
         RecipeCache.clear();
         NeiAnimationTicker.clear();
         GuidePageTexture.clear();
+        GuideResourceAccess.clearCache();
         GuidePageLanguageIndex.clear();
         GuideResourceLanguageIndex.clear();
         GuideLatexTextureCache.INSTANCE.clearAll();

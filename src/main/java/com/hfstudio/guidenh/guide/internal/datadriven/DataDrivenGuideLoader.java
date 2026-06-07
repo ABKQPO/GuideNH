@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.datadriven;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,6 +43,7 @@ public class DataDrivenGuideLoader {
     public static final String AUTO_GUIDE_FOLDER = "guidenh";
     public static final String LANGUAGE_FOLDER_PREFIX = "_";
     private static final Map<Class<?>, Field> LOOSE_ROOT_FIELDS = new IdentityHashMap<>();
+    private static volatile List<IResourcePack> lastActiveResourcePacks = List.of();
     private static volatile List<IResourcePack> lastResourceManagerResourcePacks = List.of();
     private static volatile Map<IResourcePack, Set<String>> lastResourceManagerDomainsByPack = Map.of();
 
@@ -297,7 +299,9 @@ public class DataDrivenGuideLoader {
         var resourcePacks = new LinkedHashSet<IResourcePack>(GuideDevelopmentResourcePacks.getConfiguredPacks());
         resourcePacks.addAll(lastResourceManagerResourcePacks);
         addConfiguredResourcePacks(resourcePacks);
-        return new ArrayList<>(resourcePacks);
+        var resolved = new ArrayList<>(resourcePacks);
+        lastActiveResourcePacks = List.copyOf(resolved);
+        return resolved;
     }
 
     public static List<IResourcePack> getActiveResourcePacks(IResourceManager resourceManager) {
@@ -309,7 +313,14 @@ public class DataDrivenGuideLoader {
         lastResourceManagerDomainsByPack = freezeDomainsByPack(domainsByPack);
         resourcePacks.addAll(resourceManagerResourcePacks);
         addConfiguredResourcePacks(resourcePacks);
-        return new ArrayList<>(resourcePacks);
+        var resolved = new ArrayList<>(resourcePacks);
+        lastActiveResourcePacks = List.copyOf(resolved);
+        return resolved;
+    }
+
+    public static List<IResourcePack> getLastActiveResourcePacks() {
+        List<IResourcePack> snapshot = lastActiveResourcePacks;
+        return snapshot.isEmpty() ? getActiveResourcePacks() : snapshot;
     }
 
     private static void addConfiguredResourcePacks(LinkedHashSet<IResourcePack> resourcePacks) {
@@ -499,7 +510,7 @@ public class DataDrivenGuideLoader {
 
     public static byte[] readBytes(IResourcePack resourcePack, ResourceLocation resourceLocation) {
         if (!resourcePack.resourceExists(resourceLocation)) {
-            return null;
+            return readLooseBytes(resourcePack, resourceLocation);
         }
         try (var input = resourcePack.getInputStream(resourceLocation)) {
             return GuideResourceAccess.readFully(input);
@@ -511,6 +522,47 @@ public class DataDrivenGuideLoader {
                 e);
             return null;
         }
+    }
+
+    public static byte[] readLooseBytes(IResourcePack resourcePack, ResourceLocation resourceLocation) {
+        File looseRoot = getLooseResourcePackRoot(resourcePack);
+        if (looseRoot == null || !looseRoot.isDirectory()) {
+            return null;
+        }
+
+        Path root = looseRoot.toPath()
+            .toAbsolutePath()
+            .normalize();
+        for (String candidate : looseResourceCandidates(resourceLocation)) {
+            Path path = root.resolve(candidate.replace('/', File.separatorChar))
+                .normalize();
+            if (!path.startsWith(root) || !Files.isRegularFile(path)) {
+                continue;
+            }
+            try {
+                return Files.readAllBytes(path);
+            } catch (IOException e) {
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [DataDrivenGuideLoader] Failed to read loose resource {} from resource pack {}",
+                    path,
+                    resourcePack.getPackName(),
+                    e);
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static List<String> looseResourceCandidates(ResourceLocation resourceLocation) {
+        String namespace = resourceLocation.getResourceDomain();
+        String path = resourceLocation.getResourcePath();
+        var candidates = new ArrayList<String>();
+        candidates.add("assets/" + namespace + "/" + path);
+        candidates.add(namespace + "/" + path);
+        if (path.startsWith(AUTO_GUIDE_FOLDER + "/")) {
+            candidates.add(path);
+        }
+        return candidates;
     }
 
     public static IResourcePack findResourcePack(ResourceLocation resourceLocation) {
@@ -568,6 +620,12 @@ public class DataDrivenGuideLoader {
                 resourcePackRoot,
                 toLooseFolderPrefix(namespace, AUTO_GUIDE_FOLDER).replace('/', File.separatorChar)),
             discoveredLanguages);
+        if (AUTO_GUIDE_FOLDER.equals(namespace)) {
+            scanResourcePackFolderNamespaceRoot(
+                namespace,
+                new File(resourcePackRoot, AUTO_GUIDE_FOLDER.replace('/', File.separatorChar)),
+                discoveredLanguages);
+        }
     }
 
     private static void scanResourcePackFolderNamespaceRoot(String namespace, File guideRootDir,
