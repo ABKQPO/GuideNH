@@ -1,9 +1,11 @@
 package com.hfstudio.guidenh.integration.ae2.network;
 
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.WorldServer;
 
+import com.hfstudio.guidenh.guide.internal.structure.GuideNhServerStructureAccess;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.Ae2BaseTileNetworkStreamPreview;
 
@@ -17,6 +19,7 @@ public class GuideNhAe2BaseTileNetworkBatchServerHandler
 
     @Override
     public IMessage onMessage(GuideNhAe2BaseTileNetworkBatchRequestMessage message, MessageContext ctx) {
+        EntityPlayerMP player = ctx.getServerHandler().playerEntity;
         long corr = message.getCorrId();
         int dim = message.getDim();
         int[] xyz = message.getXyz();
@@ -25,7 +28,11 @@ public class GuideNhAe2BaseTileNetworkBatchServerHandler
             n = Math.max(0, xyz.length / 3);
         }
 
-        if (!Mods.AE2.isModLoaded() || n <= 0 || n > GuideNhAe2BaseTileNetworkBatchRequestMessage.MAX_POSITIONS) {
+        if (player == null || !Mods.AE2.isModLoaded()
+            || !GuideNhServerStructureAccess.canUseSceneExport(player)
+            || !GuideNhServerStructureAccess.isSameDimension(player, dim)
+            || n <= 0
+            || n > GuideNhAe2BaseTileNetworkBatchRequestMessage.MAX_POSITIONS) {
             return new GuideNhAe2BaseTileNetworkBatchReplyMessage(corr, new byte[0][]);
         }
 

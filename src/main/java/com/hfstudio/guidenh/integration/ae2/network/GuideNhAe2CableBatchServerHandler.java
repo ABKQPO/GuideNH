@@ -2,11 +2,13 @@ package com.hfstudio.guidenh.integration.ae2.network;
 
 import java.io.IOException;
 
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.hfstudio.guidenh.guide.internal.structure.GuideNhServerStructureAccess;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.Ae2CableBusPartStreamCodec;
 import com.hfstudio.guidenh.integration.ae2.Ae2CableBusSideStreams;
@@ -25,6 +27,7 @@ public class GuideNhAe2CableBatchServerHandler
 
     @Override
     public IMessage onMessage(GuideNhAe2CableBatchRequestMessage message, MessageContext ctx) {
+        EntityPlayerMP player = ctx.getServerHandler().playerEntity;
         long corr = message.getCorrId();
         int dim = message.getDim();
         int[] xyz = message.getXyz();
@@ -33,7 +36,11 @@ public class GuideNhAe2CableBatchServerHandler
             n = Math.max(0, xyz.length / 3);
         }
 
-        if (!Mods.AE2.isModLoaded() || n <= 0 || n > GuideNhAe2CableBatchRequestMessage.MAX_POSITIONS) {
+        if (player == null || !Mods.AE2.isModLoaded()
+            || !GuideNhServerStructureAccess.canUseSceneExport(player)
+            || !GuideNhServerStructureAccess.isSameDimension(player, dim)
+            || n <= 0
+            || n > GuideNhAe2CableBatchRequestMessage.MAX_POSITIONS) {
             return new GuideNhAe2CableBatchReplyMessage(corr, new byte[0], new byte[0], new int[0], new byte[0][]);
         }
 

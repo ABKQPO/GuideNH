@@ -8,6 +8,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.AxisAlignedBB;
 
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
+import com.hfstudio.guidenh.guide.internal.structure.GuideNhServerStructureAccess;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -20,6 +21,13 @@ public class GuideNhRegionExportServerHandler implements IMessageHandler<GuideNh
     public IMessage onMessage(GuideNhRegionExportRequestMessage message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().playerEntity;
         if (player == null) {
+            return null;
+        }
+        if (!GuideNhServerStructureAccess.canUseSceneExport(player)) {
+            GuideNhNetwork.channel()
+                .sendTo(
+                    GuideNhRegionExportReplyMessage.error(message.getRequestId(), "Scene export is not allowed"),
+                    player);
             return null;
         }
         try {
@@ -48,6 +56,9 @@ public class GuideNhRegionExportServerHandler implements IMessageHandler<GuideNh
         if (sizeX <= 0 || sizeY <= 0
             || sizeZ <= 0
             || GuideStructureVolume.exceedsLimit(sizeX, sizeY, sizeZ, RegionWandItem.MAX_EXPORT_BLOCKS)) {
+            return null;
+        }
+        if (!GuideNhServerStructureAccess.isSameDimension(player, message.getDimensionId())) {
             return null;
         }
         int x = message.getX();

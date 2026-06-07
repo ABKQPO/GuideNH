@@ -148,9 +148,23 @@ public class GuideNhClientBridgeController {
         int requestId = nextRegionExportRequestId.getAndIncrement();
         CompletableFuture<String> future = new CompletableFuture<>();
         pendingRegionExports.put(requestId, future);
+        Minecraft minecraft = Minecraft.getMinecraft();
+        EntityPlayer player = minecraft.thePlayer;
+        int dimensionId = player != null && player.worldObj != null && player.worldObj.provider != null
+            ? player.worldObj.provider.dimensionId
+            : 0;
         GuideNhNetwork.channel()
             .sendToServer(
-                new GuideNhRegionExportRequestMessage(requestId, x, y, z, sizeX, sizeY, sizeZ, includeEntities));
+                new GuideNhRegionExportRequestMessage(
+                    requestId,
+                    dimensionId,
+                    x,
+                    y,
+                    z,
+                    sizeX,
+                    sizeY,
+                    sizeZ,
+                    includeEntities));
         return future;
     }
 

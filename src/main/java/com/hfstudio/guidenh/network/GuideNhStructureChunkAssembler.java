@@ -8,6 +8,8 @@ import org.jetbrains.annotations.Nullable;
 public class GuideNhStructureChunkAssembler {
 
     private final byte[][] chunks;
+    private final long expiresAtMillis;
+    private boolean discarded;
     private int received;
     private int totalBytes;
 
@@ -16,10 +18,14 @@ public class GuideNhStructureChunkAssembler {
             throw new IllegalArgumentException("Invalid structure chunk count: " + chunkCount);
         }
         this.chunks = new byte[chunkCount][];
+        this.expiresAtMillis = System.currentTimeMillis() + GuideNhCustomPayloadLimits.STRUCTURE_TRANSFER_TTL_MILLIS;
     }
 
     @Nullable
     public synchronized String accept(GuideNhStructureRequestMessage message) {
+        if (isExpired()) {
+            return null;
+        }
         int index = message.getChunkIndex();
         if (message.getChunkCount() != chunks.length || index < 0 || index >= chunks.length) {
             return null;
@@ -32,6 +38,10 @@ public class GuideNhStructureChunkAssembler {
             chunks[index] = bytes;
             received++;
             totalBytes += bytes.length;
+            if (totalBytes > GuideNhCustomPayloadLimits.MAX_STRUCTURE_TRANSFER_BYTES) {
+                discarded = true;
+                return null;
+            }
         }
         if (received != chunks.length) {
             return null;
@@ -45,5 +55,9 @@ public class GuideNhStructureChunkAssembler {
             out.write(chunk, 0, chunk.length);
         }
         return out.toString(StandardCharsets.UTF_8);
+    }
+
+    public boolean isExpired() {
+        return discarded || System.currentTimeMillis() > expiresAtMillis;
     }
 }

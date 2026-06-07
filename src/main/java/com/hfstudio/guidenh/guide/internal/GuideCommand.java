@@ -11,6 +11,7 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.internal.structure.GuideNhServerStructureAccess;
 
 public class GuideCommand extends CommandBase {
 
@@ -59,6 +60,12 @@ public class GuideCommand extends CommandBase {
                     .openGuide(player, guideId, null);
             }
             case "reload" -> {
+                if (!sender.canCommandSenderUseCommand(
+                    GuideNhServerStructureAccess.STRUCTURE_PERMISSION_LEVEL,
+                    getCommandName())) {
+                    send(sender, GuidebookText.CommandStructurePermissionDenied);
+                    return;
+                }
                 boolean ok = GuideMEProxy.instance()
                     .reloadResources();
                 if (ok) {
