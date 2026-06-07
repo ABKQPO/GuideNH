@@ -54,6 +54,15 @@ public class GuideFontCompat {
 
     public static int getStringWidth(FontRenderer fontRenderer, String text, ResolvedTextStyle style) {
         int rawWidth = getStringWidth(fontRenderer, buildStyledText(text, style));
+        return scaleStyledWidth(rawWidth, text, style);
+    }
+
+    public static int getPreparedStringWidth(FontRenderer fontRenderer, String preparedText, ResolvedTextStyle style) {
+        int rawWidth = getStringWidth(fontRenderer, preparedText);
+        return scaleStyledWidth(rawWidth, preparedText, style);
+    }
+
+    private static int scaleStyledWidth(int rawWidth, String text, ResolvedTextStyle style) {
         if (style != null && style.italic() && text != null && !text.isEmpty()) {
             rawWidth += 2;
         }

@@ -23,6 +23,24 @@ wiki/resourcepack/
 wiki/resourcepack/assets/guidenh/guidenh/
 ```
 
+## TXLoader 原生布局
+
+如果通过 TXLoader 部署同一批文件，需要去掉外层 `assets/` 目录，因为 TXLoader 在 `load` 和
+`forceload` 下使用 `<namespace>/<resource path>` 形式保存资源：
+
+```text
+config/txloader/load/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- example_structure.snbt
+        `-- _zh_cn/
+            `-- index.md
+```
+
+例如，标准资源包路径 `assets/guidenh/guidenh/_zh_cn/index.md` 在 TXLoader 中应写成
+`config/txloader/load/guidenh/guidenh/_zh_cn/index.md`。`config/txloader/forceload/` 下也使用同样的原生布局。
+
 ## 指南发现机制
 
 GuideNH 现在会直接从资源树中发现页面。凡是位于

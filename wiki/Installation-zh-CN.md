@@ -25,6 +25,20 @@
 - `assets/guidenh/guidenh/_zh_cn/index.md`
 - `assets/guidenh/guidenh/assets/example_structure.snbt`
 
+## TXLoader 原生布局
+
+TXLoader 的 `config/txloader/load/` 和 `config/txloader/forceload/` 目录使用自己的原生布局：
+`<namespace>/<resource path>`。不要把外层 `assets/` 目录复制进 TXLoader。
+
+对于 GuideNH 指南，应使用如下路径：
+
+- `config/txloader/load/guidenh/guidenh/_zh_cn/index.md`
+- `config/txloader/load/guidenh/guidenh/assets/example_structure.snbt`
+- `config/txloader/load/guidenh/textures/guide/my_icon.png`
+
+`config/txloader/forceload/` 下使用同样的布局。`forceload` 中的文件保留 TXLoader 的强制资源包优先级，
+因此可以覆盖相同 GuideNH 页面或资源路径的文件。
+
 ## 开发循环
 
 1. 在 `wiki/resourcepack/` 下编辑运行时页面和资源。

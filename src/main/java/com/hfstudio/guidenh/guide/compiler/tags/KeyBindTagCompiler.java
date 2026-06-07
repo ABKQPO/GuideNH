@@ -4,14 +4,12 @@ import java.util.Collections;
 import java.util.Set;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
-
-import org.lwjgl.input.Keyboard;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
+import com.hfstudio.guidenh.guide.internal.input.GuideKeyBindingSupport;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class KeyBindTagCompiler extends FlowTagCompiler {
@@ -68,25 +66,7 @@ public class KeyBindTagCompiler extends FlowTagCompiler {
     }
 
     public static String describeMapping(KeyBinding mapping) {
-        try {
-            String display = GameSettings.getKeyDisplayString(mapping.getKeyCode());
-            if (display != null && !display.isEmpty()) {
-                return display;
-            }
-        } catch (NoClassDefFoundError ignored) {
-            // Unit tests can run without the client input classes on the runtime classpath.
-        }
-
-        try {
-            String keyboardName = Keyboard.getKeyName(mapping.getKeyCode());
-            if (keyboardName != null && !keyboardName.isEmpty()) {
-                return keyboardName;
-            }
-        } catch (NoClassDefFoundError ignored) {
-            // Fall through to the numeric keycode fallback below.
-        }
-
-        return Integer.toString(mapping.getKeyCode());
+        return GuideKeyBindingSupport.describe(mapping);
     }
 
     private static boolean matchesId(KeyBinding keyMapping, String id) {

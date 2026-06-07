@@ -7,6 +7,7 @@ import com.hfstudio.guidenh.guide.document.block.LytFileTree;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeEntry;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIconKind;
@@ -74,7 +75,7 @@ public class FileTreeCompiler {
                 return image;
             }
             case ITEM -> {
-                var stack = IdUtils.resolveItemStack(
+                var stack = GuideDisplayItemStacks.resolveItemStack(
                     value,
                     compiler.getPageId()
                         .getResourceDomain());

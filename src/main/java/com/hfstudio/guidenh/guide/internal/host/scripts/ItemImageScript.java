@@ -1,11 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
-import java.util.List;
-
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.oredict.OreDictionary;
 
-import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler.ItemImagePlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -15,6 +11,7 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 
 public class ItemImageScript implements LytScript {
 
@@ -29,7 +26,6 @@ public class ItemImageScript implements LytScript {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
 
@@ -40,11 +36,7 @@ public class ItemImageScript implements LytScript {
         if (stack == null) {
             // Fallback to ore dictionary if direct item lookup fails
             if (ph.ore != null) {
-                List<ItemStack> oreStacks = OreDictionary.getOres(ph.ore);
-                if (oreStacks != null && !oreStacks.isEmpty()) {
-                    stack = oreStacks.get(0)
-                        .copy();
-                }
+                stack = GuideDisplayItemStacks.resolveOreStack(ph.ore);
             }
             if (stack == null) {
                 replaceFlowError(ctx, "[ItemImage] Item not found: " + ph.itemId);
@@ -65,13 +57,12 @@ public class ItemImageScript implements LytScript {
         ctx.replace(image);
     }
 
-    @SuppressWarnings("deprecation")
     private void replaceFlowError(ScriptContext ctx, String message) {
         LytParagraph error = LytParagraph.error(message);
         ctx.replace(error);
     }
 
     private static ItemStack resolveItemId(String itemId) {
-        return IdUtils.resolveItemStack(itemId, "minecraft");
+        return GuideDisplayItemStacks.resolveItemStack(itemId, "minecraft");
     }
 }

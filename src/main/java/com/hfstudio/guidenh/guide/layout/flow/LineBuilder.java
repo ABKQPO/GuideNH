@@ -124,7 +124,6 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         var block = inlineBlock.getBlock();
         var marginLeft = block.getMarginLeft();
         var marginRight = block.getMarginRight();
-        var marginTop = block.getMarginTop();
         var marginBottom = block.getMarginBottom();
 
         // Is there enough space to have this element here?
@@ -132,26 +131,27 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         ensureSpaceIsAvailable(outerWidth);
 
         var el = new LineBlock(block);
-        el.bounds = new LytRect(innerX + marginLeft, layoutBounds.y(), size.width(), size.height());
+        el.setLayoutOffset(layoutBounds.x(), layoutBounds.y());
+        el.bounds = new LytRect(innerX + marginLeft + layoutBounds.x(), layoutBounds.y(), size.width(), size.height());
         el.flowContent = inlineBlock;
 
         if (inlineBlock.getAlignment() == InlineBlockAlignment.FLOAT_LEFT) {
             // Float it to the left of the actual text content.
             // endLine will take care of moving any existing text in the line
-            el.bounds = el.bounds.withX(getInnerLeftEdge() + marginLeft)
+            el.bounds = el.bounds.withX(getInnerLeftEdge() + marginLeft + layoutBounds.x())
                 .withY(lineBoxY + layoutBounds.y());
             // Update the layout of the contained block to update its absolute position
-            block.layout(context, el.bounds.x(), el.bounds.y(), size.width());
+            el.layoutBlock(context, size.width());
             el.floating = true;
             context.addLeftFloat(el.bounds.expand(0, 0, marginRight, marginBottom));
             floats.add(el);
             remainingLineWidth -= outerWidth;
         } else if (inlineBlock.getAlignment() == InlineBlockAlignment.FLOAT_RIGHT) {
             // Float it to the right the actual text content.
-            el.bounds = el.bounds.withX(getInnerRightEdge() - el.bounds.width() + marginRight)
+            el.bounds = el.bounds.withX(getInnerRightEdge() - el.bounds.width() + marginRight + layoutBounds.x())
                 .withY(lineBoxY + layoutBounds.y());
             // Update the layout of the contained block to update its absolute position
-            block.layout(context, el.bounds.x(), el.bounds.y(), size.width());
+            el.layoutBlock(context, size.width());
             el.floating = true;
             context.addRightFloat(el.bounds.expand(marginLeft, 0, 0, marginBottom));
             floats.add(el);
@@ -538,21 +538,21 @@ public class LineBuilder implements Consumer<LytFlowContent> {
         } else if (alignment == TextAlignment.CENTER) {
             xTranslation = textAreaStart + ((textAreaEnd - textAreaStart) - lineWidth) / 2;
         }
+        int yTranslation = lineBoxY - openLineMinTop;
 
         // reposition all line elements
         int actualRight = lineBoxX;
         for (var el = openLineElement; el != null; el = el.next) {
-            el.bounds = el.bounds.move(xTranslation, lineBoxY);
+            el.bounds = el.bounds.move(xTranslation, yTranslation);
             // Ensure that inline blocks update their blocks absolute position
             if (el instanceof LineBlock lineBlock) {
-                lineBlock.getBlock()
-                    .layout(context, el.bounds.x(), el.bounds.y(), el.bounds.width());
+                lineBlock.layoutBlock(context, el.bounds.width());
             }
 
             actualRight = Math.max(actualRight, el.bounds.right());
         }
 
-        var lineBounds = new LytRect(lineBoxX, lineBoxY + openLineMinTop, actualRight - lineBoxX, lineHeight);
+        var lineBounds = new LytRect(lineBoxX, lineBoxY, actualRight - lineBoxX, lineHeight);
         var line = new Line(lineBounds, openLineElement);
         lines.add(line);
 

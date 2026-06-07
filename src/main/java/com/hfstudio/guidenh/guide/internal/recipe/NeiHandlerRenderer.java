@@ -11,6 +11,7 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
 
@@ -190,7 +191,10 @@ public class NeiHandlerRenderer {
             }
             ITEM_RENDERER.zLevel = 0f;
             RenderHelper.disableStandardItemLighting();
+        } catch (Throwable t) {
+            GuideDisplayItemStacks.warnRenderFailure("NeiHandlerRenderer", stack, t);
         } finally {
+            ITEM_RENDERER.zLevel = 0f;
             GL11.glPopAttrib();
             OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
             GL11.glEnable(GL11.GL_TEXTURE_2D);

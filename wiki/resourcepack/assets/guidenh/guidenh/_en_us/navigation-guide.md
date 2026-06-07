@@ -97,6 +97,11 @@ navigation:
   priority: 100
 ```
 
+TXLoader uses the same rule. Put GuideNH pages in TXLoader's native layout, such as
+`config/txloader/load/guidenh/guidenh/_en_us/index.md` or
+`config/txloader/forceload/guidenh/guidenh/_en_us/index.md`, not under an extra `assets/` directory.
+Files in TXLoader `forceload` are processed later by TXLoader and can override same-path files from `load`.
+
 ### `navigation.icon`
 
 An item ID shown next to the page title in the sidebar.

@@ -104,7 +104,7 @@ public class SceneScript implements LytScript {
             pc != null ? pc : new StubPageCollection(),
             extensions,
             ph.sourcePack,
-            new ResourceLocation(ph.pageDomain, "scene"),
+            new ResourceLocation(ph.pageDomain, ph.pagePath),
             ph.childrenSource != null ? ph.childrenSource : "");
         MdAstRoot ast;
         try {

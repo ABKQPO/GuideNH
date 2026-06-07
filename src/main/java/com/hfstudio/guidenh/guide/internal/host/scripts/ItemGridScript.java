@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.internal.host.scripts;
 
 import net.minecraft.item.ItemStack;
 
-import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler.ItemGridPlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytItemGrid;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -11,6 +10,7 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 
 public class ItemGridScript implements LytScript {
 
@@ -25,7 +25,6 @@ public class ItemGridScript implements LytScript {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() == EventType.MOUNT && node instanceof ItemGridPlaceholder ph) {
             LytItemGrid grid = new LytItemGrid();
@@ -46,6 +45,6 @@ public class ItemGridScript implements LytScript {
     }
 
     private static ItemStack resolveItemId(String itemId) {
-        return IdUtils.resolveItemStack(itemId, "minecraft");
+        return GuideDisplayItemStacks.resolveItemStack(itemId, "minecraft");
     }
 }

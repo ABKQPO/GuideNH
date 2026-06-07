@@ -60,10 +60,14 @@ public class GuideLocalizedPageSourceResolver {
         String langKey = buildLangKey(contentRootFolder, pageId);
         String localizedSource = hasText(localizedSourceOverride) ? decodeNewlines(localizedSourceOverride)
             : findLocalizedPageSource(langKey, language);
+        String fallbackSource = new String(fileBytes, StandardCharsets.UTF_8);
         if (localizedSource == null || localizedSource.isEmpty()) {
-            return new ResolvedGuidePageSource(new String(fileBytes, StandardCharsets.UTF_8), false, null);
+            return new ResolvedGuidePageSource(fallbackSource, false, null);
         }
-        return new ResolvedGuidePageSource(localizedSource, true, langKey);
+        return new ResolvedGuidePageSource(
+            GuideLocalizedFrontmatterMerger.merge(fallbackSource, localizedSource),
+            true,
+            langKey);
     }
 
     public static String buildLangKey(String contentRootFolder, ResourceLocation pageId) {

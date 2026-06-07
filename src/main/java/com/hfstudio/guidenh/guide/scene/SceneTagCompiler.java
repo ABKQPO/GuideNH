@@ -172,6 +172,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
             childrenSource,
             compiler.getPageId()
                 .getResourceDomain(),
+            compiler.getPageId()
+                .getResourcePath(),
             compiler.getSourcePack(),
             preParsedAst,
             sceneElementCompilers);
@@ -221,6 +223,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         @Nullable
         public final String childrenSource;
         public final String pageDomain;
+        public final String pagePath;
         public final String sourcePack;
         @Nullable
         public final MdAstRoot childrenAst;
@@ -232,7 +235,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             float offsetX, float offsetY, boolean explicitOffsetX, boolean explicitOffsetY, float centerX,
             float centerY, float centerZ, boolean explicitCenter, boolean interactive, boolean showBackground,
             boolean allowLayerSlider, boolean gridButtonEnabled, boolean showGrid, @Nullable String childrenSource,
-            String pageDomain, String sourcePack, @Nullable MdAstRoot childrenAst,
+            String pageDomain, String pagePath, String sourcePack, @Nullable MdAstRoot childrenAst,
             @Nullable List<SceneElementTagCompiler> sceneElementCompilers) {
             this.width = width;
             this.height = height;
@@ -259,6 +262,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             this.showGrid = showGrid;
             this.childrenSource = childrenSource;
             this.pageDomain = pageDomain;
+            this.pagePath = pagePath;
             this.sourcePack = sourcePack;
             this.childrenAst = childrenAst;
             this.sceneElementCompilers = sceneElementCompilers;

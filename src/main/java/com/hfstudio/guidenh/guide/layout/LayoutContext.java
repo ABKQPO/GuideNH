@@ -33,6 +33,15 @@ public class LayoutContext implements FontMetrics {
         return visualScale;
     }
 
+    public LayoutContext resetTransientState() {
+        visualScale = 1.0f;
+        leftFloats.clear();
+        rightFloats.clear();
+        cachedLeftFloatRightEdge = Integer.MIN_VALUE;
+        cachedRightFloatLeftEdge = Integer.MAX_VALUE;
+        return this;
+    }
+
     public void addLeftFloat(LytRect bounds) {
         leftFloats.add(bounds);
         cachedLeftFloatRightEdge = Integer.MIN_VALUE;

@@ -38,6 +38,11 @@ Guide 页面还可以通过 `.lang` key 覆盖整页 markdown 源文本，但前
 - 如果该 key 存在且非空，就在解析前用它的完整值替换整页 markdown 源文本
 - 如果该 key 缺失或为空，则回退到刚刚解析到的标准页面文件内容
 
+当非空 `.lang` 页面值生效时，GuideNH 会在解析前从已解析到的实体页面补齐缺失的 frontmatter 字段。
+本地化 frontmatter 中显式写出的字段始终优先，所以翻译后的 `navigation.title` 会保留；而
+`navigation.recommend`、`navigation.priority`、分类、物品链接、作者信息或页面缩放等结构性字段，
+可以从回退 `.md` 文件继承。这样基础页面新增推荐元数据后，旧的整页翻译不会意外让首页推荐消失。
+
 key 格式如下：
 
 ```text

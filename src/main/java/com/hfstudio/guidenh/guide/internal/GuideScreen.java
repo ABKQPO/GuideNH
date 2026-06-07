@@ -48,6 +48,7 @@ import org.lwjgl.opengl.GL11;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
+import com.hfstudio.guidenh.client.hotkey.GuidePageHistoryHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
@@ -108,6 +109,7 @@ import com.hfstudio.guidenh.guide.internal.home.HomePageDataBuilder;
 import com.hfstudio.guidenh.guide.internal.home.HomePageLayout;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.NavigationState;
+import com.hfstudio.guidenh.guide.internal.input.GuideKeyBindingSupport;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
@@ -824,8 +826,8 @@ public class GuideScreen extends GuiContainer
         tickGuideEditorPreviewScenes();
         updateGuideEditorNavigationRefresh();
         updateGuideEditorAutosave();
-        int guideHotkey = OpenGuideHotkey.OPEN_GUIDE_KEY.getKeyCode();
-        if (guideHotkey > 0 && OpenGuideHotkey.isKeyHeld() && hoveredItemStack != null) {
+        if (!isFocusedTextInputReadyForCommittedCharacter() && OpenGuideHotkey.isKeyHeld()
+            && hoveredItemStack != null) {
             pendingItemLinksStack = hoveredItemStack;
             if (itemLinksKeyTicksHeld < OpenGuideHotkey.TICKS_TO_OPEN
                 && ++itemLinksKeyTicksHeld == OpenGuideHotkey.TICKS_TO_OPEN) {
@@ -4671,6 +4673,9 @@ public class GuideScreen extends GuiContainer
         int button = Mouse.getEventButton();
 
         if (Mouse.getEventButtonState()) {
+            if (button != -1 && handlePageHistoryHotkey(GuideKeyBindingSupport.mouseButtonKeyCode(button))) {
+                return;
+            }
             if (mc.gameSettings.touchscreen && guideTouchValue++ > 0) {
                 return;
             }
@@ -4699,10 +4704,29 @@ public class GuideScreen extends GuiContainer
     @Override
     public void handleKeyboardInput() {
         if (mc == null) return;
+        int keyCode = Keyboard.getEventKey();
+        if (Keyboard.getEventKeyState() && !Keyboard.isRepeatEvent() && handlePageHistoryHotkey(keyCode)) {
+            return;
+        }
         if (Keyboard.getEventKeyState() || isCommittedCharacterEventForFocusedTextInput()) {
-            keyTyped(Keyboard.getEventCharacter(), Keyboard.getEventKey());
+            keyTyped(Keyboard.getEventCharacter(), keyCode);
         }
         mc.func_152348_aa();
+    }
+
+    private boolean handlePageHistoryHotkey(int keyCode) {
+        if (isFocusedTextInputReadyForCommittedCharacter()) {
+            return false;
+        }
+        if (GuideKeyBindingSupport.matchesKeyCode(GuidePageHistoryHotkey.GUIDE_PAGE_BACK_KEY, keyCode)) {
+            navigateBackFromHotkey();
+            return true;
+        }
+        if (GuideKeyBindingSupport.matchesKeyCode(GuidePageHistoryHotkey.GUIDE_PAGE_FORWARD_KEY, keyCode)) {
+            navigateForwardFromHotkey();
+            return true;
+        }
+        return false;
     }
 
     private boolean isCommittedCharacterEventForFocusedTextInput() {

@@ -13,6 +13,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.internal.GuideLightweightReloadService;
@@ -148,7 +149,7 @@ public class GuideSitePageCollector {
 
     private static ParsedGuidePage parseSyntheticPage(ResourceLocation pageId, String sourcePack, String language,
         String source) {
-        return com.hfstudio.guidenh.guide.compiler.PageCompiler.parse(sourcePack, language, pageId, source);
+        return PageCompiler.parse(sourcePack, language, pageId, source);
     }
 
     public static List<String> discoverLanguagesOrEmpty() {

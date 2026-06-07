@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
@@ -89,11 +90,20 @@ public class LytSlot extends LytBlock implements InteractiveElement {
         var padding = largeSlot ? LARGE_PADDING : PADDING;
         var stack = getDisplayedStack();
         if (stack != null) {
+            renderStack(context, stack, x + padding, y + padding);
+        }
+    }
+
+    private void renderStack(RenderContext context, ItemStack stack, int x, int y) {
+        try {
             if (stack.stackSize > 0) {
-                context.renderItem(stack, x + padding, y + padding);
+                context.renderItem(stack, x, y);
             } else {
-                context.renderItemIcon(stack, x + padding, y + padding);
+                context.renderItemIcon(stack, x, y);
             }
+        } catch (Throwable t) {
+            GuideDisplayItemStacks.warnRenderFailure("LytSlot", stack, t);
+            context.restoreExternalRenderState();
         }
     }
 

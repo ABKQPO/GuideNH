@@ -19,12 +19,12 @@ public class GuidePageHistoryHotkey {
 
     public static final KeyBinding GUIDE_PAGE_BACK_KEY = new KeyBinding(
         "key.guidenh.guide_page_back",
-        Keyboard.KEY_NONE,
+        Keyboard.KEY_BACK,
         "key.categories.guidenh");
 
     public static final KeyBinding GUIDE_PAGE_FORWARD_KEY = new KeyBinding(
         "key.guidenh.guide_page_forward",
-        Keyboard.KEY_NONE,
+        Keyboard.KEY_RETURN,
         "key.categories.guidenh");
 
     private GuidePageHistoryHotkey() {}

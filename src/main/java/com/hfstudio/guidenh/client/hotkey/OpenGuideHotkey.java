@@ -23,6 +23,7 @@ import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.input.GuideKeyBindingSupport;
 import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
@@ -160,7 +161,7 @@ public class OpenGuideHotkey {
 
     public static String renderHint(float progress) {
         var fr = Minecraft.getMinecraft().fontRenderer;
-        String keyName = Keyboard.getKeyName(OPEN_GUIDE_KEY.getKeyCode());
+        String keyName = GuideKeyBindingSupport.describe(OPEN_GUIDE_KEY);
         String holdLabel = GuidebookText.HoldToShow
             .text(EnumChatFormatting.GRAY + keyName + EnumChatFormatting.DARK_GRAY);
 
@@ -239,11 +240,7 @@ public class OpenGuideHotkey {
     }
 
     public static boolean isKeyHeld() {
-        int code = OPEN_GUIDE_KEY.getKeyCode();
-        if (code <= 0) {
-            return false;
-        }
-        return Keyboard.isKeyDown(code);
+        return GuideKeyBindingSupport.isDown(OPEN_GUIDE_KEY);
     }
 
     public static String resolveItemId(ItemStack stack) {

@@ -3,9 +3,12 @@ package com.hfstudio.guidenh.guide.render;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -23,6 +26,8 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 
 public class GuidePageTexture {
 
+    private static final LytSize DEFAULT_SIZE = new LytSize(256, 256);
+
     public static final GuidePageTexture MISSING = new GuidePageTexture(null, 0, 0, null);
     private static final String TEXTURE_OBJECTS_FIELD = "mapTextureObjects";
     private static final String TEXTURE_OBJECTS_SRG_FIELD = "field_110585_a";
@@ -31,22 +36,28 @@ public class GuidePageTexture {
 
     @Nullable
     private final ResourceLocation sourceId;
-    private final int width;
-    private final int height;
+    private final LytSize size;
     private byte @Nullable [] imageData;
     @Nullable
     private ResourceLocation texture;
 
     public GuidePageTexture(ResourceLocation texture, int width, int height) {
-        this(texture, width, height, null);
+        this(texture, createSize(width, height), null);
     }
 
     private GuidePageTexture(@Nullable ResourceLocation sourceId, int width, int height, byte @Nullable [] imageData) {
+        this(sourceId, createSize(width, height), imageData);
+    }
+
+    private GuidePageTexture(@Nullable ResourceLocation sourceId, LytSize size, byte @Nullable [] imageData) {
         this.sourceId = sourceId;
-        this.width = width;
-        this.height = height;
+        this.size = size;
         this.imageData = imageData;
         this.texture = imageData == null ? sourceId : null;
+    }
+
+    private static LytSize createSize(int width, int height) {
+        return width > 0 && height > 0 ? new LytSize(width, height) : DEFAULT_SIZE;
     }
 
     public static GuidePageTexture missing() {
@@ -62,12 +73,11 @@ public class GuidePageTexture {
         if (cached != null) return cached;
         if (imageData == null || imageData.length == 0) return missing();
         try {
-            BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageData));
-            if (img == null) {
-                GuideDebugLog.warnAlways("Failed to decode image {} (ImageIO returned null)", id);
+            LytSize size = readImageSize(id, imageData);
+            if (size == null) {
                 return missing();
             }
-            var gpt = new GuidePageTexture(id, img.getWidth(), img.getHeight(), imageData);
+            var gpt = new GuidePageTexture(id, size, imageData);
             CACHE.put(id, gpt);
             return gpt;
         } catch (Throwable t) {
@@ -94,6 +104,28 @@ public class GuidePageTexture {
         return sanitized.toString();
     }
 
+    @Nullable
+    private static LytSize readImageSize(ResourceLocation id, byte[] imageData) throws Exception {
+        try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(imageData))) {
+            if (input == null) {
+                GuideDebugLog.warnAlways("Failed to inspect image {} (ImageIO returned null stream)", id);
+                return null;
+            }
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) {
+                GuideDebugLog.warnAlways("Failed to inspect image {} (no ImageIO reader found)", id);
+                return null;
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input, true, true);
+                return new LytSize(reader.getWidth(0), reader.getHeight(0));
+            } finally {
+                reader.dispose();
+            }
+        }
+    }
+
     private static boolean isSafeTextureNameCharacter(char ch) {
         return ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9';
     }
@@ -108,25 +140,28 @@ public class GuidePageTexture {
         if (data == null) {
             return null;
         }
+        ResourceLocation id = sourceId;
+        if (id == null) {
+            return null;
+        }
 
         try {
             BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
             if (img == null) {
-                GuideDebugLog.warnAlways(
-                    "Failed to decode image {} while creating dynamic texture (ImageIO returned null)",
-                    sourceId);
+                GuideDebugLog
+                    .warnAlways("Failed to decode image {} while creating dynamic texture (ImageIO returned null)", id);
                 imageData = null;
                 return null;
             }
             DynamicTexture tex = new DynamicTexture(img);
-            String name = "guidenh_page_" + sanitize(sourceId.getResourceDomain() + "_" + sourceId.getResourcePath());
+            String name = "guidenh_page_" + sanitize(id.getResourceDomain() + "_" + id.getResourcePath());
             texture = Minecraft.getMinecraft()
                 .getTextureManager()
                 .getDynamicTextureLocation(name, tex);
             imageData = null;
             return texture;
         } catch (Throwable t) {
-            GuideDebugLog.error("Failed to create guide page dynamic texture {}", sourceId, t);
+            GuideDebugLog.error("Failed to create guide page dynamic texture {}", id, t);
             imageData = null;
             return null;
         }
@@ -167,8 +202,7 @@ public class GuidePageTexture {
     }
 
     public LytSize getSize() {
-        if (width <= 0 || height <= 0) return new LytSize(256, 256);
-        return new LytSize(width, height);
+        return size;
     }
 
     @Nullable

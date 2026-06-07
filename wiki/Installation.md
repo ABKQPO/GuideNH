@@ -23,6 +23,20 @@ During `processResources`, the project copies everything under `wiki/resourcepac
 - `assets/guidenh/guidenh/_zh_cn/index.md`
 - `assets/guidenh/guidenh/assets/example_structure.snbt`
 
+## TXLoader Native Layout
+
+TXLoader's `config/txloader/load/` and `config/txloader/forceload/` folders use their own native layout:
+`<namespace>/<resource path>`. Do not copy the outer `assets/` folder into TXLoader.
+
+For a GuideNH guide, use paths such as:
+
+- `config/txloader/load/guidenh/guidenh/_en_us/index.md`
+- `config/txloader/load/guidenh/guidenh/assets/example_structure.snbt`
+- `config/txloader/load/guidenh/textures/guide/my_icon.png`
+
+The same layout works under `config/txloader/forceload/`. Files in `forceload` keep TXLoader's forced
+resource-pack priority, so they can override files with the same GuideNH page or asset path.
+
 ## Development Loop
 
 1. Edit runtime pages and assets under `wiki/resourcepack/`.

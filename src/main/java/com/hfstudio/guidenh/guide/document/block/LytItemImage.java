@@ -13,6 +13,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -209,15 +210,27 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         if (showIcon) {
             int renderX = iconX;
             int renderY = baseY + getInlineVisualYOffset();
+            renderIcon(context, renderX, renderY);
+        }
+    }
+
+    private void renderIcon(RenderContext context, int renderX, int renderY) {
+        try {
             if (scale == 1f) {
                 context.renderItem(stack, renderX, renderY);
             } else {
                 GL11.glPushMatrix();
-                GL11.glTranslatef(renderX, renderY, 0);
-                GL11.glScalef(scale, scale, 1f);
-                context.renderItem(stack, 0, 0);
-                GL11.glPopMatrix();
+                try {
+                    GL11.glTranslatef(renderX, renderY, 0);
+                    GL11.glScalef(scale, scale, 1f);
+                    context.renderItem(stack, 0, 0);
+                } finally {
+                    GL11.glPopMatrix();
+                }
             }
+        } catch (Throwable t) {
+            GuideDisplayItemStacks.warnRenderFailure("LytItemImage", stack, t);
+            context.restoreExternalRenderState();
         }
     }
 

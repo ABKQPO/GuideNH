@@ -222,7 +222,7 @@ public class IdUtils {
         if (idText.startsWith("/")) {
             return new ResourceLocation(anchor.getResourceDomain(), idText.substring(1));
         } else if (!idText.contains(":")) {
-            URI uri = URI.create(anchor.getResourcePath());
+            URI uri = URI.create(anchorParentPath(anchor.getResourcePath()));
             uri = uri.resolve(idText);
             return new ResourceLocation(anchor.getResourceDomain(), uri.toString());
         }
@@ -234,5 +234,10 @@ public class IdUtils {
                 idText.substring(namespaceSeparator + 2));
         }
         return new ResourceLocation(idText);
+    }
+
+    private static String anchorParentPath(String anchorPath) {
+        int slashIndex = anchorPath.lastIndexOf('/');
+        return slashIndex >= 0 ? anchorPath.substring(0, slashIndex + 1) : "";
     }
 }

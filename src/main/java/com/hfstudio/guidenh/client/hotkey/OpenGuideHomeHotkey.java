@@ -10,7 +10,7 @@ import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.InputEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -19,7 +19,7 @@ public class OpenGuideHomeHotkey {
 
     public static final KeyBinding OPEN_GUIDE_HOME_KEY = new KeyBinding(
         "key.guidenh.open_guide_home",
-        Keyboard.KEY_NONE,
+        Keyboard.KEY_G,
         "key.categories.guidenh");
 
     private OpenGuideHomeHotkey() {}
@@ -32,7 +32,10 @@ public class OpenGuideHomeHotkey {
     }
 
     @SubscribeEvent
-    public void onKeyInput(InputEvent.KeyInputEvent event) {
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null) {
             return;

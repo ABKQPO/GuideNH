@@ -262,20 +262,19 @@ public class VanillaRenderContext implements RenderContext {
 
         int scaledFontHeight = Math.round(fontRenderer.FONT_HEIGHT * scale);
         int decorationY = y + scaledFontHeight - 1;
-        int decoratedWidth = getStringWidth(text, style);
-        if (style.underlined()) {
+        int decoratedWidth = GuideFontCompat.getPreparedStringWidth(fontRenderer, drawn, style);
+        if (hasUnderline) {
             Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
         }
-        if (style.wavyUnderline()) {
-            int w = decoratedWidth;
+        if (hasWavyUnderline) {
             // Draw a 2px-tall sine-like zig-zag using 1x1 rects: pattern of 4 px period.
-            for (int i = 0; i < w; i++) {
+            for (int i = 0; i < decoratedWidth; i++) {
                 int phase = i & 3; // 0,1,2,3
                 int dy = (phase == 0 || phase == 2) ? 0 : (phase == 1 ? -1 : 1);
                 Gui.drawRect(x + i, decorationY + dy, x + i + 1, decorationY + dy + 1, color);
             }
         }
-        if (style.dottedUnderline()) {
+        if (hasDottedUnderline) {
             // Center a single 2x2 dot under each rendered character cell.
             int cursor = 0;
             boolean bold = style.bold();

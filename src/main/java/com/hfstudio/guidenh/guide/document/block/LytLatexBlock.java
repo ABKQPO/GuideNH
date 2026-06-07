@@ -42,8 +42,17 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
     private final int offsetX;
     private final int offsetY;
 
-    /** Vertical pixel offset from aligned position, recomputed each layout pass. */
+    /** Formula display width in GUI pixels, recomputed each layout pass. */
+    private int formulaDisplayW;
+    /** Formula display height in GUI pixels, recomputed each layout pass. */
+    private int formulaDisplayH;
+    /** Vertical pixel offset inside the layout bounds, recomputed each layout pass. */
     private int renderYOffset;
+    private boolean sourceMetricsResolved;
+    private int sourceWidthPx;
+    private int sourceHeightPx;
+    private int sourceDepthPx;
+    private int sourceRefHeightPx;
 
     public LytLatexBlock(String formula, int fillColorArgb, float sourceScale, float userScale,
         @Nullable GuideTooltip tooltip, LatexVerticalAlign valign, int offsetX, int offsetY) {
@@ -63,21 +72,20 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale);
-        if (size == null) {
+        if (!resolveSourceMetrics()) {
+            formulaDisplayW = 0;
+            formulaDisplayH = 0;
             renderYOffset = 0;
             return new LytRect(x, y, 0, 0);
         }
 
         int lineHeight = context.getLineHeight(null);
-        int refH = GuideLatexRenderer.INSTANCE.calibrateRefHeight(sourceScale);
-
-        int displayH = (int) Math.max(1, Math.ceil((double) size[1] * lineHeight * userScale / refH));
-        int displayW = (int) Math.max(1, Math.ceil((double) size[0] * lineHeight * userScale / refH));
+        formulaDisplayH = scaleSourceMetricCeil(sourceHeightPx, lineHeight);
+        formulaDisplayW = scaleSourceMetricCeil(sourceWidthPx, lineHeight);
 
         int alignOffset = switch (valign) {
-            case CENTER -> (lineHeight - displayH) / 2;
-            case BOTTOM -> lineHeight - displayH;
+            case CENTER -> (lineHeight - formulaDisplayH) / 2;
+            case BOTTOM -> lineHeight - formulaDisplayH;
             case BASELINE -> {
                 // Align the formula's math baseline with the text baseline.
                 //
@@ -91,14 +99,41 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
                 // = (lineHeight - displayH) + depthDisplay
                 //
                 // For depth-zero formulas (size[2]==0) this is identical to BOTTOM.
-                int depthDisplay = (int) Math.round((double) size[2] * lineHeight * userScale / refH);
-                yield lineHeight - displayH + depthDisplay;
+                int depthDisplay = scaleSourceMetricRound(sourceDepthPx, lineHeight);
+                yield lineHeight - formulaDisplayH + depthDisplay;
             }
             default -> 0; // TOP
         };
-        renderYOffset = alignOffset + offsetY;
+        int desiredRenderYOffset = alignOffset + offsetY;
+        int topInset = Math.max(0, -desiredRenderYOffset);
+        int bottomInset = Math.max(0, desiredRenderYOffset);
+        renderYOffset = desiredRenderYOffset + topInset;
 
-        return new LytRect(x, y, displayW, displayH);
+        return new LytRect(x, y - topInset, formulaDisplayW, topInset + formulaDisplayH + bottomInset);
+    }
+
+    private boolean resolveSourceMetrics() {
+        if (sourceMetricsResolved) {
+            return sourceWidthPx > 0 && sourceHeightPx > 0;
+        }
+        sourceMetricsResolved = true;
+        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale);
+        if (size == null) {
+            return false;
+        }
+        sourceWidthPx = size[0];
+        sourceHeightPx = size[1];
+        sourceDepthPx = size[2];
+        sourceRefHeightPx = GuideLatexRenderer.INSTANCE.calibrateRefHeight(sourceScale);
+        return sourceWidthPx > 0 && sourceHeightPx > 0;
+    }
+
+    private int scaleSourceMetricCeil(int sourceMetric, int lineHeight) {
+        return (int) Math.max(1, Math.ceil((double) sourceMetric * lineHeight * userScale / sourceRefHeightPx));
+    }
+
+    private int scaleSourceMetricRound(int sourceMetric, int lineHeight) {
+        return (int) Math.round((double) sourceMetric * lineHeight * userScale / sourceRefHeightPx);
     }
 
     @Override
@@ -106,7 +141,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
 
     @Override
     public void render(RenderContext context) {
-        if (bounds.width() <= 0 || bounds.height() <= 0) {
+        if (formulaDisplayW <= 0 || formulaDisplayH <= 0) {
             return;
         }
 
@@ -116,7 +151,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         }
 
         GuideLatexRenderer.INSTANCE
-            .renderLatex(bounds.x() + offsetX, bounds.y() + renderYOffset, bounds.width(), bounds.height(), tex[0]);
+            .renderLatex(bounds.x() + offsetX, bounds.y() + renderYOffset, formulaDisplayW, formulaDisplayH, tex[0]);
     }
 
     @Override
@@ -175,7 +210,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         if (bounds == null || bounds.isEmpty()) {
             return LytRect.empty();
         }
-        return new LytRect(bounds.x() + offsetX, bounds.y() + renderYOffset, bounds.width(), bounds.height());
+        return new LytRect(bounds.x() + offsetX, bounds.y() + renderYOffset, formulaDisplayW, formulaDisplayH);
     }
 
     @Nullable

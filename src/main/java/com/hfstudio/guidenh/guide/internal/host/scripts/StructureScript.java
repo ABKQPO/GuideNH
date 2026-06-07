@@ -4,6 +4,8 @@ import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
+import com.hfstudio.guidenh.guide.compiler.IdUtils.ParsedItemRef;
 import com.hfstudio.guidenh.guide.compiler.tags.StructureViewCompiler.StructureEntry;
 import com.hfstudio.guidenh.guide.compiler.tags.StructureViewCompiler.StructurePlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -51,8 +53,7 @@ public class StructureScript implements LytScript {
     @SuppressWarnings("deprecation")
     private static ItemStack resolveEntry(String idSpec) {
         if (idSpec == null || idSpec.isEmpty()) return null;
-        com.hfstudio.guidenh.guide.compiler.IdUtils.ParsedItemRef ref = com.hfstudio.guidenh.guide.compiler.IdUtils
-            .parseItemRef(idSpec, "minecraft");
+        ParsedItemRef ref = IdUtils.parseItemRef(idSpec, "minecraft");
         if (ref == null) return null;
         Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (item != null) {

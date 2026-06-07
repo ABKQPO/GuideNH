@@ -3,10 +3,8 @@ package com.hfstudio.guidenh.guide.internal.host.scripts;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.oredict.OreDictionary;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -30,6 +28,7 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.item.GuideItemTargetResolver;
 
 public class ItemLinkScript implements LytScript {
@@ -45,7 +44,6 @@ public class ItemLinkScript implements LytScript {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() == EventType.MOUNT && node instanceof LytFlowLink link) {
             String itemId = (String) link.getData("itemId");
@@ -63,12 +61,9 @@ public class ItemLinkScript implements LytScript {
                 return;
             }
 
-            ItemStack stack = resolveItemStack(itemId);
+            ItemStack stack = GuideDisplayItemStacks.resolveItemStack(itemId, "minecraft");
             if (stack == null && ore != null && !ore.isEmpty()) {
-                java.util.List<ItemStack> ores = OreDictionary.getOres(ore);
-                if (!ores.isEmpty()) {
-                    stack = ores.get(0);
-                }
+                stack = GuideDisplayItemStacks.resolveOreStack(ore);
             }
             if (stack == null) {
                 String detail = (itemId != null && !itemId.isEmpty()) ? itemId : ore;
@@ -111,15 +106,6 @@ public class ItemLinkScript implements LytScript {
             }
             appendIconAndFallbackText(link, stack, iconPosition, Boolean.TRUE.equals(showTooltip), showText);
         }
-    }
-
-    @SuppressWarnings("deprecation")
-    private static ItemStack resolveItemStack(String itemId) {
-        if (itemId == null || itemId.isEmpty()) return null;
-        IdUtils.ParsedItemRef ref = IdUtils.parseItemRef(itemId, "minecraft");
-        if (ref == null) return null;
-        Item item = (Item) Item.itemRegistry.getObject(ref.rawKey());
-        return item != null ? new ItemStack(item, 1, ref.concreteMeta()) : null;
     }
 
     @Nullable

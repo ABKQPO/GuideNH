@@ -1,7 +1,10 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
@@ -16,10 +19,12 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
@@ -60,6 +65,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     public static final int ACTION_BUTTON_SIZE = 12;
     private static final String GREGTECH_DEFAULT_NEI_HANDLER = "gregtech.nei.GTNEIDefaultHandler";
     private static final int GREGTECH_WINDOW_TOP_BLEED = 11;
+    private static final Set<String> WARNED_RECIPE_RENDER_FAILURES = Collections.synchronizedSet(new HashSet<>());
 
     private final Object handler;
     private final int recipeIndex;
@@ -178,8 +184,21 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         int bodyX = innerLeft;
         int bodyY = innerTop + titleHeight + BODY_MARGIN + bodyTopInset;
 
+        context.restoreExternalRenderState();
         WindowNinePatch.drawWindow(context.lightDarkMode(), x, y, w, h);
 
+        try {
+            renderRecipeBody(bodyX, bodyY, context);
+        } catch (Throwable t) {
+            warnRecipeRenderFailure(t);
+        } finally {
+            context.restoreExternalRenderState();
+        }
+        drawWindowChromeOverlay(context, x, y, w, h, bodyX, bodyY, bodyWidth, bodyHeight);
+        drawTitleRow(context, innerLeft, innerRight, titleRowTop, fh);
+    }
+
+    private void renderRecipeBody(int bodyX, int bodyY, RenderContext context) {
         NeiAnimationTicker.ensureUpdating(handler);
         if (NeiCustomDiagramBridge.isDiagramGroupHandler(handler) && context instanceof VanillaRenderContext vrc) {
             LytRect bodyAbs = vrc.toScreenRect(new LytRect(bodyX, bodyY, bodyWidth, bodyHeight));
@@ -206,9 +225,23 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
                 -1,
                 otherStacksBroken);
         }
-        context.restoreExternalRenderState();
-        drawWindowChromeOverlay(context, x, y, w, h, bodyX, bodyY, bodyWidth, bodyHeight);
-        drawTitleRow(context, innerLeft, innerRight, titleRowTop, fh);
+    }
+
+    private void warnRecipeRenderFailure(Throwable t) {
+        String key = handler.getClass()
+            .getName() + ":"
+            + recipeIndex
+            + ":"
+            + t.getClass()
+                .getName();
+        if (WARNED_RECIPE_RENDER_FAILURES.add(key)) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [LytNeiRecipeBox] Failed to render embedded recipe {}#{}; keeping recipe frame",
+                handler.getClass()
+                    .getName(),
+                recipeIndex,
+                t);
+        }
     }
 
     private void drawTitleRow(RenderContext context, int innerLeft, int innerRight, int titleRowTop, int fontHeight) {
@@ -295,13 +328,18 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
     public static void drawScaledItem(RenderContext context, ItemStack stack, int x, int y, int size) {
         float scale = size / 16f;
-        GL11.glPushMatrix();
         try {
-            GL11.glTranslatef(x, y, 0f);
-            GL11.glScalef(scale, scale, 1f);
-            context.renderItem(stack, 0, 0);
-        } finally {
-            GL11.glPopMatrix();
+            GL11.glPushMatrix();
+            try {
+                GL11.glTranslatef(x, y, 0f);
+                GL11.glScalef(scale, scale, 1f);
+                context.renderItem(stack, 0, 0);
+            } finally {
+                GL11.glPopMatrix();
+            }
+        } catch (Throwable t) {
+            GuideDisplayItemStacks.warnRenderFailure("LytNeiRecipeBox", stack, t);
+            context.restoreExternalRenderState();
         }
     }
 

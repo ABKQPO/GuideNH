@@ -94,6 +94,11 @@ navigation:
   priority: 100
 ```
 
+TXLoader 也遵循同样的规则。请把 GuideNH 页面放在 TXLoader 原生布局下，例如
+`config/txloader/load/guidenh/guidenh/_zh_cn/index.md` 或
+`config/txloader/forceload/guidenh/guidenh/_zh_cn/index.md`，不要额外套一层 `assets/` 目录。
+TXLoader `forceload` 中的文件会由 TXLoader 放到更靠后的资源包优先级，因此可以覆盖 `load` 中的同路径文件。
+
 ### `navigation.icon`
 
 显示在侧边栏页面标题旁的一个物品图标。

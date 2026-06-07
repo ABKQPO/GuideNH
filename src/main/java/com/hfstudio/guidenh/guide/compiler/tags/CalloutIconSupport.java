@@ -12,6 +12,7 @@ import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 
 public class CalloutIconSupport {
@@ -51,7 +52,7 @@ public class CalloutIconSupport {
     }
 
     private static LytFlowContent buildItemIcon(PageCompiler compiler, String value) {
-        ItemStack stack = IdUtils.resolveItemStack(
+        ItemStack stack = GuideDisplayItemStacks.resolveItemStack(
             value,
             compiler.getPageId()
                 .getResourceDomain());

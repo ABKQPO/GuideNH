@@ -182,20 +182,23 @@ public class DataDrivenGuideLoader {
             return;
         }
 
-        var assetsDir = new File(resourcePackRoot, "assets");
-        var namespaceDirs = assetsDir.listFiles(File::isDirectory);
-        if (namespaceDirs != null) {
-            for (var namespaceDir : namespaceDirs) {
-                scanPagePathsForNamespaceRoot(resourcePackRoot, namespaceDir.getName(), folder, pagePaths);
-            }
+        for (NamespaceRoot namespaceRoot : discoverNamespaceRoots(resourcePackRoot)) {
+            scanPagePathsForNamespaceRoot(namespaceRoot, folder, pagePaths);
         }
-        scanLoosePagePathsAllNamespaces(resourcePackRoot, folder, pagePaths);
     }
 
     private static void scanPagePathsAllNamespaces(IResourcePack resourcePack, File resourcePackRoot, String folder,
         LinkedHashMap<String, LinkedHashSet<String>> pagePaths) {
-        for (String namespace : getResourceDomains(resourcePack)) {
-            scanPagePathsForNamespaceRoot(resourcePackRoot, namespace, folder, pagePaths);
+        var discoveredRoots = discoverNamespaceRoots(resourcePackRoot);
+        if (!discoveredRoots.isEmpty()) {
+            for (NamespaceRoot namespaceRoot : discoveredRoots) {
+                scanPagePathsForNamespaceRoot(namespaceRoot, folder, pagePaths);
+            }
+            return;
+        }
+
+        for (String domain : getResourceDomains(resourcePack)) {
+            scanPagePathsForNamespaceRoot(resourcePackRoot, namespaceFromDirectoryName(domain), folder, pagePaths);
         }
     }
 
@@ -206,8 +209,8 @@ public class DataDrivenGuideLoader {
         }
 
         var discovered = new LinkedHashSet<String>();
-        for (String prefix : pagePathPrefixes(namespace, folder)) {
-            scanFolderPagePaths(resourcePackRoot, prefix, discovered);
+        for (File guideRoot : guideRootCandidates(resourcePackRoot, namespace, folder)) {
+            scanFolderPagePaths(guideRoot, discovered);
         }
         if (!discovered.isEmpty()) {
             pagePaths.computeIfAbsent(namespace, k -> new LinkedHashSet<>())
@@ -215,17 +218,15 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    private static void scanLoosePagePathsAllNamespaces(File resourcePackRoot, String folder,
+    private static void scanPagePathsForNamespaceRoot(NamespaceRoot namespaceRoot, String folder,
         LinkedHashMap<String, LinkedHashSet<String>> pagePaths) {
-        var namespaceDirs = resourcePackRoot.listFiles(File::isDirectory);
-        if (namespaceDirs == null) {
-            return;
+        var discovered = new LinkedHashSet<String>();
+        for (File guideRoot : guideRootCandidates(namespaceRoot, folder)) {
+            scanFolderPagePaths(guideRoot, discovered);
         }
-        for (var namespaceDir : namespaceDirs) {
-            if ("assets".equals(namespaceDir.getName())) {
-                continue;
-            }
-            scanPagePathsForNamespaceRoot(resourcePackRoot, namespaceDir.getName(), folder, pagePaths);
+        if (!discovered.isEmpty()) {
+            pagePaths.computeIfAbsent(namespaceRoot.namespace(), k -> new LinkedHashSet<>())
+                .addAll(discovered);
         }
     }
 
@@ -310,8 +311,8 @@ public class DataDrivenGuideLoader {
     public static void scanPagePathsForNamespace(File resourcePackRoot, String namespace, String folder,
         Set<String> pagePaths) {
         if (resourcePackRoot.isDirectory()) {
-            for (String prefix : pagePathPrefixes(namespace, folder)) {
-                scanFolderPagePaths(resourcePackRoot, prefix, pagePaths);
+            for (File guideRoot : guideRootCandidates(resourcePackRoot, namespace, folder)) {
+                scanFolderPagePaths(guideRoot, pagePaths);
             }
         } else {
             scanZipPagePaths(resourcePackRoot, toFolderPrefix(namespace, folder), pagePaths);
@@ -449,7 +450,7 @@ public class DataDrivenGuideLoader {
         }
 
         if (resourcePackRoot.isDirectory()) {
-            scanFolderPagePaths(resourcePackRoot, prefix, pagePaths);
+            scanFolderPagePaths(new File(resourcePackRoot, prefix.replace('/', File.separatorChar)), pagePaths);
         } else {
             scanZipPagePaths(resourcePackRoot, prefix, pagePaths);
         }
@@ -556,7 +557,7 @@ public class DataDrivenGuideLoader {
         Path root = looseRoot.toPath()
             .toAbsolutePath()
             .normalize();
-        for (String candidate : looseResourceCandidates(resourceLocation)) {
+        for (String candidate : resourcePathCandidates(looseRoot, resourceLocation)) {
             Path path = root.resolve(candidate.replace('/', File.separatorChar))
                 .normalize();
             if (!path.startsWith(root) || !Files.isRegularFile(path)) {
@@ -576,16 +577,25 @@ public class DataDrivenGuideLoader {
         return null;
     }
 
-    private static List<String> looseResourceCandidates(ResourceLocation resourceLocation) {
+    private static List<String> resourcePathCandidates(File resourcePackRoot, ResourceLocation resourceLocation) {
         String namespace = resourceLocation.getResourceDomain();
         String path = resourceLocation.getResourcePath();
-        var candidates = new ArrayList<String>();
+        var candidates = new LinkedHashSet<String>();
         candidates.add("assets/" + namespace + "/" + path);
+        for (NamespaceRoot namespaceRoot : discoverNativeNamespaceRoots(resourcePackRoot)) {
+            if (namespaceRoot.namespace()
+                .equals(namespace)) {
+                candidates.add(
+                    namespaceRoot.directory()
+                        .getName() + "/"
+                        + path);
+            }
+        }
         candidates.add(namespace + "/" + path);
         if (path.startsWith(AUTO_GUIDE_FOLDER + "/")) {
             candidates.add(path);
         }
-        return candidates;
+        return List.copyOf(candidates);
     }
 
     public static IResourcePack findResourcePack(ResourceLocation resourceLocation) {
@@ -601,30 +611,23 @@ public class DataDrivenGuideLoader {
 
     public static void scanResourcePackFolder(File resourcePackRoot,
         Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
-        var assetsDir = new File(resourcePackRoot, "assets");
-        var namespaceDirs = assetsDir.listFiles(File::isDirectory);
-        if (namespaceDirs != null) {
-            for (var namespaceDir : namespaceDirs) {
-                scanResourcePackFolderNamespace(resourcePackRoot, namespaceDir.getName(), discoveredLanguages);
-            }
-        }
-
-        var looseNamespaceDirs = resourcePackRoot.listFiles(File::isDirectory);
-        if (looseNamespaceDirs == null) {
-            return;
-        }
-        for (var namespaceDir : looseNamespaceDirs) {
-            if ("assets".equals(namespaceDir.getName())) {
-                continue;
-            }
-            scanResourcePackFolderNamespace(resourcePackRoot, namespaceDir.getName(), discoveredLanguages);
+        for (NamespaceRoot namespaceRoot : discoverNamespaceRoots(resourcePackRoot)) {
+            scanResourcePackFolderNamespaceRoot(namespaceRoot, AUTO_GUIDE_FOLDER, discoveredLanguages);
         }
     }
 
     private static void scanResourcePackFolder(IResourcePack resourcePack, File resourcePackRoot,
         Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
-        for (String namespace : getResourceDomains(resourcePack)) {
-            scanResourcePackFolderNamespace(resourcePackRoot, namespace, discoveredLanguages);
+        var discoveredRoots = discoverNamespaceRoots(resourcePackRoot);
+        if (!discoveredRoots.isEmpty()) {
+            for (NamespaceRoot namespaceRoot : discoveredRoots) {
+                scanResourcePackFolderNamespaceRoot(namespaceRoot, AUTO_GUIDE_FOLDER, discoveredLanguages);
+            }
+            return;
+        }
+
+        for (String domain : getResourceDomains(resourcePack)) {
+            scanResourcePackFolderNamespace(resourcePackRoot, namespaceFromDirectoryName(domain), discoveredLanguages);
         }
     }
 
@@ -633,21 +636,15 @@ public class DataDrivenGuideLoader {
         if (!isValidNamespace(namespace)) {
             return;
         }
-        scanResourcePackFolderNamespaceRoot(
-            namespace,
-            new File(resourcePackRoot, toFolderPrefix(namespace, AUTO_GUIDE_FOLDER).replace('/', File.separatorChar)),
-            discoveredLanguages);
-        scanResourcePackFolderNamespaceRoot(
-            namespace,
-            new File(
-                resourcePackRoot,
-                toLooseFolderPrefix(namespace, AUTO_GUIDE_FOLDER).replace('/', File.separatorChar)),
-            discoveredLanguages);
-        if (AUTO_GUIDE_FOLDER.equals(namespace)) {
-            scanResourcePackFolderNamespaceRoot(
-                namespace,
-                new File(resourcePackRoot, AUTO_GUIDE_FOLDER.replace('/', File.separatorChar)),
-                discoveredLanguages);
+        for (File guideRoot : guideRootCandidates(resourcePackRoot, namespace, AUTO_GUIDE_FOLDER)) {
+            scanResourcePackFolderNamespaceRoot(namespace, guideRoot, discoveredLanguages);
+        }
+    }
+
+    private static void scanResourcePackFolderNamespaceRoot(NamespaceRoot namespaceRoot, String folder,
+        Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
+        for (File guideRoot : guideRootCandidates(namespaceRoot, folder)) {
+            scanResourcePackFolderNamespaceRoot(namespaceRoot.namespace(), guideRoot, discoveredLanguages);
         }
     }
 
@@ -729,9 +726,8 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    public static void scanFolderPagePaths(File resourcePackRoot, String prefix, Set<String> pagePaths) {
-        var resourceRoot = new File(resourcePackRoot, prefix.replace('/', File.separatorChar));
-        var languageDirs = resourceRoot.listFiles(File::isDirectory);
+    public static void scanFolderPagePaths(File guideRoot, Set<String> pagePaths) {
+        var languageDirs = guideRoot.listFiles(File::isDirectory);
         if (languageDirs == null) {
             return;
         }
@@ -838,18 +834,121 @@ public class DataDrivenGuideLoader {
         return namespace + "/" + folder + "/";
     }
 
-    private static List<String> pagePathPrefixes(String namespace, String folder) {
-        var prefixes = new ArrayList<String>(3);
-        prefixes.add(toFolderPrefix(namespace, folder));
-        prefixes.add(toLooseFolderPrefix(namespace, folder));
-        if (folder.equals(namespace)) {
-            prefixes.add(folder + "/");
+    private static List<File> guideRootCandidates(File resourcePackRoot, String namespace, String folder) {
+        var candidates = new LinkedHashMap<Path, File>(3);
+        for (NamespaceRoot namespaceRoot : discoverNamespaceRoots(resourcePackRoot)) {
+            if (namespaceRoot.namespace()
+                .equals(namespace)) {
+                addGuideRootCandidates(candidates, namespaceRoot, folder);
+            }
         }
-        return prefixes;
+        addGuideRootCandidate(candidates, resourcePackRoot, toFolderPrefix(namespace, folder));
+        addGuideRootCandidate(candidates, resourcePackRoot, toLooseFolderPrefix(namespace, folder));
+        if (folder.equals(namespace)) {
+            addGuideRootCandidate(candidates, resourcePackRoot, folder + "/");
+        }
+        return List.copyOf(candidates.values());
+    }
+
+    private static List<File> guideRootCandidates(NamespaceRoot namespaceRoot, String folder) {
+        var candidates = new LinkedHashMap<Path, File>(2);
+        addGuideRootCandidates(candidates, namespaceRoot, folder);
+        return List.copyOf(candidates.values());
+    }
+
+    private static void addGuideRootCandidates(LinkedHashMap<Path, File> candidates, NamespaceRoot namespaceRoot,
+        String folder) {
+        addGuideRootCandidate(candidates, namespaceRoot.directory(), folder + "/");
+        if (folder.equals(namespaceRoot.namespace()) && namespaceRoot.allowDirectoryAsGuideRoot()) {
+            addGuideRootCandidate(candidates, namespaceRoot.directory(), "");
+        }
+    }
+
+    private static void addGuideRootCandidate(LinkedHashMap<Path, File> candidates, File resourcePackRoot,
+        String relativePath) {
+        var candidate = new File(resourcePackRoot, toNativePath(relativePath));
+        if (!candidate.isDirectory()) {
+            return;
+        }
+        candidates.putIfAbsent(
+            candidate.toPath()
+                .toAbsolutePath()
+                .normalize(),
+            candidate);
+    }
+
+    private static String toNativePath(String resourcePath) {
+        return resourcePath.replace('/', File.separatorChar);
+    }
+
+    private static List<NamespaceRoot> discoverNamespaceRoots(File resourcePackRoot) {
+        var roots = new LinkedHashMap<Path, NamespaceRoot>();
+        var assetsDir = new File(resourcePackRoot, "assets");
+        var assetNamespaceDirs = assetsDir.listFiles(File::isDirectory);
+        if (assetNamespaceDirs != null) {
+            for (var namespaceDir : assetNamespaceDirs) {
+                String namespace = namespaceFromDirectoryName(namespaceDir.getName());
+                if (isValidNamespace(namespace)) {
+                    addNamespaceRoot(roots, new NamespaceRoot(namespace, namespaceDir, false));
+                }
+            }
+        }
+
+        for (NamespaceRoot namespaceRoot : discoverNativeNamespaceRoots(resourcePackRoot)) {
+            addNamespaceRoot(roots, namespaceRoot);
+        }
+        return List.copyOf(roots.values());
+    }
+
+    private static List<NamespaceRoot> discoverNativeNamespaceRoots(File resourcePackRoot) {
+        var roots = new LinkedHashMap<Path, NamespaceRoot>();
+        var nativeNamespaceDirs = resourcePackRoot.listFiles(File::isDirectory);
+        if (nativeNamespaceDirs != null) {
+            for (var namespaceDir : nativeNamespaceDirs) {
+                if ("assets".equals(namespaceDir.getName())) {
+                    continue;
+                }
+                String namespace = namespaceFromDirectoryName(namespaceDir.getName());
+                if (isValidNamespace(namespace)) {
+                    addNamespaceRoot(roots, new NamespaceRoot(namespace, namespaceDir, true));
+                }
+            }
+        }
+        return List.copyOf(roots.values());
+    }
+
+    private static void addNamespaceRoot(LinkedHashMap<Path, NamespaceRoot> roots, NamespaceRoot namespaceRoot) {
+        roots.putIfAbsent(
+            namespaceRoot.directory()
+                .toPath()
+                .toAbsolutePath()
+                .normalize(),
+            namespaceRoot);
+    }
+
+    private static String namespaceFromDirectoryName(String directoryName) {
+        if (isValidNamespace(directoryName)) {
+            return directoryName;
+        }
+        int openBracket = directoryName.lastIndexOf('[');
+        if (openBracket < 0 || !directoryName.endsWith("]")) {
+            return directoryName;
+        }
+        return directoryName.substring(openBracket + 1, directoryName.length() - 1);
     }
 
     private static boolean isValidNamespace(String namespace) {
-        return namespace != null && !namespace.isEmpty() && namespace.indexOf('/') < 0 && namespace.indexOf('\\') < 0;
+        if (namespace == null || namespace.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < namespace.length(); i++) {
+            char ch = namespace.charAt(i);
+            if (ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9' || ch == '_' || ch == '-' || ch == '.') {
+                continue;
+            }
+            return false;
+        }
+        return true;
     }
 
     private static List<IResourcePack> toList(Iterable<? extends IResourcePack> resourcePacks) {
@@ -888,4 +987,6 @@ public class DataDrivenGuideLoader {
             return !resourcePacks.isEmpty() && resourcePacks.equals(otherResourcePacks);
         }
     }
+
+    private record NamespaceRoot(String namespace, File directory, boolean allowDirectoryAsGuideRoot) {}
 }

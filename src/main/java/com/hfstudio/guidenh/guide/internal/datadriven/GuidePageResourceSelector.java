@@ -9,6 +9,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.compiler.Frontmatter;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 
 public class GuidePageResourceSelector {
@@ -122,9 +123,21 @@ public class GuidePageResourceSelector {
 
     public static int readLoadPriority(ResourceLocation sourceId, byte[] bytes) {
         String source = new String(bytes, StandardCharsets.UTF_8);
-        var frontmatter = PageCompiler.parseFrontmatterFromSource(sourceId, PageCompiler.normalizeLineEndings(source));
-        var navigation = frontmatter.navigationEntry();
-        return navigation != null ? navigation.loadPriority() : 0;
+        String yamlText = PageCompiler.extractFrontmatterText(PageCompiler.normalizeLineEndings(stripBom(source)));
+        if (yamlText == null) {
+            return 0;
+        }
+        try {
+            var frontmatter = Frontmatter.parse(sourceId, yamlText);
+            var navigation = frontmatter.navigationEntry();
+            return navigation != null ? navigation.loadPriority() : 0;
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    private static String stripBom(String source) {
+        return source.startsWith("\uFEFF") ? source.substring(1) : source;
     }
 
     @Desugar

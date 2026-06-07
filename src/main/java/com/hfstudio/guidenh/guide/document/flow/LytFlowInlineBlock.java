@@ -16,6 +16,9 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 public class LytFlowInlineBlock extends LytFlowContent implements InteractiveElement {
 
+    private static final ThreadLocal<LayoutContext> MEASURE_LAYOUT_CONTEXT = ThreadLocal
+        .withInitial(() -> new LayoutContext(new MinecraftFontMetrics()));
+
     private LytBlock block;
 
     private InlineBlockAlignment alignment = InlineBlockAlignment.INLINE;
@@ -49,8 +52,8 @@ public class LytFlowInlineBlock extends LytFlowContent implements InteractiveEle
             return LytRect.empty();
         }
 
-        // We need to compute the layout
-        var layoutContext = new LayoutContext(new MinecraftFontMetrics());
+        var layoutContext = MEASURE_LAYOUT_CONTEXT.get()
+            .resetTransientState();
         return block.layout(layoutContext, 0, 0, lineWidth);
     }
 

@@ -21,6 +21,25 @@ For the built-in example guide in this repository, that resolves to:
 wiki/resourcepack/assets/guidenh/guidenh/
 ```
 
+## TXLoader Native Layout
+
+When deploying the same files through TXLoader, remove the outer `assets/` segment because TXLoader stores
+resources as `<namespace>/<resource path>` under `load` and `forceload`:
+
+```text
+config/txloader/load/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- example_structure.snbt
+        `-- _en_us/
+            `-- index.md
+```
+
+For example, the standard resource-pack path `assets/guidenh/guidenh/_en_us/index.md` becomes
+`config/txloader/load/guidenh/guidenh/_en_us/index.md`. The same native layout works under
+`config/txloader/forceload/`.
+
 ## Guide Discovery
 
 GuideNH now discovers pages directly from the resource tree. Any markdown file under

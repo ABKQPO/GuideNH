@@ -36,6 +36,13 @@ already exists. The file remains the existence gate and the fallback source.
 - if that key exists and is non-empty, its full value becomes the page markdown source before parsing
 - if the key is missing or empty, GuideNH falls back to the resolved file content
 
+When a non-empty `.lang` page value is used, GuideNH merges missing frontmatter fields from the resolved physical
+page before parsing. Localized frontmatter always wins for fields it explicitly defines, so translated
+`navigation.title` values stay localized, while newer structural fields such as `navigation.recommend`,
+`navigation.priority`, categories, item links, authorship metadata, or page zoom can be inherited from the
+fallback `.md` file. This keeps older full-page translations from accidentally dropping home-page recommendations
+when the base page metadata is updated.
+
 The key format is:
 
 ```text

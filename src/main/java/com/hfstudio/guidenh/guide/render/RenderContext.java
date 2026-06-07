@@ -174,7 +174,10 @@ public interface RenderContext {
 
     default void fillTexturedRect(LytRect rect, GuidePageTexture texture) {
         if (texture != null && !texture.isMissing()) {
-            blitTexture(texture.getTexture(), rect.x(), rect.y(), 0, 0, rect.width(), rect.height());
+            ResourceLocation resolvedTexture = texture.getTexture();
+            if (resolvedTexture != null) {
+                blitTexture(resolvedTexture, rect.x(), rect.y(), 0, 0, rect.width(), rect.height());
+            }
         }
     }
 
