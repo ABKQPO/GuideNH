@@ -10,6 +10,8 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
+
 /** Candidate displaying a registry key with optional item icon and subtitle. */
 public class RegistryCandidate implements AutocompleteCandidate {
 
@@ -59,7 +61,7 @@ public class RegistryCandidate implements AutocompleteCandidate {
 
     @Override
     public int renderWidth(FontRenderer fr) {
-        return icon != null ? ICON_SIZE + 4 + fr.getStringWidth(key) : 0;
+        return icon != null ? ICON_SIZE + 4 + GuideTextRenderer.getStringWidth(fr, key) : 0;
     }
 
     @Override
@@ -84,9 +86,9 @@ public class RegistryCandidate implements AutocompleteCandidate {
             GL11.glPopMatrix();
             textX = x + TEXT_X;
         }
-        fontRenderer.drawString(key, textX, y + 3, TEXT_COLOR);
+        GuideTextRenderer.drawString(fontRenderer, key, textX, y + 3, TEXT_COLOR);
         if (subtitle != null) {
-            fontRenderer.drawString(subtitle, textX + 4, y + 14, SUBTITLE_COLOR);
+            GuideTextRenderer.drawString(fontRenderer, subtitle, textX + 4, y + 14, SUBTITLE_COLOR);
         }
     }
 }

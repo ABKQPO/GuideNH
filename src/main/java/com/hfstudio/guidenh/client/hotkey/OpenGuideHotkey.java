@@ -25,6 +25,7 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.input.GuideKeyBindingSupport;
 import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 
@@ -173,7 +174,7 @@ public class OpenGuideHotkey {
         if (barChar <= 0) {
             barChar = 2;
         }
-        int totalWidth = fr.getStringWidth(holdLabel);
+        int totalWidth = GuideTextRenderer.getStringWidth(fr, holdLabel);
         int totalChars = Math.max(1, totalWidth / barChar);
         int filled = (int) (progress * totalChars);
         if (filled < 0) filled = 0;

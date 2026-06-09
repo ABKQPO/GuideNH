@@ -14,6 +14,7 @@ import org.lwjgl.opengl.GL12;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
@@ -140,11 +141,11 @@ public class PonderInputAnnotation extends OverlayAnnotation {
 
         if (modifier != null && !modifier.isEmpty()) {
             String modText = modifier.equalsIgnoreCase("sneak") ? "Sneak +" : "Ctrl +";
-            int textW = mc.fontRenderer.getStringWidth(modText);
+            int textW = GuideTextRenderer.getStringWidth(mc.fontRenderer, modText);
             int textX = cx - textW / 2;
             int textY = by - mc.fontRenderer.FONT_HEIGHT - 2;
             GL11.glEnable(GL11.GL_TEXTURE_2D);
-            mc.fontRenderer.drawStringWithShadow(modText, textX, textY, applyFade(0xFFCCCCCC, fade));
+            GuideTextRenderer.drawString(mc.fontRenderer, modText, textX, textY, applyFade(0xFFCCCCCC, fade), true);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
         }
 

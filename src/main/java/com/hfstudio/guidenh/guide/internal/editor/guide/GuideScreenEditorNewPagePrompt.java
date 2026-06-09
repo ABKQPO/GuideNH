@@ -7,6 +7,7 @@ import net.minecraft.client.gui.GuiTextField;
 import org.lwjgl.input.Keyboard;
 
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 
 public class GuideScreenEditorNewPagePrompt extends GuiScreen {
 
@@ -126,7 +127,12 @@ public class GuideScreenEditorNewPagePrompt extends GuiScreen {
             this.width / 2,
             baseY + 12,
             0xFFF0F0F0);
-        fontRendererObj.drawString(GuidebookText.GuideEditorNewPagePath.text(), baseX + 14, baseY + 42, 0xFFD0D8E0);
+        GuideTextRenderer.drawString(
+            fontRendererObj,
+            GuidebookText.GuideEditorNewPagePath.text(),
+            baseX + 14,
+            baseY + 42,
+            0xFFD0D8E0);
         pathField.drawTextBox();
         super.drawScreen(mouseX, mouseY, partialTicks);
     }

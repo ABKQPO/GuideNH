@@ -89,6 +89,7 @@ import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.SavedCameraSettings;
@@ -1201,10 +1202,10 @@ public class SceneEditorScreen extends GuiScreen {
         boolean hasImportedStructure = structureSource != null && !structureSource.isEmpty();
         int titleX = TOOLBAR_MARGIN_X + 152;
         int sessionLabelY = TOOLBAR_Y + 16;
-        this.drawString(this.fontRendererObj, GuidebookText.SceneEditorTitle.text(), titleX, TOOLBAR_Y + 4, 0xFFFFFF);
+        drawGuideString(GuidebookText.SceneEditorTitle.text(), titleX, TOOLBAR_Y + 4, 0xFFFFFF);
         String sessionLabel = hasImportedStructure ? GuidebookText.SceneEditorImportedSession.text()
             : GuidebookText.SceneEditorBlankSession.text();
-        this.drawString(this.fontRendererObj, sessionLabel, titleX, sessionLabelY, 0xFF8FC7FF);
+        drawGuideString(sessionLabel, titleX, sessionLabelY, 0xFF8FC7FF);
     }
 
     private void syncToolbarToggleState() {
@@ -1241,7 +1242,7 @@ public class SceneEditorScreen extends GuiScreen {
                 == SceneEditorTextSyncController.ValidationKind.UNSUPPORTED
                     ? GuidebookText.SceneEditorUnsupportedSyntax.text()
                     : GuidebookText.SceneEditorSyntaxError.text();
-            this.drawString(this.fontRendererObj, title, headerX, footerBounds.y() - 26, 0xFFFF8484);
+            drawGuideString(title, headerX, footerBounds.y() - 26, 0xFFFF8484);
             this.drawString(
                 this.fontRendererObj,
                 GuidebookText.SceneEditorTextSyncHint.text(),
@@ -1277,7 +1278,7 @@ public class SceneEditorScreen extends GuiScreen {
             hovered ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
         String label = wrapEnabled ? GuidebookText.SceneEditorMarkdownWrapOn.text()
             : GuidebookText.SceneEditorMarkdownWrapOff.text();
-        this.drawString(this.fontRendererObj, label, footerBounds.x() + 6, footerBounds.y() + 5, PANEL_HEADER_COLOR);
+        drawGuideString(label, footerBounds.x() + 6, footerBounds.y() + 5, PANEL_HEADER_COLOR);
     }
 
     private void drawMarkdownResizeHandle(int mouseX, int mouseY) {
@@ -1388,8 +1389,8 @@ public class SceneEditorScreen extends GuiScreen {
         if (pathY < previewBoxY + 6) {
             pathY = previewBoxY + 6;
         }
-        String visiblePath = this.fontRendererObj.trimStringToWidth(structureSource, maxPathWidth);
-        this.drawString(this.fontRendererObj, visiblePath, pathX, pathY, PANEL_SUBTLE_TEXT);
+        String visiblePath = trimGuideString(structureSource, maxPathWidth);
+        drawGuideString(visiblePath, pathX, pathY, PANEL_SUBTLE_TEXT);
     }
 
     private void drawPreviewSceneHoverTooltip(int mouseX, int mouseY) {
@@ -1610,11 +1611,11 @@ public class SceneEditorScreen extends GuiScreen {
                 lines.add("");
                 continue;
             }
-            if (fontRenderer.getStringWidth(rawLine) <= wrapWidth) {
+            if (GuideTextRenderer.getStringWidth(fontRenderer, rawLine) <= wrapWidth) {
                 lines.add(rawLine);
                 continue;
             }
-            lines.addAll(fontRenderer.listFormattedStringToWidth(rawLine, wrapWidth));
+            lines.addAll(GuideTextRenderer.listFormattedStringToWidth(fontRenderer, rawLine, wrapWidth));
         }
         drawHoveringText(lines, mouseX, mouseY, fontRenderer);
     }
@@ -1700,9 +1701,9 @@ public class SceneEditorScreen extends GuiScreen {
             toggleBounds.height(),
             hovered ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
         String arrow = rightPanelCollapsed ? "<" : ">";
-        int arrowX = toggleBounds.x() + (toggleBounds.width() - this.fontRendererObj.getStringWidth(arrow)) / 2;
+        int arrowX = toggleBounds.x() + (toggleBounds.width() - guideStringWidth(arrow)) / 2;
         int arrowY = toggleBounds.y() + toggleBounds.height() / 2 - 4;
-        this.drawString(this.fontRendererObj, arrow, arrowX, arrowY, PANEL_HEADER_COLOR);
+        drawGuideString(arrow, arrowX, arrowY, PANEL_HEADER_COLOR);
     }
 
     private void drawMarkdownToggle(int mouseX, int mouseY) {
@@ -1717,9 +1718,9 @@ public class SceneEditorScreen extends GuiScreen {
             toggleBounds.height(),
             hovered ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
         String arrow = markdownPanelState.isExpanded() ? "<" : ">";
-        int arrowX = toggleBounds.x() + (toggleBounds.width() - this.fontRendererObj.getStringWidth(arrow)) / 2;
+        int arrowX = toggleBounds.x() + (toggleBounds.width() - guideStringWidth(arrow)) / 2;
         int arrowY = toggleBounds.y() + toggleBounds.height() / 2 - 4;
-        this.drawString(this.fontRendererObj, arrow, arrowX, arrowY, PANEL_HEADER_COLOR);
+        drawGuideString(arrow, arrowX, arrowY, PANEL_HEADER_COLOR);
     }
 
     private void drawSettingsTabs(int mouseX, int mouseY) {
@@ -1735,17 +1736,12 @@ public class SceneEditorScreen extends GuiScreen {
                 : hovered ? SETTINGS_TAB_HOVER_COLOR : SETTINGS_TAB_INACTIVE_COLOR;
             drawRect(tabX, tabY, tabX + tabWidth, tabY + SETTINGS_TAB_HEIGHT, backgroundColor);
             drawBorder(tabX, tabY, tabWidth, SETTINGS_TAB_HEIGHT, active ? 0xFF00CAF2 : 0xFF3E434A);
-            String label = this.fontRendererObj.trimStringToWidth(
+            String label = trimGuideString(
                 tab.getTextKey()
                     .text(),
                 Math.max(0, tabWidth - 8));
-            int textX = tabX + Math.max(3, (tabWidth - this.fontRendererObj.getStringWidth(label)) / 2);
-            this.drawString(
-                this.fontRendererObj,
-                label,
-                textX,
-                tabY + 5,
-                active ? PANEL_HEADER_COLOR : PANEL_MUTED_TEXT);
+            int textX = tabX + Math.max(3, (tabWidth - guideStringWidth(label)) / 2);
+            drawGuideString(label, textX, tabY + 5, active ? PANEL_HEADER_COLOR : PANEL_MUTED_TEXT);
         }
     }
 
@@ -1778,6 +1774,18 @@ public class SceneEditorScreen extends GuiScreen {
         drawRect(x + width - 1, y, x + width, y + height, color);
     }
 
+    private void drawGuideString(String text, int x, int y, int color) {
+        GuideTextRenderer.drawString(this.fontRendererObj, text, x, y, color);
+    }
+
+    private int guideStringWidth(String text) {
+        return GuideTextRenderer.getStringWidth(this.fontRendererObj, text);
+    }
+
+    private String trimGuideString(String text, int width) {
+        return GuideTextRenderer.trimStringToWidth(this.fontRendererObj, text, width);
+    }
+
     private void drawCompactTextFieldValue(GuiTextField inputField, String text) {
         if (inputField.isFocused()) {
             inputField.drawTextBox();
@@ -1786,8 +1794,8 @@ public class SceneEditorScreen extends GuiScreen {
         if (text == null || text.isEmpty()) {
             return;
         }
-        String visibleText = this.fontRendererObj.trimStringToWidth(text, Math.max(0, inputField.width));
-        this.fontRendererObj.drawString(visibleText, inputField.xPosition, inputField.yPosition, 0xF0F0F0);
+        String visibleText = trimGuideString(text, Math.max(0, inputField.width));
+        drawGuideString(visibleText, inputField.xPosition, inputField.yPosition, 0xF0F0F0);
     }
 
     private void requestCloseEditor() {
@@ -2819,7 +2827,7 @@ public class SceneEditorScreen extends GuiScreen {
 
         int arrowX = x + 4;
         int arrowY = y + 6;
-        this.drawString(this.fontRendererObj, expanded ? "v" : ">", arrowX, arrowY, PANEL_MUTED_TEXT);
+        drawGuideString(expanded ? "v" : ">", arrowX, arrowY, PANEL_MUTED_TEXT);
 
         int iconX = x + 16;
         int iconY = y + 3;
@@ -3631,7 +3639,7 @@ public class SceneEditorScreen extends GuiScreen {
             if (selected) {
                 drawRect(boxX + 2, boxY + 2, boxX + 8, boxY + 8, CHECKBOX_CHECK_COLOR);
             }
-            this.drawString(this.fontRendererObj, format.name(), menuBounds.x() + 22, rowY + 5, PANEL_HEADER_COLOR);
+            drawGuideString(format.name(), menuBounds.x() + 22, rowY + 5, PANEL_HEADER_COLOR);
         }
 
         this.drawString(
@@ -3701,7 +3709,7 @@ public class SceneEditorScreen extends GuiScreen {
                 .getPreviewHeight();
         int scale = screenshotMenuController.getScale();
         String resolutionHint = (hintW * scale) + " \u00D7 " + (hintH * scale);
-        this.drawString(this.fontRendererObj, resolutionHint, hintBounds.x(), hintBounds.y(), PANEL_MUTED_TEXT);
+        drawGuideString(resolutionHint, hintBounds.x(), hintBounds.y(), PANEL_MUTED_TEXT);
     }
 
     private boolean isInsideSnapButton(int mouseX, int mouseY) {
@@ -3899,7 +3907,7 @@ public class SceneEditorScreen extends GuiScreen {
             String text = contextMenuActions.get(i)
                 .getText(element)
                 .text();
-            this.drawString(this.fontRendererObj, text, contextMenuX + 6, rowY + 5, PANEL_HEADER_COLOR);
+            drawGuideString(text, contextMenuX + 6, rowY + 5, PANEL_HEADER_COLOR);
         }
     }
 
@@ -4189,8 +4197,8 @@ public class SceneEditorScreen extends GuiScreen {
         }
         String glyph = String.valueOf(type.getFallbackGlyph());
         int glyphColor = type.getAccentColor();
-        int glyphX = x + (ELEMENT_ICON_SIZE - this.fontRendererObj.getStringWidth(glyph)) / 2;
-        this.fontRendererObj.drawString(glyph, glyphX, y + 3, glyphColor);
+        int glyphX = x + (ELEMENT_ICON_SIZE - guideStringWidth(glyph)) / 2;
+        drawGuideString(glyph, glyphX, y + 3, glyphColor);
     }
 
     private String formatVector(float x, float y, float z) {

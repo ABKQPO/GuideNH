@@ -14,6 +14,7 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 
 public class HomePageController {
 
@@ -179,7 +180,7 @@ public class HomePageController {
         FontRenderer font = mc.fontRenderer;
         SectionMetrics metrics = metricsFor(rect, topInset);
         int titleY = metrics.titleY();
-        font.drawString(section.title(), rect.x() + SECTION_PADDING, titleY, TITLE_COLOR, false);
+        GuideTextRenderer.drawString(font, section.title(), rect.x() + SECTION_PADDING, titleY, TITLE_COLOR, false);
 
         int contentX = metrics.contentX();
         int contentY = metrics.contentY();
@@ -433,7 +434,7 @@ public class HomePageController {
             return;
         }
         int maxWidth = Math.max(1, rect.width() - SECTION_PADDING * 2);
-        List<String> lines = font.listFormattedStringToWidth(text, maxWidth);
+        List<String> lines = GuideTextRenderer.listFormattedStringToWidth(font, text, maxWidth);
         if (lines.isEmpty()) {
             lines = List.of(text);
         }
@@ -441,22 +442,22 @@ public class HomePageController {
         int textHeight = lines.size() * lineHeight - 1;
         int textY = rect.y() + Math.max(0, (rect.height() - textHeight) / 2);
         for (String line : lines) {
-            int textWidth = font.getStringWidth(line);
+            int textWidth = GuideTextRenderer.getStringWidth(font, line);
             int textX = rect.x() + (rect.width() - textWidth) / 2;
-            font.drawString(line, textX, textY, EMPTY_COLOR, false);
+            GuideTextRenderer.drawString(font, line, textX, textY, EMPTY_COLOR, false);
             textY += lineHeight;
         }
     }
 
     private String trimToWidth(FontRenderer font, String text, int maxWidth) {
-        if (text == null || text.isEmpty() || font.getStringWidth(text) <= maxWidth) {
+        if (text == null || text.isEmpty() || GuideTextRenderer.getStringWidth(font, text) <= maxWidth) {
             return text == null ? "" : text;
         }
-        int ellipsisWidth = font.getStringWidth("...");
+        int ellipsisWidth = GuideTextRenderer.getStringWidth(font, "...");
         if (ellipsisWidth >= maxWidth) {
-            return font.trimStringToWidth("...", maxWidth);
+            return GuideTextRenderer.trimStringToWidth(font, "...", maxWidth);
         }
-        return font.trimStringToWidth(text, maxWidth - ellipsisWidth) + "...";
+        return GuideTextRenderer.trimStringToWidth(font, text, maxWidth - ellipsisWidth) + "...";
     }
 
     private void drawScaledTrimmedString(FontRenderer font, String text, int x, int y, int maxWidth, int color,
@@ -468,7 +469,7 @@ public class HomePageController {
         GL11.glPushMatrix();
         GL11.glTranslatef(x, y, 0f);
         GL11.glScalef(scale, scale, 1f);
-        font.drawString(clipped, 0, 0, color, false);
+        GuideTextRenderer.drawString(font, clipped, 0, 0, color, false);
         GL11.glPopMatrix();
     }
 

@@ -26,6 +26,7 @@
 * Interactive 3D GameScene previews with block/entity placement, StructureLib import, Ponder playback, layer sliders, grid controls, annotations, and block statistics.
 * Live guide editing mode with split editor/preview, toolbar actions, debounced saving, external-change handling, and resource-pack page creation.
 * Multi-language guide folders with fallback, item index navigation, search, server integration, and resource reload support.
+* System emoji rendering in guide text and the exported static site, using the operating system emoji font when available.
 
 ## **Authors**
 

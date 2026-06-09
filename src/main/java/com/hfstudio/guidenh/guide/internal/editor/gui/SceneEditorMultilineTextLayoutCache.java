@@ -6,6 +6,7 @@ import java.util.List;
 import net.minecraft.client.gui.FontRenderer;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 
 public class SceneEditorMultilineTextLayoutCache {
 
@@ -58,7 +59,8 @@ public class SceneEditorMultilineTextLayoutCache {
         FontRenderer fontRenderer, int textWidth, boolean wrapEnabled) {
         if (!wrapEnabled) {
             visualLines.add(new VisualLine(lineStart, lineStart + logicalLine.length(), logicalLine, endsWithNewline));
-            contentWidthPixels = Math.max(contentWidthPixels, fontRenderer.getStringWidth(logicalLine));
+            contentWidthPixels = Math
+                .max(contentWidthPixels, GuideTextRenderer.getStringWidth(fontRenderer, logicalLine));
             return;
         }
 
@@ -70,16 +72,17 @@ public class SceneEditorMultilineTextLayoutCache {
         int offset = 0;
         while (offset < logicalLine.length()) {
             String remaining = logicalLine.substring(offset);
-            String chunk = fontRenderer.trimStringToWidth(remaining, textWidth);
+            String chunk = GuideTextRenderer.trimStringToWidth(fontRenderer, remaining, textWidth);
             if (chunk.isEmpty()) {
-                chunk = remaining.substring(0, 1);
+                int codePoint = remaining.codePointAt(0);
+                chunk = remaining.substring(0, Character.charCount(codePoint));
             }
             int consumed = Math.max(1, chunk.length());
             int startIndex = lineStart + offset;
             int endIndex = startIndex + consumed;
             boolean lineBreak = endsWithNewline && endIndex == lineStart + logicalLine.length();
             visualLines.add(new VisualLine(startIndex, endIndex, chunk, lineBreak));
-            contentWidthPixels = Math.max(contentWidthPixels, fontRenderer.getStringWidth(chunk));
+            contentWidthPixels = Math.max(contentWidthPixels, GuideTextRenderer.getStringWidth(fontRenderer, chunk));
             offset += consumed;
         }
     }

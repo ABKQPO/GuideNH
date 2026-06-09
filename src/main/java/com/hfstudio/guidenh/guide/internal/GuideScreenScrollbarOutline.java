@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public class GuideScreenScrollbarOutline {
@@ -283,7 +284,8 @@ public class GuideScreenScrollbarOutline {
         if (hoverState == null || nowMillis - hoverState.startedAtMillis() < HOVER_DELAY_MILLIS) {
             return null;
         }
-        List<String> wrappedLines = fontRenderer.listFormattedStringToWidth(entry.text(), labelMaxWidth);
+        List<String> wrappedLines = GuideTextRenderer
+            .listFormattedStringToWidth(fontRenderer, entry.text(), labelMaxWidth);
         if (wrappedLines.isEmpty()) {
             wrappedLines = List.of(entry.text());
         }
@@ -294,7 +296,7 @@ public class GuideScreenScrollbarOutline {
         }
         int width = 0;
         for (String line : lines) {
-            width = Math.max(width, fontRenderer.getStringWidth(line));
+            width = Math.max(width, GuideTextRenderer.getStringWidth(fontRenderer, line));
         }
         width = Math.min(labelMaxWidth, width);
         int height = lines.size() * fontRenderer.FONT_HEIGHT;
@@ -305,12 +307,13 @@ public class GuideScreenScrollbarOutline {
     }
 
     private String truncateLineWithEllipsis(FontRenderer fontRenderer, String line, int maxWidth) {
-        if (fontRenderer.getStringWidth(line) <= maxWidth) {
+        if (GuideTextRenderer.getStringWidth(fontRenderer, line) <= maxWidth) {
             return line;
         }
-        int ellipsisWidth = fontRenderer.getStringWidth(ELLIPSIS);
+        int ellipsisWidth = GuideTextRenderer.getStringWidth(fontRenderer, ELLIPSIS);
         String trimmed = line;
-        while (!trimmed.isEmpty() && fontRenderer.getStringWidth(trimmed) + ellipsisWidth > maxWidth) {
+        while (!trimmed.isEmpty()
+            && GuideTextRenderer.getStringWidth(fontRenderer, trimmed) + ellipsisWidth > maxWidth) {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
         }
         return trimmed + ELLIPSIS;

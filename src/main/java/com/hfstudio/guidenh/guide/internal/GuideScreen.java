@@ -133,6 +133,7 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialGeneratedBlock;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageIds;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
@@ -2771,10 +2772,10 @@ public class GuideScreen extends GuiContainer
         if (text.isEmpty()) return;
 
         int textRightX = panelX + panelW - 6 - 2;
-        int textW = fr.getStringWidth(text);
+        int textW = guideStringWidth(fr, text);
         int textX = textRightX - textW;
         int textY = barY + (TOOLBAR_H - fr.FONT_HEIGHT) / 2 + 1;
-        fr.drawString(text, textX, textY, 0xFFAAAAAA, false);
+        drawGuideString(fr, text, textX, textY, 0xFFAAAAAA);
     }
 
     private void drawHomeContent(int mouseX, int mouseY) {
@@ -3708,41 +3709,41 @@ public class GuideScreen extends GuiContainer
             + rawDatePart
             + rawUpdatedPart;
 
-        if (fr.getStringWidth(rawFull) <= maxW) {
+        if (guideStringWidth(fr, rawFull) <= maxW) {
             return formatBottomBar(sourceDisplay, authorsStr, dateVal, updatedVal);
         }
 
-        int prefixW = fr.getStringWidth(GuidebookText.PageMetaContentFrom.text(""));
-        int ellipsisW = fr.getStringWidth("...");
-        int rawSuffixW = fr.getStringWidth(rawAuthorPart + rawDatePart + rawUpdatedPart);
+        int prefixW = guideStringWidth(fr, GuidebookText.PageMetaContentFrom.text(""));
+        int ellipsisW = guideStringWidth(fr, "...");
+        int rawSuffixW = guideStringWidth(fr, rawAuthorPart + rawDatePart + rawUpdatedPart);
         int availableForSource = maxW - prefixW - rawSuffixW - ellipsisW;
         if (availableForSource > 0) {
             String truncSrc = truncateStringToWidth(fr, sourceDisplay, availableForSource);
             String attempt = GuidebookText.PageMetaContentFrom.text(truncSrc + "...") + rawAuthorPart
                 + rawDatePart
                 + rawUpdatedPart;
-            if (fr.getStringWidth(attempt) <= maxW) {
+            if (guideStringWidth(fr, attempt) <= maxW) {
                 return formatBottomBar(truncSrc + "...", authorsStr, dateVal, updatedVal);
             }
         }
 
         if (!authors.isEmpty()) {
             String firstAuthor = authors.getFirst();
-            int authorPrefixW = fr.getStringWidth(GuidebookText.PageMetaAuthor.text(""));
+            int authorPrefixW = guideStringWidth(fr, GuidebookText.PageMetaAuthor.text(""));
             int availableForAuthor = maxW - prefixW
                 - ellipsisW
                 - authorPrefixW
                 - ellipsisW
-                - fr.getStringWidth(rawDatePart + rawUpdatedPart);
+                - guideStringWidth(fr, rawDatePart + rawUpdatedPart);
             String truncSrc2 = truncateStringToWidth(
                 fr,
                 sourceDisplay,
-                availableForAuthor > 0 ? availableForAuthor : fr.getStringWidth(sourceDisplay));
+                availableForAuthor > 0 ? availableForAuthor : guideStringWidth(fr, sourceDisplay));
             String rawSingleAuthorPart = GuidebookText.PageMetaAuthor.text(firstAuthor);
             String attempt2 = GuidebookText.PageMetaContentFrom.text(truncSrc2 + "...") + rawSingleAuthorPart
                 + rawDatePart
                 + rawUpdatedPart;
-            if (fr.getStringWidth(attempt2) <= maxW) {
+            if (guideStringWidth(fr, attempt2) <= maxW) {
                 return formatBottomBar(truncSrc2 + "...", firstAuthor, dateVal, updatedVal);
             }
         }
@@ -3776,16 +3777,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private static String truncateStringToWidth(FontRenderer fr, String text, int maxW) {
-        if (fr.getStringWidth(text) <= maxW) return text;
-        int accWidth = 0;
-        for (int i = 0; i < text.length(); i++) {
-            int cw = fr.getCharWidth(text.charAt(i));
-            if (accWidth + cw > maxW) {
-                return text.substring(0, i);
-            }
-            accWidth += cw;
-        }
-        return text;
+        return guideStringWidth(fr, text) <= maxW ? text : trimGuideString(fr, text, maxW);
     }
 
     private static String getSourceDisplayName(String sourcePack) {
@@ -4196,11 +4188,11 @@ public class GuideScreen extends GuiContainer
                 lines.add("");
                 continue;
             }
-            if (fr.getStringWidth(rawLine) <= wrapWidth) {
+            if (guideStringWidth(fr, rawLine) <= wrapWidth) {
                 lines.add(rawLine);
                 continue;
             }
-            lines.addAll(fr.listFormattedStringToWidth(rawLine, wrapWidth));
+            lines.addAll(GuideTextRenderer.listFormattedStringToWidth(fr, rawLine, wrapWidth));
         }
         cachedTooltipText = norm;
         cachedTooltipWrapWidth = wrapWidth;
@@ -4451,11 +4443,15 @@ public class GuideScreen extends GuiContainer
         int areaY = getDocumentViewportY();
         int areaW = Math.max(20, contentW);
         int areaH = getDocumentViewportHeight();
-        int textW = fontRendererObj.getStringWidth(message);
+        int textW = guideStringWidth(fontRendererObj, message);
         int textX = areaX + Math.max(0, (areaW - textW) / 2);
         int textY = areaY + Math.max(0, (areaH - fontRendererObj.FONT_HEIGHT) / 2);
-        fontRendererObj
-            .drawString(message, textX, textY, SymbolicColor.BODY_TEXT.resolve(LightDarkMode.LIGHT_MODE), false);
+        drawGuideString(
+            fontRendererObj,
+            message,
+            textX,
+            textY,
+            SymbolicColor.BODY_TEXT.resolve(LightDarkMode.LIGHT_MODE));
     }
 
     public static LytRect cachedRect(@Nullable LytRect current, int x, int y, int w, int h) {
@@ -4471,22 +4467,30 @@ public class GuideScreen extends GuiContainer
         }
         FontRenderer fr = mc.fontRenderer;
         String msg = GuidebookText.PageNotFound.text(currentAnchor.pageId());
-        int tw = fr.getStringWidth(msg);
-        fr.drawStringWithShadow(msg, panelX + (panelW - tw) / 2, panelY + panelH / 2 - fr.FONT_HEIGHT / 2, 0xFFFF5555);
+        int tw = guideStringWidth(fr, msg);
+        drawGuideString(
+            fr,
+            msg,
+            panelX + (panelW - tw) / 2,
+            panelY + panelH / 2 - fr.FONT_HEIGHT / 2,
+            0xFFFF5555,
+            true);
     }
 
     private void drawLoadingMessage() {
         if (mc == null) return;
         FontRenderer fr = mc.fontRenderer;
         String message = buildAnimatedLoadingLabel(GuidebookText.SceneLoading.text());
-        int tw = fr.getStringWidth(message);
+        int tw = guideStringWidth(fr, message);
         int documentY = getDocumentViewportY();
         int documentH = Math.max(0, getDocumentViewportHeight());
-        fr.drawStringWithShadow(
+        drawGuideString(
+            fr,
             message,
             contentX + (contentW - tw) / 2,
             documentY + documentH / 2 - fr.FONT_HEIGHT / 2,
-            0xFFCCCCCC);
+            0xFFCCCCCC,
+            true);
     }
 
     private String buildAnimatedLoadingLabel(String baseText) {
@@ -6556,19 +6560,19 @@ public class GuideScreen extends GuiContainer
     }
 
     private String clipRightForWidth(String value, int maxWidth) {
-        if (value == null || value.isEmpty() || maxWidth <= 0 || fontRendererObj.getStringWidth(value) <= maxWidth) {
+        if (value == null || value.isEmpty() || maxWidth <= 0 || guideStringWidth(fontRendererObj, value) <= maxWidth) {
             return value;
         }
 
         String unclippedValue = value.endsWith(ASCII_ELLIPSIS) && value.length() > ASCII_ELLIPSIS.length()
             ? value.substring(0, value.length() - ASCII_ELLIPSIS.length())
             : value;
-        int ellipsisWidth = fontRendererObj.getStringWidth(ASCII_ELLIPSIS);
+        int ellipsisWidth = guideStringWidth(fontRendererObj, ASCII_ELLIPSIS);
         if (ellipsisWidth >= maxWidth) {
-            return fontRendererObj.trimStringToWidth(ASCII_ELLIPSIS, maxWidth);
+            return trimGuideString(fontRendererObj, ASCII_ELLIPSIS, maxWidth);
         }
 
-        String head = fontRendererObj.trimStringToWidth(unclippedValue, maxWidth - ellipsisWidth);
+        String head = trimGuideString(fontRendererObj, unclippedValue, maxWidth - ellipsisWidth);
         return head + ASCII_ELLIPSIS;
     }
 
@@ -6603,12 +6607,12 @@ public class GuideScreen extends GuiContainer
             return snippet;
         }
 
-        String firstLine = fontRendererObj.trimStringToWidth(plainText, lineWidth);
+        String firstLine = trimGuideString(fontRendererObj, plainText, lineWidth);
         if (firstLine.length() >= plainText.length()) {
             return snippet;
         }
 
-        String secondLine = fontRendererObj.trimStringToWidth(plainText.substring(firstLine.length()), lineWidth);
+        String secondLine = trimGuideString(fontRendererObj, plainText.substring(firstLine.length()), lineWidth);
         return GuideSearchSnippetFormatter
             .clipToVisibleCharsWithEllipsis(snippet, firstLine.length() + secondLine.length());
     }
@@ -6821,9 +6825,26 @@ public class GuideScreen extends GuiContainer
         drawBorder(label.x(), label.y(), bubbleWidth, bubbleHeight, border);
         int textY = label.y() + SCROLLBAR_OUTLINE_LABEL_PADDING_Y;
         for (String line : label.lines()) {
-            fontRenderer.drawStringWithShadow(line, label.x() + SCROLLBAR_OUTLINE_LABEL_PADDING_X, textY, 0xFFFFFF);
+            drawGuideString(fontRenderer, line, label.x() + SCROLLBAR_OUTLINE_LABEL_PADDING_X, textY, 0xFFFFFF, true);
             textY += fontRenderer.FONT_HEIGHT;
         }
+    }
+
+    private static void drawGuideString(FontRenderer fontRenderer, String text, int x, int y, int color) {
+        GuideTextRenderer.drawString(fontRenderer, text, x, y, color);
+    }
+
+    private static void drawGuideString(FontRenderer fontRenderer, String text, int x, int y, int color,
+        boolean dropShadow) {
+        GuideTextRenderer.drawString(fontRenderer, text, x, y, color, dropShadow);
+    }
+
+    private static int guideStringWidth(FontRenderer fontRenderer, String text) {
+        return GuideTextRenderer.getStringWidth(fontRenderer, text);
+    }
+
+    private static String trimGuideString(FontRenderer fontRenderer, String text, int width) {
+        return GuideTextRenderer.trimStringToWidth(fontRenderer, text, width);
     }
 
     private int withAlpha(int argb, int alpha) {

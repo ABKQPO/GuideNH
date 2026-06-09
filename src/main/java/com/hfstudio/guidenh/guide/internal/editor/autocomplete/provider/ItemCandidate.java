@@ -9,6 +9,8 @@ import net.minecraft.item.ItemStack;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
+
 public class ItemCandidate implements AutocompleteCandidate {
 
     private final String id;
@@ -57,6 +59,6 @@ public class ItemCandidate implements AutocompleteCandidate {
         RenderHelper.disableStandardItemLighting();
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glPopMatrix();
-        fontRenderer.drawString(id, x + TEXT_X, y + 4, TEXT_COLOR);
+        GuideTextRenderer.drawString(fontRenderer, id, x + TEXT_X, y + 4, TEXT_COLOR);
     }
 }

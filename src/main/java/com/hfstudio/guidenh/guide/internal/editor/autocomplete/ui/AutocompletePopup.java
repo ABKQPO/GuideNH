@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.Autocomp
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 
 public class AutocompletePopup {
 
@@ -202,7 +203,7 @@ public class AutocompletePopup {
         int maxW = 72;
         int maxItemH = 14;
         for (AutocompleteCandidate c : candidates) {
-            int textW = fontRenderer.getStringWidth(c.displayText()) + PADDING_X * 2;
+            int textW = GuideTextRenderer.getStringWidth(fontRenderer, c.displayText()) + PADDING_X * 2;
             int renderW = c.renderWidth(fontRenderer);
             int w = Math.max(textW, renderW > 0 ? renderW + PADDING_X * 2 : 0);
 

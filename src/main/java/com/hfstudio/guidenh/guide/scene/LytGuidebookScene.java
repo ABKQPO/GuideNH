@@ -60,6 +60,7 @@ import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
@@ -6245,14 +6246,15 @@ public class LytGuidebookScene extends LytBlock {
                 if (label != null && !label.isEmpty()) {
                     Minecraft mc = Minecraft.getMinecraft();
                     boolean isAhead = ponderCurrentTick < kf.getTime();
-                    int textW = mc.fontRenderer.getStringWidth(label);
+                    int textW = GuideTextRenderer.getStringWidth(mc.fontRenderer, label);
                     int gap = 4;
                     // Convert screen-space text metrics to layout for GL-transform drawing.
                     float z = Math.max(0.0001f, lastDocZoom);
                     int layoutTextW = Math.round(textW / z);
                     int layoutGap = Math.round(gap / z);
                     int textX = isAhead ? renderNx - layoutTextW - layoutGap : renderNx + nodeW + layoutGap;
-                    mc.fontRenderer.drawStringWithShadow(label, textX, nodeRenderY, PONDER_KEYFRAME_NODE_HOVER_COLOR);
+                    GuideTextRenderer
+                        .drawString(mc.fontRenderer, label, textX, nodeRenderY, PONDER_KEYFRAME_NODE_HOVER_COLOR, true);
                 }
             }
         }

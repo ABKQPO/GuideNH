@@ -236,22 +236,7 @@ public class VanillaRenderContext implements RenderContext {
         String drawn = GuideFontCompat.prepareRenderedText(text, style);
 
         float scale = style.fontScale();
-        boolean scaled = Math.abs(scale - 1f) > 1e-4f;
-        if (scaled) {
-            GL11.glPushMatrix();
-            GL11.glTranslatef(x, y, 0f);
-            GL11.glScalef(scale, scale, 1f);
-            if (style.dropShadow()) {
-                fontRenderer.drawStringWithShadow(drawn, 0, 0, color);
-            } else {
-                fontRenderer.drawString(drawn, 0, 0, color);
-            }
-            GL11.glPopMatrix();
-        } else if (style.dropShadow()) {
-            fontRenderer.drawStringWithShadow(drawn, x, y, color);
-        } else {
-            fontRenderer.drawString(drawn, x, y, color);
-        }
+        GuideTextRenderer.drawStyled(fontRenderer, text, x, y, style, color);
 
         boolean hasUnderline = style.underlined();
         boolean hasWavyUnderline = style.wavyUnderline();

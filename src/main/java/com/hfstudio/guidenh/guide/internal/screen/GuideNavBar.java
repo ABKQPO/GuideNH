@@ -28,6 +28,7 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 
 public class GuideNavBar {
 
@@ -528,17 +529,18 @@ public class GuideNavBar {
         int titleW = Math.max(0, titleRight - titleX);
         if (titleW > 0) {
             String title = GuidebookText.NavigationTitle.text();
-            String renderedTitle = fr.getStringWidth(title) > titleW
-                ? fr.trimStringToWidth(title, Math.max(0, titleW - 4)) + "\u2026"
+            String renderedTitle = GuideTextRenderer.getStringWidth(fr, title) > titleW
+                ? GuideTextRenderer.trimStringToWidth(fr, title, Math.max(0, titleW - 4)) + "\u2026"
                 : title;
-            fr.drawString(renderedTitle, titleX, y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1, 0xFFE8E8E8, false);
+            GuideTextRenderer
+                .drawString(fr, renderedTitle, titleX, y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1, 0xFFE8E8E8, false);
         }
     }
 
     private boolean renderRowTitle(Minecraft mc, FontRenderer fr, Row row, int textX, int rowY, int maxTw, int color,
         boolean hovered, int scaleFactor) {
         if (!hovered || row.getTitleWidth(fr) <= maxTw) {
-            fr.drawString(row.getTitle(fr, maxTw), textX, rowY + 2, color, false);
+            GuideTextRenderer.drawString(fr, row.getTitle(fr, maxTw), textX, rowY + 2, color, false);
             return false;
         }
 
@@ -564,7 +566,7 @@ public class GuideNavBar {
         }
         setScissor(mc, clipLeft, clipTop, clipWidth, clipHeight, scaleFactor);
         try {
-            fr.drawString(row.getScrollingTitle(), textX - offset, rowY + 2, color, false);
+            GuideTextRenderer.drawString(fr, row.getScrollingTitle(), textX - offset, rowY + 2, color, false);
         } finally {
             setBodyScissor(mc, scaleFactor);
         }
@@ -1039,7 +1041,8 @@ public class GuideNavBar {
                 return cachedTitle;
             }
             String title = displayRow.title();
-            cachedTitle = getTitleWidth(fr) > maxTw ? fr.trimStringToWidth(title, Math.max(0, maxTw - 4)) + "\u2026"
+            cachedTitle = getTitleWidth(fr) > maxTw
+                ? GuideTextRenderer.trimStringToWidth(fr, title, Math.max(0, maxTw - 4)) + "\u2026"
                 : title;
             cachedMaxTw = maxTw;
             return cachedTitle;
@@ -1047,14 +1050,14 @@ public class GuideNavBar {
 
         public int getTitleWidth(FontRenderer fr) {
             if (cachedTitleWidth < 0) {
-                cachedTitleWidth = fr.getStringWidth(displayRow.title());
+                cachedTitleWidth = GuideTextRenderer.getStringWidth(fr, displayRow.title());
             }
             return cachedTitleWidth;
         }
 
         public int getScrollCycleWidth(FontRenderer fr) {
             if (cachedScrollCycleWidth < 0) {
-                cachedScrollCycleWidth = fr.getStringWidth(displayRow.title() + TITLE_SCROLL_GAP);
+                cachedScrollCycleWidth = GuideTextRenderer.getStringWidth(fr, displayRow.title() + TITLE_SCROLL_GAP);
             }
             return cachedScrollCycleWidth;
         }

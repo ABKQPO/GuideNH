@@ -22,6 +22,7 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -166,7 +167,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
     private int titleTextWidth() {
         if (handlerName.isEmpty()) return 0;
-        return Minecraft.getMinecraft().fontRenderer.getStringWidth(handlerName);
+        return GuideTextRenderer.getStringWidth(Minecraft.getMinecraft().fontRenderer, handlerName);
     }
 
     @Override
@@ -255,7 +256,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         if (!handlerName.isEmpty()) {
             int textX = innerLeft + iconSize() + (iconSize() > 0 ? TITLE_GAP_AFTER_ICON : 0);
             int textY = titleRowTop + (Math.max(ICON_SIZE, fontHeight) - fontHeight) / 2;
-            Minecraft.getMinecraft().fontRenderer.drawString(handlerName, textX, textY, 0xFF000000);
+            GuideTextRenderer.drawString(Minecraft.getMinecraft().fontRenderer, handlerName, textX, textY, 0xFF000000);
         }
         LytRect actionButtonBounds = getActionButtonBounds();
         if (recipeJumpEnabled && actionButtonBounds != null) {

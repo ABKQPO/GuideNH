@@ -17,6 +17,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
@@ -193,7 +194,7 @@ public class TextAnnotation extends OverlayAnnotation {
             resolvedWrapWidth = contentWidth;
             return resolvedLines;
         }
-        List<String> wrapped = fr.listFormattedStringToWidth(text, contentWidth);
+        List<String> wrapped = GuideTextRenderer.listFormattedStringToWidth(fr, text, contentWidth);
         resolvedLines = wrapped.isEmpty() ? List.of(text) : wrapped;
         resolvedWrapWidth = contentWidth;
         return resolvedLines;
@@ -309,7 +310,7 @@ public class TextAnnotation extends OverlayAnnotation {
         int textArgb = applyFade(0xFFFFFFFF, fade);
         int lineY = by + PADDING_Y;
         for (String line : lines) {
-            fr.drawStringWithShadow(line, bx + PADDING_X, lineY, textArgb);
+            GuideTextRenderer.drawString(fr, line, bx + PADDING_X, lineY, textArgb, true);
             lineY += fr.FONT_HEIGHT + LINE_GAP;
         }
 
@@ -360,7 +361,7 @@ public class TextAnnotation extends OverlayAnnotation {
         int lineCount = Math.max(1, lines.size());
         int maxLineW = 0;
         for (String line : lines) {
-            maxLineW = Math.max(maxLineW, fr.getStringWidth(line));
+            maxLineW = Math.max(maxLineW, GuideTextRenderer.getStringWidth(fr, line));
         }
         cachedMeasure = new LayoutMeasure(
             maxLineW + PADDING_X * 2,

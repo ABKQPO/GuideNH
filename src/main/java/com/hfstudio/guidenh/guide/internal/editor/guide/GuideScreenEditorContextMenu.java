@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 
 public class GuideScreenEditorContextMenu {
 
@@ -389,11 +390,12 @@ public class GuideScreenEditorContextMenu {
                 }
                 int textX = x + PADDING_X + ICON_SIZE + ICON_TEXT_GAP;
                 drawEntryIcon(minecraft, entry, x + PADDING_X, computeIconYForRow(drawY));
-                fontRenderer.drawString(entry.getLabel(), textX, drawY + TEXT_Y_OFFSET, TEXT_COLOR);
+                GuideTextRenderer.drawString(fontRenderer, entry.getLabel(), textX, drawY + TEXT_Y_OFFSET, TEXT_COLOR);
                 if (entry.hasChildren()) {
-                    fontRenderer.drawString(
+                    GuideTextRenderer.drawString(
+                        fontRenderer,
                         ">",
-                        x + width - PADDING_X - fontRenderer.getStringWidth(">"),
+                        x + width - PADDING_X - GuideTextRenderer.getStringWidth(fontRenderer, ">"),
                         drawY + TEXT_Y_OFFSET,
                         TEXT_COLOR);
                 }
@@ -424,9 +426,11 @@ public class GuideScreenEditorContextMenu {
             if (entry.isSeparator()) {
                 continue;
             }
-            int itemWidth = fontRenderer.getStringWidth(entry.getLabel()) + PADDING_X * 2 + ICON_SIZE + ICON_TEXT_GAP;
+            int itemWidth = GuideTextRenderer.getStringWidth(fontRenderer, entry.getLabel()) + PADDING_X * 2
+                + ICON_SIZE
+                + ICON_TEXT_GAP;
             if (entry.hasChildren()) {
-                itemWidth += PADDING_X + fontRenderer.getStringWidth(">");
+                itemWidth += PADDING_X + GuideTextRenderer.getStringWidth(fontRenderer, ">");
             }
             if (itemWidth > width) {
                 width = itemWidth;

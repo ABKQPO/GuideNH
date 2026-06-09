@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 
 public class GuideScreenContextMenu {
 
@@ -165,7 +166,8 @@ public class GuideScreenContextMenu {
                 if (index == hoveredIndex) {
                     Gui.drawRect(x + 1, drawY - 1, x + width - 1, drawY + ITEM_HEIGHT - 1, HOVER_COLOR);
                 }
-                fontRenderer.drawString(
+                GuideTextRenderer.drawString(
+                    fontRenderer,
                     entries.get(index)
                         .label(),
                     x + PADDING_X,
@@ -181,7 +183,8 @@ public class GuideScreenContextMenu {
     private int computeWidth(FontRenderer fontRenderer) {
         int computedWidth = MIN_WIDTH;
         for (Entry entry : entries) {
-            computedWidth = Math.max(computedWidth, fontRenderer.getStringWidth(entry.label()) + PADDING_X * 2);
+            computedWidth = Math
+                .max(computedWidth, GuideTextRenderer.getStringWidth(fontRenderer, entry.label()) + PADDING_X * 2);
         }
         return computedWidth;
     }

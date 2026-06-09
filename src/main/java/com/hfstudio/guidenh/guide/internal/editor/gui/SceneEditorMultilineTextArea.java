@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
@@ -985,7 +986,8 @@ public class SceneEditorMultilineTextArea {
             if (drawY + lineHeight >= y && drawY < y + clipHeight) {
                 drawExternalHighlightForLine(line, drawY, renderedHorizontalOffset);
                 drawSelectionForLine(line, drawY, renderedHorizontalOffset);
-                fontRenderer.drawString(line.text(), x + PADDING - renderedHorizontalOffset, drawY, 0xF0F0F0);
+                GuideTextRenderer
+                    .drawString(fontRenderer, line.text(), x + PADDING - renderedHorizontalOffset, drawY, 0xF0F0F0);
                 drawSyntaxWarningForLine(line, drawY, renderedHorizontalOffset);
             }
             drawY += lineHeight;
@@ -1092,8 +1094,8 @@ public class SceneEditorMultilineTextArea {
             .substring(0, max);
         String selectedText = line.text()
             .substring(max, Math.max(0, highlightEnd - line.startIndex()));
-        int selectionX = x + PADDING + fontRenderer.getStringWidth(beforeSelection) - renderedHorizontalOffset;
-        int selectionWidth = fontRenderer.getStringWidth(selectedText);
+        int selectionX = x + PADDING + textWidth(beforeSelection) - renderedHorizontalOffset;
+        int selectionWidth = textWidth(selectedText);
         if (selectionWidth <= 0 && spansLineBreak) {
             selectionWidth = 2;
         }
@@ -1125,8 +1127,8 @@ public class SceneEditorMultilineTextArea {
             .substring(0, max);
         String highlightedText = line.text()
             .substring(max, Math.max(0, highlightEnd - line.startIndex()));
-        int highlightX = x + PADDING + fontRenderer.getStringWidth(beforeHighlight) - renderedHorizontalOffset;
-        int highlightWidth = fontRenderer.getStringWidth(highlightedText);
+        int highlightX = x + PADDING + textWidth(beforeHighlight) - renderedHorizontalOffset;
+        int highlightWidth = textWidth(highlightedText);
         if (highlightWidth <= 0 && spansLineBreak) {
             highlightWidth = 2;
         }
@@ -1158,8 +1160,8 @@ public class SceneEditorMultilineTextArea {
             .substring(0, max);
         String warnedText = line.text()
             .substring(max, Math.max(0, highlightEnd - line.startIndex()));
-        int warningX = x + PADDING + fontRenderer.getStringWidth(beforeWarning) - renderedHorizontalOffset;
-        int warningWidth = fontRenderer.getStringWidth(warnedText);
+        int warningX = x + PADDING + textWidth(beforeWarning) - renderedHorizontalOffset;
+        int warningWidth = textWidth(warnedText);
         if (warningWidth <= 0 && spansLineBreak) {
             warningWidth = 2;
         }
@@ -1360,7 +1362,7 @@ public class SceneEditorMultilineTextArea {
                 cursorIndex - line.startIndex(),
                 line.text()
                     .length()));
-        return fontRenderer.getStringWidth(
+        return textWidth(
             line.text()
                 .substring(0, charCount));
     }
@@ -1369,7 +1371,7 @@ public class SceneEditorMultilineTextArea {
         int column = 0;
         for (int i = 1; i <= line.text()
             .length(); i++) {
-            if (fontRenderer.getStringWidth(
+            if (textWidth(
                 line.text()
                     .substring(0, i))
                 > localX) {
@@ -1381,6 +1383,10 @@ public class SceneEditorMultilineTextArea {
             line.startIndex() + column,
             selectionModel.getText()
                 .length());
+    }
+
+    private int textWidth(String text) {
+        return GuideTextRenderer.getStringWidth(fontRenderer, text);
     }
 
     private int clampHorizontalOffset(int requestedOffset) {

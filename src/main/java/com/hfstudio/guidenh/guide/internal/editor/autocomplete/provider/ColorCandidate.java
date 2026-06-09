@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
+
 public class ColorCandidate implements AutocompleteCandidate {
 
     private final String name;
@@ -33,7 +35,7 @@ public class ColorCandidate implements AutocompleteCandidate {
 
     @Override
     public int renderWidth(FontRenderer fontRenderer) {
-        return SWATCH_SIZE + 6 + fontRenderer.getStringWidth(name) + 6;
+        return SWATCH_SIZE + 6 + GuideTextRenderer.getStringWidth(fontRenderer, name) + 6;
     }
 
     @Override
@@ -43,6 +45,6 @@ public class ColorCandidate implements AutocompleteCandidate {
         Gui.drawRect(x, swatchY, x + SWATCH_SIZE, swatchY + SWATCH_SIZE, 0xFF000000 | color);
         Gui.drawRect(x - 1, swatchY - 1, x + SWATCH_SIZE + 1, swatchY + SWATCH_SIZE + 1, 0xFF4D5661);
         // Draw name
-        fontRenderer.drawString(name, x + TEXT_X, y + 3, TEXT_COLOR);
+        GuideTextRenderer.drawString(fontRenderer, name, x + TEXT_X, y + 3, TEXT_COLOR);
     }
 }

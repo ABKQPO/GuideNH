@@ -13,7 +13,7 @@ import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExportMode;
 
 @Config(modid = GuideNH.MODID, filename = "guidenh", configSubDirectory = "guidenh")
-@Config.LangKeyPattern(pattern = "guideme.gui.config.%cat.%field", fullyQualified = true)
+@Config.LangKeyPattern(pattern = "guideme.gui.config.%cat.%field")
 @Comment("GuideNH configuration")
 public class ModConfig {
 
@@ -62,6 +62,16 @@ public class ModConfig {
             + "When false, external links open immediately. Default: true.")
         @DefaultBoolean(true)
         public boolean confirmExternalLinks = true;
+
+        @Comment("Whether GuideNH renders emoji with the operating system emoji font when possible. "
+            + "Unsupported emoji keep their layout width but are not drawn. Default: true.")
+        @DefaultBoolean(true)
+        public boolean systemEmojiRendering = true;
+
+        @Comment("Optional operating system emoji font name. "
+            + "Leave empty to auto-detect a platform emoji font such as Segoe UI Emoji, Apple Color Emoji, "
+            + "or Noto Color Emoji.")
+        public String systemEmojiFontName = "";
 
         @Comment("Whether mouse wheel scroll zooms the 3D scene preview (while cursor is over it). "
             + "When false, scroll always goes to page scroll. Default: true.")

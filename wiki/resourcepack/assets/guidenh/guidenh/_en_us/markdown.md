@@ -14,6 +14,10 @@ This page is a runtime sample sheet for checking what GuideNH currently renders 
 
 See also: [Charts](./charts.md) · [Function Graphs](./function-graph.md)
 
+## Emoji
+
+Guide text can include system-rendered emoji such as 😀, ⚙️, ✅, and 🧪. The in-game viewer uses the operating system emoji font when it can display the glyph.
+
 ## LaTeX Formulas
 
 Render LaTeX math inline with `<Latex formula="..." />`, or as a centered display block by using the same tag

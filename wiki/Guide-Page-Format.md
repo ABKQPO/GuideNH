@@ -18,6 +18,7 @@ GuideNH pages support the common markdown features used in the example guide:
 - headings
 - paragraphs
 - inline emphasis, bold, strike, and code
+- emoji in normal guide text, rendered from the operating system emoji font when available
 - inline mark highlight (`==text==`)
 - inline underline (`++text++`), wavy underline (`^^text^^`), and emphasis dots (`::text::`)
 - links and images

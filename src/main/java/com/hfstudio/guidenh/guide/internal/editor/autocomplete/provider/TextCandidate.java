@@ -2,6 +2,8 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
 import net.minecraft.client.gui.FontRenderer;
 
+import com.hfstudio.guidenh.guide.render.GuideTextRenderer;
+
 public class TextCandidate implements AutocompleteCandidate {
 
     private final String text;
@@ -23,6 +25,6 @@ public class TextCandidate implements AutocompleteCandidate {
 
     @Override
     public void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered) {
-        fontRenderer.drawString(text, x, y + 2, TEXT_COLOR);
+        GuideTextRenderer.drawString(fontRenderer, text, x, y + 2, TEXT_COLOR);
     }
 }

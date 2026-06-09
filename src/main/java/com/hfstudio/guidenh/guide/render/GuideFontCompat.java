@@ -4,6 +4,7 @@ import net.minecraft.client.gui.FontRenderer;
 
 import com.gtnewhorizon.gtnhlib.util.font.FontRendering;
 import com.gtnewhorizon.gtnhlib.util.font.IFontParameters;
+import com.hfstudio.guidenh.guide.render.emoji.GuideEmojiParser;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public class GuideFontCompat {
@@ -49,17 +50,15 @@ public class GuideFontCompat {
     }
 
     public static int getStringWidth(FontRenderer fontRenderer, String text) {
-        return FontRendering.getStringWidth(text, fontRenderer);
+        return GuideTextRenderer.getStringWidth(fontRenderer, text);
     }
 
     public static int getStringWidth(FontRenderer fontRenderer, String text, ResolvedTextStyle style) {
-        int rawWidth = getStringWidth(fontRenderer, buildStyledText(text, style));
-        return scaleStyledWidth(rawWidth, text, style);
+        return GuideTextRenderer.getStringWidth(fontRenderer, text, style);
     }
 
     public static int getPreparedStringWidth(FontRenderer fontRenderer, String preparedText, ResolvedTextStyle style) {
-        int rawWidth = getStringWidth(fontRenderer, preparedText);
-        return scaleStyledWidth(rawWidth, preparedText, style);
+        return GuideTextRenderer.getPreparedStringWidth(fontRenderer, preparedText, style);
     }
 
     private static int scaleStyledWidth(int rawWidth, String text, ResolvedTextStyle style) {
@@ -87,6 +86,9 @@ public class GuideFontCompat {
 
     public static float getRenderedAdvance(FontRenderer fontRenderer, int codePoint, boolean bold,
         boolean hasVisibleGlyphBefore) {
+        if (GuideEmojiParser.isEmojiBase(codePoint)) {
+            return GuideTextRenderer.getRenderedAdvance(fontRenderer, codePoint, bold, hasVisibleGlyphBefore);
+        }
         float width = getCharacterWidth(fontRenderer, codePoint);
         if (width <= 0f) {
             return width;

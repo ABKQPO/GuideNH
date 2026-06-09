@@ -14,6 +14,10 @@ categories:
 
 另见：[图表](./charts.md) · [函数图](./function-graph.md)
 
+## Emoji
+
+指南文本可以直接写入系统渲染的 emoji，例如 😀、⚙️、✅、🧪。游戏内查看器会在可显示时使用操作系统 emoji 字体。
+
 ## LaTeX 公式
 
 使用 `<Latex formula="..." />` 在行内渲染 LaTeX 数学公式；将同一标签单独写成一段（块级上下文）则渲染为居中展示的独立公式块。
