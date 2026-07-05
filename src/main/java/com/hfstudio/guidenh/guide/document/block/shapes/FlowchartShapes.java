@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public final class FlowchartShapes {
+
     private static final Map<MermaidNodeShape, ShapeRenderer> RENDERERS = new EnumMap<>(MermaidNodeShape.class);
 
     static {
@@ -29,8 +30,8 @@ public final class FlowchartShapes {
 
     private FlowchartShapes() {}
 
-    public static void render(RenderContext context, LytRect rect, MermaidNodeShape shape,
-        int backgroundColor, int borderColor) {
+    public static void render(RenderContext context, LytRect rect, MermaidNodeShape shape, int backgroundColor,
+        int borderColor) {
         ShapeRenderer renderer = RENDERERS.get(shape);
         if (renderer != null) {
             renderer.render(context, rect, backgroundColor, borderColor);

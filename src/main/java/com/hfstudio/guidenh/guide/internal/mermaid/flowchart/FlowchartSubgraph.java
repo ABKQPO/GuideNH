@@ -12,7 +12,8 @@ public class FlowchartSubgraph {
     private final List<String> nodeIds;
     private final List<FlowchartEdge> edges;
     private final List<FlowchartSubgraph> children;
-    @Nullable private final FlowchartDirection direction;
+    @Nullable
+    private final FlowchartDirection direction;
 
     public FlowchartSubgraph(String id, @Nullable String label, List<String> nodeIds, List<FlowchartEdge> edges,
         List<FlowchartSubgraph> children) {
@@ -29,10 +30,27 @@ public class FlowchartSubgraph {
         this.direction = direction;
     }
 
-    public String getId() { return id; }
-    public String getLabel() { return label; }
-    public List<String> getNodeIds() { return nodeIds; }
-    public List<FlowchartEdge> getEdges() { return edges; }
-    public List<FlowchartSubgraph> getChildren() { return children; }
-    public @Nullable FlowchartDirection getDirection() { return direction; }
+    public String getId() {
+        return id;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public List<String> getNodeIds() {
+        return nodeIds;
+    }
+
+    public List<FlowchartEdge> getEdges() {
+        return edges;
+    }
+
+    public List<FlowchartSubgraph> getChildren() {
+        return children;
+    }
+
+    public @Nullable FlowchartDirection getDirection() {
+        return direction;
+    }
 }

@@ -76,7 +76,12 @@ public class MermaidCompiler extends BlockTagCompiler {
 
         Map<String, LytBlock> nodeContentBlocks = compileNodeContentBlocks(compiler, parent, el);
 
-        MermaidPlaceholder placeholder = new MermaidPlaceholder(diagramType, src, sourceText, width, height,
+        MermaidPlaceholder placeholder = new MermaidPlaceholder(
+            diagramType,
+            src,
+            sourceText,
+            width,
+            height,
             nodeContentBlocks);
         placeholder.appendText("[Mermaid]");
         parent.append(placeholder);
@@ -117,8 +122,7 @@ public class MermaidCompiler extends BlockTagCompiler {
         // (MOUNT time), so cross-validation must happen at runtime. See MermaidScript for the
         // runtime counterpart.
         Map<String, LytBlock> result = new LinkedHashMap<>();
-        for (MdxJsxFlowElement child : MermaidSourceExtractor
-            .collectNodeContentElements(mermaidElement.children())) {
+        for (MdxJsxFlowElement child : MermaidSourceExtractor.collectNodeContentElements(mermaidElement.children())) {
             String id = MermaidSourceExtractor.readNodeContentId(child);
             if (id == null) {
                 parent.appendError(compiler, "Mermaid <NodeContent> requires a non-empty id attribute.", child);

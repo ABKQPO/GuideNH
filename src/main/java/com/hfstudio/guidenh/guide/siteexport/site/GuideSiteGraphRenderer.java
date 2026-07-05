@@ -22,9 +22,9 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIconKind;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 
 /**
  * Generates static HTML and SVG markup for chart, function-graph, file-tree,
@@ -181,7 +181,7 @@ public class GuideSiteGraphRenderer {
         final List<MmLayoutNode> children = new ArrayList<>();
 
         private MmLayoutNode(MindmapNode source, @Nullable String parentId, boolean isRoot,
-                             @Nullable String htmlContent) {
+            @Nullable String htmlContent) {
             this.source = source;
             this.parentId = parentId;
             this.isRoot = isRoot;
@@ -220,7 +220,7 @@ public class GuideSiteGraphRenderer {
     }
 
     private static MmLayoutNode buildMmLayout(MindmapNode source, @Nullable String parentId, boolean isRoot,
-                                              Map<String, String> nodeHtmlById) {
+        Map<String, String> nodeHtmlById) {
         MmLayoutNode node = new MmLayoutNode(source, parentId, isRoot, nodeHtmlById.get(source.getId()));
         for (MindmapNode child : source.getChildren()) {
             node.children.add(buildMmLayout(child, source.getId(), false, nodeHtmlById));

@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
+
 import lombok.Getter;
 
 public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
@@ -29,7 +30,8 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
     public LytMermaidFlowchart(FlowchartDocument flowchart, String sourceText, Map<String, LytBlock> nodeContent) {
         this.flowchart = flowchart;
         this.sourceText = sourceText != null ? sourceText : "";
-        this.canvas = new LytMermaidFlowchartCanvas(flowchart,
+        this.canvas = new LytMermaidFlowchartCanvas(
+            flowchart,
             nodeContent != null ? nodeContent : Collections.emptyMap());
 
         setPadding(6);

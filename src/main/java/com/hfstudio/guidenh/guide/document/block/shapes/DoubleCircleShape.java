@@ -4,6 +4,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class DoubleCircleShape implements ShapeRenderer {
+
     private static final int GAP = 5;
 
     @Override

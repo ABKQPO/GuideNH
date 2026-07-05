@@ -4,6 +4,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class SubprocessShape implements ShapeRenderer {
+
     private static final int FRAME_WIDTH = 8;
 
     @Override

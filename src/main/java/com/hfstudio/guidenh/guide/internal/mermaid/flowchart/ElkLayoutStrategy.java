@@ -38,8 +38,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             ElkGraphUtil.createSimpleEdge(a, b);
             RecursiveGraphLayoutEngine engine = new RecursiveGraphLayoutEngine();
             engine.layout(root, new NullElkProgressMonitor());
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
     }
 
     @Override
@@ -71,12 +70,9 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         Map<String, ElkNode> elkNodeMap = new LinkedHashMap<>();
         for (FlowchartNode node : nodes.values()) {
             ElkNode elkNode = ElkGraphUtil.createNode(root);
-            FlowchartLayoutResult.NodeMinSize minSize = nodeMinSizes != null
-                ? nodeMinSizes.get(node.getId()) : null;
-            elkNode.setWidth(minSize != null
-                ? Math.max(NODE_WIDTH, minSize.width()) : NODE_WIDTH);
-            elkNode.setHeight(minSize != null
-                ? Math.max(NODE_HEIGHT, minSize.height()) : NODE_HEIGHT);
+            FlowchartLayoutResult.NodeMinSize minSize = nodeMinSizes != null ? nodeMinSizes.get(node.getId()) : null;
+            elkNode.setWidth(minSize != null ? Math.max(NODE_WIDTH, minSize.width()) : NODE_WIDTH);
+            elkNode.setHeight(minSize != null ? Math.max(NODE_HEIGHT, minSize.height()) : NODE_HEIGHT);
             elkNodeMap.put(node.getId(), elkNode);
         }
 
@@ -116,17 +112,20 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
             List<FlowchartLayoutResult.Point> points = new ArrayList<>();
             for (ElkEdgeSection section : elkEdge.getSections()) {
-                points.add(new FlowchartLayoutResult.Point(
-                    PADDING + (int) Math.round(section.getStartX()),
-                    PADDING + (int) Math.round(section.getStartY())));
+                points.add(
+                    new FlowchartLayoutResult.Point(
+                        PADDING + (int) Math.round(section.getStartX()),
+                        PADDING + (int) Math.round(section.getStartY())));
                 for (var bp : section.getBendPoints()) {
-                    points.add(new FlowchartLayoutResult.Point(
-                        PADDING + (int) Math.round(bp.getX()),
-                        PADDING + (int) Math.round(bp.getY())));
+                    points.add(
+                        new FlowchartLayoutResult.Point(
+                            PADDING + (int) Math.round(bp.getX()),
+                            PADDING + (int) Math.round(bp.getY())));
                 }
-                points.add(new FlowchartLayoutResult.Point(
-                    PADDING + (int) Math.round(section.getEndX()),
-                    PADDING + (int) Math.round(section.getEndY())));
+                points.add(
+                    new FlowchartLayoutResult.Point(
+                        PADDING + (int) Math.round(section.getEndX()),
+                        PADDING + (int) Math.round(section.getEndY())));
             }
             if (!points.isEmpty()) {
                 edgePaths.add(new FlowchartLayoutResult.EdgePath(edge.getFrom(), edge.getTo(), points));
@@ -138,8 +137,12 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
     private static ElkEdge findElkEdge(ElkNode source, ElkNode target) {
         for (ElkEdge edge : source.getOutgoingEdges()) {
-            if (!edge.getTargets().isEmpty()
-                && ElkGraphUtil.connectableShapeToNode(edge.getTargets().get(0)) == target) {
+            if (!edge.getTargets()
+                .isEmpty()
+                && ElkGraphUtil.connectableShapeToNode(
+                    edge.getTargets()
+                        .get(0))
+                    == target) {
                 return edge;
             }
         }

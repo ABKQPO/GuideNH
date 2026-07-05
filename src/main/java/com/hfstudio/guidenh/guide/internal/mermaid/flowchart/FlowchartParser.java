@@ -11,15 +11,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.github.bsideup.jabel.Desugar;
 import org.jetbrains.annotations.Nullable;
 
+import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.internal.mermaid.FrontmatterKey;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidArrowHead;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
-import com.hfstudio.guidenh.guide.internal.mermaid.NodeShapeDefinition;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
+import com.hfstudio.guidenh.guide.internal.mermaid.NodeShapeDefinition;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 
 public class FlowchartParser {
@@ -33,15 +33,17 @@ public class FlowchartParser {
     private static final Pattern LINK_STYLE_PATTERN = Pattern.compile("(\\S+)\\s+(.+)");
     private static final Pattern ID_PATTERN = Pattern.compile("^[\\w-]+");
     private static final Pattern PIPED_LABEL_PATTERN = Pattern.compile("\\s*\\|([^|]*)\\|");
-    private static final Pattern GRAPH_KW_PATTERN = Pattern.compile("^(flowchart-elk|flowchart|graph|swimlane-beta)\\b");
-    private static final Pattern STATEMENT_PATTERN = Pattern.compile("^(style|classDef|class|click|linkStyle)\\b");
+    private static final Pattern GRAPH_KW_PATTERN = Pattern
+        .compile("^(flowchart-elk|flowchart|graph|swimlane-beta)\\b");
+    private static final Pattern STATEMENT_PATTERN = Pattern.compile("^(style|classDef|class|linkStyle)\\b");
 
     private FlowchartParser(List<String> lines) {
         this.lines = lines;
     }
 
     public static FlowchartDocument parse(String source) {
-        if (source == null || source.trim().isEmpty()) {
+        if (source == null || source.trim()
+            .isEmpty()) {
             return new FlowchartDocument(FlowchartDirection.TB, Map.of(), List.of(), List.of());
         }
         String normalized = GuideStringLines.normalizeLineEndings(source);
@@ -78,7 +80,8 @@ public class FlowchartParser {
             if (depth == 0 && source.startsWith("<", i)) {
                 int tagEnd = findTagEnd(source, i);
                 if (tagEnd > i) {
-                    if (source.substring(i, tagEnd + 1).startsWith("<NodeContent")) {
+                    if (source.substring(i, tagEnd + 1)
+                        .startsWith("<NodeContent")) {
                         depth = 1;
                         i = tagEnd;
                         continue;
@@ -124,13 +127,15 @@ public class FlowchartParser {
         int idx = line.indexOf("%%");
         if (idx < 0) return line;
         if (idx == 0) return "";
-        return line.substring(0, idx).trim();
+        return line.substring(0, idx)
+            .trim();
     }
 
     @Nullable
     static String parseDirectionToken(String s) {
         if (s == null || s.isEmpty()) return null;
-        String upper = s.toUpperCase(Locale.ROOT).trim();
+        String upper = s.toUpperCase(Locale.ROOT)
+            .trim();
         if ("TD".equals(upper)) return "TB";
         return switch (upper) {
             case "TB", "BT", "LR", "RL" -> upper;
@@ -143,18 +148,20 @@ public class FlowchartParser {
         if (trimmed.isEmpty()) return "";
         Matcher m = GRAPH_KW_PATTERN.matcher(trimmed.toLowerCase(Locale.ROOT));
         if (!m.find()) return trimmed;
-        return trimmed.substring(m.end()).trim();
+        return trimmed.substring(m.end())
+            .trim();
     }
 
     static String normalizeLabel(@Nullable String text) {
         if (text == null) return "";
-        return stripWrappingQuotes(text.replace("<br/>", "\n")
-            .replace("<br />", "\n")
-            .replace("<br>", "\n")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .replace("&amp;", "&")
-            .trim());
+        return stripWrappingQuotes(
+            text.replace("<br/>", "\n")
+                .replace("<br />", "\n")
+                .replace("<br>", "\n")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&amp;", "&")
+                .trim());
     }
 
     static String stripWrappingQuotes(@Nullable String text) {
@@ -183,7 +190,9 @@ public class FlowchartParser {
 
     private static List<String> splitClasses(@Nullable String s) {
         if (s == null || s.isEmpty()) return List.of();
-        return Arrays.stream(s.trim().split("\\s+"))
+        return Arrays.stream(
+            s.trim()
+                .split("\\s+"))
             .filter(cls -> !cls.isEmpty())
             .toList();
     }
@@ -200,13 +209,17 @@ public class FlowchartParser {
                 if (depth > 0) depth--;
             } else if (c == '&' && depth == 0) {
                 if (i > start) {
-                    parts.add(seg.substring(start, i).trim());
+                    parts.add(
+                        seg.substring(start, i)
+                            .trim());
                 }
                 start = i + 1;
             }
         }
         if (start < seg.length()) {
-            parts.add(seg.substring(start).trim());
+            parts.add(
+                seg.substring(start)
+                    .trim());
         }
         return parts;
     }
@@ -216,7 +229,8 @@ public class FlowchartParser {
         char first = s.charAt(0);
         char last = s.charAt(s.length() - 1);
         if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
-            return s.substring(1, s.length() - 1).trim();
+            return s.substring(1, s.length() - 1)
+                .trim();
         }
         return s;
     }
@@ -250,7 +264,9 @@ public class FlowchartParser {
         for (int i = 0; i < body.length(); i++) {
             char c = body.charAt(i);
             if (c == ',' && depth == 0) {
-                pairs.add(body.substring(start, i).trim());
+                pairs.add(
+                    body.substring(start, i)
+                        .trim());
                 start = i + 1;
             } else if (c == '{') depth++;
             else if (c == '}') depth--;
@@ -260,7 +276,9 @@ public class FlowchartParser {
             }
         }
         if (start < body.length()) {
-            pairs.add(body.substring(start).trim());
+            pairs.add(
+                body.substring(start)
+                    .trim());
         }
         return pairs;
     }
@@ -274,8 +292,7 @@ public class FlowchartParser {
             else if (c == '}') {
                 depth--;
                 if (depth == 0) return i;
-            }
-            else if (c == '"' || c == '\'') {
+            } else if (c == '"' || c == '\'') {
                 int end = s.indexOf(c, i + 1);
                 if (end > i) i = end;
             }
@@ -298,22 +315,28 @@ public class FlowchartParser {
 
     private int parseFrontmatter(int startIndex) {
         if (startIndex >= lines.size()) return startIndex;
-        String first = lines.get(startIndex).trim();
+        String first = lines.get(startIndex)
+            .trim();
         if (!"---".equals(first)) return startIndex;
         int end = -1;
         for (int i = startIndex + 1; i < lines.size(); i++) {
-            if ("---".equals(lines.get(i).trim())) {
+            if ("---".equals(
+                lines.get(i)
+                    .trim())) {
                 end = i;
                 break;
             }
         }
         if (end < 0) return startIndex;
         for (int i = startIndex + 1; i < end; i++) {
-            String line = lines.get(i).trim();
+            String line = lines.get(i)
+                .trim();
             int colon = line.indexOf(':');
             if (colon <= 0) continue;
-            String key = line.substring(0, colon).trim();
-            String value = line.substring(colon + 1).trim();
+            String key = line.substring(0, colon)
+                .trim();
+            String value = line.substring(colon + 1)
+                .trim();
             FrontmatterKey fk = FrontmatterKey.byKey(key);
             if (fk == null) continue;
             Object parsed = fk.parse(value);
@@ -328,14 +351,16 @@ public class FlowchartParser {
 
     private int parseGraphDeclarationLine(int index) {
         if (index >= lines.size()) return index;
-        String line = lines.get(index).trim();
+        String line = lines.get(index)
+            .trim();
         String remaining = skipGraphDeclaration(line);
         if (remaining.equals(line)) return index;
         String dirToken = parseDirectionToken(remaining);
         if (dirToken != null) {
             builder.setDirection(dirToken);
         }
-        if (line.toLowerCase(Locale.ROOT).startsWith("flowchart-elk")) {
+        if (line.toLowerCase(Locale.ROOT)
+            .startsWith("flowchart-elk")) {
             builder.setLayoutMode(FlowchartLayoutMode.fromConfigValue("elk"));
         }
         return index + 1;
@@ -366,7 +391,8 @@ public class FlowchartParser {
         Matcher idMatcher = ID_PATTERN.matcher(text);
         if (!idMatcher.find()) return null;
         String id = idMatcher.group();
-        String rest = text.substring(idMatcher.end()).trim();
+        String rest = text.substring(idMatcher.end())
+            .trim();
 
         if (rest.isEmpty()) {
             return new NodeSpec(id, id, MermaidNodeShape.DEFAULT, List.of(), null, false, null);
@@ -379,9 +405,11 @@ public class FlowchartParser {
         List<String> classes = List.of();
         int classSep = rest.indexOf(":::");
         if (classSep >= 0) {
-            String classPart = rest.substring(classSep + 3).trim();
+            String classPart = rest.substring(classSep + 3)
+                .trim();
             classes = splitClasses(classPart);
-            rest = rest.substring(0, classSep).trim();
+            rest = rest.substring(0, classSep)
+                .trim();
         }
 
         MermaidNodeShape shape = MermaidNodeShape.DEFAULT;
@@ -391,32 +419,39 @@ public class FlowchartParser {
         if (shapeResult != null) {
             label = normalizeLabel(shapeResult.inner());
             if (label.isEmpty()) label = id;
-            shape = shapeResult.definition().shape();
+            shape = shapeResult.definition()
+                .shape();
         }
 
         return new NodeSpec(id, label, shape, classes, null, false, null);
     }
 
-    @Nullable
     private NodeSpec parseExtendedNode(String id, String rest) {
         int braceEnd = findMatchingBrace(rest, 1);
         if (braceEnd < 0) {
             return new NodeSpec(id, id, MermaidNodeShape.DEFAULT, List.of(), null, false, null);
         }
-        String body = rest.substring(2, braceEnd).trim();
-        String after = rest.substring(braceEnd + 1).trim();
+        String body = rest.substring(2, braceEnd)
+            .trim();
+        String after = rest.substring(braceEnd + 1)
+            .trim();
 
         MermaidNodeShape shape = MermaidNodeShape.DEFAULT;
         String label = id;
-        @Nullable String icon = null;
-        @Nullable Map<String, String> extra = null;
+        @Nullable
+        String icon = null;
+        @Nullable
+        Map<String, String> extra = null;
 
         List<String> pairs = splitExtendedPairs(body);
         for (String pair : pairs) {
             int colon = pair.indexOf(':');
             if (colon <= 0) continue;
-            String key = pair.substring(0, colon).trim().toLowerCase(Locale.ROOT);
-            String value = pair.substring(colon + 1).trim();
+            String key = pair.substring(0, colon)
+                .trim()
+                .toLowerCase(Locale.ROOT);
+            String value = pair.substring(colon + 1)
+                .trim();
             value = unquote(value);
             switch (key) {
                 case "shape" -> {
@@ -436,7 +471,9 @@ public class FlowchartParser {
         if (!after.isEmpty()) {
             int classSep = after.indexOf(":::");
             if (classSep >= 0) {
-                classes = splitClasses(after.substring(classSep + 3).trim());
+                classes = splitClasses(
+                    after.substring(classSep + 3)
+                        .trim());
             }
         }
 
@@ -445,41 +482,65 @@ public class FlowchartParser {
 
     @Nullable
     PipedLabel parsePipedLabel(String line, int fromPos) {
-        Matcher m = PIPED_LABEL_PATTERN.matcher(line).region(fromPos, line.length());
+        Matcher m = PIPED_LABEL_PATTERN.matcher(line)
+            .region(fromPos, line.length());
         if (!m.lookingAt()) return null;
-        String label = normalizeLabel(m.group(1).trim());
+        String label = normalizeLabel(
+            m.group(1)
+                .trim());
         return new PipedLabel(label, m.end());
     }
 
-    void registerEdge(String fromId, String toId, LinkDefinition.MatchResult match,
-        @Nullable String label) {
+    void registerEdge(String fromId, String toId, LinkDefinition.MatchResult match, @Nullable String label) {
         LinkDefinition def = match.definition();
         String normalizedLabel = label != null ? normalizeLabel(label) : null;
-        builder.addLink(fromId, toId, def.style(),
-            def.arrowFwd(), def.arrowRev(),
-            def.forwardHead(), def.reverseHead(),
-            normalizedLabel, null, Math.max(1, match.length()));
+        builder.addLink(
+            fromId,
+            toId,
+            def.style(),
+            def.arrowFwd(),
+            def.arrowRev(),
+            def.forwardHead(),
+            def.reverseHead(),
+            normalizedLabel,
+            null,
+            Math.max(1, match.length()));
     }
 
     void ensureNode(@Nullable NodeSpec spec) {
-        if (spec == null || spec.id().isEmpty()) return;
+        if (spec == null || spec.id()
+            .isEmpty()) return;
         if (builder.nodes.containsKey(spec.id())) {
-            if (!spec.classes().isEmpty()) {
+            if (!spec.classes()
+                .isEmpty()) {
                 FlowchartNode existing = builder.nodes.get(spec.id());
                 List<String> merged = new ArrayList<>(existing.getClasses());
                 for (String c : spec.classes()) {
                     if (!merged.contains(c)) merged.add(c);
                 }
-                builder.nodes.put(spec.id(), new FlowchartNode(
-                    existing.getId(), existing.getLabel(), existing.getShape(),
-                    merged, existing.getStyleOverride(), existing.getIcon(),
-                    existing.isMarkdownLabel(), existing.getExtendedProperties()));
+                builder.nodes.put(
+                    spec.id(),
+                    new FlowchartNode(
+                        existing.getId(),
+                        existing.getLabel(),
+                        existing.getShape(),
+                        merged,
+                        existing.getStyleOverride(),
+                        existing.getIcon(),
+                        existing.isMarkdownLabel(),
+                        existing.getExtendedProperties()));
             }
             return;
         }
-        builder.addVertex(spec.id(), spec.label(), spec.shape(),
-            spec.classes(), null, spec.icon(),
-            spec.markdownLabel(), spec.extendedProperties());
+        builder.addVertex(
+            spec.id(),
+            spec.label(),
+            spec.shape(),
+            spec.classes(),
+            null,
+            spec.icon(),
+            spec.markdownLabel(),
+            spec.extendedProperties());
     }
 
     List<Object> tokenizeLine(String line) {
@@ -500,13 +561,17 @@ public class FlowchartParser {
                 linkEnd = piped.endPosition();
             }
             if (match.position() > lastEnd) {
-                tokens.add(line.substring(lastEnd, match.position()).trim());
+                tokens.add(
+                    line.substring(lastEnd, match.position())
+                        .trim());
             }
             tokens.add(new TokenLink(match, label));
             lastEnd = linkEnd;
         }
         if (lastEnd < line.length()) {
-            tokens.add(line.substring(lastEnd).trim());
+            tokens.add(
+                line.substring(lastEnd)
+                    .trim());
         }
         return tokens;
     }
@@ -551,10 +616,12 @@ public class FlowchartParser {
 
     private List<NodeSpec> parseFirstNode(@Nullable String text) {
         List<NodeSpec> result = new ArrayList<>();
-        if (text == null || text.trim().isEmpty()) return result;
+        if (text == null || text.trim()
+            .isEmpty()) return result;
         String trimmed = text.trim();
         int amp = trimmed.indexOf('&');
-        String first = amp >= 0 ? trimmed.substring(0, amp).trim() : trimmed;
+        String first = amp >= 0 ? trimmed.substring(0, amp)
+            .trim() : trimmed;
         NodeSpec spec = parseNodeSpec(first);
         if (spec != null) result.add(spec);
         return result;
@@ -562,15 +629,18 @@ public class FlowchartParser {
 
     private int parseSubgraph(int startIndex) {
         String line = stripTrailingComment(lines.get(startIndex)).trim();
-        String rest = line.substring("subgraph".length()).trim();
+        String rest = line.substring("subgraph".length())
+            .trim();
 
         String id;
         String label;
         int bracketStart = rest.indexOf('[');
         if (bracketStart >= 0 && rest.endsWith("]")) {
-            String rawLabel = rest.substring(bracketStart + 1, rest.length() - 1).trim();
+            String rawLabel = rest.substring(bracketStart + 1, rest.length() - 1)
+                .trim();
             label = normalizeLabel(rawLabel);
-            String idPart = rest.substring(0, bracketStart).trim();
+            String idPart = rest.substring(0, bracketStart)
+                .trim();
             id = idPart.isEmpty() ? toSlug(label) : idPart;
         } else if (!rest.isEmpty()) {
             label = rest;
@@ -599,7 +669,8 @@ public class FlowchartParser {
                 continue;
             }
             if (inner.startsWith("direction ")) {
-                String dirToken = inner.substring("direction ".length()).trim();
+                String dirToken = inner.substring("direction ".length())
+                    .trim();
                 String parsed = parseDirectionToken(dirToken);
                 if (parsed != null) {
                     builder.setSubgraphDirection(FlowchartDirection.fromString(parsed));
@@ -620,20 +691,27 @@ public class FlowchartParser {
     }
 
     private boolean isStatementLine(String line) {
-        return STATEMENT_PATTERN.matcher(line).find();
+        return STATEMENT_PATTERN.matcher(line)
+            .find();
     }
 
     private void parseStatementByKeyword(String line) {
         if (line.startsWith("style ")) {
-            parseStyleStatement(line.substring("style ".length()).trim());
+            parseStyleStatement(
+                line.substring("style ".length())
+                    .trim());
         } else if (line.startsWith("classDef ")) {
-            parseClassDefStatement(line.substring("classDef ".length()).trim());
+            parseClassDefStatement(
+                line.substring("classDef ".length())
+                    .trim());
         } else if (line.startsWith("class ")) {
-            parseClassStatement(line.substring("class ".length()).trim());
-        } else if (line.startsWith("click ")) {
-            // not supported
+            parseClassStatement(
+                line.substring("class ".length())
+                    .trim());
         } else if (line.startsWith("linkStyle ")) {
-            parseLinkStyleStatement(line.substring("linkStyle ".length()).trim());
+            parseLinkStyleStatement(
+                line.substring("linkStyle ".length())
+                    .trim());
         }
     }
 
@@ -648,15 +726,27 @@ public class FlowchartParser {
         if (!builder.nodes.containsKey(nodeId)) {
             NodeSpec spec = parseNodeSpec(nodeId);
             if (spec == null) return;
-            builder.addVertex(spec.id(), spec.label(), spec.shape(),
-                spec.classes(), null, spec.icon(),
-                spec.markdownLabel(), spec.extendedProperties());
+            builder.addVertex(
+                spec.id(),
+                spec.label(),
+                spec.shape(),
+                spec.classes(),
+                null,
+                spec.icon(),
+                spec.markdownLabel(),
+                spec.extendedProperties());
         }
-        FlowchartNode existing = builder.nodes.get(nodeId);
-        builder.nodes.put(nodeId, new FlowchartNode(
-            existing.getId(), existing.getLabel(), existing.getShape(),
-            existing.getClasses(), joined, existing.getIcon(),
-            existing.isMarkdownLabel(), existing.getExtendedProperties()));
+        builder.nodes.computeIfPresent(
+            nodeId,
+            (k, existing) -> new FlowchartNode(
+                existing.getId(),
+                existing.getLabel(),
+                existing.getShape(),
+                existing.getClasses(),
+                joined,
+                existing.getIcon(),
+                existing.isMarkdownLabel(),
+                existing.getExtendedProperties()));
     }
 
     private void parseClassDefStatement(String rest) {
@@ -685,18 +775,20 @@ public class FlowchartParser {
         if (!m.matches()) return;
         String indicesPart = m.group(1);
         String remainder = m.group(2);
-        List<String> indices = "default".equalsIgnoreCase(indicesPart)
-            ? List.of("default")
+        List<String> indices = "default".equalsIgnoreCase(indicesPart) ? List.of("default")
             : Arrays.stream(indicesPart.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
         if (remainder.startsWith("interpolate ")) {
-            String interp = remainder.substring("interpolate ".length()).trim();
+            String interp = remainder.substring("interpolate ".length())
+                .trim();
             int styleSpace = interp.indexOf(' ');
             if (styleSpace > 0) {
-                String interpolateType = interp.substring(0, styleSpace).trim();
-                String styles = interp.substring(styleSpace + 1).trim();
+                String interpolateType = interp.substring(0, styleSpace)
+                    .trim();
+                String styles = interp.substring(styleSpace + 1)
+                    .trim();
                 builder.addLinkInterpolate(indices, interpolateType);
                 builder.addLinkStyle(indices, splitStyles(styles));
             } else {
@@ -708,9 +800,8 @@ public class FlowchartParser {
     }
 
     @Desugar
-    record NodeSpec(String id, String label, MermaidNodeShape shape, List<String> classes,
-                    @Nullable String icon, boolean markdownLabel,
-                    @Nullable Map<String, String> extendedProperties) {}
+    record NodeSpec(String id, String label, MermaidNodeShape shape, List<String> classes, @Nullable String icon,
+        boolean markdownLabel, @Nullable Map<String, String> extendedProperties) {}
 
     @Desugar
     record PipedLabel(@Nullable String label, int endPosition) {}
@@ -743,28 +834,42 @@ public class FlowchartParser {
         }
 
         void addVertex(String id, @Nullable String label, @Nullable MermaidNodeShape shape,
-            @Nullable List<String> classes, @Nullable String styleOverride,
-            @Nullable String icon, boolean markdownLabel,
-            @Nullable Map<String, String> extendedProperties) {
+            @Nullable List<String> classes, @Nullable String styleOverride, @Nullable String icon,
+            boolean markdownLabel, @Nullable Map<String, String> extendedProperties) {
             if (id == null || id.isEmpty()) return;
             if (nodes.containsKey(id)) return;
             MermaidNodeShape resolvedShape = shape != null ? shape : MermaidNodeShape.DEFAULT;
             String resolvedLabel = (label != null && !label.isEmpty()) ? label : id;
             List<String> resolvedClasses = classes != null ? classes : List.of();
-            FlowchartNode node = new FlowchartNode(id, resolvedLabel, resolvedShape,
-                resolvedClasses, styleOverride, icon, markdownLabel, extendedProperties);
+            FlowchartNode node = new FlowchartNode(
+                id,
+                resolvedLabel,
+                resolvedShape,
+                resolvedClasses,
+                styleOverride,
+                icon,
+                markdownLabel,
+                extendedProperties);
             nodes.put(id, node);
             if (!subgraphStack.isEmpty()) {
                 subgraphStack.peek().nodeIds.add(id);
             }
         }
 
-        void addLink(String fromId, String toId, MermaidEdgeStyle style,
-            boolean arrowFwd, boolean arrowRev,
-            MermaidArrowHead forwardHead, MermaidArrowHead reverseHead,
-            @Nullable String label, @Nullable String edgeId, int length) {
-            FlowchartEdge edge = new FlowchartEdge(fromId, toId, label, style,
-                arrowFwd, arrowRev, forwardHead, reverseHead, edgeId, length);
+        void addLink(String fromId, String toId, MermaidEdgeStyle style, boolean arrowFwd, boolean arrowRev,
+            MermaidArrowHead forwardHead, MermaidArrowHead reverseHead, @Nullable String label, @Nullable String edgeId,
+            int length) {
+            FlowchartEdge edge = new FlowchartEdge(
+                fromId,
+                toId,
+                label,
+                style,
+                arrowFwd,
+                arrowRev,
+                forwardHead,
+                reverseHead,
+                edgeId,
+                length);
             edges.add(edge);
             if (!subgraphStack.isEmpty()) {
                 subgraphStack.peek().edges.add(edge);
@@ -786,7 +891,8 @@ public class FlowchartParser {
             if (subgraphStack.isEmpty()) return;
             SubgraphContext ctx = subgraphStack.pop();
             FlowchartSubgraph sg = new FlowchartSubgraph(
-                ctx.id, ctx.label,
+                ctx.id,
+                ctx.label,
                 new ArrayList<>(ctx.nodeIds),
                 new ArrayList<>(ctx.edges),
                 new ArrayList<>(ctx.children),
@@ -811,10 +917,17 @@ public class FlowchartParser {
             if (!merged.contains(className)) {
                 merged.add(className);
             }
-            nodes.put(nodeId, new FlowchartNode(
-                existing.getId(), existing.getLabel(), existing.getShape(),
-                merged, existing.getStyleOverride(), existing.getIcon(),
-                existing.isMarkdownLabel(), existing.getExtendedProperties()));
+            nodes.put(
+                nodeId,
+                new FlowchartNode(
+                    existing.getId(),
+                    existing.getLabel(),
+                    existing.getShape(),
+                    merged,
+                    existing.getStyleOverride(),
+                    existing.getIcon(),
+                    existing.isMarkdownLabel(),
+                    existing.getExtendedProperties()));
         }
 
         void addClassDef(String className, List<String> styles) {
@@ -840,9 +953,11 @@ public class FlowchartParser {
         }
 
         static class SubgraphContext {
+
             String id;
             String label;
-            @Nullable FlowchartDirection direction;
+            @Nullable
+            FlowchartDirection direction;
             SubgraphContext parent;
             final List<String> nodeIds = new ArrayList<>();
             final List<FlowchartEdge> edges = new ArrayList<>();

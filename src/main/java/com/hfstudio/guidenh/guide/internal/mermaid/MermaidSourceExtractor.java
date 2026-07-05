@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
@@ -23,7 +24,6 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstStrong;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
-import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 
 public class MermaidSourceExtractor {
 
@@ -47,7 +47,8 @@ public class MermaidSourceExtractor {
     }
 
     public static boolean isCommentLine(String line) {
-        return line.trim().startsWith("%%");
+        return line.trim()
+            .startsWith("%%");
     }
 
     public static String normalize(String source) {
@@ -252,7 +253,7 @@ public class MermaidSourceExtractor {
             appendSource(builder, listItem.children(), true);
             return;
         }
-        if (content instanceof MdAstParent<?> parent) {
+        if (content instanceof MdAstParent<?>parent) {
             appendSource(builder, parent.children(), false);
         }
     }

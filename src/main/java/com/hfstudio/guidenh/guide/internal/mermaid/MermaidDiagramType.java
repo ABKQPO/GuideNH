@@ -25,7 +25,8 @@ public enum MermaidDiagramType {
         }
 
         for (; i < lines.size(); i++) {
-            String trimmed = lines.get(i).trim();
+            String trimmed = lines.get(i)
+                .trim();
             if (trimmed.isEmpty() || trimmed.startsWith("%%")) {
                 continue;
             }

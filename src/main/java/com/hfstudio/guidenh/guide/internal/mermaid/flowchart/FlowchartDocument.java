@@ -6,8 +6,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
+
+import lombok.Getter;
 
 public class FlowchartDocument {
 

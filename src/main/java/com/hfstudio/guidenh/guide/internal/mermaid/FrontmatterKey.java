@@ -23,7 +23,9 @@ public enum FrontmatterKey {
         this.parser = parser;
     }
 
-    public String key() { return key; }
+    public String key() {
+        return key;
+    }
 
     @Nullable
     public Object parse(String value) {
@@ -43,6 +45,8 @@ public enum FrontmatterKey {
     @Nullable
     public static FrontmatterKey byKey(String key) {
         if (key == null) return null;
-        return KEY_MAP.get(key.trim().toLowerCase(Locale.ROOT));
+        return KEY_MAP.get(
+            key.trim()
+                .toLowerCase(Locale.ROOT));
     }
 }

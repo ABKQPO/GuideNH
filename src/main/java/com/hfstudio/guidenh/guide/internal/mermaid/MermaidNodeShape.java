@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.mermaid;
 
 public enum MermaidNodeShape {
+
     DEFAULT,
     ROUNDED,
     SQUARE,

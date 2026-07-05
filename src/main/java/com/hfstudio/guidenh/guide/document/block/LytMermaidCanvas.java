@@ -9,6 +9,7 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+
 import lombok.Setter;
 
 public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends LytBlock
@@ -33,12 +34,19 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     private float lastScaledStyleZoom = Float.NaN;
 
     protected abstract int canvasPadding();
+
     protected abstract int contentWidth();
+
     protected abstract int contentHeight();
+
     protected abstract int contentOriginX();
+
     protected abstract int contentOriginY();
+
     protected abstract boolean diagramReady();
+
     protected abstract void renderPanel(RenderContext context);
+
     protected abstract void renderDiagram(RenderContext context, int baseX, int baseY, float activeZoom);
 
     protected void onPreRender() {}
@@ -143,9 +151,7 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         int previousOffsetY = contentOffsetY;
         float previousZoom = zoom;
 
-        zoom = wheelDelta > 0
-            ? Math.min(MAX_ZOOM, zoom * ZOOM_STEP)
-            : Math.max(MIN_ZOOM, zoom / ZOOM_STEP);
+        zoom = wheelDelta > 0 ? Math.min(MAX_ZOOM, zoom * ZOOM_STEP) : Math.max(MIN_ZOOM, zoom / ZOOM_STEP);
 
         if (Math.abs(previousZoom - zoom) < 0.0001f) return false;
 

@@ -3,10 +3,11 @@ package com.hfstudio.guidenh.guide.internal.mermaid.mindmap;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
+
+import lombok.Getter;
 
 public class MindmapNode {
 
@@ -28,8 +29,8 @@ public class MindmapNode {
     private final Integer y;
     private final List<MindmapNode> children = new ArrayList<>();
 
-    public MindmapNode(String id, String labelSource, String text, MermaidNodeShape shape,
-                       List<String> classes, @Nullable String icon, @Nullable Integer x, @Nullable Integer y) {
+    public MindmapNode(String id, String labelSource, String text, MermaidNodeShape shape, List<String> classes,
+        @Nullable String icon, @Nullable Integer x, @Nullable Integer y) {
         this.id = id != null ? id : "";
         this.labelSource = labelSource != null ? labelSource : "";
         this.text = text != null ? text : "";

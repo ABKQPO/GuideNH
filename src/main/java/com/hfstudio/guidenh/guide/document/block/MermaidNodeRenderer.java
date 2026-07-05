@@ -101,7 +101,8 @@ public final class MermaidNodeRenderer {
     }
 
     public static String simplifyIcon(String icon) {
-        if (icon == null || icon.trim().isEmpty()) {
+        if (icon == null || icon.trim()
+            .isEmpty()) {
             return null;
         }
 
@@ -154,10 +155,12 @@ public final class MermaidNodeRenderer {
 
     public static List<String> wrapText(RenderContext context, ResolvedTextStyle style, String text, int maxWidth) {
         return wrapText(new LayoutContext(new FontMetrics() {
+
             @Override
             public float getAdvance(int codePoint, ResolvedTextStyle s) {
                 return context.getStringWidth(new String(Character.toChars(codePoint)), s);
             }
+
             @Override
             public int getLineHeight(ResolvedTextStyle s) {
                 return context.getLineHeight(s);

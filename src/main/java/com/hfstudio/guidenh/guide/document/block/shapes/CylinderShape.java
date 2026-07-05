@@ -4,6 +4,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class CylinderShape implements ShapeRenderer {
+
     @Override
     public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
         int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();

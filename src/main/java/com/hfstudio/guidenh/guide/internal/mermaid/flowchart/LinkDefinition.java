@@ -10,43 +10,58 @@ public enum LinkDefinition {
     // ── Solid ──────────────────────────────────────────────
     SOLID_ARROW("-->", MermaidEdgeStyle.SOLID, true, false, MermaidArrowHead.TRIANGLE, MermaidArrowHead.NONE, '-', 2),
     SOLID_LINK("---", MermaidEdgeStyle.SOLID, false, false, MermaidArrowHead.NONE, MermaidArrowHead.NONE, '-', 2),
-    SOLID_REV("<---", MermaidEdgeStyle.SOLID, false, true,  MermaidArrowHead.NONE,   MermaidArrowHead.TRIANGLE, '-', 2),
-    SOLID_BOTH("<-->", MermaidEdgeStyle.SOLID, true, true,  MermaidArrowHead.TRIANGLE, MermaidArrowHead.TRIANGLE, '-', 2),
-    SOLID_CIRCLE_FWD("--o", MermaidEdgeStyle.SOLID, true, false,  MermaidArrowHead.CIRCLE, MermaidArrowHead.NONE, '-', 2),
-    SOLID_CIRCLE_REV("o--", MermaidEdgeStyle.SOLID, false, true,  MermaidArrowHead.NONE,   MermaidArrowHead.CIRCLE, '-', 2),
-    SOLID_CIRCLE_BOTH("o--o", MermaidEdgeStyle.SOLID, true, true,  MermaidArrowHead.CIRCLE, MermaidArrowHead.CIRCLE, '-', 2),
-    SOLID_CROSS_FWD("--x", MermaidEdgeStyle.SOLID, true, false,  MermaidArrowHead.CROSS, MermaidArrowHead.NONE, '-', 2),
-    SOLID_CROSS_REV("x--", MermaidEdgeStyle.SOLID, false, true,  MermaidArrowHead.NONE,  MermaidArrowHead.CROSS, '-', 2),
-    SOLID_CROSS_BOTH("x--x", MermaidEdgeStyle.SOLID, true, true,  MermaidArrowHead.CROSS, MermaidArrowHead.CROSS, '-', 2),
+    SOLID_REV("<---", MermaidEdgeStyle.SOLID, false, true, MermaidArrowHead.NONE, MermaidArrowHead.TRIANGLE, '-', 2),
+    SOLID_BOTH("<-->", MermaidEdgeStyle.SOLID, true, true, MermaidArrowHead.TRIANGLE, MermaidArrowHead.TRIANGLE, '-',
+        2),
+    SOLID_CIRCLE_FWD("--o", MermaidEdgeStyle.SOLID, true, false, MermaidArrowHead.CIRCLE, MermaidArrowHead.NONE, '-',
+        2),
+    SOLID_CIRCLE_REV("o--", MermaidEdgeStyle.SOLID, false, true, MermaidArrowHead.NONE, MermaidArrowHead.CIRCLE, '-',
+        2),
+    SOLID_CIRCLE_BOTH("o--o", MermaidEdgeStyle.SOLID, true, true, MermaidArrowHead.CIRCLE, MermaidArrowHead.CIRCLE, '-',
+        2),
+    SOLID_CROSS_FWD("--x", MermaidEdgeStyle.SOLID, true, false, MermaidArrowHead.CROSS, MermaidArrowHead.NONE, '-', 2),
+    SOLID_CROSS_REV("x--", MermaidEdgeStyle.SOLID, false, true, MermaidArrowHead.NONE, MermaidArrowHead.CROSS, '-', 2),
+    SOLID_CROSS_BOTH("x--x", MermaidEdgeStyle.SOLID, true, true, MermaidArrowHead.CROSS, MermaidArrowHead.CROSS, '-',
+        2),
 
     // ── Thick ──────────────────────────────────────────────
     THICK_ARROW("==>", MermaidEdgeStyle.THICK, true, false, MermaidArrowHead.TRIANGLE, MermaidArrowHead.NONE, '=', 2),
     THICK_LINK("===", MermaidEdgeStyle.THICK, false, false, MermaidArrowHead.NONE, MermaidArrowHead.NONE, '=', 2),
-    THICK_REV("<===", MermaidEdgeStyle.THICK, false, true,  MermaidArrowHead.NONE,   MermaidArrowHead.TRIANGLE, '=', 2),
-    THICK_BOTH("<=>", MermaidEdgeStyle.THICK, true, true,   MermaidArrowHead.TRIANGLE, MermaidArrowHead.TRIANGLE, '=', 2),
-    THICK_CIRCLE_FWD("==o", MermaidEdgeStyle.THICK, true, false, MermaidArrowHead.CIRCLE, MermaidArrowHead.NONE, '=', 2),
-    THICK_CIRCLE_REV("o==", MermaidEdgeStyle.THICK, false, true,  MermaidArrowHead.NONE,   MermaidArrowHead.CIRCLE, '=', 2),
-    THICK_CIRCLE_BOTH("o==o", MermaidEdgeStyle.THICK, true, true,  MermaidArrowHead.CIRCLE, MermaidArrowHead.CIRCLE, '=', 2),
+    THICK_REV("<===", MermaidEdgeStyle.THICK, false, true, MermaidArrowHead.NONE, MermaidArrowHead.TRIANGLE, '=', 2),
+    THICK_BOTH("<=>", MermaidEdgeStyle.THICK, true, true, MermaidArrowHead.TRIANGLE, MermaidArrowHead.TRIANGLE, '=', 2),
+    THICK_CIRCLE_FWD("==o", MermaidEdgeStyle.THICK, true, false, MermaidArrowHead.CIRCLE, MermaidArrowHead.NONE, '=',
+        2),
+    THICK_CIRCLE_REV("o==", MermaidEdgeStyle.THICK, false, true, MermaidArrowHead.NONE, MermaidArrowHead.CIRCLE, '=',
+        2),
+    THICK_CIRCLE_BOTH("o==o", MermaidEdgeStyle.THICK, true, true, MermaidArrowHead.CIRCLE, MermaidArrowHead.CIRCLE, '=',
+        2),
     THICK_CROSS_FWD("==x", MermaidEdgeStyle.THICK, true, false, MermaidArrowHead.CROSS, MermaidArrowHead.NONE, '=', 2),
-    THICK_CROSS_REV("x==", MermaidEdgeStyle.THICK, false, true,  MermaidArrowHead.NONE,  MermaidArrowHead.CROSS, '=', 2),
-    THICK_CROSS_BOTH("x==x", MermaidEdgeStyle.THICK, true, true,  MermaidArrowHead.CROSS, MermaidArrowHead.CROSS, '=', 2),
+    THICK_CROSS_REV("x==", MermaidEdgeStyle.THICK, false, true, MermaidArrowHead.NONE, MermaidArrowHead.CROSS, '=', 2),
+    THICK_CROSS_BOTH("x==x", MermaidEdgeStyle.THICK, true, true, MermaidArrowHead.CROSS, MermaidArrowHead.CROSS, '=',
+        2),
 
     // ── Dashed (dot) ───────────────────────────────────────
-    DASHED_ARROW("-.->", MermaidEdgeStyle.DASHED, true, false, MermaidArrowHead.TRIANGLE, MermaidArrowHead.NONE, '.', 1),
+    DASHED_ARROW("-.->", MermaidEdgeStyle.DASHED, true, false, MermaidArrowHead.TRIANGLE, MermaidArrowHead.NONE, '.',
+        1),
     DASHED_LINK("-.-", MermaidEdgeStyle.DASHED, false, false, MermaidArrowHead.NONE, MermaidArrowHead.NONE, '.', 1),
-    DASHED_REV("<-.--", MermaidEdgeStyle.DASHED, false, true,  MermaidArrowHead.NONE,   MermaidArrowHead.TRIANGLE, '.', 1),
-    DASHED_BOTH("<-.->", MermaidEdgeStyle.DASHED, true, true,  MermaidArrowHead.TRIANGLE, MermaidArrowHead.TRIANGLE, '.', 1),
-    DASHED_CIRCLE_FWD("-.o", MermaidEdgeStyle.DASHED, true, false, MermaidArrowHead.CIRCLE, MermaidArrowHead.NONE, '.', 1),
-    DASHED_CIRCLE_REV("o-.", MermaidEdgeStyle.DASHED, false, true,  MermaidArrowHead.NONE,   MermaidArrowHead.CIRCLE, '.', 1),
+    DASHED_REV("<-.--", MermaidEdgeStyle.DASHED, false, true, MermaidArrowHead.NONE, MermaidArrowHead.TRIANGLE, '.', 1),
+    DASHED_BOTH("<-.->", MermaidEdgeStyle.DASHED, true, true, MermaidArrowHead.TRIANGLE, MermaidArrowHead.TRIANGLE, '.',
+        1),
+    DASHED_CIRCLE_FWD("-.o", MermaidEdgeStyle.DASHED, true, false, MermaidArrowHead.CIRCLE, MermaidArrowHead.NONE, '.',
+        1),
+    DASHED_CIRCLE_REV("o-.", MermaidEdgeStyle.DASHED, false, true, MermaidArrowHead.NONE, MermaidArrowHead.CIRCLE, '.',
+        1),
 
     // ── Dotted (tilde) ─────────────────────────────────────
     DOTTED_ARROW("~~>", MermaidEdgeStyle.DOTTED, true, false, MermaidArrowHead.TRIANGLE, MermaidArrowHead.NONE, '~', 2),
     DOTTED_LINK("~~~", MermaidEdgeStyle.DOTTED, false, false, MermaidArrowHead.NONE, MermaidArrowHead.NONE, '~', 2),
-    DOTTED_REV("<~~~", MermaidEdgeStyle.DOTTED, false, true,  MermaidArrowHead.NONE,   MermaidArrowHead.TRIANGLE, '~', 2),
-    DOTTED_BOTH("<~~>", MermaidEdgeStyle.DOTTED, true, true,  MermaidArrowHead.TRIANGLE, MermaidArrowHead.TRIANGLE, '~', 2),
+    DOTTED_REV("<~~~", MermaidEdgeStyle.DOTTED, false, true, MermaidArrowHead.NONE, MermaidArrowHead.TRIANGLE, '~', 2),
+    DOTTED_BOTH("<~~>", MermaidEdgeStyle.DOTTED, true, true, MermaidArrowHead.TRIANGLE, MermaidArrowHead.TRIANGLE, '~',
+        2),
 
     // ── Invisible ──────────────────────────────────────────
-    INVISIBLE_LINK("~~~", MermaidEdgeStyle.INVISIBLE, false, false, MermaidArrowHead.NONE, MermaidArrowHead.NONE, '~', 3);
+    INVISIBLE_LINK("~~~", MermaidEdgeStyle.INVISIBLE, false, false, MermaidArrowHead.NONE, MermaidArrowHead.NONE, '~',
+        3);
 
     private final String syntax;
     private final MermaidEdgeStyle style;
@@ -58,8 +73,7 @@ public enum LinkDefinition {
     private final int minRepeat;
 
     LinkDefinition(String syntax, MermaidEdgeStyle style, boolean arrowFwd, boolean arrowRev,
-                   MermaidArrowHead forwardHead, MermaidArrowHead reverseHead,
-                   char repeatChar, int minRepeat) {
+        MermaidArrowHead forwardHead, MermaidArrowHead reverseHead, char repeatChar, int minRepeat) {
         this.syntax = syntax;
         this.style = style;
         this.arrowFwd = arrowFwd;
@@ -70,14 +84,37 @@ public enum LinkDefinition {
         this.minRepeat = minRepeat;
     }
 
-    public String syntax() { return syntax; }
-    public MermaidEdgeStyle style() { return style; }
-    public boolean arrowFwd() { return arrowFwd; }
-    public boolean arrowRev() { return arrowRev; }
-    public MermaidArrowHead forwardHead() { return forwardHead; }
-    public MermaidArrowHead reverseHead() { return reverseHead; }
-    public char repeatChar() { return repeatChar; }
-    public int minRepeat() { return minRepeat; }
+    public String syntax() {
+        return syntax;
+    }
+
+    public MermaidEdgeStyle style() {
+        return style;
+    }
+
+    public boolean arrowFwd() {
+        return arrowFwd;
+    }
+
+    public boolean arrowRev() {
+        return arrowRev;
+    }
+
+    public MermaidArrowHead forwardHead() {
+        return forwardHead;
+    }
+
+    public MermaidArrowHead reverseHead() {
+        return reverseHead;
+    }
+
+    public char repeatChar() {
+        return repeatChar;
+    }
+
+    public int minRepeat() {
+        return minRepeat;
+    }
 
     /** True if this link has variable length (repeatChar is significant). */
     public boolean isVariableLength() {
@@ -86,7 +123,7 @@ public enum LinkDefinition {
 
     /**
      * Try to find the best matching {@link LinkDefinition} at or after a given
-     * start index in {@code text}.  Returns the match result, or {@code null}
+     * start index in {@code text}. Returns the match result, or {@code null}
      * if no link pattern is found.
      */
     @Nullable
@@ -109,7 +146,11 @@ public enum LinkDefinition {
 
         for (LinkDefinition def : values()) {
             if (!def.arrowFwd() || !def.arrowRev()) continue;
-            if (!def.syntax().startsWith("<") || !def.syntax().endsWith(">")) continue;
+            if (!def.syntax()
+                .startsWith("<")
+                || !def.syntax()
+                    .endsWith(">"))
+                continue;
             char rc = def.repeatChar();
             if (rc == '\0') continue;
             for (int i = start; i < text.length(); i++) {

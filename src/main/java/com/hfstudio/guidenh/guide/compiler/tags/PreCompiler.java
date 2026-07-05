@@ -15,7 +15,6 @@ import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFence
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytCodeBlock;
-import com.hfstudio.guidenh.guide.document.block.LytCodeBlock;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidFlowchart;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidMindmap;
 import com.hfstudio.guidenh.guide.internal.csv.CsvTableParser;
@@ -202,12 +201,12 @@ public class PreCompiler extends BlockTagCompiler {
     private @Nullable LytMermaidMindmap compileMermaidMindmap(String normalized) {
         try {
             LytMermaidMindmap block = new LytMermaidMindmap(MindmapParser.parse(normalized), normalized);
-            GuideDebugLog.debug(
-                "[GuideNH] [PreCompiler] Compiled fenced Mermaid mindmap block ({} chars)", normalized.length());
+            GuideDebugLog
+                .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid mindmap block ({} chars)", normalized.length());
             return block;
         } catch (IllegalArgumentException e) {
-            GuideDebugLog.error(
-                "[GuideNH] [PreCompiler] Failed to parse fenced Mermaid mindmap block: {}", normalized, e);
+            GuideDebugLog
+                .error("[GuideNH] [PreCompiler] Failed to parse fenced Mermaid mindmap block: {}", normalized, e);
             return null;
         }
     }
@@ -215,8 +214,8 @@ public class PreCompiler extends BlockTagCompiler {
     private LytMermaidFlowchart compileMermaidFlowchart(String normalized) {
         var document = FlowchartParser.parse(normalized);
         LytMermaidFlowchart block = new LytMermaidFlowchart(document, normalized);
-        GuideDebugLog.debug(
-            "[GuideNH] [PreCompiler] Compiled fenced Mermaid flowchart stub ({} chars)", normalized.length());
+        GuideDebugLog
+            .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid flowchart stub ({} chars)", normalized.length());
         return block;
     }
 
@@ -224,8 +223,8 @@ public class PreCompiler extends BlockTagCompiler {
         LytCodeBlock codeBlock = new LytCodeBlock();
         codeBlock.setCodeContent("mermaid", normalized);
         codeBlock.setLanguageDisplayName("Mermaid (stub)");
-        GuideDebugLog.debug(
-            "[GuideNH] [PreCompiler] Compiled fenced Mermaid unknown stub ({} chars)", normalized.length());
+        GuideDebugLog
+            .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid unknown stub ({} chars)", normalized.length());
         return codeBlock;
     }
 

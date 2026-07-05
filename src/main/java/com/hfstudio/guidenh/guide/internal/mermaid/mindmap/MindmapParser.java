@@ -221,7 +221,6 @@ public class MindmapParser {
         return MermaidParser.stripWrappingQuotes(normalized.trim());
     }
 
-
     private static String formatIconLabel(String icon) {
         if (icon == null || icon.trim()
             .isEmpty()) {

@@ -4,6 +4,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class HexagonShape implements ShapeRenderer {
+
     @Override
     public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
         int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
@@ -11,8 +12,8 @@ public class HexagonShape implements ShapeRenderer {
         int inset = Math.max(1, h / 4);
 
         context.fillPolygon(
-            new float[]{x + inset, r - inset, r, r - inset, x + inset, x},
-            new float[]{y, y, cy, b, b, cy},
+            new float[] { x + inset, r - inset, r, r - inset, x + inset, x },
+            new float[] { y, y, cy, b, b, cy },
             backgroundColor);
         context.drawLine(x + inset, y, r - inset, y, 1, borderColor);
         context.drawLine(r - inset, y, r, cy, 1, borderColor);

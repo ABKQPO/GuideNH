@@ -61,10 +61,10 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNodeContentExtractor;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiExternalLinkSupport;
@@ -1543,14 +1543,13 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private Map<String, String> compileMermaidNodeHtml(MdxJsxElementFields element,
-                                                       @Nullable ResourceLocation currentPageId, MindmapDocument doc, String defaultNamespace,
-                                                       GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
-                                                       GuideSiteHtmlCompiler compiler) {
+        @Nullable ResourceLocation currentPageId, MindmapDocument doc, String defaultNamespace,
+        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+        GuideSiteHtmlCompiler compiler) {
         Map<String, MindmapNode> nodesById = new LinkedHashMap<>();
         collectMermaidNodes(nodesById, doc.getRoot());
         Map<String, String> nodeHtml = new LinkedHashMap<>();
-        for (MdxJsxFlowElement nodeContent : MermaidSourceExtractor
-            .collectNodeContentElements(element.children())) {
+        for (MdxJsxFlowElement nodeContent : MermaidSourceExtractor.collectNodeContentElements(element.children())) {
             String id = MermaidSourceExtractor.readNodeContentId(nodeContent);
             if (id == null || !nodesById.containsKey(id) || nodeHtml.containsKey(id)) {
                 continue;

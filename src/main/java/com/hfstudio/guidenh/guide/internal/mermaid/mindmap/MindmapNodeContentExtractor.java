@@ -2,11 +2,10 @@ package com.hfstudio.guidenh.guide.internal.mermaid.mindmap;
 
 import java.util.List;
 
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.MdxBlockTagSourceExtractor;
-import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
