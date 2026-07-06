@@ -172,14 +172,12 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             }
 
             // External edge: connects the outermost source and target (ports or nodes)
-            ElkConnectableShape extSrc = !srcPorts.isEmpty()
-                ? srcPorts.get(srcPorts.size() - 1) : source;
-            ElkConnectableShape extTgt = !tgtPorts.isEmpty()
-                ? tgtPorts.get(tgtPorts.size() - 1) : target;
+            ElkConnectableShape extSrc = !srcPorts.isEmpty() ? srcPorts.get(srcPorts.size() - 1) : source;
+            ElkConnectableShape extTgt = !tgtPorts.isEmpty() ? tgtPorts.get(tgtPorts.size() - 1) : target;
             ElkEdge externalEdge = ElkGraphUtil.createSimpleEdge(extSrc, extTgt);
 
-            splitChains.add(new SplitChain(edge.getFrom(), edge.getTo(),
-                srcPorts, tgtPorts, externalEdge, srcEdges, tgtEdges));
+            splitChains.add(
+                new SplitChain(edge.getFrom(), edge.getTo(), srcPorts, tgtPorts, externalEdge, srcEdges, tgtEdges));
         }
 
         // ---- Run layout ----
@@ -228,9 +226,12 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
                 int dy = anchorY - last.getY();
                 List<FlowchartLayoutResult.Point> prepend = new ArrayList<>();
                 for (int j = 0; j < intPts.size() - 1; j++) {
-                    prepend.add(new FlowchartLayoutResult.Point(
-                        intPts.get(j).getX() + dx,
-                        intPts.get(j).getY() + dy));
+                    prepend.add(
+                        new FlowchartLayoutResult.Point(
+                            intPts.get(j)
+                                .getX() + dx,
+                            intPts.get(j)
+                                .getY() + dy));
                 }
                 merged.addAll(0, prepend);
             }
@@ -248,9 +249,12 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
                 int dx = anchorX - first.getX();
                 int dy = anchorY - first.getY();
                 for (int j = 1; j < intPts.size(); j++) {
-                    merged.add(new FlowchartLayoutResult.Point(
-                        intPts.get(j).getX() + dx,
-                        intPts.get(j).getY() + dy));
+                    merged.add(
+                        new FlowchartLayoutResult.Point(
+                            intPts.get(j)
+                                .getX() + dx,
+                            intPts.get(j)
+                                .getY() + dy));
                 }
             }
 
