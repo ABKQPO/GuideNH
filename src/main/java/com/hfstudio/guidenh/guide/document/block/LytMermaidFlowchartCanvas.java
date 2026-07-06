@@ -67,6 +67,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     private static final ConstantColor[] SUBGRAPH_BORDER = { new ConstantColor(0x99434C57),
         new ConstantColor(0x994C5743), new ConstantColor(0x99575743), new ConstantColor(0x9943574C), };
     private static final int SUBGRAPH_PADDING = 8;
+    private static final int SUBGRAPH_LABEL_HEIGHT = 14;
 
     private static final ResolvedTextStyle NODE_TEXT_STYLE = new ResolvedTextStyle(
         1f,
@@ -283,8 +284,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 textHeight = Math.max(1, lines.size()) * lineHeight;
             }
 
-            int width = textWidth + NODE_PADDING_X * 2;
-            int height = textHeight + NODE_PADDING_Y * 2;
+            int contentW = textWidth;
+            int contentH = textHeight;
 
             String icon = node.getIcon();
             if (icon != null) {
@@ -293,24 +294,15 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                     int badgeWidth = MermaidNodeRenderer.measureText(context, ICON_TEXT_STYLE, badgeText)
                         + BADGE_PADDING_X * 2;
                     int badgeHeight = context.getLineHeight(ICON_TEXT_STYLE) + BADGE_PADDING_Y * 2;
-                    width = Math.max(width, badgeWidth + NODE_PADDING_X * 2);
-                    height += badgeHeight + ICON_GAP_Y;
+                    contentW = Math.max(contentW, badgeWidth);
+                    contentH += badgeHeight + ICON_GAP_Y;
                 }
             }
 
-            switch (node.getShape()) {
-                case ROUNDED -> width += 8;
-                case SUBPROCESS -> width += 16;
-                case CIRCLE, DOUBLE_CIRCLE -> {
-                    width += 12;
-                    height += 8;
-                    width = Math.max(width, height + 14);
-                }
-                case HEXAGON -> width += 14;
-                case CLOUD -> width += 16;
-                case BANG -> width += 10;
-                default -> {}
-            }
+            LytRect minRect = FlowchartShapes
+                .minNodeRect(node.getShape(), contentW, contentH, NODE_PADDING_X, NODE_PADDING_Y);
+            int width = minRect.width();
+            int height = minRect.height();
 
             if (isRoot) {
                 width += 10;
@@ -372,7 +364,11 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                     String width = getStyleProperty(edgeStyles, "stroke-width");
                     if (width != null) {
                         try {
-                            edgeThickness = Math.max(1, Integer.parseInt(width.replace("px", "").trim()));
+                            edgeThickness = Math.max(
+                                1,
+                                Integer.parseInt(
+                                    width.replace("px", "")
+                                        .trim()));
                         } catch (NumberFormatException ignored) {}
                     }
                 }
@@ -423,15 +419,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                     if (revLen > 0.5f) {
                         revDirX /= revLen;
                         revDirY /= revLen;
-                        drawArrowHeadVariant(
-                            context,
-                            tailX,
-                            tailY,
-                            revDirX,
-                            revDirY,
-                            activeZoom,
-                            edgeColor,
-                            revHead);
+                        drawArrowHeadVariant(context, tailX, tailY, revDirX, revDirY, activeZoom, edgeColor, revHead);
                     }
                 }
             }
@@ -610,8 +598,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             if (node == null) continue;
 
             boolean isRoot = nodeId.equals(rootNodeId);
-            int nodePaddingX = isRoot ? Math.max(1, Math.round(NODE_PADDING_X * 1.5f * activeZoom)) : paddingX;
-            int nodePaddingY = isRoot ? Math.max(1, Math.round(NODE_PADDING_Y * 1.5f * activeZoom)) : paddingY;
+            int pdX = isRoot ? Math.max(1, Math.round(NODE_PADDING_X * 1.5f * activeZoom)) : paddingX;
+            int pdY = isRoot ? Math.max(1, Math.round(NODE_PADDING_Y * 1.5f * activeZoom)) : paddingY;
             ResolvedTextStyle style = getOrScaleStyle(isRoot ? ROOT_TEXT_STYLE : NODE_TEXT_STYLE, activeZoom);
 
             int sx = scaled(baseX, pos.getX(), activeZoom);
@@ -627,19 +615,25 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 String stroke = getStyleProperty(nodeStyles, "stroke");
                 if (fill != null) {
                     int fillColor = parseHexColor(fill);
-                    if (fillColor != 0) colors = new MermaidNodeRenderer.NodeColors(fillColor, colors.border(), colors.accent());
+                    if (fillColor != 0)
+                        colors = new MermaidNodeRenderer.NodeColors(fillColor, colors.border(), colors.accent());
                 }
                 if (stroke != null) {
                     int strokeColor = parseHexColor(stroke);
-                    if (strokeColor != 0) colors = new MermaidNodeRenderer.NodeColors(colors.background(), strokeColor, colors.accent());
+                    if (strokeColor != 0)
+                        colors = new MermaidNodeRenderer.NodeColors(colors.background(), strokeColor, colors.accent());
                 }
             }
             FlowchartShapes.render(context, rect, node.getShape(), colors.background(), colors.border());
-            if (colors.accent() != MermaidNodeRenderer.DEFAULT_ACCENT) {
+            if (colors.accent() != MermaidNodeRenderer.DEFAULT_ACCENT
+                && FlowchartShapes.hasAccentBar(node.getShape())) {
                 MermaidNodeRenderer.renderAccentBar(context, rect, colors.accent());
             }
 
-            int textY = rect.y() + nodePaddingY;
+            int contentW = rect.width() - 2 * pdX;
+            int contentH = rect.height() - 2 * pdY;
+            LytRect contentArea = FlowchartShapes.contentBounds(rect, node.getShape(), contentW, contentH, pdX, pdY);
+            int textY = contentArea.y();
 
             String icon = node.getIcon();
             if (icon != null) {
@@ -652,7 +646,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                     int badgeHeight = Math.max(
                         1,
                         context.getLineHeight(badgeStyle) + Math.max(1, Math.round(BADGE_PADDING_Y * activeZoom)) * 2);
-                    int badgeX = rect.x() + nodePaddingX;
+                    int badgeX = contentArea.x();
                     LytRect badge = new LytRect(badgeX, textY, badgeWidth, badgeHeight);
                     context.fillRect(badge, MermaidNodeRenderer.BADGE_BACKGROUND);
                     context.drawBorder(badge, MermaidNodeRenderer.BADGE_BORDER, 1);
@@ -665,29 +659,57 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 }
             }
 
+            int visibleWidth = contentArea.width();
+            int visibleHeight = contentArea.height();
+
             NodeContentLayout contentLayout = nodeContentLayouts.get(nodeId);
             if (contentLayout != null) {
-                renderNodeContent(context, contentLayout, rect, nodePaddingX, textY, activeZoom);
+                renderNodeContent(context, contentLayout, contentArea, activeZoom);
             } else {
                 String label = node.getLabel();
                 if (label == null || label.isEmpty()) continue;
 
-                int maxTextWidth = Math.max(1, rect.width() - nodePaddingX * 2);
-                List<String> lines = MermaidNodeRenderer.wrapText(context, style, label, maxTextWidth);
+                List<String> lines = MermaidNodeRenderer.wrapText(context, style, label, visibleWidth);
                 int lineHeight = context.getLineHeight(style);
+                int totalTextHeight = lines.size() * lineHeight;
+                int baseTextY = contentArea.y() + Math.max(0, (visibleHeight - totalTextHeight) / 2);
                 for (int i = 0; i < lines.size(); i++) {
                     int lineWidth = context.getStringWidth(lines.get(i), style);
-                    int textX = rect.x() + Math.max(nodePaddingX, (rect.width() - lineWidth) / 2);
-                    context.drawText(lines.get(i), textX, textY + i * lineHeight, style);
+                    int textX = contentArea.x() + Math.max(0, (visibleWidth - lineWidth) / 2);
+                    context.drawText(lines.get(i), textX, baseTextY + i * lineHeight, style);
                 }
             }
         }
     }
 
-    private void renderNodeContent(RenderContext context, NodeContentLayout contentLayout, LytRect rect, int paddingX,
-        int contentY, float activeZoom) {
+    private void renderNodeContent(RenderContext context, NodeContentLayout contentLayout, LytRect contentArea,
+        float activeZoom) {
         LytRect innerViewport = getInnerViewport();
-        LytRect contentViewport = resolveNodeContentRect(contentLayout, rect, paddingX, contentY, activeZoom);
+        LytRect rawViewport = new LytRect(
+            contentArea.x(),
+            contentArea.y(),
+            Math.max(
+                1,
+                Math.round(
+                    contentLayout.visualBounds()
+                        .width() * activeZoom)),
+            Math.max(
+                1,
+                Math.round(
+                    contentLayout.visualBounds()
+                        .height() * activeZoom)));
+
+        // Center the content viewport within the content area
+        int cvpX = rawViewport.x();
+        int cvpY = rawViewport.y();
+        if (rawViewport.width() < contentArea.width()) {
+            cvpX = contentArea.x() + (contentArea.width() - rawViewport.width()) / 2;
+        }
+        if (rawViewport.height() < contentArea.height()) {
+            cvpY = contentArea.y() + (contentArea.height() - rawViewport.height()) / 2;
+        }
+        LytRect contentViewport = new LytRect(cvpX, cvpY, rawViewport.width(), rawViewport.height());
+
         LytRect clip = intersect(innerViewport, contentViewport);
         if (clip == null) return;
 
@@ -952,6 +974,16 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 result = result != null ? LytRect.union(result, childBounds) : childBounds;
             }
         }
+        if (result != null) {
+            String label = subgraph.getLabel();
+            if (label != null && !label.isEmpty()) {
+                result = new LytRect(
+                    result.x(),
+                    result.y() - SUBGRAPH_LABEL_HEIGHT,
+                    result.width(),
+                    result.height() + SUBGRAPH_LABEL_HEIGHT);
+            }
+        }
         return result;
     }
 
@@ -1026,15 +1058,17 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         return new LytRect(left, top, right - left, bottom - top);
     }
 
-
     @Nullable
     private static String getStyleProperty(@Nullable String styleOverride, String property) {
         if (styleOverride == null) return null;
         String last = null;
         for (String part : styleOverride.split(",")) {
             int colon = part.indexOf(':');
-            if (colon > 0 && part.substring(0, colon).trim().equalsIgnoreCase(property)) {
-                last = part.substring(colon + 1).trim();
+            if (colon > 0 && part.substring(0, colon)
+                .trim()
+                .equalsIgnoreCase(property)) {
+                last = part.substring(colon + 1)
+                    .trim();
             }
         }
         return last;

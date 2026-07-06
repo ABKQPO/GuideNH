@@ -11,13 +11,23 @@ public class StadiumShape implements ShapeRenderer {
         int r = Math.min(w, h) / 2;
         float cy = y + h / 2f;
 
-        context.fillRect(rect, backgroundColor);
-        context.fillCircle(x + r, cy, r, backgroundColor);
-        context.fillCircle(x + w - r, cy, r, backgroundColor);
+        context.fillRect(x + r, y, w - r * 2, h, borderColor);
+        context.fillCircle(x + r, cy, r, borderColor);
+        context.fillCircle(x + w - r, cy, r, borderColor);
 
-        context.drawLine(x + r, y, x + w - r, y, 1, borderColor);
-        context.drawLine(x + r, y + h, x + w - r, y + h, 1, borderColor);
-        context.drawCircleOutline(x + r, cy, r, 1, borderColor);
-        context.drawCircleOutline(x + w - r, cy, r, 1, borderColor);
+        int ir = Math.max(r - 1, 0);
+        context.fillRect(x + r, y + 1, w - r * 2, h - 2, backgroundColor);
+        context.fillCircle(x + r, cy, ir, backgroundColor);
+        context.fillCircle(x + w - r, cy, ir, backgroundColor);
+    }
+
+    @Override
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+        return nodeRect.shrink(padX, padY, padX, padY);
+    }
+
+    @Override
+    public LytRect minNodeRect(int cw, int ch, int padX, int padY) {
+        return new LytRect(0, 0, cw + 2 * padX, ch + 2 * padY);
     }
 }

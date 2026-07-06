@@ -8,21 +8,31 @@ public class RoundedRectShape implements ShapeRenderer {
     @Override
     public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
         int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
-        int r = Math.clamp(w / 6, 1, 8);
+        int r = Math.clamp(Math.min(w, h) / 5, 2, 12);
 
-        // Outer shape (border): fill outer rect + corner circles with borderColor
         context.fillRect(rect, borderColor);
         context.fillCircle(x + r, y + r, r, borderColor);
         context.fillCircle(x + w - r, y + r, r, borderColor);
         context.fillCircle(x + r, y + h - r, r, borderColor);
         context.fillCircle(x + w - r, y + h - r, r, borderColor);
 
-        // Inner shape (background): inset by 1px to reveal border
-        int ir = Math.max(r - 1, 0);
-        context.fillRect(x + 1, y + 1, w - 2, h - 2, backgroundColor);
-        context.fillCircle(x + r, y + r, ir, backgroundColor);
-        context.fillCircle(x + w - r, y + r, ir, backgroundColor);
-        context.fillCircle(x + r, y + h - r, ir, backgroundColor);
-        context.fillCircle(x + w - r, y + h - r, ir, backgroundColor);
+        int inset = 1;
+        int ir = Math.max(r - inset, 1);
+        int ix = x + inset, iy = y + inset, iw = w - inset * 2, ih = h - inset * 2;
+        context.fillRect(ix, iy, iw, ih, backgroundColor);
+        context.fillCircle(ix + ir, iy + ir, ir, backgroundColor);
+        context.fillCircle(ix + iw - ir, iy + ir, ir, backgroundColor);
+        context.fillCircle(ix + ir, iy + ih - ir, ir, backgroundColor);
+        context.fillCircle(ix + iw - ir, iy + ih - ir, ir, backgroundColor);
+    }
+
+    @Override
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+        return nodeRect.shrink(padX, padY, padX, padY);
+    }
+
+    @Override
+    public LytRect minNodeRect(int cw, int ch, int padX, int padY) {
+        return new LytRect(0, 0, cw + 2 * padX, ch + 2 * padY);
     }
 }

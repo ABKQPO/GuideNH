@@ -209,7 +209,8 @@ public class FlowchartParser {
     private static String stripIconFromLabel(String label) {
         if (label == null) return "";
         int space = label.indexOf(' ');
-        return space > 0 ? label.substring(space).trim() : "";
+        return space > 0 ? label.substring(space)
+            .trim() : "";
     }
 
     private static List<String> splitOnAmpersand(String seg) {
@@ -1005,7 +1006,8 @@ public class FlowchartParser {
             for (Map.Entry<String, FlowchartNode> entry : nodes.entrySet()) {
                 String nodeId = entry.getKey();
                 FlowchartNode node = entry.getValue();
-                if (node.getClasses().isEmpty()) continue;
+                if (node.getClasses()
+                    .isEmpty()) continue;
                 List<String> resolved = new ArrayList<>();
                 for (String className : node.getClasses()) {
                     List<String> classStyles = classDefs.get(className);
@@ -1015,10 +1017,17 @@ public class FlowchartParser {
                     resolved.add(node.getStyleOverride());
                 }
                 if (!resolved.isEmpty()) {
-                    nodes.put(nodeId, new FlowchartNode(
-                        node.getId(), node.getLabel(), node.getShape(), node.getClasses(),
-                        String.join(",", resolved), node.getIcon(),
-                        node.isMarkdownLabel(), node.getExtendedProperties()));
+                    nodes.put(
+                        nodeId,
+                        new FlowchartNode(
+                            node.getId(),
+                            node.getLabel(),
+                            node.getShape(),
+                            node.getClasses(),
+                            String.join(",", resolved),
+                            node.getIcon(),
+                            node.isMarkdownLabel(),
+                            node.getExtendedProperties()));
                 }
             }
         }
@@ -1036,8 +1045,7 @@ public class FlowchartParser {
                             if (idx >= 0 && idx < edges.size()) {
                                 edges.set(idx, applyEntryToEdge(edges.get(idx), entry));
                             }
-                        } catch (NumberFormatException ignored) {
-                        }
+                        } catch (NumberFormatException ignored) {}
                     }
                 }
             }
@@ -1050,9 +1058,17 @@ public class FlowchartParser {
             if (entry.styles() != null) parts.addAll(entry.styles());
             String merged = parts.isEmpty() ? null : String.join(",", parts);
             return new FlowchartEdge(
-                edge.getFrom(), edge.getTo(), edge.getLabel(), edge.getStyle(),
-                edge.isArrowFwd(), edge.isArrowRev(), edge.getForwardHead(), edge.getReverseHead(),
-                edge.getEdgeId(), edge.getLength(), merged);
+                edge.getFrom(),
+                edge.getTo(),
+                edge.getLabel(),
+                edge.getStyle(),
+                edge.isArrowFwd(),
+                edge.isArrowRev(),
+                edge.getForwardHead(),
+                edge.getReverseHead(),
+                edge.getEdgeId(),
+                edge.getLength(),
+                merged);
         }
 
         private int autoIdCounter = 0;

@@ -28,6 +28,7 @@ public class FlowchartDocument {
     private final FlowchartConfig config;
 
     public record FlowchartConfig(int nodeSpacing, int rankSpacing, int canvasPadding) {
+
         public static final FlowchartConfig DEFAULT = new FlowchartConfig(20, 20, 20);
     }
 
@@ -37,8 +38,7 @@ public class FlowchartDocument {
     }
 
     public FlowchartDocument(FlowchartDirection direction, Map<String, FlowchartNode> nodes, List<FlowchartEdge> edges,
-        List<FlowchartSubgraph> subgraphs, @Nullable FlowchartLayoutMode layoutMode,
-        @Nullable FlowchartConfig config) {
+        List<FlowchartSubgraph> subgraphs, @Nullable FlowchartLayoutMode layoutMode, @Nullable FlowchartConfig config) {
         this.direction = direction != null ? direction : FlowchartDirection.TB;
         Map<String, FlowchartNode> src = nodes != null ? nodes : Map.of();
         this.nodes = Map.copyOf(new LinkedHashMap<>(src));

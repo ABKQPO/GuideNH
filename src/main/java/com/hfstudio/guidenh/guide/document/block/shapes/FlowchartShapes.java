@@ -26,6 +26,7 @@ public final class FlowchartShapes {
         RENDERERS.put(MermaidNodeShape.BANG, new BangShape());
         RENDERERS.put(MermaidNodeShape.ASYMMETRIC, new AsymmetricShape());
         RENDERERS.put(MermaidNodeShape.TRAPEZOID, new TrapezoidShape());
+        RENDERERS.put(MermaidNodeShape.ELLIPSE, new CircleShape());
     }
 
     private FlowchartShapes() {}
@@ -36,5 +37,23 @@ public final class FlowchartShapes {
         if (renderer != null) {
             renderer.render(context, rect, backgroundColor, borderColor);
         }
+    }
+
+    public static LytRect contentBounds(LytRect nodeRect, MermaidNodeShape shape, int cw, int ch, int padX, int padY) {
+        ShapeRenderer renderer = RENDERERS.get(shape);
+        return renderer != null ? renderer.contentBounds(nodeRect, cw, ch, padX, padY) : nodeRect;
+    }
+
+    public static LytRect minNodeRect(MermaidNodeShape shape, int cw, int ch, int padX, int padY) {
+        ShapeRenderer renderer = RENDERERS.get(shape);
+        return renderer != null ? renderer.minNodeRect(cw, ch, padX, padY)
+            : new LytRect(0, 0, cw + 2 * padX, ch + 2 * padY);
+    }
+
+    public static boolean hasAccentBar(MermaidNodeShape shape) {
+        return switch (shape) {
+            case DEFAULT, SQUARE, ROUNDED, STADIUM, SUBPROCESS -> true;
+            default -> false;
+        };
     }
 }

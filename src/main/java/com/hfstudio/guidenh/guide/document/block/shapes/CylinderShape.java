@@ -13,13 +13,29 @@ public class CylinderShape implements ShapeRenderer {
         int bodyTop = y + ellipseR;
         int bodyBottom = y + h - ellipseR;
 
-        context.fillRect(new LytRect(x, bodyTop, w, bodyBottom - bodyTop), backgroundColor);
-        context.fillCircle(cx, bodyTop, ellipseR, backgroundColor);
-        context.fillCircle(cx, bodyBottom, ellipseR, backgroundColor);
+        context.fillRect(new LytRect(x, bodyTop, w, bodyBottom - bodyTop), borderColor);
+        context.fillCircle(cx, bodyTop, ellipseR, borderColor);
+        context.fillCircle(cx, bodyBottom, ellipseR, borderColor);
 
-        context.drawCircleOutline(cx, bodyTop, ellipseR, 1, borderColor);
-        context.drawLine(x, bodyTop, x, bodyBottom, 1, borderColor);
-        context.drawLine(x + w, bodyTop, x + w, bodyBottom, 1, borderColor);
-        context.drawCircleOutline(cx, bodyBottom, ellipseR, 1, borderColor);
+        int ir = Math.max(ellipseR - 1, 0);
+        context.fillRect(new LytRect(x + 1, bodyTop + 1, w - 2, bodyBottom - bodyTop - 2), backgroundColor);
+        context.fillCircle(cx, bodyTop, ir, backgroundColor);
+        context.fillCircle(cx, bodyBottom, ir, backgroundColor);
+    }
+
+    @Override
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+        int ellipseR = Math.min(nodeRect.width(), nodeRect.height()) / 4;
+        int top = nodeRect.y() + ellipseR;
+        int bodyH = nodeRect.height() - 2 * ellipseR;
+        return new LytRect(nodeRect.x() + padX, top + padY, nodeRect.width() - 2 * padX, bodyH - 2 * padY);
+    }
+
+    @Override
+    public LytRect minNodeRect(int cw, int ch, int padX, int padY) {
+        int pw = cw + 2 * padX;
+        int ph = ch + 2 * padY;
+        // body = h - 2*min(w,h)/4. For any aspect ratio h >= 2*ph guarantees body >= ph.
+        return new LytRect(0, 0, pw, ph * 2);
     }
 }
