@@ -21,19 +21,18 @@ public class FlowchartEdge {
     @Nullable
     private final String edgeId;
     private final int length;
-
-    public FlowchartEdge(String from, String to, @Nullable String label, MermaidEdgeStyle style) {
-        this(from, to, label, style, true, false, MermaidArrowHead.TRIANGLE, MermaidArrowHead.NONE, null, 0);
-    }
-
-    public FlowchartEdge(String from, String to, @Nullable String label, MermaidEdgeStyle style,
-        @Nullable String edgeId, int length) {
-        this(from, to, label, style, true, false, MermaidArrowHead.TRIANGLE, MermaidArrowHead.NONE, edgeId, length);
-    }
+    @Nullable
+    private final String styleOverride;
 
     public FlowchartEdge(String from, String to, @Nullable String label, MermaidEdgeStyle style, boolean arrowFwd,
         boolean arrowRev, MermaidArrowHead forwardHead, MermaidArrowHead reverseHead, @Nullable String edgeId,
         int length) {
+        this(from, to, label, style, arrowFwd, arrowRev, forwardHead, reverseHead, edgeId, length, null);
+    }
+
+    public FlowchartEdge(String from, String to, @Nullable String label, MermaidEdgeStyle style, boolean arrowFwd,
+        boolean arrowRev, MermaidArrowHead forwardHead, MermaidArrowHead reverseHead, @Nullable String edgeId,
+        int length, @Nullable String styleOverride) {
         this.from = Objects.requireNonNullElse(from, "");
         this.to = Objects.requireNonNullElse(to, "");
         this.label = label;
@@ -44,6 +43,7 @@ public class FlowchartEdge {
         this.reverseHead = reverseHead != null ? reverseHead : MermaidArrowHead.NONE;
         this.edgeId = edgeId;
         this.length = Math.max(0, length);
+        this.styleOverride = styleOverride;
     }
 
     public String getFrom() {
@@ -84,5 +84,9 @@ public class FlowchartEdge {
 
     public int getLength() {
         return length;
+    }
+
+    public @Nullable String getStyleOverride() {
+        return styleOverride;
     }
 }

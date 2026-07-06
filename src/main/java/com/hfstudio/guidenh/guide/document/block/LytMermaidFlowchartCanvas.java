@@ -359,10 +359,27 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
 
             if (style == MermaidEdgeStyle.INVISIBLE) continue;
 
+            int edgeColor = defaultColor;
+            int edgeThickness = style == MermaidEdgeStyle.THICK ? CONNECTOR_THICKNESS * 2 : CONNECTOR_THICKNESS;
+            if (flowEdge != null) {
+                String edgeStyles = flowEdge.getStyleOverride();
+                if (edgeStyles != null) {
+                    String stroke = getStyleProperty(edgeStyles, "stroke");
+                    if (stroke != null) {
+                        int parsed = parseHexColor(stroke);
+                        if (parsed != 0) edgeColor = parsed;
+                    }
+                    String width = getStyleProperty(edgeStyles, "stroke-width");
+                    if (width != null) {
+                        try {
+                            edgeThickness = Math.max(1, Integer.parseInt(width.replace("px", "").trim()));
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+            }
+
             List<FlowchartLayoutResult.Point> points = edgePath.getPoints();
             if (points.size() < 2) continue;
-
-            int thickness = style == MermaidEdgeStyle.THICK ? CONNECTOR_THICKNESS * 2 : CONNECTOR_THICKNESS;
 
             for (int i = 1; i < points.size(); i++) {
                 FlowchartLayoutResult.Point from = points.get(i - 1);
@@ -373,9 +390,9 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 float y2 = scaled(baseY, to.getY(), activeZoom);
 
                 if (style == MermaidEdgeStyle.DASHED || style == MermaidEdgeStyle.DOTTED) {
-                    drawDashedLine(context, x1, y1, x2, y2, thickness, defaultColor, style == MermaidEdgeStyle.DOTTED);
+                    drawDashedLine(context, x1, y1, x2, y2, edgeThickness, edgeColor, style == MermaidEdgeStyle.DOTTED);
                 } else {
-                    context.drawLine(x1, y1, x2, y2, thickness, defaultColor);
+                    context.drawLine(x1, y1, x2, y2, edgeThickness, edgeColor);
                 }
             }
 
@@ -391,7 +408,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                     dirX /= len;
                     dirY /= len;
                     if (arrowFwd) {
-                        drawArrowHeadVariant(context, tipX, tipY, dirX, dirY, activeZoom, defaultColor, fwdHead);
+                        drawArrowHeadVariant(context, tipX, tipY, dirX, dirY, activeZoom, edgeColor, fwdHead);
                     }
                 }
 
@@ -413,7 +430,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                             revDirX,
                             revDirY,
                             activeZoom,
-                            defaultColor,
+                            edgeColor,
                             revHead);
                     }
                 }
@@ -604,6 +621,19 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             LytRect rect = new LytRect(sx, sy, sw, sh);
 
             var colors = MermaidNodeRenderer.resolveNodeColors(node.getClasses(), node.getShape(), isRoot);
+            String nodeStyles = node.getStyleOverride();
+            if (nodeStyles != null) {
+                String fill = getStyleProperty(nodeStyles, "fill");
+                String stroke = getStyleProperty(nodeStyles, "stroke");
+                if (fill != null) {
+                    int fillColor = parseHexColor(fill);
+                    if (fillColor != 0) colors = new MermaidNodeRenderer.NodeColors(fillColor, colors.border(), colors.accent());
+                }
+                if (stroke != null) {
+                    int strokeColor = parseHexColor(stroke);
+                    if (strokeColor != 0) colors = new MermaidNodeRenderer.NodeColors(colors.background(), strokeColor, colors.accent());
+                }
+            }
             FlowchartShapes.render(context, rect, node.getShape(), colors.background(), colors.border());
             if (colors.accent() != MermaidNodeRenderer.DEFAULT_ACCENT) {
                 MermaidNodeRenderer.renderAccentBar(context, rect, colors.accent());
@@ -994,6 +1024,36 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         int bottom = Math.min(a.bottom(), b.bottom());
         if (right <= left || bottom <= top) return null;
         return new LytRect(left, top, right - left, bottom - top);
+    }
+
+
+    @Nullable
+    private static String getStyleProperty(@Nullable String styleOverride, String property) {
+        if (styleOverride == null) return null;
+        String last = null;
+        for (String part : styleOverride.split(",")) {
+            int colon = part.indexOf(':');
+            if (colon > 0 && part.substring(0, colon).trim().equalsIgnoreCase(property)) {
+                last = part.substring(colon + 1).trim();
+            }
+        }
+        return last;
+    }
+
+    private static int parseHexColor(String hex) {
+        if (hex == null || hex.isEmpty()) return 0;
+        String h = hex.startsWith("#") ? hex.substring(1) : hex;
+        try {
+            if (h.length() == 3) {
+                h = "" + h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+            }
+            if (h.length() == 6) {
+                return 0xFF000000 | Integer.parseInt(h, 16);
+            } else if (h.length() == 8) {
+                return (int) Long.parseLong(h, 16);
+            }
+        } catch (NumberFormatException ignored) {}
+        return 0;
     }
 
     // ---- Inner classes ----

@@ -4,10 +4,12 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -197,6 +199,19 @@ public class FlowchartParser {
             .toList();
     }
 
+    @Nullable
+    private static String extractIconFromLabel(String label) {
+        if (label == null || !label.startsWith("fa:")) return null;
+        int space = label.indexOf(' ');
+        return space > 0 ? label.substring(0, space) : label;
+    }
+
+    private static String stripIconFromLabel(String label) {
+        if (label == null) return "";
+        int space = label.indexOf(' ');
+        return space > 0 ? label.substring(space).trim() : "";
+    }
+
     private static List<String> splitOnAmpersand(String seg) {
         List<String> parts = new ArrayList<>();
         int start = 0;
@@ -338,15 +353,39 @@ public class FlowchartParser {
             String value = line.substring(colon + 1)
                 .trim();
             FrontmatterKey fk = FrontmatterKey.byKey(key);
-            if (fk == null) continue;
-            Object parsed = fk.parse(value);
-            if (parsed instanceof FlowchartDirection dir) {
-                builder.setDirection(dir.name());
-            } else if (parsed instanceof FlowchartLayoutMode mode) {
-                builder.setLayoutMode(mode);
+            if (fk != null) {
+                Object parsed = fk.parse(value);
+                if (parsed instanceof FlowchartDirection dir) {
+                    builder.setDirection(dir.name());
+                } else if (parsed instanceof FlowchartLayoutMode mode) {
+                    builder.setLayoutMode(mode);
+                } else if (parsed instanceof Integer intVal) {
+                    applyLayoutConfig(key, intVal);
+                }
+                continue;
             }
+            Integer intVal = tryParseInt(value);
+            if (intVal != null) applyLayoutConfig(key, intVal);
         }
         return end + 1;
+    }
+
+    private void applyLayoutConfig(String key, int value) {
+        switch (key) {
+            case "nodeSpacing" -> builder.nodeSpacing = Math.max(1, value);
+            case "rankSpacing" -> builder.rankSpacing = Math.max(1, value);
+            case "padding" -> builder.canvasPadding = Math.max(0, value);
+        }
+    }
+
+    @Nullable
+    private static Integer tryParseInt(String s) {
+        if (s == null || s.isEmpty()) return null;
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     private int parseGraphDeclarationLine(int index) {
@@ -414,6 +453,8 @@ public class FlowchartParser {
 
         MermaidNodeShape shape = MermaidNodeShape.DEFAULT;
         String label = id;
+        @Nullable
+        String icon = null;
 
         NodeShapeDefinition.MatchResult shapeResult = NodeShapeDefinition.match(rest);
         if (shapeResult != null) {
@@ -421,9 +462,14 @@ public class FlowchartParser {
             if (label.isEmpty()) label = id;
             shape = shapeResult.definition()
                 .shape();
+            icon = extractIconFromLabel(label);
+            if (icon != null) {
+                label = stripIconFromLabel(label);
+                if (label.isEmpty()) label = id;
+            }
         }
 
-        return new NodeSpec(id, label, shape, classes, null, false, null);
+        return new NodeSpec(id, label, shape, classes, icon, false, null);
     }
 
     private NodeSpec parseExtendedNode(String id, String rest) {
@@ -719,6 +765,7 @@ public class FlowchartParser {
         Matcher m = STYLE_PATTERN.matcher(rest);
         if (!m.matches()) return;
         String nodeId = m.group(1);
+        if (builder.subgraphIds.contains(nodeId)) return;
         List<String> parts = splitStyles(m.group(2));
         if (parts.isEmpty()) return;
         String joined = String.join(",", parts);
@@ -816,10 +863,14 @@ public class FlowchartParser {
         final Map<String, FlowchartNode> nodes = new LinkedHashMap<>();
         final List<FlowchartEdge> edges = new ArrayList<>();
         final List<FlowchartSubgraph> subgraphs = new ArrayList<>();
+        int nodeSpacing = 20;
+        int rankSpacing = 20;
+        int canvasPadding = 20;
 
         private final Map<String, List<String>> classDefs = new LinkedHashMap<>();
         private final List<LinkStyleEntry> linkStyleEntries = new ArrayList<>();
         private final Deque<SubgraphContext> subgraphStack = new ArrayDeque<>();
+        final Set<String> subgraphIds = new HashSet<>();
 
         void setDirection(String dir) {
             if (dir != null) {
@@ -880,6 +931,7 @@ public class FlowchartParser {
             SubgraphContext ctx = new SubgraphContext();
             ctx.id = id != null ? id : autoSubgraphId();
             ctx.label = label != null ? label : ctx.id;
+            subgraphIds.add(ctx.id);
             if (!subgraphStack.isEmpty()) {
                 ctx.parent = subgraphStack.peek();
             }
@@ -943,7 +995,64 @@ public class FlowchartParser {
         }
 
         FlowchartDocument build() {
-            return new FlowchartDocument(direction, nodes, edges, subgraphs, layoutMode);
+            resolveClassStyles();
+            applyLinkStyles();
+            var cfg = new FlowchartDocument.FlowchartConfig(nodeSpacing, rankSpacing, canvasPadding);
+            return new FlowchartDocument(direction, nodes, edges, subgraphs, layoutMode, cfg);
+        }
+
+        private void resolveClassStyles() {
+            for (Map.Entry<String, FlowchartNode> entry : nodes.entrySet()) {
+                String nodeId = entry.getKey();
+                FlowchartNode node = entry.getValue();
+                if (node.getClasses().isEmpty()) continue;
+                List<String> resolved = new ArrayList<>();
+                for (String className : node.getClasses()) {
+                    List<String> classStyles = classDefs.get(className);
+                    if (classStyles != null) resolved.addAll(classStyles);
+                }
+                if (node.getStyleOverride() != null) {
+                    resolved.add(node.getStyleOverride());
+                }
+                if (!resolved.isEmpty()) {
+                    nodes.put(nodeId, new FlowchartNode(
+                        node.getId(), node.getLabel(), node.getShape(), node.getClasses(),
+                        String.join(",", resolved), node.getIcon(),
+                        node.isMarkdownLabel(), node.getExtendedProperties()));
+                }
+            }
+        }
+
+        private void applyLinkStyles() {
+            for (LinkStyleEntry entry : linkStyleEntries) {
+                for (String idxStr : entry.indices()) {
+                    if ("default".equalsIgnoreCase(idxStr)) {
+                        for (int i = 0; i < edges.size(); i++) {
+                            edges.set(i, applyEntryToEdge(edges.get(i), entry));
+                        }
+                    } else {
+                        try {
+                            int idx = Integer.parseInt(idxStr);
+                            if (idx >= 0 && idx < edges.size()) {
+                                edges.set(idx, applyEntryToEdge(edges.get(idx), entry));
+                            }
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                }
+            }
+        }
+
+        private FlowchartEdge applyEntryToEdge(FlowchartEdge edge, LinkStyleEntry entry) {
+            String existing = edge.getStyleOverride();
+            List<String> parts = new ArrayList<>();
+            if (existing != null) parts.add(existing);
+            if (entry.styles() != null) parts.addAll(entry.styles());
+            String merged = parts.isEmpty() ? null : String.join(",", parts);
+            return new FlowchartEdge(
+                edge.getFrom(), edge.getTo(), edge.getLabel(), edge.getStyle(),
+                edge.isArrowFwd(), edge.isArrowRev(), edge.getForwardHead(), edge.getReverseHead(),
+                edge.getEdgeId(), edge.getLength(), merged);
         }
 
         private int autoIdCounter = 0;
