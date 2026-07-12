@@ -15,9 +15,13 @@
 
 ## **Introduction**
 
-* <span style="color: #ff6600;">GuideNH</span> is an in-game guide framework for Minecraft **1.7.10** / Forge **10.13.4.1614**.
+* <span style="color: #ff6600;">GuideNH</span> is an in-game guide framework for Minecraft **1.7.10**
 * It ports and extends GuideME-style Markdown documentation for GTNH-era modpacks.
 * It is designed for authoring rich guide books directly from resource-pack style Markdown files.
+
+## Required Dependencies
+
+* [GTNHLib (>= 0.11.16)](https://github.com/GTNewHorizons/GTNHLib)
 
 ## **Features**
 
