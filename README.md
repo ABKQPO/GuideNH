@@ -1,6 +1,10 @@
 <p align="center">
     <img width="690" src="./src/main/resources/assets/logo.png" alt="GuideNH" style="image-rendering: pixelated;">
 </p>
+<p align="center">
+    <strong>⚠️ ARCHIVED — This repository is no longer maintained.</strong><br>
+    Development has moved to <a href="https://github.com/GTNewHorizons/guidenh">GTNewHorizons/GuideNH</a>.
+</p>
 <hr>
 <p align="center">
     <img src="https://img.shields.io/badge/Available%20for-MC%201.7.10-c70039" alt="Supported Minecraft Version">
